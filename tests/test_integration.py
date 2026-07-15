@@ -45,22 +45,27 @@ class _FakePub:
         self.sent.append((topic, payload))
 
 
-def _bar(ts, c, v=10):
-    return {"symbol": "MNQ", "tf": "5s", "ts": ts, "o": c, "h": c + 0.5, "l": c - 0.5, "c": c, "v": v}
+def _bar(ts, o, h, l, c, v):
+    return {"symbol": "MNQ", "tf": "5s", "ts": ts, "o": o, "h": h, "l": l, "c": round(c, 4), "v": v}
 
 
 def _thrust_up_intent():
-    """Drive a Strategy to a real OPEN intent off a thrust."""
-    s = Strategy(RunConfig(gate="thrust", gate_params={"thr": 1.5}))
-    ts = 2000 - 19 * 5
-    for _ in range(15):
-        s.on_bar(_bar(ts, 100.0)); ts += 5
-    px = 100.0
-    for j in range(5):
-        px += 0.7
-        s.on_bar(_bar(ts, px, 40 if j == 4 else 10)); ts += 5
-    now = 2000 * 1000 + 100
-    s.on_tape({"ts_ms": now - 100, "net_flow": 0, "win_price_delta": 0, "last": px, "in_rth": True})
+    """Drive a Strategy to a real OPEN intent off a 1-minute thrust (5s → 1m)."""
+    from datetime import UTC, datetime
+    end = int(datetime(2026, 7, 15, 16, 0, tzinfo=UTC).timestamp())  # in-session, minute-aligned
+    s = Strategy(RunConfig(gate="thrust", gate_params={"thr": 1.5, "amp_floor": 0.0004}))
+    closes = [100.0] * 5 + [100.8, 101.6, 102.4, 103.2, 104.0] + [104.0]
+    vols = [12] * 5 + [12, 14, 16, 18, 60] + [20]
+    prev = 100.0
+    start = end - len(closes) * 60
+    for i, cl in enumerate(closes):
+        mstart = start + i * 60
+        for j in range(12):
+            c = prev + (cl - prev) * (j + 1) / 12
+            s.on_bar(_bar(mstart + j * 5, c, c + 0.15, c - 0.15, c, vols[i] / 12))
+        prev = cl
+    now = end * 1000 + 100
+    s.on_tape({"ts_ms": now - 100, "net_flow": 0, "win_price_delta": 0, "last": 104.0, "in_rth": True})
     return s.decide(now)
 
 
