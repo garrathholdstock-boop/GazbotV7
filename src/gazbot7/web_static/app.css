@@ -1,0 +1,224 @@
+/* GAZBOT V5 — MNQ DESK
+   Dark-terminal theme (aesthetic ref: gazbot_mnq_mockup.html). Desktop 4-col grid;
+   PHONE format is the priority — reflows to a sticky KPI header + tab bar + single-
+   column panel stack (mirrors the futures_terminal.html mobile pattern the operator
+   likes). Read-only presentation.
+   2026-07-13 polish: type scale bumped to match futures_terminal.css (no more mockup-tiny
+   text), thin dark scrollbars, blotter fits (no horizontal overflow), col4 widened. */
+:root{
+  --bg:#080b0f; --panel:#0c1116; --panel2:#0a0e12; --line:#182029;
+  --line2:#212b35; --mut:#5c6b78; --mut2:#3f4b56; --txt:#c6d2db; --txt2:#8a99a6;
+  --cyan:#37c9c9; --cyan-dim:#1f6b6b; --grn:#37d07a; --red:#ff5a5f; --amb:#e0a83a;
+  --grn-bg:rgba(55,208,122,.10); --red-bg:rgba(255,90,95,.10); --cyan-bg:rgba(55,201,201,.06);
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:13px;letter-spacing:.2px}
+.mono{font-family:var(--mono)}
+.grn{color:var(--grn)} .red{color:var(--red)} .amb{color:var(--amb)} .cyan{color:var(--cyan)}
+.mut{color:var(--mut)} .txt2{color:var(--txt2)} .dim3{color:var(--mut2)}
+.pos{color:var(--grn)} .neg{color:var(--red)} .warn{color:var(--amb)}
+/* EXECUTION tab — through-rate trend bars */
+.exec-trend{display:flex;align-items:flex-end;gap:2px;min-height:46px;padding:6px 0;overflow-x:auto}
+.exec-bar{width:8px;flex:0 0 auto;border-radius:1px 1px 0 0;background:var(--mut)}
+.exec-bar.pos{background:var(--grn)} .exec-bar.warn{background:var(--amb)} .exec-bar.neg{background:var(--red)}
+
+/* thin dark scrollbars everywhere that scrolls (match futures_terminal.css) */
+.pb,.hero-body,.grid{scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.pb::-webkit-scrollbar,.hero-body::-webkit-scrollbar,.grid::-webkit-scrollbar{width:6px;height:6px}
+.pb::-webkit-scrollbar-thumb,.hero-body::-webkit-scrollbar-thumb,.grid::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.pb::-webkit-scrollbar-track,.hero-body::-webkit-scrollbar-track,.grid::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px;
+  border-bottom:1px solid var(--line);background:var(--panel2);flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:1px;font-size:15px;white-space:nowrap}
+.brand .v{color:var(--cyan)}
+.tag{font-size:11px;letter-spacing:1.4px;color:var(--mut);white-space:nowrap}
+.conn{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1px;color:var(--grn)}
+.conn.off{color:var(--red)} .conn.closed{color:var(--amb)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 6px var(--grn)}
+.conn.off .dot{background:var(--red);box-shadow:0 0 6px var(--red)}
+.conn.closed .dot{background:var(--amb);box-shadow:0 0 6px var(--amb)}
+.chip{border:1px solid var(--line2);border-radius:4px;padding:3px 9px;font-size:11px;letter-spacing:1px;color:var(--txt2);white-space:nowrap}
+.chip.bull{border-color:rgba(55,208,122,.4);color:var(--grn)}
+.chip.bear{border-color:rgba(255,90,95,.4);color:var(--red)}
+.chip.chop,.chip.flat{border-color:var(--line2);color:var(--mut)}
+.spacer{flex:1}
+.kpis{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+.kpi{display:flex;flex-direction:column;align-items:flex-end;min-width:50px}
+.kpi .l{font-size:10px;letter-spacing:1.1px;color:var(--mut)}
+.kpi .v{font-family:var(--mono);font-size:15px;font-weight:600}
+.kpi.box{border:1px solid var(--cyan-dim);border-radius:5px;padding:4px 10px;background:var(--cyan-bg)}
+.halt-banner{display:none;background:var(--red-bg);border-bottom:1px solid var(--red);
+  color:var(--red);font-size:12px;letter-spacing:1px;padding:6px 14px;text-align:center}
+.halt-banner.on{display:block}
+
+/* ---------- panels ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:7px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.ph{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);flex:none}
+.ph h2{font-size:12.5px;letter-spacing:1.3px;font-weight:600;color:var(--txt)}
+.ph .sub{font-size:10.5px;letter-spacing:.8px;color:var(--mut);margin-left:auto}
+.ph .live{font-size:10.5px;letter-spacing:1px;color:var(--cyan);margin-left:auto}
+.pb{padding:11px 12px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
+.sec{font-size:10.5px;letter-spacing:1.4px;color:var(--mut);margin:15px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.sec:first-child{margin-top:0}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:12.5px;gap:8px}
+.row .k{color:var(--txt2)} .row .val{font-family:var(--mono);font-weight:600}
+.big{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1.1}
+.subval{font-size:11px;color:var(--mut);font-family:var(--mono);margin-top:2px}
+.empty{color:var(--mut);font-size:12px;padding:10px 2px;text-align:center;letter-spacing:.5px}
+
+/* margin bar */
+.bar-track{height:6px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;overflow:hidden;margin:3px 0}
+.bar-fill{height:100%;background:var(--cyan);width:0%}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+th{font-family:var(--sans);font-size:10px;letter-spacing:.8px;color:var(--mut);text-align:right;font-weight:500;padding:5px 4px;border-bottom:1px solid var(--line)}
+th:first-child{text-align:left}
+td{text-align:right;padding:5px 4px;border-bottom:1px solid var(--panel2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td:first-child{text-align:left;color:var(--txt2)}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:rgba(55,201,201,.06)}
+.pill{display:inline-block;font-size:10.5px;letter-spacing:.5px;padding:1px 6px;border-radius:3px;font-family:var(--sans)}
+.pill.long{color:var(--grn);border:1px solid rgba(55,208,122,.35)}
+.pill.short{color:var(--red);border:1px solid rgba(255,90,95,.35)}
+.flag-star{color:var(--amb)} .flag-low{color:var(--red)}
+
+/* blotter — fixed layout so long gate/exit strings truncate instead of overflowing the column */
+/* blotter columns: TIME · SIDE · GATE · EXIT · $ · % — explicit widths sum to 100% so the table
+   fills the rail (no dead space) and EXIT gets real room; text cols left, numerics right, nowrap+ellipsis */
+#p-trades table{table-layout:fixed;width:100%}
+#blotter td{padding:5px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#p-trades th:nth-child(1),#blotter td:nth-child(1){width:14%;text-align:left}
+#p-trades th:nth-child(2),#blotter td:nth-child(2){width:13%;text-align:left}
+#p-trades th:nth-child(3),#blotter td:nth-child(3){width:20%;text-align:left}
+#p-trades th:nth-child(4),#blotter td:nth-child(4){width:21%;text-align:left}
+#p-trades th:nth-child(5),#blotter td:nth-child(5){width:18%;text-align:right}
+#p-trades th:nth-child(6),#blotter td:nth-child(6){width:14%;text-align:right}
+
+/* ---------- hero chart ---------- */
+/* hero-body is a flex ITEM of .panel (flex:1 gives it height) AND a grid CONTAINER for its
+   children. Grid rows are fixed by ORDER: ribbon · chart(1fr) · tfbar · legend · sec · dtt.
+   The chart row is minmax(170px,1fr) so it stays dominant and CANNOT be squeezed to the bottom
+   when the ribbon/DTT populate at the first data tick (the old flex-column bug). */
+.hero-body{display:grid;grid-template-rows:auto minmax(170px,1fr) auto auto auto auto;gap:8px;padding:9px 11px;overflow:hidden;flex:1;min-height:0}
+.ribbon{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;min-height:44px;align-items:stretch}
+.rtile{flex:1;min-width:62px;border:1px solid var(--line);border-radius:5px;padding:6px 8px;background:var(--panel2)}
+.rtile .l{font-size:10px;letter-spacing:1px;color:var(--mut)}
+.rtile .v{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:1px}
+.rtile.armed{border-color:var(--grn);background:var(--grn-bg)}
+.rtile.hot{border-color:var(--amb)}
+.chart-host{position:relative;width:100%;min-height:0;border:1px solid var(--line);border-radius:5px;background:var(--panel2);overflow:hidden}
+.chart-host svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Y-axis price guides — HTML overlay (crisp, undistorted by the stretched SVG), big + readable */
+.yaxis{position:absolute;inset:0;pointer-events:none}
+.yaxis .yl{position:absolute;left:0;right:0;border-top:1px solid rgba(33,43,53,.6);transform:translateY(-0.5px)}
+.yaxis .yp{position:absolute;left:5px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--mut);
+  background:rgba(10,14,18,.72);padding:0 4px;border-radius:3px;transform:translateY(-52%)}
+.lastpx{position:absolute;right:6px;font-family:var(--mono);font-size:15px;font-weight:700;padding:2px 7px;
+  border-radius:4px;background:var(--cyan);color:#04110f;transform:translateY(-50%);z-index:3;white-space:nowrap}
+/* timeframe selector */
+.tfbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.tfbar .tflab{font-size:10px;letter-spacing:1.2px;color:var(--mut);margin-right:2px}
+.tf{font-family:var(--mono);font-size:12px;color:var(--txt2);background:var(--panel2);border:1px solid var(--line);
+  border-radius:4px;padding:4px 10px;cursor:pointer}
+.tf:hover{border-color:var(--line2)}
+.tf.on{color:var(--cyan);border-color:var(--cyan-dim);background:var(--cyan-bg)}
+.dtt-strip{display:flex;flex-direction:column;gap:6px;flex:none;max-height:96px;overflow-y:auto}
+.tfbar,.legend,.hero-body .sec{flex:none}
+.dtt-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.dtt-row .dl{width:112px;font-family:var(--mono);color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dtt-row .dbar{flex:1;height:9px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.dtt-row .dfill{height:100%;background:var(--cyan)}
+.dtt-row .dfill.fire{background:var(--grn)}
+.dtt-row .dpct{width:38px;text-align:right;font-family:var(--mono);color:var(--txt2)}
+.dtt-row .dblk{width:120px;font-size:10px;color:var(--mut);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{font-size:10px;color:var(--mut);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.legend .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+
+/* holding readout */
+.hold-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.hold-head .sym{font-size:17px;font-weight:700;font-family:var(--mono)}
+.riskbar{position:relative;height:26px;margin:10px 0 4px;border:1px solid var(--line);border-radius:4px;background:var(--panel2)}
+.riskbar .seg{position:absolute;top:0;bottom:0}
+.riskbar .seg.loss{background:var(--red-bg)} .riskbar .seg.gain{background:var(--grn-bg)}
+.riskbar .mk{position:absolute;top:-3px;bottom:-3px;width:2px}
+.riskbar .mk.stop{background:var(--red)} .riskbar .mk.entry{background:var(--txt2)}
+.riskbar .mk.tgt{background:var(--grn)} .riskbar .mk.last{background:var(--cyan);width:2px}
+.riskbar .cap{position:absolute;top:100%;font-size:9px;color:var(--mut);transform:translateX(-50%);margin-top:2px;white-space:nowrap}
+
+/* curve */
+.hold-chart-host{position:relative;width:100%;height:150px;margin:8px 0;border:1px solid var(--line);border-radius:5px;background:var(--panel2);overflow:hidden}
+.hold-chart-host svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.curve-host{height:120px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);margin-bottom:8px}
+.curve-host svg{width:100%;height:100%;display:block}
+
+/* ---------- desktop grid ---------- */
+/* 2026-07-13: col4 widened (330→410, +~10%) and cols 2&3 pinched (each gives ~5%) so the
+   trades rail fits its content and never overflows the page. */
+.tabbar{display:none}
+.grid{display:grid;gap:8px;padding:8px;
+  grid-template-columns:290px minmax(0,0.95fr) minmax(0,0.95fr) 410px;
+  grid-template-rows:minmax(360px,1.2fr) minmax(240px,1fr);
+  height:calc(100vh - 49px);overflow:hidden}
+#p-desk{grid-column:1;grid-row:1 / span 2}
+#p-chart{grid-column:2 / span 2;grid-row:1}
+#p-gates{grid-column:2;grid-row:2}
+#p-hold{grid-column:3;grid-row:2}
+#p-trades{grid-column:4;grid-row:1 / span 2}
+@media (min-width:900px){ .hero-body{flex:1} }
+
+/* ---------- phone / narrow: tabs + stack (priority format) ---------- */
+@media (max-width:899px){
+  body{overflow-y:auto}
+  /* lock header + tab bar together as ONE sticky block so the tabs never slide under the header
+     (both were top:0 → the tabs vanished on scroll). Header compacted hard to reclaim vertical room. */
+  .topstick{position:sticky;top:0;z-index:30;background:var(--bg)}
+  header{padding:3px 10px;gap:5px 8px;min-height:0;flex-wrap:wrap}
+  .tag,.spacer{display:none}                         /* drop the subtitle + spacer on phone — pure space */
+  .kpis{width:100%;gap:10px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:1px}
+  .tabbar{display:flex;background:var(--panel2);border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);overflow-x:auto}
+  .tab{flex:1;min-width:64px;text-align:center;padding:7px 6px;font-size:12px;letter-spacing:1px;
+    color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans)}
+  .tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+  .tab .b{display:block;font-family:var(--mono);font-size:13px;color:var(--txt2);margin-top:2px}
+  /* phone: bump every text element +1px vs desktop for legibility at arm's length */
+  body{font-size:14px}
+  .tag,.conn,.chip,.subval,.dtt-row{font-size:12px}
+  .kpi .l,.rtile .l,.tfbar .tflab,.dtt-row .dblk,.legend,th{font-size:11px}
+  .rtile .v,.brand{font-size:16px}
+  .empty,table,.row{font-size:13px}
+  .ph h2{font-size:13.5px}
+  .ph .sub,.ph .live,.sec{font-size:11.5px}
+  .big{font-size:29px}
+  .hold-head .sym{font-size:18px}
+  .grid{display:block;height:auto;padding:8px;overflow:visible;grid-template-columns:none}
+  .panel{margin-bottom:8px;max-height:none}
+  .panel[data-tab]{display:none}
+  .panel[data-tab].on{display:flex}
+  .pb{overflow:visible}
+  /* phone: plain block flow (not grid) so each section stacks at its natural height; the chart is a
+     clean fixed height and its axes render in-SVG exactly like desktop */
+  .hero-body{display:block;overflow:visible;height:auto}
+  .chart-host{height:300px;min-height:0}
+  .dtt-strip{max-height:none}
+  .tfbar{padding-top:2px}
+  .kpi{min-width:auto}
+  .kpi .v{font-size:14px}
+  .kpi .l{font-size:9.5px}
+  /* trades blotter de-squish: font −1 (13→12), columns rebalanced for L/S + 3-char gate/exit so
+     TIME reads clean and $/% get real room. Later rule + id specificity → wins over the base widths. */
+  #p-trades table{font-size:12px}
+  #blotter td{padding:5px 4px}
+  #p-trades th:nth-child(1),#blotter td:nth-child(1){width:17%}
+  #p-trades th:nth-child(2),#blotter td:nth-child(2){width:10%}
+  #p-trades th:nth-child(3),#blotter td:nth-child(3){width:15%}
+  #p-trades th:nth-child(4),#blotter td:nth-child(4){width:15%}
+  #p-trades th:nth-child(5),#blotter td:nth-child(5){width:25%}
+  #p-trades th:nth-child(6),#blotter td:nth-child(6){width:18%}
+}
