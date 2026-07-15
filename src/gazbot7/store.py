@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS trades (
     gate          TEXT
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS ux_trades_exit_exec
+    ON trades(exit_exec_id) WHERE exit_exec_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS positions (
     symbol     TEXT PRIMARY KEY,
     net_qty    REAL NOT NULL,                     -- signed: + long, - short (venue truth)
@@ -179,6 +182,46 @@ def get_order(conn: sqlite3.Connection, client_order_id: str) -> sqlite3.Row | N
     return conn.execute(
         "SELECT * FROM orders WHERE client_order_id = ?", (client_order_id,)
     ).fetchone()
+
+
+def record_trade(
+    conn: sqlite3.Connection,
+    *,
+    symbol: str,
+    side: str,  # LONG / SHORT
+    qty: float,
+    entry_price: float,
+    exit_price: float,
+    opened_at: str,
+    closed_at: str,
+    pnl_usd: float,
+    fees_usd: float,
+    exit_reason: str,
+    entry_exec_id: str | None = None,
+    exit_exec_id: str | None = None,
+    gate: str | None = None,
+) -> bool:
+    """Record a closed round-trip. Idempotent on ``exit_exec_id`` (the fill that
+    brought the position flat) — completing the same close twice is a no-op.
+    Returns True if newly written, False if it was already recorded."""
+    cur = conn.execute(
+        "INSERT OR IGNORE INTO trades "
+        "(symbol, side, qty, entry_price, exit_price, entry_exec_id, exit_exec_id, "
+        " opened_at, closed_at, pnl_usd, fees_usd, exit_reason, gate) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (symbol, side, qty, entry_price, exit_price, entry_exec_id, exit_exec_id,
+         opened_at, closed_at, pnl_usd, fees_usd, exit_reason, gate),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def get_trades(conn: sqlite3.Connection, symbol: str | None = None) -> list[sqlite3.Row]:
+    if symbol is None:
+        return conn.execute("SELECT * FROM trades ORDER BY id").fetchall()
+    return conn.execute(
+        "SELECT * FROM trades WHERE symbol = ? ORDER BY id", (symbol,)
+    ).fetchall()
 
 
 def get_fill(conn: sqlite3.Connection, exec_id: str) -> sqlite3.Row | None:
