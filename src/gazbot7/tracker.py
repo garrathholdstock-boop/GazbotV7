@@ -51,10 +51,11 @@ class TradeTracker:
     """Assembles closed round-trips from venue fills. Position-signed, two-sided,
     N-lot, partial-fill-aware."""
 
-    def __init__(self, store, *, value_per_point: float, fee_rt: float) -> None:
+    def __init__(self, store, *, value_per_point: float, fee_rt: float, gate: str | None = None) -> None:
         self._store = store
         self._vpp = value_per_point
         self._fee = fee_rt
+        self._gate = gate  # the live desk's gate, stamped on every completed trade
         self._open: dict[str, _Open] = {}
         self._applied: set[str] = set()  # exec_ids already applied to a position
 
@@ -148,4 +149,5 @@ class TradeTracker:
             pnl_usd=gross - self._fee,
             fees_usd=self._fee,
             exit_reason=o.exit_reason or "UNKNOWN",
+            gate=self._gate,
         )

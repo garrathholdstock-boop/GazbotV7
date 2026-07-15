@@ -78,8 +78,8 @@ async function tick() {
   $("tb-trades").textContent = s.trades?.length ?? "—";
   $("trades-meta").textContent = (s.trades?.length ?? 0) + " today";
   $("blotter").innerHTML = (s.trades && s.trades.length)
-    ? s.trades.map((t) => `<tr><td>${t.t}</td><td><span class="pill ${t.side.toLowerCase()}">${t.side}</span></td><td class="mut">${t.exit}</td><td class="${cls(t.pnl)}">${money(t.pnl)}</td></tr>`).join("")
-    : `<tr><td class="empty" colspan="4">no trades today</td></tr>`;
+    ? s.trades.map((t) => `<tr><td>${t.t}</td><td><span class="pill ${t.side.toLowerCase()}">${t.side}</span></td><td class="cyan">${t.gate}</td><td class="mut">${t.exit}</td><td class="${cls(t.pnl)}">${money(t.pnl)}</td></tr>`).join("")
+    : `<tr><td class="empty" colspan="5">no trades today</td></tr>`;
   // exec
   $("exec-pct").textContent = s.exec?.through == null ? "—" : s.exec.through + "%";
   $("exec-pct").className = "big " + (s.exec?.through >= 60 ? "grn" : s.exec?.through == null ? "" : "amb");

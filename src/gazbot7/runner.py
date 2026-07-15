@@ -118,7 +118,7 @@ async def run(cfg: RunConfig, *, shadow_variants=None, notifier=None, max_second
         if cfg.place_live else _NoOpBroker()
     )
     oe = OrderEngine(broker, store)
-    tt = TradeTracker(store, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+    tt = TradeTracker(store, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt, gate=cfg.gate)
     sm = SafetyManager(broker, notifier=notifier)
     desk = Desk(DeskConfig(symbol=cfg.symbol, size=cfg.size, gate=cfg.gate,
                            gate_params=cfg.gate_params, target_r=cfg.target_r), oe, tt, sm)

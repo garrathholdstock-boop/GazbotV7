@@ -69,9 +69,10 @@ def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
             "win": round(100 * wins / n_t) if n_t else None,
         }
         out["trades"] = [
-            {"t": _paris_hms(r["closed_at"]), "side": r["side"], "exit": r["exit_reason"], "pnl": round(r["pnl"], 2)}
+            {"t": _paris_hms(r["closed_at"]), "side": r["side"], "gate": r["gate"] or "thrust",
+             "exit": r["exit_reason"], "pnl": round(r["pnl"], 2)}
             for r in c.execute(
-                "SELECT closed_at, side, exit_reason, pnl_usd pnl FROM trades "
+                "SELECT closed_at, side, gate, exit_reason, pnl_usd pnl FROM trades "
                 "WHERE symbol='MNQ' AND closed_at>=? ORDER BY closed_at DESC LIMIT 20", (day_start,)
             ).fetchall()
         ]
