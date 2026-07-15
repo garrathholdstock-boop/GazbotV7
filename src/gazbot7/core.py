@@ -41,12 +41,14 @@ from .ipc import (
     Publisher,
     PullServer,
 )
-from .safety import SafetyManager
+from .safety import SafetyManager, is_naked
 from .store import open_store
 from .tracker import TradeTracker
 
 CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
 _EPS = 1e-9
+PROTECT_INTERVAL_S = 5.0       # naked-auditor cadence
+PROTECT_BOOT_SETTLE_S = 120.0  # grace after start — let a GTC stop reappear before acting
 
 
 class _NoOpBroker:
@@ -61,13 +63,15 @@ class _NoOpBroker:
 class Core:
     """The execution manager: intents in, orders out, position truth published."""
 
-    def __init__(self, cfg: RunConfig, engine, tracker, safety, publisher, store) -> None:
+    def __init__(self, cfg: RunConfig, engine, tracker, safety, publisher, store,
+                 notifier=None) -> None:
         self._cfg = cfg
         self._oe = engine
         self._tt = tracker
         self._safety = safety
         self._pub = publisher
         self._store = store
+        self._notify = notifier or (lambda _m: None)
         self._pos: Position | None = None
         self._qty = 0.0
         self._pending_open = False
@@ -75,6 +79,13 @@ class Core:
         self._exit_reason: str | None = None
         self._open_atr = 0.0
         self.opened_at: str | None = None
+        self._boot_mono = time.monotonic()  # boot-settle anchor for the naked auditor
+        self._naked_streak = 0
+        self._protect_poke = asyncio.Event()  # a dead stop wakes the auditor instantly
+
+    def poke_protection(self, *_a) -> None:
+        """Called when a protective stop goes dead — wake the auditor now."""
+        self._protect_poke.set()
 
     @property
     def position(self) -> Position | None:
@@ -171,6 +182,73 @@ class Core:
         self.opened_at = None
         self._publish_last_trade()
 
+    # ── naked auditor (S1): protection == fresh IBKR truth, never a local flag ─
+    def assess_protection(self, net_qty: float, orders, now_mono: float) -> str:
+        """Given IBKR truth (net position + open orders) decide the action:
+        flat | ok | settle | reprotect | flatten. Pure — the live loop fetches
+        the snapshot and executes the verdict. Reattach twice, then flatten."""
+        if self._pos is None or abs(net_qty) < _EPS:
+            self._naked_streak = 0
+            return "flat"
+        side = "LONG" if net_qty > 0 else "SHORT"
+        if not is_naked(side, net_qty, orders):
+            self._naked_streak = 0
+            return "ok"
+        if now_mono - self._boot_mono < PROTECT_BOOT_SETTLE_S:
+            return "settle"  # let a GTC stop re-appear after a (re)start before acting
+        self._naked_streak += 1
+        return "flatten" if self._naked_streak >= 2 else "reprotect"
+
+    def _reprotect(self) -> None:
+        p = self._pos
+        if p is not None:
+            self._safety.arm_stop(self._cfg.symbol, side=p.side, qty=self._qty,
+                                  entry_price=p.entry_price, atr=p.entry_atr)
+
+    def _emergency_flatten(self) -> None:
+        if self._pos is None:
+            return
+        self._exit_reason = "NAKED_FLATTEN"
+        self._closing = True
+        close_side = "SELL" if self._pos.side == "LONG" else "BUY"
+        self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=self._qty, order_type="MKT")
+
+    async def _read_venue_protection(self, gw):
+        try:
+            positions = await gw._ib.reqPositionsAsync()
+            net = sum(p.position for p in positions if p.contract.symbol == self._cfg.symbol)
+            await gw._ib.reqAllOpenOrdersAsync()
+            orders = [
+                (t.order.orderType, t.order.action, t.orderStatus.status, t.order.totalQuantity)
+                for t in gw._ib.openTrades()
+                if getattr(t.contract, "symbol", None) == self._cfg.symbol
+            ]
+            return net, orders
+        except Exception:
+            return None  # a bad/timed-out snapshot → never act on it
+
+    async def protection_loop(self, gw) -> None:
+        while True:
+            try:  # wake on a dead-stop poke, else poll every PROTECT_INTERVAL_S
+                await asyncio.wait_for(self._protect_poke.wait(), timeout=PROTECT_INTERVAL_S)
+            except (TimeoutError, asyncio.TimeoutError):
+                pass
+            self._protect_poke.clear()
+            if self._pos is None or not gw.healthy or not self._cfg.place_live:
+                continue
+            snap = await self._read_venue_protection(gw)
+            if snap is None:
+                continue
+            net, orders = snap
+            action = self.assess_protection(net, orders, time.monotonic())
+            if action == "reprotect":
+                self._reprotect()
+                self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
+            elif action == "flatten":
+                self._emergency_flatten()
+                self._notify(f"NAKED {self._cfg.symbol} unresolved after {self._naked_streak} "
+                             f"re-arms — FLATTENED")
+
     # ── publishing ───────────────────────────────────────────────────────────
     def _position_payload(self) -> dict:
         sym = self._cfg.symbol
@@ -236,16 +314,21 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
 
     core_ref: dict = {}
     broker = (
-        IBBrokerAdapter(gw._ib, contract, cfg.symbol, on_fill=lambda f: core_ref["core"].on_fill(f))
+        IBBrokerAdapter(
+            gw._ib, contract, cfg.symbol,
+            on_fill=lambda f: core_ref["core"].on_fill(f),
+            on_stop_event=lambda coid, status: core_ref["core"].poke_protection(),
+        )
         if cfg.place_live else _NoOpBroker()
     )
     engine = OrderEngine(broker, store)
     tracker = TradeTracker(store, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt, gate=cfg.gate)
     safety = SafetyManager(broker, notifier=notifier)
-    core = Core(cfg, engine, tracker, safety, pub, store)
+    core = Core(cfg, engine, tracker, safety, pub, store, notifier=notifier)
     core_ref["core"] = core
 
     intents_task = asyncio.ensure_future(_drain_intents(pull, core))
+    protect_task = asyncio.ensure_future(core.protection_loop(gw))  # S1 naked auditor
     start = time.monotonic()
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
@@ -253,6 +336,7 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
             await asyncio.sleep(status_interval_s)
     finally:
         intents_task.cancel()
+        protect_task.cancel()
         await gw.stop()
         pub.close()
         pull.close()

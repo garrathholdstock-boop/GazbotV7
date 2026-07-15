@@ -17,17 +17,57 @@ so all of it is tested without a live gateway. Clean-room: nothing copied from V
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
 
+from .ticks import round_stop, tick_for
+
 _EPS = 1e-9
+
+# What counts as *live protective coverage* at IBKR truth — a resting server-side
+# stop on the closing side. Anything Cancelled / Inactive / Filled does NOT count,
+# no matter what a local flag says (the "placed but didn't stick" naked class).
+_LIVE_STATUSES = frozenset({"Submitted", "PreSubmitted", "PendingSubmit", "ApiPending"})
+_STOP_TYPES = frozenset({"STP", "STP LMT", "STP_LMT", "TRAIL", "TRAIL LIMIT", "TRAIL_LIMIT"})
 
 
 def compute_stop_price(entry_price: float, atr: float, *, is_short: bool, atr_mult: float = 1.0) -> float:
     """The fixed protective stop: ``atr_mult`` ATRs adverse of entry. Below entry
-    for a long, above entry for a short — symmetric by construction."""
+    for a long, above entry for a short — symmetric by construction. (Rounded to
+    the contract tick when armed — see ``SafetyManager.arm_stop``.)"""
     r = atr_mult * atr
     return (entry_price + r) if is_short else (entry_price - r)
+
+
+def is_live_status(status: str) -> bool:
+    """A resting (not dead) order status. A stop leaving this set while a position
+    is held is the poke signal for the naked auditor."""
+    return status in _LIVE_STATUSES
+
+
+def is_protective_stop(order_type: str, action: str, status: str, position_side: str) -> bool:
+    """Does this IBKR order count as live protection for a ``position_side``? A
+    live STP/TRAIL on the closing side. Inactive/Cancelled never count."""
+    if status not in _LIVE_STATUSES or order_type not in _STOP_TYPES:
+        return False
+    close_side = "SELL" if position_side == "LONG" else "BUY"
+    return action == close_side
+
+
+def covered_qty(position_side: str, orders: Iterable[tuple]) -> float:
+    """Total live protective-stop quantity for the position. ``orders`` is an
+    iterable of ``(order_type, action, status, qty)`` read from IBKR truth."""
+    return sum(q for (ot, ac, st, q) in orders if is_protective_stop(ot, ac, st, position_side))
+
+
+def is_naked(position_side: str, position_qty: float, orders: Iterable[tuple]) -> bool:
+    """A held position with less live protective coverage than its size. Reads
+    IBKR truth (the orders list) — never a local 'armed' flag, which can lie when
+    a placement was accepted then went Inactive."""
+    if abs(position_qty) < _EPS:
+        return False
+    return covered_qty(position_side, orders) < abs(position_qty) - _EPS
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +113,9 @@ class SafetyManager:
         is_short = side == "SHORT"
         stop_px = compute_stop_price(entry_price, atr, is_short=is_short, atr_mult=self._atr_mult)
         close_side = "BUY" if is_short else "SELL"
+        # round onto the contract tick (Error-110 fix) — directional so it only
+        # loosens; the recorded StopOrder equals what actually rests at IBKR.
+        stop_px = round_stop(stop_px, tick_for(symbol), closing_side=close_side)
         coid = self._broker.place_stop(symbol=symbol, side=close_side, qty=qty, stop_price=stop_px)
         st = StopOrder(symbol, close_side, qty, stop_px, coid)
         self._stops[symbol] = st

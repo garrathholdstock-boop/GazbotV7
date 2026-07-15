@@ -6,6 +6,9 @@ from gazbot7.safety import (
     SafetyManager,
     audit_naked,
     compute_stop_price,
+    covered_qty,
+    is_naked,
+    is_protective_stop,
     reconcile,
 )
 
@@ -86,6 +89,38 @@ def test_zombie_reentry_rearms_stop():
     sm.arm_stop("MNQ", side="SHORT", qty=2, entry_price=110.0, atr=4.0)  # re-entered, other way
     assert sm.has_stop("MNQ")
     assert broker.placed[-1]["side"] == "BUY" and broker.placed[-1]["stop_price"] == 114.0
+
+
+def test_arm_stop_rounds_off_grid_price_to_tick():
+    # today's incident: entry 29491.5, ATR 13.286 → raw stop 29478.214 (Error 110).
+    # arm_stop must floor the SELL stop onto the 0.25 grid before it leaves.
+    broker = FakeStopBroker()
+    sm = SafetyManager(broker)
+    st = sm.arm_stop("MNQ", side="LONG", qty=1, entry_price=29491.5, atr=13.286)
+    assert st.stop_price == 29478.0
+    assert round(st.stop_price / 0.25) == st.stop_price / 0.25  # on-grid, IBKR-legal
+    assert broker.placed[0]["stop_price"] == 29478.0
+
+
+def test_is_protective_stop_only_live_closing_side():
+    assert is_protective_stop("STP", "SELL", "PreSubmitted", "LONG")   # SELL STP protects a long
+    assert is_protective_stop("TRAIL", "BUY", "Submitted", "SHORT")    # BUY TRAIL protects a short
+    assert not is_protective_stop("STP", "BUY", "PreSubmitted", "LONG")  # wrong side
+    assert not is_protective_stop("STP", "SELL", "Inactive", "LONG")     # not live
+    assert not is_protective_stop("STP", "SELL", "Cancelled", "LONG")    # cancelled
+    assert not is_protective_stop("LMT", "SELL", "Submitted", "LONG")    # a take-profit, not a stop
+
+
+def test_is_naked_reads_venue_truth_not_a_flag():
+    # held long, but the only stop is Inactive → NAKED ("placed but didn't stick")
+    assert is_naked("LONG", 1.0, [("STP", "SELL", "Inactive", 1.0)]) is True
+    assert is_naked("LONG", 1.0, [("STP", "SELL", "PreSubmitted", 1.0)]) is False
+    assert is_naked("LONG", 0.0, []) is False  # flat is never naked
+
+
+def test_covered_qty_sums_live_only():
+    orders = [("STP", "SELL", "PreSubmitted", 1.0), ("STP", "SELL", "Cancelled", 1.0)]
+    assert covered_qty("LONG", orders) == 1.0
 
 
 def test_reconcile_detects_drift():

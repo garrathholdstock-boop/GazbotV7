@@ -4,8 +4,23 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from gazbot7.broker_adapter import execution_to_fill
+import eventkit
+
+from gazbot7.broker_adapter import IBBrokerAdapter, execution_to_fill
 from gazbot7.config import RunConfig
+
+
+class _FakeIB:
+    def __init__(self):
+        self.execDetailsEvent = eventkit.Event()
+        self.orderStatusEvent = eventkit.Event()
+
+    def placeOrder(self, contract, order):
+        return SimpleNamespace(order=order, orderStatus=SimpleNamespace(status="PreSubmitted"))
+
+
+def _status(ref, status):
+    return SimpleNamespace(order=SimpleNamespace(orderRef=ref), orderStatus=SimpleNamespace(status=status))
 
 
 def _exec(execId="e1", side="BOT", shares=2, price=29950.0):
@@ -26,6 +41,18 @@ def test_sld_maps_to_sell():
 def test_missing_order_ref_is_unknown():
     f = execution_to_fill(_exec(), order_ref=None, symbol="MNQ", time_iso="t")
     assert f.order_id == "unknown"
+
+
+def test_stop_event_pokes_only_on_dead_protective_stop():
+    ib = _FakeIB()
+    pokes = []
+    ad = IBBrokerAdapter(ib, contract=object(), symbol="MNQ", on_fill=lambda f: None,
+                         on_stop_event=lambda coid, status: pokes.append((coid, status)))
+    coid = ad.place_stop(symbol="MNQ", side="SELL", qty=1, stop_price=29478.0)
+    ib.orderStatusEvent.emit(_status(coid, "Cancelled"))        # dead stop → poke
+    ib.orderStatusEvent.emit(_status(coid, "PreSubmitted"))     # live → no poke
+    ib.orderStatusEvent.emit(_status("v7-mnq-000001", "Cancelled"))  # not a stop → no poke
+    assert pokes == [(coid, "Cancelled")]
 
 
 def test_config_default_is_dry_run():

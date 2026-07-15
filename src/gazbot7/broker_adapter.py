@@ -31,15 +31,19 @@ def execution_to_fill(execution, *, order_ref: str | None, symbol: str, time_iso
 class IBBrokerAdapter:
     """Implements both BrokerPort (entries/exits) and StopBrokerPort (native STP)."""
 
-    def __init__(self, ib, contract, symbol: str, on_fill: Callable[[Fill], None]) -> None:
+    def __init__(self, ib, contract, symbol: str, on_fill: Callable[[Fill], None],
+                 on_stop_event: Callable[[str, str], None] | None = None) -> None:
         self._ib = ib
         self._contract = contract
         self._symbol = symbol
         self._on_fill = on_fill
+        self._on_stop_event = on_stop_event  # (coid, status) when a protective stop goes dead
         self._trades: dict[str, object] = {}  # coid → ib Trade (for cancel)
         self._seen: set[str] = set()  # execIds already routed (belt-and-braces)
         self._stop_seq = 0
         ib.execDetailsEvent += self._on_exec
+        if on_stop_event is not None:
+            ib.orderStatusEvent += self._on_status
 
     # ── BrokerPort ───────────────────────────────────────────────────────────
     def place(self, order) -> None:
@@ -61,13 +65,28 @@ class IBBrokerAdapter:
     def place_stop(self, *, symbol: str, side: str, qty: float, stop_price: float) -> str:
         from ib_async import StopOrder
 
+        from .ticks import round_stop, tick_for
+
         self._stop_seq += 1
         coid = f"stp-{self._stop_seq:06d}"
-        ibo = StopOrder(side, qty, stop_price)
+        # final tick guard (Error 110): idempotent if safety already rounded.
+        px = round_stop(stop_price, tick_for(symbol), closing_side=side)
+        ibo = StopOrder(side, qty, px)
         ibo.orderRef = coid
         ibo.tif = "GTC"  # server-side, rests until the position closes
         self._trades[coid] = self._ib.placeOrder(self._contract, ibo)
         return coid
+
+    # ── protective-stop liveness (S1 fast path) ──────────────────────────────
+    def _on_status(self, trade) -> None:
+        """A protective stop leaving a live status (rejected / cancelled / went
+        Inactive) while we may still be holding → poke the naked auditor. The
+        auditor re-reads IBKR truth and decides; a spurious poke is harmless."""
+        from .safety import is_live_status
+
+        ref = getattr(trade.order, "orderRef", "") or ""
+        if ref.startswith("stp-") and not is_live_status(trade.orderStatus.status):
+            self._on_stop_event(ref, trade.orderStatus.status)
 
     # ── fill routing ─────────────────────────────────────────────────────────
     def _on_exec(self, trade, fill) -> None:

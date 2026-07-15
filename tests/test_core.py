@@ -147,6 +147,63 @@ def test_short_entry_two_sided():
     asyncio.run(scenario())
 
 
+async def _open_long(core):
+    await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "meta": {"entry_atr": 4.0}})
+    core.on_fill(_fill("e1", "BUY", 1, 100.0))
+    await asyncio.sleep(0)
+    core._boot_mono = 0.0  # neutralise boot-settle for the assess tests
+
+
+def test_naked_auditor_covered_is_ok():
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        live_stop = [("STP", "SELL", "PreSubmitted", 1.0)]
+        assert core.assess_protection(1.0, live_stop, now_mono=200.0) == "ok"
+    asyncio.run(scenario())
+
+
+def test_naked_auditor_reprotects_then_flattens():
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        naked = [("STP", "SELL", "Inactive", 1.0)]  # placed but didn't stick
+        assert core.assess_protection(1.0, naked, now_mono=200.0) == "reprotect"
+        assert core.assess_protection(1.0, naked, now_mono=205.0) == "flatten"  # 2nd strike
+    asyncio.run(scenario())
+
+
+def test_naked_auditor_boot_settle_grace():
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        naked = [("STP", "SELL", "Cancelled", 1.0)]
+        assert core.assess_protection(1.0, naked, now_mono=50.0) == "settle"  # within 120s
+    asyncio.run(scenario())
+
+
+def test_naked_auditor_flat_resets_streak():
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        core.assess_protection(1.0, [("STP", "SELL", "Inactive", 1.0)], now_mono=200.0)  # streak→1
+        assert core.assess_protection(0.0, [], now_mono=205.0) == "flat"  # venue flat
+        assert core._naked_streak == 0
+    asyncio.run(scenario())
+
+
+def test_reprotect_and_emergency_flatten_actions():
+    async def scenario():
+        core, broker, sb, _pub, _s = _build()
+        await _open_long(core)
+        assert len(sb.stops) == 1  # the initial arm
+        core._reprotect()
+        assert len(sb.stops) == 2  # re-armed a fresh protective stop
+        core._emergency_flatten()
+        assert broker.orders[-1] == dict(side="SELL", qty=1.0)  # MKT close of the long
+    asyncio.run(scenario())
+
+
 def test_place_live_off_rejects_open():
     async def scenario():
         core, broker, _sb, pub, _s = _build(place_live=False)
