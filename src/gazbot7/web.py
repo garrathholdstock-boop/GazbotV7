@@ -13,9 +13,19 @@ import os
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 _STATIC = Path(__file__).parent / "web_static"
 _CT = {".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "application/javascript"}
+_PARIS = ZoneInfo("Europe/Paris")
+
+
+def _paris_hms(iso: str) -> str:
+    """ISO-UTC timestamp → Paris HH:MM:SS for display."""
+    try:
+        return datetime.fromisoformat(iso).astimezone(_PARIS).strftime("%H:%M:%S")
+    except Exception:
+        return (iso or "")[11:19] or "—"
 
 
 def _q1(conn, sql, args=(), default=None):
@@ -37,9 +47,10 @@ def _status_json(data_dir: str) -> dict:
 def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
     st = _status_json(data_dir)
     now = datetime.now(UTC)
-    today = now.strftime("%Y-%m-%d")
-    d7 = (now - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
-    d30 = (now - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
+    # "today" = trades since PARIS midnight (the desk's day convention), in UTC terms
+    day_start = datetime.now(_PARIS).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(UTC).isoformat()
+    d7 = (now - timedelta(days=7)).isoformat()
+    d30 = (now - timedelta(days=30)).isoformat()
     out = {
         "conn": st.get("conn", "—"), "healthy": st.get("healthy", False),
         "live": st.get("place_live", False), "position": st.get("position"),
@@ -48,20 +59,20 @@ def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
     try:
         c = sqlite3.connect(store_path)
         c.row_factory = sqlite3.Row
-        n_t = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND substr(closed_at,1,10)=?", (today,), 0)
-        wins = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND substr(closed_at,1,10)=? AND pnl_usd>0", (today,), 0)
+        n_t = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (day_start,), 0)
+        wins = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND closed_at>=? AND pnl_usd>0", (day_start,), 0)
         out["kpi"] = {
-            "today": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND substr(closed_at,1,10)=?", (today,), 0.0),
+            "today": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (day_start,), 0.0),
             "d7": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (d7,), 0.0),
             "d30": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (d30,), 0.0),
             "trades": n_t,
             "win": round(100 * wins / n_t) if n_t else None,
         }
         out["trades"] = [
-            {"t": r["t"], "side": r["side"], "exit": r["exit_reason"], "pnl": round(r["pnl"], 2)}
+            {"t": _paris_hms(r["closed_at"]), "side": r["side"], "exit": r["exit_reason"], "pnl": round(r["pnl"], 2)}
             for r in c.execute(
-                "SELECT substr(closed_at,12,8) t, side, exit_reason, pnl_usd pnl FROM trades "
-                "WHERE symbol='MNQ' AND substr(closed_at,1,10)=? ORDER BY closed_at DESC LIMIT 20", (today,)
+                "SELECT closed_at, side, exit_reason, pnl_usd pnl FROM trades "
+                "WHERE symbol='MNQ' AND closed_at>=? ORDER BY closed_at DESC LIMIT 20", (day_start,)
             ).fetchall()
         ]
         out["shadow"] = [
@@ -73,8 +84,8 @@ def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
                 "GROUP BY s.strategy ORDER BY pnl DESC"
             ).fetchall()
         ]
-        subm = _q1(c, "SELECT COUNT(*) FROM orders WHERE substr(created_at,1,10)=?", (today,), 0)
-        fills = _q1(c, "SELECT COUNT(*) FROM fills WHERE substr(ingested_at,1,10)=?", (today,), 0)
+        subm = _q1(c, "SELECT COUNT(*) FROM orders WHERE created_at>=?", (day_start,), 0)
+        fills = _q1(c, "SELECT COUNT(*) FROM fills WHERE ingested_at>=?", (day_start,), 0)
         out["exec"] = {"submitted": subm, "fills": fills,
                        "through": round(100 * fills / subm) if subm else None}
         c.close()
