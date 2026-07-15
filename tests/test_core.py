@@ -8,16 +8,27 @@ real engine/tracker/safety do the work (the same primitives Desk used)."""
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 
 from gazbot7.config import RunConfig
 from gazbot7.core import EXIT_STUCK_CYCLES, Core
 from gazbot7.engine import OrderEngine
 from gazbot7.ipc import T_FILL, T_INTENT_RESULT, T_POSITION, T_TRADE
 from gazbot7.safety import SafetyManager
-from gazbot7.store import Fill, get_open_position, get_trades, open_store, upsert_open_position
+from gazbot7.store import (
+    Fill,
+    get_open_position,
+    get_trades,
+    open_store,
+    record_trade,
+    upsert_open_position,
+)
 from gazbot7.tracker import TradeTracker
 
 VPP, FEE = 2.0, 1.5
+# a fixed in-session clock (Wed 2026-07-15 16:00 UTC = 12:00 ET) so entry-gate
+# tests never depend on when the suite runs.
+IN_SESSION = datetime(2026, 7, 15, 16, 0, tzinfo=UTC)
 
 
 class FakeBroker:
@@ -54,7 +65,7 @@ class FakePub:
         self.sent.append((topic, payload))
 
 
-def _build(*, place_live=True, is_healthy=None, **cfgkw):
+def _build(*, place_live=True, is_healthy=None, now_fn=None, **cfgkw):
     store = open_store(":memory:")
     broker, sb = FakeBroker(), FakeStopBroker()
     oe = OrderEngine(broker, store)
@@ -62,7 +73,15 @@ def _build(*, place_live=True, is_healthy=None, **cfgkw):
     sm = SafetyManager(sb)
     pub = FakePub()
     cfg = RunConfig(place_live=place_live, **cfgkw)
-    return Core(cfg, oe, tt, sm, pub, store, is_healthy=is_healthy), broker, sb, pub, store
+    core = Core(cfg, oe, tt, sm, pub, store, is_healthy=is_healthy,
+                now_fn=now_fn or (lambda: IN_SESSION))
+    return core, broker, sb, pub, store
+
+
+def _loss(store, i, p=-5.0):
+    record_trade(store, symbol="MNQ", side="LONG", qty=1, entry_price=100.0, exit_price=99.0,
+                 opened_at="2026-07-15T13:00:00+00:00", closed_at=f"2026-07-15T1{i}:00:00+00:00",
+                 pnl_usd=p, fees_usd=1.5, exit_reason="STOP", exit_exec_id=f"x{i}")
 
 
 def _fill(exec_id, side, qty, price):
@@ -318,6 +337,46 @@ def test_emergency_flatten_skips_when_venue_flat():
         n0 = len(broker.orders)
         core._emergency_flatten("MAX_HOLD", venue_net=0.0)  # venue flat → a close would OPEN → SKIP
         assert len(broker.orders) == n0 and core._closing is False
+    asyncio.run(scenario())
+
+
+# ── S8: kill-switches ────────────────────────────────────────────────────────
+def test_kill_switch_daily_loss():
+    core, *_rest = _build(max_daily_loss_usd=100, loss_streak_halt=0)
+    store = _rest[3]
+    _loss(store, 4, -60.0)
+    _loss(store, 5, -60.0)  # today's realized −120 ≤ −100
+    reason = core._open_reject_reason({"side": "LONG"}, IN_SESSION)
+    assert reason is not None and "daily loss limit" in reason
+
+
+def test_kill_switch_loss_streak():
+    core, *_rest = _build(max_daily_loss_usd=0, loss_streak_halt=4)
+    store = _rest[3]
+    for i in range(4):
+        _loss(store, i, -5.0)  # 4 losers in a row
+    reason = core._open_reject_reason({"side": "LONG"}, IN_SESSION)
+    assert reason is not None and "loss streak" in reason
+
+
+def test_kill_switch_lets_a_clean_book_trade():
+    core, *_ = _build(max_daily_loss_usd=100, loss_streak_halt=4)
+    assert core._open_reject_reason({"side": "LONG"}, IN_SESSION) is None
+
+
+# ── S6: the intent funnel ────────────────────────────────────────────────────
+def test_funnel_records_submitted_then_blocked():
+    async def scenario():
+        core, _b, _sb, _pub, store = _build()
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG",
+                              "gate": "thrust", "meta": {"entry_atr": 4.0}})
+        core.on_fill(_fill("e1", "BUY", 1, 100.0))
+        await asyncio.sleep(0)
+        await core.on_intent({"iid": "i2", "action": "OPEN", "side": "LONG",
+                              "gate": "thrust", "meta": {"entry_atr": 4.0}})
+        rows = store.execute("SELECT gate, outcome, block_reason FROM signals ORDER BY id").fetchall()
+        assert (rows[0]["gate"], rows[0]["outcome"]) == ("thrust", "submitted")
+        assert rows[1]["outcome"] == "blocked" and rows[1]["block_reason"] == "already in position"
     asyncio.run(scenario())
 
 

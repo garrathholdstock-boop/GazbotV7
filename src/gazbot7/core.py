@@ -20,6 +20,7 @@ naked auditor) lands on this order path next. Clean-room.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import subprocess
 import time
@@ -41,9 +42,15 @@ from .ipc import (
     Publisher,
     PullServer,
 )
-from . import session
+from . import pnl, session
 from .safety import SafetyManager, is_naked, reconcile_verdict, safe_flatten_verdict
-from .store import clear_open_position, get_open_position, open_store, upsert_open_position
+from .store import (
+    clear_open_position,
+    get_open_position,
+    open_store,
+    record_signal,
+    upsert_open_position,
+)
 from .tracker import TradeTracker
 
 CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
@@ -66,7 +73,7 @@ class Core:
     """The execution manager: intents in, orders out, position truth published."""
 
     def __init__(self, cfg: RunConfig, engine, tracker, safety, publisher, store,
-                 notifier=None, is_healthy=None) -> None:
+                 notifier=None, is_healthy=None, now_fn=None) -> None:
         self._cfg = cfg
         self._oe = engine
         self._tt = tracker
@@ -75,6 +82,7 @@ class Core:
         self._store = store
         self._notify = notifier or (lambda _m: None)
         self._is_healthy = is_healthy or (lambda: True)  # gateway TRADING-eligible?
+        self._now = now_fn or (lambda: datetime.now(UTC))  # injectable clock (tests)
         self._pos: Position | None = None
         self._qty = 0.0
         self._pending_open = False
@@ -108,21 +116,35 @@ class Core:
         else:
             await self._result(iid, False, f"unknown action {action!r}")
 
-    async def _open(self, intent: dict, iid) -> None:
+    def _open_reject_reason(self, intent: dict, now) -> str | None:
+        """All entry gates in one testable place. None = clear to open. Order:
+        halt → health → session → kill-switch → one-position → live → side."""
         if self._halted:
-            return await self._result(iid, False, "halted (reconcile drift)")
+            return "halted (reconcile drift)"
         if not self._is_healthy():
-            return await self._result(iid, False, "gateway not healthy")
-        blk = self._session_block(datetime.now(UTC))
+            return "gateway not healthy"
+        blk = self._session_block(now)
         if blk:
-            return await self._result(iid, False, blk)
+            return blk
+        kill = self._kill_check(now)
+        if kill:
+            return kill
         if self._pos is not None or self._pending_open:
-            return await self._result(iid, False, "already in position")
+            return "already in position"
         if not self._cfg.place_live:
-            return await self._result(iid, False, "place_live off")
+            return "place_live off"
+        if intent.get("side") not in ("LONG", "SHORT"):
+            return f"bad side {intent.get('side')!r}"
+        return None
+
+    async def _open(self, intent: dict, iid) -> None:
+        gate = intent.get("gate") or "unknown"
         side = intent.get("side")
-        if side not in ("LONG", "SHORT"):
-            return await self._result(iid, False, f"bad side {side!r}")
+        reason = self._open_reject_reason(intent, self._now())
+        if reason is not None:  # record the block in the funnel (S6), then reject
+            record_signal(self._store, symbol=self._cfg.symbol, gate=gate, side=side,
+                          outcome="blocked", block_reason=reason)
+            return await self._result(iid, False, reason)
         qty = int(intent.get("qty") or self._cfg.size)
         meta = intent.get("meta") or {}
         self._open_atr = float(meta.get("entry_atr") or 0.0)
@@ -130,6 +152,7 @@ class Core:
         order_side = "BUY" if side == "LONG" else "SELL"
         coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty, order_type="MKT")
         self._pending_open = True
+        record_signal(self._store, symbol=self._cfg.symbol, gate=gate, side=side, outcome="submitted")
         await self._result(iid, True, "submitted", coid=coid)
 
     async def _close(self, intent: dict, iid) -> None:
@@ -241,6 +264,25 @@ class Core:
         self._closing = True
         self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=qty, order_type="MKT")
 
+    # ── kill-switches (S8) ────────────────────────────────────────────────────
+    def _kill_check(self, now) -> str | None:
+        """Bound the catastrophic day. Computed fresh from realized P&L each open,
+        so a breach stays tripped for the session (realized losses don't un-realize;
+        a halted desk takes no trade that could reset the streak)."""
+        day_pnl, _n, _w = pnl.day(self._store, self._cfg.symbol, now)
+        limit = self._cfg.max_daily_loss_usd
+        if limit > 0 and day_pnl <= -limit:
+            return f"daily loss limit (${day_pnl:.0f} ≤ −${limit:.0f})"
+        k = self._cfg.loss_streak_halt
+        if k > 0:
+            rows = self._store.execute(
+                "SELECT pnl_usd FROM trades WHERE symbol=? ORDER BY id DESC LIMIT ?",
+                (self._cfg.symbol, k),
+            ).fetchall()
+            if len(rows) == k and all(r[0] < 0 for r in rows):
+                return f"loss streak ({k} in a row)"
+        return None
+
     # ── session discipline (S4) ───────────────────────────────────────────────
     def _session_block(self, now) -> str | None:
         if not session.is_open(now):
@@ -271,7 +313,7 @@ class Core:
                              f"after {self._exit_stuck} cycles — reconcile + flatten at IBKR")
 
     def _time_exit_check(self, venue_net: float) -> None:
-        now = datetime.now(UTC)
+        now = self._now()
         if self.over_max_hold(now):
             self._emergency_flatten("MAX_HOLD", venue_net)
             self._notify(f"{self._cfg.symbol} max-hold ({self._cfg.max_hold_minutes:g}m) — flattening")
@@ -426,6 +468,23 @@ class Core:
             "flat": self._pos is None,
         })
         await self._pub.send(T_POSITION, self._position_payload())
+        self._write_heartbeat(gw)
+
+    def _write_heartbeat(self, gw: IBGateway) -> None:
+        """Liveness file the EXTERNAL monitor reads (S6) — outside this process, so
+        a hung core still shows a stale heartbeat. Real wall-clock ts, always."""
+        path = os.path.join(os.path.dirname(self._cfg.store_path) or ".", "core_health.json")
+        data = {
+            "ts": datetime.now(UTC).isoformat(), "conn": gw.state.value, "healthy": gw.healthy,
+            "place_live": self._cfg.place_live, "flat": self._pos is None, "halted": self._halted,
+        }
+        tmp = path + ".tmp"
+        try:
+            with open(tmp, "w") as f:
+                json.dump(data, f)
+            os.replace(tmp, path)
+        except Exception:
+            pass  # a heartbeat write must never break the loop
 
     async def _result(self, iid, accepted: bool, reason: str, *, coid: str | None = None) -> None:
         await self._pub.send(T_INTENT_RESULT, {

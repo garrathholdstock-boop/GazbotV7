@@ -45,10 +45,12 @@ def _status_json(data_dir: str) -> dict:
 
 
 def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
+    from . import pnl as pnlmod
+
     st = _status_json(data_dir)
     now = datetime.now(UTC)
-    # "today" = trades since PARIS midnight (the desk's day convention), in UTC terms
-    day_start = datetime.now(_PARIS).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(UTC).isoformat()
+    # "today" = trades since PARIS midnight (the desk's day convention) — one source
+    day_start = pnlmod.paris_day_start_utc(now)
     d7 = (now - timedelta(days=7)).isoformat()
     d30 = (now - timedelta(days=30)).isoformat()
     out = {
@@ -60,12 +62,12 @@ def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
     try:
         c = sqlite3.connect(store_path)
         c.row_factory = sqlite3.Row
-        n_t = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (day_start,), 0)
-        wins = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND closed_at>=? AND pnl_usd>0", (day_start,), 0)
+        # all realized-P&L numbers come from the single pnl source (S7)
+        today_pnl, n_t, wins = pnlmod.realized(c, "MNQ", since_iso=day_start)
+        d7_pnl, _n7, _w7 = pnlmod.realized(c, "MNQ", since_iso=d7)
+        d30_pnl, _n30, _w30 = pnlmod.realized(c, "MNQ", since_iso=d30)
         out["kpi"] = {
-            "today": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (day_start,), 0.0),
-            "d7": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (d7,), 0.0),
-            "d30": _q1(c, "SELECT ROUND(SUM(pnl_usd),2) FROM trades WHERE symbol='MNQ' AND closed_at>=?", (d30,), 0.0),
+            "today": today_pnl, "d7": d7_pnl, "d30": d30_pnl,
             "trades": n_t,
             "win": round(100 * wins / n_t) if n_t else None,
         }

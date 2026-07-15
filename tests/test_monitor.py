@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from gazbot7.monitor import classify_execution, execution_health
+import json
+
+from gazbot7.monitor import classify_execution, execution_health, heartbeat_status
 from gazbot7.store import Fill, open_store, record_fill, record_signal
 
 
@@ -46,3 +48,13 @@ def test_execution_health_ok_with_fills(tmp_path):
         record_fill(store, Fill(f"e{i}", "o", "MNQ", "BUY", 1, 29950.0, "2026-07-15T13:00:00+00:00"))
     v = execution_health(store, since_iso="2026-07-15T00:00:00+00:00")
     assert v.status == "OK" and v.fills == 4
+
+
+def test_heartbeat_status(tmp_path):
+    p = tmp_path / "core_health.json"
+    now = "2026-07-15T18:00:00+00:00"
+    assert heartbeat_status(str(p), now)[0] == "CRIT"  # missing → core down
+    p.write_text(json.dumps({"ts": "2026-07-15T17:59:30+00:00"}))  # 30s old
+    assert heartbeat_status(str(p), now, max_age_s=120)[0] == "OK"
+    p.write_text(json.dumps({"ts": "2026-07-15T17:50:00+00:00"}))  # 10 min old
+    assert heartbeat_status(str(p), now, max_age_s=120)[0] == "CRIT"  # stale → hung

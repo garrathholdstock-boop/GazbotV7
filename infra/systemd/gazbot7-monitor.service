@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — execution/pipeline health monitor (fills-based, external)
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=GAZBOT7_STORE=/home/alphabot/gazbot7/data/gazbot7.db
+# Runs OUTSIDE core so a hung core shows as a stale heartbeat. Judges on FILLS,
+# not submits; CRIT (real wedge/outage) pages the operator. Always exits 0.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.monitor

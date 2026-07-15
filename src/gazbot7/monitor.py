@@ -14,7 +14,11 @@ OK. Clean-room: nothing copied.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from datetime import datetime
+
+_ORDER = {"OK": 0, "WARN": 1, "CRIT": 2}
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,3 +53,53 @@ def execution_health(store, *, since_iso: str) -> HealthVerdict:
     ).fetchone()[0]
     status, detail = classify_execution(submitted=submitted, fills=fills, rejects=rejects)
     return HealthVerdict(submitted, fills, rejects, status, detail)
+
+
+def heartbeat_status(path: str, now_iso: str, *, max_age_s: float = 120.0) -> tuple[str, str]:
+    """Is core alive? Reads its heartbeat file's ts vs now. Missing = CRIT (core
+    down / never wrote); stale beyond max_age_s = CRIT (core hung)."""
+    try:
+        with open(path) as f:
+            hb = json.load(f)
+        age = (datetime.fromisoformat(now_iso) - datetime.fromisoformat(hb["ts"])).total_seconds()
+    except FileNotFoundError:
+        return "CRIT", "core heartbeat missing (core down?)"
+    except Exception:
+        return "WARN", "core heartbeat unreadable"
+    if age > max_age_s:
+        return "CRIT", f"core heartbeat stale {age:.0f}s (hung/dead)"
+    return "OK", f"core alive ({age:.0f}s)"
+
+
+def _worst(*statuses: str) -> str:
+    return max(statuses, key=lambda s: _ORDER[s])
+
+
+def main() -> int:  # `python -m gazbot7.monitor` — the external 10-min sweep
+    import os
+    import subprocess
+    from datetime import UTC, timedelta
+
+    from .store import open_store
+
+    store_path = os.environ.get("GAZBOT7_STORE", "data/gazbot7.db")
+    data_dir = os.path.dirname(store_path) or "."
+    now = datetime.now(UTC)
+    store = open_store(store_path)
+    ex = execution_health(store, since_iso=(now - timedelta(minutes=30)).isoformat())
+    hb_status, hb_detail = heartbeat_status(os.path.join(data_dir, "core_health.json"), now.isoformat())
+    status = _worst(ex.status, hb_status)
+    line = f"MONITOR {status}: exec[{ex.detail}] hb[{hb_detail}]"
+    print(line)
+    if status == "CRIT":  # judged on FILLS, not submits — a real wedge/outage pages
+        subprocess.run(
+            ["/home/alphabot/alphabot2/.venv/bin/python",
+             "/home/alphabot/alphabot2/scripts/notify_operator.py",
+             f"Garrath — V7 {line} (need you on Termius to check the desk)"],
+            check=False, timeout=15,
+        )
+    return 0  # a monitor must never fail its host
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
