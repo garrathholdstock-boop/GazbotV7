@@ -56,9 +56,9 @@ Every drop is a **shippable, independently-verified increment**:
 | **D1** | B · Spine | **IBKR primitive** — connect, heartbeat, reconnect w/ exponential backoff, **subscription re-assertion** on reconnect. Paper, read-only (account/positions). | M | survives a forced disconnect → reconnect with fill/status subs re-asserted (scar-test) |
 | **D2** | B · Spine | **Order engine I** — order lifecycle (PENDING→WORKING→PARTIAL→FILLED/CANCELLED/REJECTED), submit/cancel on paper. | M | states track a real paper order correctly; cancel works; reject handled |
 | **D3 ★** | B · Spine | **Order engine II — the recording state machine.** Partial-fill-aware pairing, atomic close-on-flat, `exec_id` idempotency. The §274-C race designed out. | **L** | full recording scars-suite green; a live **2-lot paper scalp records real-time, real exit_reason, ZERO backfill** |
-| **D4** | B · Spine | **Position + safety** — venue-truth position + reconcile; native trail on every position; naked guard (reprotect + page); zombie re-entry fix. | M–L | naked / zombie / venue-truth scars green; every paper position carries a trail |
+| **D4** | B · Spine | **Position + safety** — venue-truth position + reconcile; native 1-ATR stop on every position; naked guard (reprotect + page); zombie re-entry fix. | M–L | naked / zombie / venue-truth scars green; every paper position carries a 1-ATR stop |
 | **D5** | C · Desk | **Capture** — tick + bar + L2 depth ingest → V7 DB. Instrument-parameterised (MNQ live; MGC etc. capturable for shadow). | M | capture health green; MNQ 5s+tick+depth live; feed-break vs post-reboot distinguished |
-| **D6** | C · Desk | **Deciders** — entry gates (thrust, reversal_grab) + exits (trail, scalp R-target, adverse/absorption cut) as **pure functions**, re-derived from the research. | M | unit tests vs known cases; identical output live-path and shadow-path |
+| **D6** | C · Desk | **Deciders** — entry gates (thrust, reversal_grab) + exits (scalp R-target, adverse/absorption cut; protective stop = fixed native 1-ATR STP) as **pure functions**, re-derived from the research. | M | unit tests vs known cases; identical output live-path and shadow-path |
 | **D7** | C · Desk | **Live loop** — features → decide → size (1..N) → submit → manage → close. MNQ, two-sided. Paper. | M | trades paper end-to-end; sizing + long/short scars green (no cap-vs-size split) |
 | **D8** | D · Research | **Shadow desk + tick repricer** — N variants (MNQ + MGC), honest `real_pnl` from day one, R-target/scalp legs first-class. | M | shadow reconciles; repricer matches; a reversal_grab variant runs + scores |
 | **D9** | D · Research | **Monitor + analytics** — fills-based exec health, **real-wedge vs benign** detection, Telegram; DuckDB layer over V7 + V5 archive. | M | monitor CRITs only on a real wedge (fills ceasing), never a benign backfill |
@@ -103,7 +103,7 @@ Every drop is a **shippable, independently-verified increment**:
 1. **D3 gate** — a 2-lot paper scalp records real-time with zero backfill. This
    is the whole thesis of the rewrite proven in one test. If this isn't green,
    nothing downstream matters.
-2. **D4 gate** — every position always carries a native trail; naked → reprotect.
+2. **D4 gate** — every position always carries a native 1-ATR stop; naked → reprotect.
    The zero-naked guarantee, structurally.
 3. **D10 gate** — zero-backfill through real reopen bursts. This is the exact
    condition V5 fails today; V7 must pass it before it touches the live orders.

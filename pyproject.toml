@@ -1,0 +1,33 @@
+[project]
+name = "gazbot7"
+version = "0.0.0"
+description = "GAZBOT V7 — clean-room MNQ-only futures desk"
+requires-python = ">=3.11"
+# The full toolchain (operator: bring all the amazing tech). Heavy deps
+# (ib_async, duckdb, pandas, …) are declared here and installed as their drops
+# land; D0 needs only the dev group.
+dependencies = [
+    "ib_async>=1.0",
+    "duckdb>=1.0",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

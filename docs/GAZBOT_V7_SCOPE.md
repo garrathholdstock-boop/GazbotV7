@@ -130,7 +130,7 @@ simplicity, not a new language. Async single event loop.
 │  market_data     →  ticks + bars + L2 depth ingest → DB      │
 │  order_engine    →  the fill/order STATE MACHINE (brick #1)  │
 │  position        →  venue-truth position + reconcile         │
-│  safety          →  native-trail coverage + naked guard      │
+│  safety          →  native 1-ATR-stop coverage + naked guard      │
 │  deciders/       →  PURE fns: entry gates + exits (shared    │
 │                     by live + shadow, identical calls)       │
 │  desk            →  the live loop: features → decide → size  │
@@ -144,7 +144,7 @@ simplicity, not a new language. Async single event loop.
 ```
 
 Key property: **because it's one process, an order's fill updates position,
-records the trade, and arms the trail in the same loop tick — atomically, with
+records the trade, and arms its 1-ATR stop in the same loop tick — atomically, with
 no event to lose across a socket.** That is the structural fix for today's root
 cause.
 
@@ -227,7 +227,7 @@ REJECTED`. **Per position round-trip:** `OPENING → OPEN → CLOSING → CLOSED
    engine re-subscribes fills/status for its *own live orders* (not just
    rehydrated open orders) before resuming. No silent post-reconnect gap.
 5. **Zero naked at entry.** A newly-opened position arms its native protective
-   trail in the same tick as the fill. A re-entry onto a just-flattened line
+   1-ATR stop in the same tick as the fill. A re-entry onto a just-flattened line
    books correctly (no "zombie" zeroed-row fall-through).
 6. **Venue truth before any close/flatten.** Position sign/qty read from IBKR
    truth, never a cached book, before any reducing action.
@@ -264,7 +264,7 @@ record is never lost in the first place.
 ## 10. Live desk + shadow desk — shared deciders, honest reprice
 
 - **One decider library**, pure functions: `entry_gates` (thrust, reversal_grab,
-  …) and `exits` (native trail, scalp R-target, adverse/absorption cut). Live
+  …) and `exits` (native 1-ATR stop, scalp R-target, adverse/absorption cut). Live
   desk and shadow desk import and call the *same* functions — no parallel copies
   to drift.
 - **Shadow desk** runs N configured variants on the live feed, records to
@@ -289,11 +289,11 @@ is how we carry the hardness without carrying the code.
 | Scar (V5 origin) | V7 test asserts |
 |---|---|
 | OrderFilledV3 partial-fill race (2026-07-15) | close waits for all exit partials before flat-completing; trade records real exit_reason, never backfill |
-| Zombie re-entry (SELL onto zeroed row) | re-open onto a just-flattened line books the new position + arms its trail |
-| Naked-at-entry (bracket stop cancelled ~5ms post-fill) | every open position carries a native trail within the same tick; naked → auto-reprotect + page |
+| Zombie re-entry (SELL onto zeroed row) | re-open onto a just-flattened line books the new position + arms its 1-ATR stop |
+| Naked-at-entry (bracket stop cancelled ~5ms post-fill) | every open position carries a native 1-ATR stop within the same tick; naked → auto-reprotect + page |
 | Venue-truth blindness (oversold into real shorts, book said flat) | sign/qty read from IBKR truth before any reducing action; cached book can't authorize a close |
 | short_cap != sizing (silent long-only) | one size concept; a 2-lot short and 2-lot long are symmetric; no second cap |
-| MKT ⟂ native trail (Error 328) | entry order type is compatible with the chosen stop; or a software trail is used — asserted, not discovered live |
+| MKT ⟂ native *trailing* stop (V5 Error 328) | V7 uses a FIXED native 1-ATR STP (not a trailing stop), which attaches to any parent — the Error-328 class is designed out. A test still asserts entry-order-type ⟂ stop-type compatibility so it's never discovered live. |
 | Reconnect drops OrderFilledV3 (04:37) | post-reconnect, own-order fill/status subscriptions re-asserted before resuming |
 | Reconcile within seconds of a fill mints px=0 (MGC VCORR) | no synthetic zero-price execution ever reaches the trade record |
 | 5s farm re-stick after gateway reboot | capture health distinguishes a real feed break from post-reboot re-subscribe; documented recovery |
@@ -311,7 +311,9 @@ acceptance suite.)
 - **Exec health on fills.** Through-rate = fills / fired-signals. A CRIT means
   *fills actually stopped*, distinguished from a benign partial-fill defer
   (today's conflation, designed out). Telegram on real CRIT only.
-- **Naked guard.** Native trail on every position; a confirmed naked → reprotect
+- **Naked guard.** A fixed native **1-ATR STP** on every position (server-side,
+  set at entry — simpler than a trail, and it sidesteps the V5 Error-328 trap);
+  a confirmed naked → reprotect
   + ungated page. One instrument makes this trivially auditable.
 - **No auto-reboot cascade needed** — the emission gap doesn't exist, so the
   thing the reboot was healing doesn't occur. A genuine gateway wedge still has a
@@ -326,10 +328,11 @@ acceptance suite.)
    re-assertion. Prove against paper IBKR.
 3. **Brick #1: order/fill state machine** (§7) — the whole scars-as-tests suite
    for fills/pairing/atomic-close green *before anything trades*.
-4. **Position + reconcile** — venue truth; naked guard + native trail.
+4. **Position + reconcile** — venue truth; naked guard + native 1-ATR stop.
 5. **Market data + capture** — ticks/bars/depth into the V7 DB.
 6. **Decider library** — port thrust + reversal_grab as pure fns (from research,
-   not V5 code); exits (trail, scalp R-target, cuts).
+   not V5 code); exits (scalp R-target, adverse/absorption cuts; the protective
+   stop is the fixed native 1-ATR STP, set at entry).
 7. **Desk loop** — features → decide → size → submit → manage → close, MNQ,
    two-sided, 1..N.
 8. **Shadow desk + tick repricer** — N variants, honest real_pnl.
