@@ -41,6 +41,7 @@ from .ipc import (
     Publisher,
     PullServer,
 )
+from . import session
 from .safety import SafetyManager, is_naked, reconcile_verdict
 from .store import clear_open_position, get_open_position, open_store, upsert_open_position
 from .tracker import TradeTracker
@@ -109,6 +110,9 @@ class Core:
             return await self._result(iid, False, "halted (reconcile drift)")
         if not self._is_healthy():
             return await self._result(iid, False, "gateway not healthy")
+        blk = self._session_block(datetime.now(UTC))
+        if blk:
+            return await self._result(iid, False, blk)
         if self._pos is not None or self._pending_open:
             return await self._result(iid, False, "already in position")
         if not self._cfg.place_live:
@@ -217,13 +221,39 @@ class Core:
             self._safety.arm_stop(self._cfg.symbol, side=p.side, qty=self._qty,
                                   entry_price=p.entry_price, atr=p.entry_atr)
 
-    def _emergency_flatten(self) -> None:
-        if self._pos is None:
-            return
-        self._exit_reason = "NAKED_FLATTEN"
+    def _emergency_flatten(self, reason: str = "NAKED_FLATTEN") -> None:
+        if self._pos is None or self._closing:
+            return  # never double-submit a close
+        self._exit_reason = reason
         self._closing = True
         close_side = "SELL" if self._pos.side == "LONG" else "BUY"
         self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=self._qty, order_type="MKT")
+
+    # ── session discipline (S4) ───────────────────────────────────────────────
+    def _session_block(self, now) -> str | None:
+        if not session.is_open(now):
+            return "market closed"
+        if session.in_no_open_window(now, self._cfg.no_open_minutes):
+            return "no-open window (session end)"
+        return None
+
+    def over_max_hold(self, now) -> bool:
+        if self._pos is None or not self.opened_at:
+            return False
+        try:
+            opened = datetime.fromisoformat(self.opened_at)
+        except Exception:
+            return False
+        return (now - opened).total_seconds() / 60.0 >= self._cfg.max_hold_minutes
+
+    def _time_exit_check(self) -> None:
+        now = datetime.now(UTC)
+        if self.over_max_hold(now):
+            self._emergency_flatten("MAX_HOLD")
+            self._notify(f"{self._cfg.symbol} max-hold ({self._cfg.max_hold_minutes:g}m) — flattening")
+        elif session.should_flatten(now, self._cfg.session_flat_minutes):
+            self._emergency_flatten("SESSION_END_FLAT")
+            self._notify(f"{self._cfg.symbol} session-end — flattening")
 
     async def _read_venue_protection(self, gw):
         try:
@@ -326,9 +356,11 @@ class Core:
                     self._reprotect()
                     self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
                 elif action == "flatten":
-                    self._emergency_flatten()
+                    self._emergency_flatten("NAKED_FLATTEN")
                     self._notify(f"NAKED {self._cfg.symbol} unresolved after {self._naked_streak} "
                                  f"re-arms — FLATTENED")
+                else:  # protected — enforce the time exits (max-hold / session-end)
+                    self._time_exit_check()
 
     # ── publishing ───────────────────────────────────────────────────────────
     def _position_payload(self) -> dict:

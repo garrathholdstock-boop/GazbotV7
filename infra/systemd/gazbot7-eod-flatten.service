@@ -1,0 +1,9 @@
+[Unit]
+Description=GAZBOT V7 — EOD flatten (independent of core; flat before the Globex halt)
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+# Its own IBKR client (6) — a dead/hung core still goes flat. No-op on a flat book.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.eod_flatten

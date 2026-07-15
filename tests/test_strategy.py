@@ -114,6 +114,30 @@ def test_pending_timeout_frees_action():
     assert s.decide(later) is not None  # timed out → free to act again
 
 
+def test_no_open_window_suppresses_entry():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    et = ZoneInfo("America/New_York")
+    close_soon = int(datetime(2026, 7, 15, 16, 50, tzinfo=et).timestamp())  # 10 min before close
+    s = _strat()
+    _load(s, end_ts=close_soon)
+    now = close_soon * 1000 + 100
+    s.on_tape(_tape(now, 103.5))
+    assert s.decide(now) is None  # thrust would fire, but the no-open window blocks it
+
+
+def test_entry_fires_midday_outside_window():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    et = ZoneInfo("America/New_York")
+    midday = int(datetime(2026, 7, 15, 12, 0, tzinfo=et).timestamp())
+    s = _strat()
+    _load(s, end_ts=midday)
+    now = midday * 1000 + 100
+    s.on_tape(_tape(now, 103.5))
+    assert s.decide(now)["action"] == "OPEN"  # open session, well before close
+
+
 def test_rejected_intent_result_clears_pending():
     s = _strat()
     end = _load(s)

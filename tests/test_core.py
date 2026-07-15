@@ -277,3 +277,25 @@ def test_clear_phantom_drops_state_and_cancels_stop():
         assert sb.cancelled == ["stp-1"]  # tracked stop cancelled
         assert get_open_position(store, "MNQ") is None
     asyncio.run(scenario())
+
+
+# ── S4: session discipline ───────────────────────────────────────────────────
+def test_session_block_gates_entry():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    et = ZoneInfo("America/New_York")
+    core, *_ = _build()
+    assert core._session_block(datetime(2026, 7, 15, 12, 0, tzinfo=et)) is None            # open midday
+    assert core._session_block(datetime(2026, 7, 18, 12, 0, tzinfo=et)) == "market closed"  # Saturday
+    assert core._session_block(datetime(2026, 7, 15, 16, 50, tzinfo=et)) == "no-open window (session end)"
+
+
+def test_over_max_hold():
+    from datetime import UTC, datetime
+
+    async def scenario():
+        core, *_ = _build(max_hold_minutes=120)
+        await _open_long(core)  # opened_at = 2026-07-15T13:00:00+00:00
+        assert core.over_max_hold(datetime(2026, 7, 15, 14, 0, tzinfo=UTC)) is False   # 60 min
+        assert core.over_max_hold(datetime(2026, 7, 15, 15, 30, tzinfo=UTC)) is True   # 150 min
+    asyncio.run(scenario())

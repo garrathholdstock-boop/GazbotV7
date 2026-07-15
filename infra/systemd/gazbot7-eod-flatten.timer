@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — EOD flatten timer (16:53 + 16:57 ET, Mon-Fri; two passes)
+
+[Timer]
+# ET (DST handled by the zone, never a hardcoded UTC offset). Two passes catch a
+# slow fill; each is a no-op on a flat book. 16:5x ET is ~5 min before the 17:00
+# Globex daily halt.
+OnCalendar=Mon-Fri 16:53 America/New_York
+OnCalendar=Mon-Fri 16:57 America/New_York
+Persistent=false
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target

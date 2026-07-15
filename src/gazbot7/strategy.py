@@ -28,7 +28,9 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import deque
+from datetime import UTC, datetime
 
+from . import session
 from .capture import open_capture
 from .config import RunConfig
 from .deciders import (
@@ -150,6 +152,9 @@ class Strategy:
         return None
 
     def _entry(self, f, now_ms: int) -> dict | None:
+        now = datetime.fromtimestamp(now_ms / 1000, UTC)
+        if not session.is_open(now) or session.in_no_open_window(now, self._cfg.no_open_minutes):
+            return None  # closed, or too close to the session end — no new entries
         entry = self._gate(f)
         if entry is None:
             return None

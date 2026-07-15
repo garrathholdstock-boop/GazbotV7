@@ -29,6 +29,10 @@ class RunConfig:
     # strategy-side managed exits (the native STP owns STOP; these are on top)
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0
+    # session discipline (S4) — never hold overnight, never open into the close
+    max_hold_minutes: float = 120.0    # hard ceiling regardless of P&L
+    no_open_minutes: float = 20.0      # suppress new entries this long before close
+    session_flat_minutes: float = 5.0  # in-loop session-end flatten backstop (timer is primary)
     # paths
     store_path: str = "data/gazbot7.db"
     capture_path: str = "data/capture.db"
