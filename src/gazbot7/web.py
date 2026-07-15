@@ -141,6 +141,7 @@ def serve(port: int, store_path: str, cap_path: str, data_dir: str) -> None:
         def _send(self, body: bytes, ct: str, code: int = 200):
             self.send_response(code)
             self.send_header("Content-Type", ct)
+            self.send_header("Cache-Control", "no-store")  # always fresh assets/JS
             self.end_headers()
             self.wfile.write(body)
 
