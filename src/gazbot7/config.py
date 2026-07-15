@@ -19,7 +19,11 @@ class RunConfig:
     # desk
     size: int = 1
     gate: str = "thrust"
-    gate_params: dict = field(default_factory=lambda: {"thr": 1.5})
+    # thr 1.5→2.5 (2026-07-15): the trade-so-far analysis showed weak thrusts
+    # (net_atr<1.5) are pure churn (-$51, 29% win); strong (≥2.5) are the edge
+    # (+$41.5, +5.19/tr). A gate filter, not a blocker. thrust_shadow keeps 1.5 as
+    # the control for the honest A/B.
+    gate_params: dict = field(default_factory=lambda: {"thr": 2.5})
     target_r: float = 2.0
     # paths
     store_path: str = "data/gazbot7.db"
