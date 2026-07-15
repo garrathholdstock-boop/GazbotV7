@@ -54,7 +54,7 @@ class FakePub:
         self.sent.append((topic, payload))
 
 
-def _build(*, place_live=True, **cfgkw):
+def _build(*, place_live=True, is_healthy=None, **cfgkw):
     store = open_store(":memory:")
     broker, sb = FakeBroker(), FakeStopBroker()
     oe = OrderEngine(broker, store)
@@ -62,7 +62,7 @@ def _build(*, place_live=True, **cfgkw):
     sm = SafetyManager(sb)
     pub = FakePub()
     cfg = RunConfig(place_live=place_live, **cfgkw)
-    return Core(cfg, oe, tt, sm, pub, store), broker, sb, pub, store
+    return Core(cfg, oe, tt, sm, pub, store, is_healthy=is_healthy), broker, sb, pub, store
 
 
 def _fill(exec_id, side, qty, price):
@@ -246,6 +246,15 @@ def test_adopt_flattens_when_no_recoverable_protection():
         assert core.adopt_from_venue(-2.0) == "flatten"
         core._handle_adopt(-2.0)
         assert broker.orders[-1] == dict(side="BUY", qty=2.0)  # flatten the un-adoptable short
+    asyncio.run(scenario())
+
+
+def test_unhealthy_gateway_rejects_open():
+    async def scenario():
+        core, broker, _sb, pub, _s = _build(is_healthy=lambda: False)
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "meta": {"entry_atr": 4.0}})
+        assert broker.orders == []  # not TRADING-eligible → no entry
+        assert _topics(pub, T_INTENT_RESULT)[-1]["reason"] == "gateway not healthy"
     asyncio.run(scenario())
 
 

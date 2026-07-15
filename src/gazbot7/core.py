@@ -64,7 +64,7 @@ class Core:
     """The execution manager: intents in, orders out, position truth published."""
 
     def __init__(self, cfg: RunConfig, engine, tracker, safety, publisher, store,
-                 notifier=None) -> None:
+                 notifier=None, is_healthy=None) -> None:
         self._cfg = cfg
         self._oe = engine
         self._tt = tracker
@@ -72,6 +72,7 @@ class Core:
         self._pub = publisher
         self._store = store
         self._notify = notifier or (lambda _m: None)
+        self._is_healthy = is_healthy or (lambda: True)  # gateway TRADING-eligible?
         self._pos: Position | None = None
         self._qty = 0.0
         self._pending_open = False
@@ -106,6 +107,8 @@ class Core:
     async def _open(self, intent: dict, iid) -> None:
         if self._halted:
             return await self._result(iid, False, "halted (reconcile drift)")
+        if not self._is_healthy():
+            return await self._result(iid, False, "gateway not healthy")
         if self._pos is not None or self._pending_open:
             return await self._result(iid, False, "already in position")
         if not self._cfg.place_live:
@@ -384,13 +387,25 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     pub = Publisher(CORE_STATE)
     pull = PullServer(INTENTS)
     gw = IBGateway(cfg.host, cfg.port, client_id=CORE_CLIENT_ID, readonly=not cfg.place_live)
+    core_ref: dict = {}
+
+    async def _reassert(ib):  # S3: runs on the initial connect AND every reconnect
+        if cfg.place_live:
+            try:
+                ib.reqAutoOpenOrders(True)  # master binds ALL orders — sees the EOD-timer
+            except Exception:                # flatten + manual fills; cross-restart cancel
+                pass
+        c = core_ref.get("core")
+        if c is not None:
+            c.poke_protection()  # re-verify position + coverage immediately after reconnect
+
+    gw.on_reconnect(_reassert)
     await gw.start()
 
     from ib_async import ContFuture
 
     (contract,) = await gw._ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
 
-    core_ref: dict = {}
     broker = (
         IBBrokerAdapter(
             gw._ib, contract, cfg.symbol,
@@ -402,7 +417,8 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     engine = OrderEngine(broker, store)
     tracker = TradeTracker(store, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt, gate=cfg.gate)
     safety = SafetyManager(broker, notifier=notifier)
-    core = Core(cfg, engine, tracker, safety, pub, store, notifier=notifier)
+    core = Core(cfg, engine, tracker, safety, pub, store, notifier=notifier,
+                is_healthy=lambda: gw.healthy)  # S3 trading-eligibility gate
     core_ref["core"] = core
 
     # boot reconcile (S2): adopt any position IBKR holds before accepting intents,
@@ -414,6 +430,7 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
 
     intents_task = asyncio.ensure_future(_drain_intents(pull, core))
     protect_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # S1 naked + S2 reconcile
+    liveness_task = asyncio.ensure_future(gw.liveness_loop())        # S3 zombie guard
     start = time.monotonic()
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
@@ -422,6 +439,7 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     finally:
         intents_task.cancel()
         protect_task.cancel()
+        liveness_task.cancel()
         await gw.stop()
         pub.close()
         pull.close()

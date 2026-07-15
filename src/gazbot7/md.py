@@ -38,9 +38,12 @@ async def run(cfg: RunConfig, *, tape_interval_s: float = 1.0,
     cap = open_capture(cfg.capture_path)
     pub = Publisher(MD_STREAM)
     gw = IBGateway(cfg.host, cfg.port, client_id=MD_CLIENT_ID, readonly=True)
-    await gw.start()
     cm = CaptureManager(gw, cap, [cfg.symbol], exchange=cfg.exchange, publisher=pub)
-    await cm.start()
+    # re-subscribe the reqRealTimeBars farm on the initial connect AND every
+    # reconnect (S3) — a gateway bounce must not leave md silently unsubscribed.
+    gw.on_reconnect(lambda _ib: cm.start())
+    await gw.start()
+    liveness_task = asyncio.ensure_future(gw.liveness_loop())  # S3 zombie guard
     start = time.monotonic()
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
@@ -53,6 +56,7 @@ async def run(cfg: RunConfig, *, tape_interval_s: float = 1.0,
                 })
             await asyncio.sleep(tape_interval_s)
     finally:
+        liveness_task.cancel()
         await gw.stop()
         pub.close()
         cap.close()

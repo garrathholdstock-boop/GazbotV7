@@ -153,6 +153,38 @@ class IBGateway:
         except Exception:
             return False
 
+    async def liveness_loop(self, *, interval: float = 20.0, max_fail: int = 2,
+                            timeout: float = 8.0) -> None:
+        """Zombie-connection guard. Probe reqCurrentTime on a cadence; after
+        ``max_fail`` consecutive silent failures on a *HEALTHY* connection, force a
+        disconnect so the reconnect machinery rebuilds the session. This is the
+        class where a gateway reports 'connected' while the socket is half-dead —
+        V5's nightly-restart 63k-phantom-order storm. The probe interval sits below
+        any process watchdog so a zombie is caught before escalation."""
+        fails = 0
+        while not self._stopping:
+            await asyncio.sleep(interval)
+            if self._stopping:
+                break
+            if self.state != ConnState.HEALTHY:
+                fails = 0
+                continue
+            if await self.probe_alive(timeout=timeout):
+                fails = 0
+                continue
+            fails += 1
+            if fails >= max_fail:
+                fails = 0
+                self._force_reconnect()
+
+    def _force_reconnect(self) -> None:
+        """Tear the (zombie) connection down so the reconnect loop rebuilds it."""
+        self.state = ConnState.RECONNECTING
+        if self._ib.isConnected():
+            self._ib.disconnect()  # → disconnectedEvent → _on_disconnected → reconnect
+        elif self._reconnect_task is None or self._reconnect_task.done():
+            self._reconnect_task = asyncio.ensure_future(self._connect_with_backoff())
+
     async def positions(self):
         """Venue-truth positions (read-only)."""
         return await self._ib.reqPositionsAsync()
