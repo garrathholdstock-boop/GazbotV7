@@ -56,6 +56,7 @@ class Desk:
         self._pending_entry = False
         self._exit_reason: str | None = None
         self._closing = False
+        self.opened_at: str | None = None
 
     @property
     def position(self) -> Position | None:
@@ -140,6 +141,7 @@ class Desk:
     def _on_opened(self, fill: Fill) -> None:
         side = "LONG" if fill.side == "BUY" else "SHORT"
         self._pos = Position(side, fill.price, self._last_atr, 0.0)
+        self.opened_at = fill.exec_time  # for the holdings tab (time-in-trade)
         self._pending_entry = False
         self._safety.arm_stop(
             self._cfg.symbol, side=side, qty=self._cfg.size,

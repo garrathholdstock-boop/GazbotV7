@@ -64,6 +64,9 @@ class SafetyManager:
     def has_stop(self, symbol: str) -> bool:
         return symbol in self._stops
 
+    def stop_for(self, symbol: str) -> StopOrder | None:
+        return self._stops.get(symbol)
+
     def arm_stop(self, symbol: str, *, side: str, qty: float, entry_price: float, atr: float) -> StopOrder:
         """Place the fixed 1-ATR STP for a freshly-opened position. ``side`` is
         the POSITION side (LONG/SHORT); the stop is the opposite (closing) side."""

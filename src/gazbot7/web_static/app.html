@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- GAZBOT V7 — MNQ DESK watch page. Mirrors the V5 /mnq cockpit look (same CSS),
-     fed by V7 data (/api/status). Desktop grid + phone tab bar + single-column stack. -->
+<!-- GAZBOT V7 — MNQ DESK. Mirrors the V5 /mnq cockpit (same CSS + chart/holdings
+     treatment), fed by V7 data (/api/status). Shadow desk is its own page: /v7shadow. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -16,6 +16,7 @@
   <div class="tag">MNQ DESK · MICRO NASDAQ 100</div>
   <div class="conn" id="conn"><span class="dot"></span><span id="conn-label">CONNECTING…</span></div>
   <span class="chip" id="mode-chip">—</span>
+  <a class="chip" href="/v7shadow/" style="text-decoration:none">SHADOW ↗</a>
   <div class="spacer"></div>
   <div class="kpis">
     <div class="kpi box"><span class="l">NET</span><span class="v cyan" id="k-today">—</span></div>
@@ -29,61 +30,86 @@
 <nav class="tabbar" id="tabbar">
   <button class="tab on" data-tab="desk">DESK</button>
   <button class="tab" data-tab="chart">CHART</button>
+  <button class="tab" data-tab="gates">GATES</button>
+  <button class="tab" data-tab="hold">HOLD<span class="b" id="tb-hold">—</span></button>
   <button class="tab" data-tab="trades">TRADES<span class="b" id="tb-trades">—</span></button>
   <button class="tab" data-tab="exec">EXEC</button>
-  <button class="tab" data-tab="shadow">SHADOW</button>
 </nav>
 </div>
 
 <div class="grid">
 
+  <!-- DESK STATS -->
   <section class="panel on" id="p-desk" data-tab="desk">
     <div class="ph"><h2>DESK STATS</h2><span class="live">● live</span></div>
     <div class="pb">
-      <div class="sec">POSITION</div>
-      <div class="big" id="pos-big">FLAT</div>
-      <div class="subval" id="pos-sub">no open position</div>
-
+      <div class="sec">UNREALISED P&amp;L</div>
+      <div class="big" id="unreal">—</div>
+      <div class="subval" id="unreal-sub">flat</div>
       <div class="sec">TODAY · MNQ · NET OF FEES</div>
       <div class="row"><span class="k">Realised P&amp;L</span><span class="val" id="d-realised">—</span></div>
       <div class="row"><span class="k">Trades today</span><span class="val" id="d-trades">—</span></div>
       <div class="row"><span class="k">Win rate today</span><span class="val" id="d-win">—</span></div>
-
+      <div class="row"><span class="k">Live gate</span><span class="val cyan" id="d-gate">thrust</span></div>
       <div class="sec">ROLLING · MNQ · USD</div>
       <table><thead><tr><th></th><th>1D</th><th>7D</th><th>30D</th></tr></thead>
         <tbody id="rolltbl"><tr><td class="empty" colspan="4">—</td></tr></tbody></table>
     </div>
   </section>
 
+  <!-- CHART -->
   <section class="panel" id="p-chart" data-tab="chart">
-    <div class="ph"><h2>MNQ · PRICE</h2><span class="live" id="hero-state">● 5s</span></div>
+    <div class="ph"><h2>MNQ · PRICE</h2><span class="live">● 5s · fills · VWAP</span></div>
     <div class="hero-body">
       <div class="chart-host"><svg id="price-svg" preserveAspectRatio="none"></svg></div>
+      <div class="legend" id="chart-legend">
+        <span><span class="sw" style="background:#c6d2db"></span>price</span>
+        <span><span class="sw" style="background:#37c9c9"></span>VWAP</span>
+        <span><span class="sw" style="background:#37d07a"></span>long fill</span>
+        <span><span class="sw" style="background:#ff5a5f"></span>short fill</span>
+      </div>
     </div>
   </section>
 
+  <!-- GATES -->
+  <section class="panel" id="p-gates" data-tab="gates">
+    <div class="ph"><h2>GATE PERFORMANCE</h2><span class="sub">today · gate×side · net of fees</span></div>
+    <div class="pb">
+      <div class="sec">LIVE GATE · thrust</div>
+      <div class="row"><span class="k">Threshold (net_atr)</span><span class="val" id="g-thr">≥ 2.5</span></div>
+      <div class="row"><span class="k">Shadow control</span><span class="val" id="g-ctrl">thrust @ 1.5</span></div>
+      <div class="sec">GATE × SIDE · TODAY</div>
+      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>NET</th></tr></thead>
+        <tbody id="gateperf"><tr><td class="empty" colspan="5">—</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <!-- HOLDING -->
+  <section class="panel" id="p-hold" data-tab="hold">
+    <div class="ph"><h2>HOLDING</h2><span class="sub" id="hold-meta">—</span></div>
+    <div class="pb" id="hold-body"><div class="empty">loading…</div></div>
+  </section>
+
+  <!-- TRADES -->
   <section class="panel" id="p-trades" data-tab="trades">
     <div class="ph"><h2>TODAY · TRADES</h2><span class="sub" id="trades-meta">—</span></div>
     <div class="pb">
+      <div class="sec" style="margin-top:0">REALISED CURVE <span class="dim3" id="curve-end">—</span></div>
+      <div class="curve-host"><svg id="curve-svg" viewBox="0 0 1000 120" preserveAspectRatio="none"></svg></div>
       <table><thead><tr><th>TIME</th><th>SIDE</th><th>GATE</th><th>EXIT</th><th>$</th></tr></thead>
         <tbody id="blotter"><tr><td class="empty" colspan="5">—</td></tr></tbody></table>
     </div>
   </section>
 
+  <!-- EXEC -->
   <section class="panel" id="p-exec" data-tab="exec">
     <div class="ph"><h2>EXECUTION</h2><span class="sub">fills · today</span></div>
     <div class="pb">
       <div class="sec">THROUGH-RATE <span class="dim3">· signals that filled</span></div>
       <div class="big" id="exec-pct">—</div>
       <div class="subval" id="exec-sub">—</div>
-    </div>
-  </section>
-
-  <section class="panel" id="p-shadow" data-tab="shadow">
-    <div class="ph"><h2>SHADOW · honest real_pnl</h2><span class="sub">forward test</span></div>
-    <div class="pb">
-      <table><thead><tr><th>STRATEGY</th><th>N</th><th>$</th><th>WIN</th></tr></thead>
-        <tbody id="shadowtbl"><tr><td class="empty" colspan="4">no shadow trades yet</td></tr></tbody></table>
+      <div class="sec">RECORDING INTEGRITY</div>
+      <div class="row"><span class="k">Backfills (must be 0)</span><span class="val" id="exec-bf">—</span></div>
     </div>
   </section>
 

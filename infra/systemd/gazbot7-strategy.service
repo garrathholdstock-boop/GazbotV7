@@ -1,0 +1,17 @@
+[Unit]
+Description=GAZBOT V7 — strategy (decisions → order intents; never touches IBKR)
+# md + core bind the streams strategy connects to; zmq tolerates any start order
+# (it reconnects), but prefer the binders up first.
+After=network.target gazbot7-md.service gazbot7-core.service
+Wants=gazbot7-md.service gazbot7-core.service
+
+[Service]
+Type=simple
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.strategy
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -54,7 +54,8 @@ def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
     out = {
         "conn": st.get("conn", "—"), "healthy": st.get("healthy", False),
         "live": st.get("place_live", False), "position": st.get("position"),
-        "kpi": {}, "trades": [], "shadow": [], "exec": {}, "bars": [], "price": None,
+        "kpi": {}, "trades": [], "shadow": [], "exec": {}, "gates": [], "fills": [],
+        "bars": [], "price": None, "vwap": None, "atr_pct": None, "backfills": 0,
     }
     try:
         c = sqlite3.connect(store_path)
@@ -86,21 +87,47 @@ def build_status(store_path: str, cap_path: str, data_dir: str) -> dict:
             ).fetchall()
         ]
         subm = _q1(c, "SELECT COUNT(*) FROM orders WHERE created_at>=?", (day_start,), 0)
-        fills = _q1(c, "SELECT COUNT(*) FROM fills WHERE ingested_at>=?", (day_start,), 0)
-        out["exec"] = {"submitted": subm, "fills": fills,
-                       "through": round(100 * fills / subm) if subm else None}
+        nf = _q1(c, "SELECT COUNT(*) FROM fills WHERE ingested_at>=?", (day_start,), 0)
+        out["exec"] = {"submitted": subm, "fills": nf,
+                       "through": round(100 * nf / subm) if subm else None}
+        out["backfills"] = _q1(c, "SELECT COUNT(*) FROM trades WHERE symbol='MNQ' AND exit_reason='RECONSTRUCTED_BACKFILL'", (), 0)
+        # fills for the chart markers (today's entries/exits)
+        out["fills"] = [
+            {"side": r["side"], "entry": r["entry_price"], "exit": r["exit_price"],
+             "opened_at": r["opened_at"], "closed_at": r["closed_at"]}
+            for r in c.execute(
+                "SELECT side, entry_price, exit_price, opened_at, closed_at FROM trades "
+                "WHERE symbol='MNQ' AND closed_at>=? ORDER BY closed_at", (day_start,)
+            ).fetchall()
+        ]
+        # gate leaderboard (gate x side)
+        out["gates"] = [
+            {"gate": r["gate"] or "thrust", "side": r["side"], "n": r["n"],
+             "win": round(100 * r["w"] / r["n"]) if r["n"] else 0, "net": round(r["net"] or 0, 1)}
+            for r in c.execute(
+                "SELECT COALESCE(gate,'thrust') gate, side, COUNT(*) n, SUM(pnl_usd>0) w, SUM(pnl_usd) net "
+                "FROM trades WHERE symbol='MNQ' AND closed_at>=? GROUP BY gate, side ORDER BY net DESC",
+                (day_start,)
+            ).fetchall()
+        ]
         c.close()
     except Exception:
         pass
     try:
+        from .deciders import Bar, compute_features
         cap = sqlite3.connect(cap_path)
         cap.row_factory = sqlite3.Row
-        rows = cap.execute(
-            "SELECT bar_ts, close FROM bars WHERE symbol='MNQ' AND timeframe='5s' ORDER BY bar_ts DESC LIMIT 240"
-        ).fetchall()
-        out["bars"] = [[r["bar_ts"], r["close"]] for r in reversed(rows)]
-        if out["bars"]:
-            out["price"] = out["bars"][-1][1]
+        rows = list(reversed(cap.execute(
+            "SELECT bar_ts, open, high, low, close, volume FROM bars "
+            "WHERE symbol='MNQ' AND timeframe='5s' ORDER BY bar_ts DESC LIMIT 240"
+        ).fetchall()))
+        out["bars"] = [[r["bar_ts"], r["close"]] for r in rows]
+        if rows:
+            out["price"] = rows[-1]["close"]
+            if len(rows) >= 6:
+                f = compute_features([Bar(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"]) for r in rows])
+                out["vwap"] = round(f.vwap, 2)
+                out["atr_pct"] = round(f.atr_pct, 5)
         cap.close()
     except Exception:
         pass

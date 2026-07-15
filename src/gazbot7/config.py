@@ -25,6 +25,10 @@ class RunConfig:
     # the control for the honest A/B.
     gate_params: dict = field(default_factory=lambda: {"thr": 2.5})
     target_r: float = 2.0
+    stop_atr_mult: float = 1.0
+    # strategy-side managed exits (the native STP owns STOP; these are on top)
+    adverse_cut_atr: float = 1.5
+    absorption_flow_min: float = 50.0
     # paths
     store_path: str = "data/gazbot7.db"
     capture_path: str = "data/capture.db"

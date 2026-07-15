@@ -5,6 +5,7 @@ from __future__ import annotations
 from gazbot7.capture import (
     capture_health,
     open_capture,
+    recent_tape,
     record_bar,
     record_book,
     record_quote,
@@ -69,6 +70,25 @@ def test_health_no_data(tmp_path):
     c = _cap(tmp_path)  # nothing captured
     (h,) = capture_health(c, ["MNQ"], NOW)
     assert h.status == "NO_DATA"
+
+
+def test_recent_tape_summary(tmp_path):
+    # the tape summary md publishes: net flow (buy−sell), price delta, last price
+    c = _cap(tmp_path)
+    record_tick(c, "MNQ", NOW - 5000, 29950.0, 4, "buy")
+    record_tick(c, "MNQ", NOW - 3000, 29951.0, 3, "sell")
+    record_tick(c, "MNQ", NOW - 1000, 29952.0, 5, "buy")
+    record_tick(c, "MNQ", NOW - 120_000, 29900.0, 9, "buy")  # outside 60s window
+    c.commit()
+    net, dpx, last = recent_tape(c, "MNQ", NOW, window_s=60)
+    assert net == 6.0  # 4 - 3 + 5, the stale 9 excluded
+    assert dpx == 2.0  # 29952 - 29950
+    assert last == 29952.0
+
+
+def test_recent_tape_empty_window(tmp_path):
+    c = _cap(tmp_path)
+    assert recent_tape(c, "MNQ", NOW, window_s=60) == (0.0, 0.0, None)
 
 
 def test_health_multi_symbol(tmp_path):

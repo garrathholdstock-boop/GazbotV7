@@ -70,8 +70,22 @@ def _recent_tape(cap, symbol: str, window_s: int) -> tuple[float, float]:
     return buy - sell, rows[-1]["price"] - rows[0]["price"]
 
 
-def _write_status(cfg: RunConfig, gw: IBGateway, desk: Desk, store) -> None:
+def _write_status(cfg: RunConfig, gw: IBGateway, desk: Desk, store, sm, last_price) -> None:
     pos = desk.position
+    position = None
+    if pos is not None:
+        st = sm.stop_for(cfg.symbol)
+        sign = 1 if pos.side == "LONG" else -1
+        r_pts = cfg.stop_atr_mult * pos.entry_atr
+        unreal = round(sign * (last_price - pos.entry_price) * cfg.value_per_point * cfg.size, 2) if last_price else None
+        rmult = round(sign * (last_price - pos.entry_price) / r_pts, 2) if (last_price and r_pts > 0) else None
+        position = {
+            "side": pos.side, "entry": round(pos.entry_price, 2), "atr": round(pos.entry_atr, 3),
+            "stop": round(st.stop_price, 2) if st else None,
+            "target": round(pos.entry_price + sign * cfg.target_r * r_pts, 2),
+            "last": last_price, "unreal": unreal, "r": rmult,
+            "gate": cfg.gate, "qty": cfg.size, "opened_at": desk.opened_at,
+        }
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     r = store.execute(
         "SELECT COUNT(*), COALESCE(ROUND(SUM(pnl_usd),2),0) FROM trades "
@@ -83,7 +97,7 @@ def _write_status(cfg: RunConfig, gw: IBGateway, desk: Desk, store) -> None:
         "healthy": gw.healthy,
         "place_live": cfg.place_live,
         "symbol": cfg.symbol,
-        "position": None if pos is None else {"side": pos.side, "entry": pos.entry_price},
+        "position": position,
         "today_trades": r[0],
         "today_pnl": r[1],
     }
@@ -121,9 +135,30 @@ async def run(cfg: RunConfig, *, shadow_variants=None, notifier=None, max_second
     tt = TradeTracker(store, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt, gate=cfg.gate)
     sm = SafetyManager(broker, notifier=notifier)
     desk = Desk(DeskConfig(symbol=cfg.symbol, size=cfg.size, gate=cfg.gate,
-                           gate_params=cfg.gate_params, target_r=cfg.target_r), oe, tt, sm)
+                           gate_params=cfg.gate_params, target_r=cfg.target_r,
+                           stop_atr_mult=cfg.stop_atr_mult), oe, tt, sm)
     desk_ref["desk"] = desk
     shadow = ShadowSim(store, shadow_variants or [], value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+
+    # STARTUP RECONCILE: V7 starts FLAT (no position rehydration). If IBKR holds a
+    # position (e.g. left by a crash-restart) or stale orders, flatten + cancel so
+    # the tracker matches venue truth from the first tick — never inherit an orphan.
+    if cfg.place_live:
+        from ib_async import MarketOrder
+
+        await gw._ib.reqAllOpenOrdersAsync()
+        for tr in list(gw._ib.openTrades()):
+            try:
+                gw._ib.cancelOrder(tr.order)
+            except Exception:
+                pass
+        vpos = await gw._ib.reqPositionsAsync()
+        net = sum(p.position for p in vpos if p.contract.symbol == cfg.symbol)
+        if abs(net) > 1e-9:
+            gw._ib.placeOrder(contract, MarketOrder("BUY" if net < 0 else "SELL", abs(net)))
+            await asyncio.sleep(3)
+            if notifier:
+                notifier(f"startup reconcile: flattened orphan {cfg.symbol} {net:g} + cancelled stale orders")
 
     cm = CaptureManager(gw, cap, [cfg.symbol], exchange=cfg.exchange)
     await cm.start()
@@ -137,7 +172,7 @@ async def run(cfg: RunConfig, *, shadow_variants=None, notifier=None, max_second
             in_rth = _us_rth(int(time.time() * 1000))
             desk.on_bars(bars, tape_net=tape_net, window_price_delta=wpd, in_rth=in_rth)
             shadow.on_bars(bars, tape_net=tape_net, window_price_delta=wpd, in_rth=in_rth)
-        _write_status(cfg, gw, desk, store)
+        _write_status(cfg, gw, desk, store, sm, bars[-1].close if bars else None)
         await asyncio.sleep(cfg.cadence_s)
 
     await gw.stop()

@@ -126,6 +126,21 @@ def capture_health(
     return out
 
 
+def recent_tape(conn, symbol: str, now_ms: int, *, window_s: int = 60) -> tuple[float, float, float | None]:
+    """Aggressor summary over the trailing window: (net_flow buy−sell, price
+    delta first→last, last price). The md service publishes this so strategy
+    decides off the live stream, not a DB poll. Empty window → (0, 0, None)."""
+    rows = conn.execute(
+        "SELECT price, size, aggressor FROM ticks WHERE symbol=? AND ts_ms>=? ORDER BY ts_ms",
+        (symbol, now_ms - window_s * 1000),
+    ).fetchall()
+    if not rows:
+        return 0.0, 0.0, None
+    buy = sum(r["size"] for r in rows if r["aggressor"] == "buy")
+    sell = sum(r["size"] for r in rows if r["aggressor"] == "sell")
+    return buy - sell, rows[-1]["price"] - rows[0]["price"], rows[-1]["price"]
+
+
 # ── live ingest ───────────────────────────────────────────────────────────
 def _now_ms() -> int:
     import time
@@ -145,13 +160,15 @@ class CaptureManager:
     """Subscribes MNQ (+ any extra symbols) to 5s bars / L1 quotes / aggressor
     ticks / L2 depth via the gateway's IB, and writes to the capture store."""
 
-    def __init__(self, gateway, cap_store, symbols, *, exchange: str = "CME", depth_rows: int = 5) -> None:
+    def __init__(self, gateway, cap_store, symbols, *, exchange: str = "CME",
+                 depth_rows: int = 5, publisher=None) -> None:
         self._gw = gateway
         self._store = cap_store
         self._symbols = list(symbols)
         self._exchange = exchange
         self._depth_rows = depth_rows
         self._contracts: dict[str, object] = {}
+        self._pub = publisher  # optional ipc.Publisher → live MD_STREAM (bars)
 
     async def start(self) -> None:
         from ib_async import ContFuture
@@ -172,9 +189,17 @@ class CaptureManager:
     def _bar_handler(self, sym):
         def h(bars, has_new_bar):
             b = bars[-1]
-            record_bar(self._store, sym, "5s", int(b.time.timestamp()),
-                       b.open_, b.high, b.low, b.close, b.volume)
+            ts = int(b.time.timestamp())
+            record_bar(self._store, sym, "5s", ts, b.open_, b.high, b.low, b.close, b.volume)
             self._store.commit()
+            if self._pub is not None:  # publish the closed bar to the live stream
+                import asyncio
+
+                from .ipc import T_BAR
+                asyncio.ensure_future(self._pub.send(T_BAR, {
+                    "symbol": sym, "tf": "5s", "ts": ts, "o": b.open_, "h": b.high,
+                    "l": b.low, "c": b.close, "v": b.volume, "closed": True,
+                }))
 
         return h
 

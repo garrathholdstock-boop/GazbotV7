@@ -1,0 +1,277 @@
+"""GAZBOT V7 — the core service: the broker.
+
+Core owns the IBKR **order path** and is the single authority on what we hold:
+it connects as the master client (**clientId 0**), drains order *intents* from
+strategy, submits them, routes ``execDetailsEvent`` fills through the order
+engine → trade tracker → safety, and publishes position / fill / trade / status
+back on ``CORE_STATE``. Recording lives here, welded to the fills, so the §274
+race stays dead (see tracker.py). Strategy never touches IBKR; it only sends
+intents and reads what core publishes.
+
+This is the execution half lifted out of the old single-process ``Desk`` — the
+decision half (features → gates → exits) moves to strategy. Core makes no trading
+decisions; it validates (one-position guard, ``place_live``, and — layered in the
+safety drops — kill-switch/session/naked/reconcile gates) and executes.
+
+The P0 protection spine (tick-rounding, orderStatus/error reject handling, the
+naked auditor) lands on this order path next. Clean-room.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import subprocess
+import time
+from datetime import UTC, datetime
+
+from .broker_adapter import IBBrokerAdapter
+from .config import RunConfig
+from .deciders import Position
+from .engine import OrderEngine
+from .ib_gateway import IBGateway
+from .ipc import (
+    CORE_STATE,
+    INTENTS,
+    T_FILL,
+    T_INTENT_RESULT,
+    T_POSITION,
+    T_STATUS,
+    T_TRADE,
+    Publisher,
+    PullServer,
+)
+from .safety import SafetyManager
+from .store import open_store
+from .tracker import TradeTracker
+
+CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
+_EPS = 1e-9
+
+
+class _NoOpBroker:
+    """Dry-run broker (place_live off): accepts nothing, touches no account."""
+
+    def place(self, order) -> None: ...
+    def cancel(self, coid: str) -> None: ...
+    def place_stop(self, *, symbol, side, qty, stop_price) -> str:
+        return "dry-run"
+
+
+class Core:
+    """The execution manager: intents in, orders out, position truth published."""
+
+    def __init__(self, cfg: RunConfig, engine, tracker, safety, publisher, store) -> None:
+        self._cfg = cfg
+        self._oe = engine
+        self._tt = tracker
+        self._safety = safety
+        self._pub = publisher
+        self._store = store
+        self._pos: Position | None = None
+        self._qty = 0.0
+        self._pending_open = False
+        self._closing = False
+        self._exit_reason: str | None = None
+        self._open_atr = 0.0
+        self.opened_at: str | None = None
+
+    @property
+    def position(self) -> Position | None:
+        return self._pos
+
+    # ── intents ──────────────────────────────────────────────────────────────
+    async def on_intent(self, intent: dict) -> None:
+        action = intent.get("action")
+        iid = intent.get("iid")
+        if action == "OPEN":
+            await self._open(intent, iid)
+        elif action in ("CLOSE", "FLATTEN"):
+            await self._close(intent, iid)
+        else:
+            await self._result(iid, False, f"unknown action {action!r}")
+
+    async def _open(self, intent: dict, iid) -> None:
+        if self._pos is not None or self._pending_open:
+            return await self._result(iid, False, "already in position")
+        if not self._cfg.place_live:
+            return await self._result(iid, False, "place_live off")
+        side = intent.get("side")
+        if side not in ("LONG", "SHORT"):
+            return await self._result(iid, False, f"bad side {side!r}")
+        qty = int(intent.get("qty") or self._cfg.size)
+        meta = intent.get("meta") or {}
+        self._open_atr = float(meta.get("entry_atr") or 0.0)
+        self._exit_reason = None
+        order_side = "BUY" if side == "LONG" else "SELL"
+        coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty, order_type="MKT")
+        self._pending_open = True
+        await self._result(iid, True, "submitted", coid=coid)
+
+    async def _close(self, intent: dict, iid) -> None:
+        if self._pos is None:
+            return await self._result(iid, False, "flat")
+        if self._closing:
+            return await self._result(iid, False, "already closing")
+        if not self._cfg.place_live:
+            return await self._result(iid, False, "place_live off")
+        self._exit_reason = intent.get("reason") or (
+            "FLATTEN" if intent.get("action") == "FLATTEN" else "SIGNAL_CLOSE"
+        )
+        self._closing = True
+        close_side = "SELL" if self._pos.side == "LONG" else "BUY"
+        coid = self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=self._qty, order_type="MKT")
+        await self._result(iid, True, "closing", coid=coid)
+
+    # ── fills (from execDetailsEvent, in-loop) ───────────────────────────────
+    def on_fill(self, fill) -> None:
+        sym = self._cfg.symbol
+        was_flat = abs(self._tt.net_qty(sym)) < _EPS
+        self._oe.on_fill(fill)
+        closing = self._pos is not None and self._is_closing_side(fill.side)
+        reason = (self._exit_reason or "STOP") if closing else None
+        self._tt.apply(fill, exit_reason=reason)
+        now_flat = abs(self._tt.net_qty(sym)) < _EPS
+        self._emit(T_FILL, {
+            "symbol": sym, "side": fill.side, "qty": fill.qty,
+            "price": fill.price, "exec_id": fill.exec_id, "exec_time": fill.exec_time,
+        })
+        if was_flat and not now_flat:
+            self._on_opened(fill)
+        elif not was_flat and now_flat:
+            self._on_closed()
+        self._emit(T_POSITION, self._position_payload())
+
+    def _is_closing_side(self, side: str) -> bool:
+        if self._pos is None:
+            return False
+        return (self._pos.side == "LONG" and side == "SELL") or (
+            self._pos.side == "SHORT" and side == "BUY"
+        )
+
+    def _on_opened(self, fill) -> None:
+        sym = self._cfg.symbol
+        side = "LONG" if fill.side == "BUY" else "SHORT"
+        self._qty = abs(self._tt.net_qty(sym))  # true filled size (venue-derived)
+        self._pos = Position(side, fill.price, self._open_atr, 0.0)
+        self.opened_at = fill.exec_time
+        self._pending_open = False
+        # arm the fixed native stop the instant the position opens (zero naked).
+        # S1 hardens this path: tick-rounding + reject re-arm on the order events.
+        self._safety.arm_stop(
+            sym, side=side, qty=self._qty, entry_price=fill.price, atr=self._open_atr,
+        )
+
+    def _on_closed(self) -> None:
+        self._safety.on_flat(self._cfg.symbol)
+        self._pos = None
+        self._qty = 0.0
+        self._closing = False
+        self._exit_reason = None
+        self.opened_at = None
+        self._publish_last_trade()
+
+    # ── publishing ───────────────────────────────────────────────────────────
+    def _position_payload(self) -> dict:
+        sym = self._cfg.symbol
+        if self._pos is None:
+            return {"symbol": sym, "flat": True}
+        st = self._safety.stop_for(sym)
+        return {
+            "symbol": sym, "flat": False, "side": self._pos.side, "qty": self._qty,
+            "entry": self._pos.entry_price, "atr": self._pos.entry_atr,
+            "stop": st.stop_price if st else None, "opened_at": self.opened_at,
+        }
+
+    def _publish_last_trade(self) -> None:
+        row = self._store.execute(
+            "SELECT symbol, side, pnl_usd, exit_reason, closed_at FROM trades "
+            "ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        if row is not None:
+            self._emit(T_TRADE, {
+                "symbol": row[0], "side": row[1], "pnl": row[2],
+                "exit_reason": row[3], "closed_at": row[4],
+            })
+
+    def _emit(self, topic: str, payload: dict) -> None:
+        """Fire-and-forget publish from the in-loop fill callback."""
+        asyncio.ensure_future(self._pub.send(topic, payload))
+
+    async def publish_status(self, gw: IBGateway) -> None:
+        await self._pub.send(T_STATUS, {
+            "ts": datetime.now(UTC).isoformat(), "conn": gw.state.value,
+            "healthy": gw.healthy, "place_live": self._cfg.place_live,
+            "flat": self._pos is None,
+        })
+        await self._pub.send(T_POSITION, self._position_payload())
+
+    async def _result(self, iid, accepted: bool, reason: str, *, coid: str | None = None) -> None:
+        await self._pub.send(T_INTENT_RESULT, {
+            "iid": iid, "accepted": accepted, "reason": reason, "coid": coid,
+        })
+
+
+# ── service entrypoint ───────────────────────────────────────────────────────
+async def _drain_intents(pull: PullServer, core: Core) -> None:
+    while True:
+        intent = await pull.recv()
+        try:
+            await core.on_intent(intent)
+        except Exception:  # an intent must never kill the drain loop
+            pass
+
+
+async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
+              max_seconds: float | None = None) -> None:
+    store = open_store(cfg.store_path)
+    pub = Publisher(CORE_STATE)
+    pull = PullServer(INTENTS)
+    gw = IBGateway(cfg.host, cfg.port, client_id=CORE_CLIENT_ID, readonly=not cfg.place_live)
+    await gw.start()
+
+    from ib_async import ContFuture
+
+    (contract,) = await gw._ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
+
+    core_ref: dict = {}
+    broker = (
+        IBBrokerAdapter(gw._ib, contract, cfg.symbol, on_fill=lambda f: core_ref["core"].on_fill(f))
+        if cfg.place_live else _NoOpBroker()
+    )
+    engine = OrderEngine(broker, store)
+    tracker = TradeTracker(store, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt, gate=cfg.gate)
+    safety = SafetyManager(broker, notifier=notifier)
+    core = Core(cfg, engine, tracker, safety, pub, store)
+    core_ref["core"] = core
+
+    intents_task = asyncio.ensure_future(_drain_intents(pull, core))
+    start = time.monotonic()
+    try:
+        while max_seconds is None or (time.monotonic() - start) < max_seconds:
+            await core.publish_status(gw)
+            await asyncio.sleep(status_interval_s)
+    finally:
+        intents_task.cancel()
+        await gw.stop()
+        pub.close()
+        pull.close()
+        store.close()
+
+
+def _telegram_notifier(msg: str) -> None:
+    subprocess.run(
+        ["/home/alphabot/alphabot2/.venv/bin/python",
+         "/home/alphabot/alphabot2/scripts/notify_operator.py", f"[V7-core] {msg}"],
+        check=False, timeout=15,
+    )
+
+
+def main() -> None:  # `python -m gazbot7.core`  (GAZBOT7_PLACE_LIVE=1 to trade)
+    live = os.environ.get("GAZBOT7_PLACE_LIVE") == "1"
+    cfg = RunConfig(place_live=live, client_id=CORE_CLIENT_ID)
+    asyncio.run(run(cfg, notifier=_telegram_notifier))
+
+
+if __name__ == "__main__":
+    main()

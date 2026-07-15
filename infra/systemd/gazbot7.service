@@ -1,12 +1,15 @@
+# DEPRECATED — the single-process runner is superseded by the three-service split
+# (gazbot7-md + gazbot7-core + gazbot7-strategy). Kept for reference only; place_live
+# forced to 0 so starting it can never trade the retired monolith.
 [Unit]
-Description=GAZBOT V7 — MNQ futures desk (live)
+Description=GAZBOT V7 — MNQ desk (DEPRECATED single-process runner)
 After=network.target
 
 [Service]
 Type=simple
 User=alphabot
 WorkingDirectory=/home/alphabot/gazbot7
-Environment=GAZBOT7_PLACE_LIVE=1
+Environment=GAZBOT7_PLACE_LIVE=0
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.runner
 Restart=on-failure
 RestartSec=5
