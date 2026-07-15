@@ -105,7 +105,10 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
    children. Grid rows are fixed by ORDER: ribbon · chart(1fr) · tfbar · legend · sec · dtt.
    The chart row is minmax(170px,1fr) so it stays dominant and CANNOT be squeezed to the bottom
    when the ribbon/DTT populate at the first data tick (the old flex-column bug). */
-.hero-body{display:grid;grid-template-rows:auto minmax(170px,1fr) auto auto auto auto;gap:8px;padding:9px 11px;overflow:hidden;flex:1;min-height:0}
+/* this page's chart area has exactly 2 children: chart-host + legend. Give the
+   chart the flex row and the legend an auto row (the 6-row template was for the
+   old V5 hero and squished the chart into a collapsing auto row). */
+.hero-body{display:grid;grid-template-rows:minmax(260px,1fr) auto;gap:8px;padding:9px 11px;overflow:hidden;flex:1;min-height:320px}
 .ribbon{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;min-height:44px;align-items:stretch}
 .rtile{flex:1;min-width:62px;border:1px solid var(--line);border-radius:5px;padding:6px 8px;background:var(--panel2)}
 .rtile .l{font-size:10px;letter-spacing:1px;color:var(--mut)}
