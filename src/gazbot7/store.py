@@ -151,6 +151,36 @@ def record_fill(conn: sqlite3.Connection, fill: Fill) -> bool:
     return cur.rowcount == 1
 
 
+def upsert_order(
+    conn: sqlite3.Connection,
+    *,
+    client_order_id: str,
+    symbol: str,
+    side: str,
+    qty: float,
+    order_type: str,
+    status: str,
+    limit_price: float | None = None,
+) -> None:
+    """Insert or update an order by its client_order_id (we own the id)."""
+    now = _utcnow_iso()
+    conn.execute(
+        "INSERT INTO orders "
+        "(client_order_id, symbol, side, qty, order_type, limit_price, status, created_at, updated_at) "
+        "VALUES (?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(client_order_id) DO UPDATE SET "
+        "status=excluded.status, limit_price=excluded.limit_price, updated_at=excluded.updated_at",
+        (client_order_id, symbol, side, qty, order_type, limit_price, status, now, now),
+    )
+    conn.commit()
+
+
+def get_order(conn: sqlite3.Connection, client_order_id: str) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM orders WHERE client_order_id = ?", (client_order_id,)
+    ).fetchone()
+
+
 def get_fill(conn: sqlite3.Connection, exec_id: str) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM fills WHERE exec_id = ?", (exec_id,)).fetchone()
 
