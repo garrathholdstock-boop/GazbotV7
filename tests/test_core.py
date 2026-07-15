@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 
 from gazbot7.config import RunConfig
-from gazbot7.core import Core
+from gazbot7.core import EXIT_STUCK_CYCLES, Core
 from gazbot7.engine import OrderEngine
 from gazbot7.ipc import T_FILL, T_INTENT_RESULT, T_POSITION, T_TRADE
 from gazbot7.safety import SafetyManager
@@ -298,4 +298,37 @@ def test_over_max_hold():
         await _open_long(core)  # opened_at = 2026-07-15T13:00:00+00:00
         assert core.over_max_hold(datetime(2026, 7, 15, 14, 0, tzinfo=UTC)) is False   # 60 min
         assert core.over_max_hold(datetime(2026, 7, 15, 15, 30, tzinfo=UTC)) is True   # 150 min
+    asyncio.run(scenario())
+
+
+# ── S5: safe-flatten + exit-not-completing watchdog ──────────────────────────
+def test_emergency_flatten_fires_only_venue_qty():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build()
+        await _open_long(core)  # tracked qty 1
+        core._emergency_flatten("MAX_HOLD", venue_net=2.0)  # IBKR truth says 2 → SELL 2
+        assert broker.orders[-1] == dict(side="SELL", qty=2.0)
+    asyncio.run(scenario())
+
+
+def test_emergency_flatten_skips_when_venue_flat():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build()
+        await _open_long(core)
+        n0 = len(broker.orders)
+        core._emergency_flatten("MAX_HOLD", venue_net=0.0)  # venue flat → a close would OPEN → SKIP
+        assert len(broker.orders) == n0 and core._closing is False
+    asyncio.run(scenario())
+
+
+def test_exit_not_completing_alarms():
+    async def scenario():
+        core, _b, _sb, _pub, _s = _build()
+        notes: list[str] = []
+        core._notify = notes.append
+        await _open_long(core)
+        core._emergency_flatten("MAX_HOLD", venue_net=1.0)  # fires, _closing latched
+        for _ in range(EXIT_STUCK_CYCLES):  # cycles where the position never reduces
+            core._exit_watchdog(1.0)
+        assert any("EXIT_NOT_COMPLETING" in n for n in notes)
     asyncio.run(scenario())

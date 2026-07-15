@@ -19,6 +19,7 @@ import asyncio
 import subprocess
 
 from .config import RunConfig
+from .safety import safe_flatten_verdict
 
 EOD_CLIENT_ID = 6  # dedicated (core=0, md=2, checks=8) — never collide
 _EPS = 1e-9
@@ -39,9 +40,10 @@ async def flatten_once(cfg: RunConfig) -> tuple[float, float]:
             if getattr(tr.contract, "symbol", None) == cfg.symbol:
                 ib.cancelOrder(tr.order)
         net = sum(p.position for p in ib.positions() if p.contract.symbol == cfg.symbol)
-        if abs(net) > _EPS:
-            action = "BUY" if net < 0 else "SELL"  # fire only what IBKR holds, its direction
-            tr = ib.placeOrder(contract, MarketOrder(action, abs(net)))
+        verdict = safe_flatten_verdict(net)  # fire ONLY what IBKR holds, its direction
+        if verdict is not None:
+            action, qty = verdict
+            tr = ib.placeOrder(contract, MarketOrder(action, qty))
             for _ in range(20):
                 await asyncio.sleep(0.5)
                 if tr.orderStatus.status == "Filled":

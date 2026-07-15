@@ -11,6 +11,7 @@ from gazbot7.safety import (
     is_protective_stop,
     reconcile,
     reconcile_verdict,
+    safe_flatten_verdict,
 )
 
 
@@ -128,6 +129,12 @@ def test_reconcile_detects_drift():
     # tracker thinks flat, venue says we're short 2 → the 2026-06-11 blind-book class
     assert reconcile({"MNQ": 0.0}, {"MNQ": -2.0}) == ["MNQ"]
     assert reconcile({"MNQ": 2.0}, {"MNQ": 2.0}) == []
+
+
+def test_safe_flatten_verdict():
+    assert safe_flatten_verdict(2.0) == ("SELL", 2.0)   # long → sell exactly 2
+    assert safe_flatten_verdict(-3.0) == ("BUY", 3.0)   # short → buy exactly 3
+    assert safe_flatten_verdict(0.0) is None            # flat → SKIP (a close would open)
 
 
 def test_reconcile_verdict_cases():

@@ -42,7 +42,7 @@ from .ipc import (
     PullServer,
 )
 from . import session
-from .safety import SafetyManager, is_naked, reconcile_verdict
+from .safety import SafetyManager, is_naked, reconcile_verdict, safe_flatten_verdict
 from .store import clear_open_position, get_open_position, open_store, upsert_open_position
 from .tracker import TradeTracker
 
@@ -50,6 +50,7 @@ CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
 _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0       # naked-auditor cadence
 PROTECT_BOOT_SETTLE_S = 120.0  # grace after start — let a GTC stop reappear before acting
+EXIT_STUCK_CYCLES = 3          # a close in flight this many cycles without reducing → CRIT
 
 
 class _NoOpBroker:
@@ -84,6 +85,8 @@ class Core:
         self._boot_mono = time.monotonic()  # boot-settle anchor for the naked auditor
         self._naked_streak = 0
         self._halted = False  # set on reconcile DRIFT — rejects new entries until clean
+        self._exit_stuck = 0  # cycles a close has been in flight without reducing
+        self._exit_alarmed = False
         self._protect_poke = asyncio.Event()  # a dead stop wakes the auditor instantly
 
     def poke_protection(self, *_a) -> None:
@@ -196,6 +199,8 @@ class Core:
         self._closing = False
         self._exit_reason = None
         self.opened_at = None
+        self._exit_stuck = 0
+        self._exit_alarmed = False
         self._publish_last_trade()
 
     # ── naked auditor (S1): protection == fresh IBKR truth, never a local flag ─
@@ -221,13 +226,20 @@ class Core:
             self._safety.arm_stop(self._cfg.symbol, side=p.side, qty=self._qty,
                                   entry_price=p.entry_price, atr=p.entry_atr)
 
-    def _emergency_flatten(self, reason: str = "NAKED_FLATTEN") -> None:
+    def _emergency_flatten(self, reason: str = "NAKED_FLATTEN", venue_net: float | None = None) -> None:
         if self._pos is None or self._closing:
             return  # never double-submit a close
+        if venue_net is not None:
+            verdict = safe_flatten_verdict(venue_net)  # fire ONLY what IBKR holds
+            if verdict is None:
+                return  # IBKR already flat — a close here would open a position
+            close_side, qty = verdict
+        else:  # no venue snapshot to hand — fall back to the tracked position
+            close_side = "SELL" if self._pos.side == "LONG" else "BUY"
+            qty = self._qty
         self._exit_reason = reason
         self._closing = True
-        close_side = "SELL" if self._pos.side == "LONG" else "BUY"
-        self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=self._qty, order_type="MKT")
+        self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=qty, order_type="MKT")
 
     # ── session discipline (S4) ───────────────────────────────────────────────
     def _session_block(self, now) -> str | None:
@@ -246,13 +258,25 @@ class Core:
             return False
         return (now - opened).total_seconds() / 60.0 >= self._cfg.max_hold_minutes
 
-    def _time_exit_check(self) -> None:
+    def _exit_watchdog(self, venue_net: float) -> None:
+        """A close is in flight. The ``_closing`` latch already prevents the
+        re-fire walk (V5's +1→−101); this alarms if the exit isn't *completing* —
+        the position hasn't reduced after EXIT_STUCK_CYCLES. Detect + page (the
+        operator reconciles at IBKR), don't auto-thrash."""
+        if self._pos is not None and abs(venue_net) > _EPS:
+            self._exit_stuck += 1
+            if self._exit_stuck >= EXIT_STUCK_CYCLES and not self._exit_alarmed:
+                self._exit_alarmed = True
+                self._notify(f"EXIT_NOT_COMPLETING {self._cfg.symbol}: {venue_net:g} not reducing "
+                             f"after {self._exit_stuck} cycles — reconcile + flatten at IBKR")
+
+    def _time_exit_check(self, venue_net: float) -> None:
         now = datetime.now(UTC)
         if self.over_max_hold(now):
-            self._emergency_flatten("MAX_HOLD")
+            self._emergency_flatten("MAX_HOLD", venue_net)
             self._notify(f"{self._cfg.symbol} max-hold ({self._cfg.max_hold_minutes:g}m) — flattening")
         elif session.should_flatten(now, self._cfg.session_flat_minutes):
-            self._emergency_flatten("SESSION_END_FLAT")
+            self._emergency_flatten("SESSION_END_FLAT", venue_net)
             self._notify(f"{self._cfg.symbol} session-end — flattening")
 
     async def _read_venue_protection(self, gw):
@@ -314,6 +338,9 @@ class Core:
         self._pos = None
         self._qty = 0.0
         self._naked_streak = 0
+        self._closing = False
+        self._exit_stuck = 0
+        self._exit_alarmed = False
 
     async def venue_audit_loop(self, gw) -> None:
         """One fresh IBKR read per cycle drives BOTH reconcile (agreement) and the
@@ -348,19 +375,22 @@ class Core:
                 self._notify(f"{self._cfg.symbol} vanished at venue — clearing phantom held state")
                 self._clear_phantom()
                 continue
-            # match — a clean cycle clears any halt, then run the coverage auditor
+            # match — a clean cycle clears any halt, then manage the position
             self._halted = False
             if self._pos is not None:
-                action = self.assess_protection(net, orders, time.monotonic())
-                if action == "reprotect":
-                    self._reprotect()
-                    self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
-                elif action == "flatten":
-                    self._emergency_flatten("NAKED_FLATTEN")
-                    self._notify(f"NAKED {self._cfg.symbol} unresolved after {self._naked_streak} "
-                                 f"re-arms — FLATTENED")
-                else:  # protected — enforce the time exits (max-hold / session-end)
-                    self._time_exit_check()
+                if self._closing:
+                    self._exit_watchdog(net)  # a close is in flight — is it completing?
+                else:
+                    action = self.assess_protection(net, orders, time.monotonic())
+                    if action == "reprotect":
+                        self._reprotect()
+                        self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
+                    elif action == "flatten":
+                        self._emergency_flatten("NAKED_FLATTEN", net)
+                        self._notify(f"NAKED {self._cfg.symbol} unresolved after {self._naked_streak} "
+                                     f"re-arms — FLATTENED")
+                    else:  # protected — enforce the time exits (max-hold / session-end)
+                        self._time_exit_check(net)
 
     # ── publishing ───────────────────────────────────────────────────────────
     def _position_payload(self) -> dict:

@@ -155,6 +155,17 @@ def reconcile(tracker_net: dict[str, float], venue_net: dict[str, float]) -> lis
     return drift
 
 
+def safe_flatten_verdict(venue_net: float) -> tuple[str, float] | None:
+    """The order that brings the venue to flat, from IBKR truth ALONE — fire only
+    what IBKR holds, in its closing direction. ``None`` when already flat (a market
+    close on a flat book would OPEN a position — the phantom-long-into-a-short
+    class). Because it reads venue truth, not the desk's belief, it cannot oversell
+    or fire the wrong way on a stale book."""
+    if abs(venue_net) < _EPS:
+        return None
+    return ("BUY" if venue_net < 0 else "SELL", abs(venue_net))
+
+
 def reconcile_verdict(tracked_side: str | None, tracked_qty: float, venue_net: float) -> str:
     """Single-symbol agreement between the desk's tracked position and IBKR truth:
 
