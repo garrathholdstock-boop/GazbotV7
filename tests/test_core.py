@@ -14,7 +14,7 @@ from gazbot7.core import Core
 from gazbot7.engine import OrderEngine
 from gazbot7.ipc import T_FILL, T_INTENT_RESULT, T_POSITION, T_TRADE
 from gazbot7.safety import SafetyManager
-from gazbot7.store import Fill, get_trades, open_store
+from gazbot7.store import Fill, get_open_position, get_trades, open_store, upsert_open_position
 from gazbot7.tracker import TradeTracker
 
 VPP, FEE = 2.0, 1.5
@@ -210,4 +210,61 @@ def test_place_live_off_rejects_open():
         await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "meta": {"entry_atr": 4.0}})
         assert broker.orders == []
         assert _topics(pub, T_INTENT_RESULT)[-1]["reason"] == "place_live off"
+    asyncio.run(scenario())
+
+
+# ── S2: reconcile / adopt ────────────────────────────────────────────────────
+def test_open_persists_and_close_clears_open_position():
+    async def scenario():
+        core, _b, _sb, _pub, store = _build()
+        await _open_long(core)
+        rec = get_open_position(store, "MNQ")
+        assert rec is not None and rec["side"] == "LONG"
+        assert rec["entry_atr"] == 4.0 and rec["stop_price"] == 96.0  # persisted for adopt
+        await core.on_intent({"iid": "c", "action": "CLOSE", "reason": "SIGNAL_CLOSE"})
+        core.on_fill(_fill("x1", "SELL", 1, 110.0))
+        await asyncio.sleep(0)
+        assert get_open_position(store, "MNQ") is None  # cleared on flat
+    asyncio.run(scenario())
+
+
+def test_adopt_from_venue_recovers_atr_and_rearms():
+    async def scenario():
+        core, _b, sb, _pub, store = _build()
+        # a prior position persisted, as if before a restart
+        upsert_open_position(store, symbol="MNQ", side="LONG", qty=1, entry_price=100.0,
+                             entry_atr=4.0, opened_at="t0", stop_price=96.0)
+        assert core.adopt_from_venue(1.0) == "adopted"
+        assert core.position.side == "LONG" and core._qty == 1.0
+        assert sb.stops[-1] == dict(side="SELL", qty=1.0, stop_price=96.0)  # re-armed at recovered ATR
+    asyncio.run(scenario())
+
+
+def test_adopt_flattens_when_no_recoverable_protection():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build()  # no persisted open_position
+        assert core.adopt_from_venue(-2.0) == "flatten"
+        core._handle_adopt(-2.0)
+        assert broker.orders[-1] == dict(side="BUY", qty=2.0)  # flatten the un-adoptable short
+    asyncio.run(scenario())
+
+
+def test_halt_gate_rejects_open():
+    async def scenario():
+        core, broker, _sb, pub, _s = _build()
+        core._halted = True
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "meta": {"entry_atr": 4.0}})
+        assert broker.orders == []
+        assert _topics(pub, T_INTENT_RESULT)[-1]["reason"] == "halted (reconcile drift)"
+    asyncio.run(scenario())
+
+
+def test_clear_phantom_drops_state_and_cancels_stop():
+    async def scenario():
+        core, _b, sb, _pub, store = _build()
+        await _open_long(core)
+        core._clear_phantom()
+        assert core.position is None and core._qty == 0.0
+        assert sb.cancelled == ["stp-1"]  # tracked stop cancelled
+        assert get_open_position(store, "MNQ") is None
     asyncio.run(scenario())

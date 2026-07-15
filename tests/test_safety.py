@@ -10,6 +10,7 @@ from gazbot7.safety import (
     is_naked,
     is_protective_stop,
     reconcile,
+    reconcile_verdict,
 )
 
 
@@ -127,3 +128,12 @@ def test_reconcile_detects_drift():
     # tracker thinks flat, venue says we're short 2 → the 2026-06-11 blind-book class
     assert reconcile({"MNQ": 0.0}, {"MNQ": -2.0}) == ["MNQ"]
     assert reconcile({"MNQ": 2.0}, {"MNQ": 2.0}) == []
+
+
+def test_reconcile_verdict_cases():
+    assert reconcile_verdict(None, 0.0, 0.0) == "match"      # both flat
+    assert reconcile_verdict("LONG", 1.0, 1.0) == "match"    # agree
+    assert reconcile_verdict(None, 0.0, 2.0) == "adopt"      # flat, venue holds → take over
+    assert reconcile_verdict("LONG", 1.0, 0.0) == "vanished" # held, venue flat → closed unseen
+    assert reconcile_verdict("LONG", 1.0, -1.0) == "drift"   # sign flip
+    assert reconcile_verdict("LONG", 1.0, 2.0) == "drift"    # qty mismatch

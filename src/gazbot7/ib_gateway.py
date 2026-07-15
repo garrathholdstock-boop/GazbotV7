@@ -139,6 +139,20 @@ class IBGateway:
     def healthy(self) -> bool:
         return self.state == ConnState.HEALTHY and self._ib.isConnected()
 
+    async def probe_alive(self, timeout: float = 5.0) -> bool:
+        """A positive round-trip to IBKR (reqCurrentTime) — the freshness gate for
+        reconcile/adopt. A stale-but-responsive gateway is the failure a socket's
+        own liveness bit misses; this proves the data path answers *now*.
+        Fail-closed: False on any error/timeout, so callers never act on a stale
+        snapshot."""
+        if not self.healthy:
+            return False
+        try:
+            await asyncio.wait_for(self._ib.reqCurrentTimeAsync(), timeout=timeout)
+            return True
+        except Exception:
+            return False
+
     async def positions(self):
         """Venue-truth positions (read-only)."""
         return await self._ib.reqPositionsAsync()

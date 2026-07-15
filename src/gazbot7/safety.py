@@ -153,3 +153,25 @@ def reconcile(tracker_net: dict[str, float], venue_net: dict[str, float]) -> lis
         if abs(tracker_net.get(sym, 0.0) - venue_net.get(sym, 0.0)) > _EPS:
             drift.append(sym)
     return drift
+
+
+def reconcile_verdict(tracked_side: str | None, tracked_qty: float, venue_net: float) -> str:
+    """Single-symbol agreement between the desk's tracked position and IBKR truth:
+
+    * ``match``    — they agree (incl. both flat)
+    * ``adopt``    — desk flat, venue holds a position → take it over (re-arm)
+    * ``vanished`` — desk holds, venue flat → our position closed unseen
+    * ``drift``    — both hold but side/qty disagree → halt + alarm (don't auto-fix)
+    """
+    t_flat = tracked_side is None or abs(tracked_qty) < _EPS
+    v_flat = abs(venue_net) < _EPS
+    if t_flat and v_flat:
+        return "match"
+    if t_flat:
+        return "adopt"
+    if v_flat:
+        return "vanished"
+    v_side = "LONG" if venue_net > 0 else "SHORT"
+    if v_side == tracked_side and abs(abs(venue_net) - abs(tracked_qty)) < _EPS:
+        return "match"
+    return "drift"

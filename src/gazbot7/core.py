@@ -41,8 +41,8 @@ from .ipc import (
     Publisher,
     PullServer,
 )
-from .safety import SafetyManager, is_naked
-from .store import open_store
+from .safety import SafetyManager, is_naked, reconcile_verdict
+from .store import clear_open_position, get_open_position, open_store, upsert_open_position
 from .tracker import TradeTracker
 
 CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
@@ -81,6 +81,7 @@ class Core:
         self.opened_at: str | None = None
         self._boot_mono = time.monotonic()  # boot-settle anchor for the naked auditor
         self._naked_streak = 0
+        self._halted = False  # set on reconcile DRIFT — rejects new entries until clean
         self._protect_poke = asyncio.Event()  # a dead stop wakes the auditor instantly
 
     def poke_protection(self, *_a) -> None:
@@ -103,6 +104,8 @@ class Core:
             await self._result(iid, False, f"unknown action {action!r}")
 
     async def _open(self, intent: dict, iid) -> None:
+        if self._halted:
+            return await self._result(iid, False, "halted (reconcile drift)")
         if self._pos is not None or self._pending_open:
             return await self._result(iid, False, "already in position")
         if not self._cfg.place_live:
@@ -168,13 +171,19 @@ class Core:
         self.opened_at = fill.exec_time
         self._pending_open = False
         # arm the fixed native stop the instant the position opens (zero naked).
-        # S1 hardens this path: tick-rounding + reject re-arm on the order events.
-        self._safety.arm_stop(
+        st = self._safety.arm_stop(
             sym, side=side, qty=self._qty, entry_price=fill.price, atr=self._open_atr,
+        )
+        # persist the position (esp. entry_atr) so a restart can ADOPT it (S2).
+        upsert_open_position(
+            self._store, symbol=sym, side=side, qty=self._qty, entry_price=fill.price,
+            entry_atr=self._open_atr, opened_at=self.opened_at,
+            stop_price=st.stop_price if st else None,
         )
 
     def _on_closed(self) -> None:
         self._safety.on_flat(self._cfg.symbol)
+        clear_open_position(self._store, self._cfg.symbol)
         self._pos = None
         self._qty = 0.0
         self._closing = False
@@ -227,27 +236,96 @@ class Core:
         except Exception:
             return None  # a bad/timed-out snapshot → never act on it
 
-    async def protection_loop(self, gw) -> None:
+    # ── reconcile / adopt (S2): tracker == IBKR truth ────────────────────────
+    def adopt_from_venue(self, net_qty: float) -> str:
+        """Take over a venue position the desk isn't tracking (restart / manual /
+        an independent EOD flatten). Side + qty come from IBKR truth; entry_price
+        and — crucially — entry_atr are recovered from the persisted open_position
+        (IBKR can't tell us the ATR the stop was sized against). Returns 'adopted'
+        after re-arming, or 'flatten' when protection can't be re-established."""
+        side = "LONG" if net_qty > 0 else "SHORT"
+        qty = abs(net_qty)
+        rec = get_open_position(self._store, self._cfg.symbol)
+        if rec is None or not rec["entry_atr"] or rec["entry_atr"] <= 0 or rec["side"] != side:
+            return "flatten"  # no trustworthy stop distance → don't hold naked
+        self._pos = Position(side, rec["entry_price"], rec["entry_atr"], 0.0)
+        self._qty = qty
+        self._open_atr = rec["entry_atr"]
+        self.opened_at = rec["opened_at"]
+        st = self._safety.arm_stop(self._cfg.symbol, side=side, qty=qty,
+                                   entry_price=rec["entry_price"], atr=rec["entry_atr"])
+        upsert_open_position(
+            self._store, symbol=self._cfg.symbol, side=side, qty=qty,
+            entry_price=rec["entry_price"], entry_atr=rec["entry_atr"],
+            opened_at=rec["opened_at"], stop_price=st.stop_price if st else None,
+        )
+        return "adopted"
+
+    def _handle_adopt(self, net_qty: float) -> None:
+        if self.adopt_from_venue(net_qty) == "adopted":
+            self._notify(f"adopted {self._cfg.symbol} {net_qty:g} from venue + re-armed stop")
+        else:
+            self._flatten_qty(net_qty)
+            self._notify(f"adopt {self._cfg.symbol} {net_qty:g}: no recoverable protection — FLATTENING")
+
+    def _flatten_qty(self, net_qty: float) -> None:
+        close_side = "SELL" if net_qty > 0 else "BUY"
+        self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=abs(net_qty), order_type="MKT")
+
+    def _clear_phantom(self) -> None:
+        """Venue is flat but we thought we held — our position closed unseen. Drop
+        the phantom held state + cancel any tracked stop (the round-trip audit at
+        S6 recovers the missing record)."""
+        self._safety.on_flat(self._cfg.symbol)
+        clear_open_position(self._store, self._cfg.symbol)
+        self._pos = None
+        self._qty = 0.0
+        self._naked_streak = 0
+
+    async def venue_audit_loop(self, gw) -> None:
+        """One fresh IBKR read per cycle drives BOTH reconcile (agreement) and the
+        naked auditor (coverage). Freshness-gated by a reqCurrentTime probe — a
+        stale/unconfirmed snapshot is skipped, never acted on."""
         while True:
             try:  # wake on a dead-stop poke, else poll every PROTECT_INTERVAL_S
                 await asyncio.wait_for(self._protect_poke.wait(), timeout=PROTECT_INTERVAL_S)
             except (TimeoutError, asyncio.TimeoutError):
                 pass
             self._protect_poke.clear()
-            if self._pos is None or not gw.healthy or not self._cfg.place_live:
+            if not gw.healthy or not self._cfg.place_live:
+                continue
+            if not await gw.probe_alive():  # freshness gate — fail-closed
                 continue
             snap = await self._read_venue_protection(gw)
             if snap is None:
                 continue
             net, orders = snap
-            action = self.assess_protection(net, orders, time.monotonic())
-            if action == "reprotect":
-                self._reprotect()
-                self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
-            elif action == "flatten":
-                self._emergency_flatten()
-                self._notify(f"NAKED {self._cfg.symbol} unresolved after {self._naked_streak} "
-                             f"re-arms — FLATTENED")
+            verdict = reconcile_verdict(self._pos.side if self._pos else None, self._qty, net)
+            if verdict == "adopt":
+                self._handle_adopt(net)
+                continue
+            if verdict == "drift":
+                if not self._halted:
+                    self._notify(f"DRIFT {self._cfg.symbol}: tracker "
+                                 f"{(self._pos.side if self._pos else 'flat')} {self._qty:g} vs "
+                                 f"venue {net:g} — HALTED (no new entries)")
+                self._halted = True
+                continue
+            if verdict == "vanished":
+                self._notify(f"{self._cfg.symbol} vanished at venue — clearing phantom held state")
+                self._clear_phantom()
+                continue
+            # match — a clean cycle clears any halt, then run the coverage auditor
+            self._halted = False
+            if self._pos is not None:
+                action = self.assess_protection(net, orders, time.monotonic())
+                if action == "reprotect":
+                    self._reprotect()
+                    self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
+                elif action == "flatten":
+                    self._emergency_flatten()
+                    self._notify(f"NAKED {self._cfg.symbol} unresolved after {self._naked_streak} "
+                                 f"re-arms — FLATTENED")
 
     # ── publishing ───────────────────────────────────────────────────────────
     def _position_payload(self) -> dict:
@@ -327,8 +405,15 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     core = Core(cfg, engine, tracker, safety, pub, store, notifier=notifier)
     core_ref["core"] = core
 
+    # boot reconcile (S2): adopt any position IBKR holds before accepting intents,
+    # so a restart mid-position re-arms rather than orphaning. Freshness-gated.
+    if cfg.place_live and await gw.probe_alive():
+        boot = await core._read_venue_protection(gw)
+        if boot is not None and abs(boot[0]) > _EPS:
+            core._handle_adopt(boot[0])
+
     intents_task = asyncio.ensure_future(_drain_intents(pull, core))
-    protect_task = asyncio.ensure_future(core.protection_loop(gw))  # S1 naked auditor
+    protect_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # S1 naked + S2 reconcile
     start = time.monotonic()
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:

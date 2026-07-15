@@ -79,6 +79,21 @@ CREATE TABLE IF NOT EXISTS positions (
     updated_at TEXT NOT NULL
 );
 
+-- The desk's OPEN position decision-context, persisted so a core restart can
+-- ADOPT the position from IBKR truth and recover the entry_atr IBKR doesn't hold
+-- (needed to re-arm the stop at the right distance). Journal, not an authority —
+-- IBKR is truth on qty/side; this only carries what the venue can't tell us.
+CREATE TABLE IF NOT EXISTS open_position (
+    symbol      TEXT PRIMARY KEY,
+    side        TEXT NOT NULL CHECK (side IN ('LONG','SHORT')),
+    qty         REAL NOT NULL,
+    entry_price REAL NOT NULL,
+    entry_atr   REAL NOT NULL,
+    opened_at   TEXT NOT NULL,
+    stop_price  REAL,
+    updated_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS signals (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     ts             TEXT NOT NULL,
@@ -316,6 +331,33 @@ def get_trades(conn: sqlite3.Connection, symbol: str | None = None) -> list[sqli
     return conn.execute(
         "SELECT * FROM trades WHERE symbol = ? ORDER BY id", (symbol,)
     ).fetchall()
+
+
+def upsert_open_position(
+    conn: sqlite3.Connection, *, symbol: str, side: str, qty: float,
+    entry_price: float, entry_atr: float, opened_at: str, stop_price: float | None = None,
+) -> None:
+    """Persist the desk's current open position so a restart can adopt it."""
+    now = _utcnow_iso()
+    conn.execute(
+        "INSERT INTO open_position "
+        "(symbol, side, qty, entry_price, entry_atr, opened_at, stop_price, updated_at) "
+        "VALUES (?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(symbol) DO UPDATE SET side=excluded.side, qty=excluded.qty, "
+        "entry_price=excluded.entry_price, entry_atr=excluded.entry_atr, "
+        "opened_at=excluded.opened_at, stop_price=excluded.stop_price, updated_at=excluded.updated_at",
+        (symbol, side, qty, entry_price, entry_atr, opened_at, stop_price, now),
+    )
+    conn.commit()
+
+
+def get_open_position(conn: sqlite3.Connection, symbol: str) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM open_position WHERE symbol = ?", (symbol,)).fetchone()
+
+
+def clear_open_position(conn: sqlite3.Connection, symbol: str) -> None:
+    conn.execute("DELETE FROM open_position WHERE symbol = ?", (symbol,))
+    conn.commit()
 
 
 def get_fill(conn: sqlite3.Connection, exec_id: str) -> sqlite3.Row | None:
