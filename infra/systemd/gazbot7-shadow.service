@@ -1,0 +1,18 @@
+[Unit]
+Description=GAZBOT V7 — shadow desk (research slate on the live feed; NEVER touches IBKR)
+# subscribes md's stream only; connects to no account and places no orders.
+# zmq reconnects, but prefer md up first so the warm→live handoff is clean.
+After=network.target gazbot7-md.service
+Wants=gazbot7-md.service
+
+[Service]
+Type=simple
+Slice=gazbot7.slice
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.shadow
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -74,6 +74,7 @@ def test_strategy_open_intent_is_accepted_by_core():
         intent = _thrust_up_intent()
         assert intent is not None and intent["action"] == "OPEN"  # sanity
 
+        from datetime import UTC, datetime
         store = open_store(":memory:")
         broker = _FakeBroker()
         core = Core(
@@ -83,6 +84,7 @@ def test_strategy_open_intent_is_accepted_by_core():
             SafetyManager(_FakeStopBroker()),
             _FakePub(),
             store,
+            now_fn=lambda: datetime(2026, 7, 15, 16, 0, tzinfo=UTC),  # match the intent's session
         )
         await core.on_intent(intent)
         # core understood the strategy's intent and placed the matching order

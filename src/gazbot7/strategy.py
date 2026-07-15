@@ -27,14 +27,13 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections import deque
 from datetime import UTC, datetime
 
 from . import session
+from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
 from .deciders import (
-    Bar,
     Position,
     compute_features,
     exit_absorption,
@@ -65,10 +64,8 @@ class Strategy:
 
     def __init__(self, cfg: RunConfig) -> None:
         self._cfg = cfg
-        self._bars: deque[Bar] = deque(maxlen=cfg.bar_lookback)  # COMPLETED 1-minute bars
-        self._cur: dict | None = None  # the forming 1m bar (aggregated from 5s)
+        self._mb = MinuteBars(cfg.bar_lookback)  # 5s → completed 1-minute bars
         self._tape: dict = {}
-        self._last_bar_ms = 0
         self._core_flat = True
         self._core_pos: dict | None = None
         self._local_pos: Position | None = None
@@ -80,36 +77,11 @@ class Strategy:
     # ── state feeds ──────────────────────────────────────────────────────────
     def warm(self, cap_conn) -> None:
         """Seed the rolling window with 1-MINUTE bars aggregated from the captured
-        5s bars — the thrust is decided on 1m (a 5-bar thrust = a 5-min move), so
-        decisions match the sim instead of firing on 25s blips."""
-        rows = cap_conn.execute(
-            "SELECT bar_ts, open, high, low, close, volume FROM bars "
-            "WHERE symbol=? AND timeframe='5s' ORDER BY bar_ts DESC LIMIT ?",
-            (self._cfg.symbol, self._cfg.bar_lookback * 12 + 24),
-        ).fetchall()
-        for r in reversed(rows):  # chronological → fold each 5s bar into its minute
-            self._fold_5s(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"])
+        5s bars — the thrust is decided on 1m (a 5-bar thrust = a 5-min move)."""
+        self._mb.warm(cap_conn, self._cfg.symbol, self._cfg.bar_lookback)
 
     def on_bar(self, msg: dict) -> None:
-        self._fold_5s(msg["ts"], msg["o"], msg["h"], msg["l"], msg["c"], msg["v"])
-
-    def _fold_5s(self, ts, o, h, l, c, v) -> None:
-        """Aggregate a 5s bar into the forming 1-minute bar; on a minute rollover,
-        finalise the completed 1m bar into the rolling window (decisions use only
-        completed minutes)."""
-        self._last_bar_ms = ts * 1000
-        m = (ts // 60) * 60
-        cur = self._cur
-        if cur is None or m > cur["min"]:
-            if cur is not None:
-                self._bars.append(Bar(cur["min"], cur["o"], cur["h"], cur["l"], cur["c"], cur["v"]))
-            self._cur = {"min": m, "o": o, "h": h, "l": l, "c": c, "v": v}
-        elif m == cur["min"]:
-            cur["h"] = max(cur["h"], h)
-            cur["l"] = min(cur["l"], l)
-            cur["c"] = c
-            cur["v"] += v
-        # m < cur["min"]: an out-of-order/duplicate 5s bar — ignore
+        self._mb.fold(msg["ts"], msg["o"], msg["h"], msg["l"], msg["c"], msg["v"])
 
     def on_tape(self, msg: dict) -> None:
         self._tape = msg
@@ -136,9 +108,7 @@ class Strategy:
         tape_ts = self._tape.get("ts_ms", 0)
         if not tape_ts or now_ms - tape_ts > _STALE_TAPE_MS:
             return False
-        if not self._last_bar_ms or now_ms - self._last_bar_ms > _STALE_BAR_MS:
-            return False
-        return True
+        return self._mb.fresh(now_ms, _STALE_BAR_MS)
 
     def decide(self, now_ms: int) -> dict | None:
         """The one entry point. Returns an intent to send, or None. Mutates
@@ -149,9 +119,10 @@ class Strategy:
             return None
         if not self.fresh(now_ms):
             return None
-        if len(self._bars) < 6:
+        bars = self._mb.bars()
+        if len(bars) < 6:
             return None
-        f = compute_features(list(self._bars))
+        f = compute_features(bars)
         price = self._tape.get("last") or f.price
         if self._core_flat:
             self._local_pos = None

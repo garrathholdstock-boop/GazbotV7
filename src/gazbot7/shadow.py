@@ -16,9 +16,12 @@ Clean-room: nothing copied from V5.
 
 from __future__ import annotations
 
+import asyncio
+import time
 from dataclasses import dataclass, field
 
 from .deciders import (
+    REVERSAL_SHORT_VARIANTS,
     Bar,
     Features,
     Position,
@@ -103,3 +106,74 @@ class ShadowSim:
             exit_ts=exit_ts, exit_price=exit_price, exit_reason=reason,
             ceiling_pnl=gross - self._fee,
         )
+
+
+# ── the research slate ────────────────────────────────────────────────────────
+def default_slate() -> list[ShadowVariant]:
+    """Thrust threshold A/B (loose 1.5 = the LIVE control vs cont 2.0), amplitude-
+    floor A/B (none / 0.0003 / 0.0004 = live), and the reversal-grab short slate —
+    all on 1-minute bars, scored on honest real_pnl."""
+    slate = [
+        ShadowVariant("thrust_loose", "thrust", {"thr": 1.5, "amp_floor": 0.0004}),  # live control
+        ShadowVariant("thrust_cont", "thrust", {"thr": 2.0, "amp_floor": 0.0004}),   # tighter thrust
+        ShadowVariant("thrust_noamp", "thrust", {"thr": 1.5, "amp_floor": 0.0}),     # amp floor OFF
+        ShadowVariant("thrust_amp03", "thrust", {"thr": 1.5, "amp_floor": 0.0003}),  # looser floor
+    ]
+    slate += [ShadowVariant(name, "reversal_grab", params)
+              for name, params in REVERSAL_SHORT_VARIANTS.items()]
+    return slate
+
+
+# ── service entrypoint ────────────────────────────────────────────────────────
+async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
+              max_seconds: float | None = None) -> None:
+    """The shadow desk: subscribe the MD stream, run the variant slate on 1-minute
+    bars (same aggregator as the live strategy → no drift), record ceiling trades,
+    and periodically reprice closed trades on honest ticks. Touches NO account."""
+    from .agg import MinuteBars
+    from .capture import open_capture
+    from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
+    from .repricer import reprice_pending
+    from .store import open_store
+
+    store = open_store(cfg.shadow_store_path)  # isolated — no live path, no IBKR
+    cap = open_capture(cfg.capture_path)
+    sim = ShadowSim(store, variants or default_slate(),
+                    value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+    mb = MinuteBars(cfg.bar_lookback)
+    mb.warm(cap, cfg.symbol, cfg.bar_lookback)
+    md = Subscriber(MD_STREAM, topics=[T_BAR, T_TAPE])
+    start = time.monotonic()
+    last_reprice = start
+    try:
+        while max_seconds is None or (time.monotonic() - start) < max_seconds:
+            msg = await md.poll(500)
+            if msg is not None:
+                topic, body = msg
+                if topic == T_BAR:
+                    mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
+                elif topic == T_TAPE:
+                    bars = mb.bars()
+                    if len(bars) >= 6:
+                        sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
+                                    window_price_delta=body.get("win_price_delta", 0.0),
+                                    in_rth=body.get("in_rth", True))
+            if time.monotonic() - last_reprice >= reprice_interval_s:
+                try:
+                    reprice_pending(store, cap, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+                except Exception:
+                    pass
+                last_reprice = time.monotonic()
+    finally:
+        md.close()
+        store.close()
+        cap.close()
+
+
+def main() -> None:  # `python -m gazbot7.shadow`
+    from .config import RunConfig
+    asyncio.run(run(RunConfig()))
+
+
+if __name__ == "__main__":
+    main()

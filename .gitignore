@@ -23,3 +23,4 @@ data/
 # Scratch / logs
 scratch/
 *.log
+backups/

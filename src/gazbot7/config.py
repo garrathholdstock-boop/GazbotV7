@@ -40,6 +40,7 @@ class RunConfig:
     # paths
     store_path: str = "data/gazbot7.db"
     capture_path: str = "data/capture.db"
+    shadow_store_path: str = "data/shadow.db"  # isolated shadow-desk store (no live path)
     # loop
     cadence_s: float = 1.0
     bar_lookback: int = 60  # 5s bars fed to the deciders
