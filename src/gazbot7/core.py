@@ -472,20 +472,29 @@ class Core:
         sd_notify("WATCHDOG=1")  # S9: prove the loop is live to systemd's watchdog
 
     def _write_heartbeat(self, gw: IBGateway) -> None:
-        """Liveness file the EXTERNAL monitor reads (S6) — outside this process, so
-        a hung core still shows a stale heartbeat. Real wall-clock ts, always."""
-        path = os.path.join(os.path.dirname(self._cfg.store_path) or ".", "core_health.json")
-        data = {
-            "ts": datetime.now(UTC).isoformat(), "conn": gw.state.value, "healthy": gw.healthy,
+        """Two files, both written every cycle (real wall-clock ts):
+        - core_health.json: the liveness file the EXTERNAL monitor reads (S6).
+        - status.json: the web-shaped status the dashboard (web.py) reads — conn,
+          healthy, place_live, halted, and the live position (None when flat)."""
+        ts = datetime.now(UTC).isoformat()
+        data_dir = os.path.dirname(self._cfg.store_path) or "."
+        health = {
+            "ts": ts, "conn": gw.state.value, "healthy": gw.healthy,
             "place_live": self._cfg.place_live, "flat": self._pos is None, "halted": self._halted,
         }
-        tmp = path + ".tmp"
-        try:
-            with open(tmp, "w") as f:
-                json.dump(data, f)
-            os.replace(tmp, path)
-        except Exception:
-            pass  # a heartbeat write must never break the loop
+        status = {
+            "ts": ts, "conn": gw.state.value, "healthy": gw.healthy,
+            "place_live": self._cfg.place_live, "halted": self._halted,
+            "position": None if self._pos is None else self._position_payload(),
+        }
+        for name, payload in (("core_health.json", health), ("status.json", status)):
+            path = os.path.join(data_dir, name)
+            try:
+                with open(path + ".tmp", "w") as f:
+                    json.dump(payload, f)
+                os.replace(path + ".tmp", path)
+            except Exception:
+                pass  # a status write must never break the loop
 
     async def _result(self, iid, accepted: bool, reason: str, *, coid: str | None = None) -> None:
         await self._pub.send(T_INTENT_RESULT, {
