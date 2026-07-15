@@ -242,6 +242,25 @@ def record_trade(
     return cur.rowcount == 1
 
 
+def record_signal(
+    conn: sqlite3.Connection,
+    *,
+    symbol: str,
+    gate: str,
+    side: str | None,
+    outcome: str,  # submitted / blocked / rejected
+    block_reason: str | None = None,
+    intended_price: float | None = None,
+    ts: str | None = None,
+) -> None:
+    conn.execute(
+        "INSERT INTO signals (ts, symbol, gate, side, outcome, block_reason, intended_price) "
+        "VALUES (?,?,?,?,?,?,?)",
+        (ts or _utcnow_iso(), symbol, gate, side, outcome, block_reason, intended_price),
+    )
+    conn.commit()
+
+
 def record_shadow_trade(
     conn: sqlite3.Connection,
     *,
