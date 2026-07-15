@@ -259,12 +259,17 @@ def test_adopt_from_venue_recovers_atr_and_rearms():
     asyncio.run(scenario())
 
 
-def test_adopt_flattens_when_no_recoverable_protection():
+def test_adopt_flattens_unrecoverable_and_records_clean():
     async def scenario():
-        core, broker, _sb, _pub, _s = _build()  # no persisted open_position
-        assert core.adopt_from_venue(-2.0) == "flatten"
-        core._handle_adopt(-2.0)
-        assert broker.orders[-1] == dict(side="BUY", qty=2.0)  # flatten the un-adoptable short
+        core, broker, _sb, _pub, store = _build()  # no persisted open_position → un-adoptable
+        core._handle_adopt(-2.0, avg_price=29000.0)  # IBKR shows a SHORT 2 we can't protect
+        assert broker.orders[-1] == dict(side="BUY", qty=2.0)  # flatten (buy to cover)
+        core.on_fill(_fill("x1", "BUY", 2, 29100.0))  # the cover fills
+        await asyncio.sleep(0)
+        (tr,) = get_trades(store)  # closed cleanly as an honest trade, no phantom
+        assert tr["exit_reason"] == "ADOPT_FLATTEN" and tr["side"] == "SHORT"
+        assert tr["pnl_usd"] == (29000 - 29100) * 2 * VPP - FEE  # short covered higher = a loss
+        assert core.position is None and core._qty == 0.0  # flat, no mis-booked long
     asyncio.run(scenario())
 
 

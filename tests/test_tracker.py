@@ -5,6 +5,19 @@ from __future__ import annotations
 from gazbot7.store import Fill, get_trades, open_store
 from gazbot7.tracker import TradeTracker
 
+
+def test_adopt_seeds_position_then_close_records_trade():
+    from gazbot7.store import Fill, get_trades, open_store
+    store = open_store(":memory:")
+    tt = TradeTracker(store, value_per_point=2.0, fee_rt=1.5)
+    tt.adopt("MNQ", "SHORT", 1, 29000.0, "2026-07-15T13:00:00+00:00")  # taken over from venue
+    assert tt.net_qty("MNQ") == -1.0  # reflected, no fill recorded
+    tt.apply(Fill("x1", "o", "MNQ", "BUY", 1, 29100.0, "2026-07-15T14:00:00+00:00"),
+             exit_reason="ADOPT_FLATTEN")  # cover fill closes it cleanly
+    (tr,) = get_trades(store)
+    assert tr["side"] == "SHORT" and tr["exit_reason"] == "ADOPT_FLATTEN"
+    assert tr["pnl_usd"] == (29000 - 29100) * 1 * 2.0 - 1.5  # short covered higher = loss
+
 VPP = 2.0  # MNQ $/point
 FEE = 1.5
 

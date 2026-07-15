@@ -323,53 +323,61 @@ class Core:
 
     async def _read_venue_protection(self, gw):
         try:
-            positions = await gw._ib.reqPositionsAsync()
-            net = sum(p.position for p in positions if p.contract.symbol == self._cfg.symbol)
+            positions = [p for p in await gw._ib.reqPositionsAsync()
+                         if p.contract.symbol == self._cfg.symbol]
+            net = sum(p.position for p in positions)
+            # IBKR avgCost is per-contract → per-unit for the tracker entry price
+            avg = (positions[0].avgCost / self._cfg.value_per_point
+                   if positions and abs(positions[0].position) > _EPS and self._cfg.value_per_point else None)
             await gw._ib.reqAllOpenOrdersAsync()
             orders = [
                 (t.order.orderType, t.order.action, t.orderStatus.status, t.order.totalQuantity)
                 for t in gw._ib.openTrades()
                 if getattr(t.contract, "symbol", None) == self._cfg.symbol
             ]
-            return net, orders
+            return net, orders, avg
         except Exception:
             return None  # a bad/timed-out snapshot → never act on it
 
     # ── reconcile / adopt (S2): tracker == IBKR truth ────────────────────────
-    def adopt_from_venue(self, net_qty: float) -> str:
-        """Take over a venue position the desk isn't tracking (restart / manual /
-        an independent EOD flatten). Side + qty come from IBKR truth; entry_price
-        and — crucially — entry_atr are recovered from the persisted open_position
-        (IBKR can't tell us the ATR the stop was sized against). Returns 'adopted'
-        after re-arming, or 'flatten' when protection can't be re-established."""
+    def adopt_from_venue(self, net_qty: float, avg_price: float | None = None) -> str:
+        """Take over a venue position the desk isn't tracking (restart / manual).
+        Side + qty come from IBKR truth; entry_price + entry_atr from the persisted
+        open_position when available (IBKR can't tell us the ATR), else IBKR's
+        avg cost. ALWAYS seeds the tracker so a later close reconciles cleanly.
+        Returns 'adopted' (re-armed) or 'flatten' (no trustworthy stop distance →
+        close it, recorded as an honest ADOPT_FLATTEN trade)."""
+        sym = self._cfg.symbol
         side = "LONG" if net_qty > 0 else "SHORT"
         qty = abs(net_qty)
-        rec = get_open_position(self._store, self._cfg.symbol)
-        if rec is None or not rec["entry_atr"] or rec["entry_atr"] <= 0 or rec["side"] != side:
-            return "flatten"  # no trustworthy stop distance → don't hold naked
-        self._pos = Position(side, rec["entry_price"], rec["entry_atr"], 0.0)
+        rec = get_open_position(self._store, sym)
+        recoverable = bool(rec and rec["entry_atr"] and rec["entry_atr"] > 0 and rec["side"] == side)
+        if recoverable:
+            entry_price, entry_atr, opened_at = rec["entry_price"], rec["entry_atr"], rec["opened_at"]
+        else:
+            entry_price = avg_price if avg_price is not None else (rec["entry_price"] if rec else 0.0)
+            entry_atr, opened_at = 0.0, (rec["opened_at"] if rec else self._now().isoformat())
+        self._tt.adopt(sym, side, qty, entry_price, opened_at)  # seed the tracker (fixes mis-book)
+        self._pos = Position(side, entry_price, entry_atr, 0.0)
         self._qty = qty
-        self._open_atr = rec["entry_atr"]
-        self.opened_at = rec["opened_at"]
-        st = self._safety.arm_stop(self._cfg.symbol, side=side, qty=qty,
-                                   entry_price=rec["entry_price"], atr=rec["entry_atr"])
-        upsert_open_position(
-            self._store, symbol=self._cfg.symbol, side=side, qty=qty,
-            entry_price=rec["entry_price"], entry_atr=rec["entry_atr"],
-            opened_at=rec["opened_at"], stop_price=st.stop_price if st else None,
-        )
-        return "adopted"
+        self._open_atr = entry_atr
+        self.opened_at = opened_at
+        if recoverable:
+            st = self._safety.arm_stop(sym, side=side, qty=qty, entry_price=entry_price, atr=entry_atr)
+            upsert_open_position(self._store, symbol=sym, side=side, qty=qty, entry_price=entry_price,
+                                 entry_atr=entry_atr, opened_at=opened_at, stop_price=st.stop_price if st else None)
+            return "adopted"
+        # un-adoptable → flatten the now-tracked position (fill closes it cleanly)
+        self._exit_reason = "ADOPT_FLATTEN"
+        self._closing = True
+        self._oe.submit(symbol=sym, side="SELL" if side == "LONG" else "BUY", qty=qty, order_type="MKT")
+        return "flatten"
 
-    def _handle_adopt(self, net_qty: float) -> None:
-        if self.adopt_from_venue(net_qty) == "adopted":
+    def _handle_adopt(self, net_qty: float, avg_price: float | None = None) -> None:
+        if self.adopt_from_venue(net_qty, avg_price) == "adopted":
             self._notify(f"adopted {self._cfg.symbol} {net_qty:g} from venue + re-armed stop")
         else:
-            self._flatten_qty(net_qty)
             self._notify(f"adopt {self._cfg.symbol} {net_qty:g}: no recoverable protection — FLATTENING")
-
-    def _flatten_qty(self, net_qty: float) -> None:
-        close_side = "SELL" if net_qty > 0 else "BUY"
-        self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=abs(net_qty), order_type="MKT")
 
     def _clear_phantom(self) -> None:
         """Venue is flat but we thought we held — our position closed unseen. Drop
@@ -401,10 +409,10 @@ class Core:
             snap = await self._read_venue_protection(gw)
             if snap is None:
                 continue
-            net, orders = snap
+            net, orders, avg = snap
             verdict = reconcile_verdict(self._pos.side if self._pos else None, self._qty, net)
             if verdict == "adopt":
-                self._handle_adopt(net)
+                self._handle_adopt(net, avg)
                 continue
             if verdict == "drift":
                 if not self._halted:
@@ -557,7 +565,7 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     if cfg.place_live and await gw.probe_alive():
         boot = await core._read_venue_protection(gw)
         if boot is not None and abs(boot[0]) > _EPS:
-            core._handle_adopt(boot[0])
+            core._handle_adopt(boot[0], boot[2])  # net, avg_cost
 
     intents_task = asyncio.ensure_future(_drain_intents(pull, core))
     protect_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # S1 naked + S2 reconcile

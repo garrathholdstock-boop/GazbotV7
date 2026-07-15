@@ -68,6 +68,17 @@ class TradeTracker:
         mag = o.entry_qty - o.exit_qty
         return mag if o.side == "LONG" else -mag
 
+    # ── adopt (S2) ───────────────────────────────────────────────────────────
+    def adopt(self, symbol: str, side: str, qty: float, price: float, opened_at: str) -> None:
+        """Seed a position taken over from IBKR truth (boot reconcile) WITHOUT
+        recording a fill, so ``net_qty`` reflects it and its later close completes
+        a trade normally. Without this, a close fill on an un-seeded tracker
+        mis-books as a fresh open (the adopt-mis-book bug)."""
+        self._open[symbol] = _Open(
+            symbol=symbol, side=side, opened_at=opened_at,
+            entry_qty=qty, entry_notional=qty * price, entry_exec_ids=[],
+        )
+
     # ── the one fill path ────────────────────────────────────────────────────
     def apply(self, fill: Fill, *, exit_reason: str | None = None) -> None:
         """Apply a venue fill. Idempotent on exec_id (never double-count). When
@@ -142,7 +153,7 @@ class TradeTracker:
             qty=o.entry_qty,
             entry_price=entry_px,
             exit_price=exit_px,
-            entry_exec_id=o.entry_exec_ids[0],
+            entry_exec_id=o.entry_exec_ids[0] if o.entry_exec_ids else None,  # adopted = no entry fill
             exit_exec_id=last_exit,
             opened_at=o.opened_at,
             closed_at=closed_at,
