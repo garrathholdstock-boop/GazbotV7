@@ -65,7 +65,8 @@ class Strategy:
 
     def __init__(self, cfg: RunConfig) -> None:
         self._cfg = cfg
-        self._bars: deque[Bar] = deque(maxlen=cfg.bar_lookback)
+        self._bars: deque[Bar] = deque(maxlen=cfg.bar_lookback)  # COMPLETED 1-minute bars
+        self._cur: dict | None = None  # the forming 1m bar (aggregated from 5s)
         self._tape: dict = {}
         self._last_bar_ms = 0
         self._core_flat = True
@@ -78,21 +79,37 @@ class Strategy:
 
     # ── state feeds ──────────────────────────────────────────────────────────
     def warm(self, cap_conn) -> None:
-        """Seed the rolling window from the last N captured 5s bars, so decisions
-        are possible from the first live bar rather than after a 5-min warmup."""
+        """Seed the rolling window with 1-MINUTE bars aggregated from the captured
+        5s bars — the thrust is decided on 1m (a 5-bar thrust = a 5-min move), so
+        decisions match the sim instead of firing on 25s blips."""
         rows = cap_conn.execute(
             "SELECT bar_ts, open, high, low, close, volume FROM bars "
             "WHERE symbol=? AND timeframe='5s' ORDER BY bar_ts DESC LIMIT ?",
-            (self._cfg.symbol, self._cfg.bar_lookback),
+            (self._cfg.symbol, self._cfg.bar_lookback * 12 + 24),
         ).fetchall()
-        for r in reversed(rows):
-            self._bars.append(Bar(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"]))
-        if rows:
-            self._last_bar_ms = rows[0]["bar_ts"] * 1000
+        for r in reversed(rows):  # chronological → fold each 5s bar into its minute
+            self._fold_5s(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"])
 
     def on_bar(self, msg: dict) -> None:
-        self._bars.append(Bar(msg["ts"], msg["o"], msg["h"], msg["l"], msg["c"], msg["v"]))
-        self._last_bar_ms = msg["ts"] * 1000
+        self._fold_5s(msg["ts"], msg["o"], msg["h"], msg["l"], msg["c"], msg["v"])
+
+    def _fold_5s(self, ts, o, h, l, c, v) -> None:
+        """Aggregate a 5s bar into the forming 1-minute bar; on a minute rollover,
+        finalise the completed 1m bar into the rolling window (decisions use only
+        completed minutes)."""
+        self._last_bar_ms = ts * 1000
+        m = (ts // 60) * 60
+        cur = self._cur
+        if cur is None or m > cur["min"]:
+            if cur is not None:
+                self._bars.append(Bar(cur["min"], cur["o"], cur["h"], cur["l"], cur["c"], cur["v"]))
+            self._cur = {"min": m, "o": o, "h": h, "l": l, "c": c, "v": v}
+        elif m == cur["min"]:
+            cur["h"] = max(cur["h"], h)
+            cur["l"] = min(cur["l"], l)
+            cur["c"] = c
+            cur["v"] += v
+        # m < cur["min"]: an out-of-order/duplicate 5s bar — ignore
 
     def on_tape(self, msg: dict) -> None:
         self._tape = msg

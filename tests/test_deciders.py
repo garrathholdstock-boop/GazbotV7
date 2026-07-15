@@ -49,6 +49,13 @@ def test_thrust_needs_magnitude_and_volume():
     assert gate_thrust(_feat(net_atr_5=2.0, vol_surge=False)) is None  # no vol surge
 
 
+def test_thrust_amplitude_floor():
+    # a strong, vol-confirmed thrust on THIN tape (atr_pct below the floor) is skipped;
+    # V5's MOMENTUM_AMP_FLOOR — noise below ~0.04% (0.0004 fraction), edge above it
+    assert gate_thrust(_feat(net_atr_5=2.0, vol_surge=True, atr_pct=0.0002), amp_floor=0.0004) is None
+    assert gate_thrust(_feat(net_atr_5=2.0, vol_surge=True, atr_pct=0.0006), amp_floor=0.0004).side == "LONG"
+
+
 # ── reversal_grab ──
 def test_reversal_fires_when_extended_and_turning():
     e = gate_reversal_grab(_feat(ext_atr=3.0, net_atr_5=-0.6), turn_atr=0.5)

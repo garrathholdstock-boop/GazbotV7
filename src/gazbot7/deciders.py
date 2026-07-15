@@ -81,9 +81,17 @@ class Entry:
     stop_atr_mult: float = 1.0
 
 
-def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True) -> Entry | None:
-    """Momentum: a signed 5-bar thrust of >= thr ATR, volume-confirmed. Two-sided."""
+def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True,
+                amp_floor: float = 0.0) -> Entry | None:
+    """Momentum: a signed 5-bar thrust of >= thr ATR, volume-confirmed. Two-sided.
+    This is V5's ``tw_mnq_thrust_loose`` (op 2026-07-12): thr 1.5, keep the volume
+    surge + amplitude floor, drop the still-extending veto — **decided on 1-minute
+    bars** (a 5-bar thrust = a 5-MINUTE move; on 5s bars it was a 25s blip and fired
+    constantly). ``amp_floor`` is V5's MOMENTUM_AMP_FLOOR (atr_pct >= 0.04% — the
+    edge lives at 0.04–0.08, noise below 0.03); here in fraction units (0.0004)."""
     if abs(f.net_atr_5) < thr:
+        return None
+    if amp_floor and f.atr_pct < amp_floor:  # thin tape → stand down
         return None
     if require_vol and not f.vol_surge:
         return None

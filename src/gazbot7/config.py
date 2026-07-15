@@ -19,11 +19,12 @@ class RunConfig:
     # desk
     size: int = 1
     gate: str = "thrust"
-    # thr 1.5→2.5 (2026-07-15): the trade-so-far analysis showed weak thrusts
-    # (net_atr<1.5) are pure churn (-$51, 29% win); strong (≥2.5) are the edge
-    # (+$41.5, +5.19/tr). A gate filter, not a blocker. thrust_shadow keeps 1.5 as
-    # the control for the honest A/B.
-    gate_params: dict = field(default_factory=lambda: {"thr": 2.5})
+    # V5 tw_mnq_thrust_loose parity (2026-07-15): thr 1.5 + amplitude floor
+    # (atr_pct >= 0.04% = 0.0004 fraction) + volume surge — decided on 1-MINUTE
+    # bars (strategy aggregates the 5s stream). The earlier thr=2.5 was a 5s-bar
+    # artifact: net_atr_5 was a 25s blip, not the sim's 5-min thrust, so it fired
+    # constantly. On 1m bars the selective sim edge is restored.
+    gate_params: dict = field(default_factory=lambda: {"thr": 1.5, "amp_floor": 0.0004})
     target_r: float = 2.0
     stop_atr_mult: float = 1.0
     # strategy-side managed exits (the native STP owns STOP; these are on top)
