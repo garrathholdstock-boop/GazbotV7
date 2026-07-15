@@ -90,6 +90,32 @@ CREATE TABLE IF NOT EXISTS signals (
     intended_price REAL
 );
 
+CREATE TABLE IF NOT EXISTS shadow_trades (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    strategy      TEXT NOT NULL,
+    symbol        TEXT NOT NULL,
+    side          TEXT NOT NULL CHECK (side IN ('LONG','SHORT')),
+    qty           REAL NOT NULL,
+    entry_ts      INTEGER NOT NULL,
+    entry_price   REAL NOT NULL,
+    entry_atr     REAL NOT NULL,          -- carried so the repricer can replay stop/target
+    target_r      REAL NOT NULL,
+    stop_atr_mult REAL NOT NULL,
+    exit_ts       INTEGER NOT NULL,
+    exit_price    REAL NOT NULL,
+    exit_reason   TEXT NOT NULL,
+    ceiling_pnl   REAL NOT NULL           -- optimistic bar-price pnl; NEVER scored on
+);
+
+CREATE TABLE IF NOT EXISTS shadow_real (
+    trade_id    INTEGER PRIMARY KEY,      -- FK -> shadow_trades.id
+    strategy    TEXT,
+    symbol      TEXT,
+    real_pnl    REAL,                     -- honest tick-repriced pnl (the ONLY score)
+    fill_status TEXT,
+    repriced_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS exec_health (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL,
@@ -214,6 +240,55 @@ def record_trade(
     )
     conn.commit()
     return cur.rowcount == 1
+
+
+def record_shadow_trade(
+    conn: sqlite3.Connection,
+    *,
+    strategy: str,
+    symbol: str,
+    side: str,
+    qty: float,
+    entry_ts: int,
+    entry_price: float,
+    entry_atr: float,
+    target_r: float,
+    stop_atr_mult: float,
+    exit_ts: int,
+    exit_price: float,
+    exit_reason: str,
+    ceiling_pnl: float,
+) -> int:
+    cur = conn.execute(
+        "INSERT INTO shadow_trades "
+        "(strategy, symbol, side, qty, entry_ts, entry_price, entry_atr, target_r, "
+        " stop_atr_mult, exit_ts, exit_price, exit_reason, ceiling_pnl) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (strategy, symbol, side, qty, entry_ts, entry_price, entry_atr, target_r,
+         stop_atr_mult, exit_ts, exit_price, exit_reason, ceiling_pnl),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def record_shadow_real(
+    conn: sqlite3.Connection, *, trade_id: int, strategy: str, symbol: str,
+    real_pnl: float, fill_status: str, repriced_at: str,
+) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO shadow_real "
+        "(trade_id, strategy, symbol, real_pnl, fill_status, repriced_at) VALUES (?,?,?,?,?,?)",
+        (trade_id, strategy, symbol, real_pnl, fill_status, repriced_at),
+    )
+    conn.commit()
+
+
+def get_shadow_trades(conn: sqlite3.Connection, strategy: str | None = None) -> list[sqlite3.Row]:
+    if strategy is None:
+        return conn.execute("SELECT * FROM shadow_trades ORDER BY id").fetchall()
+    return conn.execute(
+        "SELECT * FROM shadow_trades WHERE strategy = ? ORDER BY id", (strategy,)
+    ).fetchall()
 
 
 def get_trades(conn: sqlite3.Connection, symbol: str | None = None) -> list[sqlite3.Row]:
