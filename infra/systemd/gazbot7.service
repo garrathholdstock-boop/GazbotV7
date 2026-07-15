@@ -1,0 +1,15 @@
+[Unit]
+Description=GAZBOT V7 — MNQ futures desk (live)
+After=network.target
+
+[Service]
+Type=simple
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=GAZBOT7_PLACE_LIVE=1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.runner
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

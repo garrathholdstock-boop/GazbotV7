@@ -48,7 +48,7 @@ function drawPrice(bars) {
 
 async function tick() {
   let s;
-  try { s = await (await fetch("/api/status")).json(); } catch (e) { return; }
+  try { s = await (await fetch("api/status")).json(); } catch (e) { return; }
   // connection
   const c = $("conn");
   c.className = "conn" + (s.healthy ? "" : " off");
