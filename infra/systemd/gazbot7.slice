@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — resource envelope (keeps a core + RAM free for SSH)
+
+[Slice]
+# On the 4-core / 8 GB box this caps the whole V7 desk so a runaway (a wedged
+# loop, a fat query) can never starve SSH/OS — the 2026-07-06 lock-out class.
+# Leaves ~2 cores and several GB free. Coexists with V5's separate alphabot.slice.
+CPUQuota=200%
+MemoryHigh=1G
+MemoryMax=1500M

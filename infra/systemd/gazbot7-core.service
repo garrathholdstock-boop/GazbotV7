@@ -3,7 +3,11 @@ Description=GAZBOT V7 — core (the broker: orders/fills/position/recording/safe
 After=network.target
 
 [Service]
-Type=simple
+# Type=notify + WatchdogSec: core pings the watchdog each status cycle (sd_notify);
+# a wedged loop stops pinging → systemd restarts it (which then re-adopts via S2).
+Type=notify
+WatchdogSec=90
+Slice=gazbot7.slice
 User=alphabot
 WorkingDirectory=/home/alphabot/gazbot7
 # SAFETY: place_live=0 = dry-run (drains intents, rejects all — touches no account).

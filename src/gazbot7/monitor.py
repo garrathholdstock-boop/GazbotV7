@@ -77,7 +77,6 @@ def _worst(*statuses: str) -> str:
 
 def main() -> int:  # `python -m gazbot7.monitor` — the external 10-min sweep
     import os
-    import subprocess
     from datetime import UTC, timedelta
 
     from .store import open_store
@@ -92,12 +91,8 @@ def main() -> int:  # `python -m gazbot7.monitor` — the external 10-min sweep
     line = f"MONITOR {status}: exec[{ex.detail}] hb[{hb_detail}]"
     print(line)
     if status == "CRIT":  # judged on FILLS, not submits — a real wedge/outage pages
-        subprocess.run(
-            ["/home/alphabot/alphabot2/.venv/bin/python",
-             "/home/alphabot/alphabot2/scripts/notify_operator.py",
-             f"Garrath — V7 {line} (need you on Termius to check the desk)"],
-            check=False, timeout=15,
-        )
+        from .notify import notify
+        notify(f"Garrath — V7 {line} (need you on Termius to check the desk)", critical=True)
     return 0  # a monitor must never fail its host
 
 

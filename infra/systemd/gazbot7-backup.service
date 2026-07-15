@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — DB hygiene (WAL checkpoint + VACUUM-INTO backup)
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=GAZBOT7_STORE=/home/alphabot/gazbot7/data/gazbot7.db
+Environment=GAZBOT7_CAPTURE=/home/alphabot/gazbot7/data/capture.db
+Environment=GAZBOT7_BACKUP_DIR=/home/alphabot/gazbot7/backups
+TimeoutStartSec=1800
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.maint

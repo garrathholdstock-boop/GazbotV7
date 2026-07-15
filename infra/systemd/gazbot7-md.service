@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
+Slice=gazbot7.slice
 User=alphabot
 WorkingDirectory=/home/alphabot/gazbot7
 # md is read-only (clientId 2) — it never trades, so no place_live env.

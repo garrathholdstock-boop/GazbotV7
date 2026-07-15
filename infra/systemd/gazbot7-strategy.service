@@ -7,6 +7,7 @@ Wants=gazbot7-md.service gazbot7-core.service
 
 [Service]
 Type=simple
+Slice=gazbot7.slice
 User=alphabot
 WorkingDirectory=/home/alphabot/gazbot7
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.strategy

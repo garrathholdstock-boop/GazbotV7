@@ -22,7 +22,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import subprocess
 import time
 from datetime import UTC, datetime
 
@@ -43,6 +42,7 @@ from .ipc import (
     PullServer,
 )
 from . import pnl, session
+from .sdnotify import sd_notify
 from .safety import SafetyManager, is_naked, reconcile_verdict, safe_flatten_verdict
 from .store import (
     clear_open_position,
@@ -469,6 +469,7 @@ class Core:
         })
         await self._pub.send(T_POSITION, self._position_payload())
         self._write_heartbeat(gw)
+        sd_notify("WATCHDOG=1")  # S9: prove the loop is live to systemd's watchdog
 
     def _write_heartbeat(self, gw: IBGateway) -> None:
         """Liveness file the EXTERNAL monitor reads (S6) — outside this process, so
@@ -552,6 +553,7 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     intents_task = asyncio.ensure_future(_drain_intents(pull, core))
     protect_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # S1 naked + S2 reconcile
     liveness_task = asyncio.ensure_future(gw.liveness_loop())        # S3 zombie guard
+    sd_notify("READY=1")  # S9: Type=notify — core is up (no-op outside systemd)
     start = time.monotonic()
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
@@ -568,11 +570,8 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
 
 
 def _telegram_notifier(msg: str) -> None:
-    subprocess.run(
-        ["/home/alphabot/alphabot2/.venv/bin/python",
-         "/home/alphabot/alphabot2/scripts/notify_operator.py", f"[V7-core] {msg}"],
-        check=False, timeout=15,
-    )
+    from .notify import notify
+    notify(f"[V7-core] {msg}", critical=True)  # core alerts are all safety — always send
 
 
 def main() -> None:  # `python -m gazbot7.core`  (GAZBOT7_PLACE_LIVE=1 to trade)

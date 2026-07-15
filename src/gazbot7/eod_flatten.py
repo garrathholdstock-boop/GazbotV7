@@ -16,7 +16,6 @@ on a closed one. Clean-room.
 from __future__ import annotations
 
 import asyncio
-import subprocess
 
 from .config import RunConfig
 from .safety import safe_flatten_verdict
@@ -60,13 +59,9 @@ def main() -> None:  # `python -m gazbot7.eod_flatten`
     pre, post = asyncio.run(flatten_once(cfg))
     print(f"eod_flatten: {cfg.symbol} pre={pre:g} post={post:g}")
     if abs(post) > _EPS:  # still not flat → page the operator (a real failure)
-        subprocess.run(
-            ["/home/alphabot/alphabot2/.venv/bin/python",
-             "/home/alphabot/alphabot2/scripts/notify_operator.py",
-             f"Garrath — V7 EOD flatten INCOMPLETE: {cfg.symbol} still {post:g} "
-             f"(need you on Termius to flatten at IBKR)"],
-            check=False, timeout=15,
-        )
+        from .notify import notify
+        notify(f"Garrath — V7 EOD flatten INCOMPLETE: {cfg.symbol} still {post:g} "
+               f"(need you on Termius to flatten at IBKR)", critical=True)
 
 
 if __name__ == "__main__":
