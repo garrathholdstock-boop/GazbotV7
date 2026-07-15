@@ -33,7 +33,9 @@ def in_quiet_hours(now: datetime) -> bool:
 
 def _subprocess_send(message: str) -> bool:
     try:
-        subprocess.run([_PY, _SCRIPT, message], check=False, timeout=15)
+        # cwd=alphabot2 so notify_operator.py loads TELEGRAM_TOKEN/CHAT from its .env
+        subprocess.run([_PY, _SCRIPT, message], check=False, timeout=15,
+                       cwd="/home/alphabot/alphabot2")
         return True
     except Exception:
         return False

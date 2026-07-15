@@ -15,6 +15,9 @@ from zoneinfo import ZoneInfo
 
 _PARIS = ZoneInfo("Europe/Paris")
 _UTC = ZoneInfo("UTC")
+# reconcile/cleanup exits are not strategy trades — excluded from desk P&L
+# (V5's CANONICAL_DESK_WHERE did the same for its reconcile artifacts).
+_CLEANUP_REASONS = ("ADOPT_FLATTEN",)
 
 
 def paris_day_start_utc(now: datetime) -> str:
@@ -26,8 +29,9 @@ def paris_day_start_utc(now: datetime) -> str:
 def realized(store, symbol: str, *, since_iso: str | None = None) -> tuple[float, int, int]:
     """Net-of-fees realized P&L (sign-aware), trade count, win count — for trades
     closed at/after ``since_iso`` (default all-time)."""
-    q = "SELECT pnl_usd FROM trades WHERE symbol=?"
-    args: list = [symbol]
+    placeholders = ",".join("?" * len(_CLEANUP_REASONS))
+    q = f"SELECT pnl_usd FROM trades WHERE symbol=? AND exit_reason NOT IN ({placeholders})"
+    args: list = [symbol, *_CLEANUP_REASONS]
     if since_iso is not None:
         q += " AND closed_at>=?"
         args.append(since_iso)

@@ -22,6 +22,16 @@ def test_realized_is_signed_sum():
     assert pnl_usd == 6.5 and n == 2 and wins == 1
 
 
+def test_cleanup_trades_excluded_from_desk_pnl():
+    s = open_store(":memory:")
+    _trade(s, "SHORT", -449.81, "2026-07-15T19:45:00+00:00", "adopt")  # an ADOPT_FLATTEN cleanup
+    s.execute("UPDATE trades SET exit_reason='ADOPT_FLATTEN' WHERE exit_exec_id='adopt'")
+    _trade(s, "LONG", 12.0, "2026-07-15T19:50:00+00:00", "real")  # a real strategy trade
+    s.commit()
+    pnl_usd, n, _w = pnl.realized(s, "MNQ")
+    assert pnl_usd == 12.0 and n == 1  # cleanup excluded — desk P&L is the real trade only
+
+
 def test_day_filters_to_paris_day():
     s = open_store(":memory:")
     # Paris day of 2026-07-15 starts 2026-07-14T22:00Z (CEST). A trade closed
