@@ -275,9 +275,11 @@ class Core:
             return f"daily loss limit (${day_pnl:.0f} ≤ −${limit:.0f})"
         k = self._cfg.loss_streak_halt
         if k > 0:
+            ph = ",".join("?" * len(pnl._CLEANUP_REASONS))  # exclude cleanup (ADOPT_FLATTEN)
             rows = self._store.execute(
-                "SELECT pnl_usd FROM trades WHERE symbol=? ORDER BY id DESC LIMIT ?",
-                (self._cfg.symbol, k),
+                f"SELECT pnl_usd FROM trades WHERE symbol=? AND exit_reason NOT IN ({ph}) "
+                f"ORDER BY id DESC LIMIT ?",
+                (self._cfg.symbol, *pnl._CLEANUP_REASONS, k),
             ).fetchall()
             if len(rows) == k and all(r[0] < 0 for r in rows):
                 return f"loss streak ({k} in a row)"

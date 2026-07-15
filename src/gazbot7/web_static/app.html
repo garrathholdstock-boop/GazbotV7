@@ -1,12 +1,18 @@
 <!DOCTYPE html>
-<!-- GAZBOT V7 — MNQ DESK. Mirrors the V5 /mnq cockpit (same CSS + chart/holdings
-     treatment), fed by V7 data (/api/status). Shadow desk is its own page: /v7shadow. -->
+<!--
+  GAZBOT V5 — MNQ DESK (2026-07-13)
+  Single-instrument (MNQ) view of the futures desk. Read-only presentation layer.
+  Data: /api/futures/mnq (MNQ-scoped header/gates/trades) + /api/futures/us-terminal
+  (holdings/DTT/regime/margin, filtered to MNQ) + /api/futures/bars/MNQ (hero price).
+  Aesthetic ref: gazbot_mnq_mockup.html. Spec: docs/GAZBOT_MNQ_BUILD_SPEC.md.
+  Desktop = 4-col grid; phone = sticky KPI header + tab bar + single-column stack.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<base href="/v7/">
 <title>GAZBOT V7 · MNQ DESK</title>
+<base href="/v7/">
 <link rel="stylesheet" href="static/app.css">
 </head>
 <body>
@@ -14,106 +20,162 @@
 <div class="topstick">
 <header>
   <div class="brand">GAZBOT <span class="v">V7</span></div>
-  <div class="tag">MNQ DESK · MICRO NASDAQ 100</div>
+  <div class="tag">MNQ DESK · MICRO NASDAQ 100 · <span id="expiry">—</span></div>
   <div class="conn" id="conn"><span class="dot"></span><span id="conn-label">CONNECTING…</span></div>
-  <span class="chip" id="mode-chip">—</span>
-  <span class="chip" style="opacity:.45" title="shadow dashboard — not built yet">SHADOW · soon</span>
+  <span class="chip" id="mkt-chip">—</span>
+  <span class="chip" id="regime-chip">REGIME —</span>
   <div class="spacer"></div>
   <div class="kpis">
-    <div class="kpi box"><span class="l">NET</span><span class="v cyan" id="k-today">—</span></div>
+    <div class="kpi box"><span class="l" title="all figures NET of the round-turn fee">NET</span><span class="v cyan" id="k-fee">—</span></div>
+    <div class="kpi"><span class="l">TODAY</span><span class="v" id="k-today">—</span></div>
+    <div class="kpi"><span class="l">YEST</span><span class="v" id="k-yest">—</span></div>
+    <div class="kpi"><span class="l">2D</span><span class="v" id="k-d2">—</span></div>
     <div class="kpi"><span class="l">7D</span><span class="v" id="k-d7">—</span></div>
     <div class="kpi"><span class="l">30D</span><span class="v" id="k-d30">—</span></div>
     <div class="kpi"><span class="l">WIN%</span><span class="v" id="k-win">—</span></div>
     <div class="kpi"><span class="l">PARIS</span><span class="v" id="clock">--:--:--</span></div>
   </div>
 </header>
+<div class="halt-banner" id="halt">DESK HALTED</div>
 
+<!-- phone tab bar (hidden on desktop) -->
 <nav class="tabbar" id="tabbar">
-  <button class="tab on" data-tab="desk">DESK</button>
+  <button class="tab on" data-tab="desk">DESK<span class="b" id="tb-desk">—</span></button>
+  <button class="tab" data-tab="gates">GATES<span class="b" id="tb-gates">—</span></button>
   <button class="tab" data-tab="chart">CHART</button>
-  <button class="tab" data-tab="gates">GATES</button>
   <button class="tab" data-tab="hold">HOLD<span class="b" id="tb-hold">—</span></button>
   <button class="tab" data-tab="trades">TRADES<span class="b" id="tb-trades">—</span></button>
-  <button class="tab" data-tab="exec">EXEC</button>
+  <button class="tab" data-tab="exec">EXEC<span class="b" id="tb-exec">—</span></button>
 </nav>
-</div>
+</div><!-- /topstick -->
 
 <div class="grid">
 
-  <!-- DESK STATS -->
+  <!-- LEFT RAIL — DESK STATS -->
   <section class="panel on" id="p-desk" data-tab="desk">
     <div class="ph"><h2>DESK STATS</h2><span class="live">● live</span></div>
     <div class="pb">
+      <div class="sec">MARKET REGIME · US</div>
+      <div id="regime-badges"><div class="empty">—</div></div>
+
       <div class="sec">UNREALISED P&amp;L</div>
       <div class="big" id="unreal">—</div>
       <div class="subval" id="unreal-sub">flat</div>
-      <div class="sec">TODAY · MNQ · NET OF FEES</div>
-      <div class="row"><span class="k">Realised P&amp;L</span><span class="val" id="d-realised">—</span></div>
-      <div class="row"><span class="k">Trades today</span><span class="val" id="d-trades">—</span></div>
-      <div class="row"><span class="k">Win rate today</span><span class="val" id="d-win">—</span></div>
-      <div class="row"><span class="k">Live gate</span><span class="val cyan" id="d-gate">thrust</span></div>
+
+      <div class="sec">MARGIN DEPLOYED</div>
+      <div class="row"><span class="k">Deployed</span><span class="val" id="margin-usd">—</span></div>
+      <div class="bar-track"><div class="bar-fill" id="margin-bar"></div></div>
+      <div class="subval" id="margin-sub">IBKR init margin · % of NLV</div>
+
+      <div class="sec">POSITIONING</div>
+      <div class="row"><span class="k">Open contracts</span><span class="val" id="pos-open">—</span></div>
+      <div class="row"><span class="k">Net locked profit</span><span class="val" id="pos-locked">—</span></div>
+      <div class="row"><span class="k">Today realised</span><span class="val" id="pos-realised">—</span></div>
+      <div class="row"><span class="k">Trades today</span><span class="val" id="pos-trades">—</span></div>
+      <div class="row"><span class="k">Win rate today</span><span class="val" id="pos-win">—</span></div>
+      <div class="row"><span class="k">Ratchet · today</span><span class="val" id="pos-ratchet">—</span></div>
+
       <div class="sec">ROLLING · MNQ · USD</div>
       <table><thead><tr><th></th><th>1D</th><th>7D</th><th>30D</th></tr></thead>
         <tbody id="rolltbl"><tr><td class="empty" colspan="4">—</td></tr></tbody></table>
+
+      <div class="sec">GATE PERFORMANCE · TODAY · L/S</div>
+      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>PF</th><th>NET</th></tr></thead>
+        <tbody id="gateperf"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
+
+      <div class="sec">LONG / SHORT HEALTH · TODAY</div>
+      <table><thead><tr><th>GATE</th><th>L·N</th><th>L·NET</th><th>S·N</th><th>S·NET</th></tr></thead>
+        <tbody id="lshealth"><tr><td class="empty" colspan="5">—</td></tr></tbody></table>
+
+      <div class="sec">LOSSES · BY EXIT · TODAY</div>
+      <table><thead><tr><th>EXIT</th><th>N</th><th>$</th></tr></thead>
+        <tbody id="lossbkt"><tr><td class="empty" colspan="3">—</td></tr></tbody></table>
     </div>
   </section>
 
-  <!-- CHART -->
+  <!-- HERO — MNQ CHART -->
   <section class="panel" id="p-chart" data-tab="chart">
-    <div class="ph"><h2>MNQ · PRICE</h2><span class="live">● 5s · fills · VWAP</span></div>
+    <div class="ph"><h2>MNQ · <span id="hero-expiry">—</span></h2><span class="live" id="hero-state">● price · triggers · fills</span></div>
     <div class="hero-body">
-      <div class="chart-host"><svg id="price-svg" preserveAspectRatio="none"></svg></div>
-      <div class="legend" id="chart-legend">
-        <span><span class="sw" style="background:#c6d2db"></span>price</span>
-        <span><span class="sw" style="background:#37c9c9"></span>VWAP</span>
-        <span><span class="sw" style="background:#37d07a"></span>long fill</span>
-        <span><span class="sw" style="background:#ff5a5f"></span>short fill</span>
+      <div class="ribbon" id="ribbon"></div>
+      <div class="chart-host">
+        <svg id="price-svg" preserveAspectRatio="none"></svg>
       </div>
+      <div class="tfbar" id="tfbar">
+        <span class="tflab">WINDOW</span>
+        <button class="tf" data-min="30">30m</button>
+        <button class="tf" data-min="60">1h</button>
+        <button class="tf on" data-min="120">2h</button>
+        <button class="tf" data-min="240">4h</button>
+      </div>
+      <div class="legend" id="chart-legend"></div>
+      <div class="sec" style="margin:4px 0 2px">DISTANCE TO TRIGGER <span class="dim3">· 100 = FIRE</span></div>
+      <div class="dtt-strip" id="dtt"><div class="empty">—</div></div>
     </div>
   </section>
 
-  <!-- GATES -->
+  <!-- GATE LEADERBOARD -->
   <section class="panel" id="p-gates" data-tab="gates">
-    <div class="ph"><h2>GATE PERFORMANCE</h2><span class="sub">today · gate×side · net of fees</span></div>
+    <div class="ph"><h2>GATE LEADERBOARD</h2><span class="sub">gate×side · click → trades</span></div>
     <div class="pb">
-      <div class="sec">LIVE GATE · thrust</div>
-      <div class="row"><span class="k">Threshold (net_atr)</span><span class="val" id="g-thr">≥ 2.5</span></div>
-      <div class="row"><span class="k">Shadow control</span><span class="val" id="g-ctrl">thrust @ 1.5</span></div>
-      <div class="sec">GATE × SIDE · TODAY</div>
-      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>NET</th></tr></thead>
-        <tbody id="gateperf"><tr><td class="empty" colspan="5">—</td></tr></tbody></table>
+      <div class="sec">TOP 5 · net of fees</div>
+      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>PF</th><th>NET</th></tr></thead>
+        <tbody id="lb-top"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
+      <div class="sec">BOTTOM 5 · net of fees</div>
+      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>PF</th><th>NET</th></tr></thead>
+        <tbody id="lb-bottom"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
     </div>
   </section>
 
-  <!-- HOLDING -->
+  <!-- HOLDINGS -->
   <section class="panel" id="p-hold" data-tab="hold">
     <div class="ph"><h2>HOLDING</h2><span class="sub" id="hold-meta">—</span></div>
     <div class="pb" id="hold-body"><div class="empty">loading…</div></div>
   </section>
 
-  <!-- TRADES -->
+  <!-- RIGHT RAIL — TODAY · TRADES -->
   <section class="panel" id="p-trades" data-tab="trades">
     <div class="ph"><h2>TODAY · TRADES</h2><span class="sub" id="trades-meta">—</span></div>
     <div class="pb">
       <div class="sec" style="margin-top:0">REALISED CURVE <span class="dim3" id="curve-end">—</span></div>
       <div class="curve-host"><svg id="curve-svg" viewBox="0 0 1000 120" preserveAspectRatio="none"></svg></div>
-      <table><thead><tr><th>TIME</th><th>SIDE</th><th>GATE</th><th>EXIT</th><th>$</th></tr></thead>
-        <tbody id="blotter"><tr><td class="empty" colspan="5">—</td></tr></tbody></table>
+      <table><thead><tr><th>TIME</th><th>SIDE</th><th>GATE</th><th>EXIT</th><th>$</th><th>%</th></tr></thead>
+        <tbody id="blotter"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
     </div>
   </section>
 
-  <!-- EXEC -->
+  <!-- EXECUTION HEALTH — signal → fill through-rate + slippage + blocks -->
   <section class="panel" id="p-exec" data-tab="exec">
-    <div class="ph"><h2>EXECUTION</h2><span class="sub">fills · today</span></div>
+    <div class="ph"><h2>EXECUTION</h2><span class="sub" id="exec-meta">signal → fill · 30m rolling</span></div>
     <div class="pb">
-      <div class="sec">THROUGH-RATE <span class="dim3">· signals that filled</span></div>
+      <div class="sec">THROUGH-RATE <span class="dim3">· fired signals that reached the market</span></div>
       <div class="big" id="exec-pct">—</div>
-      <div class="subval" id="exec-sub">—</div>
-      <div class="sec">RECORDING INTEGRITY</div>
-      <div class="row"><span class="k">Backfills (must be 0)</span><span class="val" id="exec-bf">—</span></div>
+      <div class="subval" id="exec-sub">monitor warming up…</div>
+
+      <div class="sec">SLIPPAGE · signal → fill</div>
+      <div class="row"><span class="k">Avg adverse</span><span class="val" id="exec-slip">—</span></div>
+
+      <div class="sec">BLOCKED · why signals died</div>
+      <table><thead><tr><th>REASON</th><th>N</th></tr></thead>
+        <tbody id="exec-blocks"><tr><td class="empty" colspan="2">—</td></tr></tbody></table>
+
+      <div class="sec">TREND · last windows · 10-min</div>
+      <div class="exec-trend" id="exec-trend"><div class="empty">—</div></div>
     </div>
   </section>
 
+</div>
+
+<!-- drill-down modal -->
+<div id="drill-back" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40" onclick="if(event.target===this)MNQ.closeDrill()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:86vh;background:var(--panel);border:1px solid var(--line2);border-radius:8px;display:flex;flex-direction:column;overflow:hidden">
+    <div class="ph"><h2 id="drill-title">—</h2><span class="sub" style="cursor:pointer" onclick="MNQ.closeDrill()">✕ close</span></div>
+    <div id="drill-agg" class="pb" style="flex:none;border-bottom:1px solid var(--line);padding-bottom:8px"></div>
+    <div class="pb" style="padding-top:6px">
+      <table><thead><tr><th>TIME</th><th>SIDE</th><th>EXIT</th><th>ENTRY</th><th>EXIT</th><th>$</th><th>%</th></tr></thead>
+        <tbody id="drill-rows"></tbody></table>
+    </div>
+  </div>
 </div>
 
 <script src="static/app.js"></script>
