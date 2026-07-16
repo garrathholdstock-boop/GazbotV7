@@ -7,7 +7,7 @@
    text), thin dark scrollbars, blotter fits (no horizontal overflow), col4 widened. */
 :root{
   --bg:#080b0f; --panel:#0c1116; --panel2:#0a0e12; --line:#182029;
-  --line2:#212b35; --mut:#5c6b78; --mut2:#3f4b56; --txt:#c6d2db; --txt2:#8a99a6;
+  --line2:#212b35; --mut:#8fa0af; --mut2:#66727e; --txt:#eaf1f7; --txt2:#b3c0cc;
   --cyan:#37c9c9; --cyan-dim:#1f6b6b; --grn:#37d07a; --red:#ff5a5f; --amb:#e0a83a;
   --grn-bg:rgba(55,208,122,.10); --red-bg:rgba(255,90,95,.10); --cyan-bg:rgba(55,201,201,.06);
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
