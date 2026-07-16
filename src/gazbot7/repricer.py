@@ -17,6 +17,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import NamedTuple
 
+from .deciders import Position as _Pos
+from .deciders import exit_chandelier as _exit_chandelier
 from .store import record_shadow_real
 
 
@@ -39,27 +41,28 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
 
     entry = quotes[0].ask if side == "LONG" else quotes[0].bid  # far-touch entry
     r = sm * atr
-    if side == "LONG":
-        stop, target = entry - r, entry + tr * r
-    else:
-        stop, target = entry + r, entry - tr * r
+    stop = entry - r if side == "LONG" else entry + r
+    chandelier = tr <= 0  # target_r=0 sentinel → ride the tightening chandelier, not a fixed target
+    target = None if chandelier else (entry + tr * r if side == "LONG" else entry - tr * r)
 
+    peak = 0.0
     exit_px = None
     for q in quotes[1:]:
         mid = (q.bid + q.ask) / 2.0
-        if side == "LONG":
-            if mid <= stop:
-                exit_px = q.bid
-                break
-            if mid >= target:
-                exit_px = q.bid
+        fav = (mid - entry) if side == "LONG" else (entry - mid)
+        peak = max(peak, fav)
+        hit_stop = (mid <= stop) if side == "LONG" else (mid >= stop)
+        if hit_stop:
+            exit_px = q.bid if side == "LONG" else q.ask
+            break
+        if chandelier:
+            if _exit_chandelier(_Pos(side, entry, atr, peak), mid):
+                exit_px = q.bid if side == "LONG" else q.ask
                 break
         else:
-            if mid >= stop:
-                exit_px = q.ask
-                break
-            if mid <= target:
-                exit_px = q.ask
+            hit_tgt = (mid >= target) if side == "LONG" else (mid <= target)
+            if hit_tgt:
+                exit_px = q.bid if side == "LONG" else q.ask
                 break
     if exit_px is None:  # ran to the end of the window → fill at the last touch
         exit_px = quotes[-1].bid if side == "LONG" else quotes[-1].ask

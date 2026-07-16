@@ -86,3 +86,20 @@ def test_reprice_pending_no_data_when_quotes_predate_signal():
     reprice_pending(store, cap, value_per_point=VPP, fee_rt=FEE)
     row = store.execute("SELECT fill_status FROM shadow_real").fetchone()
     assert row["fill_status"] == "no_data"  # nothing at/after the bar close
+
+
+def test_reprice_chandelier_rides_not_2r_target():
+    # target_r=0 sentinel → the repricer rides the chandelier, banking far more than a 2R scalp
+    store = open_store(":memory:"); cap = open_capture(":memory:")
+    ets = 1_784_185_260; cms = (ets + 60) * 1000
+    record_quote(cap, "MNQ", cms, 99.5, 100.0, 5, 5)              # entry far-touch ask 100
+    record_quote(cap, "MNQ", cms + 10_000, 119.5, 120.0, 5, 5)   # runs +20 (5R)
+    record_quote(cap, "MNQ", cms + 20_000, 116.5, 117.0, 5, 5)   # gives back → chandelier banks
+    cap.commit()
+    record_shadow_trade(store, strategy="c1", symbol="MNQ", side="LONG", qty=1,
+                        entry_ts=ets, entry_price=100.0, entry_atr=4.0, target_r=0.0, stop_atr_mult=1.0,
+                        exit_ts=ets + 60, exit_price=117.0, exit_reason="CHANDELIER", ceiling_pnl=0.0)
+    reprice_pending(store, cap, value_per_point=VPP, fee_rt=FEE)
+    row = store.execute("SELECT real_pnl, fill_status FROM shadow_real").fetchone()
+    assert row["fill_status"] == "filled"
+    assert row["real_pnl"] > 25  # rode ~+16.5pt = ~$31, far past a 2R (+8) scalp

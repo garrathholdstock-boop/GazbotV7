@@ -124,17 +124,18 @@ class ShadowSim:
         fav = (f.price - op["entry_price"]) if op["side"] == "LONG" else (op["entry_price"] - f.price)
         op["peak"] = max(op["peak"], fav)
         pos = Position(op["side"], op["entry_price"], op["entry_atr"], op["peak"])
-        # profit exit: the tightening chandelier (ride, uncapped) for trend variants,
-        # else the fixed R-target. Then the STOP + risk cuts underneath.
+        # chandelier variants RIDE on chandelier + native STOP only (matches the live
+        # desk + the backtest) — the early risk cuts would choke the ride, so they only
+        # apply to the fixed-R-target variants.
         if v.chandelier:
             reason = "CHANDELIER" if exit_chandelier(pos, f.price) else exit_scalp(
                 pos, f.price, target_r=99.0, stop_atr_mult=v.stop_atr_mult)  # target off; STOP only
         else:
             reason = exit_scalp(pos, f.price, target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)
-        if reason is None and exit_adverse_cut(pos, f.price, cut_atr=v.adverse_cut_atr):
-            reason = "ADVERSE_CUT"
-        if reason is None and exit_absorption(pos, tape_net=tape_net, window_price_delta=wpd, flow_min=v.absorption_flow_min):
-            reason = "ABSORPTION_CUT"
+            if reason is None and exit_adverse_cut(pos, f.price, cut_atr=v.adverse_cut_atr):
+                reason = "ADVERSE_CUT"
+            if reason is None and exit_absorption(pos, tape_net=tape_net, window_price_delta=wpd, flow_min=v.absorption_flow_min):
+                reason = "ABSORPTION_CUT"
         if reason is not None:
             self._record(v, op, f.price, ts, reason)
             del self._open[v.name]
@@ -149,7 +150,8 @@ class ShadowSim:
             self._store,
             strategy=v.name, symbol=v.symbol, side=side, qty=v.qty,
             entry_ts=op["entry_ts"], entry_price=op["entry_price"], entry_atr=op["entry_atr"],
-            target_r=v.target_r, stop_atr_mult=v.stop_atr_mult,
+            target_r=(0.0 if v.chandelier else v.target_r),  # 0 = repricer replays the chandelier
+            stop_atr_mult=v.stop_atr_mult,
             exit_ts=exit_ts, exit_price=exit_price, exit_reason=reason,
             ceiling_pnl=gross - self._fee,
         )
