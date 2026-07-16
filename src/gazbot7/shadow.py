@@ -163,8 +163,6 @@ def default_slate() -> list[ShadowVariant]:
     slate = [
         ShadowVariant("thrust_loose", "thrust", {"thr": 1.5, "amp_floor": 0.0004}),  # live control
         ShadowVariant("thrust_cont", "thrust", {"thr": 2.0, "amp_floor": 0.0004}),   # tighter thrust
-        ShadowVariant("thrust_noamp", "thrust", {"thr": 1.5, "amp_floor": 0.0}),     # amp floor OFF
-        ShadowVariant("thrust_amp03", "thrust", {"thr": 1.5, "amp_floor": 0.0003}),  # looser floor
         # 2026-07-16 — thrust_loose + the sign filter: only fire WITH the VWAP slope.
         # A n=50 measurement said counter-trend thrust IS the bleed; this forward-tests
         # whether the filter flips thrust ~breakeven vs the −$903 control.
@@ -193,8 +191,6 @@ def default_slate() -> list[ShadowVariant]:
     # thrust (a burst gate) misses. L2 was balanced through today's +200pt grind, so
     # this is price/flow, not book. Chandelier-ridden. slope floor 0.4 vs 0.6.
     slate += [
-        ShadowVariant("grind_04", "grind", {"slope_min": 0.4}, chandelier=True),
-        ShadowVariant("grind_06", "grind", {"slope_min": 0.6}, chandelier=True),
     ]
     # FAST-SLOPE rewire (2026-07-16) — the short-window slope flips at reversals where
     # the 60-bar slope lags 30-40min and wrong-foots these gates. PROVEN on the 15:17
@@ -216,7 +212,7 @@ def default_slate() -> list[ShadowVariant]:
     # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto
     # control; live desk runs 45s. Which wait best trades avoided-bleed vs missed moves?
     slate += [ShadowVariant(f"abs_veto_{s}s", "thrust", {"thr": 1.5, "amp_floor": 0.0004}, confirm_s=s)
-              for s in (50, 55, 60, 70, 90)]
+              for s in (50, 55, 60)]  # 70/90s removed — failures (too much lag)
     slate += [ShadowVariant(name, "reversal_grab", params)
               for name, params in REVERSAL_SHORT_VARIANTS.items()]
     # target A/B (2026-07-16): the best-firing reversal_grab at a 1.5R take-profit vs

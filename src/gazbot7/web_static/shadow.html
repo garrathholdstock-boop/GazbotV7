@@ -163,22 +163,16 @@
 const META = {
   thrust_loose:{n:"Thrust · Live 1.5", s:"L"},
   thrust_cont:{n:"Thrust · Tight 2.0", s:"T"},
-  thrust_noamp:{n:"Thrust · No-amp", s:"T"},
-  thrust_amp03:{n:"Thrust · Amp .0003", s:"T"},
   thrust_aligned:{n:"Thrust · With-trend", s:"T"},
   thrust_fast:{n:"Thrust · Fast 2-bar", s:"T"},
   capit_tight:{n:"Capit · Tight", s:"C"},
   capit_mid:{n:"Capit · Mid", s:"C"},
   capit_loose:{n:"Capit · Loose", s:"C"},
   capit_ride:{n:"Capit · Ride", s:"C"},
-  grind_04:{n:"Grind · slope .4", s:"D"},
-  grind_06:{n:"Grind · slope .6", s:"D"},
   grind_fast:{n:"Grind · fast-slope", s:"D"},
   abs_veto_50s:{n:"Abs Veto 50s", s:"T"},
   abs_veto_55s:{n:"Abs Veto 55s", s:"T"},
   abs_veto_60s:{n:"Abs Veto 60s", s:"T"},
-  abs_veto_70s:{n:"Abs Veto 70s", s:"T"},
-  abs_veto_90s:{n:"Abs Veto 90s", s:"T"},
   rg_short_050:{n:"Rev Grab · Turn .50", s:"G"},
   rg_short_025_raw:{n:"Rev Grab · .25 raw", s:"G"},
   rg_short_025_flow25:{n:"Rev Grab · .25 flow25", s:"G"},
@@ -204,7 +198,7 @@ const nameOf = s => (META[s] && META[s].n) || s;
 // regardless of how the cards are sorted/grouped.
 // Frozen ID order — pins each sim's #N (matches shadow.default_slate()). Add NEW
 // sims at the END so a removed one leaves a GAP rather than renumbering the rest.
-const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_noamp","thrust_amp03","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","abs_veto_70s","abs_veto_90s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","grind_04","grind_06","rg_long_fast","grind_fast","rg_long_fast_v"];
+const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","rg_long_fast","grind_fast","rg_long_fast_v"];
 const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
 function srcBadge(strat){
   const s = META[strat] && META[strat].s;
