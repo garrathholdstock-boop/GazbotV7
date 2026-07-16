@@ -260,10 +260,15 @@ def shadow_overview_json(shadow_path, date=None):
         c.close()
     except Exception:
         rows = []
-    names = fleet + sorted({r["s"] for r in rows} - set(fleet))
+    # the board shows the REGISTERED fleet only — a variant culled from the slate
+    # vanishes from the dashboard (its history stays in shadow.db for analysis).
+    names = fleet
+    fleet_set = set(fleet)
     agg = {s: {"today": [], "week": [], "all": [], "by_symbol": {}, "min_ts": None} for s in names}
     for r in rows:
-        a = agg.setdefault(r["s"], {"today": [], "week": [], "all": [], "by_symbol": {}, "min_ts": None})
+        if r["s"] not in fleet_set:  # culled variant — excluded from the board + totals
+            continue
+        a = agg[r["s"]]
         ts, p = r["ts"], r["pnl"]
         if ts >= day_end:  # future relative to the viewed day
             continue
