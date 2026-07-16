@@ -209,9 +209,15 @@ class Strategy:
             reason = "TARGET"
         if reason is None and exit_adverse_cut(pos, price, cut_atr=self._cfg.adverse_cut_atr):
             reason = "ADVERSE_CUT"
-        if reason is None and exit_absorption(pos, tape_net=self._tape.get("net_flow", 0.0),
-                                              window_price_delta=self._tape.get("win_price_delta", 0.0),
-                                              flow_min=self._cfg.absorption_flow_min):
+        # absorption is a CATASTROPHE backstop: only once the trade is deep underwater
+        # (>= absorption_min_loss_usd). A green trade has no loss and a small loss is
+        # under the floor, so absorption never guillotines a winner or a scalp — the
+        # native ~1-ATR stop is the normal loss exit; this catches a runaway past it.
+        loss_usd = -fav * self._cfg.value_per_point  # >0 only when offside
+        if (reason is None and loss_usd >= self._cfg.absorption_min_loss_usd
+                and exit_absorption(pos, tape_net=self._tape.get("net_flow", 0.0),
+                                    window_price_delta=self._tape.get("win_price_delta", 0.0),
+                                    flow_min=self._cfg.absorption_flow_min)):
             reason = "ABSORPTION_CUT"
         if reason is None:
             return None

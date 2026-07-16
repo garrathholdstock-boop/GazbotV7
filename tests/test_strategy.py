@@ -200,3 +200,32 @@ def test_chandelier_closes_a_runner():
     s.on_tape(_tape(t1, 121.0))           # gives back to +21 (>0.5-ATR trail from peak) → bank
     intent = s.decide(t1)
     assert intent is not None and intent["reason"] == "CHANDELIER"
+
+
+# ── absorption = catastrophe backstop, not a scalp-cutter (2026-07-16) ─────────
+def test_absorption_holds_a_green_trade():
+    s = _strat()  # absorption_min_loss_usd default 60
+    _load(s)
+    s.on_core_position({"flat": False, "side": "LONG", "entry": 100.0, "atr": 30.0})
+    now = _TS * 1000 + 100
+    s.on_tape(_tape(now, 110.0, net_flow=80.0, wpd=-1.0))  # green + absorption tape
+    assert s.decide(now) is None  # no loss → absorption stands down (won't cut a winner)
+
+
+def test_absorption_holds_a_small_loss():
+    s = _strat()
+    _load(s)
+    s.on_core_position({"flat": False, "side": "LONG", "entry": 100.0, "atr": 30.0})
+    now = _TS * 1000 + 100
+    s.on_tape(_tape(now, 95.0, net_flow=80.0, wpd=-1.0))  # −$10, absorption tape
+    assert s.decide(now) is None  # $10 < $60 tolerance → let it breathe
+
+
+def test_absorption_cuts_a_deep_loss():
+    s = _strat()
+    _load(s)
+    s.on_core_position({"flat": False, "side": "LONG", "entry": 100.0, "atr": 30.0})
+    now = _TS * 1000 + 100
+    s.on_tape(_tape(now, 65.0, net_flow=80.0, wpd=-1.0))  # −$70 runaway, absorption tape
+    intent = s.decide(now)
+    assert intent["action"] == "CLOSE" and intent["reason"] == "ABSORPTION_CUT"

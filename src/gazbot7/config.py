@@ -44,6 +44,12 @@ class RunConfig:
     # strategy-side managed exits (the native STP owns STOP; these are on top)
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0
+    # absorption is a CATASTROPHE backstop, not a scalp-cutter (2026-07-16 operator:
+    # "supposed to cut huge losses of $200, not cut every trade off; happy to wear
+    # $40-50 losses"). It fires ONLY once a trade is at least this far underwater —
+    # so it can never cut a winner (no loss) or a small loss; the native ~1-ATR stop
+    # is the normal loss exit, absorption catches a runaway that escapes it.
+    absorption_min_loss_usd: float = 60.0
     # session discipline (S4) — never hold overnight, never open into the close
     max_hold_minutes: float = 120.0    # hard ceiling regardless of P&L
     no_open_minutes: float = 20.0      # suppress new entries this long before close
