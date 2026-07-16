@@ -62,3 +62,27 @@ def test_reversal_slate_instantiates():
     assert len(variants) == 5
     store = open_store(":memory:")
     ShadowSim(store, variants).on_bars(_flat_at(100.0))  # no raise; nothing fires on flat
+
+
+# ── delayed-entry absorption veto in the sim (2026-07-16) ─────────────────────
+def test_shadow_veto_delays_then_enters():
+    store = open_store(":memory:")
+    sim = ShadowSim(store, [ShadowVariant("v", "thrust", {}, confirm_s=50)])
+    t0 = 1_000_000
+    sim.on_bars(THRUST_UP, now_ms=t0)                 # signal raised — watching, no entry
+    assert sim._open == {} and "v" in sim._pending
+    sim.on_bars(THRUST_UP, now_ms=t0 + 51_000)        # 51s on, thrust persists, clean → enter
+    assert "v" in sim._open
+    sim.on_bars(_flat_at(110.0), now_ms=t0 + 60_000)  # past 2R → close
+    (tr,) = get_shadow_trades(store, "v")
+    assert tr["side"] == "LONG"
+
+
+def test_shadow_veto_vetoes_on_absorption():
+    store = open_store(":memory:")
+    sim = ShadowSim(store, [ShadowVariant("v", "thrust", {}, confirm_s=50)])
+    t0 = 1_000_000
+    sim.on_bars(THRUST_UP, now_ms=t0)
+    assert "v" in sim._pending
+    sim.on_bars(THRUST_UP, now_ms=t0 + 10_000, tape_net=80.0, window_price_delta=-1.0)
+    assert "v" not in sim._pending and sim._open == {}  # absorbed during the wait → vetoed

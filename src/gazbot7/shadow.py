@@ -46,6 +46,7 @@ class ShadowVariant:
     stop_atr_mult: float = 1.0
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0
+    confirm_s: float = 0.0  # delayed-entry absorption veto: wait N s before entering (0 = immediate)
 
 
 class ShadowSim:
@@ -55,13 +56,15 @@ class ShadowSim:
         self._vpp = value_per_point
         self._fee = fee_rt
         self._open: dict[str, dict] = {}  # variant name → open sim position
+        self._pending: dict[str, dict] = {}  # variant name → pending entry watching absorption
 
     def on_bars(self, bars: list[Bar], *, tape_net: float = 0.0,
-                window_price_delta: float = 0.0, in_rth: bool = True) -> None:
+                window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None) -> None:
         f = compute_features(bars)
         ts = bars[-1].ts
+        now_ms = now_ms if now_ms is not None else ts * 1000  # wall-clock for the entry delay
         for v in self._variants:
-            self._step(v, f, ts, tape_net, window_price_delta, in_rth)
+            self._step(v, f, ts, tape_net, window_price_delta, in_rth, now_ms)
 
     def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool):
         if v.gate == "thrust":
@@ -70,15 +73,41 @@ class ShadowSim:
             return gate_reversal_grab(f, tape_net=tape_net, in_rth=in_rth, **v.params)
         return None
 
-    def _step(self, v, f, ts, tape_net, wpd, in_rth):
+    def _absorbed(self, v, side, tape_net, wpd) -> bool:
+        return exit_absorption(Position(side, 0.0, 0.0, 0.0), tape_net=tape_net,
+                               window_price_delta=wpd, flow_min=v.absorption_flow_min) is not None
+
+    def _open_pos(self, v, entry, f, ts) -> None:
+        self._open[v.name] = dict(side=entry.side, entry_price=f.price, entry_atr=f.atr, entry_ts=ts, peak=0.0)
+
+    def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms):
         op = self._open.get(v.name)
         if op is None:
+            if v.confirm_s <= 0:  # immediate entry (the default / live control)
+                entry = self._entry(v, f, tape_net, in_rth)
+                if entry is not None:
+                    self._open_pos(v, entry, f, ts)
+                return
+            # DELAYED ENTRY — raise the signal, watch absorption for confirm_s, enter
+            # only if the thrust still fires and no absorption appeared (mirrors the
+            # live strategy._entry, at wall-clock resolution).
+            pc = self._pending.get(v.name)
+            if pc is None:
+                entry = self._entry(v, f, tape_net, in_rth)
+                if entry is not None:
+                    self._pending[v.name] = {"side": entry.side, "start_ms": now_ms}
+                return
+            if self._absorbed(v, pc["side"], tape_net, wpd):
+                del self._pending[v.name]
+                return
+            if now_ms - pc["start_ms"] < v.confirm_s * 1000:
+                return  # still watching
+            del self._pending[v.name]
             entry = self._entry(v, f, tape_net, in_rth)
-            if entry is not None:
-                self._open[v.name] = dict(
-                    side=entry.side, entry_price=f.price, entry_atr=f.atr, entry_ts=ts, peak=0.0
-                )
+            if entry is not None and entry.side == pc["side"] and not self._absorbed(v, entry.side, tape_net, wpd):
+                self._open_pos(v, entry, f, ts)
             return
+        self._pending.pop(v.name, None)  # holding — abandon any pending confirm
         # manage — track peak favourable, then check the sim exit stack
         fav = (f.price - op["entry_price"]) if op["side"] == "LONG" else (op["entry_price"] - f.price)
         op["peak"] = max(op["peak"], fav)
@@ -123,6 +152,11 @@ def default_slate() -> list[ShadowVariant]:
         # whether the filter flips thrust ~breakeven vs the −$903 control.
         ShadowVariant("thrust_aligned", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True}),
     ]
+    # absorption-veto DURATION sweep (2026-07-16, operator) — thrust_loose + the
+    # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto
+    # control; live desk runs 45s. Which wait best trades avoided-bleed vs missed moves?
+    slate += [ShadowVariant(f"abs_veto_{s}s", "thrust", {"thr": 1.5, "amp_floor": 0.0004}, confirm_s=s)
+              for s in (50, 55, 60, 70, 90)]
     slate += [ShadowVariant(name, "reversal_grab", params)
               for name, params in REVERSAL_SHORT_VARIANTS.items()]
     # target A/B (2026-07-16): the best-firing reversal_grab at a 1.5R take-profit vs
@@ -180,7 +214,7 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                     if len(bars) >= 6:
                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                     window_price_delta=body.get("win_price_delta", 0.0),
-                                    in_rth=body.get("in_rth", True))
+                                    in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"))
             if time.monotonic() - last_reprice >= reprice_interval_s:
                 try:
                     reprice_pending(store, cap, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
