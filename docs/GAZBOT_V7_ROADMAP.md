@@ -4,6 +4,41 @@
 and the gates. V5 keeps running the live desk the entire time; V7 earns cutover
 on evidence (§Stage E), never a big-bang.
 
+---
+
+## Current state — 2026-07-16 (reality has outrun this plan)
+
+The build moved far faster than the schedule below, and the operator **cut V7 live
+early**. Snapshot of where we actually are:
+
+- **V7 IS the live desk.** Running on the paper account, `place_live=True`, MNQ,
+  two-sided. **V5 was retired 2026-07-16** (all `alphabot-*` timers + brain being
+  disabled; the shared IB Gateway stays — V7 rides it). The planned long D10 soak +
+  D11 cutover collapsed into a live-now decision; the soak is happening *in
+  production* on paper.
+- **Architecture is THREE services, not single-process.** Scope §5's single-process
+  was superseded by an operator-approved rebuild: `gazbot7-md` (clientId 2, capture
+  + live pub/sub) + `gazbot7-core` (clientId 0, the broker: orders/fills/position/
+  safety) + `gazbot7-strategy` (decisions → intents, never touches IBKR), over
+  ZeroMQ. Plus `gazbot7-shadow` and `gazbot7-web`. VENUE-TRUTH-FIRST (store = journal,
+  not a 2nd authority) — the whole V5 reconcile apparatus deliberately NOT ported.
+- **Drops D0–D9 effectively done**, plus extras not in the original plan: the full
+  S1–S10 safety spine; the shadow desk + honest tick repricer (the seconds-vs-ms
+  scoring bug found & fixed 2026-07-16); the fills-based monitor + a 2-hourly
+  maintenance sweep (`scripts/sweep.py`); the **V5 dashboards copied verbatim** at
+  `/v7` and `/v7shadow`; and today the **momentum exit rework** — tightening ATR
+  chandelier + a 45s delayed-entry absorption veto (both LIVE).
+- **What's live-tuned right now:** thrust gate (loose 1.5 + amp floor 0.0004);
+  profit exit = chandelier (3.5→0.5); entry waits 45s watching absorption.
+  reversal_grab (5 shorts) is **shadow-only**. Kill-switch: day −$300 / 4-loss streak
+  (streak is all-time, not day-scoped — a known sharp edge).
+- **Open threads:** ★ regime/condition switching + a chop-veto for the loose thrust
+  gate (Friday-report subject — see memory `regime-chop-veto-momentum`); loss-streak
+  day-scoping; accumulate shadow evidence (momentum bleeding on chop, honestly).
+- **Working branch:** `refactor/three-service` (not merged to main; **no git remote
+  configured yet**). "State & sessions" continuity lives in the memory system —
+  V7 deliberately dropped V5's HANDOVER/§-patch doc system (scope §115).
+
 ## Approved decisions (scope §16, operator 2026-07-15)
 1. Fresh git repo at **`/home/alphabot/gazbot7/`**; V5 DB archived read-only at
    **`/home/alphabot/archive/v5/`**.
