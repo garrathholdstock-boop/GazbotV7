@@ -141,6 +141,45 @@ def recent_tape(conn, symbol: str, now_ms: int, *, window_s: int = 60) -> tuple[
     return buy - sell, rows[-1]["price"] - rows[0]["price"], rows[-1]["price"]
 
 
+def capitulation_tape(conn, symbol: str, now_ms: int, *, short_s: int = 20, base_s: int = 180) -> dict:
+    """Aggressor-tape footprint for the capitulation gate (2026-07-16). Returns the
+    last ``short_s`` seconds' sell/buy volume, a per-``short_s`` baseline (the mean
+    over the trailing ``base_s`` window BEFORE the short window — for the climax
+    ratio), and ``flip`` = are buyers taking over in the most recent half. The
+    footprint of a flush bottom is a one-sided volume climax that then flips."""
+    lo = now_ms - base_s * 1000
+    short_cut = now_ms - short_s * 1000
+    half_cut = now_ms - (short_s * 1000) // 2
+    rows = conn.execute(
+        "SELECT ts_ms, price, size, aggressor FROM ticks WHERE symbol=? AND ts_ms>=? AND ts_ms<=? ORDER BY ts_ms",
+        (symbol, lo, now_ms),  # upper-bounded: only the trailing base_s up to now
+    ).fetchall()
+    if not rows:
+        return {"sell": 0.0, "buy": 0.0, "base": 0.0, "dpx": 0.0, "flip": False}
+    sell = buy = base_tot = half_sell = half_buy = 0.0
+    first_px = last_px = None
+    for r in rows:
+        ts, px, sz, a = r["ts_ms"], r["price"], r["size"], r["aggressor"]
+        if ts < short_cut:
+            base_tot += sz  # baseline = everything before the short window
+            continue
+        if first_px is None:
+            first_px = px
+        last_px = px
+        if a == "sell":
+            sell += sz
+        elif a == "buy":
+            buy += sz
+        if ts >= half_cut:
+            if a == "sell":
+                half_sell += sz
+            elif a == "buy":
+                half_buy += sz
+    windows = max(1.0, (base_s - short_s) / short_s)  # how many short-windows in the baseline
+    dpx = (last_px - first_px) if (first_px is not None and last_px is not None) else 0.0
+    return {"sell": sell, "buy": buy, "base": base_tot / windows, "dpx": dpx, "flip": half_buy > half_sell}
+
+
 # ── live ingest ───────────────────────────────────────────────────────────
 def _now_ms() -> int:
     import time

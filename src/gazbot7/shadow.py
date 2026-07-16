@@ -29,6 +29,7 @@ from .deciders import (
     exit_absorption,
     exit_adverse_cut,
     exit_scalp,
+    gate_capitulation,
     gate_reversal_grab,
     gate_thrust,
 )
@@ -59,18 +60,24 @@ class ShadowSim:
         self._pending: dict[str, dict] = {}  # variant name → pending entry watching absorption
 
     def on_bars(self, bars: list[Bar], *, tape_net: float = 0.0,
-                window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None) -> None:
+                window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None,
+                cap: dict | None = None) -> None:
         f = compute_features(bars)
         ts = bars[-1].ts
         now_ms = now_ms if now_ms is not None else ts * 1000  # wall-clock for the entry delay
+        cap = cap or {}
         for v in self._variants:
-            self._step(v, f, ts, tape_net, window_price_delta, in_rth, now_ms)
+            self._step(v, f, ts, tape_net, window_price_delta, in_rth, now_ms, cap)
 
-    def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool):
+    def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool, cap: dict):
         if v.gate == "thrust":
             return gate_thrust(f, **v.params)
         if v.gate == "reversal_grab":
             return gate_reversal_grab(f, tape_net=tape_net, in_rth=in_rth, **v.params)
+        if v.gate == "capitulation":
+            return gate_capitulation(f, cap_sell=cap.get("sell", 0.0), cap_buy=cap.get("buy", 0.0),
+                                     cap_base=cap.get("base", 0.0), cap_dpx=cap.get("dpx", 0.0),
+                                     cap_flip=cap.get("flip", False), **v.params)
         return None
 
     def _absorbed(self, v, side, tape_net, wpd) -> bool:
@@ -80,11 +87,11 @@ class ShadowSim:
     def _open_pos(self, v, entry, f, ts) -> None:
         self._open[v.name] = dict(side=entry.side, entry_price=f.price, entry_atr=f.atr, entry_ts=ts, peak=0.0)
 
-    def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms):
+    def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms, cap):
         op = self._open.get(v.name)
         if op is None:
             if v.confirm_s <= 0:  # immediate entry (the default / live control)
-                entry = self._entry(v, f, tape_net, in_rth)
+                entry = self._entry(v, f, tape_net, in_rth, cap)
                 if entry is not None:
                     self._open_pos(v, entry, f, ts)
                 return
@@ -93,7 +100,7 @@ class ShadowSim:
             # live strategy._entry, at wall-clock resolution).
             pc = self._pending.get(v.name)
             if pc is None:
-                entry = self._entry(v, f, tape_net, in_rth)
+                entry = self._entry(v, f, tape_net, in_rth, cap)
                 if entry is not None:
                     self._pending[v.name] = {"side": entry.side, "start_ms": now_ms}
                 return
@@ -103,7 +110,7 @@ class ShadowSim:
             if now_ms - pc["start_ms"] < v.confirm_s * 1000:
                 return  # still watching
             del self._pending[v.name]
-            entry = self._entry(v, f, tape_net, in_rth)
+            entry = self._entry(v, f, tape_net, in_rth, cap)
             if entry is not None and entry.side == pc["side"] and not self._absorbed(v, entry.side, tape_net, wpd):
                 self._open_pos(v, entry, f, ts)
             return
@@ -156,6 +163,17 @@ def default_slate() -> list[ShadowVariant]:
         # arriving at the bottom 5-6 min late. Alignment keeps it from chop-firing.
         ShadowVariant("thrust_fast", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True, "fast": True}),
     ]
+    # CAPITULATION fade (2026-07-16, from the L1/tape footprint) — fade a fast flush
+    # driven by a one-sided aggressor climax. Tight (require the delta flip, big climax)
+    # → mid → loose (fade the climax itself). target 1R = the typical ~1-ATR bounce.
+    slate += [
+        ShadowVariant("capit_tight", "capitulation",
+                      {"climax_min": 8.0, "dom_min": 0.85, "require_flip": True}, target_r=1.0),
+        ShadowVariant("capit_mid", "capitulation",
+                      {"climax_min": 4.0, "dom_min": 0.75, "require_flip": True}, target_r=1.0),
+        ShadowVariant("capit_loose", "capitulation",
+                      {"climax_min": 2.5, "dom_min": 0.60, "require_flip": False}, target_r=1.0),
+    ]
     # absorption-veto DURATION sweep (2026-07-16, operator) — thrust_loose + the
     # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto
     # control; live desk runs 45s. Which wait best trades avoided-bleed vs missed moves?
@@ -192,7 +210,7 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     bars (same aggregator as the live strategy → no drift), record ceiling trades,
     and periodically reprice closed trades on honest ticks. Touches NO account."""
     from .agg import MinuteBars
-    from .capture import open_capture
+    from .capture import capitulation_tape, open_capture
     from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
     from .repricer import reprice_pending
     from .store import open_store
@@ -216,9 +234,10 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                 elif topic == T_TAPE:
                     bars = mb.bars()
                     if len(bars) >= 6:
+                        capft = capitulation_tape(cap, cfg.symbol, body["ts_ms"]) if body.get("ts_ms") else {}
                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                     window_price_delta=body.get("win_price_delta", 0.0),
-                                    in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"))
+                                    in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"), cap=capft)
             if time.monotonic() - last_reprice >= reprice_interval_s:
                 try:
                     reprice_pending(store, cap, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)

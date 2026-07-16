@@ -164,6 +164,31 @@ class Position:
     peak_favorable: float = 0.0  # best favourable excursion so far, in price
 
 
+def gate_capitulation(f: Features, *, cap_sell: float = 0.0, cap_buy: float = 0.0,
+                      cap_base: float = 0.0, cap_dpx: float = 0.0, cap_flip: bool = False,
+                      climax_min: float = 3.0, dom_min: float = 0.7,
+                      require_flip: bool = False) -> Entry | None:
+    """FLUSH-AND-FLIP — a microstructure fade of a capitulation (2026-07-16, from the
+    L1/tape footprint of today's down-legs). The signal is a ONE-SIDED aggressor
+    CLIMAX in the short tape window — that side's volume >= ``climax_min`` × its
+    baseline rate AND >= ``dom_min`` of flow — while price moved that way (``cap_dpx``).
+    A sell-climax that drove price down → fade LONG; a buy-climax blow-off up → fade
+    SHORT. ``require_flip`` demands the aggressor delta has already turned (buyers
+    taking over at the low / sellers at the high) — the tight, higher-conviction
+    version; loose fades the climax itself. Bar-based ``net_atr_2`` is too slow for
+    these sub-minute flushes — the tape climax IS the trigger."""
+    tot = cap_sell + cap_buy
+    if cap_base <= 0 or tot <= 0:
+        return None
+    if cap_dpx < 0 and cap_sell / cap_base >= climax_min and cap_sell / tot >= dom_min:
+        if not require_flip or cap_flip:  # sell flush + buyers stepping in at the low
+            return Entry(side="LONG", gate="capitulation")
+    if cap_dpx > 0 and cap_buy / cap_base >= climax_min and cap_buy / tot >= dom_min:
+        if not require_flip or not cap_flip:  # buy blow-off + sellers stepping in at the high
+            return Entry(side="SHORT", gate="capitulation")
+    return None
+
+
 def exit_scalp(pos: Position, price: float, *, target_r: float = 2.0, stop_atr_mult: float = 1.0) -> str | None:
     """1-ATR stop + fixed R-multiple target — the scalp exit for reversal_grab."""
     r = stop_atr_mult * pos.entry_atr

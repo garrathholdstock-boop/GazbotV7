@@ -12,6 +12,7 @@ from gazbot7.deciders import (
     exit_adverse_cut,
     exit_chandelier,
     exit_scalp,
+    gate_capitulation,
     gate_reversal_grab,
     gate_thrust,
 )
@@ -219,3 +220,35 @@ def test_thrust_fast_respects_alignment():
     assert gate_thrust(up_into_down, fast=True, slope_align=True) is None  # counter-trend vetoed
     with_trend = _feat(net_atr_2=-2.0, net_atr_5=0.0, vwap_slope_atr=-0.5, vol_surge=True)
     assert gate_thrust(with_trend, fast=True, slope_align=True).side == "SHORT"
+
+
+# ── gate_capitulation — tape-footprint flush-and-flip fade (2026-07-16) ────────
+def test_capitulation_fades_a_down_flush():
+    # sell climax (800 vs 100 base = 8×, 94% dom) + price fell (cap_dpx<0) → fade LONG
+    e = gate_capitulation(_feat(), cap_sell=800, cap_buy=50, cap_base=100, cap_dpx=-5.0, climax_min=3, dom_min=0.7)
+    assert e.side == "LONG" and e.gate == "capitulation"
+
+
+def test_capitulation_fades_an_up_thrust():
+    e = gate_capitulation(_feat(), cap_buy=800, cap_sell=50, cap_base=100, cap_dpx=5.0, climax_min=3, dom_min=0.7)
+    assert e.side == "SHORT"
+
+
+def test_capitulation_needs_price_to_have_moved():
+    # climax present but price flat (cap_dpx 0) → no fade (which way?)
+    assert gate_capitulation(_feat(), cap_sell=800, cap_buy=50, cap_base=100, cap_dpx=0.0) is None
+
+
+def test_capitulation_needs_the_climax():
+    assert gate_capitulation(_feat(), cap_sell=200, cap_buy=50, cap_base=100, cap_dpx=-5.0, climax_min=3) is None
+
+
+def test_capitulation_needs_dominance():
+    assert gate_capitulation(_feat(), cap_sell=400, cap_buy=400, cap_base=50, cap_dpx=-5.0, dom_min=0.7) is None
+
+
+def test_capitulation_require_flip():
+    assert gate_capitulation(_feat(), cap_sell=800, cap_buy=50, cap_base=100, cap_dpx=-5.0,
+                             require_flip=True, cap_flip=False) is None
+    assert gate_capitulation(_feat(), cap_sell=800, cap_buy=50, cap_base=100, cap_dpx=-5.0,
+                             require_flip=True, cap_flip=True).side == "LONG"
