@@ -157,57 +157,32 @@
 
 <script>
 "use strict";
-// friendly names + SOURCE tag (s) = which Friday-report finding the sim comes from. (Removed shadows
-// are simply absent from the API.)  R=Ride strength(Big Flip) · F=Don't fade strength · V=Fade violent
-// spike · S=Stand down · L=Live-gate baseline.
+// friendly names + FAMILY tag (s) for the V7 MNQ shadow fleet. (Idle sims still
+// show — the API returns the full registered slate.)  L=Live control ·
+// T=Thrust A/B · G=Reversal-grab short.
 const META = {
-  tw_mnq_thrust_cont:{n:"MNQ volume-confirmed thrust rider", s:"R"},
-  tw_mes_thrust_cont:{n:"MES volume-confirmed thrust rider", s:"R"},
-  tw_m2k_vst:{n:"M2K volume-surge thrust rider", s:"R"},
-  tw_us_open_surge_cont:{n:"US-open surge continuation", s:"R"},
-  tw_mym_open_thrust:{n:"Dow NY-open thrust rider", s:"R"},
-  tw_m2k_open_momentum:{n:"M2K: ride the open, don't fade", s:"R"},
-  tw_mcl_short_with_strength:{n:"Crude: short with the flush", s:"R"},
-  tw_mgc_coil_break_long:{n:"Gold coiled-spring breakout", s:"R"},
-  tw_mgc_momo_thrust:{n:"Gold: ride an explosive thrust", s:"R"},
-  tw_m2k_momo_loose:{n:"M2K: ride a loosened thrust", s:"R"},
-  momentum_shadow:{n:"Live momentum gate", s:"R"},
-  orb_shadow:{n:"Opening-range breakout", s:"R"},
-  tw_mbt_spike_fade:{n:"Bitcoin: fade the violent spike", s:"V"},
-  passive_mgc_hours:{n:"Gold passive: lunchtime pocket", s:"L"},
-  tw_strength_ceiling_pb:{n:"Skip fading strong moves", s:"F"},
-  tw_mnq_pb_expand_veto:{n:"MNQ: no fade in expanding tape", s:"F"},
-  tw_mnq_pb_greenband_block:{n:"MNQ: skip balanced-chop fades", s:"F"},
-  tw_mgc_pb_strong_only:{n:"Gold: fade only spent spikes", s:"F"},
-  tw_mgc_pb_midband_block:{n:"Gold: block half-finished moves", s:"F"},
-  tw_mes_atr_ceiling_003:{n:"MES: calm-tape-only fades", s:"F"},
-  tw_mes_block_us_open:{n:"MES: skip the US open window", s:"S"},
-  tw_m2k_absorption_only:{n:"M2K: fade quiet-book absorption", s:"F"},
-  tw_mym_no_fade_drive:{n:"Dow: never fade a real drive", s:"F"},
-  tw_mcl_no_long_downflush:{n:"Crude: don't buy a down-flush", s:"F"},
-  tw_mbt_pb_rvol_band:{n:"Bitcoin: fade the volume sweet-spot", s:"V"},
-  tw_xconfirm_veto:{n:"MNQ/MES: fade only if twin agrees", s:"F"},
-  tw_deadtape_standdown:{n:"Stand down in dead tape", s:"S"},
-  tw_clock_standdown:{n:"Stand down in dead hours", s:"S"},
-  tw_thin_drift_standdown:{n:"Skip thin-volume drift (MNQ/MGC)", s:"S"},
-  pullback_loose:{n:"Live pullback (looser knobs)", s:"L"},
-  dip_loose:{n:"Live dip (looser knobs)", s:"L"},
-  pullback_quiet:{n:"Pullback in quiet tape", s:"L"},
+  thrust_loose:{n:"MNQ thrust — LIVE control (thr 1.5 + amp floor 0.0004)", s:"L"},
+  thrust_cont:{n:"MNQ thrust — tighter threshold (thr 2.0)", s:"T"},
+  thrust_noamp:{n:"MNQ thrust — amplitude floor OFF", s:"T"},
+  thrust_amp03:{n:"MNQ thrust — looser amp floor (0.0003)", s:"T"},
+  rg_short_050:{n:"MNQ reversal grab — turn 0.5 ATR", s:"G"},
+  rg_short_025_raw:{n:"MNQ reversal grab — turn 0.25, no flow", s:"G"},
+  rg_short_025_flow25:{n:"MNQ reversal grab — turn 0.25 + sell-flow ≥25", s:"G"},
+  rg_short_025_flow50:{n:"MNQ reversal grab — turn 0.25 + sell-flow ≥50", s:"G"},
+  rg_short_025_flow50_rth:{n:"MNQ reversal grab — turn 0.25 + flow ≥50, RTH only", s:"G"},
 };
-// the Friday-report SOURCE legend — colour + one-line meaning per tag.
+// the V7 family legend — colour + one-line meaning per tag.
 const SRC = {
-  R:{c:"#3fd97f", g:"Ride strength — Big Flip", t:"Ride strength — the Big Flip (§2): go WITH a strong move"},
-  F:{c:"#f5b13d", g:"Don't fade strength", t:"Don't fade strength (§19): veto/skip fading a strong move"},
-  V:{c:"#b98bff", g:"Fade the violent spike", t:"Fade the violent spike (bitcoin / euphoria)"},
-  S:{c:"#5aa9ff", g:"Stand down", t:"Stand down — dead tape / dead hours"},
-  L:{c:"#8a9bb0", g:"Live-gate baseline", t:"Live-gate baseline — what the desk runs today"},
+  L:{c:"#3fd97f", g:"Live control", t:"Live control — the exact gate the desk runs today (thrust_loose)"},
+  T:{c:"#5aa9ff", g:"Thrust A/B", t:"Thrust A/B — threshold & amplitude-floor variants of the live gate"},
+  G:{c:"#b98bff", g:"Reversal grab (short)", t:"Reversal-grab short — fade an over-extended push on a fresh turn"},
 };
 const nameOf = s => (META[s] && META[s].n) || s;
 // Stable numeric identifier per sim (fixed META order) — so it can be referred to as "#12"
 // regardless of how the cards are sorted/grouped.
-// Frozen ID order — pins each sim's #N so removing a sim leaves a GAP (e.g. #4 tw_ride_strength,
-// removed 2026-07-06) rather than renumbering the rest. Add NEW sims at the END to keep IDs stable.
-const _ID_ORDER = ["tw_mnq_thrust_cont","tw_mes_thrust_cont","tw_m2k_vst","tw_ride_strength","tw_us_open_surge_cont","tw_mym_open_thrust","tw_m2k_open_momentum","tw_mcl_short_with_strength","tw_mgc_coil_break_long","tw_mgc_momo_thrust","tw_m2k_momo_loose","momentum_shadow","orb_shadow","tw_mbt_spike_fade","passive_mgc_hours","tw_strength_ceiling_pb","tw_mnq_pb_expand_veto","tw_mnq_pb_greenband_block","tw_mgc_pb_strong_only","tw_mgc_pb_midband_block","tw_mes_atr_ceiling_003","tw_mes_block_us_open","tw_m2k_absorption_only","tw_mym_no_fade_drive","tw_mcl_no_long_downflush","tw_mbt_pb_rvol_band","tw_xconfirm_veto","tw_deadtape_standdown","tw_clock_standdown","tw_thin_drift_standdown","pullback_loose","dip_loose","pullback_quiet"];
+// Frozen ID order — pins each sim's #N (matches shadow.default_slate()). Add NEW
+// sims at the END so a removed one leaves a GAP rather than renumbering the rest.
+const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_noamp","thrust_amp03","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth"];
 const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
 function srcBadge(strat){
   const s = META[strat] && META[strat].s;
