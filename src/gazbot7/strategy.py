@@ -38,6 +38,7 @@ from .deciders import (
     compute_features,
     exit_absorption,
     exit_adverse_cut,
+    exit_chandelier,
     exit_scalp,
     gate_reversal_grab,
     gate_thrust,
@@ -69,6 +70,7 @@ class Strategy:
         self._core_flat = True
         self._core_pos: dict | None = None
         self._local_pos: Position | None = None
+        self._confirm: dict | None = None  # pending entry watching absorption (the wait)
         self._pending: str | None = None  # "OPEN" | "CLOSE" while awaiting core
         self._pending_iid: str | None = None
         self._pending_ts = 0
@@ -126,7 +128,8 @@ class Strategy:
         price = self._tape.get("last") or f.price
         if self._core_flat:
             self._local_pos = None
-            return self._entry(f, now_ms)
+            return self._entry(f, price, now_ms)
+        self._confirm = None  # holding a position — abandon any pending confirmation
         return self._manage(f, price, now_ms)
 
     def _gate(self, f):
@@ -139,19 +142,50 @@ class Strategy:
             )
         return None
 
-    def _entry(self, f, now_ms: int) -> dict | None:
+    def _entry(self, f, price, now_ms: int) -> dict | None:
         now = datetime.fromtimestamp(now_ms / 1000, UTC)
         if not session.is_open(now) or session.in_no_open_window(now, self._cfg.no_open_minutes):
+            self._confirm = None
             return None  # closed, or too close to the session end — no new entries
-        entry = self._gate(f)
-        if entry is None:
+        if self._cfg.entry_confirm_s <= 0:  # wait disabled — immediate entry
+            entry = self._gate(f)
+            return self._emit_open(entry.side, entry.gate, f, now_ms) if entry else None
+        # DELAYED ENTRY (operator 2026-07-16): raise the signal, watch absorption for
+        # entry_confirm_s, enter only if the thrust PERSISTS and no absorption appeared.
+        if self._confirm is None:
+            entry = self._gate(f)
+            if entry is None:
+                return None
+            self._confirm = {"side": entry.side, "gate": entry.gate, "start_ms": now_ms}
+            return None  # signal raised — begin the confirmation window
+        c = self._confirm
+        if self._absorbed(c["side"]):  # tape absorbed our side during the wait — veto
+            self._confirm = None
             return None
+        if now_ms - c["start_ms"] < self._cfg.entry_confirm_s * 1000:
+            return None  # still watching
+        self._confirm = None  # window elapsed — enter only if thrust still fires clean
+        entry = self._gate(f)
+        if entry is not None and entry.side == c["side"] and not self._absorbed(entry.side):
+            return self._emit_open(entry.side, entry.gate, f, now_ms)
+        return None  # thrust faded / flipped / absorbed during the wait — stand down
+
+    def _emit_open(self, side: str, gate: str, f, now_ms: int) -> dict:
         return self._stamp("OPEN", now_ms, {
-            "action": "OPEN", "side": entry.side, "qty": self._cfg.size,
-            "gate": entry.gate, "reason": entry.gate,
+            "action": "OPEN", "side": side, "qty": self._cfg.size,
+            "gate": gate, "reason": gate,
             "meta": {"entry_atr": f.atr, "target_r": self._cfg.target_r,
                      "stop_atr_mult": self._cfg.stop_atr_mult},
         })
+
+    def _absorbed(self, side: str) -> bool:
+        """Would absorption cut a fresh `side` position given the current tape?"""
+        return exit_absorption(
+            Position(side, 0.0, 0.0, 0.0),
+            tape_net=self._tape.get("net_flow", 0.0),
+            window_price_delta=self._tape.get("win_price_delta", 0.0),
+            flow_min=self._cfg.absorption_flow_min,
+        ) is not None
 
     def _manage(self, f, price: float, now_ms: int) -> dict | None:
         if self._local_pos is None:
@@ -162,16 +196,22 @@ class Strategy:
         if fav > pos.peak_favorable:  # track best favourable excursion (adverse-cut arm)
             pos = Position(pos.side, pos.entry_price, pos.entry_atr, fav)
             self._local_pos = pos
-        # the native STP owns STOP; strategy adds the scalp TARGET + the cuts
+        # native STP owns STOP. Profit exit = the tightening chandelier (momentum,
+        # uncapped) — or the fixed 2R target if the chandelier is disabled. Then the
+        # risk cuts (failed-entry adverse-cut + tape absorption) underneath.
         reason = None
-        if exit_scalp(pos, price, target_r=self._cfg.target_r,
-                      stop_atr_mult=self._cfg.stop_atr_mult) == "TARGET":
+        if self._cfg.chandelier_enabled:
+            if exit_chandelier(pos, price, start_k=self._cfg.chandelier_start_k,
+                               min_k=self._cfg.chandelier_min_k, tighten=self._cfg.chandelier_tighten):
+                reason = "CHANDELIER"
+        elif exit_scalp(pos, price, target_r=self._cfg.target_r,
+                        stop_atr_mult=self._cfg.stop_atr_mult) == "TARGET":
             reason = "TARGET"
-        elif exit_adverse_cut(pos, price, cut_atr=self._cfg.adverse_cut_atr):
+        if reason is None and exit_adverse_cut(pos, price, cut_atr=self._cfg.adverse_cut_atr):
             reason = "ADVERSE_CUT"
-        elif exit_absorption(pos, tape_net=self._tape.get("net_flow", 0.0),
-                             window_price_delta=self._tape.get("win_price_delta", 0.0),
-                             flow_min=self._cfg.absorption_flow_min):
+        if reason is None and exit_absorption(pos, tape_net=self._tape.get("net_flow", 0.0),
+                                              window_price_delta=self._tape.get("win_price_delta", 0.0),
+                                              flow_min=self._cfg.absorption_flow_min):
             reason = "ABSORPTION_CUT"
         if reason is None:
             return None

@@ -36,6 +36,10 @@ def _thrust_up(end_ts=_TS):
 
 
 def _strat(**kw):
+    # base mechanics tests use immediate entry + the fixed 2R target; the delayed
+    # entry and the chandelier get their own dedicated tests below.
+    kw.setdefault("entry_confirm_s", 0.0)
+    kw.setdefault("chandelier_enabled", False)
     cfg = RunConfig(gate="thrust", gate_params={"thr": 1.5, "amp_floor": 0.0004}, **kw)
     return Strategy(cfg)
 
@@ -148,3 +152,51 @@ def test_entry_fires_midday_outside_window():
     now = _TS * 1000 + 100
     s.on_tape(_tape(now, 104.0))
     assert s.decide(now)["action"] == "OPEN"
+
+
+# ── delayed-entry absorption confirm (operator 2026-07-16) ────────────────────
+def test_entry_confirm_delays_then_opens():
+    s = _strat(entry_confirm_s=5.0)
+    _load(s)
+    t0 = _TS * 1000 + 100
+    s.on_tape(_tape(t0, 104.0))
+    assert s.decide(t0) is None          # signal raised — watching, no immediate OPEN
+    assert s._confirm is not None
+    t1 = t0 + 6000                        # 6s on: still fresh, thrust persists, clean tape
+    s.on_tape(_tape(t1, 104.0))
+    intent = s.decide(t1)
+    assert intent is not None and intent["action"] == "OPEN" and intent["side"] == "LONG"
+
+
+def test_entry_confirm_vetoes_on_absorption():
+    s = _strat(entry_confirm_s=5.0)
+    _load(s)
+    t0 = _TS * 1000 + 100
+    s.on_tape(_tape(t0, 104.0))
+    assert s.decide(t0) is None
+    t1 = t0 + 2000                        # heavy BUY flow that failed to lift price = absorb a LONG
+    s.on_tape(_tape(t1, 104.0, net_flow=80.0, wpd=-1.0))
+    assert s.decide(t1) is None
+    assert s._confirm is None             # confirmation abandoned — vetoed
+
+
+def test_entry_confirm_immediate_when_zero():
+    s = _strat(entry_confirm_s=0.0)
+    _load(s)
+    t0 = _TS * 1000 + 100
+    s.on_tape(_tape(t0, 104.0))
+    assert s.decide(t0)["action"] == "OPEN"   # 0 = the pre-2026-07-16 immediate entry
+
+
+# ── chandelier profit exit ────────────────────────────────────────────────────
+def test_chandelier_closes_a_runner():
+    s = _strat(chandelier_enabled=True)
+    _load(s)
+    s.on_core_position({"flat": False, "side": "LONG", "entry": 100.0, "atr": 4.0})
+    t0 = _TS * 1000 + 100
+    s.on_tape(_tape(t0, 130.0))           # runs to +30 (7.5R) — peak set, no exit at the peak
+    assert s.decide(t0) is None
+    t1 = t0 + 1000
+    s.on_tape(_tape(t1, 121.0))           # gives back to +21 (>0.5-ATR trail from peak) → bank
+    intent = s.decide(t1)
+    assert intent is not None and intent["reason"] == "CHANDELIER"

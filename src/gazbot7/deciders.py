@@ -159,6 +159,28 @@ def exit_scalp(pos: Position, price: float, *, target_r: float = 2.0, stop_atr_m
     return None
 
 
+def exit_chandelier(pos: Position, price: float, *, start_k: float = 3.5,
+                    min_k: float = 0.5, tighten: float = 0.75) -> str | None:
+    """The tightening ATR chandelier — the momentum PROFIT exit (reimplemented from
+    V5's 2026-07-11 go-live logic, clean-room). Trails the peak by ``k * entry_atr``,
+    where k tightens from ``start_k`` toward ``min_k`` as the peak grows:
+    ``k = max(min_k, start_k - tighten * peak_r)``, ``peak_r = peak_favorable/atr``.
+    Lets a winner run wide early, locks tighter as it extends — and NEVER caps the
+    upside (unlike a fixed R-target). It ONLY ever exits in profit; the native
+    1-ATR stop owns the downside (loss-floor), so a bad peak seed can't fire a red
+    exit. Returns 'CHANDELIER' or None."""
+    atr = pos.entry_atr
+    if atr <= 0 or pos.peak_favorable <= 0:  # not armed / never went green
+        return None
+    peak_r = pos.peak_favorable / atr
+    giveback = max(min_k, start_k - tighten * peak_r) * atr
+    fav = (price - pos.entry_price) if pos.side == "LONG" else (pos.entry_price - price)
+    # bank only a real gain that has retraced >= the (tightening) give-back from peak
+    if fav > 0 and fav <= pos.peak_favorable - giveback:
+        return "CHANDELIER"
+    return None
+
+
 def exit_adverse_cut(pos: Position, price: float, *, cut_atr: float = 1.5, arm_atr: float = 0.5) -> str | None:
     """A position >= cut_atr offside that NEVER went meaningfully green — cut it."""
     if pos.entry_atr <= 0:

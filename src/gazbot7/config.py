@@ -27,6 +27,20 @@ class RunConfig:
     gate_params: dict = field(default_factory=lambda: {"thr": 1.5, "amp_floor": 0.0004})
     target_r: float = 2.0
     stop_atr_mult: float = 1.0
+    # momentum PROFIT exit (2026-07-16, operator: "chandelier shouldve always been
+    # live"). The tightening ATR chandelier (V5 go-live logic, clean-room) REPLACES
+    # the fixed 2R target for the thrust gate: k = max(min_k, start_k - tighten*peak_r),
+    # give-back = k*ATR from peak, profit-only (native 1-ATR stop owns the downside).
+    # It uncaps the runner. chandelier_enabled=False → back to the fixed 2R target.
+    chandelier_enabled: bool = True
+    chandelier_start_k: float = 3.5
+    chandelier_min_k: float = 0.5
+    chandelier_tighten: float = 0.75
+    # delayed-entry absorption confirm (2026-07-16, operator idea): on a thrust
+    # signal, WAIT this long watching the tape — enter only if the thrust still
+    # fires (continuation) AND no absorption appeared. Turns absorption from a
+    # post-entry loss-cutter into a pre-entry veto. 0 = immediate (disables the wait).
+    entry_confirm_s: float = 45.0
     # strategy-side managed exits (the native STP owns STOP; these are on top)
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0

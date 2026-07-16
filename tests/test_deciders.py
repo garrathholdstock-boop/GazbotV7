@@ -10,6 +10,7 @@ from gazbot7.deciders import (
     compute_features,
     exit_absorption,
     exit_adverse_cut,
+    exit_chandelier,
     exit_scalp,
     gate_reversal_grab,
     gate_thrust,
@@ -119,3 +120,42 @@ def test_absorption_cut_short():
     p = Position("SHORT", 100.0, 4.0)
     assert exit_absorption(p, tape_net=-60, window_price_delta=0.5) == "ABSORPTION_CUT"
     assert exit_absorption(p, tape_net=-60, window_price_delta=-2.0) is None  # price DID fall
+
+
+# ── exit_chandelier — the tightening ATR momentum profit exit ─────────────────
+def test_chandelier_banks_a_big_winner_on_giveback():
+    # LONG entry 100, ATR 4, peak +20 (5R). k=max(0.5,3.5-0.75*5)=0.5 → give-back 2pt.
+    pos = Position("LONG", 100.0, 4.0, 20.0)
+    assert exit_chandelier(pos, 117.0) == "CHANDELIER"  # fav 17 <= peak20 - 2
+    assert exit_chandelier(pos, 119.0) is None          # fav 19 still running
+
+
+def test_chandelier_dormant_below_2R():
+    # peak +4 (1R): give-back (2.75·ATR=11) is wider than the peak → only fireable
+    # at a loss, which the loss-floor forbids. Native stop owns this trade.
+    pos = Position("LONG", 100.0, 4.0, 4.0)
+    assert exit_chandelier(pos, 103.0) is None
+    assert exit_chandelier(pos, 99.0) is None
+
+
+def test_chandelier_never_exits_at_a_loss():
+    pos = Position("LONG", 100.0, 4.0, 20.0)
+    assert exit_chandelier(pos, 95.0) is None  # underwater → never
+
+
+def test_chandelier_tightens_with_peak():
+    # peak +12 (3R): k=max(0.5,3.5-0.75*3)=1.25 → give-back 5pt, exit when fav<=7.
+    pos = Position("LONG", 100.0, 4.0, 12.0)
+    assert exit_chandelier(pos, 106.9) == "CHANDELIER"  # fav 6.9 <= 7
+    assert exit_chandelier(pos, 108.0) is None          # fav 8 > 7
+
+
+def test_chandelier_short_mirror():
+    pos = Position("SHORT", 100.0, 4.0, 20.0)  # price fell to 80 at peak (fav +20)
+    assert exit_chandelier(pos, 83.0) == "CHANDELIER"   # fav 17 <= 18
+    assert exit_chandelier(pos, 81.0) is None           # fav 19 still running
+
+
+def test_chandelier_dormant_before_any_green():
+    pos = Position("LONG", 100.0, 4.0, 0.0)  # never went green
+    assert exit_chandelier(pos, 105.0) is None
