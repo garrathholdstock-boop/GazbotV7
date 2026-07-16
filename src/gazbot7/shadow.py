@@ -28,8 +28,10 @@ from .deciders import (
     compute_features,
     exit_absorption,
     exit_adverse_cut,
+    exit_chandelier,
     exit_scalp,
     gate_capitulation,
+    gate_grind,
     gate_reversal_grab,
     gate_thrust,
 )
@@ -48,6 +50,7 @@ class ShadowVariant:
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0
     confirm_s: float = 0.0  # delayed-entry absorption veto: wait N s before entering (0 = immediate)
+    chandelier: bool = False  # profit exit = the tightening chandelier (ride) instead of the R-target
 
 
 class ShadowSim:
@@ -78,6 +81,8 @@ class ShadowSim:
             return gate_capitulation(f, cap_sell=cap.get("sell", 0.0), cap_buy=cap.get("buy", 0.0),
                                      cap_base=cap.get("base", 0.0), cap_dpx=cap.get("dpx", 0.0),
                                      cap_flip=cap.get("flip", False), **v.params)
+        if v.gate == "grind":
+            return gate_grind(f, tape_net=tape_net, **v.params)
         return None
 
     def _absorbed(self, v, side, tape_net, wpd) -> bool:
@@ -119,7 +124,13 @@ class ShadowSim:
         fav = (f.price - op["entry_price"]) if op["side"] == "LONG" else (op["entry_price"] - f.price)
         op["peak"] = max(op["peak"], fav)
         pos = Position(op["side"], op["entry_price"], op["entry_atr"], op["peak"])
-        reason = exit_scalp(pos, f.price, target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)  # STOP/TARGET
+        # profit exit: the tightening chandelier (ride, uncapped) for trend variants,
+        # else the fixed R-target. Then the STOP + risk cuts underneath.
+        if v.chandelier:
+            reason = "CHANDELIER" if exit_chandelier(pos, f.price) else exit_scalp(
+                pos, f.price, target_r=99.0, stop_atr_mult=v.stop_atr_mult)  # target off; STOP only
+        else:
+            reason = exit_scalp(pos, f.price, target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)
         if reason is None and exit_adverse_cut(pos, f.price, cut_atr=v.adverse_cut_atr):
             reason = "ADVERSE_CUT"
         if reason is None and exit_absorption(pos, tape_net=tape_net, window_price_delta=wpd, flow_min=v.absorption_flow_min):
@@ -173,6 +184,17 @@ def default_slate() -> list[ShadowVariant]:
                       {"climax_min": 4.0, "dom_min": 0.75, "require_flip": True}, target_r=1.0),
         ShadowVariant("capit_loose", "capitulation",
                       {"climax_min": 2.5, "dom_min": 0.60, "require_flip": False}, target_r=1.0),
+        # capit that RIDES with the chandelier instead of the 1R scalp — to capture a
+        # flush→reclaim→grind continuation (today's 13:55 +200pt run started as a flush).
+        ShadowVariant("capit_ride", "capitulation",
+                      {"climax_min": 4.0, "dom_min": 0.75, "require_flip": True}, chandelier=True),
+    ]
+    # GRIND (2026-07-16) — trend CONTINUATION: ride an established VWAP slope that
+    # thrust (a burst gate) misses. L2 was balanced through today's +200pt grind, so
+    # this is price/flow, not book. Chandelier-ridden. slope floor 0.4 vs 0.6.
+    slate += [
+        ShadowVariant("grind_04", "grind", {"slope_min": 0.4}, chandelier=True),
+        ShadowVariant("grind_06", "grind", {"slope_min": 0.6}, chandelier=True),
     ]
     # absorption-veto DURATION sweep (2026-07-16, operator) — thrust_loose + the
     # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto

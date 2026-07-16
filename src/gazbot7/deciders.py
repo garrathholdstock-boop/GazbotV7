@@ -189,6 +189,21 @@ def gate_capitulation(f: Features, *, cap_sell: float = 0.0, cap_buy: float = 0.
     return None
 
 
+def gate_grind(f: Features, *, tape_net: float = 0.0, slope_min: float = 0.5,
+               ext_lo: float = 0.3, ext_hi: float = 4.0, flow_min: float = 0.0) -> Entry | None:
+    """Trend CONTINUATION — ride an established VWAP trend while price is riding WITH
+    it (above VWAP in an up-trend) but not yet exhausted (``ext_lo..ext_hi``). For the
+    sustained grinds that thrust (a 5-bar burst gate) misses entirely. Chandelier-
+    exited (uncapped ride). NB: ``vwap_slope_atr`` is a 60-bar measure, so it LAGS a
+    fresh reversal — this owns an *established* trend, not the first reclaim off a
+    flush (the capitulation gate owns that). Down-grind is the mirror."""
+    if f.vwap_slope_atr >= slope_min and ext_lo <= f.ext_atr <= ext_hi and tape_net >= flow_min:
+        return Entry(side="LONG", gate="grind")
+    if f.vwap_slope_atr <= -slope_min and -ext_hi <= f.ext_atr <= -ext_lo and tape_net <= -flow_min:
+        return Entry(side="SHORT", gate="grind")
+    return None
+
+
 def exit_scalp(pos: Position, price: float, *, target_r: float = 2.0, stop_atr_mult: float = 1.0) -> str | None:
     """1-ATR stop + fixed R-multiple target — the scalp exit for reversal_grab."""
     r = stop_atr_mult * pos.entry_atr

@@ -13,6 +13,7 @@ from gazbot7.deciders import (
     exit_chandelier,
     exit_scalp,
     gate_capitulation,
+    gate_grind,
     gate_reversal_grab,
     gate_thrust,
 )
@@ -252,3 +253,28 @@ def test_capitulation_require_flip():
                              require_flip=True, cap_flip=False) is None
     assert gate_capitulation(_feat(), cap_sell=800, cap_buy=50, cap_base=100, cap_dpx=-5.0,
                              require_flip=True, cap_flip=True).side == "LONG"
+
+
+# ── gate_grind — trend-continuation ride (2026-07-16) ─────────────────────────
+def test_grind_rides_an_uptrend():
+    f = _feat(vwap_slope_atr=0.8, ext_atr=1.5)  # established up-slope, riding above VWAP
+    assert gate_grind(f).side == "LONG"
+
+
+def test_grind_rides_a_downtrend():
+    assert gate_grind(_feat(vwap_slope_atr=-0.8, ext_atr=-1.5)).side == "SHORT"
+
+
+def test_grind_needs_an_established_slope():
+    assert gate_grind(_feat(vwap_slope_atr=0.2, ext_atr=1.5), slope_min=0.5) is None
+
+
+def test_grind_skips_when_exhausted_or_wrong_side_of_vwap():
+    assert gate_grind(_feat(vwap_slope_atr=0.8, ext_atr=5.0)) is None    # over-extended
+    assert gate_grind(_feat(vwap_slope_atr=0.8, ext_atr=-1.0)) is None   # below VWAP in an up-slope
+
+
+def test_grind_flow_confirm():
+    f = _feat(vwap_slope_atr=0.8, ext_atr=1.5)
+    assert gate_grind(f, flow_min=50, tape_net=10) is None       # not enough net buy
+    assert gate_grind(f, flow_min=50, tape_net=80).side == "LONG"
