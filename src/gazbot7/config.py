@@ -55,8 +55,11 @@ class RunConfig:
     no_open_minutes: float = 20.0      # suppress new entries this long before close
     session_flat_minutes: float = 5.0  # in-loop session-end flatten backstop (timer is primary)
     # kill-switches (S8) — bound the catastrophic day (0 disables)
-    max_daily_loss_usd: float = 300.0  # halt new entries once today's realized P&L ≤ −this
-    loss_streak_halt: int = 4          # halt after this many consecutive losing trades
+    # KILL-SWITCHES — live-money safety, DISABLED for paper tuning (2026-07-16 operator:
+    # "its paper, we need to see action"). Both work (proven); re-enable for go-live:
+    # daily 300, streak 4. The native 1-ATR stop still caps every individual trade.
+    max_daily_loss_usd: float = 0.0    # 0 = no daily-loss halt (paper tuning)
+    loss_streak_halt: int = 0          # 0 = no loss-streak halt (paper tuning)
     # paths
     store_path: str = "data/gazbot7.db"
     capture_path: str = "data/capture.db"

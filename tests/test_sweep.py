@@ -33,7 +33,7 @@ def test_worst_ranks_crit_over_warn_over_ok():
 
 
 def test_killswitch_flags_four_loss_streak():
-    cfg = RunConfig()
+    cfg = RunConfig(loss_streak_halt=4)  # explicit — the live default is 0 (off, paper tuning)
     store = open_store(":memory:")
     for _ in range(4):
         _seed_trade(store, -6.0)
