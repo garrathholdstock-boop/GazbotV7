@@ -54,11 +54,13 @@ class ShadowVariant:
 
 
 class ShadowSim:
-    def __init__(self, store, variants: list[ShadowVariant], *, value_per_point: float = 2.0, fee_rt: float = 1.5) -> None:
+    def __init__(self, store, variants: list[ShadowVariant], *, value_per_point: float = 2.0,
+                 fee_rt: float = 1.5, absorption_min_loss_usd: float = 60.0) -> None:
         self._store = store
         self._variants = variants
         self._vpp = value_per_point
         self._fee = fee_rt
+        self._abs_min_loss = absorption_min_loss_usd  # absorption = catastrophe backstop, not a green-scalp cutter
         self._open: dict[str, dict] = {}  # variant name → open sim position
         self._pending: dict[str, dict] = {}  # variant name → pending entry watching absorption
 
@@ -134,7 +136,14 @@ class ShadowSim:
             reason = exit_scalp(pos, f.price, target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)
             if reason is None and exit_adverse_cut(pos, f.price, cut_atr=v.adverse_cut_atr):
                 reason = "ADVERSE_CUT"
-            if reason is None and exit_absorption(pos, tape_net=tape_net, window_price_delta=wpd, flow_min=v.absorption_flow_min):
+            # absorption is a CATASTROPHE backstop (operator 2026-07-16): only once the
+            # trade is deep underwater (>= absorption_min_loss_usd) — mirrors the live
+            # strategy._exit. Without this floor it guillotines green scalps and, since
+            # the signal persists, insta-re-enters → churn (bug that faked sims 10/11/12).
+            loss_usd = -fav * self._vpp  # >0 only when offside
+            if (reason is None and loss_usd >= self._abs_min_loss
+                    and exit_absorption(pos, tape_net=tape_net, window_price_delta=wpd,
+                                        flow_min=v.absorption_flow_min)):
                 reason = "ABSORPTION_CUT"
         if reason is not None:
             self._record(v, op, f.price, ts, reason)
@@ -254,7 +263,8 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     store = open_store(cfg.shadow_store_path)  # isolated — no live path, no IBKR
     cap = open_capture(cfg.capture_path)
     sim = ShadowSim(store, variants or default_slate(),
-                    value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+                    value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt,
+                    absorption_min_loss_usd=cfg.absorption_min_loss_usd)
     mb = MinuteBars(cfg.bar_lookback)
     mb.warm(cap, cfg.symbol, cfg.bar_lookback)
     md = Subscriber(MD_STREAM, topics=[T_BAR, T_TAPE])

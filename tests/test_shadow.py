@@ -43,6 +43,34 @@ def test_shadow_open_position_not_yet_recorded():
     assert get_shadow_trades(store, "t1") == []
 
 
+# absorption is a CATASTROPHE backstop, not a green-scalp cutter (operator 2026-07-16).
+# Without the loss-floor the sim guillotined green scalps and insta-re-entered on the
+# still-valid signal → churn (the bug that faked sims 10/11/12's +$291/94%).
+_ABS_TAPE = dict(tape_net=80.0, window_price_delta=-1.0)  # tape that trips exit_absorption for a LONG
+
+
+def test_absorption_does_not_cut_a_green_scalp():
+    store = open_store(":memory:")
+    sim = ShadowSim(store, [ShadowVariant("t1", "thrust", {})], absorption_min_loss_usd=60.0)
+    sim.on_bars(THRUST_UP)                       # LONG open ~103.5
+    sim.on_bars(_flat_at(104.0), **_ABS_TAPE)    # GREEN + absorption tape → must NOT cut
+    assert get_shadow_trades(store, "t1") == []  # still open, rode through the absorption
+
+
+def test_absorption_floor_is_the_lever_on_a_small_loss():
+    # a small offside loss ($1, above the ~1-ATR stop) with absorption tape: the floor
+    # decides. At 60 it rides (backstop only); at 0 the same tape guillotines (old churn).
+    for floor, expect_cut in [(60.0, False), (0.0, True)]:
+        store = open_store(":memory:")
+        sim = ShadowSim(store, [ShadowVariant("t1", "thrust", {})], absorption_min_loss_usd=floor)
+        sim.on_bars(THRUST_UP)                    # LONG open ~103.5
+        sim.on_bars(_flat_at(103.0), **_ABS_TAPE)  # ~$1 loss, above the stop
+        trades = get_shadow_trades(store, "t1")
+        assert bool(trades) is expect_cut
+        if expect_cut:
+            assert trades[0]["exit_reason"] == "ABSORPTION_CUT"
+
+
 def test_two_variants_are_independent():
     store = open_store(":memory:")
     sim = ShadowSim(store, [
