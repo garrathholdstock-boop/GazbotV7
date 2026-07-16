@@ -121,6 +121,12 @@ def default_slate() -> list[ShadowVariant]:
     ]
     slate += [ShadowVariant(name, "reversal_grab", params)
               for name, params in REVERSAL_SHORT_VARIANTS.items()]
+    # target A/B (2026-07-16): the best-firing reversal_grab at a 1.5R take-profit vs
+    # the 2.0R default above. A 7-trade tick replay weakly favoured 1.5R (banks a
+    # marginal winner that reverses before 1.7-2.0R) — too thin to act on, so let it
+    # earn a real read in shadow. Identical entry to rg_short_025_flow25; only target differs.
+    slate.append(ShadowVariant("rg_short_025_flow25_t15", "reversal_grab",
+                               dict(REVERSAL_SHORT_VARIANTS["rg_short_025_flow25"]), target_r=1.5))
     return slate
 
 
