@@ -126,6 +126,7 @@ def gate_reversal_grab(
     ext_min: float = 2.5,
     fast_slope: bool = False,
     fast_turn: bool = False,
+    atr_min: float = 0.0,
 ) -> Entry | None:
     """Turnback momentum: over-extended past VWAP, then a fresh turn back, optionally
     confirmed by aggressor flow. SHORT fades a stretch ABOVE VWAP rolling over; LONG
@@ -138,6 +139,8 @@ def gate_reversal_grab(
     slope = f.vwap_slope_fast if fast_slope else f.vwap_slope_atr
     if f.atr_pct > 0.09 or abs(slope) > 1.0:  # regime stand-down
         return None
+    if atr_min and f.atr < atr_min:  # VOLATILITY-regime floor — a reversal only RUNS
+        return None                  # when the tape has range; low-ATR fades fizzle (noise)
     if require_rth and not in_rth:
         return None
     turn = f.net_atr_2 if fast_turn else f.net_atr_5

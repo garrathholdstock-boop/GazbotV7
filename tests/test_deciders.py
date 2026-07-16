@@ -299,3 +299,13 @@ def test_rg_long_fast_fires_where_slow_slope_vetoes():
     f = _feat(vwap_slope_atr=-1.25, vwap_slope_fast=-0.5, ext_atr=-2.8, net_atr_2=0.5, net_atr_5=-1.0)
     assert gate_reversal_grab(f, side="LONG", ext_min=2.0, turn_atr=0.15, fast_slope=True, fast_turn=True).side == "LONG"
     assert gate_reversal_grab(f, side="LONG", ext_min=2.0, turn_atr=0.15) is None  # slow slope vetoes
+
+
+def test_reversal_atr_min_floor():
+    # a valid LONG reversal, but ATR below the vol floor → skipped (noise regime)
+    f = _feat(atr=8.0, ext_atr=-2.8, net_atr_2=0.5, vwap_slope_fast=-0.5)
+    assert gate_reversal_grab(f, side="LONG", ext_min=2.0, turn_atr=0.15, fast_slope=True,
+                              fast_turn=True, atr_min=13.0) is None
+    f2 = _feat(atr=20.0, ext_atr=-2.8, net_atr_2=0.5, vwap_slope_fast=-0.5)
+    assert gate_reversal_grab(f2, side="LONG", ext_min=2.0, turn_atr=0.15, fast_slope=True,
+                              fast_turn=True, atr_min=13.0).side == "LONG"

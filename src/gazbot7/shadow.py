@@ -205,6 +205,12 @@ def default_slate() -> list[ShadowVariant]:
                       {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15, "fast_slope": True, "fast_turn": True},
                       chandelier=True),
         ShadowVariant("grind_fast", "grind", {"slope_min": 0.4, "fast_slope": True}, chandelier=True),
+        # + a VOLATILITY floor (atr>=13): a full-day backtest showed the noise is
+        # almost all low-ATR fizzles — the floor cut 28→~13 trades, +$182→+$400,
+        # 35%→46% win, KEEPING both big runs. The vol regime = the on/off switch.
+        ShadowVariant("rg_long_fast_v", "reversal_grab",
+                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15, "fast_slope": True,
+                       "fast_turn": True, "atr_min": 13.0}, chandelier=True),
     ]
     # absorption-veto DURATION sweep (2026-07-16, operator) — thrust_loose + the
     # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto
