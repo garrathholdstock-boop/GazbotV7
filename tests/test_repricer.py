@@ -48,18 +48,41 @@ def test_r_target_leg_is_scored_not_blank():
 
 
 def test_reprice_pending_writes_shadow_real():
+    # REALISTIC UNITS: entry_ts/exit_ts are minute-aligned bar starts in SECONDS;
+    # quotes.ts_ms is MILLISECONDS. The signal fires at the bar CLOSE (entry_ts+60),
+    # so quotes must sit at/after (entry_ts+60)*1000. (This guards the seconds-vs-ms
+    # 1000× bug that scored every live trade `no_data`.)
     store = open_store(":memory:")
     cap = open_capture(":memory:")
-    record_quote(cap, "MNQ", 1000, 99.5, 100.0, 5, 5)
-    record_quote(cap, "MNQ", 2000, 108.0, 108.5, 5, 5)  # hits target
+    entry_ts, exit_ts = 1_784_185_260, 1_784_185_320  # unix seconds, 1 min apart
+    close_ms = (entry_ts + 60) * 1000                  # bar close = signal time
+    record_quote(cap, "MNQ", close_ms, 99.5, 100.0, 5, 5)          # far-touch entry ask=100
+    record_quote(cap, "MNQ", close_ms + 30_000, 108.0, 108.5, 5, 5)  # hits target
     cap.commit()
     tid = record_shadow_trade(
         store, strategy="t1", symbol="MNQ", side="LONG", qty=1,
-        entry_ts=1000, entry_price=100.0, entry_atr=4.0, target_r=2.0, stop_atr_mult=1.0,
-        exit_ts=2000, exit_price=108.0, exit_reason="TARGET", ceiling_pnl=16.0,
+        entry_ts=entry_ts, entry_price=100.0, entry_atr=4.0, target_r=2.0, stop_atr_mult=1.0,
+        exit_ts=exit_ts, exit_price=108.0, exit_reason="TARGET", ceiling_pnl=16.0,
     )
     n = reprice_pending(store, cap, value_per_point=VPP, fee_rt=FEE)
     assert n == 1
     row = store.execute("SELECT real_pnl, fill_status FROM shadow_real WHERE trade_id=?", (tid,)).fetchone()
-    assert row["fill_status"] == "filled"
+    assert row["fill_status"] == "filled"        # scored on ticks, NOT no_data
     assert row["real_pnl"] == (108.0 - 100.0) * VPP - FEE  # honest, < the 16.0 ceiling
+
+
+def test_reprice_pending_no_data_when_quotes_predate_signal():
+    # a trade whose quotes only exist BEFORE the bar closed → no honest fill
+    store = open_store(":memory:")
+    cap = open_capture(":memory:")
+    entry_ts = 1_784_185_260
+    record_quote(cap, "MNQ", entry_ts * 1000, 99.5, 100.0, 5, 5)  # minute start, pre-signal
+    cap.commit()
+    record_shadow_trade(
+        store, strategy="t1", symbol="MNQ", side="LONG", qty=1,
+        entry_ts=entry_ts, entry_price=100.0, entry_atr=4.0, target_r=2.0, stop_atr_mult=1.0,
+        exit_ts=entry_ts, exit_price=100.0, exit_reason="STOP", ceiling_pnl=0.0,
+    )
+    reprice_pending(store, cap, value_per_point=VPP, fee_rt=FEE)
+    row = store.execute("SELECT fill_status FROM shadow_real").fetchone()
+    assert row["fill_status"] == "no_data"  # nothing at/after the bar close

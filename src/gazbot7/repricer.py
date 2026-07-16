@@ -80,16 +80,26 @@ def _quotes_for(cap_conn, symbol: str, lo_ms: int, hi_ms: int) -> list[Quote]:
     return [Quote(r["ts_ms"], r["bid"], r["ask"]) for r in rows]
 
 
-def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float, tail_ms: int = 120_000) -> int:
+def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float,
+                    tail_ms: int = 120_000, bar_s: int = 60) -> int:
     """Reprice every shadow_trade not yet in shadow_real, using captured quotes.
-    Returns how many were newly repriced."""
+    Returns how many were newly repriced.
+
+    UNITS: shadow ``entry_ts``/``exit_ts`` are minute-aligned bar starts in
+    SECONDS (from MinuteBars); captured ``quotes.ts_ms`` are MILLISECONDS — so the
+    bar ts must be ×1000. The signal only fires once the 1-minute bar CLOSES
+    (ts + ``bar_s``), so the honest entry is the first quote AFTER the close —
+    filling at the minute start would be a pre-signal (lookahead) fill and would
+    overstate the edge."""
     done = {r[0] for r in store.execute("SELECT trade_id FROM shadow_real")}
     now = datetime.now(UTC).isoformat()
     n = 0
     for t in store.execute("SELECT * FROM shadow_trades ORDER BY id").fetchall():
         if t["id"] in done:
             continue
-        quotes = _quotes_for(cap_conn, t["symbol"], t["entry_ts"], t["exit_ts"] + tail_ms)
+        lo_ms = (t["entry_ts"] + bar_s) * 1000       # first tick after the bar closed
+        hi_ms = (t["exit_ts"] + bar_s) * 1000 + tail_ms
+        quotes = _quotes_for(cap_conn, t["symbol"], lo_ms, hi_ms)
         pnl, status = reprice(t, quotes, value_per_point=value_per_point, fee_rt=fee_rt)
         record_shadow_real(
             store, trade_id=t["id"], strategy=t["strategy"], symbol=t["symbol"],
