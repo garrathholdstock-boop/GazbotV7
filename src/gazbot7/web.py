@@ -222,7 +222,95 @@ def execution_json(store_path):
         return {"current": None, "baseline_pct": 51, "trend": []}
 
 
-def serve(port, store_path, cap_path, data_dir):
+# ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────
+def _shadow_block(vals):
+    """The {n, real_pnl, win} block the shadow UI reads — honest net, win% or null."""
+    n = len(vals)
+    if n == 0:
+        return {"n": 0, "real_pnl": 0, "win": None}
+    return {"n": n, "real_pnl": round(sum(vals), 2),
+            "win": round(100 * sum(1 for v in vals if v > 0) / n)}
+
+
+def _paris_day_bounds(date_str):
+    """(day_start, day_end) unix-seconds for the viewed Paris day (default: today)."""
+    if date_str:
+        d = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=_PARIS)
+    else:
+        d = datetime.now(_PARIS)
+    start = d.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = start.timestamp()
+    return day_start, day_start + 86400
+
+
+def shadow_overview_json(shadow_path, date=None):
+    """Per-variant honest P&L (real_pnl, filled trades) over today/week/all, plus
+    by-symbol — the shape shadow_desk.html renders. real_available always True in
+    V7 (the repricer writes real_pnl; no ceiling-mirage fallback)."""
+    from .shadow import default_slate
+    day_start, day_end = _paris_day_bounds(date)
+    wk_start = day_end - 7 * 86400
+    fleet = [v.name for v in default_slate()]  # the registered fleet (shown even if idle)
+    try:
+        c = _conn(shadow_path)
+        rows = c.execute(
+            "SELECT st.strategy s, st.symbol sym, st.exit_ts ts, sr.real_pnl pnl "
+            "FROM shadow_trades st JOIN shadow_real sr ON sr.trade_id=st.id "
+            "WHERE sr.fill_status='filled'").fetchall()
+        c.close()
+    except Exception:
+        rows = []
+    names = fleet + sorted({r["s"] for r in rows} - set(fleet))
+    agg = {s: {"today": [], "week": [], "all": [], "by_symbol": {}, "min_ts": None} for s in names}
+    for r in rows:
+        a = agg.setdefault(r["s"], {"today": [], "week": [], "all": [], "by_symbol": {}, "min_ts": None})
+        ts, p = r["ts"], r["pnl"]
+        if ts >= day_end:  # future relative to the viewed day
+            continue
+        bs = a["by_symbol"].setdefault(r["sym"], {"today": [], "week": [], "all": []})
+        a["all"].append(p); bs["all"].append(p)
+        a["min_ts"] = ts if a["min_ts"] is None else min(a["min_ts"], ts)
+        if ts >= wk_start:
+            a["week"].append(p); bs["week"].append(p)
+        if day_start <= ts < day_end:
+            a["today"].append(p); bs["today"].append(p)
+    strategies = []
+    for s in names:
+        a = agg[s]
+        strategies.append({
+            "strategy": s, "armed": True,
+            "days_live": None if a["min_ts"] is None else max(0, round((day_end - a["min_ts"]) / 86400)),
+            "today": _shadow_block(a["today"]), "week": _shadow_block(a["week"]), "all": _shadow_block(a["all"]),
+            "by_symbol": {sym: {"today": _shadow_block(b["today"]), "week": _shadow_block(b["week"]),
+                                "all": _shadow_block(b["all"])} for sym, b in a["by_symbol"].items()},
+        })
+    return {
+        "today_total": round(sum(sum(a["today"]) for a in agg.values()), 2),
+        "week_total": round(sum(sum(a["week"]) for a in agg.values()), 2),
+        "all_total": round(sum(sum(a["all"]) for a in agg.values()), 2),
+        "n_strategies": len(names), "as_of": (date or datetime.now(_PARIS).strftime("%Y-%m-%d")),
+        "real_available": True, "strategies": strategies,
+    }
+
+
+def shadow_activity_json(shadow_path, limit=50):
+    """Most-recent filled shadow trades, honest net — the Activity tab feed."""
+    try:
+        c = _conn(shadow_path)
+        rows = c.execute(
+            "SELECT st.strategy, st.symbol, st.side, st.exit_ts, st.exit_reason, sr.real_pnl "
+            "FROM shadow_trades st JOIN shadow_real sr ON sr.trade_id=st.id "
+            "WHERE sr.fill_status='filled' ORDER BY st.exit_ts DESC, st.id DESC LIMIT ?",
+            (limit,)).fetchall()
+        c.close()
+    except Exception:
+        rows = []
+    return {"trades": [{"exit_ts": r["exit_ts"], "strategy": r["strategy"], "symbol": r["symbol"],
+                        "side": r["side"], "exit_reason": r["exit_reason"],
+                        "pnl": round(r["real_pnl"], 2)} for r in rows]}
+
+
+def serve(port, store_path, cap_path, data_dir, shadow_path):
     class H(http.server.BaseHTTPRequestHandler):
         def _send(self, body, ct, code=200):
             self.send_response(code)
@@ -240,9 +328,15 @@ def serve(port, store_path, cap_path, data_dir):
                 path, qs = p.path, parse_qs(p.query)
                 if path == "/" or path.startswith("/index"):
                     self._send(open(os.path.join(_STATIC, "app.html"), "rb").read(), _CT[".html"])
+                elif path == "/shadow" or path == "/shadow/":
+                    self._send(open(os.path.join(_STATIC, "shadow.html"), "rb").read(), _CT[".html"])
                 elif path.startswith("/static/"):
                     fp = os.path.join(_STATIC, os.path.basename(path))
                     self._send(open(fp, "rb").read(), _CT.get(os.path.splitext(fp)[1], "text/plain"))
+                elif path.startswith("/api/shadow/overview"):
+                    self._json(shadow_overview_json(shadow_path, (qs.get("date", [None])[0])))
+                elif path.startswith("/api/shadow/activity"):
+                    self._json(shadow_activity_json(shadow_path, min(200, int(qs.get("limit", ["50"])[0]))))
                 elif path.startswith("/api/futures/bars/MNQ"):
                     self._json(bars_json(cap_path, min(600, int(qs.get("count", ["120"])[0]))))
                 elif path.startswith("/api/futures/us-terminal"):
@@ -266,7 +360,9 @@ def main():
     port = int(os.environ.get("GAZBOT7_WEB_PORT", "8087"))
     store = os.environ.get("GAZBOT7_STORE", "data/gazbot7.db")
     cap = os.environ.get("GAZBOT7_CAPTURE", "data/capture.db")
-    serve(port, store, cap, os.path.dirname(store) or ".")
+    data_dir = os.path.dirname(store) or "."
+    shadow = os.environ.get("GAZBOT7_SHADOW", os.path.join(data_dir, "shadow.db"))
+    serve(port, store, cap, data_dir, shadow)
 
 
 if __name__ == "__main__":

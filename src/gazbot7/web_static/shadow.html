@@ -1,0 +1,528 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base href="/v7/">
+<title>GAZBOT V7 — Shadow Desk</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#0e131c; --panel2:#11171f; --line:#1c2530; --line2:#283341;
+    --ink:#e6edf3; --ink2:#b5c8de; --ink3:#70859b;
+    --grn:#3fd97f; --red:#ff5d5d; --amb:#f5b13d; --amb-d:#7a5a1d; --blu:#5aa9ff;
+    --pos:#3fd97f; --neg:#ff5d5d;
+    --mono:'JetBrains Mono','SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
+        -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+  .wrap{max-width:720px;margin:0 auto;padding:0 0 40px}
+  .pos{color:var(--pos)} .neg{color:var(--neg)}
+
+  /* ===== LOCKED HEADER (sticky) — title + Today/Week/running on one row ===== */
+  .topbar{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line2)}
+  .hdr{display:flex;align-items:center;gap:12px;padding:12px 14px 10px}
+  .hdr h1{font-size:19px;font-weight:700;letter-spacing:-.2px;color:var(--ink);white-space:nowrap;flex-shrink:0}
+  .hdr-stats{display:flex;gap:8px;margin-left:auto;flex-shrink:0}
+  .hs{display:flex;flex-direction:column;align-items:flex-end;min-width:56px}
+  .hs .hv{font-size:17px;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums;line-height:1.1}
+  .hs .hl{font-size:9px;letter-spacing:.6px;text-transform:uppercase;color:var(--ink3);margin-top:2px;font-weight:600}
+  /* tabs, part of the locked zone */
+  .tabs{display:flex;border-top:1px solid var(--line)}
+  .tab{flex:1;background:none;border:none;color:var(--ink3);font:600 13px var(--sans);padding:12px 6px;
+        cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.2px}
+  .tab.active{color:var(--ink);border-bottom-color:var(--blu)}
+  .tab:active{background:var(--panel2)}
+  /* date look-back bar (operator 2026-07-07) */
+  .daybar{display:flex;align-items:center;gap:6px;padding:7px 10px;border-top:1px solid var(--line)}
+  .daybar .dayinput{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    font:600 13px var(--sans);padding:8px 8px;flex:1;min-width:0;-webkit-appearance:none;text-align:center}
+  .daybar .daynav{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    font:600 15px var(--sans);padding:8px 13px;min-width:44px;cursor:pointer;-webkit-appearance:none}
+  .daybar .daynav:active{background:var(--line)}
+  .daybar .daynav.on{color:var(--blu);border-color:var(--blu)}
+  .daybar .daynav:disabled{opacity:.35}
+
+  .panel{padding:12px 12px 0}
+  .panel.hidden{display:none}
+  .muted{color:var(--ink3);font-size:13px;padding:18px 4px}
+  .err{background:#1a0d0d;border:1px solid var(--red);color:#ff9a9a;border-radius:8px;padding:14px 16px;margin:12px}
+  .banner{background:#191307;border:1px solid var(--amb-d);border-radius:8px;padding:9px 13px;margin:10px 0 2px;
+        font-size:12px;color:var(--amb)}
+  .foot{margin:26px 12px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--ink3);font-size:11.5px;line-height:1.6}
+
+  /* ===== cards (Sims + Top 20) — tappable accordion ===== */
+  .mcard{background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-bottom:7px;overflow:hidden;cursor:pointer}
+  .mcard.thin{opacity:.72}
+  .mcard-top{display:flex;align-items:center;gap:9px;padding:12px 13px;min-width:0}
+  .rankno{font-family:var(--mono);font-size:11px;color:var(--ink3);flex-shrink:0;width:20px;text-align:right}
+  .mcard-name{font-weight:600;color:var(--ink);font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto}
+  .mcard-sym{font-family:var(--mono);font-size:11px;color:var(--blu);background:#0c1119;border:1px solid var(--line2);
+        border-radius:5px;padding:1px 6px;flex-shrink:0}
+  .mcard-win{font-size:11px;color:var(--ink3);font-family:var(--mono);flex-shrink:0}
+  .mcard-pnl{font-size:18px;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums;flex-shrink:0}
+  .mcard-pnl.await{font-size:12px;font-weight:400;font-style:italic;color:var(--ink3)}
+  .mcard-chev{color:var(--ink3);font-size:16px;flex-shrink:0;transition:transform .2s;line-height:1}
+  .mcard.open .mcard-chev{transform:rotate(90deg)}
+  .mcard-exp{max-height:0;overflow:hidden;transition:max-height .28s ease}
+  .mcard.open .mcard-exp{max-height:520px}
+  .mcard-exp-inner{padding:2px 13px 13px}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+  .mgrid .g{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+  .mgrid .gl{font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+  .mgrid .gv{font-size:14px;font-weight:600;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mcard-contracts{font-size:11.5px;color:var(--ink3);font-family:var(--mono);line-height:1.7;margin-top:10px;word-break:break-word}
+  .mcard-contracts b{color:var(--ink2)}
+  .mcard-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--ink3)}
+  .mcard-stage{font-size:13px;white-space:nowrap} .mcard-stage .lbl{font-size:10px;color:var(--ink3);margin-left:4px}
+  .mcard-armed{font-size:10px;font-weight:700;letter-spacing:.4px;border:1px solid var(--line2);border-radius:4px;padding:1px 6px;color:var(--ink3)}
+  .mcard-armed.on{color:var(--grn);border-color:var(--amb-d)}
+  .thin-badge{font-size:9px;color:var(--amb);font-weight:700;margin-left:6px;letter-spacing:.3px;border:1px solid var(--amb-d);border-radius:3px;padding:0 4px}
+
+  /* ===== activity stream ===== */
+  .actlist{max-height:70vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-bottom:6px}
+  .act{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .act-time{font-family:var(--mono);font-size:11px;color:var(--ink3);flex-shrink:0;width:42px}
+  .act-body{min-width:0;flex:1 1 auto}
+  .act-name{font-size:13px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .act-sub{font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:1px}
+  .act-sym{color:var(--blu)} .act-side{color:var(--ink2)}
+  .act-pnl{font-size:15px;font-weight:700;font-family:var(--mono);flex-shrink:0}
+
+  /* ===== Friday-source badge + legend ===== */
+  .srcbadge{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:4px;
+        font-size:10px;font-weight:800;font-family:var(--mono);flex-shrink:0;color:#08111a;line-height:1}
+  .simid{font:700 11px var(--mono);color:var(--ink3);flex-shrink:0;min-width:22px}
+  .legend{margin:18px 2px 6px;padding:14px 2px 4px;border-top:1px solid var(--line)}
+  .legend-h{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:10px}
+  .legend .lg{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--ink2);margin-bottom:8px}
+  .grp{display:flex;align-items:center;gap:9px;padding:9px 11px;margin:18px 0 7px;background:#0c1119;
+        border:1px solid var(--line2);border-radius:8px}
+  .grp:first-child{margin-top:4px}
+  .grp-label{font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.2px}
+  .grp-sum{margin-left:auto;font-family:var(--mono);font-size:14px;font-weight:700}
+  .grp-n{font-size:11px;color:var(--ink3);font-family:var(--mono);min-width:16px;text-align:right}
+  .filters{display:flex;gap:6px;padding:8px 12px 9px;flex-wrap:wrap;border-top:1px solid var(--line)}
+  .filters.hidden{display:none}
+  .chip{background:var(--panel2);border:1px solid var(--line2);border-radius:15px;padding:4px 11px;color:var(--ink3);
+        font:600 12px var(--sans);cursor:pointer;display:inline-flex;align-items:center;gap:5px;line-height:1.2}
+  .chip.active{border-color:var(--blu);color:var(--ink);background:#152233}
+  .chip .srcbadge{width:15px;height:15px}
+  /* DAY/WEEK/ALL timeframe toggle (operator 2026-07-08) */
+  .tfbar{display:flex;gap:6px;padding:6px 10px 2px;}
+  .tfbtn{flex:1;padding:8px 0;border:1px solid #2a3441;background:transparent;color:#8a9bb0;
+    border-radius:9px;font-weight:800;font-size:13px;letter-spacing:.06em;cursor:pointer;}
+  .tfbtn.active{background:#2f6df6;color:#fff;border-color:#2f6df6;}
+  .tfbtn.champ{flex:0 0 auto;margin-left:8px;padding:8px 12px;}
+  .tfbtn.champ.active{background:#2fa860;color:#fff;border-color:#2fa860;}
+  .hs.tfon .hv{text-decoration:underline;text-underline-offset:3px;}
+</style></head><body><div class="wrap">
+
+<div class="topbar">
+  <div class="hdr">
+    <h1>Shadow Desk</h1>
+    <div class="hdr-stats">
+      <div class="hs" data-tf="today"><span class="hv" id="hToday">—</span><span class="hl" id="lToday">Today</span></div>
+      <div class="hs" data-tf="week"><span class="hv" id="hWeek">—</span><span class="hl">Week</span></div>
+      <div class="hs" data-tf="all"><span class="hv" id="hAll">—</span><span class="hl">All</span></div>
+      <div class="hs"><span class="hv" id="hCount" style="color:var(--ink)">—</span><span class="hl">running</span></div>
+    </div>
+  </div>
+  <div class="daybar">
+    <button class="daynav" id="dayPrev" onclick="stepDay(-1)" aria-label="previous day">‹</button>
+    <input type="date" id="dayPick" class="dayinput" onchange="pickDay(this.value)">
+    <button class="daynav" id="dayNext" onclick="stepDay(1)" aria-label="next day">›</button>
+    <button class="daynav" id="dayToday" onclick="pickDay(null)">Today</button>
+  </div>
+  <div class="tfbar">
+    <button class="tfbtn active" data-tf="today" onclick="setTF('today')">DAY</button>
+    <button class="tfbtn" data-tf="week" onclick="setTF('week')">WEEK</button>
+    <button class="tfbtn" data-tf="all" onclick="setTF('all')">ALL</button>
+    <button class="tfbtn champ" data-champ onclick="setChamp()" title="Best single sim per contract, summed — the realistic one-config-per-contract desk P&amp;L (no overlap, no hindsight)">CHAMP</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="sims" onclick="switchTab('sims')">Sims</button>
+    <button class="tab" data-tab="top20" onclick="switchTab('top20')">Top 20</button>
+    <button class="tab" data-tab="bottom10" onclick="switchTab('bottom10')">Bottom 20</button>
+    <button class="tab" data-tab="activity" onclick="switchTab('activity')">Activity</button>
+  </div>
+  <div class="filters" id="filters"></div>
+</div>
+
+<div id="banner"></div>
+<div class="panel" id="p-sims"><div class="muted">Loading…</div></div>
+<div class="panel hidden" id="p-top20"><div class="muted">Loading…</div></div>
+<div class="panel hidden" id="p-bottom10"><div class="muted">Loading…</div></div>
+<div class="panel hidden" id="p-activity"><div class="muted">Tap to load activity…</div></div>
+<div class="foot" id="foot"></div>
+</div>
+
+<script>
+"use strict";
+// friendly names + SOURCE tag (s) = which Friday-report finding the sim comes from. (Removed shadows
+// are simply absent from the API.)  R=Ride strength(Big Flip) · F=Don't fade strength · V=Fade violent
+// spike · S=Stand down · L=Live-gate baseline.
+const META = {
+  tw_mnq_thrust_cont:{n:"MNQ volume-confirmed thrust rider", s:"R"},
+  tw_mes_thrust_cont:{n:"MES volume-confirmed thrust rider", s:"R"},
+  tw_m2k_vst:{n:"M2K volume-surge thrust rider", s:"R"},
+  tw_us_open_surge_cont:{n:"US-open surge continuation", s:"R"},
+  tw_mym_open_thrust:{n:"Dow NY-open thrust rider", s:"R"},
+  tw_m2k_open_momentum:{n:"M2K: ride the open, don't fade", s:"R"},
+  tw_mcl_short_with_strength:{n:"Crude: short with the flush", s:"R"},
+  tw_mgc_coil_break_long:{n:"Gold coiled-spring breakout", s:"R"},
+  tw_mgc_momo_thrust:{n:"Gold: ride an explosive thrust", s:"R"},
+  tw_m2k_momo_loose:{n:"M2K: ride a loosened thrust", s:"R"},
+  momentum_shadow:{n:"Live momentum gate", s:"R"},
+  orb_shadow:{n:"Opening-range breakout", s:"R"},
+  tw_mbt_spike_fade:{n:"Bitcoin: fade the violent spike", s:"V"},
+  passive_mgc_hours:{n:"Gold passive: lunchtime pocket", s:"L"},
+  tw_strength_ceiling_pb:{n:"Skip fading strong moves", s:"F"},
+  tw_mnq_pb_expand_veto:{n:"MNQ: no fade in expanding tape", s:"F"},
+  tw_mnq_pb_greenband_block:{n:"MNQ: skip balanced-chop fades", s:"F"},
+  tw_mgc_pb_strong_only:{n:"Gold: fade only spent spikes", s:"F"},
+  tw_mgc_pb_midband_block:{n:"Gold: block half-finished moves", s:"F"},
+  tw_mes_atr_ceiling_003:{n:"MES: calm-tape-only fades", s:"F"},
+  tw_mes_block_us_open:{n:"MES: skip the US open window", s:"S"},
+  tw_m2k_absorption_only:{n:"M2K: fade quiet-book absorption", s:"F"},
+  tw_mym_no_fade_drive:{n:"Dow: never fade a real drive", s:"F"},
+  tw_mcl_no_long_downflush:{n:"Crude: don't buy a down-flush", s:"F"},
+  tw_mbt_pb_rvol_band:{n:"Bitcoin: fade the volume sweet-spot", s:"V"},
+  tw_xconfirm_veto:{n:"MNQ/MES: fade only if twin agrees", s:"F"},
+  tw_deadtape_standdown:{n:"Stand down in dead tape", s:"S"},
+  tw_clock_standdown:{n:"Stand down in dead hours", s:"S"},
+  tw_thin_drift_standdown:{n:"Skip thin-volume drift (MNQ/MGC)", s:"S"},
+  pullback_loose:{n:"Live pullback (looser knobs)", s:"L"},
+  dip_loose:{n:"Live dip (looser knobs)", s:"L"},
+  pullback_quiet:{n:"Pullback in quiet tape", s:"L"},
+};
+// the Friday-report SOURCE legend — colour + one-line meaning per tag.
+const SRC = {
+  R:{c:"#3fd97f", g:"Ride strength — Big Flip", t:"Ride strength — the Big Flip (§2): go WITH a strong move"},
+  F:{c:"#f5b13d", g:"Don't fade strength", t:"Don't fade strength (§19): veto/skip fading a strong move"},
+  V:{c:"#b98bff", g:"Fade the violent spike", t:"Fade the violent spike (bitcoin / euphoria)"},
+  S:{c:"#5aa9ff", g:"Stand down", t:"Stand down — dead tape / dead hours"},
+  L:{c:"#8a9bb0", g:"Live-gate baseline", t:"Live-gate baseline — what the desk runs today"},
+};
+const nameOf = s => (META[s] && META[s].n) || s;
+// Stable numeric identifier per sim (fixed META order) — so it can be referred to as "#12"
+// regardless of how the cards are sorted/grouped.
+// Frozen ID order — pins each sim's #N so removing a sim leaves a GAP (e.g. #4 tw_ride_strength,
+// removed 2026-07-06) rather than renumbering the rest. Add NEW sims at the END to keep IDs stable.
+const _ID_ORDER = ["tw_mnq_thrust_cont","tw_mes_thrust_cont","tw_m2k_vst","tw_ride_strength","tw_us_open_surge_cont","tw_mym_open_thrust","tw_m2k_open_momentum","tw_mcl_short_with_strength","tw_mgc_coil_break_long","tw_mgc_momo_thrust","tw_m2k_momo_loose","momentum_shadow","orb_shadow","tw_mbt_spike_fade","passive_mgc_hours","tw_strength_ceiling_pb","tw_mnq_pb_expand_veto","tw_mnq_pb_greenband_block","tw_mgc_pb_strong_only","tw_mgc_pb_midband_block","tw_mes_atr_ceiling_003","tw_mes_block_us_open","tw_m2k_absorption_only","tw_mym_no_fade_drive","tw_mcl_no_long_downflush","tw_mbt_pb_rvol_band","tw_xconfirm_veto","tw_deadtape_standdown","tw_clock_standdown","tw_thin_drift_standdown","pullback_loose","dip_loose","pullback_quiet"];
+const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
+function srcBadge(strat){
+  const s = META[strat] && META[strat].s;
+  return (s && SRC[s]) ? `<span class="srcbadge" style="background:${SRC[s].c}" title="${SRC[s].t}">${s}</span>` : "";
+}
+function legendHTML(){
+  return `<div class="legend"><div class="legend-h">Source — which Friday-report finding each sim comes from</div>` +
+    Object.entries(SRC).map(([k,v]) => `<div class="lg"><span class="srcbadge" style="background:${v.c}">${k}</span> ${v.t}</div>`).join("") +
+    `</div>`;
+}
+
+// ALL $ are the realistic net (real_pnl, already net of spread+fees). Whole $ for aggregates.
+const money = v => (v==null) ? "—"
+  : (v<0?"-$":"$") + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:0});
+// 2-decimal for individual trades (small per-trade net).
+const money2 = v => (v==null) ? "—"
+  : (v<0?"-$":"$") + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const cls = v => v==null ? "" : v>0 ? "pos" : v<0 ? "neg" : "";
+
+let TAB = "sims";
+let OV = null;   // last overview payload
+let FILTER = null;   // source filter: null = all, else a SRC letter (R/F/V/S/L)
+let TF = "today";    // timeframe: today (DAY) | week | all (operator 2026-07-08)
+let CHAMP = false;   // CHAMP mode: best single sim per contract, summed (operator 2026-07-08)
+const TFL = ()=>({today:"Day",week:"Week",all:"All"}[TF]);
+const CONTRACT_ORDER = ["MNQ","MES","MGC","M2K","MYM","MCL","MBT"];
+
+// Project the payload onto the active timeframe: each strategy's + contract's `today` block becomes
+// the selected DAY/WEEK/ALL block, so the render functions (which read `.today`) show that window
+// with zero churn. TF='today' is the identity (backward-compatible).
+function projectTF(d){
+  if(!d || TF==="today") return d;
+  const strategies=(d.strategies||[]).map(r=>{
+    const bs={}; for(const [s,c] of Object.entries(r.by_symbol||{})) bs[s]={...c, today:(c[TF]||{n:0})};
+    return {...r, today:(r[TF]||{n:0}), by_symbol:bs};
+  });
+  return {...d, strategies};
+}
+function setTF(tf){
+  TF=tf;
+  for(const b of document.querySelectorAll(".tfbtn[data-tf]")) b.classList.toggle("active", b.dataset.tf===tf);
+  if(OV){ const p=projectTF(OV); setHeader(OV); renderSims(p); renderTop20(p); renderBottom10(p); }
+}
+function setChamp(){
+  CHAMP=!CHAMP;
+  const b=document.querySelector(".tfbtn.champ"); if(b) b.classList.toggle("active", CHAMP);
+  if(OV){ const p=projectTF(OV); setHeader(OV); renderSims(p); renderTop20(p); renderBottom10(p); }
+}
+// CHAMP view: one card per contract = the single best sim for it over the active DAY/WEEK/ALL window,
+// summed. The realistic one-config-per-contract desk P&L — no overlap double-count, no hindsight
+// (you commit to the config, not the trade). `p` is already timeframe-projected, so read `.today`.
+function renderChamp(d){
+  const best={};
+  for(const r of (d.strategies||[])){
+    for(const [sym,c] of Object.entries(r.by_symbol||{})){
+      const b=c.today; if(!b||!b.n) continue;
+      if(!best[sym] || b.real_pnl > best[sym].blk.real_pnl) best[sym]={strat:r.strategy, sym, blk:b};
+    }
+  }
+  const order=Object.keys(best).sort((a,b)=>best[b].blk.real_pnl-best[a].blk.real_pnl);
+  const el=document.getElementById("p-sims");
+  if(!order.length){ el.innerHTML=`<div class="muted">No trades in the ${TFL()} window yet.</div>`; return; }
+  const tot=order.reduce((a,s)=>a+best[s].blk.real_pnl,0);
+  let h=`<div class="grp" style="border-left:3px solid #2fa860">
+    <span class="grp-label">CHAMP — best sim per contract (${TFL()})</span>
+    <span class="grp-sum ${cls(tot)}">${money(tot)}</span>
+    <span class="grp-n">${order.length}</span></div>
+    <div class="muted" style="padding:2px 4px 10px;font-size:11.5px">One config per contract — the realistic deployable desk P&amp;L (no sim-overlap inflation, no hindsight).</div>`;
+  for(const s of order){
+    const c=best[s], b=c.blk;
+    h+=`<div class="mcard" onclick="tog(this)"><div class="mcard-top">
+      ${srcBadge(c.strat)}<span class="simid">#${idOf(c.strat)}</span>
+      <span class="mcard-sym">${s}</span>
+      <span class="mcard-name">${nameOf(c.strat)}</span>
+      ${b.win==null?"":`<span class="mcard-win">${b.win}%</span>`}
+      <span class="mcard-pnl ${cls(b.real_pnl)}">${money(b.real_pnl)}</span><span class="mcard-chev">›</span></div>
+      <div class="mcard-exp"><div class="mcard-exp-inner"><div class="mgrid">
+        <div class="g"><div class="gl">Net</div><div class="gv ${cls(b.real_pnl)}">${money2(b.real_pnl)}</div></div>
+        <div class="g"><div class="gl">n</div><div class="gv">${b.n||"—"}</div></div>
+        <div class="g"><div class="gl">Win</div><div class="gv">${b.win==null?"—":b.win+"%"}</div></div>
+        <div class="g"><div class="gl">Avg</div><div class="gv ${cls(b.n?b.real_pnl/b.n:0)}">${b.n?money2(b.real_pnl/b.n):"—"}</div></div>
+      </div></div></div></div>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderFilters(){
+  const chip=(k,inner)=>`<button class="chip${FILTER===k?" active":""}" onclick="setFilter(${k===null?"null":"'"+k+"'"})">${inner}</button>`;
+  document.getElementById("filters").innerHTML =
+    chip(null,"All") + Object.keys(SRC).map(k=>chip(k,`<span class="srcbadge" style="background:${SRC[k].c}">${k}</span>`)).join("");
+}
+function setFilter(s){ FILTER=s; renderFilters(); if(OV){ const p=projectTF(OV); renderSims(p); renderTop20(p); renderBottom10(p); } }
+
+function switchTab(name){
+  TAB = name;
+  for (const b of document.querySelectorAll(".tab")) b.classList.toggle("active", b.dataset.tab===name);
+  for (const p of ["sims","top20","bottom10","activity"]) document.getElementById("p-"+p).classList.toggle("hidden", p!==name);
+  document.getElementById("filters").classList.toggle("hidden", name==="activity");  // filter is for sims/top20 only
+  if (name==="activity") loadActivity();
+}
+
+// ---- header ----
+function setHeader(d){
+  const tt=d.today_total||0, wt=d.week_total||0, at=d.all_total||0;
+  const hT=document.getElementById("hToday"), hW=document.getElementById("hWeek"), hA=document.getElementById("hAll");
+  hT.textContent=money(tt); hT.className="hv "+cls(tt);
+  hW.textContent=money(wt); hW.className="hv "+cls(wt);
+  hA.textContent=money(at); hA.className="hv "+cls(at);
+  document.getElementById("hCount").textContent=(d.n_strategies||(d.strategies||[]).length);
+  const tl=document.getElementById("lToday");               // relabel "Today" → the date when looking back
+  if(tl) tl.textContent = VIEW_DATE ? (d.as_of||VIEW_DATE).slice(5) : "Today";
+  for(const hs of document.querySelectorAll(".hs[data-tf]")) hs.classList.toggle("tfon", hs.dataset.tf===TF);  // underline active timeframe
+}
+
+// ---- Tab 1: Sims — GROUPED BY SOURCE (Friday finding), most-profitable-first within each group ----
+const _sortByToday = (a,b)=>{
+  const ax=(a.today&&a.today.n)?a.today.real_pnl:-1e12, bx=(b.today&&b.today.n)?b.today.real_pnl:-1e12;
+  return bx-ax;
+};
+function simCard(r){
+  const t=r.today||{n:0}, w=r.week||{n:0}, thin=(w.n||0)<30;
+  const contracts=Object.entries(r.by_symbol||{}).filter(([,c])=>c.today&&c.today.n)
+    .sort((a,b)=>(b[1].today.real_pnl||0)-(a[1].today.real_pnl||0))
+    .map(([s,c])=>`<b>${s}</b> <span class="${cls(c.today.real_pnl)}">${money(c.today.real_pnl)}</span>`).join(" · ")||"—";
+  if((t.n||0)===0){
+    return `<div class="mcard" onclick="tog(this)"><div class="mcard-top">
+      ${srcBadge(r.strategy)}<span class="simid">#${idOf(r.strategy)}</span><span class="mcard-name">${nameOf(r.strategy)}</span>
+      <span class="mcard-pnl await">${r.armed?"no trades yet":"idle"}</span><span class="mcard-chev">›</span></div>
+      <div class="mcard-exp"><div class="mcard-exp-inner"><div class="mcard-row">
+        <span class="mcard-stage">⚪<span class="lbl">${r.armed?"armed":"stood down"}</span></span>
+        <span class="mcard-armed${r.armed?" on":""}">${r.armed?"ARMED":"OFF"}</span></div></div></div></div>`;
+  }
+  return `<div class="mcard${thin?" thin":""}" onclick="tog(this)"><div class="mcard-top">
+    ${srcBadge(r.strategy)}<span class="simid">#${idOf(r.strategy)}</span>
+    <span class="mcard-name">${nameOf(r.strategy)}${thin?'<span class="thin-badge">THIN</span>':''}</span>
+    ${t.win==null?"":`<span class="mcard-win">${t.win}%</span>`}
+    <span class="mcard-pnl ${cls(t.real_pnl)}">${money(t.real_pnl)}</span><span class="mcard-chev">›</span></div>
+    <div class="mcard-exp"><div class="mcard-exp-inner">
+      <div class="mgrid">
+        <div class="g"><div class="gl">Net</div><div class="gv ${cls(t.real_pnl)}">${money(t.real_pnl)}</div></div>
+        <div class="g"><div class="gl">n</div><div class="gv">${t.n||"—"}</div></div>
+        <div class="g"><div class="gl">Win</div><div class="gv">${t.win==null?"—":t.win+"%"}</div></div>
+        <div class="g"><div class="gl">Avg</div><div class="gv ${cls(t.n?t.real_pnl/t.n:0)}">${t.n?money(t.real_pnl/t.n):"—"}</div></div>
+        <div class="g"><div class="gl">Days live</div><div class="gv">${r.days_live==null?"—":r.days_live}</div></div>
+      </div>
+      <div class="mcard-contracts">Per-contract: ${contracts}</div>
+      <div class="mcard-row"><span class="mcard-stage">${thin?"🔴 thin":"🟡 building"}</span>
+        <span class="mcard-armed${r.armed?" on":""}">${r.armed?"ARMED":"OFF"}</span></div>
+    </div></div></div>`;
+}
+function renderSims(d){
+  if(CHAMP) return renderChamp(d);
+  const rows=d.strategies||[];
+  const groups={};
+  for(const r of rows){ const s=(META[r.strategy]&&META[r.strategy].s)||"?"; (groups[s]||=[]).push(r); }
+  // SRC order (R first — the Big Flip), then any untagged group last.
+  const order=Object.keys(SRC).filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!SRC[k])).filter(s=>!FILTER||s===FILTER);
+  let h="";
+  for(const s of order){
+    const list=groups[s].slice().sort(_sortByToday);
+    const gt=list.reduce((acc,r)=>acc+((r.today&&r.today.real_pnl)||0),0);
+    const m=SRC[s]||{c:"#8a9bb0", g:"Other"};
+    h+=`<div class="grp" style="border-left:3px solid ${m.c}">
+      <span class="srcbadge" style="background:${m.c}">${s}</span>
+      <span class="grp-label">${m.g}</span>
+      <span class="grp-sum ${cls(gt)}">${money(gt)}</span>
+      <span class="grp-n">${list.length}</span></div>`;
+    for(const r of list){ h+=simCard(r); }
+  }
+  document.getElementById("p-sims").innerHTML = (h || `<div class="muted">No shadows on the tape.</div>`) + legendHTML();
+}
+
+// ---- Tab 2: Top 20 (one row per sim x contract) — GROUPED BY SOURCE, most-profitable-first within ----
+function top20Card(c){
+  return `<div class="mcard" onclick="tog(this)"><div class="mcard-top">
+    ${srcBadge(c.strat)}<span class="simid">#${idOf(c.strat)}</span>
+    <span class="mcard-name">${nameOf(c.strat)}</span>
+    <span class="mcard-sym">${c.sym}</span>
+    ${c.t.win==null?"":`<span class="mcard-win">${c.t.win}%</span>`}
+    <span class="mcard-pnl ${cls(c.t.real_pnl)}">${money(c.t.real_pnl)}</span><span class="mcard-chev">›</span></div>
+    <div class="mcard-exp"><div class="mcard-exp-inner"><div class="mgrid">
+      <div class="g"><div class="gl">Net</div><div class="gv ${cls(c.t.real_pnl)}">${money2(c.t.real_pnl)}</div></div>
+      <div class="g"><div class="gl">n</div><div class="gv">${c.t.n||"—"}</div></div>
+      <div class="g"><div class="gl">Win</div><div class="gv">${c.t.win==null?"—":c.t.win+"%"}</div></div>
+      <div class="g"><div class="gl">Avg</div><div class="gv ${cls(c.t.n?c.t.real_pnl/c.t.n:0)}">${c.t.n?money2(c.t.real_pnl/c.t.n):"—"}</div></div>
+    </div></div></div></div>`;
+}
+function renderTop20(d){
+  const cells=[];
+  for (const r of (d.strategies||[])){
+    for (const [sym,c] of Object.entries(r.by_symbol||{})){
+      if (c.today && c.today.n) cells.push({strat:r.strategy, sym, t:c.today, w:(c.week||{})});
+    }
+  }
+  cells.sort((a,b)=>(b.t.real_pnl||0)-(a.t.real_pnl||0));
+  const top=cells.slice(0,20);
+  if(!top.length){ document.getElementById("p-top20").innerHTML=`<div class="muted">No sim×contract trades yet.</div>`; return; }
+  const groups={};
+  for(const c of top){ const s=(META[c.strat]&&META[c.strat].s)||"?"; (groups[s]||=[]).push(c); }   // preserves pnl-desc order
+  const order=Object.keys(SRC).filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!SRC[k])).filter(s=>!FILTER||s===FILTER);
+  let h="";
+  for(const s of order){
+    const list=groups[s];
+    const gt=list.reduce((acc,c)=>acc+(c.t.real_pnl||0),0);
+    const m=SRC[s]||{c:"#8a9bb0", g:"Other"};
+    h+=`<div class="grp" style="border-left:3px solid ${m.c}">
+      <span class="srcbadge" style="background:${m.c}">${s}</span>
+      <span class="grp-label">${m.g}</span>
+      <span class="grp-sum ${cls(gt)}">${money(gt)}</span>
+      <span class="grp-n">${list.length}</span></div>`;
+    for(const c of list){ h+=top20Card(c); }
+  }
+  document.getElementById("p-top20").innerHTML = h;
+}
+
+// ---- Tab 3: Bottom 10 (worst sim x contract today, WORST at top) — flat, filter-aware ----
+function renderBottom10(d){
+  let cells=[];
+  for (const r of (d.strategies||[])){
+    for (const [sym,c] of Object.entries(r.by_symbol||{})){
+      if (c.today && c.today.n) cells.push({strat:r.strategy, sym, t:c.today, w:(c.week||{})});
+    }
+  }
+  if(FILTER) cells = cells.filter(c => (META[c.strat]&&META[c.strat].s)===FILTER);
+  cells.sort((a,b)=>(a.t.real_pnl||0)-(b.t.real_pnl||0));  // worst (most negative) first
+  const bottom = cells.slice(0,20);
+  if(!bottom.length){ document.getElementById("p-bottom10").innerHTML=`<div class="muted">No sim×contract trades yet.</div>`; return; }
+  const tot = bottom.reduce((acc,c)=>acc+(c.t.real_pnl||0),0);
+  let h=`<div class="grp" style="border-left:3px solid #e5484d">
+    <span class="grp-label">Bottom 20 — worst first</span>
+    <span class="grp-sum ${cls(tot)}">${money(tot)}</span>
+    <span class="grp-n">${bottom.length}</span></div>`;
+  for(const c of bottom){ h+=top20Card(c); }
+  document.getElementById("p-bottom10").innerHTML = h;
+}
+
+// ---- Tab 3: Activity stream (most recent first, 50, scrollable; all $ realistic net) ----
+async function loadActivity(){
+  const el=document.getElementById("p-activity");
+  try {
+    const r=await fetch(`api/shadow/activity?limit=50`,{cache:"no-store"});
+    if(!r.ok) throw new Error("activity "+r.status);
+    const d=await r.json();
+    const tr=d.trades||[];
+    if(!tr.length){ el.innerHTML=`<div class="muted">No shadow trades recorded yet.</div>`; return; }
+    let h=`<div class="actlist">`;
+    for(const t of tr){
+      const tm=new Date(t.exit_ts*1000).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+      h+=`<div class="act">
+        <span class="act-time">${tm}</span>
+        <span class="act-body">
+          <div class="act-name">${nameOf(t.strategy)}</div>
+          <div class="act-sub"><span class="act-sym">${t.symbol}</span> · <span class="act-side">${t.side}</span> · ${t.exit_reason||""}</div>
+        </span>
+        <span class="act-pnl ${cls(t.pnl)}">${money2(t.pnl)}</span>
+      </div>`;
+    }
+    h+=`</div>`;
+    el.innerHTML=h;
+  } catch(e){
+    el.innerHTML=`<div class="err"><b>Could not load activity.</b> ${e.message||e}</div>`;
+  }
+}
+
+function tog(el){ el.classList.toggle("open"); }
+
+// ---- date look-back (operator 2026-07-07): null = live today; else 'YYYY-MM-DD' (UTC day, matches the backend buckets) ----
+let VIEW_DATE=null;
+function _todayISO(){ return new Date().toISOString().slice(0,10); }
+function pickDay(iso){
+  VIEW_DATE = (iso && iso < _todayISO()) ? iso : null;   // blank/today/future → live
+  syncDayUI(); loadOverview();
+}
+function stepDay(delta){
+  const base = VIEW_DATE || _todayISO();
+  const dt = new Date(base+"T00:00:00Z"); dt.setUTCDate(dt.getUTCDate()+delta);
+  const iso = dt.toISOString().slice(0,10);
+  pickDay(iso >= _todayISO() ? null : iso);
+}
+function syncDayUI(){
+  const pick=document.getElementById("dayPick");
+  pick.max=_todayISO(); pick.value=VIEW_DATE||_todayISO();
+  document.getElementById("dayToday").classList.toggle("on", !VIEW_DATE);
+  document.getElementById("dayNext").disabled = !VIEW_DATE;
+}
+
+async function loadOverview(){
+  let d;
+  try {
+    const url = VIEW_DATE ? `api/shadow/overview?date=${VIEW_DATE}` : `api/shadow/overview`;
+    const r=await fetch(url,{cache:"no-store"});
+    if(!r.ok) throw new Error("overview "+r.status);
+    d=await r.json();
+  } catch(e){
+    document.getElementById("p-sims").innerHTML=`<div class="err"><b>Could not load shadow data.</b> ${e.message||e}</div>`;
+    return;
+  }
+  OV=d;
+  const p=projectTF(d);               // render the active DAY/WEEK/ALL timeframe
+  setHeader(d);
+  renderFilters();
+  document.getElementById("banner").innerHTML = d.real_available ? ""
+    : `<div class="banner">Study DB not attached — showing the frictionless <b>ceiling</b> (a mirage), not realistic fills.</div>`;
+  renderSims(p);
+  renderTop20(p);
+  renderBottom10(p);
+  document.getElementById("foot").innerHTML =
+    `Observe-only · <b>realistic tick-repriced NET</b> P&amp;L (filled trades), reset to a fresh-start epoch. `+
+    `Sims + Top 20 ranked most-profitable first. Thin (&lt;30 trades) rows dimmed — not yet a signal. `+
+    `Loaded ${new Date().toLocaleTimeString()}.`;
+}
+
+function tick(){ loadOverview(); if(TAB==="activity") loadActivity(); }
+syncDayUI();
+tick();
+setInterval(tick, 60000);
+</script>
+</body></html>
