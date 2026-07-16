@@ -35,6 +35,7 @@ class Features:
     net_atr_5: float  # (close - close[-6]) / atr, signed
     vol_surge: bool
     n_bars: int
+    net_atr_2: float = 0.0  # (close - close[-3]) / atr — the FAST 2-bar impulse
 
 
 def _atr(bars: list[Bar], n: int = 14) -> float:
@@ -64,12 +65,13 @@ def compute_features(bars: list[Bar]) -> Features:
     slope = (vwap - vwap_first) / atr if atr > 0 else 0.0
     ext = (price - vwap) / atr if atr > 0 else 0.0
     net5 = (price - bars[-6].close) / atr if (len(bars) >= 6 and atr > 0) else 0.0
+    net2 = (price - bars[-3].close) / atr if (len(bars) >= 3 and atr > 0) else 0.0
     if len(bars) >= 6:
         prior = [b.volume for b in bars[-6:-1]]
         surge = bool(prior) and bars[-1].volume >= 1.5 * (sum(prior) / len(prior))
     else:
         surge = False
-    return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars))
+    return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars), net2)
 
 
 # ── entry gates ───────────────────────────────────────────────────────────
@@ -82,14 +84,17 @@ class Entry:
 
 
 def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True,
-                amp_floor: float = 0.0, slope_align: bool = False) -> Entry | None:
+                amp_floor: float = 0.0, slope_align: bool = False, fast: bool = False) -> Entry | None:
     """Momentum: a signed 5-bar thrust of >= thr ATR, volume-confirmed. Two-sided.
     This is V5's ``tw_mnq_thrust_loose`` (op 2026-07-12): thr 1.5, keep the volume
     surge + amplitude floor, drop the still-extending veto — **decided on 1-minute
     bars** (a 5-bar thrust = a 5-MINUTE move; on 5s bars it was a 25s blip and fired
     constantly). ``amp_floor`` is V5's MOMENTUM_AMP_FLOOR (atr_pct >= 0.04% — the
     edge lives at 0.04–0.08, noise below 0.03); here in fraction units (0.0004)."""
-    if abs(f.net_atr_5) < thr:
+    # fast=True triggers off the 2-bar impulse (net_atr_2) instead of the 5-bar move
+    # — fires ~2 min into a move to catch its START, not 5 min in at the exhaustion.
+    net = f.net_atr_2 if fast else f.net_atr_5
+    if abs(net) < thr:
         return None
     if amp_floor and f.atr_pct < amp_floor:  # thin tape → stand down
         return None
@@ -97,10 +102,10 @@ def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True,
         return None
     # 2026-07-16 measurement: counter-trend thrust (a burst AGAINST the VWAP slope)
     # is the entire bleed (−$29/trade vs +$1.8 with-trend, n=50). slope_align requires
-    # the thrust WITH the slope — same sign as net_atr_5; a flat slope (0) is vetoed too.
-    if slope_align and f.net_atr_5 * f.vwap_slope_atr <= 0:
+    # the thrust WITH the slope — same sign as the trigger; a flat slope (0) is vetoed too.
+    if slope_align and net * f.vwap_slope_atr <= 0:
         return None
-    return Entry(side="LONG" if f.net_atr_5 > 0 else "SHORT", gate="thrust")
+    return Entry(side="LONG" if net > 0 else "SHORT", gate="thrust")
 
 
 def gate_reversal_grab(

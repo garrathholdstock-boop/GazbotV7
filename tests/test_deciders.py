@@ -205,3 +205,17 @@ def test_thrust_slope_align_vetoes_flat():
 def test_thrust_slope_align_off_ignores_slope():
     # default (off) — a counter-trend burst still fires, unchanged behaviour
     assert gate_thrust(_feat(net_atr_5=2.0, vwap_slope_atr=-0.5)).side == "LONG"
+
+
+# ── gate_thrust fast (2-bar impulse) trigger (2026-07-16) ─────────────────────
+def test_thrust_fast_fires_on_2bar_when_5bar_is_flat():
+    f = _feat(net_atr_2=2.0, net_atr_5=0.3, vwap_slope_atr=0.5, vol_surge=True)
+    assert gate_thrust(f, fast=True).side == "LONG"   # sharp 2-bar impulse fires
+    assert gate_thrust(f, fast=False) is None          # 5-bar too small → normal wouldn't
+
+
+def test_thrust_fast_respects_alignment():
+    up_into_down = _feat(net_atr_2=2.0, net_atr_5=0.0, vwap_slope_atr=-0.5, vol_surge=True)
+    assert gate_thrust(up_into_down, fast=True, slope_align=True) is None  # counter-trend vetoed
+    with_trend = _feat(net_atr_2=-2.0, net_atr_5=0.0, vwap_slope_atr=-0.5, vol_surge=True)
+    assert gate_thrust(with_trend, fast=True, slope_align=True).side == "SHORT"

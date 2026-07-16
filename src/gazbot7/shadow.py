@@ -151,6 +151,10 @@ def default_slate() -> list[ShadowVariant]:
         # A n=50 measurement said counter-trend thrust IS the bleed; this forward-tests
         # whether the filter flips thrust ~breakeven vs the −$903 control.
         ShadowVariant("thrust_aligned", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True}),
+        # 2026-07-16 — FAST trigger: fire off the 2-bar impulse (not the lagging 5-bar)
+        # + alignment, no veto. Tests "jump in near the START" of a move instead of
+        # arriving at the bottom 5-6 min late. Alignment keeps it from chop-firing.
+        ShadowVariant("thrust_fast", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True, "fast": True}),
     ]
     # absorption-veto DURATION sweep (2026-07-16, operator) — thrust_loose + the
     # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto
