@@ -82,7 +82,7 @@ class Entry:
 
 
 def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True,
-                amp_floor: float = 0.0) -> Entry | None:
+                amp_floor: float = 0.0, slope_align: bool = False) -> Entry | None:
     """Momentum: a signed 5-bar thrust of >= thr ATR, volume-confirmed. Two-sided.
     This is V5's ``tw_mnq_thrust_loose`` (op 2026-07-12): thr 1.5, keep the volume
     surge + amplitude floor, drop the still-extending veto — **decided on 1-minute
@@ -94,6 +94,11 @@ def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True,
     if amp_floor and f.atr_pct < amp_floor:  # thin tape → stand down
         return None
     if require_vol and not f.vol_surge:
+        return None
+    # 2026-07-16 measurement: counter-trend thrust (a burst AGAINST the VWAP slope)
+    # is the entire bleed (−$29/trade vs +$1.8 with-trend, n=50). slope_align requires
+    # the thrust WITH the slope — same sign as net_atr_5; a flat slope (0) is vetoed too.
+    if slope_align and f.net_atr_5 * f.vwap_slope_atr <= 0:
         return None
     return Entry(side="LONG" if f.net_atr_5 > 0 else "SHORT", gate="thrust")
 

@@ -183,3 +183,25 @@ def test_reversal_long_flow_filter_wants_net_buy():
 def test_reversal_short_still_default_side():
     # side defaults SHORT — the original behaviour is unchanged
     assert gate_reversal_grab(_feat(ext_atr=3.0, net_atr_5=-0.6), turn_atr=0.5).side == "SHORT"
+
+
+# ── gate_thrust slope_align — with-trend-only filter (2026-07-16) ─────────────
+def test_thrust_slope_align_passes_with_trend():
+    # LONG burst in an up-slope, SHORT burst in a down-slope — both aligned, both fire
+    assert gate_thrust(_feat(net_atr_5=2.0, vwap_slope_atr=0.5), slope_align=True).side == "LONG"
+    assert gate_thrust(_feat(net_atr_5=-2.0, vwap_slope_atr=-0.5), slope_align=True).side == "SHORT"
+
+
+def test_thrust_slope_align_vetoes_counter_trend():
+    # LONG burst into a down-slope / SHORT burst into an up-slope — counter-trend, vetoed
+    assert gate_thrust(_feat(net_atr_5=2.0, vwap_slope_atr=-0.5), slope_align=True) is None
+    assert gate_thrust(_feat(net_atr_5=-2.0, vwap_slope_atr=0.5), slope_align=True) is None
+
+
+def test_thrust_slope_align_vetoes_flat():
+    assert gate_thrust(_feat(net_atr_5=2.0, vwap_slope_atr=0.0), slope_align=True) is None
+
+
+def test_thrust_slope_align_off_ignores_slope():
+    # default (off) — a counter-trend burst still fires, unchanged behaviour
+    assert gate_thrust(_feat(net_atr_5=2.0, vwap_slope_atr=-0.5)).side == "LONG"

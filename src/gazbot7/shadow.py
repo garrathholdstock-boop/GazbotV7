@@ -118,6 +118,10 @@ def default_slate() -> list[ShadowVariant]:
         ShadowVariant("thrust_cont", "thrust", {"thr": 2.0, "amp_floor": 0.0004}),   # tighter thrust
         ShadowVariant("thrust_noamp", "thrust", {"thr": 1.5, "amp_floor": 0.0}),     # amp floor OFF
         ShadowVariant("thrust_amp03", "thrust", {"thr": 1.5, "amp_floor": 0.0003}),  # looser floor
+        # 2026-07-16 — thrust_loose + the sign filter: only fire WITH the VWAP slope.
+        # A n=50 measurement said counter-trend thrust IS the bleed; this forward-tests
+        # whether the filter flips thrust ~breakeven vs the −$903 control.
+        ShadowVariant("thrust_aligned", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True}),
     ]
     slate += [ShadowVariant(name, "reversal_grab", params)
               for name, params in REVERSAL_SHORT_VARIANTS.items()]

@@ -165,6 +165,7 @@ const META = {
   thrust_cont:{n:"Thrust · Tight 2.0", s:"T"},
   thrust_noamp:{n:"Thrust · No-amp", s:"T"},
   thrust_amp03:{n:"Thrust · Amp .0003", s:"T"},
+  thrust_aligned:{n:"Thrust · With-trend", s:"T"},
   rg_short_050:{n:"Rev Grab · Turn .50", s:"G"},
   rg_short_025_raw:{n:"Rev Grab · .25 raw", s:"G"},
   rg_short_025_flow25:{n:"Rev Grab · .25 flow25", s:"G"},
@@ -186,7 +187,7 @@ const nameOf = s => (META[s] && META[s].n) || s;
 // regardless of how the cards are sorted/grouped.
 // Frozen ID order — pins each sim's #N (matches shadow.default_slate()). Add NEW
 // sims at the END so a removed one leaves a GAP rather than renumbering the rest.
-const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_noamp","thrust_amp03","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25"];
+const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_noamp","thrust_amp03","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25"];
 const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
 function srcBadge(strat){
   const s = META[strat] && META[strat].s;
