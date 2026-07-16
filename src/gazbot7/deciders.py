@@ -36,6 +36,7 @@ class Features:
     vol_surge: bool
     n_bars: int
     net_atr_2: float = 0.0  # (close - close[-3]) / atr — the FAST 2-bar impulse
+    vwap_slope_fast: float = 0.0  # VWAP slope over a SHORT (12-bar) window — flips at reversals
 
 
 def _atr(bars: list[Bar], n: int = 14) -> float:
@@ -66,12 +67,17 @@ def compute_features(bars: list[Bar]) -> Features:
     ext = (price - vwap) / atr if atr > 0 else 0.0
     net5 = (price - bars[-6].close) / atr if (len(bars) >= 6 and atr > 0) else 0.0
     net2 = (price - bars[-3].close) / atr if (len(bars) >= 3 and atr > 0) else 0.0
+    # fast VWAP slope: a short (12-bar) window flips within minutes of a reversal,
+    # where the 60-bar slope lags 30-40min and wrong-foots grind/rg (2026-07-16).
+    _rec = bars[-12:] if len(bars) >= 12 else bars
+    _h = len(_rec) // 2
+    slope_fast = (_vwap(_rec) - _vwap(_rec[:_h])) / atr if (atr > 0 and _h >= 1) else 0.0
     if len(bars) >= 6:
         prior = [b.volume for b in bars[-6:-1]]
         surge = bool(prior) and bars[-1].volume >= 1.5 * (sum(prior) / len(prior))
     else:
         surge = False
-    return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars), net2)
+    return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars), net2, slope_fast)
 
 
 # ── entry gates ───────────────────────────────────────────────────────────
@@ -118,18 +124,27 @@ def gate_reversal_grab(
     require_rth: bool = False,
     in_rth: bool = True,
     ext_min: float = 2.5,
+    fast_slope: bool = False,
+    fast_turn: bool = False,
 ) -> Entry | None:
     """Turnback momentum: over-extended past VWAP, then a fresh turn back, optionally
     confirmed by aggressor flow. SHORT fades a stretch ABOVE VWAP rolling over; LONG
-    (the mirror) fades a stretch BELOW VWAP turning up. The research's edge."""
-    if f.atr_pct > 0.09 or abs(f.vwap_slope_atr) > 1.0:  # regime stand-down
+    (the mirror) fades a stretch BELOW VWAP turning up. The research's edge.
+
+    ``fast_slope`` runs the regime guard off the SHORT-window slope (which flattens at
+    a reversal, so the guard stops vetoing the exact turn it should catch); ``fast_turn``
+    detects the turn on net_atr_2 (2-bar) not net_atr_5 — together they catch a fast
+    reversal in its bottom 20% instead of being blocked (proven on the 15:17 run)."""
+    slope = f.vwap_slope_fast if fast_slope else f.vwap_slope_atr
+    if f.atr_pct > 0.09 or abs(slope) > 1.0:  # regime stand-down
         return None
     if require_rth and not in_rth:
         return None
+    turn = f.net_atr_2 if fast_turn else f.net_atr_5
     if side == "SHORT":
         if f.ext_atr < ext_min:  # stretched >= ext_min ATR ABOVE vwap
             return None
-        if f.net_atr_5 > -turn_atr:  # a fresh down-turn of >= turn_atr
+        if turn > -turn_atr:  # a fresh down-turn of >= turn_atr
             return None
         if flow_min is not None and tape_net > -flow_min:  # net-SELL confirm
             return None
@@ -137,7 +152,7 @@ def gate_reversal_grab(
     # LONG mirror — stretched BELOW vwap, turning up, optional net-BUY confirm
     if f.ext_atr > -ext_min:
         return None
-    if f.net_atr_5 < turn_atr:
+    if turn < turn_atr:
         return None
     if flow_min is not None and tape_net < flow_min:
         return None
@@ -190,16 +205,19 @@ def gate_capitulation(f: Features, *, cap_sell: float = 0.0, cap_buy: float = 0.
 
 
 def gate_grind(f: Features, *, tape_net: float = 0.0, slope_min: float = 0.5,
-               ext_lo: float = 0.3, ext_hi: float = 4.0, flow_min: float = 0.0) -> Entry | None:
+               ext_lo: float = 0.3, ext_hi: float = 4.0, flow_min: float = 0.0,
+               fast_slope: bool = False) -> Entry | None:
     """Trend CONTINUATION — ride an established VWAP trend while price is riding WITH
     it (above VWAP in an up-trend) but not yet exhausted (``ext_lo..ext_hi``). For the
     sustained grinds that thrust (a 5-bar burst gate) misses entirely. Chandelier-
     exited (uncapped ride). NB: ``vwap_slope_atr`` is a 60-bar measure, so it LAGS a
     fresh reversal — this owns an *established* trend, not the first reclaim off a
-    flush (the capitulation gate owns that). Down-grind is the mirror."""
-    if f.vwap_slope_atr >= slope_min and ext_lo <= f.ext_atr <= ext_hi and tape_net >= flow_min:
+    flush (the capitulation gate owns that) — UNLESS fast_slope, the short-window slope
+    that flips within minutes of a reversal. Down-grind is the mirror."""
+    slope = f.vwap_slope_fast if fast_slope else f.vwap_slope_atr
+    if slope >= slope_min and ext_lo <= f.ext_atr <= ext_hi and tape_net >= flow_min:
         return Entry(side="LONG", gate="grind")
-    if f.vwap_slope_atr <= -slope_min and -ext_hi <= f.ext_atr <= -ext_lo and tape_net <= -flow_min:
+    if slope <= -slope_min and -ext_hi <= f.ext_atr <= -ext_lo and tape_net <= -flow_min:
         return Entry(side="SHORT", gate="grind")
     return None
 

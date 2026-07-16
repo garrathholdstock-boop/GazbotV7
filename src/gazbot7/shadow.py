@@ -196,6 +196,16 @@ def default_slate() -> list[ShadowVariant]:
         ShadowVariant("grind_04", "grind", {"slope_min": 0.4}, chandelier=True),
         ShadowVariant("grind_06", "grind", {"slope_min": 0.6}, chandelier=True),
     ]
+    # FAST-SLOPE rewire (2026-07-16) — the short-window slope flips at reversals where
+    # the 60-bar slope lags 30-40min and wrong-foots these gates. PROVEN on the 15:17
+    # run: rg_long_fast enters @29351 (13% of the run) + chandelier bank +$161, vs the
+    # live desk's -$50 top-tick. grind_fast lets grind reverse direction quickly too.
+    slate += [
+        ShadowVariant("rg_long_fast", "reversal_grab",
+                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15, "fast_slope": True, "fast_turn": True},
+                      chandelier=True),
+        ShadowVariant("grind_fast", "grind", {"slope_min": 0.4, "fast_slope": True}, chandelier=True),
+    ]
     # absorption-veto DURATION sweep (2026-07-16, operator) — thrust_loose + the
     # delayed-entry veto at 50/55/60/70/90s. thrust_loose (0s, above) is the no-veto
     # control; live desk runs 45s. Which wait best trades avoided-bleed vs missed moves?

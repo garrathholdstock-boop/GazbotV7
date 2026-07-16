@@ -278,3 +278,24 @@ def test_grind_flow_confirm():
     f = _feat(vwap_slope_atr=0.8, ext_atr=1.5)
     assert gate_grind(f, flow_min=50, tape_net=10) is None       # not enough net buy
     assert gate_grind(f, flow_min=50, tape_net=80).side == "LONG"
+
+
+# ── fast-slope rewire (2026-07-16) ────────────────────────────────────────────
+def test_features_has_fast_slope():
+    bars = [Bar(i, 100+i*0.5, 100+i*0.5+0.3, 100+i*0.5-0.3, 100+i*0.5, 10) for i in range(20)]
+    assert compute_features(bars).vwap_slope_fast > 0  # rising → positive fast slope
+
+
+def test_grind_fast_uses_short_slope():
+    # 60-bar slope flat but fast slope up → grind_fast goes LONG, plain grind doesn't
+    f = _feat(vwap_slope_atr=0.1, vwap_slope_fast=0.8, ext_atr=1.5)
+    assert gate_grind(f, slope_min=0.4, fast_slope=True).side == "LONG"
+    assert gate_grind(f, slope_min=0.4, fast_slope=False) is None
+
+
+def test_rg_long_fast_fires_where_slow_slope_vetoes():
+    # a reversal: 60-bar slope steep (would veto) but fast slope flat; extended below,
+    # fast 2-bar up-turn → rg_long_fast fires; the plain gate is vetoed.
+    f = _feat(vwap_slope_atr=-1.25, vwap_slope_fast=-0.5, ext_atr=-2.8, net_atr_2=0.5, net_atr_5=-1.0)
+    assert gate_reversal_grab(f, side="LONG", ext_min=2.0, turn_atr=0.15, fast_slope=True, fast_turn=True).side == "LONG"
+    assert gate_reversal_grab(f, side="LONG", ext_min=2.0, turn_atr=0.15) is None  # slow slope vetoes
