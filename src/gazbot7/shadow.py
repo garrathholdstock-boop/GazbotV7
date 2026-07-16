@@ -127,6 +127,19 @@ def default_slate() -> list[ShadowVariant]:
     # earn a real read in shadow. Identical entry to rg_short_025_flow25; only target differs.
     slate.append(ShadowVariant("rg_short_025_flow25_t15", "reversal_grab",
                                dict(REVERSAL_SHORT_VARIANTS["rg_short_025_flow25"]), target_r=1.5))
+    # LONG reversal mirror (2026-07-16) — fade a stretch BELOW VWAP turning up. The
+    # thresholds are from a tick grid-search, NOT a copy of the shorts: the long side
+    # needs a looser extension (ext 2.0 not 2.5) + a looser turn (0.25) + a 1.5R
+    # target (best in-sample; 2.0/2.5 barely fired and lost). A tight spread to
+    # forward-test: the winner, a 2R-target control, and a net-BUY-flow cut.
+    slate += [
+        ShadowVariant("rg_long_20_t15", "reversal_grab",
+                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25}, target_r=1.5),
+        ShadowVariant("rg_long_20_t20", "reversal_grab",
+                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25}, target_r=2.0),
+        ShadowVariant("rg_long_20_flow25", "reversal_grab",
+                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25, "flow_min": 25}, target_r=1.5),
+    ]
     return slate
 
 

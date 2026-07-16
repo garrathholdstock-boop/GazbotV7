@@ -101,6 +101,7 @@ def gate_thrust(f: Features, *, thr: float = 1.5, require_vol: bool = True,
 def gate_reversal_grab(
     f: Features,
     *,
+    side: str = "SHORT",
     turn_atr: float = 0.5,
     flow_min: float | None = None,
     tape_net: float = 0.0,
@@ -108,19 +109,29 @@ def gate_reversal_grab(
     in_rth: bool = True,
     ext_min: float = 2.5,
 ) -> Entry | None:
-    """Turnback momentum, SHORT: over-extended ABOVE VWAP, then a fresh DOWN turn,
-    optionally confirmed by net-SELL aggressor flow. The research's edge."""
+    """Turnback momentum: over-extended past VWAP, then a fresh turn back, optionally
+    confirmed by aggressor flow. SHORT fades a stretch ABOVE VWAP rolling over; LONG
+    (the mirror) fades a stretch BELOW VWAP turning up. The research's edge."""
     if f.atr_pct > 0.09 or abs(f.vwap_slope_atr) > 1.0:  # regime stand-down
-        return None
-    if f.ext_atr < ext_min:  # must be stretched >= ext_min ATR above VWAP
-        return None
-    if f.net_atr_5 > -turn_atr:  # need a fresh down-move of >= turn_atr (the turn)
-        return None
-    if flow_min is not None and tape_net > -flow_min:  # need net-SELL flow >= flow_min
         return None
     if require_rth and not in_rth:
         return None
-    return Entry(side="SHORT", gate="reversal_grab")
+    if side == "SHORT":
+        if f.ext_atr < ext_min:  # stretched >= ext_min ATR ABOVE vwap
+            return None
+        if f.net_atr_5 > -turn_atr:  # a fresh down-turn of >= turn_atr
+            return None
+        if flow_min is not None and tape_net > -flow_min:  # net-SELL confirm
+            return None
+        return Entry(side="SHORT", gate="reversal_grab")
+    # LONG mirror — stretched BELOW vwap, turning up, optional net-BUY confirm
+    if f.ext_atr > -ext_min:
+        return None
+    if f.net_atr_5 < turn_atr:
+        return None
+    if flow_min is not None and tape_net < flow_min:
+        return None
+    return Entry(side="LONG", gate="reversal_grab")
 
 
 # The forward-shadow slate (from the reversal_grab research). LIVE is MNQ-only;

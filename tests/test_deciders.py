@@ -159,3 +159,27 @@ def test_chandelier_short_mirror():
 def test_chandelier_dormant_before_any_green():
     pos = Position("LONG", 100.0, 4.0, 0.0)  # never went green
     assert exit_chandelier(pos, 105.0) is None
+
+
+# ── reversal_grab LONG mirror (2026-07-16) ────────────────────────────────────
+def test_reversal_long_fires_below_and_turning_up():
+    e = gate_reversal_grab(_feat(ext_atr=-3.0, net_atr_5=0.6), side="LONG", turn_atr=0.5)
+    assert e is not None and e.side == "LONG" and e.gate == "reversal_grab"
+
+
+def test_reversal_long_needs_below_extension():
+    assert gate_reversal_grab(_feat(ext_atr=-1.0, net_atr_5=0.6), side="LONG", turn_atr=0.5) is None
+
+
+def test_reversal_long_needs_the_up_turn():
+    assert gate_reversal_grab(_feat(ext_atr=-3.0, net_atr_5=0.3), side="LONG", turn_atr=0.5) is None
+
+
+def test_reversal_long_flow_filter_wants_net_buy():
+    assert gate_reversal_grab(_feat(ext_atr=-3.0, net_atr_5=0.6), side="LONG", flow_min=50, tape_net=30) is None
+    assert gate_reversal_grab(_feat(ext_atr=-3.0, net_atr_5=0.6), side="LONG", flow_min=50, tape_net=60) is not None
+
+
+def test_reversal_short_still_default_side():
+    # side defaults SHORT — the original behaviour is unchanged
+    assert gate_reversal_grab(_feat(ext_atr=3.0, net_atr_5=-0.6), turn_atr=0.5).side == "SHORT"
