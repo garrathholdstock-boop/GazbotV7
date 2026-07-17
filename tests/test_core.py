@@ -65,6 +65,15 @@ class FakePub:
         self.sent.append((topic, payload))
 
 
+class FakeGateway:
+    """Just the surface the unverified-protection watchdog touches."""
+    def __init__(self):
+        self.reconnects = 0
+
+    def force_reconnect(self):
+        self.reconnects += 1
+
+
 def _build(*, place_live=True, is_healthy=None, now_fn=None, **cfgkw):
     store = open_store(":memory:")
     broker, sb = FakeBroker(), FakeStopBroker()
@@ -208,6 +217,66 @@ def test_naked_auditor_flat_resets_streak():
         core.assess_protection(1.0, [("STP", "SELL", "Inactive", 1.0)], now_mono=200.0)  # streak→1
         assert core.assess_protection(0.0, [], now_mono=205.0) == "flat"  # venue flat
         assert core._naked_streak == 0
+    asyncio.run(scenario())
+
+
+# ── protection-unverifiable watchdog (2026-07-17 naked-bleed fix) ─────────────
+def test_unverified_protection_silent_when_flat():
+    # a FLAT desk has nothing at risk — 'can't verify' is silent, no page/reconnect
+    core, *_ = _build()
+    gw = FakeGateway()
+    msgs: list[str] = []
+    core._notify = msgs.append
+    for _ in range(20):
+        core._on_unverified_protection(gw)
+    assert msgs == [] and gw.reconnects == 0 and core._unverified == 0
+
+
+def test_unverified_protection_held_pages_then_heals():
+    # a HELD position that can't be verified must NEVER silently skip: page fast,
+    # then force a fresh session to heal the data path (the 3h no-op bug)
+    from gazbot7.core import UNVERIFIED_PAGE_CYCLES, UNVERIFIED_RECONNECT_CYCLES
+
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        gw = FakeGateway()
+        msgs: list[str] = []
+        core._notify = msgs.append
+        for _ in range(UNVERIFIED_PAGE_CYCLES):
+            core._on_unverified_protection(gw)
+        assert len(msgs) == 1 and "CANNOT VERIFY" in msgs[0]  # paged the operator fast
+        assert gw.reconnects == 0
+        for _ in range(UNVERIFIED_RECONNECT_CYCLES - UNVERIFIED_PAGE_CYCLES):
+            core._on_unverified_protection(gw)
+        assert gw.reconnects == 1  # forced a session heal once we passed the reconnect threshold
+    asyncio.run(scenario())
+
+
+def test_verify_ok_clears_the_watchdog():
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        gw = FakeGateway()
+        core._notify = lambda _m: None
+        for _ in range(5):
+            core._on_unverified_protection(gw)
+        assert core._unverified == 5
+        core._verify_ok()  # a good snapshot resets the escalation
+        assert core._unverified == 0 and core._unverified_alarmed is False
+    asyncio.run(scenario())
+
+
+def test_protection_status_flags_held_and_verified():
+    async def scenario():
+        core, *_ = _build()
+        assert core._protection_status() == {"held": False}  # flat → nothing to protect
+        await _open_long(core)
+        core._protection_ok = True
+        st = core._protection_status()
+        assert st["held"] is True and st["verified"] is True
+        core._protection_ok = False
+        assert core._protection_status()["verified"] is False  # naked/unverified surfaces
     asyncio.run(scenario())
 
 

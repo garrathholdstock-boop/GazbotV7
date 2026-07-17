@@ -177,6 +177,15 @@ class IBGateway:
                 fails = 0
                 self._force_reconnect()
 
+    def force_reconnect(self) -> None:
+        """Public: tear down a (possibly zombie) connection so the reconnect loop
+        rebuilds a fresh session. Core calls this when it HOLDS a position it cannot
+        verify — reqCurrentTime can answer while reqPositions/reqAllOpenOrders is dead
+        (the 2026-07-17 naked-bleed), and a fresh session restores the data path the
+        naked auditor depends on. Safe to call repeatedly; a no-op while stopping."""
+        if not self._stopping:
+            self._force_reconnect()
+
     def _force_reconnect(self) -> None:
         """Tear the (zombie) connection down so the reconnect loop rebuilds it."""
         self.state = ConnState.RECONNECTING

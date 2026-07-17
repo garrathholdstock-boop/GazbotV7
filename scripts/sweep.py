@@ -117,7 +117,8 @@ def check_core(cfg: RunConfig, now: datetime) -> dict:
               f"hb {age:.0f}s") if status == OK else "; ".join(notes)
     # pre-flight is clean only when the heartbeat is fresh AND the gateway is healthy
     return {"status": status, "detail": detail, "preflight_ok": fresh and conn_ok,
-            "flat": bool(h.get("flat", True)), "halted": halted}
+            "flat": bool(h.get("flat", True)), "halted": halted,
+            "protection": h.get("protection")}
 
 
 def check_capture(cfg: RunConfig, now: datetime) -> dict:
@@ -172,6 +173,26 @@ def check_position(store, core: dict) -> dict:
         return {"status": OK, "detail": "flat (core + store agree)"}
     if not flat_core and held_store:
         r = rows[0]
+        # VENUE-TRUTH protection gate (2026-07-17): 'held + agree' is NOT enough — the
+        # last audit must have CONFIRMED live coverage. A held-but-unverified position
+        # (naked, or the venue snapshot silently failing) is exactly how a stop-less
+        # trade bled for 3h reading 'OK'. Only trust the new `protection` block.
+        prot = core.get("protection")
+        if isinstance(prot, dict) and prot.get("held"):
+            if prot.get("verified") is False:
+                unver = prot.get("unverified_cycles") or 0
+                why = f"venue snapshot unverifiable {unver} cycles" if unver else "coverage NOT confirmed — naked?"
+                return {"status": CRIT, "held": True,
+                        "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']} — protection "
+                        f"NOT verified ({why}); CHECK IBKR / flatten"}
+            age = prot.get("verified_age_s")
+            if age is not None and age > 60:
+                return {"status": WARN, "held": True,
+                        "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']}; stop last "
+                        f"verified {age:.0f}s ago (stale)"}
+            return {"status": OK, "held": True,
+                    "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']} (stop VERIFIED at venue)"}
+        # legacy heartbeat with no protection block → pre-fix behaviour
         return {"status": OK, "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']} "
                 f"(core managing native stop)", "held": True}
     # disagreement — core's freshly-read venue truth vs the store's open_position row

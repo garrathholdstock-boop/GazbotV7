@@ -58,6 +58,14 @@ _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0       # naked-auditor cadence
 PROTECT_BOOT_SETTLE_S = 120.0  # grace after start — let a GTC stop reappear before acting
 EXIT_STUCK_CYCLES = 3          # a close in flight this many cycles without reducing → CRIT
+# Protection-unverifiable watchdog (2026-07-17 naked-bleed fix). When a position is
+# HELD but the venue snapshot can't be read, escalate instead of silently skipping —
+# the incident: reqCurrentTime answered (so healthy/probe/liveness were all green)
+# while reqPositions/reqAllOpenOrders failed, so the auditor no-op'd for 3h with no
+# alarm and no flatten, and a stop-less position bled unbounded.
+UNVERIFIED_PAGE_CYCLES = 3       # ~15s at PROTECT_INTERVAL_S — page the operator fast
+UNVERIFIED_RECONNECT_CYCLES = 6  # ~30s — force a fresh session to heal the data path
+UNVERIFIED_REPAGE_CYCLES = 60    # ~5min — keep nagging + retry the heal until it clears
 
 
 class _NoOpBroker:
@@ -96,6 +104,11 @@ class Core:
         self._exit_stuck = 0  # cycles a close has been in flight without reducing
         self._exit_alarmed = False
         self._protect_poke = asyncio.Event()  # a dead stop wakes the auditor instantly
+        # protection-unverifiable watchdog (see UNVERIFIED_* constants)
+        self._unverified = 0            # consecutive cycles a HELD position couldn't be verified
+        self._unverified_alarmed = False
+        self._protection_ok = False     # did the last successful audit confirm live coverage?
+        self._last_verified_mono = 0.0  # monotonic of the last successful venue verification
 
     def poke_protection(self, *_a) -> None:
         """Called when a protective stop goes dead — wake the auditor now."""
@@ -242,6 +255,34 @@ class Core:
             return "settle"  # let a GTC stop re-appear after a (re)start before acting
         self._naked_streak += 1
         return "flatten" if self._naked_streak >= 2 else "reprotect"
+
+    def _verify_ok(self) -> None:
+        """A cycle obtained fresh venue truth → clear the unverifiable watchdog."""
+        self._unverified = 0
+        self._unverified_alarmed = False
+        self._last_verified_mono = time.monotonic()
+
+    def _on_unverified_protection(self, gw) -> None:
+        """A held position whose protection could NOT be verified this cycle (gateway
+        unhealthy, probe failed, or the venue snapshot threw). A FLAT desk has nothing
+        at risk — stay silent. A HELD one must escalate: page fast, then force a fresh
+        session to heal the (zombie) data path so the naked auditor can resume. This is
+        the fix for the silent 3h no-op — 'can't check' must never read as 'all clear'."""
+        if self._pos is None:
+            self._unverified = 0
+            self._unverified_alarmed = False
+            return
+        self._unverified += 1
+        self._protection_ok = False
+        if self._unverified >= UNVERIFIED_PAGE_CYCLES and (
+                not self._unverified_alarmed or self._unverified % UNVERIFIED_REPAGE_CYCLES == 0):
+            self._unverified_alarmed = True
+            self._notify(f"CANNOT VERIFY protection on held {self._cfg.symbol} {self._pos.side} "
+                         f"{self._qty:g} — venue snapshot failing {self._unverified} cycles while "
+                         f"conn reads healthy. Healing session; CHECK IBKR / flatten if it persists.")
+        if self._unverified >= UNVERIFIED_RECONNECT_CYCLES and \
+                self._unverified % UNVERIFIED_RECONNECT_CYCLES == 0:
+            gw.force_reconnect()  # rebuild the session → next cycle's snapshot should answer
 
     def _reprotect(self) -> None:
         p = self._pos
@@ -404,13 +445,16 @@ class Core:
             except (TimeoutError, asyncio.TimeoutError):
                 pass
             self._protect_poke.clear()
-            if not gw.healthy or not self._cfg.place_live:
-                continue
-            if not await gw.probe_alive():  # freshness gate — fail-closed
-                continue
-            snap = await self._read_venue_protection(gw)
+            snap = None
+            if gw.healthy and self._cfg.place_live and await gw.probe_alive():
+                snap = await self._read_venue_protection(gw)
             if snap is None:
+                # Could not verify venue truth this cycle. A flat desk is silent; a
+                # HELD position escalates (page + heal) — never a silent skip, which
+                # is exactly how a stop-less position bled for 3h (2026-07-17).
+                self._on_unverified_protection(gw)
                 continue
+            self._verify_ok()  # got fresh venue truth → watchdog clear
             net, orders, avg = snap
             verdict = reconcile_verdict(self._pos.side if self._pos else None, self._qty, net)
             if verdict == "adopt":
@@ -434,6 +478,7 @@ class Core:
                     self._exit_watchdog(net)  # a close is in flight — is it completing?
                 else:
                     action = self.assess_protection(net, orders, time.monotonic())
+                    self._protection_ok = action == "ok"  # confirmed live coverage this cycle
                     if action == "reprotect":
                         self._reprotect()
                         self._notify(f"naked {self._cfg.symbol} — re-armed stop (attempt {self._naked_streak})")
@@ -481,6 +526,16 @@ class Core:
         self._write_heartbeat(gw)
         sd_notify("WATCHDOG=1")  # S9: prove the loop is live to systemd's watchdog
 
+    def _protection_status(self) -> dict:
+        """Whether a held position is CONFIRMED protected at venue truth, and how
+        stale that confirmation is. The sweep reads this — a held-but-unverified
+        position must not read 'OK' just because the heartbeat is fresh."""
+        if self._pos is None:
+            return {"held": False}
+        age = round(time.monotonic() - self._last_verified_mono, 1) if self._last_verified_mono else None
+        return {"held": True, "verified": self._protection_ok,
+                "verified_age_s": age, "unverified_cycles": self._unverified}
+
     def _write_heartbeat(self, gw: IBGateway) -> None:
         """Two files, both written every cycle (real wall-clock ts):
         - core_health.json: the liveness file the EXTERNAL monitor reads (S6).
@@ -488,14 +543,17 @@ class Core:
           healthy, place_live, halted, and the live position (None when flat)."""
         ts = datetime.now(UTC).isoformat()
         data_dir = os.path.dirname(self._cfg.store_path) or "."
+        protection = self._protection_status()
         health = {
             "ts": ts, "conn": gw.state.value, "healthy": gw.healthy,
             "place_live": self._cfg.place_live, "flat": self._pos is None, "halted": self._halted,
+            "protection": protection,
         }
         status = {
             "ts": ts, "conn": gw.state.value, "healthy": gw.healthy,
             "place_live": self._cfg.place_live, "halted": self._halted,
             "position": None if self._pos is None else self._position_payload(),
+            "protection": protection,
         }
         for name, payload in (("core_health.json", health), ("status.json", status)):
             path = os.path.join(data_dir, name)
