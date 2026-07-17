@@ -51,6 +51,8 @@ class ShadowVariant:
     absorption_flow_min: float = 50.0
     confirm_s: float = 0.0  # delayed-entry absorption veto: wait N s before entering (0 = immediate)
     chandelier: bool = False  # profit exit = the tightening chandelier (ride) instead of the R-target
+    chand_start_k: float = 3.5  # chandelier trail width at peak_r=0 (k*ATR); lower = tighter give-back
+    chand_tighten: float = 0.75  # how fast k tightens toward min_k (0.5) as the peak extends
 
 
 class ShadowSim:
@@ -130,7 +132,9 @@ class ShadowSim:
         # desk + the backtest) — the early risk cuts would choke the ride, so they only
         # apply to the fixed-R-target variants.
         if v.chandelier:
-            reason = "CHANDELIER" if exit_chandelier(pos, f.price) else exit_scalp(
+            fired = exit_chandelier(pos, f.price, start_k=v.chand_start_k,
+                                    min_k=0.5, tighten=v.chand_tighten)
+            reason = "CHANDELIER" if fired else exit_scalp(
                 pos, f.price, target_r=99.0, stop_atr_mult=v.stop_atr_mult)  # target off; STOP only
         else:
             reason = exit_scalp(pos, f.price, target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)
@@ -182,6 +186,21 @@ def default_slate() -> list[ShadowVariant]:
         # + alignment, no veto. Tests "jump in near the START" of a move instead of
         # arriving at the bottom 5-6 min late. Alignment keeps it from chop-firing.
         ShadowVariant("thrust_fast", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True, "fast": True}),
+    ]
+    # CHANDELIER give-back A/B (2026-07-17, operator "2 or 3 chandeliers ready … pick
+    # the best for the day"). SAME entry as the live gate (thrust_loose) — only the
+    # profit trail differs. The live desk runs start_k=3.5 (chand_k35 = the faithful
+    # control); on 07-17's huge ATR (44pt) that gave back ~$135 of a +$224 MNQ run,
+    # because give-back = k*ATR and a +$224 peak is only peak_r~2.5 (k hadn't tightened).
+    # k25/k20 lock in sooner. Friday scores lock-in GAINED vs runner CLIPPED, per ATR
+    # regime — that regime split is how we learn WHICH chandelier the day wants.
+    slate += [
+        ShadowVariant("chand_k35", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                      chandelier=True, chand_start_k=3.5),  # = the LIVE desk exit (control)
+        ShadowVariant("chand_k25", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                      chandelier=True, chand_start_k=2.5),
+        ShadowVariant("chand_k20", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                      chandelier=True, chand_start_k=2.0),
     ]
     # CAPITULATION fade (2026-07-16, from the L1/tape footprint) — fade a fast flush
     # driven by a one-sided aggressor climax. Tight (require the delta flip, big climax)
@@ -246,6 +265,15 @@ def default_slate() -> list[ShadowVariant]:
                       {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25, "flow_min": 25}, target_r=1.5),
     ]
     return slate
+
+
+def chandelier_params() -> dict[str, tuple[float, float, float]]:
+    """{strategy name → (start_k, min_k, tighten)} for every chandelier variant, so
+    the repricer replays EACH variant's OWN trail on the tick path instead of the 3.5
+    default — otherwise chand_k20/k25 would be scored as if they were the live 3.5 and
+    the whole A/B would be meaningless. min_k is fixed at 0.5 (the tight floor)."""
+    return {v.name: (v.chand_start_k, 0.5, v.chand_tighten)
+            for v in default_slate() if v.chandelier}
 
 
 # ── service entrypoint ────────────────────────────────────────────────────────

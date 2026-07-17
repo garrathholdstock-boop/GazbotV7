@@ -28,9 +28,12 @@ class Quote(NamedTuple):
     ask: float
 
 
-def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float):
+def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float,
+            chand: tuple[float, float, float] | None = None):
     """Return (real_pnl, fill_status). ``trade`` is a shadow_trades row/dict with
-    side, entry_atr, target_r, stop_atr_mult, qty. ``quotes`` span entry→exit."""
+    side, entry_atr, target_r, stop_atr_mult, qty. ``quotes`` span entry→exit.
+    ``chand`` = (start_k, min_k, tighten) for the chandelier leg — each variant's own
+    trail; None → the live default (3.5, 0.5, 0.75). Non-chandelier trades ignore it."""
     if not quotes:
         return None, "no_data"
     side = trade["side"]
@@ -46,6 +49,7 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
     stop = entry - r if side == "LONG" else entry + r
     chandelier = tr <= 0  # target_r=0 sentinel → ride the tightening chandelier, not a fixed target
     target = None if chandelier else (entry + tr * r if side == "LONG" else entry - tr * r)
+    sk, mk, tt = chand if chand is not None else (3.5, 0.5, 0.75)
 
     peak = 0.0
     exit_px = None
@@ -58,7 +62,7 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
             exit_px = q.bid if side == "LONG" else q.ask
             break
         if chandelier:
-            if _exit_chandelier(_Pos(side, entry, atr, peak), mid):
+            if _exit_chandelier(_Pos(side, entry, atr, peak), mid, start_k=sk, min_k=mk, tighten=tt):
                 exit_px = q.bid if side == "LONG" else q.ask
                 break
         else:
@@ -89,9 +93,14 @@ def _quotes_for(cap_conn, symbol: str, lo_ms: int, hi_ms: int) -> list[Quote]:
 
 
 def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float,
-                    tail_ms: int = 120_000, bar_s: int = 60) -> int:
+                    tail_ms: int = 120_000, bar_s: int = 60,
+                    chand_params: dict[str, tuple[float, float, float]] | None = None) -> int:
     """Reprice every shadow_trade not yet in shadow_real, using captured quotes.
     Returns how many were newly repriced.
+
+    ``chand_params`` maps strategy → (start_k, min_k, tighten) so each chandelier
+    variant is replayed on its OWN trail; None → derive it from the live slate (so a
+    tighter variant is never silently scored at the 3.5 default, whoever calls this).
 
     UNITS: shadow ``entry_ts``/``exit_ts`` are minute-aligned bar starts in
     SECONDS (from MinuteBars); captured ``quotes.ts_ms`` are MILLISECONDS — so the
@@ -99,6 +108,9 @@ def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float,
     (ts + ``bar_s``), so the honest entry is the first quote AFTER the close —
     filling at the minute start would be a pre-signal (lookahead) fill and would
     overstate the edge."""
+    if chand_params is None:
+        from .shadow import chandelier_params  # lazy: avoid an import cycle at module load
+        chand_params = chandelier_params()
     done = {r[0] for r in store.execute("SELECT trade_id FROM shadow_real")}
     now = datetime.now(UTC).isoformat()
     # latest CLEAN captured quote per symbol. A trade whose window extends past this
@@ -116,7 +128,8 @@ def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float,
         if cap_max.get(t["symbol"], 0) < hi_ms:
             continue  # window not fully captured yet — defer, don't freeze a partial score
         quotes = _quotes_for(cap_conn, t["symbol"], lo_ms, hi_ms)
-        pnl, status = reprice(t, quotes, value_per_point=value_per_point, fee_rt=fee_rt)
+        pnl, status = reprice(t, quotes, value_per_point=value_per_point, fee_rt=fee_rt,
+                              chand=chand_params.get(t["strategy"]))
         record_shadow_real(
             store, trade_id=t["id"], strategy=t["strategy"], symbol=t["symbol"],
             real_pnl=pnl, fill_status=status, repriced_at=now,

@@ -145,3 +145,28 @@ def test_reprice_chandelier_rides_not_2r_target():
     row = store.execute("SELECT real_pnl, fill_status FROM shadow_real").fetchone()
     assert row["fill_status"] == "filled"
     assert row["real_pnl"] > 25  # rode ~+16.5pt = ~$31, far past a 2R (+8) scalp
+
+
+# A run to +6 (peak_r 1.5 on atr 4) then a full reversal back to entry. A TIGHTER
+# start_k banks the run near the peak; the live 3.5 never tightens enough at peak_r
+# 1.5 and gives it all back — the 07-17 +$224→+$88 give-back, in miniature.
+_CHAND_TRADE = {"side": "LONG", "entry_atr": 4.0, "target_r": 0.0, "stop_atr_mult": 1.0, "qty": 1.0}
+_CHAND_QUOTES = [Quote(0, 99.5, 100.0), Quote(1, 105.5, 106.5), Quote(2, 101.5, 102.5),
+                 Quote(3, 100.0, 101.0), Quote(4, 99.5, 100.5)]
+
+
+def test_chandelier_params_are_honored_per_variant():
+    # THE A/B GUARD: a tighter start_k MUST be replayed as tighter — else chand_k20 is
+    # silently scored at the 3.5 default and the whole board comparison is a lie.
+    tight, _ = reprice(_CHAND_TRADE, _CHAND_QUOTES, value_per_point=VPP, fee_rt=FEE, chand=(2.0, 0.5, 0.75))
+    loose, _ = reprice(_CHAND_TRADE, _CHAND_QUOTES, value_per_point=VPP, fee_rt=FEE, chand=(3.5, 0.5, 0.75))
+    assert tight == (101.5 - 100.0) * VPP - FEE  # k20 fired at q2, locked the run near peak → +1.5
+    assert loose < 0                             # k35 gave the run back to a loss on the reversal
+    assert tight > loose
+
+
+def test_chandelier_default_matches_the_live_3_5():
+    # chand=None must equal the live default, so untouched variants (grind_fast, …) are unchanged.
+    d, _ = reprice(_CHAND_TRADE, _CHAND_QUOTES, value_per_point=VPP, fee_rt=FEE)
+    e, _ = reprice(_CHAND_TRADE, _CHAND_QUOTES, value_per_point=VPP, fee_rt=FEE, chand=(3.5, 0.5, 0.75))
+    assert d == e

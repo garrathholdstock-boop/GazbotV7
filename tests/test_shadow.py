@@ -114,3 +114,28 @@ def test_shadow_veto_vetoes_on_absorption():
     assert "v" in sim._pending
     sim.on_bars(THRUST_UP, now_ms=t0 + 10_000, tape_net=80.0, window_price_delta=-1.0)
     assert "v" not in sim._pending and sim._open == {}  # absorbed during the wait → vetoed
+
+
+# ── chandelier give-back A/B (2026-07-17) ─────────────────────────────────────
+def test_chandelier_params_cover_every_chandelier_variant():
+    # the repricer scores each chandelier variant on ITS OWN trail via this map; if a
+    # chandelier variant were missing here it'd be silently scored at the 3.5 default.
+    from gazbot7.shadow import chandelier_params, default_slate
+    cp = chandelier_params()
+    assert cp["chand_k35"] == (3.5, 0.5, 0.75)  # = the live desk exit (control)
+    assert cp["chand_k25"] == (2.5, 0.5, 0.75)
+    assert cp["chand_k20"] == (2.0, 0.5, 0.75)
+    assert cp["grind_fast"] == (3.5, 0.5, 0.75)  # existing ride variant unchanged
+    assert set(cp) == {v.name for v in default_slate() if v.chandelier}
+
+
+def test_full_slate_with_chandelier_ab_instantiates_and_steps():
+    # the live slate (now incl. chand_k35/k25/k20) builds, all names are unique, and it
+    # steps on a flat tape without raising — the new variants don't break the sim.
+    from gazbot7.shadow import default_slate
+    slate = default_slate()
+    names = [v.name for v in slate]
+    assert len(names) == len(set(names))  # no duplicate strategy names
+    assert {"chand_k35", "chand_k25", "chand_k20"} <= set(names)
+    store = open_store(":memory:")
+    ShadowSim(store, slate).on_bars(_flat_at(100.0))  # no raise on a flat bar set
