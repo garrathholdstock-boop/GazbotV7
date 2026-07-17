@@ -40,7 +40,10 @@ class RunConfig:
     # signal, WAIT this long watching the tape — enter only if the thrust still
     # fires (continuation) AND no absorption appeared. Turns absorption from a
     # post-entry loss-cutter into a pre-entry veto. 0 = immediate (disables the wait).
-    entry_confirm_s: float = 45.0
+    # 2026-07-17 operator: KILLED on the live desk — it cut ~70% of thrust fires
+    # (14 shadow -> 4 live) and removed winners on trend days. The veto lives on in
+    # shadow (abs_veto_50s/55s/60s) for duration study; live fires immediately.
+    entry_confirm_s: float = 0.0
     # strategy-side managed exits (the native STP owns STOP; these are on top)
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0
