@@ -68,6 +68,17 @@ class TradeTracker:
         mag = o.entry_qty - o.exit_qty
         return mag if o.side == "LONG" else -mag
 
+    def has_applied(self, exec_id: str) -> bool:
+        """Has this venue exec already moved the position? Lets the vanished-close
+        reconstruction feed ONLY unseen fills, so it can't double-count."""
+        return exec_id in self._applied
+
+    def forget(self, symbol: str) -> None:
+        """Drop a dangling in-flight round-trip WITHOUT recording it — for a
+        vanished close that couldn't be reconstructed, so the next fill doesn't
+        mis-book onto a stale open."""
+        self._open.pop(symbol, None)
+
     # ── adopt (S2) ───────────────────────────────────────────────────────────
     def adopt(self, symbol: str, side: str, qty: float, price: float, opened_at: str) -> None:
         """Seed a position taken over from IBKR truth (boot reconcile) WITHOUT

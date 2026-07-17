@@ -25,7 +25,7 @@ import os
 import time
 from datetime import UTC, datetime
 
-from .broker_adapter import IBBrokerAdapter
+from .broker_adapter import IBBrokerAdapter, execution_to_fill
 from .config import RunConfig
 from .deciders import Position
 from .engine import OrderEngine
@@ -57,6 +57,7 @@ CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
 _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0       # naked-auditor cadence
 PROTECT_BOOT_SETTLE_S = 120.0  # grace after start — let a GTC stop reappear before acting
+ARM_SETTLE_S = 4.0             # after arming a stop, let it propagate to IBKR before calling naked
 EXIT_STUCK_CYCLES = 3          # a close in flight this many cycles without reducing → CRIT
 # Protection-unverifiable watchdog (2026-07-17 naked-bleed fix). When a position is
 # HELD but the venue snapshot can't be read, escalate instead of silently skipping —
@@ -99,6 +100,7 @@ class Core:
         self._open_atr = 0.0
         self.opened_at: str | None = None
         self._boot_mono = time.monotonic()  # boot-settle anchor for the naked auditor
+        self._armed_mono = 0.0  # monotonic of the last stop arm — the confirm-settle anchor
         self._naked_streak = 0
         self._halted = False  # set on reconcile DRIFT — rejects new entries until clean
         self._exit_stuck = 0  # cycles a close has been in flight without reducing
@@ -220,6 +222,12 @@ class Core:
         st = self._safety.arm_stop(
             sym, side=side, qty=self._qty, entry_price=fill.price, atr=self._open_atr,
         )
+        # CONFIRM the arm (don't fire-and-forget): stamp the settle anchor + poke the
+        # auditor to verify the stop is live at IBKR truth. The ARM_SETTLE_S grace lets
+        # it propagate first (no double-stop race); a placement that never lands is
+        # then caught + re-armed within seconds instead of only by the 5s poll.
+        self._armed_mono = time.monotonic()
+        self._protect_poke.set()
         # persist the position (esp. entry_atr) so a restart can ADOPT it (S2).
         upsert_open_position(
             self._store, symbol=sym, side=side, qty=self._qty, entry_price=fill.price,
@@ -235,6 +243,7 @@ class Core:
         self._closing = False
         self._exit_reason = None
         self.opened_at = None
+        self._armed_mono = 0.0
         self._exit_stuck = 0
         self._exit_alarmed = False
         self._publish_last_trade()
@@ -253,6 +262,8 @@ class Core:
             return "ok"
         if now_mono - self._boot_mono < PROTECT_BOOT_SETTLE_S:
             return "settle"  # let a GTC stop re-appear after a (re)start before acting
+        if self._armed_mono and now_mono - self._armed_mono < ARM_SETTLE_S:
+            return "settle"  # a just-armed stop may still be propagating to IBKR — don't double-arm
         self._naked_streak += 1
         return "flatten" if self._naked_streak >= 2 else "reprotect"
 
@@ -289,6 +300,7 @@ class Core:
         if p is not None:
             self._safety.arm_stop(self._cfg.symbol, side=p.side, qty=self._qty,
                                   entry_price=p.entry_price, atr=p.entry_atr)
+            self._armed_mono = time.monotonic()  # a re-arm gets its own confirm-settle
 
     def _emergency_flatten(self, reason: str = "NAKED_FLATTEN", venue_net: float | None = None) -> None:
         if self._pos is None or self._closing:
@@ -422,15 +434,54 @@ class Core:
         else:
             self._notify(f"adopt {self._cfg.symbol} {net_qty:g}: no recoverable protection — FLATTENING")
 
+    async def _fetch_unseen_fills(self, gw) -> list:
+        """Venue executions for our symbol NOT yet applied to the tracker — i.e. the
+        closing fills of a position that vanished off our own execDetails stream
+        (a manual flatten / eod_flatten / a stop fill we missed). Filtered by exec_id
+        so an already-applied entry can never be double-counted."""
+        try:
+            from ib_async import ExecutionFilter
+            rows = await gw._ib.reqExecutionsAsync(ExecutionFilter())
+        except Exception:
+            return []
+        out = []
+        for r in rows:
+            ex = getattr(r, "execution", None)
+            if ex is None or getattr(r.contract, "symbol", None) != self._cfg.symbol:
+                continue
+            if self._tt.has_applied(ex.execId):
+                continue
+            out.append(execution_to_fill(ex, order_ref=None, symbol=self._cfg.symbol,
+                                         time_iso=r.time.isoformat()))
+        out.sort(key=lambda f: f.exec_time)
+        return out
+
+    async def _reconcile_vanished(self, gw) -> None:
+        """Venue is flat but we held — the close happened OFF our fill stream. Feed the
+        unseen venue fills through the tracker so the round-trip RECORDS at its real
+        exit price + P&L (the one completion path), instead of silently dropping it
+        (the -$405 recording gap). Page if it can't be reconstructed; then clear."""
+        sym = self._cfg.symbol
+        for f in await self._fetch_unseen_fills(gw):
+            self._tt.apply(f, exit_reason="RECONCILED_CLOSE")
+        if abs(self._tt.net_qty(sym)) < _EPS:
+            self._notify(f"{sym} closed off-desk — reconstructed the close from venue executions + recorded")
+        else:
+            self._notify(f"{sym} vanished at venue but the close couldn't be reconstructed from "
+                         f"executions — P&L NOT journaled, reconcile manually")
+            self._tt.forget(sym)  # drop the dangling open so the next fill doesn't mis-book
+        self._clear_phantom()
+
     def _clear_phantom(self) -> None:
         """Venue is flat but we thought we held — our position closed unseen. Drop
-        the phantom held state + cancel any tracked stop (the round-trip audit at
-        S6 recovers the missing record)."""
+        the phantom held state + cancel any tracked stop. Called after
+        ``_reconcile_vanished`` has already recorded the round-trip from venue truth."""
         self._safety.on_flat(self._cfg.symbol)
         clear_open_position(self._store, self._cfg.symbol)
         self._pos = None
         self._qty = 0.0
         self._naked_streak = 0
+        self._armed_mono = 0.0
         self._closing = False
         self._exit_stuck = 0
         self._exit_alarmed = False
@@ -468,8 +519,7 @@ class Core:
                 self._halted = True
                 continue
             if verdict == "vanished":
-                self._notify(f"{self._cfg.symbol} vanished at venue — clearing phantom held state")
-                self._clear_phantom()
+                await self._reconcile_vanished(gw)  # record the off-desk close, don't drop its P&L
                 continue
             # match — a clean cycle clears any halt, then manage the position
             self._halted = False

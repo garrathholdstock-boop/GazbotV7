@@ -180,6 +180,7 @@ async def _open_long(core):
     core.on_fill(_fill("e1", "BUY", 1, 100.0))
     await asyncio.sleep(0)
     core._boot_mono = 0.0  # neutralise boot-settle for the assess tests
+    core._armed_mono = 0.0  # neutralise arm-settle too (set fresh in the arm-settle test)
 
 
 def test_naked_auditor_covered_is_ok():
@@ -217,6 +218,90 @@ def test_naked_auditor_flat_resets_streak():
         core.assess_protection(1.0, [("STP", "SELL", "Inactive", 1.0)], now_mono=200.0)  # streak→1
         assert core.assess_protection(0.0, [], now_mono=205.0) == "flat"  # venue flat
         assert core._naked_streak == 0
+    asyncio.run(scenario())
+
+
+# ── arm-time stop confirmation: a just-armed stop gets a propagation settle ───
+def test_arm_settle_defers_naked_then_reprotects():
+    from gazbot7.core import ARM_SETTLE_S
+
+    async def scenario():
+        core, *_ = _build()
+        await _open_long(core)
+        core._boot_mono = 0.0
+        naked = [("STP", "SELL", "Inactive", 1.0)]  # no live coverage at venue
+        core._armed_mono = 200.0  # armed at t=200 (past the 120s boot-settle window)
+        # within the settle window → give the just-placed stop time to appear (no double-arm)
+        assert core.assess_protection(1.0, naked, now_mono=200.0 + ARM_SETTLE_S - 1) == "settle"
+        # past it → a placement that never landed is caught + re-armed
+        assert core.assess_protection(1.0, naked, now_mono=200.0 + ARM_SETTLE_S + 1) == "reprotect"
+    asyncio.run(scenario())
+
+
+def test_open_confirms_the_stop_by_poking_the_auditor():
+    async def scenario():
+        core, *_ = _build()
+        core._protect_poke.clear()
+        # open WITHOUT the neutralising helper so we can see _on_opened's arm confirmation
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "meta": {"entry_atr": 4.0}})
+        core.on_fill(_fill("e1", "BUY", 1, 100.0))
+        await asyncio.sleep(0)
+        assert core._protect_poke.is_set()  # arm-time confirmation was requested
+        assert core._armed_mono != 0.0       # arm anchor stamped
+    asyncio.run(scenario())
+
+
+# ── vanished close → reconstruct + record from venue executions (recording gap) ─
+class _Exec:
+    def __init__(self, execId, side, shares, price):
+        self.execId, self.side, self.shares, self.price = execId, side, shares, price
+
+
+class _ExecRow:
+    def __init__(self, ex, symbol="MNQ"):
+        self.execution = ex
+        self.contract = type("C", (), {"symbol": symbol})()
+        self.time = datetime(2026, 7, 15, 14, 0, tzinfo=UTC)
+
+
+class _ExecIB:
+    def __init__(self, rows):
+        self._rows = rows
+
+    async def reqExecutionsAsync(self, _filter):
+        return self._rows
+
+
+class _ExecGW:
+    def __init__(self, rows):
+        self._ib = _ExecIB(rows)
+
+
+def test_vanished_reconstructs_and_records_the_close():
+    async def scenario():
+        core, _b, _sb, _pub, store = _build()
+        await _open_long(core)  # LONG 1 @ 100; tracker holds it, entry exec 'e1' applied
+        rows = [_ExecRow(_Exec("e1", "BOT", 1, 100.0)),  # entry — already applied, skipped
+                _ExecRow(_Exec("x9", "SLD", 1, 108.0))]  # UNSEEN close @ 108
+        await core._reconcile_vanished(_ExecGW(rows))
+        trades = get_trades(store)
+        assert len(trades) == 1
+        assert trades[0]["exit_reason"] == "RECONCILED_CLOSE"
+        assert trades[0]["pnl_usd"] == (108.0 - 100.0) * VPP - FEE  # real exit price, real P&L
+        assert core._pos is None and core._tt.net_qty("MNQ") == 0.0  # cleared
+    asyncio.run(scenario())
+
+
+def test_vanished_pages_and_forgets_when_unreconstructable():
+    async def scenario():
+        core, _b, _sb, _pub, store = _build()
+        await _open_long(core)
+        msgs: list[str] = []
+        core._notify = msgs.append
+        await core._reconcile_vanished(_ExecGW([]))  # no executions available
+        assert any("couldn't be reconstructed" in m for m in msgs)  # paged, not silent
+        assert get_trades(store) == []          # nothing fabricated
+        assert core._pos is None and core._tt.net_qty("MNQ") == 0.0  # dangling open forgotten
     asyncio.run(scenario())
 
 
