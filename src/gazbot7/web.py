@@ -247,10 +247,12 @@ def shadow_overview_json(shadow_path, date=None):
     """Per-variant honest P&L (real_pnl, filled trades) over today/week/all, plus
     by-symbol — the shape shadow_desk.html renders. real_available always True in
     V7 (the repricer writes real_pnl; no ceiling-mirage fallback)."""
+    from .cb import CB_STRATEGIES
     from .shadow import default_slate
     day_start, day_end = _paris_day_bounds(date)
     wk_start = day_end - 7 * 86400
-    fleet = [v.name for v in default_slate()]  # the registered fleet (shown even if idle)
+    # registered fleet (shown even if idle) = the variant slate + the circuit-breaker legs
+    fleet = [v.name for v in default_slate()] + list(CB_STRATEGIES)
     try:
         c = _conn(shadow_path)
         rows = c.execute(

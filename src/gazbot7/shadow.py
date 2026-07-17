@@ -284,6 +284,7 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     and periodically reprice closed trades on honest ticks. Touches NO account."""
     from .agg import MinuteBars
     from .capture import capitulation_tape, open_capture
+    from .cb import SessionDirectionBreaker
     from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
     from .repricer import reprice_pending
     from .store import open_store
@@ -293,6 +294,10 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     sim = ShadowSim(store, variants or default_slate(),
                     value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt,
                     absorption_min_loss_usd=cfg.absorption_min_loss_usd)
+    # the per-side direction circuit breaker (prototype) rides the same feed alongside
+    # the variant slate, booking cb_thrust (governed) + cb_thrust_dropped (phantom).
+    breaker = SessionDirectionBreaker(store, symbol=cfg.symbol,
+                                      value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
     mb = MinuteBars(cfg.bar_lookback)
     mb.warm(cap, cfg.symbol, cfg.bar_lookback)
     md = Subscriber(MD_STREAM, topics=[T_BAR, T_TAPE])
@@ -312,6 +317,9 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                     window_price_delta=body.get("win_price_delta", 0.0),
                                     in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"), cap=capft)
+                        breaker.on_bars(bars, tape_net=body.get("net_flow", 0.0),
+                                        window_price_delta=body.get("win_price_delta", 0.0),
+                                        in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"))
             if time.monotonic() - last_reprice >= reprice_interval_s:
                 try:
                     reprice_pending(store, cap, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)

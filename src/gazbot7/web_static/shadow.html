@@ -198,7 +198,7 @@ const nameOf = s => (META[s] && META[s].n) || s;
 // regardless of how the cards are sorted/grouped.
 // Frozen ID order — pins each sim's #N (matches shadow.default_slate()). Add NEW
 // sims at the END so a removed one leaves a GAP rather than renumbering the rest.
-const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","rg_long_fast","grind_fast","rg_long_fast_v","chand_k35","chand_k25","chand_k20"];
+const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","rg_long_fast","grind_fast","rg_long_fast_v","chand_k35","chand_k25","chand_k20","cb_thrust","cb_thrust_dropped"];
 const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
 function srcBadge(strat){
   const s = META[strat] && META[strat].s;
