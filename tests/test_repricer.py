@@ -58,6 +58,7 @@ def test_reprice_pending_writes_shadow_real():
     close_ms = (entry_ts + 60) * 1000                  # bar close = signal time
     record_quote(cap, "MNQ", close_ms, 99.5, 100.0, 5, 5)          # far-touch entry ask=100
     record_quote(cap, "MNQ", close_ms + 30_000, 108.0, 108.5, 5, 5)  # hits target
+    record_quote(cap, "MNQ", close_ms + 180_000, 108.0, 108.5, 5, 5)  # tail captured → window complete
     cap.commit()
     tid = record_shadow_trade(
         store, strategy="t1", symbol="MNQ", side="LONG", qty=1,
@@ -71,12 +72,52 @@ def test_reprice_pending_writes_shadow_real():
     assert row["real_pnl"] == (108.0 - 100.0) * VPP - FEE  # honest, < the 16.0 ceiling
 
 
+def test_sentinel_quotes_never_poison_a_fill():
+    # IBKR's no-quote SENTINEL (-1.0) is NOT NULL, so the old filter let it through
+    # and priced winners as ~-$58k ((−1−entry)·vpp). It must be dropped entirely.
+    store = open_store(":memory:"); cap = open_capture(":memory:")
+    ets, xts = 1_784_185_260, 1_784_185_320
+    cms = (ets + 60) * 1000
+    hi = (xts + 60) * 1000 + 120_000
+    record_quote(cap, "MNQ", cms, 99.5, 100.0, 5, 5)            # clean entry far-touch (ask 100)
+    record_quote(cap, "MNQ", cms + 20_000, -1.0, -1.0, 0, 0)    # SENTINEL mid-window
+    record_quote(cap, "MNQ", cms + 40_000, 103.5, 104.0, 5, 5)  # clean drift, no stop/target
+    record_quote(cap, "MNQ", hi, 103.0, 103.5, 5, 5)            # clean quote AT hi → window complete
+    cap.commit()
+    record_shadow_trade(store, strategy="t", symbol="MNQ", side="LONG", qty=1,
+        entry_ts=ets, entry_price=100.0, entry_atr=4.0, target_r=2.0, stop_atr_mult=1.0,
+        exit_ts=xts, exit_price=104.0, exit_reason="SESSION", ceiling_pnl=8.0)
+    n = reprice_pending(store, cap, value_per_point=VPP, fee_rt=FEE)
+    row = store.execute("SELECT real_pnl, fill_status FROM shadow_real").fetchone()
+    assert n == 1 and row["fill_status"] == "filled"
+    assert row["real_pnl"] == (103.0 - 100.0) * VPP - FEE  # last CLEAN touch, NOT a -58k sentinel
+
+
+def test_truncated_window_is_deferred_not_frozen():
+    # the poison was FROZEN because a session-close hold was scored before its tail
+    # was captured. Now a trade whose window outruns captured data is DEFERRED.
+    store = open_store(":memory:"); cap = open_capture(":memory:")
+    ets, xts = 1_784_185_260, 1_784_185_320
+    cms = (ets + 60) * 1000
+    record_quote(cap, "MNQ", cms, 99.5, 100.0, 5, 5)  # only an entry tick; window tail NOT captured
+    cap.commit()
+    record_shadow_trade(store, strategy="t", symbol="MNQ", side="LONG", qty=1,
+        entry_ts=ets, entry_price=100.0, entry_atr=4.0, target_r=2.0, stop_atr_mult=1.0,
+        exit_ts=xts, exit_price=100.0, exit_reason="SESSION", ceiling_pnl=0.0)
+    n = reprice_pending(store, cap, value_per_point=VPP, fee_rt=FEE)
+    assert n == 0  # deferred, not frozen on a partial window
+    assert store.execute("SELECT COUNT(*) FROM shadow_real").fetchone()[0] == 0
+
+
 def test_reprice_pending_no_data_when_quotes_predate_signal():
     # a trade whose quotes only exist BEFORE the bar closed → no honest fill
     store = open_store(":memory:")
     cap = open_capture(":memory:")
     entry_ts = 1_784_185_260
     record_quote(cap, "MNQ", entry_ts * 1000, 99.5, 100.0, 5, 5)  # minute start, pre-signal
+    # capture has advanced PAST the window (else the new guard would defer, not score):
+    # this proves 'no usable in-window quote' → no_data, not 'window not captured yet'.
+    record_quote(cap, "MNQ", entry_ts * 1000 + 200_000, 100.0, 100.5, 5, 5)
     cap.commit()
     record_shadow_trade(
         store, strategy="t1", symbol="MNQ", side="LONG", qty=1,
@@ -95,6 +136,7 @@ def test_reprice_chandelier_rides_not_2r_target():
     record_quote(cap, "MNQ", cms, 99.5, 100.0, 5, 5)              # entry far-touch ask 100
     record_quote(cap, "MNQ", cms + 10_000, 119.5, 120.0, 5, 5)   # runs +20 (5R)
     record_quote(cap, "MNQ", cms + 20_000, 116.5, 117.0, 5, 5)   # gives back → chandelier banks
+    record_quote(cap, "MNQ", cms + 180_000, 116.5, 117.0, 5, 5)  # tail captured → window complete
     cap.commit()
     record_shadow_trade(store, strategy="c1", symbol="MNQ", side="LONG", qty=1,
                         entry_ts=ets, entry_price=100.0, entry_atr=4.0, target_r=0.0, stop_atr_mult=1.0,

@@ -40,6 +40,8 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
     qty = trade["qty"]
 
     entry = quotes[0].ask if side == "LONG" else quotes[0].bid  # far-touch entry
+    if entry <= 0 or atr <= 0:  # belt-and-braces: never score off a junk price/ATR
+        return None, "no_data"
     r = sm * atr
     stop = entry - r if side == "LONG" else entry + r
     chandelier = tr <= 0  # target_r=0 sentinel → ride the tightening chandelier, not a fixed target
@@ -75,9 +77,12 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
 
 
 def _quotes_for(cap_conn, symbol: str, lo_ms: int, hi_ms: int) -> list[Quote]:
+    # ``bid > 0 AND ask > 0`` rejects IBKR's no-quote SENTINEL (-1.0), which is NOT
+    # NULL so an ``IS NOT NULL`` filter lets it through — a −1 fill priced a +$70
+    # winner as −$58,350 ((−1 − 29175)·2), and once written it froze (2026-07-17).
     rows = cap_conn.execute(
         "SELECT ts_ms, bid, ask FROM quotes WHERE symbol=? AND ts_ms>=? AND ts_ms<=? "
-        "AND bid IS NOT NULL AND ask IS NOT NULL ORDER BY ts_ms",
+        "AND bid > 0 AND ask > 0 ORDER BY ts_ms",
         (symbol, lo_ms, hi_ms),
     ).fetchall()
     return [Quote(r["ts_ms"], r["bid"], r["ask"]) for r in rows]
@@ -96,12 +101,20 @@ def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float,
     overstate the edge."""
     done = {r[0] for r in store.execute("SELECT trade_id FROM shadow_real")}
     now = datetime.now(UTC).isoformat()
+    # latest CLEAN captured quote per symbol. A trade whose window extends past this
+    # is DEFERRED (re-tried next pass once capture catches up), never scored — and
+    # frozen — on a truncated window. The −$58k poison came from repricing a
+    # session-close hold at 22:01 whose window ran to 22:03 (2026-07-17).
+    cap_max = {r[0]: r[1] for r in cap_conn.execute(
+        "SELECT symbol, max(ts_ms) FROM quotes WHERE bid > 0 AND ask > 0 GROUP BY symbol")}
     n = 0
     for t in store.execute("SELECT * FROM shadow_trades ORDER BY id").fetchall():
         if t["id"] in done:
             continue
         lo_ms = (t["entry_ts"] + bar_s) * 1000       # first tick after the bar closed
         hi_ms = (t["exit_ts"] + bar_s) * 1000 + tail_ms
+        if cap_max.get(t["symbol"], 0) < hi_ms:
+            continue  # window not fully captured yet — defer, don't freeze a partial score
         quotes = _quotes_for(cap_conn, t["symbol"], lo_ms, hi_ms)
         pnl, status = reprice(t, quotes, value_per_point=value_per_point, fee_rt=fee_rt)
         record_shadow_real(
