@@ -46,12 +46,23 @@ _REVERSION_GATES = frozenset({"reversal_grab", "capitulation", "vwap_pullback", 
 # ── tunables (first cut; observe-only, tune on the counterfactual) ────────────
 @dataclass(frozen=True, slots=True)
 class RouterCfg:
-    # bars of the regime window. 180 × 5s = 15 min — slower than the 60-bar (5-min)
-    # entry window on purpose: regime is a slower thing than the trigger, and a short
-    # window boundary-flickers (REGIME_ROUTER_SCOPE.md §5).
+    # bars of the SLOW regime window. 180 × 5s = 15 min — this read gates REVERSION
+    # (reversion only fires in chop). Slow on purpose: whether the day is a trend or a
+    # range is a slow thing, and a short window boundary-flickers (§5).
     regime_bars: int = 180
-    # |VWAP slope / ATR| over the window at/above which we call it a trend. Below → chop.
+    # |VWAP slope / ATR| over the slow window at/above which we call it a trend.
     slope_trend: float = 0.45
+    # bars of the FAST move window. 60 × 5s = 5 min — the "which way now" read, off
+    # vwap_slope_fast (flips at a reversal where the slow slope lags 30-40min).
+    fast_bars: int = 60
+    # |vwap_slope_fast| at/above which the fast move has a direction. Below → flat.
+    fast_thr: float = 0.15
+    # Enforce a momentum fade-guard? Default OFF: momentum runs ungated because its own
+    # burst trigger + amplitude floor already self-select — on the 16-17 Jul tape it won
+    # WITH, AGAINST and FLAT to the move, so gating it on direction only bins winners.
+    # The against-move bucket is always MONITORED (readout) so the known chop-week fade
+    # bleed stays visible; flip this True to actually bench it once a chop week proves it.
+    momentum_needs_move: bool = False
     # ATR% below this = DEAD (too quiet for either engine to pay its costs). 0 disables.
     atr_pct_dead: float = 0.0
 
@@ -80,19 +91,44 @@ def engine_class_of(gate: str) -> str | None:
     return None
 
 
-def engine_aligned(gate: str, side: str, regime: str) -> bool:
-    """The engine map: would the router let THIS engine, THIS side, submit in THIS regime?
+def move_direction(f: Features, cfg: RouterCfg = DEFAULT) -> int:
+    """Which way is price moving RIGHT NOW: +1 up, -1 down, 0 flat — off the FAST slope."""
+    s = f.vwap_slope_fast
+    if s >= cfg.fast_thr:
+        return 1
+    if s <= -cfg.fast_thr:
+        return -1
+    return 0
 
-    - momentum: eligible only in a trend, and only WITH it (LONG in TREND_UP,
-      SHORT in TREND_DOWN). Stood down in chop / dead.
+
+def engine_aligned(gate: str, side: str, regime: str, move_dir: int = 0,
+                   momentum_needs_move: bool = False) -> bool:
+    """The engine map: would the router let THIS engine, THIS side, submit here?
+
+    The tune that keeps the momentum winners:
+    - momentum: DEFAULT eligible everywhere — its own burst trigger + amplitude floor are
+      the filter, and on the tape it wins with/against/flat to the move, so a direction
+      gate only bins winners (incl. the early reversals the slow slope wrongly reads as
+      counter-trend). With momentum_needs_move=True the fade-guard is enforced: eligible
+      only WITH the fast move (or flat), benched on a genuine fast-fade.
     - reversion: eligible only in chop — a range to fade. Stood down in a trend / dead.
     """
     ec = engine_class_of(gate)
     if ec == MOMENTUM:
-        return (regime == TREND_UP and side == "LONG") or (regime == TREND_DOWN and side == "SHORT")
+        if not momentum_needs_move:
+            return True
+        want = 1 if side == "LONG" else -1
+        return move_dir == 0 or move_dir == want      # with the fast move, or flat
     if ec == REVERSION:
         return regime == CHOP
     return False  # unknown engine → not routed (counted as stood-down, never a false credit)
+
+
+def counter_move(gate: str, side: str, move_dir: int) -> bool:
+    """Is this a momentum trade firing AGAINST the fast move? (the monitored fade bucket)."""
+    if engine_class_of(gate) != MOMENTUM or move_dir == 0:
+        return False
+    return (1 if side == "LONG" else -1) != move_dir
 
 
 # ── counterfactual monitor ───────────────────────────────────────────────────
@@ -104,6 +140,7 @@ class RoutedTrade:
     side: str
     entry_ts: int
     regime: str
+    move_dir: int
     aligned: bool
     real_pnl: float
 
@@ -118,18 +155,30 @@ def _load_bars(cap: sqlite3.Connection, symbol: str) -> list[Bar]:
     return [Bar(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"]) for r in rows]
 
 
-def regime_at(bars: list[Bar], entry_ts: int, cfg: RouterCfg = DEFAULT) -> str | None:
-    """Classify the regime as of entry_ts from the trailing window. None if too few bars."""
-    # bars are ascending by ts; take the window ENDING at-or-before entry_ts.
+def _window_ending_at(bars: list[Bar], entry_ts: int, n: int) -> list[Bar]:
+    """The last n bars at-or-before entry_ts. bars must be ascending by ts. No look-ahead."""
     win: list[Bar] = []
     for b in bars:
         if b.ts > entry_ts:
             break
         win.append(b)
-    win = win[-cfg.regime_bars:]
+    return win[-n:]
+
+
+def regime_at(bars: list[Bar], entry_ts: int, cfg: RouterCfg = DEFAULT) -> str | None:
+    """Classify the SLOW regime as of entry_ts. None if too few bars."""
+    win = _window_ending_at(bars, entry_ts, cfg.regime_bars)
     if len(win) < 6:  # compute_features needs a handful; too few → unknown
         return None
     return classify_regime(compute_features(win), cfg)
+
+
+def move_dir_at(bars: list[Bar], entry_ts: int, cfg: RouterCfg = DEFAULT) -> int:
+    """The FAST move direction as of entry_ts (+1/-1/0). 0 if too few bars."""
+    win = _window_ending_at(bars, entry_ts, cfg.fast_bars)
+    if len(win) < 12:  # fast slope needs the short window filled
+        return 0
+    return move_direction(compute_features(win), cfg)
 
 
 def route_counterfactual(
@@ -164,11 +213,13 @@ def route_counterfactual(
     routed: list[RoutedTrade] = []
     for t in trades:
         gate = gate_of.get(t["strategy"], "")
-        reg = regime_at(bars, int(t["entry_ts"]), cfg) or CHOP  # unknown-regime → conservative CHOP
-        al = engine_aligned(gate, t["side"], reg)
+        ts = int(t["entry_ts"])
+        reg = regime_at(bars, ts, cfg) or CHOP  # unknown-regime → conservative CHOP
+        mdir = move_dir_at(bars, ts, cfg)
+        al = engine_aligned(gate, t["side"], reg, mdir, cfg.momentum_needs_move)
         routed.append(RoutedTrade(
-            t["id"], t["strategy"], gate, t["side"], int(t["entry_ts"]),
-            reg, al, float(t["real_pnl"] or 0.0),
+            t["id"], t["strategy"], gate, t["side"], ts,
+            reg, mdir, al, float(t["real_pnl"] or 0.0),
         ))
 
     actual = sum(x.real_pnl for x in routed)
@@ -183,6 +234,10 @@ def route_counterfactual(
         by_engine[ec][0] += 1
         by_engine[ec][1] += x.real_pnl
 
+    # the MONITORED fade bucket: momentum firing against the fast move. Kept (not benched)
+    # by default, but always measured — this is where a chop-week bleed would show first.
+    cm = [x for x in routed if counter_move(x.gate, x.side, x.move_dir)]
+
     return {
         "symbol": symbol,
         "n": len(routed),
@@ -192,6 +247,7 @@ def route_counterfactual(
         "n_aligned": sum(1 for x in routed if x.aligned),
         "n_stood_down": sum(1 for x in routed if not x.aligned),
         "by_engine": {k: [v[0], round(v[1], 2)] for k, v in by_engine.items() if v[0]},
+        "counter_move_momentum": [len(cm), round(sum(x.real_pnl for x in cm), 2)],
         "trades": routed,
     }
 
@@ -216,6 +272,10 @@ def _readout(shadow_db: str = "data/shadow.db", capture_db: str = "data/capture.
     print("the split underneath — which engine carries the book:")
     for eng, (n, pnl) in r["by_engine"].items():
         print(f"  {eng:10} n={n:3}  {pnl:+.0f}")
+    cm_n, cm_pnl = r["counter_move_momentum"]
+    print()
+    print(f"MONITORED — counter-move momentum (fade guard, NOT benched): n={cm_n}  {cm_pnl:+.0f}")
+    print("  (kept because it wins here; flip momentum_needs_move=True once a chop week bleeds it)")
     print()
     print("regime mix at entry:", dict(Counter(x.regime for x in r["trades"])))
     print("\nNB: reactive read on a 15-min window; shadow-first — the live router is "
