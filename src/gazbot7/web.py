@@ -337,7 +337,10 @@ def reports_json(static_dir):
             pass
         pdf = fn[:-5] + ".pdf"  # weekly_<date>.pdf sibling, if a PDF was rendered
         has_pdf = os.path.exists(os.path.join(static_dir, pdf))
-        out.append({"date": m.group(1), "file": fn, "title": title, "pdf": pdf if has_pdf else None})
+        play = "monday_" + m.group(1) + ".html"  # the Monday playbook for this week, if built
+        has_play = os.path.exists(os.path.join(static_dir, play))
+        out.append({"date": m.group(1), "file": fn, "title": title,
+                    "pdf": pdf if has_pdf else None, "play": play if has_play else None})
     out.sort(key=lambda r: r["date"], reverse=True)
     return {"reports": out}
 

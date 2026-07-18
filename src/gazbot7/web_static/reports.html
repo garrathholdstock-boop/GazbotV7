@@ -42,6 +42,8 @@
   .pdf{color:var(--ink2)}
   .pdf::before{content:"⬇ "}
   .pdf:hover{border-color:var(--ink3);color:var(--ink)}
+  .play{color:var(--amb);border-color:var(--amb)}
+  .play:hover{background:rgba(245,177,61,.12)}
   .empty{color:var(--ink3);text-align:center;padding:48px 12px;font-size:14px}
   .foot{color:var(--ink3);font:11px/1.7 var(--mono);text-align:center;margin-top:24px;padding:0 16px;opacity:.8}
 </style></head>
@@ -70,11 +72,12 @@
     if(!reps.length){ el.innerHTML = '<div class="empty">No reports yet.</div>'; return; }
     el.innerHTML = reps.map(function(x){
       var pdf = x.pdf ? '<a class="pdf" href="static/'+x.pdf+'" download>Download PDF</a>' : '';
+      var play = x.play ? '<a class="play" href="static/'+x.play+'">🗓 Monday Playbook</a>' : '';
       return '<div class="rcard">'
         + '<a class="rhit" href="static/'+x.file+'">'
         +   '<div class="rk"><span class="kind">Weekly</span><span class="rdate">'+x.date+'</span></div>'
         +   '<div class="rtitle">'+ (x.title||x.file) +'</div></a>'
-        + '<div class="ractions"><a class="open" href="static/'+x.file+'">Open report</a>'+pdf+'</div>'
+        + '<div class="ractions"><a class="open" href="static/'+x.file+'">Open report</a>'+pdf+play+'</div>'
         + '</div>';
     }).join('');
   }catch(e){ el.innerHTML = '<div class="empty">Could not load reports.<br>'+e+'</div>'; }
