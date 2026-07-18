@@ -1,0 +1,185 @@
+<title>The Shadow Desk — Week to 17 Jul 2026</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#151b23; --panel2:#1a212b; --ink:#e7ebf2; --muted:#8b95a5;
+    --line:#242c38; --accent:#d9a441; --accent-dim:#8a6a29;
+    --pos:#42b783; --neg:#e5604d; --posbg:rgba(66,183,131,.13); --negbg:rgba(229,96,77,.13);
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#eef1f4; --ink:#181d25; --muted:#5b6573;
+      --line:#e2e6ec; --accent:#a9781a; --accent-dim:#caa257;
+      --pos:#1f8a5b; --neg:#c8432f; --posbg:rgba(31,138,91,.09); --negbg:rgba(200,67,47,.09); }
+  }
+  :root[data-theme="dark"]{ --bg:#0e1116; --panel:#151b23; --panel2:#1a212b; --ink:#e7ebf2; --muted:#8b95a5; --line:#242c38; --accent:#d9a441; --accent-dim:#8a6a29; --pos:#42b783; --neg:#e5604d; --posbg:rgba(66,183,131,.13); --negbg:rgba(229,96,77,.13); }
+  :root[data-theme="light"]{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#eef1f4; --ink:#181d25; --muted:#5b6573; --line:#e2e6ec; --accent:#a9781a; --accent-dim:#caa257; --pos:#1f8a5b; --neg:#c8432f; --posbg:rgba(31,138,91,.09); --negbg:rgba(200,67,47,.09); }
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap{max-width:768px;margin:0 auto;padding:clamp(20px,5vw,52px) clamp(16px,4vw,30px);
+    background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.62;font-size:16px;-webkit-font-smoothing:antialiased}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  h1{font-size:clamp(26px,5.6vw,37px);line-height:1.08;letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance;font-weight:800}
+  .lede{font-size:clamp(15.5px,2.3vw,18px);color:var(--ink);margin:0;text-wrap:pretty}
+  .masthead{border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:14px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:18px;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.03em;padding:3px 9px;border-radius:20px;border:1px solid var(--line);background:var(--panel)}
+  .pill b{color:var(--pos)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 3px var(--posbg)}
+  .scopebar{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:12px 15px;margin:22px 0 0;line-height:1.55}
+  section{margin:42px 0}
+  h2{font-size:12px;font-family:var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 18px;padding-bottom:9px;border-bottom:1px solid var(--line);font-weight:600}
+  h2 .n{color:var(--accent);margin-right:10px}
+  h3{font-size:18.5px;letter-spacing:-.01em;margin:24px 0 8px;font-weight:700;text-wrap:balance}
+  p{margin:0 0 14px}
+  .muted{color:var(--muted)} strong{font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:18px 0}
+  .card.accent{border-left:3px solid var(--accent)}
+  .card h3{margin-top:0}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
+  .pos{color:var(--pos)} .neg{color:var(--neg)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th,td{text-align:right;padding:9px 11px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  tbody td:first-child{font-weight:600}
+  tr.win td{background:var(--posbg)} tr.lose td{background:var(--negbg)}
+  .verdict{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:4px;font-weight:600}
+  .v-keep{background:var(--posbg);color:var(--pos)} .v-kill{background:var(--negbg);color:var(--neg)}
+  .v-watch{background:rgba(217,164,65,.14);color:var(--accent)}
+  .bars{display:flex;flex-direction:column;gap:11px;margin:10px 0 4px}
+  .bar-row{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;font-size:13px}
+  .bar-label{font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .bar-track{position:relative;height:26px;background:var(--panel2);border-radius:5px;overflow:hidden}
+  .bar-zero{position:absolute;top:0;bottom:0;width:1px;background:var(--muted);opacity:.55}
+  .bar-fill{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:11.5px;font-weight:600;color:#0e1116}
+  .bar-fill.p{background:var(--pos);justify-content:flex-start} .bar-fill.n{background:var(--neg);justify-content:flex-end}
+  .callout{font-family:var(--mono);font-size:13px;color:var(--accent);border-top:1px dashed var(--accent-dim);margin-top:16px;padding-top:12px;line-height:1.6}
+  ul,ol{margin:6px 0 14px;padding-left:20px} li{margin:8px 0}
+  .lead{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
+  .lead .q{font-weight:700;margin-bottom:4px}
+  .lead .a{color:var(--muted);font-size:14.5px}
+  .foot{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.85}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel2);padding:1px 5px;border-radius:4px}
+  .big{font-size:clamp(30px,7vw,44px);font-family:var(--mono);font-weight:700;letter-spacing:-.02em;line-height:1}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">The Shadow Desk · Week to Fri 17 Jul 2026</p>
+    <h1>We stopped hunting a gate that works every day. We started building the thing that picks the right gate for the day.</h1>
+    <p class="lede">This was the cut-over week — the desk moved to V7 mid-week — so the shadow board is only three days deep. But one tape observation cracked open the week's real prize: <strong>the day-type router</strong>. It has a first walk-forward, and it holds up out of sample.</p>
+    <div class="meta">
+      <span class="pill"><span class="dot"></span> Desk <b>FLAT · HEALTHY</b></span>
+      <span>V7 · MNQ · paper</span>
+      <span>28 shadow sims</span>
+      <span>nothing armed</span>
+    </div>
+    <div class="scopebar">
+      <strong>Scope note — read this first.</strong> The desk cut over to GAZBOT V7 on Tue, so V7 shadow capture is only ~3 days old. This is <em>not</em> the 51-section census of Rev 3 — the data doesn't exist yet, and I won't pad it. Where I needed depth I went to the <strong>V5 archive (25 days of MNQ)</strong> and replayed the V7 gates over it honestly. The full weekly census returns once V7 has a full week on the board. Voice and spine follow last week's Rev 3; the report prescribes, you decide.
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="n">01</span>What's working, what's bleeding, what to do Monday</h2>
+    <p><strong>The one thing to take away:</strong> no single gate is the answer, and chasing one is the trap we just climbed out of. <strong>grind_fast (#22)</strong> — the momentum sim that lit up today at <span class="num pos">+$1,401</span> — is a <span class="num neg">−$7,895</span> loser over 25 days. It only prints on run days and bleeds every chop day. That's not a flaw to fix; it's a <strong>specialist</strong>. Its mirror, the reversion sim <strong>#23</strong>, is quietly <span class="num pos">+$723</span> over the same 25 days and survives the chop that kills grind.</p>
+    <p>The money isn't in either gate. It's in <strong>knowing which day you're in and running the gate that fits</strong> — the router. And the first walk-forward says the router beats both halves out of sample.</p>
+    <div class="card accent">
+      <p style="margin:0 0 4px" class="muted">If you read nothing else:</p>
+      <p style="margin:0"><strong>Monday: don't run grind live.</strong> It failed its survival test standalone. <strong>Build the router instead</strong> — route on early <em>directional movement</em>, run grind only when the day opens directional, run rev otherwise. All shadow-first.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span>The through-line — the day-type router</h2>
+    <p>It started with something you spotted on the tape: on the same <code>thrust</code> gate, same day, <strong>shorts made <span class="num pos">+$321</span> while longs bled <span class="num neg">−$389</span></strong>. Direction alone flipped the day. Pull that thread and it doesn't stop at direction — it's the whole idea that <strong>each day suits a different gate, and we should let the tape tell us which.</strong></p>
+    <p>So we replayed the two clearest specialists — grind_fast (#22, run-days) and rg_long_fast_v (#23, chop) — over 25 archived MNQ days, and tested whether an <strong>early-day read</strong> could pick the winner.</p>
+    <h3>The walk-forward — tuned on the first 12 days, tested blind on the last 13</h3>
+    <p class="muted" style="font-size:14px">Out-of-sample test window · total P&amp;L · ceiling basis (optimistic — real is worse, but the ranking holds):</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">always&nbsp;grind</span><div class="bar-track"><span class="bar-zero" style="left:73.5%"></span><span class="bar-fill n" style="right:26.5%;width:73.5%">−$4,447</span></div></div>
+      <div class="bar-row"><span class="bar-label">router · ATR</span><div class="bar-track"><span class="bar-zero" style="left:73.5%"></span><span class="bar-fill n" style="right:39.8%;width:66.2%">−$4,006</span></div></div>
+      <div class="bar-row"><span class="bar-label">router · efficiency</span><div class="bar-track"><span class="bar-zero" style="left:73.5%"></span><span class="bar-fill p" style="left:73.5%;width:2.4%">+$135</span></div></div>
+      <div class="bar-row"><span class="bar-label">always&nbsp;rev</span><div class="bar-track"><span class="bar-zero" style="left:73.5%"></span><span class="bar-fill p" style="left:73.5%;width:5.6%">+$316</span></div></div>
+      <div class="bar-row"><span class="bar-label">router · move ★</span><div class="bar-track"><span class="bar-zero" style="left:73.5%"></span><span class="bar-fill p" style="left:73.5%;width:26%">+$1,572</span></div></div>
+    </div>
+    <div class="callout">★ Route on early <strong>directional displacement</strong> — has price actually travelled ≥ 153 pts in the first four hours? — and the out-of-sample result is <span class="pos">+$1,572</span>. It beat always-grind by ~$6k <em>and</em> beat always-rev, the harder bar to clear.</div>
+    <h3>What the walk-forward actually taught us</h3>
+    <ul>
+      <li><strong>Directional movement is the tell; volatility is a trap.</strong> The move-based router held up out of sample. The ATR-based one <span class="neg">collapsed to −$4,006</span> — the third time now that vol level has failed as a day-type read. Stop reaching for ATR.</li>
+      <li><strong>The veto is cleaner than the go.</strong> When the first four hours are choppy, grind went <span class="num neg">0-for-9 green</span> at −$776/day. "Stand grind down on a quiet open" is rock-solid. Deciding when to switch it <em>on</em> is where the noise still lives.</li>
+      <li><strong>The day isn't static.</strong> Today ran directional overnight, chopped dead 08:00–12:00, then broke out 14:00–16:00. A one-shot morning verdict misses the afternoon — the router has to keep re-checking, not lock in at 10am. (You called this: "if we switch, we keep simulating the dropped side to make sure we were right.")</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span>The winners — lean into these</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Sim</th><th>Read</th><th>Today</th><th>25-day</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr class="win"><td>#23 rg_long_fast_v</td><td class="muted" style="text-align:left">reversion / chop floor</td><td class="num neg">−$155</td><td class="num pos">+$723</td><td><span class="verdict v-keep">keep · tune</span></td></tr>
+        <tr><td>#22 grind_fast</td><td class="muted" style="text-align:left">run-day specialist</td><td class="num pos">+$1,401</td><td class="num neg">−$7,895</td><td><span class="verdict v-watch">router only</span></td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>#23 is the quiet win of the week.</strong> You flagged it as "hopeful" and the archive backs you more than grind's fireworks did — it's net-green over 25 days and, crucially, it was flat-to-green on the very chop days that <em>destroyed</em> grind. It's the natural floor half of the router. The tuning path: a VWAP-slope veto so it stops fading into trends (the old reversion lesson), and an honest reprice to confirm the +$723 isn't just ceiling optimism.</p>
+    <p><strong>#22 is a winner only in a costume.</strong> Today it rode run after run — the top ten trades all exited on the chandelier, best +$334 riding 128 points in 11 minutes. But standalone it's a −$7,895 disaster. It earns its place <em>only</em> as the run-day component behind the router. Never live on its own.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span>The bleeders — fix or retire</h2>
+    <h3>The live chandelier is too loose for a high-ATR day</h3>
+    <p>You watched a live long run to <span class="num pos">+$224</span> and give back to <span class="num pos">+$88</span>. The chandelier fired correctly — but its give-back is <code>k × ATR</code>, and today's ATR was a huge 44 points. At a +$224 peak the trail was still ~$133 wide. Working as coded, too loose in dollars when vol spikes. Three tighter variants are now on the board (<strong>#24 / #25 / #26</strong>, start-k 3.5 / 2.5 / 2.0) to find the give-back that locks in more without clipping the runners. Verdict: <span class="verdict v-watch">A/B running</span> — needs a chop day and a trend day before we touch the live trail.</p>
+    <h3>grind, run every day</h3>
+    <p>Covered above — <span class="num neg">−$7,895</span>/25 days standalone. <span class="verdict v-kill">retire standalone</span>, resurrect behind the router.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span>The small fry — too new to judge</h2>
+    <p>Shipped to the board this week, logging forward, no verdict yet:</p>
+    <ul>
+      <li><strong>#27 / #28 — the per-side circuit breaker.</strong> Runs both sides, stands down the one that's clearly losing while the other clearly wins (threshold, not hard-and-fast), and keeps shadowing the dropped side to re-arm if it recovers. Offline over today it vetoed the longs at 11:28 and would have saved ~$154. It's the direction-level version of the router — same reactive spine, one level down.</li>
+      <li><strong>Chandelier A/B (#24–26)</strong> — see the bleeders; accruing.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="n">06</span>Your mid-week musings — every lead, and what we found</h2>
+    <div class="lead"><div class="q">"Check the chandelier is working on the live desk — that $88 long went to $224 and dropped back."</div><div class="a">It's wired and firing correctly. The give-back scales with ATR, and today's ATR was extreme — so it surrendered ~$135 of a $224 run by design, not by bug. → three tighter variants on the board to A/B. ✅ answered</div></div>
+    <div class="lead"><div class="q">"Does it match the chandelier on the shadow desk?"</div><div class="a">Byte-for-byte — same function, same params on live, shadow-sim, and the repricer that scores the board. The shadow is a faithful test bench for the fix. ✅ confirmed</div></div>
+    <div class="lead"><div class="q">"Short and long on the live desk today — shorts win, longs lose."</div><div class="a">Confirmed and stark: shorts +$321 (70% win) vs longs −$389 (29%) on the same gate. Direction flipped the day. → became the whole router thread. ✅ the week's lead</div></div>
+    <div class="lead"><div class="q">"How early was that readable? Maybe lose a few early then confirm."</div><div class="a">The scoreboard was decisive by ~09:41 and never flipped. But it's NOT a trend rule — shorts won above and below VWAP. The tell is the realized per-side scoreboard, measured — exactly your "lose a few, then confirm." → built the circuit breaker (#27/#28). ✅ built</div></div>
+    <div class="lead"><div class="q">"Two or three chandeliers ready, pick the best for the day?"</div><div class="a">Yes — and the honest version isn't a daily switch you predict, it's a reactive read. The shadow board already gauges the day for free; the missing piece is the router that reads it. → generalized into the day-type router. ✅ framed</div></div>
+    <div class="lead"><div class="q">"Don't trade the morning, just gauge the tape? Or ultra-tight stops to gauge?"</div><div class="a">Don't blackout — the shadow gauges for free, no morning sacrificed. And avoid tight stops: they'd choke a run-rider like grind and mis-read the day. Use small size + the real exit if you probe live. ✅ answered</div></div>
+    <div class="lead"><div class="q">"Sim 22 — best momentum sim ever, put it live if it survives."</div><div class="a">It didn't survive. −$7,895/25 days; today was its single best day and flattered it. The backtest caught it before it cost real money. → router-only. ✅ tested, verdict in</div></div>
+    <div class="lead"><div class="q">"Dig into sim 23 — could be a great chop reversion gate."</div><div class="a">Your best call of the night. +$723/25 days, survives chop, the floor half of the router. Still needs an honest reprice + a slope veto to prove clearly +EV. ✅ promoted to a lead</div></div>
+  </section>
+
+  <section>
+    <h2><span class="n">07</span>Read this before you get excited</h2>
+    <div class="card"><ul style="margin:0">
+      <li><strong>n = 25 days, test = 13.</strong> The +$1,572 is one out-of-sample window on a single split. A lead, not a verdict.</li>
+      <li><strong>Ceiling P&amp;L is optimistic.</strong> Real repriced numbers are worse everywhere — grind's −$7,895 is if anything understated; rev's +$723 is closer to breakeven than clearly green.</li>
+      <li><strong>The threshold is raw points.</strong> "153 pts" is regime-dependent and wants ATR-normalizing before it travels to another month.</li>
+      <li><strong>V7 board is 3 days old.</strong> The live-shadow numbers (#22 +$1,401 etc.) are single-day. The archive replay is where the weight is.</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <h2><span class="n">08</span>What to do Monday</h2>
+    <ol>
+      <li><strong>Build the router, don't arm a gate.</strong> Rolling walk-forward on honestly-repriced P&amp;L; ATR-normalize the displacement feature; test move + efficiency together.</li>
+      <li><strong>Make the router continuous</strong> — re-evaluate through the day, not one morning call (today's character shifted twice).</li>
+      <li><strong>Tune #23 to clearly-green on chop</strong> — add the VWAP-slope veto, reprice honestly. It's the floor half.</li>
+      <li><strong>Let the chandelier A/B and the circuit breaker accrue</strong> — both want a chop day and a trend day before any verdict.</li>
+      <li><strong>Rewire the report pipeline for V7</strong> so next Friday's census reads the V7 board — the backlog item this transition week exposed.</li>
+    </ol>
+    <p class="muted">All shadow / research. Nothing arms without your say-so.</p>
+  </section>
+
+  <div class="foot">
+    THE SHADOW DESK · GAZBOT V7 · week to 17 Jul 2026 · authored on the cut-over week<br>
+    grind/rev replay + router walk-forward: V5 archive <code>bar_history</code>, 25d MNQ 1m, ceiling basis · live desk untouched, flat &amp; healthy at sign-off<br>
+    voice + spine follow last week's Rev 3 · not the 51-section census — V7 board is 3 days deep, full census returns with a full week of data
+  </div>
+</div>

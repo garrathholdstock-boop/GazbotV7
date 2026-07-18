@@ -317,6 +317,28 @@ def shadow_activity_json(shadow_path, limit=50):
                         "pnl": round(r["real_pnl"], 2)} for r in rows]}
 
 
+def reports_json(static_dir):
+    """List the weekly_<date>.html reports in web_static, newest first, with the
+    <title> pulled from each file. The reports index reads this to render its cards."""
+    import re
+    out = []
+    for fn in sorted(os.listdir(static_dir)):
+        m = re.match(r"weekly_(\d{4}-\d{2}-\d{2})\.html$", fn)
+        if not m:
+            continue
+        title = fn
+        try:
+            head = open(os.path.join(static_dir, fn), encoding="utf-8").read(2000)
+            tm = re.search(r"<title>(.*?)</title>", head, re.S)
+            if tm:
+                title = tm.group(1).strip()
+        except OSError:
+            pass
+        out.append({"date": m.group(1), "file": fn, "title": title})
+    out.sort(key=lambda r: r["date"], reverse=True)
+    return {"reports": out}
+
+
 def serve(port, store_path, cap_path, data_dir, shadow_path):
     class H(http.server.BaseHTTPRequestHandler):
         def _send(self, body, ct, code=200):
@@ -337,6 +359,10 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._send(open(os.path.join(_STATIC, "app.html"), "rb").read(), _CT[".html"])
                 elif path == "/shadow" or path == "/shadow/":
                     self._send(open(os.path.join(_STATIC, "shadow.html"), "rb").read(), _CT[".html"])
+                elif path == "/reports" or path == "/reports/":
+                    self._send(open(os.path.join(_STATIC, "reports.html"), "rb").read(), _CT[".html"])
+                elif path.startswith("/api/reports"):
+                    self._json(reports_json(_STATIC))
                 elif path.startswith("/static/"):
                     fp = os.path.join(_STATIC, os.path.basename(path))
                     self._send(open(fp, "rb").read(), _CT.get(os.path.splitext(fp)[1], "text/plain"))
