@@ -10,6 +10,7 @@ from gazbot7.deciders import (
     compute_features,
     exit_absorption,
     exit_adverse_cut,
+    chandelier_start_k,
     exit_chandelier,
     exit_scalp,
     gate_capitulation,
@@ -161,6 +162,28 @@ def test_chandelier_short_mirror():
 def test_chandelier_dormant_before_any_green():
     pos = Position("LONG", 100.0, 4.0, 0.0)  # never went green
     assert exit_chandelier(pos, 105.0) is None
+
+
+# ── vol-adaptive chandelier: trail width graded by entry ATR ───────────────────
+def test_chandelier_start_k_grades_with_entry_atr():
+    assert chandelier_start_k(50.0) == 2.0    # high ATR (volatile day) → tight trail
+    assert chandelier_start_k(35.0) == 3.0    # boundary is not > atr_hi → mid
+    assert chandelier_start_k(25.0) == 3.0    # mid band → 3.0
+    assert chandelier_start_k(20.0) == 3.0    # mid lower boundary inclusive
+    assert chandelier_start_k(13.0) == 3.5    # the median entry → wide default
+    assert chandelier_start_k(4.0) == 3.5     # calm → widest
+
+
+def test_chandelier_start_k_feeds_exit_chandelier():
+    # a high-ATR winner with the tight (2.0) trail banks earlier than the wide (3.5) trail
+    pos = Position("LONG", 1000.0, 40.0, 100.0)  # entry_atr 40, peak +100
+    k = chandelier_start_k(pos.entry_atr)         # → 2.0
+    assert k == 2.0
+    # peak_r = 100/40 = 2.5; giveback = max(0.5, 2.0 - 0.75*2.5)*40 = max(0.5,0.125)*40 = 20
+    assert exit_chandelier(pos, 1080.0, start_k=k) == "CHANDELIER"  # fav 80 <= 100-20
+    assert exit_chandelier(pos, 1090.0, start_k=k) is None          # fav 90 still running
+    # the wide default (3.5) would still be running at fav 80: giveback = max(0.5,3.5-1.875)*40=65
+    assert exit_chandelier(pos, 1080.0, start_k=3.5) is None        # fav 80 > 100-65=35 → holds
 
 
 # ── reversal_grab LONG mirror (2026-07-16) ────────────────────────────────────

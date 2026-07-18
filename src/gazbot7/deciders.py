@@ -263,6 +263,26 @@ def exit_chandelier(pos: Position, price: float, *, start_k: float = 3.5,
     return None
 
 
+def chandelier_start_k(entry_atr: float, *, atr_hi: float = 35.0, atr_mid: float = 20.0,
+                       k_hi: float = 2.0, k_mid: float = 3.0, k_lo: float = 3.5) -> float:
+    """VOL-ADAPTIVE chandelier — pick the trail width from the entry ATR.
+
+    A flat trail bleeds give-back on the high-ATR (volatile-day) entries: the run is
+    huge, and so is the retrace a wide 3.5 trail waits through. Tightening the trail
+    only on those high-ATR entries locks more of the big swing, while the bulk of
+    entries (median ATR ~13) keep the wide default so a normal run still breathes.
+
+    25-day MNQ grind_fast (V5 1m basis): flat-3.5 −$7,975 → graded −$6,323 (+$1,653).
+    Feed the result to exit_chandelier(..., start_k=chandelier_start_k(pos.entry_atr)).
+    Still a net loser standalone — a give-back saver, NOT a fix; grind needs the router.
+    """
+    if entry_atr > atr_hi:
+        return k_hi
+    if entry_atr >= atr_mid:
+        return k_mid
+    return k_lo
+
+
 def exit_adverse_cut(pos: Position, price: float, *, cut_atr: float = 1.5, arm_atr: float = 0.5) -> str | None:
     """A position >= cut_atr offside that NEVER went meaningfully green — cut it."""
     if pos.entry_atr <= 0:
