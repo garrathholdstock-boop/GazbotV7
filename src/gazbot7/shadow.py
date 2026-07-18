@@ -285,6 +285,7 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     from .agg import MinuteBars
     from .capture import capitulation_tape, open_capture
     from .cb import SessionDirectionBreaker
+    from .footprint import FootprintShadow
     from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
     from .repricer import reprice_pending
     from .store import open_store
@@ -298,6 +299,10 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     # the variant slate, booking cb_thrust (governed) + cb_thrust_dropped (phantom).
     breaker = SessionDirectionBreaker(store, symbol=cfg.symbol,
                                       value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+    # the exhaustion-reversal footprint rides its OWN tick+book loop (not bar-based) —
+    # observe-only incubation, reads capture directly, records exhaustion_rev trades.
+    footprint = FootprintShadow(store, cfg.symbol,
+                                value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
     mb = MinuteBars(cfg.bar_lookback)
     mb.warm(cap, cfg.symbol, cfg.bar_lookback)
     md = Subscriber(MD_STREAM, topics=[T_BAR, T_TAPE])
@@ -311,15 +316,21 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                 if topic == T_BAR:
                     mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
                 elif topic == T_TAPE:
+                    now_ms = body.get("ts_ms")
                     bars = mb.bars()
                     if len(bars) >= 6:
-                        capft = capitulation_tape(cap, cfg.symbol, body["ts_ms"]) if body.get("ts_ms") else {}
+                        capft = capitulation_tape(cap, cfg.symbol, now_ms) if now_ms else {}
                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                     window_price_delta=body.get("win_price_delta", 0.0),
-                                    in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"), cap=capft)
+                                    in_rth=body.get("in_rth", True), now_ms=now_ms, cap=capft)
                         breaker.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                         window_price_delta=body.get("win_price_delta", 0.0),
-                                        in_rth=body.get("in_rth", True), now_ms=body.get("ts_ms"))
+                                        in_rth=body.get("in_rth", True), now_ms=now_ms)
+                    if now_ms:
+                        try:
+                            footprint.on_cycle(cap, now_ms)   # observe-only; must never break the loop
+                        except Exception:
+                            pass
             if time.monotonic() - last_reprice >= reprice_interval_s:
                 try:
                     reprice_pending(store, cap, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
