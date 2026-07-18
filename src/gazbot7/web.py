@@ -28,7 +28,8 @@ from zoneinfo import ZoneInfo
 from . import pnl
 
 _STATIC = os.path.join(os.path.dirname(__file__), "web_static")
-_CT = {".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "application/javascript"}
+_CT = {".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "application/javascript",
+       ".pdf": "application/pdf"}
 _PARIS = ZoneInfo("Europe/Paris")
 _VPP, _FEE = 2.0, 1.5
 _CLEANUP = pnl._CLEANUP_REASONS  # ADOPT_FLATTEN etc. — not strategy trades
@@ -334,7 +335,9 @@ def reports_json(static_dir):
                 title = tm.group(1).strip()
         except OSError:
             pass
-        out.append({"date": m.group(1), "file": fn, "title": title})
+        pdf = fn[:-5] + ".pdf"  # weekly_<date>.pdf sibling, if a PDF was rendered
+        has_pdf = os.path.exists(os.path.join(static_dir, pdf))
+        out.append({"date": m.group(1), "file": fn, "title": title, "pdf": pdf if has_pdf else None})
     out.sort(key=lambda r: r["date"], reverse=True)
     return {"reports": out}
 
