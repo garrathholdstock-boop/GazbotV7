@@ -71,6 +71,25 @@ question for the operator: **A (robust, max 2 lots) or B (concurrent, max 4)?**
   all gate-positions.
 - Full `pytest` green; live-path smoke-import clean.
 
+## 4b. LIVE-PATH MAP (forensic, 2026-07-18 — build against THIS, not desk.py)
+The live decision desk is **`strategy.py`** (`gazbot7-strategy` runs `python -m gazbot7.strategy`),
+NOT `desk.py` (the old combined path via runner.py). strategy.py emits OPEN/CLOSE **intents** to
+core (which owns orders/fills/safety). Relevant seams for the two-gate change:
+- `_gate(f)` — currently a single `if cfg.gate=="thrust"/"reversal_grab"`. **Change:** evaluate
+  BOTH grind + rgv, return the first that fires (priority order), tag the fired gate.
+- `_emit_open(side, gate, f, now_ms)` — stamps the OPEN intent with `qty=cfg.size`. **Change:**
+  qty = `conviction_lots(efficiency_ratio(bars))` for grind (skip if 0), flat 2 for rgv; carry
+  the gate label in the intent meta.
+- `_manage(f, price, now_ms)` — currently one exit path (chandelier OR scalp + cuts). **Change:**
+  route by the ACTIVE gate: grind → vol-adaptive chandelier (`start_k=chandelier_start_k(entry_atr)`)
+  + native stop; rgv → `exit_scalp(target_r=2.0)` (2R) + native stop. Track `self._active_gate`
+  (set in _emit_open, cleared on flat).
+- **Config (`config.py DeskConfig`)** — replace the single gate/gate_params/exit fields with a
+  small ordered list of gate specs (grind, rgv), each carrying its params + exit-kind + sizing.
+  thrust removed from the live list (stays in the shadow slate).
+Safety unchanged: single position (design A) → the existing arm-stop / naked-watchdog / session
+flatten all still apply verbatim; the native 1-ATR stop is set per-open as today.
+
 ## 5. STAGED BUILD ORDER (weekend)
 1. Pure components + tests (§2) — zero live-path risk. ← start here
 2. Desk wiring for the chosen design (A or B) + tests.
