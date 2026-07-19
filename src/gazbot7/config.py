@@ -6,6 +6,41 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class GateSpec:
+    """One live gate in the (single-position) two-gate lineup. The desk takes whichever
+    gate fires when flat, sizes it, and routes its exit — all keyed off this spec."""
+    name: str                          # position tag / reason ("grind" | "rgv")
+    kind: str                          # "grind" | "reversal_grab" | "thrust"
+    params: dict = field(default_factory=dict)
+    sizing: str = "flat"               # "flat" (base_size) | "conviction" (0..base by ER)
+    base_size: int = 2
+    exit: str = "scalp"                # "chandelier" (momentum, uncapped) | "scalp" (fixed R)
+    target_r: float = 2.0              # scalp target (× stop)
+    stop_atr_mult: float = 1.0         # native 1-ATR stop mirror
+    chandelier_start_k: float = 3.5
+    chandelier_min_k: float = 0.5
+    chandelier_tighten: float = 0.75
+    vol_adaptive_chandelier: bool = False  # start_k from chandelier_start_k(entry_atr)
+    adverse_cut_atr: float = 0.0       # 0 = disabled (kept off for backtest parity)
+
+
+def live_gates() -> list[GateSpec]:
+    """The 2026-07-19 go-live lineup (replaces thrust; thrust stays in the shadow slate):
+    grind_fast (early-entry momentum, ER conviction 0/1/2, vol-adaptive chandelier) +
+    rg_long_fast_v (chop reversion, 2R). Single-position — first to fire wins."""
+    return [
+        GateSpec(name="grind", kind="grind",
+                 params={"slope_min": 0.4, "fast_slope": True},
+                 sizing="conviction", base_size=2,
+                 exit="chandelier", vol_adaptive_chandelier=True),
+        GateSpec(name="rgv", kind="reversal_grab",
+                 params={"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15,
+                         "fast_slope": True, "fast_turn": True, "atr_min": 13.0},
+                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+    ]
+
+
+@dataclass
 class RunConfig:
     # IBKR
     host: str = "127.0.0.1"
@@ -18,6 +53,9 @@ class RunConfig:
     fee_rt: float = 1.5
     # desk
     size: int = 1
+    # two-gate lineup (empty = legacy single-gate via `gate`/`gate_params`). live cutover
+    # sets this to live_gates() → grind + rgv, single-position, first-to-fire.
+    gates: list = field(default_factory=list)
     gate: str = "thrust"
     # V5 tw_mnq_thrust_loose parity (2026-07-15): thr 1.5 + amplitude floor
     # (atr_pct >= 0.04% = 0.0004 fraction) + volume surge — decided on 1-MINUTE

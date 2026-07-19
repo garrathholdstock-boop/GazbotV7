@@ -32,17 +32,20 @@ from datetime import UTC, datetime
 from . import session
 from .agg import MinuteBars
 from .capture import open_capture
-from .config import RunConfig
+from .config import RunConfig, live_gates
 from .deciders import (
     Position,
+    chandelier_start_k,
     compute_features,
     exit_absorption,
     exit_adverse_cut,
     exit_chandelier,
     exit_scalp,
+    gate_grind,
     gate_reversal_grab,
     gate_thrust,
 )
+from .sizing import conviction_lots, efficiency_ratio
 from .ipc import (
     CORE_STATE,
     INTENTS,
@@ -71,6 +74,7 @@ class Strategy:
         self._core_pos: dict | None = None
         self._local_pos: Position | None = None
         self._confirm: dict | None = None  # pending entry watching absorption (the wait)
+        self._active = None  # GateSpec that opened the current position (multi-gate exit routing)
         self._pending: str | None = None  # "OPEN" | "CLOSE" while awaiting core
         self._pending_iid: str | None = None
         self._pending_ts = 0
@@ -92,6 +96,7 @@ class Strategy:
         if msg.get("flat"):
             self._core_flat = True
             self._core_pos = None
+            self._active = None  # flat → no gate owns a position
             self._local_pos = None
             if self._pending == "CLOSE":
                 self._pending = None  # confirmed flat
@@ -128,7 +133,7 @@ class Strategy:
         price = self._tape.get("last") or f.price
         if self._core_flat:
             self._local_pos = None
-            return self._entry(f, price, now_ms)
+            return self._entry(f, price, now_ms, bars)
         self._confirm = None  # holding a position — abandon any pending confirmation
         return self._manage(f, price, now_ms)
 
@@ -142,11 +147,44 @@ class Strategy:
             )
         return None
 
-    def _entry(self, f, price, now_ms: int) -> dict | None:
+    # ── two-gate lineup (single-position, first-to-fire) ─────────────────────
+    def _eval_spec(self, spec, f):
+        if spec.kind == "grind":
+            return gate_grind(f, tape_net=self._tape.get("net_flow", 0.0), **spec.params)
+        if spec.kind == "reversal_grab":
+            return gate_reversal_grab(f, tape_net=self._tape.get("net_flow", 0.0),
+                                      in_rth=self._tape.get("in_rth", True), **spec.params)
+        if spec.kind == "thrust":
+            return gate_thrust(f, **spec.params)
+        return None
+
+    def _pick_gate(self, f):
+        """First gate in the lineup that fires → (spec, entry). None if none fire."""
+        for spec in self._cfg.gates:
+            e = self._eval_spec(spec, f)
+            if e is not None:
+                return spec, e
+        return None, None
+
+    def _size_for(self, spec, bars) -> int:
+        if spec.sizing == "conviction":
+            return conviction_lots(efficiency_ratio(bars), base=spec.base_size)
+        return spec.base_size
+
+    def _entry(self, f, price, now_ms: int, bars) -> dict | None:
         now = datetime.fromtimestamp(now_ms / 1000, UTC)
         if not session.is_open(now) or session.in_no_open_window(now, self._cfg.no_open_minutes):
             self._confirm = None
             return None  # closed, or too close to the session end — no new entries
+        if self._cfg.gates:  # TWO-GATE lineup: immediate, first-to-fire, per-gate sizing
+            spec, e = self._pick_gate(f)
+            if e is None:
+                return None
+            qty = self._size_for(spec, bars)
+            if qty <= 0:
+                return None  # conviction sizing says chop → skip (the 0-lot rung)
+            self._active = spec
+            return self._emit_open(e.side, spec.name, f, now_ms, qty=qty)
         if self._cfg.entry_confirm_s <= 0:  # wait disabled — immediate entry
             entry = self._gate(f)
             return self._emit_open(entry.side, entry.gate, f, now_ms) if entry else None
@@ -170,9 +208,9 @@ class Strategy:
             return self._emit_open(entry.side, entry.gate, f, now_ms)
         return None  # thrust faded / flipped / absorbed during the wait — stand down
 
-    def _emit_open(self, side: str, gate: str, f, now_ms: int) -> dict:
+    def _emit_open(self, side: str, gate: str, f, now_ms: int, qty: int | None = None) -> dict:
         return self._stamp("OPEN", now_ms, {
-            "action": "OPEN", "side": side, "qty": self._cfg.size,
+            "action": "OPEN", "side": side, "qty": qty if qty is not None else self._cfg.size,
             "gate": gate, "reason": gate,
             "meta": {"entry_atr": f.atr, "target_r": self._cfg.target_r,
                      "stop_atr_mult": self._cfg.stop_atr_mult},
@@ -200,14 +238,27 @@ class Strategy:
         # uncapped) — or the fixed 2R target if the chandelier is disabled. Then the
         # risk cuts (failed-entry adverse-cut + tape absorption) underneath.
         reason = None
-        if self._cfg.chandelier_enabled:
-            if exit_chandelier(pos, price, start_k=self._cfg.chandelier_start_k,
-                               min_k=self._cfg.chandelier_min_k, tighten=self._cfg.chandelier_tighten):
-                reason = "CHANDELIER"
-        elif exit_scalp(pos, price, target_r=self._cfg.target_r,
-                        stop_atr_mult=self._cfg.stop_atr_mult) == "TARGET":
-            reason = "TARGET"
-        if reason is None and exit_adverse_cut(pos, price, cut_atr=self._cfg.adverse_cut_atr):
+        spec = self._active
+        if spec is not None:  # TWO-GATE: route the profit exit by the gate that opened it
+            if spec.exit == "chandelier":
+                sk = chandelier_start_k(pos.entry_atr) if spec.vol_adaptive_chandelier else spec.chandelier_start_k
+                if exit_chandelier(pos, price, start_k=sk, min_k=spec.chandelier_min_k,
+                                   tighten=spec.chandelier_tighten):
+                    reason = "CHANDELIER"
+            elif exit_scalp(pos, price, target_r=spec.target_r,
+                            stop_atr_mult=spec.stop_atr_mult) == "TARGET":
+                reason = "TARGET"
+            cut_atr = spec.adverse_cut_atr
+        else:  # legacy single-gate path (unchanged)
+            if self._cfg.chandelier_enabled:
+                if exit_chandelier(pos, price, start_k=self._cfg.chandelier_start_k,
+                                   min_k=self._cfg.chandelier_min_k, tighten=self._cfg.chandelier_tighten):
+                    reason = "CHANDELIER"
+            elif exit_scalp(pos, price, target_r=self._cfg.target_r,
+                            stop_atr_mult=self._cfg.stop_atr_mult) == "TARGET":
+                reason = "TARGET"
+            cut_atr = self._cfg.adverse_cut_atr
+        if reason is None and cut_atr > 0 and exit_adverse_cut(pos, price, cut_atr=cut_atr):
             reason = "ADVERSE_CUT"
         # absorption is a CATASTROPHE backstop: only once the trade is deep underwater
         # (>= absorption_min_loss_usd). A green trade has no loss and a small loss is
@@ -275,7 +326,8 @@ async def run(cfg: RunConfig, *, max_seconds: float | None = None) -> None:
 
 
 def main() -> None:  # `python -m gazbot7.strategy`
-    asyncio.run(run(RunConfig()))
+    # 2026-07-19 go-live: two-gate lineup (grind conviction + rgv 2R), replaces thrust.
+    asyncio.run(run(RunConfig(gates=live_gates())))
 
 
 if __name__ == "__main__":
