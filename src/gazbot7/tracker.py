@@ -45,6 +45,7 @@ class _Open:
     exit_notional: float = 0.0
     exit_exec_ids: list[str] = field(default_factory=list)
     exit_reason: str | None = None
+    gate: str | None = None  # the gate that OPENED this round-trip (per-trade truth)
 
 
 class TradeTracker:
@@ -91,10 +92,12 @@ class TradeTracker:
         )
 
     # ── the one fill path ────────────────────────────────────────────────────
-    def apply(self, fill: Fill, *, exit_reason: str | None = None) -> None:
+    def apply(self, fill: Fill, *, exit_reason: str | None = None, gate: str | None = None) -> None:
         """Apply a venue fill. Idempotent on exec_id (never double-count). When
         the accumulated exits bring the position flat, the trade is recorded
-        atomically — this is the only place a round-trip completes."""
+        atomically — this is the only place a round-trip completes. ``gate`` is
+        the opening intent's gate; it is consumed only when this fill OPENS a new
+        round-trip (ignored on adds/exits) and stamped on the completed trade."""
         if fill.exec_id in self._applied:
             return  # a re-delivered fill — no-op, position never double-moved
         self._applied.add(fill.exec_id)
@@ -112,6 +115,7 @@ class TradeTracker:
                 entry_qty=fill.qty,
                 entry_notional=fill.qty * fill.price,
                 entry_exec_ids=[fill.exec_id],
+                gate=gate,
             )
             return
 
@@ -171,5 +175,5 @@ class TradeTracker:
             pnl_usd=gross - self._fee,
             fees_usd=self._fee,
             exit_reason=o.exit_reason or "UNKNOWN",
-            gate=self._gate,
+            gate=o.gate or self._gate,  # per-trade gate; fall back to the desk default (adopt/flip)
         )

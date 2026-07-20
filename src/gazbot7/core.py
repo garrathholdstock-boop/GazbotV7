@@ -97,6 +97,7 @@ class Core:
         self._pending_open = False
         self._closing = False
         self._exit_reason: str | None = None
+        self._pending_gate: str | None = None  # gate of the intent currently opening a position
         self._open_atr = 0.0
         self.opened_at: str | None = None
         self._boot_mono = time.monotonic()  # boot-settle anchor for the naked auditor
@@ -164,6 +165,7 @@ class Core:
         meta = intent.get("meta") or {}
         self._open_atr = float(meta.get("entry_atr") or 0.0)
         self._exit_reason = None
+        self._pending_gate = gate  # stamp the real firing gate onto the trade this open creates
         order_side = "BUY" if side == "LONG" else "SELL"
         coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty, order_type="MKT")
         self._pending_open = True
@@ -192,7 +194,8 @@ class Core:
         self._oe.on_fill(fill)
         closing = self._pos is not None and self._is_closing_side(fill.side)
         reason = (self._exit_reason or "STOP") if closing else None
-        self._tt.apply(fill, exit_reason=reason)
+        # gate is consumed by the tracker only when this fill OPENS a round-trip
+        self._tt.apply(fill, exit_reason=reason, gate=self._pending_gate)
         now_flat = abs(self._tt.net_qty(sym)) < _EPS
         self._emit(T_FILL, {
             "symbol": sym, "side": fill.side, "qty": fill.qty,

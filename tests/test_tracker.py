@@ -114,3 +114,36 @@ def test_overclose_flips_position(tmp_path):
     (tr,) = get_trades(store)
     assert tr["side"] == "LONG" and tr["qty"] == 2
     assert tt.net_qty("MNQ") == -1  # now short 1
+
+
+def test_gate_stamped_from_opening_fill(tmp_path):
+    # The gate is taken from the OPENING intent (per-trade), not a static desk
+    # value — the 2026-07-20 mislabel where every grind/rgv trade recorded 'thrust'.
+    tt, store = _tt(tmp_path)  # no desk-default gate
+    tt.apply(_f("b", "BUY", 1, 100.0), gate="grind")   # gate rides the opening fill
+    tt.apply(_f("s", "SELL", 1, 105.0), exit_reason="CHANDELIER", gate="grind")  # ignored on exit
+    (tr,) = get_trades(store)
+    assert tr["gate"] == "grind"
+
+
+def test_two_roundtrips_record_distinct_gates(tmp_path):
+    # The actual bug's shape: two sequential trades from different gates must NOT
+    # collapse to one label. grind then rgv → 'grind' then 'rgv'.
+    tt, store = _tt(tmp_path)
+    tt.apply(_f("b1", "BUY", 1, 100.0), gate="grind")
+    tt.apply(_f("s1", "SELL", 1, 101.0), exit_reason="STOP", gate="grind")
+    tt.apply(_f("b2", "BUY", 2, 200.0), gate="rgv")
+    tt.apply(_f("s2", "SELL", 2, 198.0), exit_reason="ABSORPTION_CUT", gate="rgv")
+    gates = [t["gate"] for t in get_trades(store)]
+    assert gates == ["grind", "rgv"]
+
+
+def test_gate_falls_back_to_desk_default_when_absent(tmp_path):
+    # Adopted / flipped positions have no opening intent → fall back to the
+    # tracker's desk-default gate rather than recording NULL.
+    store = open_store(tmp_path / "t.db")
+    tt = TradeTracker(store, value_per_point=VPP, fee_rt=FEE, gate="thrust")
+    tt.apply(_f("b", "BUY", 1, 100.0))  # no gate passed (e.g. reconstructed/adopted path)
+    tt.apply(_f("s", "SELL", 1, 105.0), exit_reason="STOP")
+    (tr,) = get_trades(store)
+    assert tr["gate"] == "thrust"
