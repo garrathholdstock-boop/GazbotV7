@@ -1,6 +1,6 @@
 # Dashboard multi-slot upgrade — SCOPE
 
-**Status:** SCOPED, not built. Raised 2026-07-20 right after the tournament cutover (DECISIONS §348) — the `:8087` cockpit shows **FLAT/empty** because its live-holdings path was built for the single-position `status.json` shape and the tournament writes a multi-slot shape.
+**Status:** **P1–P3 BUILT + LIVE (2026-07-20, commit `b7c5b4e`)**; P4 deferred. Raised right after the tournament cutover (DECISIONS §348) — the `:8087` cockpit showed **FLAT/empty** because its live-holdings path was built for the single-position `status.json` shape and the tournament writes a multi-slot shape. Now: `web.py us_terminal_json` renders one holding per open slot (real gate, per-slot P&L, held-time, protected flag; legacy single-dict tolerated for revert); `multislot_core.write_heartbeat` carries per-slot `stop_price`/`opened_at`/`entry_atr`; `app.js renderHolding` shows a card per slot (gate/side/qty/entry/stop/unreal/time + protected|NAKED badge) and the main chart overlays entry+stop for ALL slots; `app.css` `.slot-card`/`.prot-*`. +7 tests (`test_web.py` + heartbeat). Verified live (holdings + per-gate leaderboard rendering). **P4 (dedicated live per-gate tournament/relegation panel + prominent `halted` banner) still open** — nice-to-have.
 
 ## The problem (what broke, precisely)
 
