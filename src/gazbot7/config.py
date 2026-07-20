@@ -113,6 +113,15 @@ class RunConfig:
     giveback_arm_usd: float = 50.0
     giveback_usd: float = 40.0
     risk_budget_usd: float = 0.0   # legacy-path risk cap (two-gate carries its own per-GateSpec)
+    # CAPPED MARKETABLE-LIMIT ENTRIES (2026-07-20). Entries were raw MKT → a fill could
+    # land far from the book (id67: a 2nd lot 29pt off a deep book on the paper engine →
+    # −$156). An entry is now a marketable LIMIT at ref_price ± entry_limit_buffer_pts,
+    # tif=IOC (fills through available liquidity within the cap, cancels the rest — no
+    # resting order). Wide enough for fast fills, capped so a blow-up fill is impossible.
+    # 0 = plain MKT (disabled). CLOSES/FLATTENS stay MKT (must fill). entry_timeout_s
+    # clears pending_open if an IOC entry doesn't fill (no fill event would reset it).
+    entry_limit_buffer_pts: float = 3.0
+    entry_timeout_s: float = 3.0
     # session discipline (S4) — never hold overnight, never open into the close
     max_hold_minutes: float = 120.0    # hard ceiling regardless of P&L
     no_open_minutes: float = 20.0      # suppress new entries this long before close

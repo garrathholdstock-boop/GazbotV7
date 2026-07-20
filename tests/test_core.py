@@ -34,12 +34,15 @@ IN_SESSION = datetime(2026, 7, 15, 16, 0, tzinfo=UTC)
 class FakeBroker:
     def __init__(self):
         self.orders: list[dict] = []
+        self.placed: list = []       # full order objects (order_type / limit_price / tif)
+        self.cancelled: list[str] = []
 
     def place(self, order):
         self.orders.append(dict(side=order.side, qty=order.qty))
+        self.placed.append(order)
 
     def cancel(self, coid):
-        pass
+        self.cancelled.append(coid)
 
 
 class FakeStopBroker:
@@ -536,6 +539,68 @@ def test_funnel_records_submitted_then_blocked():
         rows = store.execute("SELECT gate, outcome, block_reason FROM signals ORDER BY id").fetchall()
         assert (rows[0]["gate"], rows[0]["outcome"]) == ("thrust", "submitted")
         assert rows[1]["outcome"] == "blocked" and rows[1]["block_reason"] == "already in position"
+    asyncio.run(scenario())
+
+
+# ── capped marketable-limit entries (2026-07-20) ─────────────────────────────
+def test_entry_is_capped_marketable_limit_ioc():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build(entry_limit_buffer_pts=3.0)
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "price": 100.0,
+                              "qty": 2, "meta": {"entry_atr": 4.0}})
+        o = broker.placed[-1]
+        assert o.order_type == "LMT" and o.tif == "IOC"
+        assert o.limit_price == 103.0  # ceil(ref 100 + buffer 3) on the 0.25 grid — marketable, capped
+    asyncio.run(scenario())
+
+
+def test_entry_sell_limit_rounds_down():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build(entry_limit_buffer_pts=3.0)
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "SHORT", "price": 100.0,
+                              "qty": 1, "meta": {"entry_atr": 4.0}})
+        o = broker.placed[-1]
+        assert o.order_type == "LMT" and o.tif == "IOC" and o.limit_price == 97.0  # floor(100-3)
+    asyncio.run(scenario())
+
+
+def test_entry_falls_back_to_mkt_when_buffer_zero():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build(entry_limit_buffer_pts=0.0)
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "price": 100.0,
+                              "qty": 1, "meta": {"entry_atr": 4.0}})
+        assert broker.placed[-1].order_type == "MKT"
+    asyncio.run(scenario())
+
+
+def test_unfilled_ioc_entry_expires_and_frees_the_desk():
+    # An IOC entry that fills nothing leaves no fill event → pending_open would wedge
+    # the desk. expire_pending_open cancels the remnant + clears pending so it re-fires.
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build(entry_limit_buffer_pts=3.0, entry_timeout_s=0.0)
+        notes: list[str] = []
+        core._notify = notes.append
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "price": 100.0,
+                              "qty": 1, "meta": {"entry_atr": 4.0}})
+        assert core._pending_open is True
+        core.expire_pending_open()  # timeout 0 → expires now (still flat, no fill)
+        assert core._pending_open is False and core._pending_open_coid is None
+        assert broker.cancelled and any("unfilled" in n for n in notes)
+        # and a fresh entry is accepted again (desk not wedged)
+        assert core._open_reject_reason({"side": "LONG"}, IN_SESSION) is None
+    asyncio.run(scenario())
+
+
+def test_a_fill_clears_pending_open_coid():
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build(entry_limit_buffer_pts=3.0)
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "price": 100.0,
+                              "qty": 1, "meta": {"entry_atr": 4.0}})
+        core.on_fill(_fill("e1", "BUY", 1, 100.25))
+        await asyncio.sleep(0)
+        assert core._pending_open is False and core._pending_open_coid is None
+        core.expire_pending_open()  # holding now → must be a no-op (no spurious cancel)
+        assert not broker.cancelled
     asyncio.run(scenario())
 
 

@@ -45,6 +45,7 @@ class Order:
     limit_price: float | None
     status: OrderStatus
     filled_qty: float = 0.0
+    tif: str | None = None  # None = broker default (DAY); "IOC" for marketable entries
 
 
 class BrokerPort(Protocol):
@@ -88,9 +89,10 @@ class OrderEngine:
         order_type: str,
         limit_price: float | None = None,
         coid: str | None = None,
+        tif: str | None = None,
     ) -> str:
         coid = coid or self._next_coid()
-        o = Order(coid, symbol, side, qty, order_type, limit_price, OrderStatus.PENDING)
+        o = Order(coid, symbol, side, qty, order_type, limit_price, OrderStatus.PENDING, tif=tif)
         self._orders[coid] = o
         self._persist(o)
         self._broker.place(o)  # if this raises, the order never advances to WORKING

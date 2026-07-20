@@ -44,6 +44,7 @@ from .ipc import (
 from . import pnl, session
 from .sdnotify import sd_notify
 from .safety import SafetyManager, is_naked, reconcile_verdict, safe_flatten_verdict
+from .ticks import round_to_tick, tick_for
 from .store import (
     clear_open_position,
     get_open_position,
@@ -102,6 +103,8 @@ class Core:
         self._pos: Position | None = None
         self._qty = 0.0
         self._pending_open = False
+        self._pending_open_coid: str | None = None   # the in-flight IOC entry — cancel on timeout
+        self._pending_open_mono = 0.0                 # monotonic when the entry was submitted
         self._closing = False
         self._exit_reason: str | None = None
         self._pending_gate: str | None = None  # gate of the intent currently opening a position
@@ -176,8 +179,23 @@ class Core:
         self._exit_reason = None
         self._pending_gate = gate  # stamp the real firing gate onto the trade this open creates
         order_side = "BUY" if side == "LONG" else "SELL"
-        coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty, order_type="MKT")
+        # CAPPED MARKETABLE-LIMIT (2026-07-20): a limit through the touch, tif=IOC — fills
+        # available liquidity within the cap, cancels the rest (no resting order). Caps a
+        # blow-up fill (id67 −$156) impossible. ref_price is the strategy's decision price;
+        # buffer=0 → plain MKT. Closes/flattens stay MKT (they must fill).
+        ref = intent.get("price")
+        buf = self._cfg.entry_limit_buffer_pts
+        if ref and buf > 0:
+            tick = tick_for(self._cfg.symbol)
+            raw = (ref + buf) if order_side == "BUY" else (ref - buf)
+            limit_px = round_to_tick(raw, tick, mode="ceil" if order_side == "BUY" else "floor")
+            coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty,
+                                   order_type="LMT", limit_price=limit_px, tif="IOC")
+        else:
+            coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty, order_type="MKT")
         self._pending_open = True
+        self._pending_open_coid = coid
+        self._pending_open_mono = time.monotonic()
         record_signal(self._store, symbol=self._cfg.symbol, gate=gate, side=side, outcome="submitted")
         await self._result(iid, True, "submitted", coid=coid)
 
@@ -226,6 +244,22 @@ class Core:
             self._on_increased()
         self._emit(T_POSITION, self._position_payload())
 
+    def expire_pending_open(self) -> None:
+        """A marketable-limit (IOC) entry that didn't fill leaves no fill event to reset
+        pending_open — so it would wedge the desk (no new entries) forever. After
+        entry_timeout_s still-flat, cancel any resting remnant + clear pending so the
+        desk can re-fire. Called each status cycle (~1s)."""
+        if not self._pending_open or self._pos is not None:
+            return
+        if time.monotonic() - self._pending_open_mono < self._cfg.entry_timeout_s:
+            return
+        if self._pending_open_coid:
+            self._oe.cancel(self._pending_open_coid)  # no-op if already terminal (IOC cancelled)
+        self._pending_open = False
+        self._pending_open_coid = None
+        self._notify(f"{self._cfg.symbol} entry limit unfilled after "
+                     f"{self._cfg.entry_timeout_s:g}s — cancelled, standing by")
+
     def _is_closing_side(self, side: str) -> bool:
         if self._pos is None:
             return False
@@ -240,6 +274,7 @@ class Core:
         self._pos = Position(side, fill.price, self._open_atr, 0.0)
         self.opened_at = fill.exec_time
         self._pending_open = False
+        self._pending_open_coid = None
         # arm the fixed native stop the instant the position opens (zero naked).
         st = self._safety.arm_stop(
             sym, side=side, qty=self._qty, entry_price=fill.price, atr=self._open_atr,
@@ -763,6 +798,7 @@ async def run(cfg: RunConfig, *, notifier=None, status_interval_s: float = 1.0,
     start = time.monotonic()
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
+            core.expire_pending_open()   # cancel + reset an unfilled IOC entry (no fill event resets it)
             await core.publish_status(gw)
             await asyncio.sleep(status_interval_s)
     finally:

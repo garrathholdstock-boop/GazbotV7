@@ -53,6 +53,8 @@ class IBBrokerAdapter:
             ibo = LimitOrder(order.side, order.qty, order.limit_price)
         else:
             ibo = MarketOrder(order.side, order.qty)
+        if order.tif:  # e.g. IOC for a marketable-limit entry (no resting order)
+            ibo.tif = order.tif
         ibo.orderRef = order.client_order_id
         self._trades[order.client_order_id] = self._ib.placeOrder(self._contract, ibo)
 

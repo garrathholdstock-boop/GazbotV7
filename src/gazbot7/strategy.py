@@ -194,10 +194,10 @@ class Strategy:
             if qty <= 0:
                 return None  # conviction sizing says chop → skip (the 0-lot rung)
             self._active = spec
-            return self._emit_open(e.side, spec.name, f, now_ms, qty=qty)
+            return self._emit_open(e.side, spec.name, f, now_ms, qty=qty, price=price)
         if self._cfg.entry_confirm_s <= 0:  # wait disabled — immediate entry
             entry = self._gate(f)
-            return self._emit_open(entry.side, entry.gate, f, now_ms) if entry else None
+            return self._emit_open(entry.side, entry.gate, f, now_ms, price=price) if entry else None
         # DELAYED ENTRY (operator 2026-07-16): raise the signal, watch absorption for
         # entry_confirm_s, enter only if the thrust PERSISTS and no absorption appeared.
         if self._confirm is None:
@@ -215,13 +215,15 @@ class Strategy:
         self._confirm = None  # window elapsed — enter only if thrust still fires clean
         entry = self._gate(f)
         if entry is not None and entry.side == c["side"] and not self._absorbed(entry.side):
-            return self._emit_open(entry.side, entry.gate, f, now_ms)
+            return self._emit_open(entry.side, entry.gate, f, now_ms, price=price)
         return None  # thrust faded / flipped / absorbed during the wait — stand down
 
-    def _emit_open(self, side: str, gate: str, f, now_ms: int, qty: int | None = None) -> dict:
+    def _emit_open(self, side: str, gate: str, f, now_ms: int, qty: int | None = None,
+                   price: float | None = None) -> dict:
         return self._stamp("OPEN", now_ms, {
             "action": "OPEN", "side": side, "qty": qty if qty is not None else self._cfg.size,
             "gate": gate, "reason": gate,
+            "price": price,  # ref for the capped marketable-limit entry (core caps ± buffer)
             "meta": {"entry_atr": f.atr, "target_r": self._cfg.target_r,
                      "stop_atr_mult": self._cfg.stop_atr_mult},
         })
