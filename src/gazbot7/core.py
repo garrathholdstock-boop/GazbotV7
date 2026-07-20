@@ -58,7 +58,14 @@ _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0       # naked-auditor cadence
 PROTECT_BOOT_SETTLE_S = 120.0  # grace after start — let a GTC stop reappear before acting
 ARM_SETTLE_S = 4.0             # after arming a stop, let it propagate to IBKR before calling naked
-EXIT_STUCK_CYCLES = 3          # a close in flight this many cycles without reducing → CRIT
+EXIT_STUCK_CYCLES = 3          # a close in flight this many cycles without reducing → escalate
+EXIT_REFIRE_MAX = 3            # re-fire the flatten this many times before forcing a reconnect
+# Exit wedge-breaker (2026-07-20). A close that goes in-flight but never completes
+# (cancelled/dropped fill, then a connectivity drop) left `_closing` latched, which
+# blocks the time-exit path — a live LONG sat stuck ~4h past max-hold, protected but
+# un-exitable. The watchdog now ESCALATES past alarm-only: page, then re-fire the
+# flatten (force-cancel the dangling close + re-submit MKT), then force a reconnect.
+# NOT a self-restart (the V5 orphan scar); bounded, idempotent, paged each step.
 # Protection-unverifiable watchdog (2026-07-17 naked-bleed fix). When a position is
 # HELD but the venue snapshot can't be read, escalate instead of silently skipping —
 # the incident: reqCurrentTime answered (so healthy/probe/liveness were all green)
@@ -106,6 +113,8 @@ class Core:
         self._halted = False  # set on reconcile DRIFT — rejects new entries until clean
         self._exit_stuck = 0  # cycles a close has been in flight without reducing
         self._exit_alarmed = False
+        self._closing_coid: str | None = None  # the in-flight close order — cancel it before a re-fire
+        self._exit_refires = 0  # flatten re-fires attempted on the current wedge
         self._protect_poke = asyncio.Event()  # a dead stop wakes the auditor instantly
         # protection-unverifiable watchdog (see UNVERIFIED_* constants)
         self._unverified = 0            # consecutive cycles a HELD position couldn't be verified
@@ -185,6 +194,7 @@ class Core:
         self._closing = True
         close_side = "SELL" if self._pos.side == "LONG" else "BUY"
         coid = self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=self._qty, order_type="MKT")
+        self._closing_coid = coid  # remember it so the wedge-breaker can cancel + re-fire
         await self._result(iid, True, "closing", coid=coid)
 
     # ── fills (from execDetailsEvent, in-loop) ───────────────────────────────
@@ -249,6 +259,8 @@ class Core:
         self._armed_mono = 0.0
         self._exit_stuck = 0
         self._exit_alarmed = False
+        self._closing_coid = None
+        self._exit_refires = 0
         self._publish_last_trade()
 
     # ── naked auditor (S1): protection == fresh IBKR truth, never a local flag ─
@@ -318,7 +330,8 @@ class Core:
             qty = self._qty
         self._exit_reason = reason
         self._closing = True
-        self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=qty, order_type="MKT")
+        self._closing_coid = self._oe.submit(
+            symbol=self._cfg.symbol, side=close_side, qty=qty, order_type="MKT")
 
     # ── kill-switches (S8) ────────────────────────────────────────────────────
     def _kill_check(self, now) -> str | None:
@@ -358,17 +371,48 @@ class Core:
             return False
         return (now - opened).total_seconds() / 60.0 >= self._cfg.max_hold_minutes
 
-    def _exit_watchdog(self, venue_net: float) -> None:
-        """A close is in flight. The ``_closing`` latch already prevents the
-        re-fire walk (V5's +1→−101); this alarms if the exit isn't *completing* —
-        the position hasn't reduced after EXIT_STUCK_CYCLES. Detect + page (the
-        operator reconciles at IBKR), don't auto-thrash."""
-        if self._pos is not None and abs(venue_net) > _EPS:
-            self._exit_stuck += 1
-            if self._exit_stuck >= EXIT_STUCK_CYCLES and not self._exit_alarmed:
-                self._exit_alarmed = True
-                self._notify(f"EXIT_NOT_COMPLETING {self._cfg.symbol}: {venue_net:g} not reducing "
-                             f"after {self._exit_stuck} cycles — reconcile + flatten at IBKR")
+    def _exit_watchdog(self, venue_net: float, gw=None) -> None:
+        """A close is in flight but the position hasn't reduced. The ``_closing``
+        latch prevents a submit-per-cycle re-fire walk (V5's +1→−101); this
+        ESCALATES a close that isn't *completing* rather than only alarming (the
+        2026-07-20 wedge, where a cancelled/dropped close left ``_closing`` latched
+        and blocked the time-exits for ~4h). Bounded + idempotent: page once, then
+        re-fire the flatten up to EXIT_REFIRE_MAX (each cancels the dangling close
+        first — no order pile-up), then force a reconnect and let the cycle retry.
+        NOT a self-restart. Every step pages so a stuck exit is never silent."""
+        if self._pos is None or abs(venue_net) <= _EPS:
+            return
+        self._exit_stuck += 1
+        if self._exit_stuck < EXIT_STUCK_CYCLES:
+            return
+        if not self._exit_alarmed:
+            self._exit_alarmed = True
+            self._notify(f"EXIT_NOT_COMPLETING {self._cfg.symbol}: {venue_net:g} not reducing "
+                         f"after {self._exit_stuck} cycles — re-firing the flatten")
+        if self._exit_refires < EXIT_REFIRE_MAX:
+            if self._refire_flatten(venue_net):
+                self._exit_refires += 1
+                self._notify(f"{self._cfg.symbol} exit wedged — re-fired flatten "
+                             f"(attempt {self._exit_refires}/{EXIT_REFIRE_MAX})")
+        elif gw is not None:
+            self._notify(f"{self._cfg.symbol} exit STILL wedged after {EXIT_REFIRE_MAX} re-fires — "
+                         f"forcing gateway reconnect; CHECK IBKR")
+            gw.force_reconnect()
+            self._exit_refires = 0  # fresh session → let the re-fire cycle try again
+
+    def _refire_flatten(self, venue_net: float) -> bool:
+        """Force-cancel the dangling close and re-submit a fresh MKT flatten sized to
+        the venue-truth net. Returns False if IBKR is already flat (nothing to
+        re-fire — the vanished-close path records the round-trip)."""
+        verdict = safe_flatten_verdict(venue_net)  # fire ONLY what IBKR still holds
+        if verdict is None:
+            return False
+        close_side, qty = verdict
+        if self._closing_coid is not None:
+            self._oe.cancel(self._closing_coid)  # kill the stuck order first — no pile-up/oversell
+        self._closing_coid = self._oe.submit(
+            symbol=self._cfg.symbol, side=close_side, qty=qty, order_type="MKT")
+        return True
 
     def _time_exit_check(self, venue_net: float) -> None:
         now = self._now()
@@ -488,6 +532,8 @@ class Core:
         self._closing = False
         self._exit_stuck = 0
         self._exit_alarmed = False
+        self._closing_coid = None
+        self._exit_refires = 0
 
     async def venue_audit_loop(self, gw) -> None:
         """One fresh IBKR read per cycle drives BOTH reconcile (agreement) and the
@@ -528,7 +574,7 @@ class Core:
             self._halted = False
             if self._pos is not None:
                 if self._closing:
-                    self._exit_watchdog(net)  # a close is in flight — is it completing?
+                    self._exit_watchdog(net, gw)  # a close is in flight — escalate if it isn't completing
                 else:
                     action = self.assess_protection(net, orders, time.monotonic())
                     self._protection_ok = action == "ok"  # confirmed live coverage this cycle

@@ -550,3 +550,66 @@ def test_exit_not_completing_alarms():
             core._exit_watchdog(1.0)
         assert any("EXIT_NOT_COMPLETING" in n for n in notes)
     asyncio.run(scenario())
+
+
+# ── exit wedge-breaker (2026-07-20): re-fire, don't just alarm ────────────────
+def test_exit_watchdog_refires_the_flatten():
+    # The 2026-07-20 wedge: a close in flight that never reduces must be RE-FIRED,
+    # not only paged. After EXIT_STUCK_CYCLES a fresh MKT flatten is submitted.
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build()
+        await _open_long(core)
+        core._emergency_flatten("MAX_HOLD", venue_net=1.0)  # _closing latched, first close out
+        n0 = len(broker.orders)
+        for _ in range(EXIT_STUCK_CYCLES):
+            core._exit_watchdog(1.0)  # position never reduces
+        assert len(broker.orders) == n0 + 1  # exactly one re-fire on the stuck-threshold cycle
+        assert broker.orders[-1] == dict(side="SELL", qty=1.0)  # re-fired at venue-truth qty
+        assert core._exit_refires == 1
+    asyncio.run(scenario())
+
+
+def test_exit_watchdog_escalates_to_reconnect_after_cap():
+    # Re-fires are bounded; once EXIT_REFIRE_MAX is spent, force a gateway reconnect
+    # (heal the connectivity class — the Error 1100 in the incident), then retry.
+    from gazbot7.core import EXIT_REFIRE_MAX
+    async def scenario():
+        core, _b, _sb, _pub, _s = _build()
+        gw = FakeGateway()
+        await _open_long(core)
+        core._emergency_flatten("MAX_HOLD", venue_net=1.0)
+        for _ in range(EXIT_STUCK_CYCLES + EXIT_REFIRE_MAX):  # spend the re-fires, then one more
+            core._exit_watchdog(1.0, gw)
+        assert gw.reconnects == 1
+        assert core._exit_refires == 0  # reset so the re-fire cycle retries after the heal
+    asyncio.run(scenario())
+
+
+def test_refire_noops_when_venue_already_flat():
+    # If IBKR is already flat, re-firing would OPEN a position — must not. The
+    # vanished-close path records the round-trip instead.
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build()
+        await _open_long(core)
+        core._emergency_flatten("MAX_HOLD", venue_net=1.0)
+        n0 = len(broker.orders)
+        assert core._refire_flatten(0.0) is False  # venue flat → no re-fire
+        assert len(broker.orders) == n0
+    asyncio.run(scenario())
+
+
+def test_exit_watchdog_does_not_order_storm():
+    # Idempotency guard: many stuck cycles must NOT submit an order per cycle — the
+    # re-fire count is bounded by EXIT_REFIRE_MAX between reconnects (no +1→−101 walk).
+    async def scenario():
+        core, broker, _sb, _pub, _s = _build()
+        gw = FakeGateway()
+        await _open_long(core)
+        core._emergency_flatten("MAX_HOLD", venue_net=1.0)
+        n0 = len(broker.orders)
+        for _ in range(30):  # far more cycles than the caps
+            core._exit_watchdog(1.0, gw)
+        # 30 cycles ≫ a per-cycle submit; growth is paced by the re-fire cap, not the cycle count
+        assert len(broker.orders) - n0 < 30
+        assert gw.reconnects >= 1
+    asyncio.run(scenario())
