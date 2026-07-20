@@ -70,8 +70,10 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     strat = SlotStrategy(specs, value_per_point=cfg.value_per_point)
     core = None
     gw = None
+    audit_task = None
     if place_live:
         core, gw = await _build_live(cfg, gates)   # gateway + engine + per-slot safety + MultiSlotCore
+        audit_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # per-slot naked auditor + reconcile
     else:
         from .slotbook import SlotBook
         slotbook = SlotBook(gates, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
@@ -102,6 +104,8 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                         log.info("[DRY] %s %s side=%s qty=%s @%s", i["action"], i["slot"],
                                  i.get("side", ""), i.get("qty", ""), i.get("price", ""))
     finally:
+        if audit_task is not None:
+            audit_task.cancel()
         md.close()
         if gw is not None:
             await gw.stop()
