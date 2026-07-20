@@ -22,6 +22,12 @@ class GateSpec:
     chandelier_tighten: float = 0.75
     vol_adaptive_chandelier: bool = False  # start_k from chandelier_start_k(entry_atr)
     adverse_cut_atr: float = 0.0       # 0 = disabled (kept off for backtest parity)
+    # dollar give-back ("ratchet 2", 2026-07-20): once >= arm_usd favorable, cut on a
+    # giveback_usd retrace from peak (position $, incl. qty). Caps the green-then-reverse
+    # deep losers the wide chandelier / trail-less scalp miss. See GIVEBACK_EXIT_SCOPE.md.
+    giveback_enabled: bool = False
+    giveback_arm_usd: float = 50.0
+    giveback_usd: float = 40.0
 
 
 def live_gates() -> list[GateSpec]:
@@ -32,11 +38,13 @@ def live_gates() -> list[GateSpec]:
         GateSpec(name="grind", kind="grind",
                  params={"slope_min": 0.4, "fast_slope": True},
                  sizing="conviction", base_size=2,
-                 exit="chandelier", vol_adaptive_chandelier=True),
+                 exit="chandelier", vol_adaptive_chandelier=True,
+                 giveback_enabled=True, giveback_arm_usd=50.0, giveback_usd=40.0),
         GateSpec(name="rgv", kind="reversal_grab",
                  params={"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15,
                          "fast_slope": True, "fast_turn": True, "atr_min": 13.0},
-                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0,
+                 giveback_enabled=True, giveback_arm_usd=50.0, giveback_usd=40.0),
     ]
 
 
@@ -91,6 +99,11 @@ class RunConfig:
     # so it can never cut a winner (no loss) or a small loss; the native ~1-ATR stop
     # is the normal loss exit, absorption catches a runaway that escapes it.
     absorption_min_loss_usd: float = 60.0
+    # dollar give-back ("ratchet 2", 2026-07-20) for the legacy single-gate path; the
+    # two-gate lineup carries its own per-GateSpec giveback_* (both enabled at go-live).
+    giveback_enabled: bool = False
+    giveback_arm_usd: float = 50.0
+    giveback_usd: float = 40.0
     # session discipline (S4) — never hold overnight, never open into the close
     max_hold_minutes: float = 120.0    # hard ceiling regardless of P&L
     no_open_minutes: float = 20.0      # suppress new entries this long before close

@@ -294,6 +294,30 @@ def exit_adverse_cut(pos: Position, price: float, *, cut_atr: float = 1.5, arm_a
     return None
 
 
+def exit_giveback(pos: Position, price: float, *, value_per_point: float, qty: float = 1.0,
+                  arm_usd: float = 50.0, giveback_usd: float = 40.0) -> str | None:
+    """The tight dollar profit give-back — the 'ratchet 2' (2026-07-20). Once the
+    position has been >= ``arm_usd`` favorable (in POSITION dollars, incl. qty), cut
+    if it retraces ``giveback_usd`` from its peak. Dollar-denominated — the risk the
+    operator feels — so it arms sooner in point-terms on bigger size and caps the
+    green-then-reverse losses (the deep losers peak green, then reverse hard) that the
+    wide ATR chandelier and the trail-less 2R scalp let round-trip to −$120–150.
+
+    Only ever acts on a trade that went GREEN first (peak reached ``arm_usd``); a trade
+    that goes straight offside never arms, so this NEVER cuts a mere dip — those
+    never-green losses are the native 1-ATR stop's job. Returns 'GIVEBACK' or None."""
+    if pos.peak_favorable <= 0:
+        return None
+    peak_usd = pos.peak_favorable * value_per_point * qty
+    if peak_usd < arm_usd:                                    # never armed → never fires
+        return None
+    fav = (price - pos.entry_price) if pos.side == "LONG" else (pos.entry_price - price)
+    fav_usd = fav * value_per_point * qty
+    if peak_usd - fav_usd >= giveback_usd:
+        return "GIVEBACK"
+    return None
+
+
 def exit_absorption(pos: Position, *, tape_net: float, window_price_delta: float, flow_min: float = 50) -> str | None:
     """Heavy aggressor flow OUR way that FAILED to move price — exhaustion, cut."""
     if pos.side == "SHORT" and tape_net <= -flow_min and window_price_delta >= 0:

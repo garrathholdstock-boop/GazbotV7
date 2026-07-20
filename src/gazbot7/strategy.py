@@ -40,6 +40,7 @@ from .deciders import (
     exit_absorption,
     exit_adverse_cut,
     exit_chandelier,
+    exit_giveback,
     exit_scalp,
     gate_grind,
     gate_reversal_grab,
@@ -260,6 +261,19 @@ class Strategy:
             cut_atr = self._cfg.adverse_cut_atr
         if reason is None and cut_atr > 0 and exit_adverse_cut(pos, price, cut_atr=cut_atr):
             reason = "ADVERSE_CUT"
+        # dollar give-back ("ratchet 2", 2026-07-20) — the tight profit protector that
+        # catches the green-then-reverse deep losers BEFORE the wide chandelier / 2R
+        # scalp lets them round-trip. Arms only after a real green peak; a never-green
+        # trade never arms (that loss is the native stop's job). Checked under the
+        # profit exits so a true runner still exits on chandelier, not here.
+        gb_on = self._active.giveback_enabled if self._active is not None else self._cfg.giveback_enabled
+        if reason is None and gb_on:
+            gb_arm = self._active.giveback_arm_usd if self._active is not None else self._cfg.giveback_arm_usd
+            gb_usd = self._active.giveback_usd if self._active is not None else self._cfg.giveback_usd
+            qty = (self._core_pos or {}).get("qty") or 1
+            if exit_giveback(pos, price, value_per_point=self._cfg.value_per_point, qty=qty,
+                             arm_usd=gb_arm, giveback_usd=gb_usd):
+                reason = "GIVEBACK"
         # absorption is a CATASTROPHE backstop: only once the trade is deep underwater
         # (>= absorption_min_loss_usd). A green trade has no loss and a small loss is
         # under the floor, so absorption never guillotines a winner or a scalp — the

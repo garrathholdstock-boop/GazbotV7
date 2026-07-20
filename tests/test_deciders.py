@@ -12,6 +12,7 @@ from gazbot7.deciders import (
     exit_adverse_cut,
     chandelier_start_k,
     exit_chandelier,
+    exit_giveback,
     exit_scalp,
     gate_capitulation,
     gate_grind,
@@ -110,6 +111,35 @@ def test_scalp_short_stop_and_target():
     p = Position("SHORT", 100.0, 4.0)
     assert exit_scalp(p, 105.0) == "STOP"  # >= 104
     assert exit_scalp(p, 91.0) == "TARGET"  # <= 92 (2R)
+
+
+def test_giveback_arms_only_after_the_dollar_peak():
+    # LONG entry 100, ATR 4, MNQ $2/pt, 1 lot. arm $50 → peak must reach 25pt fav.
+    armed = Position("LONG", 100.0, 4.0, peak_favorable=30.0)   # peak $60 ≥ arm $50 → armed
+    # gives back $40 → cut once fav_usd ≤ $20 (fav ≤ 10pt): price 110 = fav 10 → $20 giveback... $40 total
+    assert exit_giveback(armed, 110.0, value_per_point=2.0, qty=1) == "GIVEBACK"
+    assert exit_giveback(armed, 112.0, value_per_point=2.0, qty=1) is None  # fav 12 → $36 give-back, still running
+    not_armed = Position("LONG", 100.0, 4.0, peak_favorable=20.0)  # peak $40 < arm $50 → never fires
+    assert exit_giveback(not_armed, 100.0, value_per_point=2.0, qty=1) is None
+
+
+def test_giveback_never_arms_on_a_never_green_trade():
+    # straight offside, never favorable → the give-back must NEVER fire (stop's job)
+    p = Position("LONG", 100.0, 4.0, peak_favorable=0.0)
+    assert exit_giveback(p, 90.0, value_per_point=2.0, qty=1) is None
+
+
+def test_giveback_dollar_scales_with_qty():
+    # same 15pt peak: 1 lot = $30 (below $50 arm) but 2 lots = $60 (armed) → arms sooner on size
+    p = Position("LONG", 100.0, 4.0, peak_favorable=15.0)
+    assert exit_giveback(p, 100.0, value_per_point=2.0, qty=1) is None
+    assert exit_giveback(p, 100.0, value_per_point=2.0, qty=2) == "GIVEBACK"  # peak $60, back to entry = $60 give-back
+
+
+def test_giveback_short_mirror():
+    p = Position("SHORT", 100.0, 4.0, peak_favorable=30.0)  # price fell to 70 at peak (fav $60)
+    assert exit_giveback(p, 90.0, value_per_point=2.0, qty=1) == "GIVEBACK"  # fav 10 → $20, gave back $40
+    assert exit_giveback(p, 88.0, value_per_point=2.0, qty=1) is None        # fav 12 → still running
 
 
 def test_adverse_cut_only_when_never_green():
