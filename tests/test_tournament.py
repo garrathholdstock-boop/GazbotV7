@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from gazbot7.agg import MinuteBars
-from gazbot7.slot_strategy import SlotStrategy, grind_long_short_slots
+from gazbot7.config import RunConfig
+from gazbot7.slot_strategy import SlotStrategy, grind_long_short_slots, tournament_slots
 from gazbot7.slotbook import SlotBook
-from gazbot7.tournament import step
+from gazbot7.tournament import _ensure_live_cfg, step
 
 
 def _setup():
@@ -30,3 +31,17 @@ def test_grind_long_short_slots_shape():
     specs = grind_long_short_slots()
     assert [s.tag for s in specs] == ["grind_long", "grind_short"]
     assert [s.side for s in specs] == ["LONG", "SHORT"]
+
+
+def test_tournament_slate_is_two_long_two_short_distinct():
+    specs = tournament_slots()
+    assert [s.tag for s in specs] == ["rgv_long", "grind_long", "thrust_short", "rgv_short"]
+    assert sum(s.side == "LONG" for s in specs) == 2
+    assert sum(s.side == "SHORT" for s in specs) == 2
+
+
+def test_live_run_coerces_cfg_place_live():
+    # the silent no-trade bug: a live run must lift cfg.place_live so the core places orders
+    assert _ensure_live_cfg(RunConfig(place_live=False), True).place_live is True
+    assert _ensure_live_cfg(RunConfig(place_live=False), False).place_live is False  # dry-run untouched
+    assert _ensure_live_cfg(RunConfig(place_live=True), True).place_live is True

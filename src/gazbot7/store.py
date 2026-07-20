@@ -94,6 +94,39 @@ CREATE TABLE IF NOT EXISTS open_position (
     updated_at  TEXT NOT NULL
 );
 
+-- Per-gate logical positions over the netted paper account (the tournament).
+-- A netted venue CANNOT reconstruct per-slot state after a restart (a long slot
+-- + a short slot show a net of 0), so THIS ledger is the source of truth on
+-- restart; the venue net is only a coarse reconcile tripwire. One row per gate
+-- currently non-flat (deleted on flat). entry/exit *notional* (Σ qty*price) keep
+-- the VWAP exact across partials; entry_atr + stop_coid/stop_price carry what the
+-- venue can't tell us so the per-slot stop re-attaches without a duplicate place.
+CREATE TABLE IF NOT EXISTS slot_positions (
+    gate           TEXT PRIMARY KEY,
+    symbol         TEXT NOT NULL,
+    side           TEXT NOT NULL CHECK (side IN ('LONG','SHORT')),
+    entry_qty      REAL NOT NULL,
+    entry_notional REAL NOT NULL,
+    exit_qty       REAL NOT NULL DEFAULT 0,
+    exit_notional  REAL NOT NULL DEFAULT 0,
+    opened_at      TEXT NOT NULL,
+    entry_atr      REAL NOT NULL DEFAULT 0,
+    stop_coid      TEXT,
+    stop_price     REAL,
+    updated_at     TEXT NOT NULL
+);
+
+-- The durable coid→gate attribution map. Over a netted venue the ONLY reliable
+-- key for a fill is the order coid that produced it; this table survives a restart
+-- so an in-flight fill (and a native-stop fill) still routes to the right slot.
+CREATE TABLE IF NOT EXISTS slot_orders (
+    coid       TEXT PRIMARY KEY,
+    gate       TEXT NOT NULL,
+    symbol     TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_slot_orders_gate ON slot_orders(gate);
+
 CREATE TABLE IF NOT EXISTS signals (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     ts             TEXT NOT NULL,
@@ -359,6 +392,63 @@ def get_open_position(conn: sqlite3.Connection, symbol: str) -> sqlite3.Row | No
 def clear_open_position(conn: sqlite3.Connection, symbol: str) -> None:
     conn.execute("DELETE FROM open_position WHERE symbol = ?", (symbol,))
     conn.commit()
+
+
+# ── per-slot ledger (the paper tournament) ────────────────────────────────
+def record_slot_order(
+    conn: sqlite3.Connection, *, coid: str, gate: str, symbol: str,
+) -> None:
+    """Durably attribute an order coid to its gate. Idempotent (INSERT OR IGNORE) —
+    the same coid is only ever one gate's. Persisted for EVERY order a slot places
+    (open / close / flatten / stop), so any resulting fill routes back on restart."""
+    conn.execute(
+        "INSERT OR IGNORE INTO slot_orders (coid, gate, symbol, created_at) "
+        "VALUES (?,?,?,?)",
+        (coid, gate, symbol, _utcnow_iso()),
+    )
+    conn.commit()
+
+
+def upsert_slot_position(
+    conn: sqlite3.Connection, *, gate: str, symbol: str, side: str,
+    entry_qty: float, entry_notional: float, exit_qty: float, exit_notional: float,
+    opened_at: str, entry_atr: float, stop_coid: str | None = None,
+    stop_price: float | None = None,
+) -> None:
+    """Snapshot a gate's OPEN logical position so a restart reconstructs it from our
+    ledger (the netted venue can't). Written on every fill that changes the slot."""
+    now = _utcnow_iso()
+    conn.execute(
+        "INSERT INTO slot_positions "
+        "(gate, symbol, side, entry_qty, entry_notional, exit_qty, exit_notional, "
+        " opened_at, entry_atr, stop_coid, stop_price, updated_at) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(gate) DO UPDATE SET symbol=excluded.symbol, side=excluded.side, "
+        "entry_qty=excluded.entry_qty, entry_notional=excluded.entry_notional, "
+        "exit_qty=excluded.exit_qty, exit_notional=excluded.exit_notional, "
+        "opened_at=excluded.opened_at, entry_atr=excluded.entry_atr, "
+        "stop_coid=excluded.stop_coid, stop_price=excluded.stop_price, "
+        "updated_at=excluded.updated_at",
+        (gate, symbol, side, entry_qty, entry_notional, exit_qty, exit_notional,
+         opened_at, entry_atr, stop_coid, stop_price, now),
+    )
+    conn.commit()
+
+
+def clear_slot_position(conn: sqlite3.Connection, gate: str) -> None:
+    """A gate went flat → drop its open-position snapshot."""
+    conn.execute("DELETE FROM slot_positions WHERE gate = ?", (gate,))
+    conn.commit()
+
+
+def get_slot_positions(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """All currently-open per-slot positions — the restart reconstruction source."""
+    return conn.execute("SELECT * FROM slot_positions ORDER BY gate").fetchall()
+
+
+def get_slot_orders(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """The full coid→gate attribution map — replayed on restart so any live fill routes."""
+    return conn.execute("SELECT coid, gate, symbol FROM slot_orders").fetchall()
 
 
 def get_fill(conn: sqlite3.Connection, exec_id: str) -> sqlite3.Row | None:

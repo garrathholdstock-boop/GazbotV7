@@ -1,0 +1,28 @@
+[Unit]
+Description=GAZBOT V7 — tournament (multi-slot paper desk: decisions + execution + per-slot safety)
+# The tournament REPLACES gazbot7-core + gazbot7-strategy (it is decision+execution combined).
+# It takes the master clientId 0 and trades the ONE paper account, so core+strategy MUST be
+# stopped first — one netted account, they must not co-trade. md stays up as the feed.
+After=network.target gazbot7-md.service
+Wants=gazbot7-md.service
+Conflicts=gazbot7-core.service gazbot7-strategy.service
+
+[Service]
+# Type=notify + WatchdogSec: the run loop sd_notify's each heartbeat (~1s); a wedged loop
+# stops pinging → systemd restarts it (which then re-adopts open slots from the durable ledger).
+Type=notify
+WatchdogSec=90
+Slice=gazbot7.slice
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+# LIVE paper trading. GAZBOT7_TOURNAMENT_LIVE=1 arms the account; =0 = dry-run (logs decisions,
+# touches no account). GAZBOT7_TOURNAMENT_SLATE selects the lineup: "tournament" (rgv-long,
+# grind-long, thrust-short, rgv-short — 2 long/2 short) or "grind2" (grind long+short).
+Environment=GAZBOT7_TOURNAMENT_LIVE=1
+Environment=GAZBOT7_TOURNAMENT_SLATE=tournament
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.tournament
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

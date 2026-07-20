@@ -26,13 +26,19 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from dataclasses import replace
 
 from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
 from .deciders import compute_features
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
-from .slot_strategy import SlotStrategy, grind_long_short_slots
+from .sdnotify import sd_notify
+from .slot_strategy import SlotStrategy, grind_long_short_slots, tournament_slots
+
+# The tournament REPLACES gazbot7-core as the desk, so it takes the master clientId 0
+# (full order visibility/adoption) — core must be stopped first (one account, no co-trade).
+TOURNAMENT_CLIENT_ID = 0
 
 log = logging.getLogger("tournament")
 
@@ -56,9 +62,16 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int)
     return strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0))
 
 
+def _ensure_live_cfg(cfg: RunConfig, place_live: bool) -> RunConfig:
+    """Keep the run switch and cfg coherent: a live run needs cfg.place_live too, else
+    _build_live connects read-only and the core rejects every order ("place_live off") —
+    a silent no-trade desk. Idempotent; only lifts False→True for a live run."""
+    return replace(cfg, place_live=True) if place_live and not cfg.place_live else cfg
+
+
 async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = False,
               max_seconds: float | None = None) -> None:
-    cfg = cfg or RunConfig()
+    cfg = _ensure_live_cfg(cfg or RunConfig(), place_live)
     specs = specs or grind_long_short_slots()
     gates = [s.tag for s in specs]
 
@@ -73,7 +86,10 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     audit_task = None
     if place_live:
         core, gw = await _build_live(cfg, gates)   # gateway + engine + per-slot safety + MultiSlotCore
-        audit_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # per-slot naked auditor + reconcile
+        adopted = core.reconstruct()               # rebuild open slots + stops from OUR ledger (netted venue can't)
+        if adopted:
+            log.warning("tournament ADOPTED %d open slot(s) from store: %s", len(adopted), adopted)
+        audit_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # reconciles adopted state vs IBKR net
     else:
         from .slotbook import SlotBook
         slotbook = SlotBook(gates, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
@@ -82,8 +98,17 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     tape: dict = {}
     log.info("tournament %s — slots=%s", "LIVE" if place_live else "DRY-RUN", gates)
     start = time.monotonic()
+    last_hb = 0.0
+    if place_live:
+        sd_notify("READY=1")                       # Type=notify — tournament is up (no-op off systemd)
     try:
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
+            if place_live and gw is not None:      # own core_health.json/status.json (liveness)
+                now_mono = time.monotonic()
+                if now_mono - last_hb >= 1.0:
+                    core.write_heartbeat(conn=gw.state.value, healthy=gw.healthy)
+                    sd_notify("WATCHDOG=1")        # prove the loop is live → systemd restarts a wedge
+                    last_hb = now_mono
             msg = await md.poll(500)
             if msg is None:
                 continue
@@ -111,9 +136,17 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
             await gw.stop()
 
 
+def _telegram_notifier(msg: str) -> None:
+    """Per-slot safety alarms (naked / drift-halt / wedge / unverified / flatten) MUST page —
+    a silent live desk is the 2026-07-17 naked-bleed class. All tournament alerts are safety."""
+    from .notify import notify
+    notify(f"[V7-tournament] {msg}", critical=True)
+
+
 async def _build_live(cfg: RunConfig, gates):
-    """Live execution wiring (paper account). ⚠ the deferred per-slot venue-audit loop
-    (naked/adopt/wedge) is NOT here yet — see the module docstring before running."""
+    """Live execution wiring (paper account). The per-slot venue-audit loop (naked/adopt/wedge/
+    time-exit) is started by the caller; here we build the gateway + engine + per-slot safety +
+    MultiSlotCore, with the operator notifier wired through so every safety alarm pages."""
     from ib_async import ContFuture
 
     from .broker_adapter import IBBrokerAdapter
@@ -134,17 +167,23 @@ async def _build_live(cfg: RunConfig, gates):
                              on_stop_event=lambda coid, status: None)
     engine = OrderEngine(broker, store)
     slotbook = SlotBook(gates, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
-    safeties = {g: SafetyManager(broker) for g in gates}
-    core = MultiSlotCore(cfg, engine, slotbook, safeties, publisher=None, store=store)
+    safeties = {g: SafetyManager(broker, notifier=_telegram_notifier) for g in gates}
+    core = MultiSlotCore(cfg, engine, slotbook, safeties, publisher=None, store=store,
+                         notifier=_telegram_notifier)
     ref["core"] = core
     return core, gw
 
 
-def main() -> None:  # `python -m gazbot7.tournament`
+_SLATES = {"tournament": tournament_slots, "grind2": grind_long_short_slots}
+
+
+def main() -> None:  # `python -m gazbot7.tournament`  (GAZBOT7_TOURNAMENT_LIVE=1 to trade)
     import os
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     live = os.environ.get("GAZBOT7_TOURNAMENT_LIVE") == "1"
-    asyncio.run(run(place_live=live))
+    slate = _SLATES.get(os.environ.get("GAZBOT7_TOURNAMENT_SLATE", "tournament"), tournament_slots)
+    cfg = RunConfig(place_live=live, client_id=TOURNAMENT_CLIENT_ID)
+    asyncio.run(run(slate(), cfg, place_live=live))
 
 
 if __name__ == "__main__":

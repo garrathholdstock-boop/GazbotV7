@@ -121,6 +121,16 @@ class SafetyManager:
         self._stops[symbol] = st
         return st
 
+    def restore_stop(self, symbol: str, *, side: str, qty: float, stop_price: float, coid: str) -> StopOrder:
+        """Re-attach a stop that ALREADY rests at the venue after a restart — records it
+        WITHOUT placing a new order (a fresh ``place_stop`` would double the coverage and
+        risk an oversell on a spike). ``side`` is the CLOSING side, as stored. The naked
+        auditor then verifies this coid is still live at IBKR truth; if it isn't (the stop
+        died while we were down), the slot reads naked and reprotect fires."""
+        st = StopOrder(symbol, side, qty, stop_price, coid)
+        self._stops[symbol] = st
+        return st
+
     def rearm(self, symbol: str, *, side: str, qty: float, entry_price: float, atr: float) -> StopOrder:
         """Replace the active stop with one sized to ``qty`` — for a position that
         GREW (a multi-lot entry that filled in partials). Cancels the prior stop

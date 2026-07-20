@@ -12,19 +12,43 @@ the **per-slot venue-audit loop** — a COID-KEYED naked-auditor (each slot's ow
 must be a live venue order — aggregate is_naked is meaningless over a netted book),
 reprotect-then-flatten, boot-settle grace, and the unverified-protection escalation
 (held + can't-read → page + reconnect). This is the critical unbounded-bleed class.
-STILL DEFERRED (bounded by the stop, next layer): per-slot time-exits (max-hold /
-session-flat) and the per-slot wedge-breaker (stuck-close re-fire). ADOPT-on-boot: a
-venue net the empty SlotBook can't attribute → reconcile DRIFT → halt + page (safe; no
-guessing which slot owns it). Clean-room.
+
+DURABLE LEDGER (restart-survivable per-slot P&L): every order coid is attributed to its
+gate in the store, and each open slot's position (side/qty/entry-VWAP/entry_atr + its live
+stop coid/price) is snapshotted on every fill. ``reconstruct()`` rebuilds the SlotBook and
+re-attaches each stop from OUR ledger on boot — the netted venue can't (a long slot + a
+short slot show net 0). The venue net is then only the reconcile tripwire: if it disagrees
+with the reconstructed logical net → DRIFT → halt + page (safe; no guessing which slot owns
+a venue-only lot). Fills are recorded before applying, so a redelivery across a restart is
+idempotent.
+
+TIME-EXITS + WEDGE-BREAKER (per slot): ``time_exit_check`` cuts every open slot at the
+session-end window (flat before the 17:00 ET close) and any single slot past its own
+max-hold ceiling; ``exit_watchdog_slot`` escalates a slot whose close went in-flight but
+never completed (page → re-fire the flatten, cancelling the dangling order first → force
+reconnect) — the 2026-07-20 wedge, bounded per slot. Both run in the venue-audit loop.
+Clean-room.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import time
+from datetime import UTC, datetime
 
+from . import session
 from .safety import is_live_status
-from .store import record_trade
+from .store import (
+    clear_slot_position,
+    get_slot_orders,
+    get_slot_positions,
+    record_fill,
+    record_slot_order,
+    record_trade,
+    upsert_slot_position,
+)
 from .ticks import round_to_tick, tick_for
 
 _EPS = 1e-9
@@ -33,10 +57,13 @@ PROTECT_BOOT_SETTLE_S = 120.0   # grace after (re)start — let a GTC stop reapp
 NAKED_FLATTEN_STREAK = 2        # re-arm once, then flatten a slot still naked next cycle
 UNVERIFIED_PAGE_CYCLES = 3      # can't read venue while a slot is HELD → page fast
 UNVERIFIED_RECONNECT_CYCLES = 6 # → force a fresh session to heal the data path
+EXIT_STUCK_CYCLES = 3           # a slot's close in flight this many audit cycles w/o going flat → escalate
+EXIT_REFIRE_MAX = 3             # re-fire a wedged slot close this many times before forcing a reconnect
 
 
 class MultiSlotCore:
-    def __init__(self, cfg, engine, slotbook, safeties, publisher, store, *, notifier=None) -> None:
+    def __init__(self, cfg, engine, slotbook, safeties, publisher, store, *,
+                 notifier=None, now_fn=None) -> None:
         self._cfg = cfg
         self._oe = engine
         self._sb = slotbook                 # SlotBook
@@ -44,6 +71,7 @@ class MultiSlotCore:
         self._pub = publisher
         self._store = store
         self._notify = notifier or (lambda _m: None)
+        self._now = now_fn or (lambda: datetime.now(UTC))   # injectable wall clock (time-exits/tests)
         self._pending: dict[str, str] = {}      # gate -> in-flight OPEN coid
         self._pending_mono: dict[str, float] = {}
         self._closing: dict[str, str] = {}      # gate -> in-flight CLOSE coid
@@ -52,9 +80,81 @@ class MultiSlotCore:
         self._halted = False
         self._gates = slotbook.gates()
         self._naked_streak: dict[str, int] = {g: 0 for g in self._gates}
+        # per-slot exit wedge-breaker state (a close in flight that never completes)
+        self._exit_stuck: dict[str, int] = {g: 0 for g in self._gates}
+        self._exit_refires: dict[str, int] = {g: 0 for g in self._gates}
+        self._exit_alarmed: dict[str, bool] = {g: False for g in self._gates}
         self._boot_mono = time.monotonic()   # boot-settle anchor for the naked auditor
         self._unverified = 0                  # consecutive cycles the venue couldn't be read
         self._unverified_alarmed = False
+
+    # ── durable ledger (restart-survivable per-slot P&L) ──────────────────────
+    def _register(self, coid: str, gate: str) -> None:
+        """Attribute an order coid to its gate, in memory AND durably. Over a netted
+        venue the coid is the only reliable fill key; persisting it means an in-flight
+        (or native-stop) fill still routes to the right slot after a restart."""
+        self._sb.register(coid, gate)
+        if self._store is not None:
+            record_slot_order(self._store, coid=coid, gate=gate, symbol=self._cfg.symbol)
+
+    def _persist_slot(self, gate: str) -> None:
+        """Snapshot a gate's OPEN position (or clear it when flat) so a restart rebuilds
+        per-slot truth from OUR ledger — the netted venue can't. Carries entry_atr +
+        the live stop coid/price the venue can't hand back."""
+        if self._store is None:
+            return
+        slot = self._sb.slot(gate)
+        if slot.is_flat:
+            clear_slot_position(self._store, gate)
+            return
+        stop = self._safeties[gate].stop_for(self._cfg.symbol)
+        upsert_slot_position(
+            self._store, gate=gate, symbol=self._cfg.symbol, side=slot.side,
+            entry_qty=slot.entry_qty, entry_notional=slot.entry_notional,
+            exit_qty=slot.exit_qty, exit_notional=slot.exit_notional,
+            opened_at=slot.opened_at or "", entry_atr=slot.entry_atr,
+            stop_coid=stop.coid if stop else None,
+            stop_price=stop.stop_price if stop else None,
+        )
+
+    def reconstruct(self) -> list[str]:
+        """Rebuild per-slot logical positions + their stops from the durable store after
+        a restart. OUR ledger is the source of truth (a netted venue shows a long slot +
+        a short slot as net 0 — it can't reconstruct them); the venue net is only the
+        reconcile tripwire the audit loop checks. Re-attaches each open slot's stop by
+        its stored coid (no fresh place → no duplicate coverage). Returns the open gates.
+
+        If the venue net then disagrees with the reconstructed logical net, the audit
+        loop's reconcile fires DRIFT → halt + page (safe: we never guess which slot a
+        venue-only lot belongs to)."""
+        if self._store is None:
+            return []
+        for row in get_slot_orders(self._store):      # replay the coid→gate map first
+            self._sb.register(row["coid"], row["gate"])
+        open_gates: list[str] = []
+        for row in get_slot_positions(self._store):
+            gate = row["gate"]
+            if gate not in self._safeties:
+                self._notify(f"stored slot {gate!r} not in this lineup — LEFT for operator")
+                continue
+            self._sb.restore_slot(
+                gate, side=row["side"], entry_qty=row["entry_qty"],
+                entry_notional=row["entry_notional"], exit_qty=row["exit_qty"],
+                exit_notional=row["exit_notional"], opened_at=row["opened_at"] or "",
+                entry_atr=row["entry_atr"],
+            )
+            if row["stop_coid"] and row["stop_price"] is not None:
+                close_side = "SELL" if row["side"] == "LONG" else "BUY"
+                self._safeties[gate].restore_stop(
+                    self._cfg.symbol, side=close_side,
+                    qty=self._sb.slot(gate).qty, stop_price=row["stop_price"],
+                    coid=row["stop_coid"],
+                )
+            open_gates.append(gate)
+        if open_gates:
+            self._notify(f"reconstructed {len(open_gates)} open slot(s) from store: "
+                         f"{open_gates} — venue-audit will reconcile vs IBKR net")
+        return open_gates
 
     # ── intents in ───────────────────────────────────────────────────────────
     async def on_intents(self, intents: list[dict]) -> None:
@@ -84,7 +184,7 @@ class MultiSlotCore:
                                    order_type="LMT", limit_price=px, tif="IOC")
         else:
             coid = self._oe.submit(symbol=self._cfg.symbol, side=order_side, qty=qty, order_type="MKT")
-        self._sb.register(coid, gate)        # route this slot's fills back to it
+        self._register(coid, gate)           # route this slot's fills back to it (durably)
         self._pending[gate] = coid
         self._pending_mono[gate] = time.monotonic()
 
@@ -95,12 +195,17 @@ class MultiSlotCore:
             return
         close_side = "SELL" if slot.side == "LONG" else "BUY"
         coid = self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=slot.qty, order_type="MKT")
-        self._sb.register(coid, gate)
+        self._register(coid, gate)
         self._closing[gate] = coid
         self._close_reason[gate] = intent.get("reason") or "SIGNAL_CLOSE"
 
     # ── fills in (route via the SlotBook) ────────────────────────────────────
     def on_fill(self, fill) -> None:
+        # Persist the raw execution FIRST — the fills table (idempotent on exec_id) is the
+        # guard against a redelivered fill being applied twice across a restart, where the
+        # in-memory dedup set is empty. A second delivery returns False here → no-op.
+        if self._store is not None and not record_fill(self._store, fill):
+            return
         gate = self._sb.owner(fill.order_id)
         if gate is None:
             self._notify(f"unattributed fill {fill.exec_id} (coid {fill.order_id}) — no slot")
@@ -115,6 +220,7 @@ class MultiSlotCore:
             self._on_slot_opened(gate)
         if trade is not None:
             self._on_slot_closed(gate, trade)
+        self._persist_slot(gate)             # snapshot (open) or clear (flat) — restart-durable
 
     @staticmethod
     def _is_closing_side(slot_side: str, fill_side: str) -> bool:
@@ -126,8 +232,9 @@ class MultiSlotCore:
         slot = self._sb.slot(gate)
         slot.entry_atr = self._open_atr.get(gate, 0.0)   # for the manage layer's exit stack
         sm = self._safeties[gate]
-        sm.arm_stop(self._cfg.symbol, side=slot.side, qty=slot.qty,
-                    entry_price=slot.entry_price, atr=slot.entry_atr)   # this slot's native 1-ATR stop
+        st = sm.arm_stop(self._cfg.symbol, side=slot.side, qty=slot.qty,
+                         entry_price=slot.entry_price, atr=slot.entry_atr)   # this slot's native 1-ATR stop
+        self._register(st.coid, gate)        # a stop FILL must attribute to this slot too
 
     def _on_slot_closed(self, gate: str, trade: dict) -> None:
         self._safeties[gate].on_flat(self._cfg.symbol)   # cancel + forget THIS slot's stop
@@ -140,6 +247,112 @@ class MultiSlotCore:
         )
         self._closing.pop(gate, None)
         self._close_reason.pop(gate, None)
+        self._exit_stuck[gate] = 0            # the close completed → clear the wedge-breaker
+        self._exit_refires[gate] = 0
+        self._exit_alarmed[gate] = False
+
+    # ── liveness snapshot (the tournament IS the desk → it owns these files) ──
+    def write_heartbeat(self, *, conn: str, healthy: bool) -> None:
+        """Write core_health.json + status.json — the liveness/flatness/protection snapshot
+        the EXTERNAL monitor, the maintenance sweep, and the web page read. The tournament
+        replaces core as the desk, so it takes over these files (a stale file reads as a DEAD
+        desk → false CRIT). Per-slot: flat = no slot held; protection lists each held slot +
+        whether its own stop coid is recorded. A write must never break the loop."""
+        if self._store is None:
+            return
+        ts = datetime.now(UTC).isoformat()
+        data_dir = os.path.dirname(self._cfg.store_path) or "."
+        slots = []
+        for g in self._gates:
+            s = self._sb.slot(g)
+            if s.is_flat:
+                continue
+            stop = self._safeties[g].stop_for(self._cfg.symbol)
+            slots.append({"gate": g, "side": s.side, "qty": s.qty,
+                          "entry_price": s.entry_price,
+                          "stop_coid": stop.coid if stop else None})
+        held = bool(slots)
+        protection = {"held": held, "slots": slots, "unverified_cycles": self._unverified}
+        health = {"ts": ts, "conn": conn, "healthy": healthy,
+                  "place_live": self._cfg.place_live, "flat": not held,
+                  "halted": self._halted, "protection": protection}
+        status = {**health, "position": slots or None}
+        for name, payload in (("core_health.json", health), ("status.json", status)):
+            path = os.path.join(data_dir, name)
+            try:
+                with open(path + ".tmp", "w") as f:
+                    json.dump(payload, f)
+                os.replace(path + ".tmp", path)
+            except Exception:
+                pass  # a status write must never break the loop
+
+    # ── per-slot time-exits (never hold overnight / past a ceiling) ───────────
+    def over_max_hold(self, gate: str, now) -> bool:
+        """Has THIS slot been open past the hard max-hold ceiling? (Per-slot: each gate
+        has its own opened_at — a stale grind slot is cut without touching a fresh one.)"""
+        slot = self._sb.slot(gate)
+        if slot.is_flat or not slot.opened_at:
+            return False
+        try:
+            opened = datetime.fromisoformat(slot.opened_at)
+        except ValueError:
+            return False
+        return (now - opened).total_seconds() / 60.0 >= self._cfg.max_hold_minutes
+
+    def time_exit_check(self, now=None) -> None:
+        """Session-end → flatten EVERY open slot (flat before the 17:00 ET close is the
+        cardinal rule); else per-slot max-hold → flatten just the stale slot. Each cut is
+        the slot's own MKT close, bounded by its native stop until it fills. Idempotent —
+        ``_flatten_slot`` no-ops a slot already closing."""
+        if not self._cfg.place_live:
+            return
+        now = now or self._now()
+        session_end = session.should_flatten(now, self._cfg.session_flat_minutes)
+        for gate in self._gates:
+            if self._sb.slot(gate).is_flat:
+                continue
+            if session_end:
+                self._flatten_slot(gate, "SESSION_END_FLAT")
+            elif self.over_max_hold(gate, now):
+                self._flatten_slot(gate, "MAX_HOLD")
+
+    # ── per-slot exit wedge-breaker (a close that never completes) ─────────────
+    def exit_watchdog_slot(self, gate: str, gw=None) -> None:
+        """A slot's close went in-flight but the slot hasn't gone flat — the 2026-07-20
+        wedge, per slot (a dropped/cancelled close left ``_closing`` latched and blocked
+        the slot's time-exits). Bounded + idempotent: page once, then re-fire the flatten
+        (cancel the dangling close first — no pile-up/oversell) up to EXIT_REFIRE_MAX, then
+        force a reconnect and let the cycle retry. NOT a self-restart; every step pages."""
+        slot = self._sb.slot(gate)
+        if gate not in self._closing or slot.is_flat:
+            self._exit_stuck[gate] = 0
+            self._exit_alarmed[gate] = False
+            self._exit_refires[gate] = 0
+            return
+        self._exit_stuck[gate] = self._exit_stuck.get(gate, 0) + 1
+        if self._exit_stuck[gate] < EXIT_STUCK_CYCLES:
+            return
+        if not self._exit_alarmed.get(gate):
+            self._exit_alarmed[gate] = True
+            self._notify(f"EXIT_NOT_COMPLETING slot {gate}: {slot.side} {slot.qty:g} not reducing "
+                         f"after {self._exit_stuck[gate]} cycles — re-firing the flatten")
+        if self._exit_refires.get(gate, 0) < EXIT_REFIRE_MAX:
+            old = self._closing.get(gate)
+            if old is not None:
+                self._oe.cancel(old)             # kill the stuck order first — no pile-up/oversell
+            close_side = "SELL" if slot.side == "LONG" else "BUY"
+            coid = self._oe.submit(symbol=self._cfg.symbol, side=close_side,
+                                   qty=slot.qty, order_type="MKT")
+            self._register(coid, gate)
+            self._closing[gate] = coid           # keep the original _close_reason → trade records it
+            self._exit_refires[gate] = self._exit_refires.get(gate, 0) + 1
+            self._notify(f"slot {gate} exit wedged — re-fired flatten "
+                         f"(attempt {self._exit_refires[gate]}/{EXIT_REFIRE_MAX})")
+        elif gw is not None:
+            self._notify(f"slot {gate} exit STILL wedged after {EXIT_REFIRE_MAX} re-fires — "
+                         f"forcing gateway reconnect; CHECK IBKR")
+            gw.force_reconnect()
+            self._exit_refires[gate] = 0         # fresh session → let the re-fire cycle try again
 
     # ── reconcile (the safety invariant) ─────────────────────────────────────
     def reconcile(self, venue_net: float) -> str:
@@ -175,8 +388,10 @@ class MultiSlotCore:
 
     def _reprotect_slot(self, gate: str) -> None:
         slot = self._sb.slot(gate)
-        self._safeties[gate].arm_stop(self._cfg.symbol, side=slot.side, qty=slot.qty,
-                                      entry_price=slot.entry_price, atr=slot.entry_atr)
+        st = self._safeties[gate].arm_stop(self._cfg.symbol, side=slot.side, qty=slot.qty,
+                                           entry_price=slot.entry_price, atr=slot.entry_atr)
+        self._register(st.coid, gate)        # new stop coid → attribute + persist
+        self._persist_slot(gate)             # snapshot the new stop_coid/price for restart
         self._notify(f"naked slot {gate} {slot.side} {slot.qty:g} — re-armed stop "
                      f"(attempt {self._naked_streak[gate]})")
 
@@ -186,10 +401,10 @@ class MultiSlotCore:
             return
         close_side = "SELL" if slot.side == "LONG" else "BUY"
         coid = self._oe.submit(symbol=self._cfg.symbol, side=close_side, qty=slot.qty, order_type="MKT")
-        self._sb.register(coid, gate)
+        self._register(coid, gate)
         self._closing[gate] = coid
         self._close_reason[gate] = reason
-        self._notify(f"NAKED slot {gate} unresolved after {self._naked_streak[gate]} re-arms — FLATTENED")
+        self._notify(f"FLATTEN slot {gate} {slot.side} {slot.qty:g} — {reason}")
 
     async def _read_venue(self, gw):
         """Venue truth: (net position, set of LIVE working-order coids). None if the
@@ -235,6 +450,7 @@ class MultiSlotCore:
             net, live_coids = snap
             if self.reconcile(net) == "drift":
                 continue                          # a lot unaccounted → halted; operator/adopt
+            self.time_exit_check()                # session-end / per-slot max-hold cuts (new closes)
             now = time.monotonic()
             for gate in self._gates:
                 verdict = self.assess_slot(gate, live_coids, now)
@@ -242,3 +458,4 @@ class MultiSlotCore:
                     self._reprotect_slot(gate)
                 elif verdict == "flatten":
                     self._flatten_slot(gate)
+                self.exit_watchdog_slot(gate, gw)  # escalate a slot close that isn't completing

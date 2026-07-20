@@ -79,6 +79,20 @@ class SlotBook:
     def slot(self, gate: str) -> Slot:
         return self._slots[gate]
 
+    def restore_slot(
+        self, gate: str, *, side: str, entry_qty: float, entry_notional: float,
+        exit_qty: float, exit_notional: float, opened_at: str, entry_atr: float,
+    ) -> None:
+        """Load a persisted OPEN slot back into memory after a restart (no I/O — the
+        core reads the durable snapshot and hands it here). The netted venue can't
+        reconstruct per-slot state, so our ledger is the source of truth on boot; the
+        venue net is only the reconcile tripwire the core checks against."""
+        self._slots[gate] = Slot(
+            gate=gate, side=side, entry_qty=entry_qty, entry_notional=entry_notional,
+            exit_qty=exit_qty, exit_notional=exit_notional, opened_at=opened_at,
+            entry_atr=entry_atr,
+        )
+
     def gates(self) -> list[str]:
         return list(self._slots.keys())
 
