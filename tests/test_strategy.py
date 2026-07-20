@@ -44,6 +44,19 @@ def _strat(**kw):
     return Strategy(cfg)
 
 
+def test_risk_bounded_sizing_caps_on_high_atr():
+    # MNQ $2/pt, 1-ATR stop. risk budget $80 → per-lot risk = atr*2.
+    from gazbot7.config import GateSpec
+    s = _strat()  # value_per_point defaults to 2.0
+    spec = GateSpec(name="rgv", kind="reversal_grab", sizing="flat", base_size=2,
+                    stop_atr_mult=1.0, risk_budget_usd=80.0)
+    assert s._size_for(spec, [], atr=15.0) == 2   # per-lot $30 → 80//30=2 → full size
+    assert s._size_for(spec, [], atr=31.0) == 1   # per-lot $62 (id68) → 80//62=1 → sized DOWN
+    assert s._size_for(spec, [], atr=60.0) == 1   # per-lot $120 > budget → FLOOR at 1, never 0
+    off = GateSpec(name="rgv", kind="reversal_grab", sizing="flat", base_size=2, risk_budget_usd=0.0)
+    assert s._size_for(off, [], atr=60.0) == 2    # budget 0 = disabled → full size
+
+
 def _load(s, end_ts=_TS):
     for m in _thrust_up(end_ts)[0]:
         s.on_bar(m)

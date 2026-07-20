@@ -28,6 +28,12 @@ class GateSpec:
     giveback_enabled: bool = False
     giveback_arm_usd: float = 50.0
     giveback_usd: float = 40.0
+    # risk-bounded sizing (2026-07-20): cap qty so the 1-ATR stop's dollar risk
+    # (atr × stop_atr_mult × value_per_point × qty) <= risk_budget_usd. High-ATR
+    # entries size DOWN so a volatile 2-lot stop-out can't balloon to −$130+ (id68 @
+    # ATR 31 = $126). 0 = disabled. Floors at 1 lot when the gate fired (never 0 from
+    # the cap; conviction's own 0-rung still skips). See RISK_BOUNDED_SIZING.
+    risk_budget_usd: float = 0.0
 
 
 def live_gates() -> list[GateSpec]:
@@ -39,12 +45,14 @@ def live_gates() -> list[GateSpec]:
                  params={"slope_min": 0.4, "fast_slope": True},
                  sizing="conviction", base_size=2,
                  exit="chandelier", vol_adaptive_chandelier=True,
-                 giveback_enabled=True, giveback_arm_usd=50.0, giveback_usd=40.0),
+                 giveback_enabled=True, giveback_arm_usd=50.0, giveback_usd=40.0,
+                 risk_budget_usd=80.0),
         GateSpec(name="rgv", kind="reversal_grab",
                  params={"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15,
                          "fast_slope": True, "fast_turn": True, "atr_min": 13.0},
                  sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0,
-                 giveback_enabled=True, giveback_arm_usd=50.0, giveback_usd=40.0),
+                 giveback_enabled=True, giveback_arm_usd=50.0, giveback_usd=40.0,
+                 risk_budget_usd=80.0),
     ]
 
 
@@ -104,6 +112,7 @@ class RunConfig:
     giveback_enabled: bool = False
     giveback_arm_usd: float = 50.0
     giveback_usd: float = 40.0
+    risk_budget_usd: float = 0.0   # legacy-path risk cap (two-gate carries its own per-GateSpec)
     # session discipline (S4) — never hold overnight, never open into the close
     max_hold_minutes: float = 120.0    # hard ceiling regardless of P&L
     no_open_minutes: float = 20.0      # suppress new entries this long before close

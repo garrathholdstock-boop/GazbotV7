@@ -167,10 +167,19 @@ class Strategy:
                 return spec, e
         return None, None
 
-    def _size_for(self, spec, bars) -> int:
-        if spec.sizing == "conviction":
-            return conviction_lots(efficiency_ratio(bars), base=spec.base_size)
-        return spec.base_size
+    def _size_for(self, spec, bars, atr: float) -> int:
+        qty = conviction_lots(efficiency_ratio(bars), base=spec.base_size) \
+            if spec.sizing == "conviction" else spec.base_size
+        # RISK-BOUNDED SIZING (2026-07-20): cap qty so the 1-ATR stop's dollar risk
+        # (atr × stop_atr_mult × $/pt × qty) <= risk_budget_usd. A volatile entry sizes
+        # DOWN so a 2-lot stop-out can't balloon (id68 −$130 @ ATR 31). Floors at 1 when
+        # the gate fired — the cap never zeroes a fire (conviction's 0-rung still skips).
+        budget = spec.risk_budget_usd
+        if budget > 0 and atr > 0 and qty > 0:
+            per_lot = atr * spec.stop_atr_mult * self._cfg.value_per_point
+            if per_lot > 0:
+                qty = min(qty, max(1, int(budget // per_lot)))
+        return qty
 
     def _entry(self, f, price, now_ms: int, bars) -> dict | None:
         now = datetime.fromtimestamp(now_ms / 1000, UTC)
@@ -181,7 +190,7 @@ class Strategy:
             spec, e = self._pick_gate(f)
             if e is None:
                 return None
-            qty = self._size_for(spec, bars)
+            qty = self._size_for(spec, bars, f.atr)
             if qty <= 0:
                 return None  # conviction sizing says chop → skip (the 0-lot rung)
             self._active = spec
