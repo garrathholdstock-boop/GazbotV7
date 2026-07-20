@@ -200,13 +200,15 @@ class Core:
     # ── fills (from execDetailsEvent, in-loop) ───────────────────────────────
     def on_fill(self, fill) -> None:
         sym = self._cfg.symbol
-        was_flat = abs(self._tt.net_qty(sym)) < _EPS
+        prev_net = self._tt.net_qty(sym)
+        was_flat = abs(prev_net) < _EPS
         self._oe.on_fill(fill)
         closing = self._pos is not None and self._is_closing_side(fill.side)
         reason = (self._exit_reason or "STOP") if closing else None
         # gate is consumed by the tracker only when this fill OPENS a round-trip
         self._tt.apply(fill, exit_reason=reason, gate=self._pending_gate)
-        now_flat = abs(self._tt.net_qty(sym)) < _EPS
+        new_net = self._tt.net_qty(sym)
+        now_flat = abs(new_net) < _EPS
         self._emit(T_FILL, {
             "symbol": sym, "side": fill.side, "qty": fill.qty,
             "price": fill.price, "exec_id": fill.exec_id, "exec_time": fill.exec_time,
@@ -215,6 +217,13 @@ class Core:
             self._on_opened(fill)
         elif not was_flat and now_flat:
             self._on_closed()
+        elif not now_flat and abs(new_net) > abs(prev_net) + _EPS:
+            # a same-side fill GREW the held position (a multi-lot entry filling in
+            # partials). _on_opened only fires on flat→held, so without this the
+            # added lots never reach self._qty / the stop / open_position → tracked
+            # qty lags venue → a permanent reconcile DRIFT that halts the desk and
+            # leaves the extra lot naked (the 2026-07-20 incident). Sync to truth.
+            self._on_increased()
         self._emit(T_POSITION, self._position_payload())
 
     def _is_closing_side(self, side: str) -> bool:
@@ -245,6 +254,27 @@ class Core:
         upsert_open_position(
             self._store, symbol=sym, side=side, qty=self._qty, entry_price=fill.price,
             entry_atr=self._open_atr, opened_at=self.opened_at,
+            stop_price=st.stop_price if st else None,
+        )
+
+    def _on_increased(self) -> None:
+        """A multi-lot entry finished filling in partials — the held qty grew past
+        what ``_on_opened`` (flat→held only) captured. Re-sync the cached qty, the
+        native stop (RE-ARMED to the full size so no lot is naked), and the persisted
+        row to venue-derived truth. Without this, tracked qty < venue → reconcile
+        DRIFT → the desk halts and the extra lot sits unprotected (2026-07-20)."""
+        sym = self._cfg.symbol
+        p = self._pos
+        if p is None:
+            return
+        self._qty = abs(self._tt.net_qty(sym))  # venue-derived full filled size
+        st = self._safety.rearm(sym, side=p.side, qty=self._qty,
+                                entry_price=p.entry_price, atr=p.entry_atr)
+        self._armed_mono = time.monotonic()
+        self._protect_poke.set()
+        upsert_open_position(
+            self._store, symbol=sym, side=p.side, qty=self._qty, entry_price=p.entry_price,
+            entry_atr=p.entry_atr, opened_at=self.opened_at,
             stop_price=st.stop_price if st else None,
         )
 

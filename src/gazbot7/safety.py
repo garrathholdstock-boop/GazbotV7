@@ -121,6 +121,15 @@ class SafetyManager:
         self._stops[symbol] = st
         return st
 
+    def rearm(self, symbol: str, *, side: str, qty: float, entry_price: float, atr: float) -> StopOrder:
+        """Replace the active stop with one sized to ``qty`` — for a position that
+        GREW (a multi-lot entry that filled in partials). Cancels the prior stop
+        first so coverage can never stack (two live stops → an oversell on a spike)."""
+        old = self._stops.get(symbol)
+        if old is not None:
+            self._broker.cancel(old.coid)
+        return self.arm_stop(symbol, side=side, qty=qty, entry_price=entry_price, atr=atr)
+
     def on_flat(self, symbol: str) -> None:
         """Position closed → cancel and forget its protective stop."""
         st = self._stops.pop(symbol, None)

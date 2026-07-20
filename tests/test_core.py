@@ -598,6 +598,39 @@ def test_refire_noops_when_venue_already_flat():
     asyncio.run(scenario())
 
 
+def test_partial_entry_grows_qty_reprotects_and_no_drift():
+    # The 2026-07-20 root cause: a 2-lot entry that fills in two partials must sync
+    # the cached qty, RE-ARM the stop to the full size, and persist venue truth —
+    # so tracked qty never lags venue (no reconcile DRIFT, no naked lot).
+    from gazbot7.safety import reconcile_verdict
+    async def scenario():
+        core, _broker, sb, _pub, store = _build()
+        await core.on_intent({"iid": "i1", "action": "OPEN", "side": "LONG", "qty": 2,
+                              "meta": {"entry_atr": 4.0}})
+        core.on_fill(_fill("e1", "BUY", 1, 100.0))  # first partial → held 1
+        await asyncio.sleep(0)
+        assert core._qty == 1.0 and sb.stops[-1]["qty"] == 1.0
+        core.on_fill(_fill("e2", "BUY", 1, 102.0))  # second partial completes the 2-lot entry
+        await asyncio.sleep(0)
+        assert core._qty == 2.0                       # cached qty synced to venue truth
+        assert sb.stops[-1]["qty"] == 2.0             # stop RE-ARMED to cover both lots
+        assert len(sb.cancelled) == 1                 # the old 1-lot stop cancelled (no stacking)
+        assert get_open_position(store, "MNQ")["qty"] == 2.0  # persisted row is truth
+        assert reconcile_verdict("LONG", core._qty, 2.0) == "match"  # NO drift vs venue net 2
+    asyncio.run(scenario())
+
+
+def test_rearm_replaces_stop_at_full_qty():
+    from gazbot7.safety import SafetyManager
+    sb = FakeStopBroker()
+    sm = SafetyManager(sb)
+    s1 = sm.arm_stop("MNQ", side="LONG", qty=1, entry_price=100.0, atr=4.0)
+    s2 = sm.rearm("MNQ", side="LONG", qty=2, entry_price=100.0, atr=4.0)
+    assert sb.cancelled == [s1.coid]                 # prior stop cancelled first
+    assert s2.qty == 2.0                             # new stop covers the grown position
+    assert sm.stop_for("MNQ").coid == s2.coid        # record points at the replacement
+
+
 def test_exit_watchdog_does_not_order_storm():
     # Idempotency guard: many stuck cycles must NOT submit an order per cycle — the
     # re-fire count is bounded by EXIT_REFIRE_MAX between reconnects (no +1→−101 walk).
