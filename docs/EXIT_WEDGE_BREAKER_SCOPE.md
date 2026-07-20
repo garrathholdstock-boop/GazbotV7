@@ -1,7 +1,6 @@
 # GAZBOT V7 — Exit Wedge-Breaker (scope, NOT built)
 
-**Status:** BUILT 2026-07-20 (commit follows the scope commit on `refactor/three-service`);
-**NOT yet deployed** — deploy = a core restart, operator's call (execution-path change).
+**Status:** BUILT + **DEPLOYED** 2026-07-20 (live on core since 08:47 UTC, `refactor/three-service`).
 Implemented in `core.py` `_exit_watchdog`/`_refire_flatten` with `EXIT_REFIRE_MAX`;
 +4 tests in `test_core.py`. The scope below is the as-built design.
 
