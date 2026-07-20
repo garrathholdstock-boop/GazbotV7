@@ -61,6 +61,34 @@ def grind_long_short_slots() -> list[SlotSpec]:
     ]
 
 
+_RGV = {"ext_min": 2.0, "turn_atr": 0.15, "fast_slope": True, "fast_turn": True, "atr_min": 13.0}
+
+
+def tournament_slots() -> list[SlotSpec]:
+    """The starting tournament slate — the DROP-IN (Features+tape) distinct gates only:
+    2 long + 2 short (operator 2026-07-20). grind runs LONG-only here (short bled);
+    rgv-SHORT is the benched −EV mirror, back for a real-fills re-test. The remaining
+    two of the target 3-long/3-short (capitulation-long, exhaustion-short) both need the
+    tape-footprint feed wired — see FOOTPRINT_GATES_TOURNAMENT_SCOPE.md; they're added
+    once that lands, reaching the full 6."""
+    return [
+        # LONG
+        SlotSpec("rgv_long", "reversal_grab", "LONG",
+                 params={"side": "LONG", **_RGV}, sizing="flat", base_size=2,
+                 exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+        SlotSpec("grind_long", "grind", "LONG",
+                 params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
+                 exit="chandelier", vol_adaptive_chandelier=True),
+        # SHORT
+        SlotSpec("thrust_short", "thrust", "SHORT",
+                 params={"thr": 1.5, "amp_floor": 0.0004}, sizing="conviction", base_size=2,
+                 exit="chandelier", vol_adaptive_chandelier=True),
+        SlotSpec("rgv_short", "reversal_grab", "SHORT",
+                 params={"side": "SHORT", **_RGV}, sizing="flat", base_size=2,
+                 exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+    ]
+
+
 class SlotStrategy:
     def __init__(self, specs: list[SlotSpec], *, value_per_point: float) -> None:
         self._specs = specs
