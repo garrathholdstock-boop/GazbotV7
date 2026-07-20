@@ -268,7 +268,8 @@
     const T = (b) => Date.parse(b.ts) / 1000;
     const t0 = T(bars[0]), t1 = T(bars[bars.length - 1]), tspan = Math.max(1, t1 - t0);
     const a = mnqActivity();
-    const hold = mnqHoldings()[0] || null;
+    const holds = mnqHoldings();
+    const hold = holds[0] || null;
     const fills = (STATE.mnq && STATE.mnq.blotter) || [];
     // ATR context for the RIGHT axis: 1 ATR in points = atr_pct (already a % of price) / 100 * price.
     // Each gridline is then labelled by its distance from the CURRENT price in ATRs, so the vertical
@@ -313,11 +314,11 @@
     }
     // vwap reference (a real price level) — only if it falls in the price range
     if (a && inRange(a.vwap)) g += `<line x1="${plotL}" y1="${Y(a.vwap).toFixed(1)}" x2="${plotR}" y2="${Y(a.vwap).toFixed(1)}" stroke="#37c9c9" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>`;
-    // held position lines — drawn only when in range (a wide stop is off-chart here, shown on the HOLD tab)
-    if (hold) {
-      if (inRange(hold.avg)) g += line(plotL, Y(hold.avg), plotR, Y(hold.avg), "#8a99a6", "2 3");
-      if (inRange(hold.stop)) g += line(plotL, Y(hold.stop), plotR, Y(hold.stop), "#ff5a5f", "3 3");
-    }
+    // held position lines per open slot — entry (grey) + stop (red), drawn only when in range
+    holds.forEach((h) => {
+      if (inRange(h.avg)) g += line(plotL, Y(h.avg), plotR, Y(h.avg), "#8a99a6", "2 3");
+      if (inRange(h.stop)) g += line(plotL, Y(h.stop), plotR, Y(h.stop), "#ff5a5f", "3 3");
+    });
     // price polyline
     const pts = bars.map((b) => X(T(b)).toFixed(1) + "," + Y(b.close).toFixed(1)).join(" ");
     g += `<polyline points="${pts}" fill="none" stroke="#c6d2db" stroke-width="1.5"/>`;
@@ -341,7 +342,7 @@
     const leg = [];
     leg.push(`<span><span class="sw" style="background:#c6d2db"></span>MNQ price</span>`);
     if (a && a.vwap) leg.push(`<span><span class="sw" style="background:#37c9c9"></span>VWAP ${nf(a.vwap, 1)}</span>`);
-    if (hold && hold.stop) leg.push(`<span><span class="sw" style="background:#ff5a5f"></span>stop</span>`);
+    if (holds.some((h) => h.stop)) leg.push(`<span><span class="sw" style="background:#ff5a5f"></span>stop</span>`);
     leg.push(`<span>▲ entry · ▼ exit · <span class="grn">long</span>/<span class="red">short</span></span>`);
     if (atrPts) leg.push(`<span>right axis = ATR from price · 1 ATR ≈ ${nf(atrPts, 1)}pt (${nf(a.atr_pct, 2)}%)</span>`);
     if (a && a.last) leg.push(`<span class="cyan">last ${nf(a.last, 2)}</span>`);
@@ -425,41 +426,37 @@
     ).join("") : `<tr><td class="empty" colspan="3">no losses today</td></tr>`;
   }
 
-  /* ---------- holding ---------- */
+  /* ---------- holding — the multi-slot tournament (one card per open slot) ---------- */
   function renderHolding() {
-    const hold = mnqHoldings()[0] || null;
+    const holds = mnqHoldings();
     const meta = $("hold-meta");
     const body = $("hold-body");
-    if (!hold) {
+    if (!holds.length) {
       meta.textContent = "flat";
-      body.innerHTML = `<div class="empty" style="padding:26px 4px"><div style="font-size:16px;letter-spacing:2px;color:var(--txt2)">FLAT</div><div style="margin-top:6px">no open MNQ position</div></div>`;
+      body.innerHTML = `<div class="empty" style="padding:26px 4px"><div style="font-size:16px;letter-spacing:2px;color:var(--txt2)">FLAT</div><div style="margin-top:6px">no open MNQ slots</div></div>`;
       return;
     }
-    const side = hold.side || (hold.qty < 0 ? "SHORT" : "LONG");
-    meta.textContent = (hold.ibkr_confirmation || "");
-    const R = (hold.pnl_usd != null && hold.total_risk_usd) ? hold.pnl_usd / hold.total_risk_usd : null;
-    const arm = hold.entry_gate ? esc(gateAbbr(hold.entry_gate)) : "—";
-    const rows = [
-      ["Gate · arm", `${arm} · ${holdStr(hold.held_seconds)} ago`],
-      ["Contracts", `${Math.abs(hold.qty || 0)} × ${nf(hold.multiplier, 0)}`],
-      ["Unrealised", `<span class="${cls(hold.pnl_usd)}">${money(hold.pnl_usd, 2)} · ${pct(hold.pnl_pct, 2)}</span>`],
-      ["Avg entry", nf(hold.avg, 2)],
-      ["Last", `<span class="cyan">${nf(hold.last, 2)}</span>`],
-      ["Stop", hold.stop ? `<span class="red">${nf(hold.stop, 2)}</span>` : "—"],
-      ["Target", "—"],
-      ["Time in trade", holdStr(hold.held_seconds)],
-      ["Margin", usd(hold.margin_usd, 0)],
-      ["Open risk", hold.total_risk_usd != null ? `<span class="red">${money(-Math.abs(hold.total_risk_usd), 0)}</span>` : "—"],
-      ["R-multiple", R == null ? "—" : `<span class="${cls(R)}">${(R >= 0 ? "+" : "−") + nf(Math.abs(R), 2)}R</span>`],
-      ["Locked profit", (hold.est_locked_profit > 0) ? `<span class="pos">${money(hold.est_locked_profit, 2)}</span>` : `<span class="dim3">— none locked yet</span>`],
-    ];
-    // chart at the TOP (like the old /futures card): price line + IN/STOP/LOCK reference lines & prices
-    let html = `<div class="hold-head">${sidePill(side)}<span class="sym">MNQ</span><span class="dim3">${esc(hold.expiry || STATE.mnq && STATE.mnq.expiry || "")}</span></div>`;
-    html += `<div class="hold-chart-host"><svg id="hold-svg" preserveAspectRatio="none"></svg></div>`;
-    html += rows.map((r) => `<div class="row"><span class="k">${r[0]}</span><span class="val">${r[1]}</span></div>`).join("");
-    html += riskBar(hold);
-    body.innerHTML = html;
-    drawHoldChart(hold);
+    const totUnreal = holds.reduce((s, h) => s + (h.pnl_usd || 0), 0);
+    meta.innerHTML = `${holds.length} slot${holds.length > 1 ? "s" : ""} open · <span class="${cls(totUnreal)}">${money(totUnreal, 2)}</span>`;
+    const card = (h) => {
+      const side = h.side || (h.qty < 0 ? "SHORT" : "LONG");
+      const prot = h.protected
+        ? `<span class="prot-ok">stop ${h.stop != null ? nf(h.stop, 2) : "armed"}</span>`
+        : `<span class="prot-naked">⚠ NAKED</span>`;
+      const rows = [
+        ["Contracts", `${Math.abs(h.qty || 0)} × ${nf(h.multiplier, 0)}`],
+        ["Unrealised", `<span class="${cls(h.pnl_usd)}">${money(h.pnl_usd, 2)} · ${pct(h.pnl_pct, 2)}</span>`],
+        ["Entry", nf(h.avg, 2)],
+        ["Last", `<span class="cyan">${nf(h.last, 2)}</span>`],
+        ["Stop", h.stop ? `<span class="red">${nf(h.stop, 2)}</span>` : "—"],
+        ["Time in trade", holdStr(h.held_seconds)],
+      ];
+      return `<div class="slot-card">`
+        + `<div class="hold-head">${sidePill(side)}<span class="sym">${esc(gateAbbr(h.entry_gate))}</span>${prot}</div>`
+        + rows.map((r) => `<div class="row"><span class="k">${r[0]}</span><span class="val">${r[1]}</span></div>`).join("")
+        + `</div>`;
+    };
+    body.innerHTML = holds.map(card).join("");
   }
   // Position chart for the HOLD tab — modelled on the old futures_terminal drawHoldingChart:
   // price line coloured by P&L + an IN (entry) ref line always, STOP, and a gold LOCK line ONLY

@@ -102,20 +102,41 @@ def us_terminal_json(cap_path, data_dir):
         "last": f.get("last"), "vwap": f.get("vwap"), "atr_pct": f.get("atr_pct"),
         "net_atr": f.get("net_atr"), "gates": [],
     }
+    # position is now the multi-slot tournament shape — a LIST of open slots (one per gate).
+    # Tolerate the legacy single-position dict too (so a revert to core+strategy still renders).
+    raw = st.get("position")
+    if isinstance(raw, list):
+        slots = raw
+    elif isinstance(raw, dict) and not raw.get("flat"):
+        slots = [raw]
+    else:
+        slots = []
+    prot_by_gate = {s.get("gate"): s for s in ((st.get("protection") or {}).get("slots") or [])}
+    last_px = f.get("last")
     holdings = []
-    pos = st.get("position")
-    if pos and not pos.get("flat"):
-        last = f.get("last") or pos.get("entry")
-        sign = 1 if pos.get("side") == "LONG" else -1
-        qty = pos.get("qty") or 1
-        pnl_usd = round(sign * ((last or pos["entry"]) - pos["entry"]) * _VPP * qty, 2)
-        holdings = [{
-            "label": "MNQ", "symbol": "MNQ", "side": pos.get("side"), "qty": qty,
-            "avg": pos.get("entry"), "stop": pos.get("stop"), "last": last,
-            "multiplier": _VPP, "pnl_usd": pnl_usd,
-            "pnl_pct": round(sign * ((last or pos["entry"]) - pos["entry"]) / pos["entry"] * 100, 3) if pos.get("entry") else None,
-            "entry_gate": "thrust", "opened_at": pos.get("opened_at"),
-        }]
+    for s in slots:
+        entry = s.get("entry_price") or s.get("entry") or s.get("avg")
+        if entry is None:
+            continue
+        side = s.get("side") or ("SHORT" if (s.get("qty") or 0) < 0 else "LONG")
+        qty = abs(s.get("qty") or 1)
+        last = last_px or entry
+        sign = 1 if side == "LONG" else -1
+        gate = s.get("gate", "—")
+        held_s = None
+        if s.get("opened_at"):
+            try:
+                held_s = (now - datetime.fromisoformat(s["opened_at"])).total_seconds()
+            except (ValueError, TypeError):
+                held_s = None
+        holdings.append({
+            "label": "MNQ", "symbol": "MNQ", "side": side, "qty": qty,
+            "avg": entry, "stop": s.get("stop_price") or s.get("stop"), "last": last,
+            "multiplier": _VPP, "pnl_usd": round(sign * (last - entry) * _VPP * qty, 2),
+            "pnl_pct": round(sign * (last - entry) / entry * 100, 3) if entry else None,
+            "entry_gate": gate, "opened_at": s.get("opened_at"), "held_seconds": held_s,
+            "protected": bool(prot_by_gate.get(gate, s).get("stop_coid")),
+        })
     return {"holdings": holdings, "activity": [activity], "regime_groups": {},
             "margin_deployed_usd": None, "nlv_usd": None}
 

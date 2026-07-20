@@ -143,6 +143,13 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
 /* holding readout */
 .hold-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .hold-head .sym{font-size:17px;font-weight:700;font-family:var(--mono)}
+/* multi-slot tournament — one card per open gate slot */
+.slot-card{border:1px solid var(--line);border-radius:6px;padding:9px 11px;margin-bottom:9px;background:var(--panel2)}
+.slot-card:last-child{margin-bottom:0}
+.slot-card .hold-head{margin-bottom:6px}
+.slot-card .hold-head .sym{font-size:14px;letter-spacing:.5px}
+.prot-ok{margin-left:auto;font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:3px;color:var(--grn);border:1px solid rgba(55,208,122,.35)}
+.prot-naked{margin-left:auto;font-family:var(--sans);font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:3px;color:var(--red);background:rgba(255,90,95,.15);border:1px solid rgba(255,90,95,.5)}
 .riskbar{position:relative;height:26px;margin:10px 0 4px;border:1px solid var(--line);border-radius:4px;background:var(--panel2)}
 .riskbar .seg{position:absolute;top:0;bottom:0}
 .riskbar .seg.loss{background:var(--red-bg)} .riskbar .seg.gain{background:var(--grn-bg)}

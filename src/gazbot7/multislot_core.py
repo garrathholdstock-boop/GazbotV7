@@ -269,7 +269,9 @@ class MultiSlotCore:
                 continue
             stop = self._safeties[g].stop_for(self._cfg.symbol)
             slots.append({"gate": g, "side": s.side, "qty": s.qty,
-                          "entry_price": s.entry_price,
+                          "entry_price": s.entry_price, "entry_atr": s.entry_atr,
+                          "opened_at": s.opened_at,
+                          "stop_price": stop.stop_price if stop else None,
                           "stop_coid": stop.coid if stop else None})
         held = bool(slots)
         protection = {"held": held, "slots": slots, "unverified_cycles": self._unverified}

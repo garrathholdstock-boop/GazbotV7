@@ -423,8 +423,11 @@ def test_write_heartbeat_reflects_flatness_and_held_slots(tmp_path):
     core.write_heartbeat(conn="HEALTHY", healthy=True)
     h = json.loads((tmp_path / "core_health.json").read_text())
     assert h["flat"] is False
-    assert h["protection"]["slots"][0]["gate"] == "grind_long"
-    assert h["protection"]["slots"][0]["stop_coid"]          # the slot's live stop is reported
+    slot = h["protection"]["slots"][0]
+    assert slot["gate"] == "grind_long"
+    assert slot["stop_coid"]                                  # the slot's live stop is reported
+    assert slot["stop_price"] == 29000.0 - 20.0              # + the price + opened_at the dashboard needs
+    assert slot["entry_price"] == 29000.0 and slot["opened_at"]
 
 
 def test_unverified_escalates_only_when_a_slot_is_held():
