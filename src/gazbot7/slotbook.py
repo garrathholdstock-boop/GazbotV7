@@ -79,6 +79,12 @@ class SlotBook:
     def slot(self, gate: str) -> Slot:
         return self._slots[gate]
 
+    def gates(self) -> list[str]:
+        return list(self._slots.keys())
+
+    def any_held(self) -> bool:
+        return any(not s.is_flat for s in self._slots.values())
+
     def net_qty(self) -> float:
         """Logical net across all slots — must equal the venue net."""
         return sum(s.net for s in self._slots.values())

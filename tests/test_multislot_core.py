@@ -25,15 +25,16 @@ class FakeEngine:
 
 
 class FakeStopBroker:
-    def __init__(self):
+    def __init__(self, tag=""):
         self.stops: list[dict] = []
         self.cancelled: list[str] = []
         self._n = 0
+        self._tag = tag                          # unique coids across slots (like the real shared broker)
 
     def place_stop(self, *, symbol, side, qty, stop_price):
         self._n += 1
         self.stops.append(dict(side=side, qty=qty, stop_price=stop_price))
-        return f"stp{self._n}"
+        return f"{self._tag}stp{self._n}"
 
     def cancel(self, coid):
         self.cancelled.append(coid)
@@ -51,7 +52,7 @@ def _core():
     store = open_store(":memory:")
     eng = FakeEngine()
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
-    sbrokers = {g: FakeStopBroker() for g in GATES}
+    sbrokers = {g: FakeStopBroker(tag=g+"-") for g in GATES}
     safeties = {g: SafetyManager(sbrokers[g]) for g in GATES}
     core = MultiSlotCore(RunConfig(place_live=True), eng, sb, safeties, FakePub(), store)
     return core, eng, sb, sbrokers, store
@@ -137,3 +138,79 @@ def test_a_slot_wont_double_open_while_pending():
     n = len(eng.orders)
     _open(core, eng, "grind_long", "LONG", 29000.0)             # second while pending → ignored
     assert len(eng.orders) == n
+
+
+class FakeGw:
+    def __init__(self):
+        self.reconnects = 0
+
+    def force_reconnect(self):
+        self.reconnects += 1
+
+
+def test_slot_ok_when_its_stop_is_live():
+    core, eng, sb, sbrokers, _s = _core()
+    coid = _open(core, eng, "grind_long", "LONG", 29000.0, atr=20.0)
+    _fill(core, coid, "BUY", 1, 29000.0)
+    stop_coid = core._safeties["grind_long"].stop_for("MNQ").coid
+    core._boot_mono = 0.0
+    assert core.assess_slot("grind_long", {stop_coid}, 1000.0) == "ok"
+
+
+def test_naked_slot_reprotects_then_flattens():
+    core, eng, sb, sbrokers, _s = _core()
+    coid = _open(core, eng, "grind_long", "LONG", 29000.0, atr=20.0)
+    _fill(core, coid, "BUY", 1, 29000.0)
+    core._boot_mono = 0.0
+    assert core.assess_slot("grind_long", set(), 1000.0) == "reprotect"   # stop not live
+    assert core.assess_slot("grind_long", set(), 1000.0) == "flatten"     # still naked → cut
+
+
+def test_naked_within_boot_settle_is_settle():
+    core, eng, sb, sbrokers, _s = _core()
+    coid = _open(core, eng, "grind_long", "LONG", 29000.0, atr=20.0)
+    _fill(core, coid, "BUY", 1, 29000.0)
+    assert core.assess_slot("grind_long", set(), core._boot_mono + 1.0) == "settle"
+
+
+def test_flat_slot_assesses_flat():
+    core, *_rest = _core()
+    assert core.assess_slot("grind_long", set(), 1000.0) == "flat"
+
+
+def test_netted_one_slot_naked_other_protected():
+    # THE case aggregate is_naked can't handle: long+short net to 0, one protected, one not.
+    core, eng, sb, sbrokers, _s = _core()
+    cL = _open(core, eng, "grind_long", "LONG", 29000.0, atr=20.0)
+    _fill(core, cL, "BUY", 1, 29000.0)
+    cS = _open(core, eng, "grind_short", "SHORT", 29050.0, atr=20.0)
+    _fill(core, cS, "SELL", 1, 29050.0)
+    assert sb.net_qty() == 0.0
+    core._boot_mono = 0.0
+    long_stop = core._safeties["grind_long"].stop_for("MNQ").coid
+    assert core.assess_slot("grind_long", {long_stop}, 1000.0) == "ok"        # its stop live
+    assert core.assess_slot("grind_short", {long_stop}, 1000.0) == "reprotect"  # its stop absent
+
+
+def test_flatten_slot_submits_market_close():
+    core, eng, sb, sbrokers, _s = _core()
+    cL = _open(core, eng, "grind_long", "LONG", 29000.0)
+    _fill(core, cL, "BUY", 1, 29000.0)
+    n = len(eng.orders)
+    core._flatten_slot("grind_long")
+    assert len(eng.orders) == n + 1
+    assert eng.orders[-1]["side"] == "SELL" and eng.orders[-1]["type"] == "MKT"
+
+
+def test_unverified_escalates_only_when_a_slot_is_held():
+    from gazbot7.multislot_core import UNVERIFIED_PAGE_CYCLES
+    core, eng, sb, sbrokers, _s = _core()
+    notes: list[str] = []
+    core._notify = notes.append
+    core._on_unverified(FakeGw())                         # flat → silent
+    assert notes == []
+    cL = _open(core, eng, "grind_long", "LONG", 29000.0)
+    _fill(core, cL, "BUY", 1, 29000.0)
+    for _ in range(UNVERIFIED_PAGE_CYCLES):
+        core._on_unverified(FakeGw())
+    assert any("CANNOT VERIFY" in n for n in notes)       # held + can't verify → page
