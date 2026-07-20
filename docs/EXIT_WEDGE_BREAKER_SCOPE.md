@@ -1,7 +1,9 @@
 # GAZBOT V7 — Exit Wedge-Breaker (scope, NOT built)
 
-**Status:** scoped 2026-07-20 after a live incident. NOT built — safety-critical
-core change, operator sign-off required before implementation. Owner: core.
+**Status:** BUILT 2026-07-20 (commit follows the scope commit on `refactor/three-service`);
+**NOT yet deployed** — deploy = a core restart, operator's call (execution-path change).
+Implemented in `core.py` `_exit_watchdog`/`_refire_flatten` with `EXIT_REFIRE_MAX`;
++4 tests in `test_core.py`. The scope below is the as-built design.
 
 ---
 
