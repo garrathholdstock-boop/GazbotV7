@@ -61,7 +61,28 @@ class OrderEngine:
         self._store = store
         self._prefix = coid_prefix
         self._orders: dict[str, Order] = {}
-        self._seq = 0
+        # Seed the sequence PAST every coid already in the store so a restart never
+        # re-issues an old coid (2026-07-20). The counter was in-memory → it reset to
+        # 0 on every restart, re-minting v7-mnq-000001… which collided with prior
+        # sessions and corrupted the orders table via the partial upsert-on-conflict.
+        self._seq = self._max_coid_seq()
+
+    def _max_coid_seq(self) -> int:
+        """Highest numeric suffix among stored coids with this prefix (0 if none)."""
+        try:
+            rows = self._store.execute(
+                "SELECT client_order_id FROM orders WHERE client_order_id LIKE ?",
+                (f"{self._prefix}-%",),
+            ).fetchall()
+        except Exception:
+            return 0
+        mx = 0
+        for (coid,) in rows:
+            try:
+                mx = max(mx, int(str(coid).rsplit("-", 1)[1]))
+            except (IndexError, ValueError):
+                pass
+        return mx
 
     def _next_coid(self) -> str:
         self._seq += 1

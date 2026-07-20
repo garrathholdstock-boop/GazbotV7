@@ -24,6 +24,20 @@ def _eng(tmp_path):
     return OrderEngine(broker, store), broker, store
 
 
+def test_coid_sequence_survives_restart_no_collision(tmp_path):
+    # A restart must not re-mint an old coid (2026-07-20 orders-table corruption).
+    store = open_store(tmp_path / "t.db")
+    e1 = OrderEngine(FakeBroker(), store)
+    c1 = e1.submit(symbol="MNQ", side="BUY", qty=1, order_type="MKT")
+    c2 = e1.submit(symbol="MNQ", side="BUY", qty=1, order_type="MKT")
+    assert (c1, c2) == ("v7-mnq-000001", "v7-mnq-000002")
+    # "restart": a fresh engine on the SAME store must continue PAST the stored coids
+    e2 = OrderEngine(FakeBroker(), store)
+    c3 = e2.submit(symbol="MNQ", side="BUY", qty=1, order_type="MKT")
+    assert c3 == "v7-mnq-000003"       # not a re-minted 000001
+    assert get_order(store, "v7-mnq-000001")["side"] == "BUY"  # old row intact, uncollided
+
+
 def _fill(coid, exec_id, qty=2.0, side="BUY", price=29950.0):
     return Fill(
         exec_id=exec_id,
