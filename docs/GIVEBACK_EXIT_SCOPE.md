@@ -1,8 +1,10 @@
 # GAZBOT V7 — Dollar Give-Back Exit (the missing "ratchet 2")
 
-**Status:** SCOPED 2026-07-20, NOT built. Operator directive: "scope wiring it in."
-Execution-path change → build flag-and-wait, default OFF, shadow/paper-forward
-before arming. Owner: strategy/deciders.
+**Status:** BUILT + **LIVE** 2026-07-20 (strategy since 13:10 UTC; both live gates
+`giveback_enabled=True`, arm $50 / gb $40). Operator overrode the shadow-first rail
+("build it and make it live") — ⚠ so it is live on the desk while validated only at
+1-lot on shadow (2-lot depths proven on the live sim). Implemented in
+`deciders.exit_giveback` + `strategy._manage`; +4 tests. The scope below is as-built.
 
 ---
 
