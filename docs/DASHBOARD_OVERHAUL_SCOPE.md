@@ -1,11 +1,17 @@
-# GAZBOT V7 — Dashboard overhaul (scope, READ-ONLY review — NOT built)
+# GAZBOT V7 — Dashboard overhaul
 
-**Status:** SCOPED 2026-07-21. A full review of the `:8087` cockpit against what the desk
-actually does now (the 6-gate paper tournament), and a design for the overhaul. The cockpit
-is a **V5-era single-position** view lightly patched for multi-slot; it doesn't show the one
-thing that matters now — **the per-gate tournament race** — and ~⅓ of its panels are dead.
+**Status:** ✅ **BUILT + LIVE 2026-07-21** (commit `7ff391b`). P1–P3 shipped: new
+`/api/futures/tournament` endpoint, the **TOURNEY tab** (live-slots strip + ranked 6-gate
+scoreboard with relegation + per-gate drill), the header **SAFETY pill**, dead panels cut,
+loss-buckets wired. +4 web tests. **Deferred (P4 polish):** chart DTT rework, PF/maxDD,
+a shadow "promotion candidates" link. Original review + design kept below.
+
 View layer only: `web.py` (stdlib, separate process) + `web_static/{app.html,app.js,app.css}`.
-Never touches the trading path.
+Never touches the trading path. The `:8087` cockpit was a V5-era single-position view; it now
+leads with the per-gate tournament race.
+
+---
+
 
 ---
 
