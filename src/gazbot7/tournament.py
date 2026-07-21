@@ -117,6 +117,8 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
             elif topic == T_TAPE:
                 tape = body
+                if core is not None:
+                    core.note_price(tape.get("last"))   # feed the stop-breach guard
                 now_ms = int(time.time() * 1000)
                 book = core._sb if core is not None else slotbook
                 intents = step(strat, mb, tape, book, now_ms)

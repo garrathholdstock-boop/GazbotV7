@@ -55,6 +55,7 @@ _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0        # per-slot naked-audit cadence
 PROTECT_BOOT_SETTLE_S = 120.0   # grace after (re)start — let a GTC stop reappear before acting
 NAKED_FLATTEN_STREAK = 2        # re-arm once, then flatten a slot still naked next cycle
+STOP_BREACH_FLATTEN_STREAK = 2  # price past a slot's stop trigger but still held → force-flatten (triggered-but-unfilled stop)
 UNVERIFIED_PAGE_CYCLES = 3      # can't read venue while a slot is HELD → page fast
 UNVERIFIED_RECONNECT_CYCLES = 6 # → force a fresh session to heal the data path
 EXIT_STUCK_CYCLES = 3           # a slot's close in flight this many audit cycles w/o going flat → escalate
@@ -84,6 +85,8 @@ class MultiSlotCore:
         self._exit_stuck: dict[str, int] = {g: 0 for g in self._gates}
         self._exit_refires: dict[str, int] = {g: 0 for g in self._gates}
         self._exit_alarmed: dict[str, bool] = {g: False for g in self._gates}
+        self._stop_breach_streak: dict[str, int] = {g: 0 for g in self._gates}  # price past a live stop, still held
+        self._last_price: float | None = None  # latest tape print — for the triggered-but-unfilled stop guard
         self._boot_mono = time.monotonic()   # boot-settle anchor for the naked auditor
         self._unverified = 0                  # consecutive cycles the venue couldn't be read
         self._unverified_alarmed = False
@@ -250,6 +253,7 @@ class MultiSlotCore:
         self._exit_stuck[gate] = 0            # the close completed → clear the wedge-breaker
         self._exit_refires[gate] = 0
         self._exit_alarmed[gate] = False
+        self._stop_breach_streak[gate] = 0
 
     # ── liveness snapshot (the tournament IS the desk → it owns these files) ──
     def write_heartbeat(self, *, conn: str, healthy: bool) -> None:
@@ -388,6 +392,44 @@ class MultiSlotCore:
         self._naked_streak[gate] = self._naked_streak.get(gate, 0) + 1
         return "flatten" if self._naked_streak[gate] >= NAKED_FLATTEN_STREAK else "reprotect"
 
+    # ── triggered-but-unfilled stop guard (2026-07-21, from id114) ────────────
+    def note_price(self, price) -> None:
+        """Feed the latest tape print — the stop-breach guard reads it."""
+        if price:
+            self._last_price = float(price)
+
+    def stop_breached(self, gate: str) -> bool:
+        """True when price has traded PAST this slot's stop trigger yet the slot is still
+        held — a triggered-but-unfilled stop. The naked auditor can't catch this: the stop
+        IS a live resting order, it just isn't executing (2026-07-21 id114 — IBKR paper
+        converted a triggered STP to a stale unfillable limit; the short rode 84pt to the
+        120-min MAX_HOLD, −$171 vs the ~−$44 a filled stop caps). A LONG's stop sits below
+        entry (breach = price at/under it); a SHORT's above (price at/over it)."""
+        if self._last_price is None:
+            return False
+        slot = self._sb.slot(gate)
+        if slot.is_flat:
+            return False
+        stop = self._safeties[gate].stop_for(self._cfg.symbol)
+        if stop is None or not stop.stop_price:
+            return False
+        return (self._last_price <= stop.stop_price if slot.side == "LONG"
+                else self._last_price >= stop.stop_price)
+
+    def _check_stop_breach(self, gate: str) -> None:
+        """Streak the breach (avoid racing a normal fill that's about to arrive), then force
+        a market flatten — catches the toothless stop in ~STREAK×interval, not the 120-min
+        MAX_HOLD backstop."""
+        if self.stop_breached(gate):
+            self._stop_breach_streak[gate] += 1
+            if self._stop_breach_streak[gate] >= STOP_BREACH_FLATTEN_STREAK:
+                sp = self._safeties[gate].stop_for(self._cfg.symbol)
+                self._notify(f"STOP NOT EXECUTING slot {gate}: price {self._last_price:g} past stop "
+                             f"{sp.stop_price:g} but still held — force-flattening")
+                self._flatten_slot(gate, "STOP_UNFILLED")
+        else:
+            self._stop_breach_streak[gate] = 0
+
     def _reprotect_slot(self, gate: str) -> None:
         slot = self._sb.slot(gate)
         st = self._safeties[gate].arm_stop(self._cfg.symbol, side=slot.side, qty=slot.qty,
@@ -460,4 +502,5 @@ class MultiSlotCore:
                     self._reprotect_slot(gate)
                 elif verdict == "flatten":
                     self._flatten_slot(gate)
+                self._check_stop_breach(gate)      # live stop but price ran past it → not executing
                 self.exit_watchdog_slot(gate, gw)  # escalate a slot close that isn't completing
