@@ -34,9 +34,13 @@ from gazbot7.config import RunConfig  # noqa: E402
 OK, WARN, CRIT = "OK", "WARN", "CRIT"
 _RANK = {OK: 0, WARN: 1, CRIT: 2}
 
-# md/core/strategy are load-bearing; gateway is the shared IBKR link. shadow +
-# web are observe/serve — their loss degrades research/UI, not the live desk.
-_CRIT_SERVICES = ("gazbot7-md", "gazbot7-core", "gazbot7-strategy", "alphabot-gateway")
+# md (feed) + gateway (shared IBKR link) are always-on infra. The DESK is the
+# multi-slot tournament (2026-07-21 cutover) — it REPLACED core+strategy, which are now
+# the retired revert target (intentionally inactive; not a fault). The sweep treats the
+# desk as up when the tournament is active OR (a revert) both legacy services are active.
+_CRIT_SERVICES = ("gazbot7-md", "alphabot-gateway")   # always-on infra
+_DESK_PRIMARY = "gazbot7-tournament"                   # the live desk
+_DESK_LEGACY = ("gazbot7-core", "gazbot7-strategy")    # retired single-position desk (revert target)
 _SOFT_SERVICES = ("gazbot7-shadow", "gazbot7-web")
 _RESTART_STORM = 3   # NRestarts >= this since boot = flapping
 
@@ -67,22 +71,32 @@ def _conn(path: str) -> sqlite3.Connection:
 
 # ── sections ──────────────────────────────────────────────────────────────────
 def check_services() -> dict:
-    svc = {n: _svc(n) for n in (*_CRIT_SERVICES, *_SOFT_SERVICES)}
+    names = (*_CRIT_SERVICES, _DESK_PRIMARY, *_DESK_LEGACY, *_SOFT_SERVICES)
+    svc = {n: _svc(n) for n in names}
     status = OK
     notes = []
     for n in _CRIT_SERVICES:
         if not svc[n]["active"]:
             status = CRIT
             notes.append(f"{n} {svc[n]['state']}")
+    # the desk: tournament (primary) OR the legacy core+strategy (a revert) must be up.
+    # core/strategy alone being inactive is EXPECTED post-cutover — not a fault.
+    desk_up = svc[_DESK_PRIMARY]["active"] or all(svc[n]["active"] for n in _DESK_LEGACY)
+    if not desk_up:
+        status = CRIT
+        notes.append("NO DESK running (tournament + core/strategy all inactive)")
     for n in _SOFT_SERVICES:
         if not svc[n]["active"]:
             status = _worst(status, WARN)
             notes.append(f"{n} {svc[n]['state']}")
-    storms = [f"{n}×{v['restarts']}" for n, v in svc.items() if v["restarts"] >= _RESTART_STORM]
+    # only storm on services that are SUPPOSED to run (skip the intentionally-off legacy desk)
+    watched = {*_CRIT_SERVICES, _DESK_PRIMARY, *_SOFT_SERVICES}
+    storms = [f"{n}×{svc[n]['restarts']}" for n in watched if svc[n]["restarts"] >= _RESTART_STORM]
     if storms:
         status = _worst(status, WARN)
         notes.append("restart-storm: " + ",".join(storms))
-    detail = "all services up, 0 restart-storms" if status == OK else "; ".join(notes)
+    desk = _DESK_PRIMARY if svc[_DESK_PRIMARY]["active"] else ("core+strategy (reverted)" if desk_up else "NONE")
+    detail = f"all up · desk={desk}" if status == OK else "; ".join(notes)
     return {"status": status, "detail": detail, "restarts": {n: v["restarts"] for n, v in svc.items()}}
 
 
@@ -166,38 +180,34 @@ def check_execution(store, now: datetime) -> dict:
 
 
 def check_position(store, core: dict) -> dict:
-    rows = store.execute("SELECT symbol, side, qty, entry_price FROM open_position").fetchall()
-    held_store = len(rows) > 0
-    flat_core = core.get("flat", True)
-    if flat_core and not held_store:
-        return {"status": OK, "detail": "flat (core + store agree)"}
-    if not flat_core and held_store:
-        r = rows[0]
-        # VENUE-TRUTH protection gate (2026-07-17): 'held + agree' is NOT enough — the
-        # last audit must have CONFIRMED live coverage. A held-but-unverified position
-        # (naked, or the venue snapshot silently failing) is exactly how a stop-less
-        # trade bled for 3h reading 'OK'. Only trust the new `protection` block.
-        prot = core.get("protection")
-        if isinstance(prot, dict) and prot.get("held"):
-            if prot.get("verified") is False:
-                unver = prot.get("unverified_cycles") or 0
-                why = f"venue snapshot unverifiable {unver} cycles" if unver else "coverage NOT confirmed — naked?"
-                return {"status": CRIT, "held": True,
-                        "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']} — protection "
-                        f"NOT verified ({why}); CHECK IBKR / flatten"}
-            age = prot.get("verified_age_s")
-            if age is not None and age > 60:
-                return {"status": WARN, "held": True,
-                        "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']}; stop last "
-                        f"verified {age:.0f}s ago (stale)"}
-            return {"status": OK, "held": True,
-                    "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']} (stop VERIFIED at venue)"}
-        # legacy heartbeat with no protection block → pre-fix behaviour
-        return {"status": OK, "detail": f"holding {r['side']} {r['qty']} @ {r['entry_price']} "
-                f"(core managing native stop)", "held": True}
-    # disagreement — core's freshly-read venue truth vs the store's open_position row
-    return {"status": WARN,
-            "detail": f"position drift: core flat={flat_core} but store rows={len(rows)}"}
+    """VENUE-TRUTH protection gate, read from core's freshly-written ``protection`` block
+    (2026-07-17 lesson: 'held' is not 'protected' — a stop-less position bled for 3h reading
+    OK). Multi-slot tournament: ``protection.slots`` each carry a ``stop_coid`` (a live venue
+    order) — a held slot without one is NAKED. Also handles the retired single-position shape
+    (``protection.verified``) for a revert. Reads core-health only — NOT the ``open_position``
+    table (the tournament's truth is per-slot, so that table is empty here by design)."""
+    flat = bool(core.get("flat", True))
+    prot = core.get("protection") if isinstance(core.get("protection"), dict) else {}
+    slots = prot.get("slots") or []
+    held = (not flat) or bool(slots) or bool(prot.get("held"))
+    if not held:
+        return {"status": OK, "detail": "flat"}
+    # held → gate on protection. 'can't verify' is never 'safe'.
+    unver = prot.get("unverified_cycles") or 0
+    if unver:
+        return {"status": CRIT, "held": True,
+                "detail": f"held but venue snapshot UNVERIFIABLE {unver} cycles — CHECK IBKR / flatten"}
+    if prot.get("verified") is False:              # single-position shape (reverted desk)
+        return {"status": CRIT, "held": True,
+                "detail": "held but protection NOT verified — CHECK IBKR / flatten"}
+    naked = [str(s.get("gate")) for s in slots if not s.get("stop_coid")]   # tournament per-slot
+    if naked:
+        return {"status": CRIT, "held": True,
+                "detail": f"NAKED slot(s) {', '.join(naked)} — no stop resting; CHECK IBKR / flatten"}
+    if slots:
+        desc = ", ".join(f"{s.get('gate')} {s.get('side')} {s.get('qty'):g}" for s in slots)
+        return {"status": OK, "held": True, "detail": f"holding {len(slots)} slot(s): {desc} — all protected"}
+    return {"status": OK, "held": True, "detail": "holding — protected"}
 
 
 def check_killswitch(cfg: RunConfig, store, core: dict, now: datetime) -> dict:

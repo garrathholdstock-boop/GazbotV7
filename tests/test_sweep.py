@@ -94,21 +94,63 @@ def test_recording_ok_for_realtime_rows():
     assert r["today_trades"] == 2
 
 
-def test_position_flat_agreement_is_ok():
+def _fake_svc(active_set):
+    def _svc(n):
+        on = n in active_set
+        return {"active": on, "state": "active" if on else "inactive", "restarts": 0}
+    return _svc
+
+
+def test_services_tournament_is_the_desk_core_strategy_inactive_ok(monkeypatch):
+    # THE cutover fix: core/strategy intentionally inactive is NOT a fault when tournament runs
+    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-tournament", "gazbot7-shadow", "gazbot7-web"}
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(active))
+    r = sweep.check_services()
+    assert r["status"] == "OK" and "tournament" in r["detail"]
+
+
+def test_services_crit_when_no_desk_at_all(monkeypatch):
+    monkeypatch.setattr(sweep, "_svc", _fake_svc({"gazbot7-md", "alphabot-gateway"}))  # infra up, no desk
+    r = sweep.check_services()
+    assert r["status"] == "CRIT" and "NO DESK" in r["detail"]
+
+
+def test_services_ok_on_reverted_legacy_desk(monkeypatch):
+    # a revert: tournament down but core+strategy up → still a valid desk
+    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-core", "gazbot7-strategy", "gazbot7-shadow", "gazbot7-web"}
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(active))
+    r = sweep.check_services()
+    assert r["status"] == "OK" and "reverted" in r["detail"]
+
+
+def test_position_flat_is_ok():
     store = open_store(":memory:")
     r = sweep.check_position(store, {"flat": True})
     assert r["status"] == "OK"
 
 
-def test_position_drift_when_core_flat_but_store_holds():
+def test_position_held_and_protected_is_ok():
+    # tournament shape: per-slot protection with a live stop_coid
     store = open_store(":memory:")
-    store.execute(
-        "INSERT INTO open_position (symbol, side, qty, entry_price, entry_atr, opened_at, updated_at) "
-        "VALUES (?,?,?,?,?,?,?)", ("MNQ", "LONG", 1, 100.0, 2.0, NOW.isoformat(), NOW.isoformat()))
-    store.commit()
-    r = sweep.check_position(store, {"flat": True})
-    assert r["status"] == "WARN"
-    assert "drift" in r["detail"]
+    core = {"flat": False, "protection": {"held": True, "unverified_cycles": 0,
+            "slots": [{"gate": "grind_long", "side": "LONG", "qty": 1, "stop_coid": "stp-1"}]}}
+    r = sweep.check_position(store, core)
+    assert r["status"] == "OK" and r["held"] is True
+
+
+def test_position_naked_slot_is_crit():
+    store = open_store(":memory:")
+    core = {"flat": False, "protection": {"held": True, "unverified_cycles": 0,
+            "slots": [{"gate": "grind_long", "side": "LONG", "qty": 1, "stop_coid": None}]}}
+    r = sweep.check_position(store, core)
+    assert r["status"] == "CRIT" and "NAKED" in r["detail"]
+
+
+def test_position_unverified_is_crit():
+    store = open_store(":memory:")
+    core = {"flat": False, "protection": {"held": True, "unverified_cycles": 3, "slots": []}}
+    r = sweep.check_position(store, core)
+    assert r["status"] == "CRIT" and "UNVERIFIABLE" in r["detail"]
 
 
 def test_run_sweep_smoke_produces_all_sections(tmp_path):
