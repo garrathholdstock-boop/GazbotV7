@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import replace
 
@@ -40,8 +41,45 @@ from .slot_strategy import SlotStrategy, grind_long_short_slots, tournament_slot
 # The tournament REPLACES gazbot7-core as the desk, so it takes the master clientId 0
 # (full order visibility/adoption) — core must be stopped first (one account, no co-trade).
 TOURNAMENT_CLIENT_ID = 0
+SWITCH_FILE = "gate_switches.env"   # data/<this> — intraday per-gate on/off, re-read LIVE (no restart)
 
 log = logging.getLogger("tournament")
+
+
+def parse_switches(text: str) -> set:
+    """Parse the gate on/off file: ``gate=off`` lines. off/0/no/false/disable → disabled.
+    Blank lines and ``#`` comments ignored. Absent gate = ON (default). The operator (or a
+    Telegram command bot) edits this file; the tournament re-reads it live to stop a gate's
+    NEW entries — an open position on a disabled gate still rides its normal managed exit."""
+    off = set()
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        if v.strip().lower() in ("off", "0", "no", "false", "disable", "disabled"):
+            off.add(k.strip())
+    return off
+
+
+def read_disabled(path: str, cache: dict) -> set:
+    """The disabled-gate set from the switch file, cached on (mtime, size) so it's cheap to
+    call each tick yet re-reads the instant the file changes. Missing file → nothing disabled.
+    Never raises — a bad read must not break the loop."""
+    try:
+        st = os.stat(path)
+        key = (st.st_mtime, st.st_size)
+    except OSError:
+        cache["key"], cache["off"] = None, set()
+        return cache["off"]
+    if cache.get("key") != key:
+        cache["key"] = key
+        try:
+            with open(path) as f:
+                cache["off"] = parse_switches(f.read())
+        except OSError:
+            cache["off"] = set()
+    return cache.get("off", set())
 
 _STALE_TAPE_MS = 10_000
 _STALE_BAR_MS = 30_000
@@ -82,6 +120,9 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     mb = MinuteBars(cfg.bar_lookback)
     mb.warm(cap, cfg.symbol, cfg.bar_lookback)
     needs_fp = any(s.kind in ("capitulation", "exhaustion") for s in specs)
+    switch_path = os.path.join(os.path.dirname(cfg.store_path) or ".", SWITCH_FILE)
+    switch_cache: dict = {}
+    last_disabled: set = set()
 
     strat = SlotStrategy(specs, value_per_point=cfg.value_per_point)
     core = None
@@ -126,7 +167,13 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 now_ms = int(time.time() * 1000)
                 book = core._sb if core is not None else slotbook
                 fp = footprint_summary(cap, cfg.symbol, now_ms) if needs_fp else None
+                disabled = read_disabled(switch_path, switch_cache)   # intraday per-gate off-switch (live)
+                if disabled != last_disabled:
+                    log.warning("gate switches changed → DISABLED (no new entries): %s", sorted(disabled) or "none")
+                    last_disabled = set(disabled)
                 intents = step(strat, mb, tape, book, now_ms, fp)
+                if disabled:   # a disabled gate takes NO new entries; its open position still exits normally
+                    intents = [i for i in intents if not (i.get("action") == "OPEN" and i.get("slot") in disabled)]
                 if not intents:
                     continue
                 if place_live:

@@ -47,3 +47,34 @@ def test_live_run_coerces_cfg_place_live():
     assert _ensure_live_cfg(RunConfig(place_live=False), True).place_live is True
     assert _ensure_live_cfg(RunConfig(place_live=False), False).place_live is False  # dry-run untouched
     assert _ensure_live_cfg(RunConfig(place_live=True), True).place_live is True
+
+
+# ── intraday per-gate off-switch (live, no restart) ───────────────────────────
+def test_parse_switches_reads_off_values():
+    from gazbot7.tournament import parse_switches
+    txt = "# intraday gate on/off\nthrust_short=off\nrgv_short = disable\ngrind_long=on\n\nbadline\ncapitulation_long=0"
+    assert parse_switches(txt) == {"thrust_short", "rgv_short", "capitulation_long"}
+    assert parse_switches("") == set()
+
+
+def test_read_disabled_mtime_cached_and_absent_is_none(tmp_path):
+    from gazbot7.tournament import read_disabled
+    p = str(tmp_path / "gate_switches.env")
+    cache: dict = {}
+    assert read_disabled(p, cache) == set()                 # absent → nothing disabled
+    (tmp_path / "gate_switches.env").write_text("thrust_short=off\n")
+    assert read_disabled(p, cache) == {"thrust_short"}       # created → picked up live
+    (tmp_path / "gate_switches.env").write_text("thrust_short=on\n")
+    assert read_disabled(p, cache) == set()                  # flipped back on → live
+
+
+def test_disabled_filter_drops_opens_keeps_closes():
+    # the loop's filter: a disabled gate takes NO new entries, but its open position still exits
+    disabled = {"thrust_short"}
+    intents = [
+        {"action": "OPEN", "slot": "thrust_short", "side": "SHORT"},   # dropped
+        {"action": "OPEN", "slot": "grind_long", "side": "LONG"},      # kept (not disabled)
+        {"action": "CLOSE", "slot": "thrust_short", "reason": "STOP"}, # kept (managed exit)
+    ]
+    kept = [i for i in intents if not (i.get("action") == "OPEN" and i.get("slot") in disabled)]
+    assert [(i["action"], i["slot"]) for i in kept] == [("OPEN", "grind_long"), ("CLOSE", "thrust_short")]
