@@ -22,7 +22,7 @@
   <div class="tag">MNQ DESK · MICRO NASDAQ 100 · <span id="expiry">—</span></div>
   <div class="conn" id="conn"><span class="dot"></span><span id="conn-label">CONNECTING…</span></div>
   <span class="chip" id="mkt-chip">—</span>
-  <span class="chip" id="regime-chip">REGIME —</span>
+  <span class="chip" id="safety-chip">SAFETY —</span>
   <div class="spacer"></div>
   <div class="kpis">
     <div class="kpi box"><span class="l" title="all figures NET of the round-turn fee">NET</span><span class="v cyan" id="k-fee">—</span></div>
@@ -40,7 +40,7 @@
 <!-- phone tab bar (hidden on desktop) -->
 <nav class="tabbar" id="tabbar">
   <button class="tab on" data-tab="desk">DESK<span class="b" id="tb-desk">—</span></button>
-  <button class="tab" data-tab="gates">GATES<span class="b" id="tb-gates">—</span></button>
+  <button class="tab" data-tab="tourn">TOURNEY<span class="b" id="tb-tourn">—</span></button>
   <button class="tab" data-tab="chart">CHART</button>
   <button class="tab" data-tab="hold">HOLD<span class="b" id="tb-hold">—</span></button>
   <button class="tab" data-tab="trades">TRADES<span class="b" id="tb-trades">—</span></button>
@@ -54,41 +54,25 @@
   <section class="panel on" id="p-desk" data-tab="desk">
     <div class="ph"><h2>DESK STATS</h2><span class="live">● live</span></div>
     <div class="pb">
-      <div class="sec">MARKET REGIME · US</div>
-      <div id="regime-badges"><div class="empty">—</div></div>
-
-      <div class="sec">UNREALISED P&amp;L</div>
+      <div class="sec">UNREALISED P&amp;L <span class="dim3">· open slots</span></div>
       <div class="big" id="unreal">—</div>
       <div class="subval" id="unreal-sub">flat</div>
 
-      <div class="sec">MARGIN DEPLOYED</div>
-      <div class="row"><span class="k">Deployed</span><span class="val" id="margin-usd">—</span></div>
-      <div class="bar-track"><div class="bar-fill" id="margin-bar"></div></div>
-      <div class="subval" id="margin-sub">IBKR init margin · % of NLV</div>
-
-      <div class="sec">POSITIONING</div>
+      <div class="sec">DESK · TODAY</div>
       <div class="row"><span class="k">Open contracts</span><span class="val" id="pos-open">—</span></div>
-      <div class="row"><span class="k">Net locked profit</span><span class="val" id="pos-locked">—</span></div>
-      <div class="row"><span class="k">Today realised</span><span class="val" id="pos-realised">—</span></div>
+      <div class="row"><span class="k">Realised today</span><span class="val" id="pos-realised">—</span></div>
       <div class="row"><span class="k">Trades today</span><span class="val" id="pos-trades">—</span></div>
       <div class="row"><span class="k">Win rate today</span><span class="val" id="pos-win">—</span></div>
-      <div class="row"><span class="k">Ratchet · today</span><span class="val" id="pos-ratchet">—</span></div>
 
       <div class="sec">ROLLING · MNQ · USD</div>
       <table><thead><tr><th></th><th>1D</th><th>7D</th><th>30D</th></tr></thead>
         <tbody id="rolltbl"><tr><td class="empty" colspan="4">—</td></tr></tbody></table>
 
-      <div class="sec">GATE PERFORMANCE · TODAY · L/S</div>
-      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>PF</th><th>NET</th></tr></thead>
-        <tbody id="gateperf"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
-
-      <div class="sec">LONG / SHORT HEALTH · TODAY</div>
-      <table><thead><tr><th>GATE</th><th>L·N</th><th>L·NET</th><th>S·N</th><th>S·NET</th></tr></thead>
-        <tbody id="lshealth"><tr><td class="empty" colspan="5">—</td></tr></tbody></table>
-
       <div class="sec">LOSSES · BY EXIT · TODAY</div>
       <table><thead><tr><th>EXIT</th><th>N</th><th>$</th></tr></thead>
         <tbody id="lossbkt"><tr><td class="empty" colspan="3">—</td></tr></tbody></table>
+
+      <div class="sec dim3" style="margin-top:10px">→ per-gate P&amp;L + relegation on the <b>TOURNEY</b> tab</div>
     </div>
   </section>
 
@@ -113,16 +97,16 @@
     </div>
   </section>
 
-  <!-- GATE LEADERBOARD -->
-  <section class="panel" id="p-gates" data-tab="gates">
-    <div class="ph"><h2>GATE LEADERBOARD</h2><span class="sub">gate×side · click → trades</span></div>
+  <!-- TOURNAMENT — the 6-gate scoreboard (the headline) -->
+  <section class="panel" id="p-tourn" data-tab="tourn">
+    <div class="ph"><h2>TOURNAMENT</h2><span class="sub" id="tourn-meta">6 gates · relegate bottom 2</span></div>
     <div class="pb">
-      <div class="sec">TOP 5 · net of fees</div>
-      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>PF</th><th>NET</th></tr></thead>
-        <tbody id="lb-top"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
-      <div class="sec">BOTTOM 5 · net of fees</div>
-      <table><thead><tr><th>GATE</th><th>SIDE</th><th>N</th><th>WIN</th><th>PF</th><th>NET</th></tr></thead>
-        <tbody id="lb-bottom"><tr><td class="empty" colspan="6">—</td></tr></tbody></table>
+      <div class="sec">LIVE SLOTS <span class="dim3">· open right now</span></div>
+      <div class="slot-strip" id="tourn-slots"><div class="empty">flat — no open slots</div></div>
+      <div class="sec">SCOREBOARD · TODAY · realized + open · ranked</div>
+      <table class="tourn-tbl"><thead><tr><th>#</th><th>GATE</th><th>S</th><th>OPEN</th><th>TODAY</th><th>TOTAL</th><th>N</th><th>WIN</th><th>PF</th></tr></thead>
+        <tbody id="tourn-rows"><tr><td class="empty" colspan="9">loading…</td></tr></tbody></table>
+      <div class="subval" style="margin-top:6px">🔻 <span class="dim3">bottom 2 = relegation zone · <span class="live-dot"></span> = live now</span></div>
     </div>
   </section>
 

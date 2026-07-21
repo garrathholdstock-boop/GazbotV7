@@ -66,3 +66,58 @@ def test_per_slot_pnl_sign_by_side(tmp_path):
          "stop_price": 28780.0, "stop_coid": "s1", "opened_at": "2026-07-20T18:00:00+00:00"}]}
     r = us_terminal_json(_NO_CAP, _dir(tmp_path, status))
     assert r["holdings"][0]["qty"] == 2.0 and r["holdings"][0]["pnl_usd"] == 0.0
+
+
+# ── /api/futures/tournament — the scoreboard rollup ───────────────────────────
+def _seed_trade(store, gate, side, pnl, reason="STOP"):
+    from datetime import UTC, datetime
+    from gazbot7.store import record_trade
+    now = datetime.now(UTC).isoformat()
+    record_trade(store, symbol="MNQ", side=side, qty=1, entry_price=100.0,
+                 exit_price=100.0 + (pnl / 2.0 if side == "LONG" else -pnl / 2.0),
+                 opened_at=now, closed_at=now, pnl_usd=pnl, fees_usd=0.0,
+                 exit_reason=reason, gate=gate, exit_exec_id=f"x-{gate}-{pnl}")
+
+
+def test_tournament_full_6_roster_even_when_empty(tmp_path):
+    from gazbot7.store import open_store
+    from gazbot7.web import tournament_json
+    store = str(tmp_path / "g.db")
+    open_store(store).close()
+    d = tournament_json(store, _dir(tmp_path, {"position": None, "flat": True}), _NO_CAP)
+    assert {r["gate"] for r in d["gates"]} == {"rgv_long", "grind_long", "capitulation_long",
+                                               "thrust_short", "rgv_short", "exhaustion_short"}
+    assert d["desk"]["roster_count"] == 6 and d["desk"]["flat"] is True
+    assert d["desk"]["safety"] == "green" and d["desk"]["live_count"] == 0
+
+
+def test_tournament_ranks_and_flags_relegation(tmp_path):
+    from gazbot7.store import open_store
+    from gazbot7.web import tournament_json
+    store = str(tmp_path / "g.db")
+    s = open_store(store)
+    _seed_trade(s, "grind_long", "LONG", 100.0)      # winner
+    _seed_trade(s, "thrust_short", "SHORT", 5.0)      # small +
+    _seed_trade(s, "rgv_short", "SHORT", -170.0)      # loser
+    s.close()
+    d = tournament_json(store, _dir(tmp_path, {"position": None, "flat": True}), _NO_CAP)
+    g = {r["gate"]: r for r in d["gates"]}
+    assert d["gates"][0]["gate"] == "grind_long"      # top of the scoreboard
+    assert g["grind_long"]["realized"] == 100.0 and g["rgv_short"]["realized"] == -170.0
+    # bottom-2 of the ACTIVE (traded) gates → rgv_short + thrust_short
+    releg = {r["gate"] for r in d["gates"] if r["relegate"]}
+    assert releg == {"rgv_short", "thrust_short"}
+    assert g["capitulation_long"]["relegate"] is False   # 0-trade gate not judged
+
+
+def test_tournament_safety_naked_and_halted(tmp_path):
+    from gazbot7.store import open_store
+    from gazbot7.web import tournament_json
+    store = str(tmp_path / "g.db")
+    open_store(store).close()
+    naked = {"position": [{"gate": "grind_long", "side": "LONG", "qty": 1, "entry_price": 100.0,
+                           "stop_coid": None}], "protection": {"slots": []}}
+    d = tournament_json(store, _dir(tmp_path, naked), _NO_CAP)
+    assert d["desk"]["any_naked"] is True and d["desk"]["safety"] == "red"
+    d2 = tournament_json(store, _dir(tmp_path, {"position": None, "halted": True}), _NO_CAP)
+    assert d2["desk"]["halted"] is True and d2["desk"]["safety"] == "red"

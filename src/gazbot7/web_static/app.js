@@ -10,7 +10,7 @@
   const $ = (id) => document.getElementById(id);
   const POLL_FAST_MS = 1000;   // chart / price / ribbon / DTT — as live as the feed allows
   const POLL_SLOW_MS = 5000;   // header P&L / blotter / leaderboard / gate perf
-  let STATE = { mnq: null, us: null, bars: null, drill: null, tf: 120 };  // tf = chart window in minutes (2h default)
+  let STATE = { mnq: null, us: null, tour: null, bars: null, drill: null, tf: 120 };  // tf = chart window in minutes (2h default)
 
   /* ---------- formatting ---------- */
   const nf = (v, d = 2) => (v == null || isNaN(v)) ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -101,8 +101,10 @@
     try {
       const us = await getJSON("api/futures/us-terminal").catch(() => null);
       if (us) STATE.us = us;
+      const tour = await getJSON("api/futures/tournament").catch(() => null);
+      if (tour) STATE.tour = tour;
       try { STATE.bars = await getJSON("api/futures/bars/MNQ?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
-      try { renderConn(us != null); renderRibbonAndDTT(); renderHero(); renderHolding(); } catch (e) { console.error("fast", e); }
+      try { renderConn(us != null); renderSafety(); renderRibbonAndDTT(); renderHero(); renderHolding(); renderTournament(); } catch (e) { console.error("fast", e); }
     } finally { _fastBusy = false; }
   }
   async function slowTick() {
@@ -114,7 +116,7 @@
       if (ex) STATE.exec = ex;
       const m = STATE.mnq || {};
       try {
-        renderHeader(m); renderDesk(m); renderTrades(m); renderGates(m); renderTabBadges(m); renderExec(STATE.exec);
+        renderHeader(m); renderDesk(m); renderTrades(m); renderTabBadges(m); renderExec(STATE.exec);
         if (STATE.drill) reAggregateDrill();
       } catch (e) { console.error("slow", e); }
     } finally { _slowBusy = false; }
@@ -131,10 +133,11 @@
     renderHeader(m);
     renderRibbonAndDTT();
     renderHero();
+    renderSafety();
     renderDesk(m);
     renderHolding();
+    renderTournament();
     renderTrades(m);
-    renderGates(m);
     renderTabBadges(m);
     renderExec(STATE.exec);
     if (STATE.drill) reAggregateDrill(); // keep an open drill live
@@ -195,11 +198,7 @@
     if (!ok) { mk.textContent = "—"; mk.className = "chip"; }
     else if (open === false) { mk.textContent = "MARKET CLOSED"; mk.className = "chip chop"; }
     else { mk.textContent = "MARKET OPEN"; mk.className = "chip bull"; }
-    // regime chip (US, settlement-anchored)
-    const rg = (STATE.us && STATE.us.regime_groups && STATE.us.regime_groups.US) || null;
-    const rc = $("regime-chip");
-    if (rg && rg.regime) { rc.textContent = "REGIME " + rg.regime; rc.className = "chip " + rg.regime.toLowerCase(); }
-    else { rc.textContent = "REGIME —"; rc.className = "chip"; }
+    // the safety pill (was the dead regime chip) is owned by renderSafety()
   }
 
   function renderHeader(m) {
@@ -358,68 +357,32 @@
 
   /* ---------- desk stats ---------- */
   function renderDesk(m) {
-    // regime badges (US only)
-    const rgs = (STATE.us && STATE.us.regime_groups) || {};
-    const us = rgs.US;
-    $("regime-badges").innerHTML = us && us.regime
-      ? `<div class="row"><span class="k">${esc("US index")}</span><span class="val ${us.regime === "BULL" ? "pos" : us.regime === "BEAR" ? "neg" : ""}">${esc(us.regime)}${us.day_pct != null ? " · " + pct(us.day_pct, 2) : ""}</span></div>`
-      : `<div class="empty">regime feed idle</div>`;
-
     const hold = mnqHoldings();
     const unreal = hold.reduce((s, h) => s + (h.pnl_usd || 0), 0);
     const anyOpen = hold.length > 0;
     const ue = $("unreal");
     ue.textContent = anyOpen ? money(unreal, 2) : "—";
     ue.className = "big " + (anyOpen ? cls(unreal) : "mut");
-    $("unreal-sub").textContent = anyOpen ? (hold.length + " open · MNQ " + (m.expiry || "")) : "FLAT — no MNQ position";
+    $("unreal-sub").textContent = anyOpen ? (hold.length + " slot" + (hold.length > 1 ? "s" : "") + " open") : "FLAT — no open slots";
 
-    // margin
-    const mdep = STATE.us && STATE.us.margin_deployed_usd, nlv = STATE.us && STATE.us.nlv_usd;
-    $("margin-usd").textContent = usd(mdep, 0);
-    const pctNlv = (mdep && nlv) ? (mdep / nlv * 100) : null;
-    $("margin-bar").style.width = (pctNlv == null ? 0 : Math.max(0, Math.min(100, pctNlv))) + "%";
-    $("margin-sub").textContent = pctNlv != null ? nf(pctNlv, 1) + "% of NLV " + usd(nlv, 0) : "IBKR init margin · % of NLV";
-
-    // positioning
+    // positioning (desk-level)
     const h = m.header || {};
     const openContracts = hold.reduce((s, x) => s + Math.abs(x.qty || 0), 0);
-    const cap = m.contracts_cap_aggregate;
-    $("pos-open").textContent = anyOpen ? (openContracts + (cap ? " / " + cap + " agg" : "")) : ("0" + (cap ? " / " + cap + " agg" : ""));
-    const locked = hold.reduce((s, x) => s + (x.locked_profit_usd || 0), 0);
-    const pl = $("pos-locked"); pl.textContent = locked > 0 ? money(locked, 2) : "—"; pl.className = "val " + (locked > 0 ? "pos" : "");
+    $("pos-open").textContent = anyOpen ? String(openContracts) : "0";
     const pr = $("pos-realised"); pr.textContent = money(h.today, 2); pr.className = "val " + cls(h.today);
     $("pos-trades").textContent = h.trades_today != null ? h.trades_today : "—";
     $("pos-win").textContent = h.win_today != null ? h.win_today + "%" : "—";
-    const r = m.ratchet;
-    const pra = $("pos-ratchet");
-    if (r && r.n) { pra.textContent = money(r.net, 2) + " · " + r.n + "×"; pra.className = "val " + cls(r.net); }
-    else { pra.textContent = "—"; pra.className = "val"; }
 
-    // rolling table
+    // rolling table (net / win / N — PF & MaxDD not computed in V7)
     const roll = m.rolling || {};
     const rk = ["1D", "7D", "30D"];
     const rrow = (label, fn) => `<tr><td>${label}</td>` + rk.map((k) => fn(roll[k] || {})).join("") + `</tr>`;
     $("rolltbl").innerHTML =
       rrow("Net", (s) => `<td class="${cls(s.pnl)}">${money(s.pnl, 0)}</td>`) +
-      rrow("PF", (s) => `<td>${s.pf == null ? "—" : nf(s.pf, 2)}</td>`) +
       rrow("Win", (s) => `<td>${s.win == null ? "—" : s.win + "%"}</td>`) +
-      rrow("MaxDD", (s) => `<td class="neg">${s.maxdd ? money(s.maxdd, 0) : "—"}</td>`) +
       rrow("N", (s) => `<td>${s.trades || 0}</td>`);
 
-    // gate perf today
-    const gp = m.gate_perf || [];
-    $("gateperf").innerHTML = gp.length ? gp.map((r) => {
-      const fl = r.flag === "star" ? ` <span class="flag-star">★</span>` : r.flag === "low" ? ` <span class="flag-low">▼</span>` : "";
-      return `<tr><td>${esc(gateAbbr(r.gate))}${fl}</td><td class="${r.side === "SHORT" ? "red" : "grn"}">${r.side}</td><td>${r.n}</td><td>${r.win_pct == null ? "—" : r.win_pct + "%"}</td><td>${r.pf == null ? "∞" : nf(r.pf, 2)}</td><td class="${cls(r.net)}">${money(r.net, 0)}</td></tr>`;
-    }).join("") : `<tr><td class="empty" colspan="6">no attributed trades today</td></tr>`;
-
-    // long/short health
-    const ls = m.long_short || [];
-    $("lshealth").innerHTML = ls.length ? ls.map((r) =>
-      `<tr><td>${esc(gateAbbr(r.gate))}</td><td>${r.long.n}</td><td class="${cls(r.long.net)}">${money(r.long.net, 0)}</td><td>${r.short.n}</td><td class="${cls(r.short.net)}">${money(r.short.net, 0)}</td></tr>`
-    ).join("") : `<tr><td class="empty" colspan="5">—</td></tr>`;
-
-    // losses by exit
+    // losses by exit (now wired)
     const lb = m.loss_buckets || [];
     $("lossbkt").innerHTML = lb.length ? lb.map((r) =>
       `<tr><td>${esc(exitAbbr(r.cause))}</td><td>${r.n}</td><td class="neg">${money(r.usd, 0)}</td></tr>`
@@ -457,6 +420,60 @@
         + `</div>`;
     };
     body.innerHTML = holds.map(card).join("");
+  }
+
+  /* ---------- tournament — the 6-gate scoreboard ---------- */
+  function renderSafety() {
+    const d = (STATE.tour && STATE.tour.desk) || null;
+    const chip = $("safety-chip");
+    if (!chip) return;
+    if (!d) { chip.textContent = "SAFETY —"; chip.className = "chip"; return; }
+    const lvl = d.safety || "green";
+    const txt = d.halted ? "HALTED" : d.any_naked ? "NAKED" : d.unverified_cycles ? "UNVERIFIED"
+      : (d.flat ? "FLAT · protected" : (d.live_count + " live · protected"));
+    chip.textContent = "SAFETY · " + txt;
+    chip.className = "chip safety-" + lvl;
+    const halt = $("halt");
+    if (halt) halt.classList.toggle("on", !!d.halted);
+  }
+
+  function renderTournament() {
+    const t = STATE.tour;
+    if (!t) return;
+    const holds = mnqHoldings();
+    $("tourn-slots").innerHTML = holds.length ? holds.map((h) => {
+      const side = h.side || "LONG";
+      const prot = h.protected ? `<span class="prot-ok">◈ stop</span>` : `<span class="prot-naked">⚠ NAKED</span>`;
+      return `<div class="slot-tile">
+        <div class="st-top">${sidePill(side)}<b>${esc(gateAbbr(h.entry_gate))}</b>${prot}</div>
+        <div class="st-pnl ${cls(h.pnl_usd)}">${money(h.pnl_usd, 2)}</div>
+        <div class="st-sub">${Math.abs(h.qty || 0)} @ ${nf(h.avg, 1)} · ${holdStr(h.held_seconds)}</div>
+      </div>`;
+    }).join("") : `<div class="empty">flat — no open slots</div>`;
+
+    const g = t.gates || [];
+    $("tourn-rows").innerHTML = g.length ? g.map((r, i) => {
+      const dot = r.live ? `<span class="live-dot" title="live now"></span>` : "";
+      const clk = r.n ? "clickable" : "";       // only gates with trades have a drill
+      return `<tr class="${r.relegate ? "releg " : ""}${clk}" data-key="${esc(r.gate)}|${r.side}">
+        <td>${r.relegate ? "🔻" : (i + 1)}</td>
+        <td>${dot}${esc(gateAbbr(r.gate))}</td>
+        <td class="${r.side === "SHORT" ? "red" : "grn"}">${r.side[0]}</td>
+        <td class="${r.live ? cls(r.open_unreal) : "mut"}">${r.live ? money(r.open_unreal, 0) : "·"}</td>
+        <td class="${r.n ? cls(r.realized) : "mut"}">${r.n ? money(r.realized, 0) : "·"}</td>
+        <td class="tot ${cls(r.total)}">${money(r.total, 0)}</td>
+        <td>${r.n}</td>
+        <td>${r.win_pct == null ? "—" : r.win_pct + "%"}</td>
+        <td>${r.pf == null ? "—" : nf(r.pf, 2)}</td>
+      </tr>`;
+    }).join("") : `<tr><td class="empty" colspan="9">—</td></tr>`;
+    document.querySelectorAll("#tourn-rows tr.clickable").forEach((tr) => {
+      tr.onclick = () => openDrill(tr.getAttribute("data-key"));
+    });
+
+    const d = t.desk || {};
+    $("tourn-meta").textContent =
+      `${d.live_count}/${d.roster_count} live · today ${money(d.realized_today, 0)} · open ${money(d.open_unreal, 0)}`;
   }
   // Position chart for the HOLD tab — modelled on the old futures_terminal drawHoldingChart:
   // price line coloured by P&L + an IN (entry) ref line always, STOP, and a gold LOCK line ONLY
@@ -600,7 +617,8 @@
     $("tb-desk").textContent = h.today != null ? money(h.today, 0) : "—";
     $("tb-hold").textContent = hold.length ? money(hold.reduce((s, x) => s + (x.pnl_usd || 0), 0), 0) : "flat";
     $("tb-trades").textContent = (h.trades_today != null ? h.trades_today : "—");
-    $("tb-gates").textContent = (m.gate_perf || []).length || "—";
+    const d = (STATE.tour && STATE.tour.desk) || null;
+    $("tb-tourn").textContent = d ? (d.live_count + "/" + d.roster_count) : "—";
   }
 
   /* ---------- tabs + clock ---------- */
@@ -613,7 +631,7 @@
         document.querySelectorAll(".panel[data-tab]").forEach((p) => p.classList.toggle("on", p.getAttribute("data-tab") === name));
         // the just-shown panel now has real dimensions — redraw its chart at the true size (charts skip
         // while hidden, so this is what draws them crisply on show; requestAnimationFrame lets layout settle)
-        requestAnimationFrame(() => { try { renderHero(); renderHolding(); } catch (e) { } });
+        requestAnimationFrame(() => { try { renderHero(); renderHolding(); renderTournament(); } catch (e) { } });
       };
     });
   }

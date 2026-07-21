@@ -217,10 +217,95 @@ def mnq_json(store_path):
         gp = _gate_groups(today_rows)
         out["gate_perf"] = gp
         out["leaderboard"] = {"top": gp[:5], "bottom": list(reversed(gp[-5:])) if len(gp) > 5 else []}
+        # losses by exit reason (data was always here — just never wired)
+        losses: dict = {}
+        for r in today_rows:
+            if r["pnl_usd"] < 0:
+                b = losses.setdefault(r["exit_reason"], {"n": 0, "usd": 0.0})
+                b["n"] += 1
+                b["usd"] += r["pnl_usd"]
+        out["loss_buckets"] = sorted(
+            [{"cause": k, "n": v["n"], "usd": round(v["usd"], 2)} for k, v in losses.items()],
+            key=lambda x: x["usd"])
         c.close()
     except Exception:
         pass
     return out
+
+
+# ── /api/futures/tournament — the per-gate scoreboard (roster × trades × live) ─
+def tournament_json(store_path, data_dir, cap_path):
+    """The tournament scoreboard: the full 6-gate roster (from ``tournament_slots()`` so
+    0-trade gates still show), each gate's today-realized (from ``trades``) + open-unrealized
+    (from the live ``status.json`` slots × last price), ranked by total, bottom-2 flagged for
+    relegation. Plus a desk-level safety block for the header pill. Read-only."""
+    from .slot_strategy import tournament_slots
+
+    roster = [(s.tag, s.side) for s in tournament_slots()]
+    st = _status(data_dir)
+    last = (_features(cap_path) or {}).get("last")
+    raw = st.get("position")
+    live = raw if isinstance(raw, list) else ([raw] if isinstance(raw, dict) and not raw.get("flat") else [])
+    slot_by_gate = {s.get("gate"): s for s in live if s.get("gate")}
+
+    stats: dict = {}
+    try:
+        c = _conn(store_path)
+        for r in _strategy_trades(c, since_iso=pnl.paris_day_start_utc(datetime.now(UTC))):
+            d = stats.setdefault(r["gate"] or "?",
+                                 {"realized": 0.0, "n": 0, "wins": 0, "gw": 0.0, "gl": 0.0, "exits": {}})
+            d["realized"] += r["pnl_usd"]
+            d["n"] += 1
+            if r["pnl_usd"] > 0:
+                d["wins"] += 1
+                d["gw"] += r["pnl_usd"]
+            else:
+                d["gl"] += -r["pnl_usd"]
+            d["exits"][r["exit_reason"]] = d["exits"].get(r["exit_reason"], 0) + 1
+        c.close()
+    except Exception:
+        pass
+
+    rows = []
+    for gate, side in roster:
+        d = stats.get(gate, {})
+        slot = slot_by_gate.get(gate)
+        entry = slot.get("entry_price") if slot else None
+        qty = abs(slot.get("qty") or 0) if slot else 0.0
+        open_unreal = 0.0
+        if slot and entry and last:
+            open_unreal = round((1 if side == "LONG" else -1) * (last - entry) * _VPP * qty, 2)
+        realized = round(d.get("realized", 0.0), 2)
+        n = d.get("n", 0)
+        rows.append({
+            "gate": gate, "side": side, "live": slot is not None,
+            "qty": qty, "entry": entry, "stop": (slot.get("stop_price") if slot else None),
+            "protected": (bool(slot.get("stop_coid")) if slot else None),
+            "open_unreal": open_unreal, "realized": realized, "total": round(realized + open_unreal, 2),
+            "n": n, "win_pct": (round(100 * d.get("wins", 0) / n) if n else None),
+            "pf": (round(d["gw"] / d["gl"], 2) if d.get("gl", 0) > 1e-9 else None),
+            "exits": d.get("exits", {}),
+        })
+    rows.sort(key=lambda x: x["total"], reverse=True)
+    active = [r for r in rows if r["n"] > 0 or r["live"]]
+    releg = {r["gate"] for r in sorted(active, key=lambda x: x["total"])[:2]} if len(active) >= 2 else set()
+    for r in rows:
+        r["relegate"] = r["gate"] in releg
+
+    any_naked = any(not s.get("stop_coid") for s in live)
+    unverified = (st.get("protection") or {}).get("unverified_cycles", 0)
+    halted = bool(st.get("halted"))
+    level = "red" if (halted or any_naked) else ("amber" if unverified else "green")
+    return {
+        "gates": rows,
+        "desk": {
+            "realized_today": round(sum(r["realized"] for r in rows), 2),
+            "open_unreal": round(sum(r["open_unreal"] for r in rows), 2),
+            "live_count": sum(1 for r in rows if r["live"]), "roster_count": len(rows),
+            "halted": halted, "any_naked": any_naked, "unverified_cycles": unverified,
+            "flat": not live, "safety": level, "last": last,
+        },
+    }
 
 
 # ── /api/futures/execution — signal→fill funnel ───────────────────────────────
@@ -401,6 +486,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._json(bars_json(cap_path, min(600, int(qs.get("count", ["120"])[0]))))
                 elif path.startswith("/api/futures/us-terminal"):
                     self._json(us_terminal_json(cap_path, data_dir))
+                elif path.startswith("/api/futures/tournament"):
+                    self._json(tournament_json(store_path, data_dir, cap_path))
                 elif path.startswith("/api/futures/mnq"):
                     self._json(mnq_json(store_path))
                 elif path.startswith("/api/futures/execution"):

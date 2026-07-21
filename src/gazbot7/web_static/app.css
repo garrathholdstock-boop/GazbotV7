@@ -150,6 +150,22 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
 .slot-card .hold-head .sym{font-size:14px;letter-spacing:.5px}
 .prot-ok{margin-left:auto;font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:3px;color:var(--grn);border:1px solid rgba(55,208,122,.35)}
 .prot-naked{margin-left:auto;font-family:var(--sans);font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:3px;color:var(--red);background:rgba(255,90,95,.15);border:1px solid rgba(255,90,95,.5)}
+/* ── tournament scoreboard ── */
+.slot-strip{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.slot-tile{flex:1 1 150px;min-width:140px;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel2)}
+.slot-tile .st-top{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px}
+.slot-tile .st-top b{font-size:12.5px}
+.slot-tile .st-pnl{font-family:var(--mono);font-size:19px;font-weight:700;margin:3px 0 1px}
+.slot-tile .st-sub{font-family:var(--mono);font-size:10.5px;color:var(--txt2)}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--grn);margin-right:5px;box-shadow:0 0 5px var(--grn);vertical-align:middle}
+table.tourn-tbl td,table.tourn-tbl th{padding:4px 5px}
+table.tourn-tbl td.tot{font-weight:700;font-family:var(--mono)}
+table.tourn-tbl tr.releg td{background:rgba(255,90,95,.09)}
+table.tourn-tbl tr.releg td:first-child{color:var(--red)}
+/* header safety pill */
+.chip.safety-green{color:var(--grn);border-color:rgba(55,208,122,.5)}
+.chip.safety-amber{color:var(--amb);border-color:rgba(240,180,60,.6);background:rgba(240,180,60,.1)}
+.chip.safety-red{color:var(--red);border-color:rgba(255,90,95,.7);background:rgba(255,90,95,.15);font-weight:700}
 .riskbar{position:relative;height:26px;margin:10px 0 4px;border:1px solid var(--line);border-radius:4px;background:var(--panel2)}
 .riskbar .seg{position:absolute;top:0;bottom:0}
 .riskbar .seg.loss{background:var(--red-bg)} .riskbar .seg.gain{background:var(--grn-bg)}
