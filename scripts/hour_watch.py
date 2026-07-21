@@ -159,8 +159,9 @@ def main():
         print(json.dumps(r, indent=2))
         return
     t = r["tape"] or {}
-    print(f"TAPE(1h): {t.get('day_type','?').upper()} net {t.get('net',0):+}pt range {t.get('range',0)}pt "
-          f"| VIOLENCE {t.get('violence','?')} ATR~{t.get('atr',0)}pt {'(EXPANDING)' if r['expanding'] else ''}")
+    print(f"TAPE(1h): {t.get('day_type','?').upper()} (ER {t.get('er','?')}) net {t.get('net',0):+}pt "
+          f"range {t.get('range',0)}pt | VIOLENCE {t.get('violence','?')} ATR~{t.get('atr',0)}pt "
+          f"{'(EXPANDING)' if r['expanding'] else ''}")
     print(f"hour trades: {r['hour_trades']} | day net ${r['day_net']} | disabled: {r['disabled'] or 'none'}")
     for x in r["gates"]:
         tag = " (disabled)" if x["disabled"] else (" 🩸FIGHTING" if x["fighting"] else "")
