@@ -1,8 +1,14 @@
-# GAZBOT V7 — Footprint gates into the tournament (scope, NOT built)
+# GAZBOT V7 — Footprint gates into the tournament
 
-**Status:** SCOPED 2026-07-20. Unlocks the tournament's last two slots
-(capitulation-long + exhaustion-short) so the slate reaches the target **3 long / 3
-short, all distinct**. One piece of wiring, two gates. Owner: md + slot_strategy.
+**Status:** ✅ **BUILT + LIVE 2026-07-21** (commit `4c708fc`). The tournament runs the full
+**3 long / 3 short** slate: rgv-long, grind-long, **capitulation-long** | thrust-short,
+rgv-short, **exhaustion-short**. Implementation note: instead of extending the live **md**
+service, the **tournament** computes the footprint each tape tick from `capture.db`
+(`footprint.footprint_summary()` — rolls up `capitulation_tape` + the exhaustion 20s
+net/move + L1 book), exactly as the shadow loop does — so the live md service is
+**untouched** (lower risk). `SlotStrategy.decide` takes a `footprint` dict; `_gate_fires`
+routes it to the capitulation/exhaustion gates, direction-gated per slot. +9 tests;
+validated on the live capture.db. Original scope kept below.
 
 ---
 
