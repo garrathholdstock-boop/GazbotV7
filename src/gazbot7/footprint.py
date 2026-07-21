@@ -61,6 +61,28 @@ def exhaustion_signal(net_signed: float, price_move_pt: float,
     return None
 
 
+def footprint_summary(cap, symbol: str, now_ms: int, *, window_s: int = 20) -> dict:
+    """One aggressor-tape + L1-book roll-up feeding BOTH footprint gates, computed from
+    the capture DB — the tournament calls this each tape tick (the shadow loop does the
+    same). Reuses ``capitulation_tape`` (the climax cap_* inputs) and the exhaustion
+    inputs (20s signed net + price move + the level-1 book). Read-only; a bad/empty read
+    returns zeros so the gates simply don't fire."""
+    from .capture import capitulation_tape
+
+    c = capitulation_tape(cap, symbol, now_ms)
+    ticks = _recent_ticks(cap, symbol, now_ms - window_s * 1000, now_ms)
+    net = sum((t[2] if t[3] == "buy" else -t[2]) for t in ticks if t[3] in ("buy", "sell"))
+    move = (ticks[-1][1] - ticks[0][1]) if len(ticks) >= 2 else 0.0
+    bp, bs, ap, as_ = _book_l1(cap, symbol, now_ms)
+    return {
+        "cap_sell": c["sell"], "cap_buy": c["buy"], "cap_base": c["base"],
+        "cap_dpx": c["dpx"], "cap_flip": c["flip"],
+        "net_signed": net, "price_move_pt": move,
+        "bid1_size": bs or 0.0, "ask1_size": as_ or 0.0,
+        "bid1_price": bp or 0.0, "ask1_price": ap or 0.0,
+    }
+
+
 def _recent_ticks(cap, symbol: str, lo_ms: int, hi_ms: int):
     return cap.execute(
         "SELECT ts_ms, price, size, aggressor FROM ticks "

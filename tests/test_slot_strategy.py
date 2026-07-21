@@ -88,10 +88,11 @@ def _feat2(slope_fast, ext_atr, net_atr_2=0.0, atr=20.0, price=29000.0):
 def test_tournament_slate_shape():
     from gazbot7.slot_strategy import tournament_slots
     ss = tournament_slots()
-    assert [s.tag for s in ss] == ["rgv_long", "grind_long", "thrust_short", "rgv_short"]
-    assert len([s for s in ss if s.side == "LONG"]) == 2
-    assert len([s for s in ss if s.side == "SHORT"]) == 2
-    assert len({s.kind for s in ss}) == 3          # 3 distinct gate families (grind/rgv/thrust)
+    assert [s.tag for s in ss] == ["rgv_long", "grind_long", "capitulation_long",
+                                   "thrust_short", "rgv_short", "exhaustion_short"]
+    assert len([s for s in ss if s.side == "LONG"]) == 3
+    assert len([s for s in ss if s.side == "SHORT"]) == 3
+    assert len({s.kind for s in ss}) == 5          # grind/rgv/thrust/capitulation/exhaustion
 
 
 def _bars_trend(n=35, step=0.5, start=28900.0):
@@ -122,3 +123,48 @@ def test_rgv_short_routes_only_to_rgv_short_slot():
     ints = strat.decide(_feat2(+0.2, +2.5, net_atr_2=-0.3, atr=20.0), 29000.0, [], b, tape_net=-100.0)
     opens = [i for i in ints if i["action"] == "OPEN"]
     assert len(opens) == 1 and opens[0]["slot"] == "rgv_short"
+
+
+# ── footprint gates: capitulation-long + exhaustion-short routing ──────────────
+def _fp_specs():
+    return [
+        SlotSpec("capitulation_long", "capitulation", "LONG",
+                 params={"climax_min": 3.0, "dom_min": 0.7, "require_flip": False},
+                 sizing="flat", base_size=1, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+        SlotSpec("exhaustion_short", "exhaustion", "SHORT", params={},
+                 sizing="flat", base_size=1, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+    ]
+
+
+def _fp_book():
+    return SlotBook(["capitulation_long", "exhaustion_short"], value_per_point=VPP, fee_rt=1.5)
+
+
+def test_capitulation_long_fires_on_a_sell_climax_only():
+    s = SlotStrategy(_fp_specs(), value_per_point=VPP)
+    fp = {"cap_sell": 100.0, "cap_buy": 10.0, "cap_base": 20.0, "cap_dpx": -5.0, "cap_flip": False}
+    ints = s.decide(_feat(0.0, 0.0), 29000.0, [], _fp_book(), tape_net=0.0, footprint=fp)
+    assert [i["slot"] for i in ints] == ["capitulation_long"]     # sell flush + down-move → LONG fade
+    assert ints[0]["side"] == "LONG"
+
+
+def test_exhaustion_short_fires_on_buy_into_ask_wall_only():
+    s = SlotStrategy(_fp_specs(), value_per_point=VPP)
+    fp = {"net_signed": 500.0, "price_move_pt": 1.0, "bid1_size": 10.0, "ask1_size": 20.0,
+          "bid1_price": 28999.0, "ask1_price": 29001.0}
+    ints = s.decide(_feat(0.0, 0.0), 29000.0, [], _fp_book(), tape_net=0.0, footprint=fp)
+    assert [i["slot"] for i in ints] == ["exhaustion_short"]      # heavy buying, no move, ask wall → SHORT
+    assert ints[0]["side"] == "SHORT"
+
+
+def test_footprint_gates_silent_without_a_footprint():
+    s = SlotStrategy(_fp_specs(), value_per_point=VPP)
+    assert s.decide(_feat(0.0, 0.0), 29000.0, [], _fp_book(), tape_net=0.0) == []  # no footprint → nothing
+
+
+def test_capitulation_does_not_fire_short_slot_on_a_sell_flush():
+    # direction gate: a sell-flush is a LONG fade; an exhaustion_short slot must NOT open on it
+    s = SlotStrategy([_fp_specs()[1]], value_per_point=VPP)   # exhaustion_short only
+    b = SlotBook(["exhaustion_short"], value_per_point=VPP, fee_rt=1.5)
+    fp = {"cap_sell": 100.0, "cap_buy": 10.0, "cap_base": 20.0, "cap_dpx": -5.0, "cap_flip": False}
+    assert s.decide(_feat(0.0, 0.0), 29000.0, [], b, tape_net=0.0, footprint=fp) == []

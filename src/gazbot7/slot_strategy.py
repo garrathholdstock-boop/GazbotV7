@@ -24,10 +24,12 @@ from .deciders import (
     exit_chandelier,
     exit_giveback,
     exit_scalp,
+    gate_capitulation,
     gate_grind,
     gate_reversal_grab,
     gate_thrust,
 )
+from .footprint import exhaustion_signal
 from .sizing import conviction_lots, efficiency_ratio
 
 
@@ -79,6 +81,9 @@ def tournament_slots() -> list[SlotSpec]:
         SlotSpec("grind_long", "grind", "LONG",
                  params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
                  exit="chandelier", vol_adaptive_chandelier=True),
+        SlotSpec("capitulation_long", "capitulation", "LONG",   # fade a sell-flush bottom
+                 params={"climax_min": 3.0, "dom_min": 0.7, "require_flip": False},
+                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
         # SHORT
         SlotSpec("thrust_short", "thrust", "SHORT",
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="conviction", base_size=2,
@@ -86,6 +91,8 @@ def tournament_slots() -> list[SlotSpec]:
         SlotSpec("rgv_short", "reversal_grab", "SHORT",
                  params={"side": "SHORT", **_RGV}, sizing="flat", base_size=2,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+        SlotSpec("exhaustion_short", "exhaustion", "SHORT",     # fade heavy buying into an ask wall
+                 params={}, sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
     ]
 
 
@@ -96,13 +103,24 @@ class SlotStrategy:
         self._peak: dict[str, float] = {s.tag: 0.0 for s in specs}  # per-slot peak-fav (manage state)
 
     # ── entry: this slot's gate, THIS slot's direction only ──────────────────
-    def _gate_fires(self, spec: SlotSpec, f, tape_net: float) -> bool:
+    def _gate_fires(self, spec: SlotSpec, f, tape_net: float, footprint: dict) -> bool:
         if spec.kind == "grind":
             e = gate_grind(f, tape_net=tape_net, **spec.params)
         elif spec.kind == "reversal_grab":
             e = gate_reversal_grab(f, tape_net=tape_net, **spec.params)
         elif spec.kind == "thrust":
             e = gate_thrust(f, **spec.params)
+        elif spec.kind == "capitulation":       # tape-footprint climax fade
+            e = gate_capitulation(f, cap_sell=footprint.get("cap_sell", 0.0),
+                                  cap_buy=footprint.get("cap_buy", 0.0),
+                                  cap_base=footprint.get("cap_base", 0.0),
+                                  cap_dpx=footprint.get("cap_dpx", 0.0),
+                                  cap_flip=footprint.get("cap_flip", False), **spec.params)
+        elif spec.kind == "exhaustion":         # heavy flow that failed to move price into a wall
+            sig = exhaustion_signal(footprint.get("net_signed", 0.0), footprint.get("price_move_pt", 0.0),
+                                    footprint.get("bid1_size", 0.0), footprint.get("ask1_size", 0.0),
+                                    footprint.get("bid1_price", 0.0), footprint.get("ask1_price", 0.0))
+            return sig is not None and sig[0] == spec.side   # (side, entry) tuple
         else:
             e = None
         return e is not None and e.side == spec.side   # direction-gated per slot
@@ -117,13 +135,15 @@ class SlotStrategy:
         return qty
 
     # ── one decision cycle → per-slot intents ────────────────────────────────
-    def decide(self, f, price: float, bars, slotbook, tape_net: float) -> list[dict]:
+    def decide(self, f, price: float, bars, slotbook, tape_net: float,
+               footprint: dict | None = None) -> list[dict]:
+        footprint = footprint or {}
         intents: list[dict] = []
         for spec in self._specs:
             slot = slotbook.slot(spec.tag)
             if slot.is_flat:
                 self._peak[spec.tag] = 0.0
-                if self._gate_fires(spec, f, tape_net):
+                if self._gate_fires(spec, f, tape_net, footprint):
                     qty = self._size(spec, bars, f.atr)
                     if qty > 0:
                         intents.append({"action": "OPEN", "slot": spec.tag, "gate": spec.tag,

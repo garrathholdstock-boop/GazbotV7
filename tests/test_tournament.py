@@ -33,11 +33,13 @@ def test_grind_long_short_slots_shape():
     assert [s.side for s in specs] == ["LONG", "SHORT"]
 
 
-def test_tournament_slate_is_two_long_two_short_distinct():
+def test_tournament_slate_is_three_long_three_short_distinct():
     specs = tournament_slots()
-    assert [s.tag for s in specs] == ["rgv_long", "grind_long", "thrust_short", "rgv_short"]
-    assert sum(s.side == "LONG" for s in specs) == 2
-    assert sum(s.side == "SHORT" for s in specs) == 2
+    assert [s.tag for s in specs] == ["rgv_long", "grind_long", "capitulation_long",
+                                      "thrust_short", "rgv_short", "exhaustion_short"]
+    assert sum(s.side == "LONG" for s in specs) == 3
+    assert sum(s.side == "SHORT" for s in specs) == 3
+    assert {s.kind for s in specs} == {"reversal_grab", "grind", "thrust", "capitulation", "exhaustion"}
 
 
 def test_live_run_coerces_cfg_place_live():

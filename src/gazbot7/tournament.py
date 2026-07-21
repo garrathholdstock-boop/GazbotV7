@@ -32,6 +32,7 @@ from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
 from .deciders import compute_features
+from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
 from .sdnotify import sd_notify
 from .slot_strategy import SlotStrategy, grind_long_short_slots, tournament_slots
@@ -46,9 +47,11 @@ _STALE_TAPE_MS = 10_000
 _STALE_BAR_MS = 30_000
 
 
-def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int) -> list[dict]:
+def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int,
+         footprint: dict | None = None) -> list[dict]:
     """One decision cycle → per-slot intents (or []). Pure: freshness-gated, reads the
-    rolling 1-min bars + the latest tape, defers to SlotStrategy. No side effects."""
+    rolling 1-min bars + the latest tape + the footprint summary (for the capitulation /
+    exhaustion slots), defers to SlotStrategy. No side effects."""
     tape_ts = tape.get("ts_ms", 0)
     if not tape_ts or now_ms - tape_ts > _STALE_TAPE_MS:
         return []
@@ -59,7 +62,7 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int)
         return []
     f = compute_features(bars)
     price = tape.get("last") or f.price
-    return strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0))
+    return strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0), footprint)
 
 
 def _ensure_live_cfg(cfg: RunConfig, place_live: bool) -> RunConfig:
@@ -75,10 +78,10 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     specs = specs or grind_long_short_slots()
     gates = [s.tag for s in specs]
 
-    cap = open_capture(cfg.capture_path)
+    cap = open_capture(cfg.capture_path)              # kept OPEN for footprint reads each tick
     mb = MinuteBars(cfg.bar_lookback)
     mb.warm(cap, cfg.symbol, cfg.bar_lookback)
-    cap.close()
+    needs_fp = any(s.kind in ("capitulation", "exhaustion") for s in specs)
 
     strat = SlotStrategy(specs, value_per_point=cfg.value_per_point)
     core = None
@@ -121,7 +124,8 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                     core.note_price(tape.get("last"))   # feed the stop-breach guard
                 now_ms = int(time.time() * 1000)
                 book = core._sb if core is not None else slotbook
-                intents = step(strat, mb, tape, book, now_ms)
+                fp = footprint_summary(cap, cfg.symbol, now_ms) if needs_fp else None
+                intents = step(strat, mb, tape, book, now_ms, fp)
                 if not intents:
                     continue
                 if place_live:
@@ -134,6 +138,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
         if audit_task is not None:
             audit_task.cancel()
         md.close()
+        cap.close()
         if gw is not None:
             await gw.stop()
 

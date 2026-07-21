@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from gazbot7.footprint import FootprintCfg, FootprintShadow, exhaustion_signal
+from gazbot7.footprint import FootprintShadow, exhaustion_signal
 from gazbot7.store import open_store
 
 
@@ -68,3 +68,37 @@ def test_evaluator_stays_flat_when_no_wall():
     cap = _cap_with(ticks, book)
     fp.on_cycle(cap, 1_020_000)
     assert fp._open is None
+
+
+# ── footprint_summary: the combined roll-up feeding BOTH tournament gates ──────
+def _cap_rows(ticks, book):
+    con = sqlite3.connect(":memory:")
+    con.row_factory = sqlite3.Row                     # capitulation_tape uses named access
+    con.execute("CREATE TABLE ticks(symbol TEXT, ts_ms INT, price REAL, size REAL, aggressor TEXT)")
+    con.execute("CREATE TABLE book(symbol TEXT, ts_ms INT, side TEXT, level INT, price REAL, size REAL)")
+    con.executemany("INSERT INTO ticks VALUES('MNQ',?,?,?,?)", ticks)
+    con.executemany("INSERT INTO book VALUES('MNQ',?,?,1,?,?)", book)
+    return con
+
+
+def test_footprint_summary_combines_capitulation_and_exhaustion_inputs():
+    from gazbot7.footprint import footprint_summary
+    now = 1_000_000
+    ticks = [
+        (900_000, 100.0, 10, "buy"), (920_000, 100.0, 10, "sell"),   # baseline (before the 20s window)
+        (985_000, 100.0, 40, "sell"), (990_000, 98.0, 40, "sell"), (999_000, 95.0, 30, "sell"),  # sell climax
+    ]
+    book = [(now, "bid", 94.75, 20), (now, "ask", 95.25, 30)]
+    fp = _cap_rows(ticks, book)
+    s = footprint_summary(fp, "MNQ", now)
+    # capitulation side (short-window climax)
+    assert s["cap_sell"] == 110.0 and s["cap_buy"] == 0.0 and s["cap_dpx"] == -5.0
+    # exhaustion side (20s signed net + move + L1 book)
+    assert s["net_signed"] == -110.0 and s["price_move_pt"] == -5.0
+    assert s["bid1_size"] == 20.0 and s["ask1_size"] == 30.0 and s["ask1_price"] == 95.25
+
+
+def test_footprint_summary_empty_capture_is_all_zero():
+    from gazbot7.footprint import footprint_summary
+    s = footprint_summary(_cap_rows([], []), "MNQ", 1_000_000)
+    assert s["cap_sell"] == 0.0 and s["net_signed"] == 0.0 and s["bid1_size"] == 0.0
