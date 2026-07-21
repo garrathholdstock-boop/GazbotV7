@@ -241,16 +241,24 @@
       return;
     }
     $("hero-state").textContent = "● " + (a.state || a.session_regime || "live");
+    const violCls = { asleep: "v-dead", calm: "v-dead", normal: "v-ok", elevated: "v-warn", violent: "v-hot" };
+    const erCls = { trend: "v-ok", mixed: "v-warn", chop: "v-dead" };
+    const erWord = { trend: "clean · ride", chop: "messy · chop", mixed: "mixed" };
     const tiles = [
-      { l: "THRUST", v: a.net_atr == null ? "—" : nf(a.net_atr, 2), sub: "net ATR", armed: a.momentum_pass, hot: false },
-      { l: "RVOL", v: a.rvol == null ? "—" : nf(a.rvol, 2) + "×", sub: "rel vol", armed: a.rvol_pass },
-      { l: "ATR-Δ", v: a.atr_expanding ? "▲ exp" : "· flat", sub: a.atr_pct == null ? "" : nf(a.atr_pct, 2) + "%", armed: a.atr_expanding },
-      { l: "AMP", v: a.atr_pct == null ? "—" : nf(a.atr_pct, 2) + "%", sub: "amplitude", armed: a.atr_pass },
-      { l: "SPREAD", v: "—", sub: "n/a in feed", armed: false },
+      { l: "ATR · how big", v: a.atr_pts == null ? "—" : nf(a.atr_pts, 1) + "pt",
+        sub: a.atr_usd == null ? "" : "$" + a.atr_usd + "/lot · " + (a.violence || "").toUpperCase(),
+        cls: violCls[a.violence] || "" },
+      { l: "EFFICIENCY · how clean", v: a.er == null ? "—" : nf(a.er, 2),
+        sub: a.day_type ? (a.day_type.toUpperCase() + " · " + (erWord[a.day_type] || "")) : "",
+        cls: erCls[a.day_type] || "" },
+      { l: "LAST", v: a.last == null ? "—" : nf(a.last, 1), sub: "price", cls: "" },
+      { l: "VWAP", v: a.vwap == null ? "—" : nf(a.vwap, 1),
+        sub: (a.last != null && a.vwap != null) ? (a.last >= a.vwap ? "▲ above" : "▼ below") : "", cls: "" },
     ];
     rib.innerHTML = tiles.map((t) =>
-      `<div class="rtile ${t.armed ? "armed" : ""}"><div class="l">${t.l}</div><div class="v">${esc(t.v)}</div><div class="l dim3">${esc(t.sub || "")}</div></div>`
-    ).join("");
+      `<div class="rtile ${t.cls}"><div class="l">${t.l}</div><div class="v">${esc(t.v)}</div><div class="l dim3">${esc(t.sub || "")}</div></div>`
+    ).join("")
+      + `<div class="read-hint">📖 <b>real move</b> = ATR ≥16pt (big/violent) · a <b>clean line</b> (ER ≥0.18) · price travels 8+ ATR one way. Small ATR or messy ER = sit.</div>`;
 
     const gates = a.gates || [];
     $("dtt").innerHTML = gates.length ? gates.map((g) => {

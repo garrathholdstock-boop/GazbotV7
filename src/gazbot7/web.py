@@ -71,20 +71,38 @@ def bars_json(cap_path, count):
 
 
 def _features(cap_path):
-    """last / vwap / atr_pct / net_atr for the ribbon + chart axes."""
+    """last / vwap / atr_pct / net_atr + the chart-read numbers (ATR in pts+$, its violence
+    bucket, and the ~30-min efficiency ratio + trend/chop label) — so the cockpit shows AT A
+    GLANCE how big (ATR) and how clean (ER) the tape is."""
     try:
         from .deciders import Bar, compute_features
         c = _conn(cap_path)
         rows = list(reversed(c.execute(
             "SELECT bar_ts, open, high, low, close, volume FROM bars "
-            "WHERE symbol='MNQ' AND timeframe='5s' ORDER BY bar_ts DESC LIMIT 120"
+            "WHERE symbol='MNQ' AND timeframe='5s' ORDER BY bar_ts DESC LIMIT 360"   # 30 min
         ).fetchall()))
         c.close()
         if len(rows) < 6:
             return None
-        f = compute_features([Bar(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"]) for r in rows])
+        bars = [Bar(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"]) for r in rows]
+        f = compute_features(bars[-120:] if len(bars) > 120 else bars)   # atr/vwap on the recent 10 min
+        atr_pts = round(f.atr, 1)
+        # ER over the 30-min 1-min closes (net progress / total distance walked)
+        mins: dict = {}
+        for r in rows:
+            mins[(r["bar_ts"] // 60) * 60] = r["close"]
+        cl = [mins[m] for m in sorted(mins)]
+        er = day_type = None
+        if len(cl) >= 6:
+            total = sum(abs(cl[i] - cl[i - 1]) for i in range(1, len(cl))) or 1
+            er = round(abs(cl[-1] - cl[0]) / total, 2)
+            day_type = "trend" if er >= 0.18 else "chop" if er < 0.08 else "mixed"
+        violence = ("asleep" if atr_pts < 3 else "calm" if atr_pts < 8 else "normal"
+                    if atr_pts < 16 else "elevated" if atr_pts < 28 else "violent")
         return {"last": rows[-1]["close"], "vwap": round(f.vwap, 2),
-                "atr_pct": round(f.atr_pct * 100, 3), "net_atr": round(f.net_atr_5, 2)}
+                "atr_pct": round(f.atr_pct * 100, 3), "net_atr": round(f.net_atr_5, 2),
+                "atr_pts": atr_pts, "atr_usd": round(atr_pts * _VPP), "violence": violence,
+                "er": er, "day_type": day_type}
     except Exception:
         return None
 
@@ -100,7 +118,8 @@ def us_terminal_json(cap_path, data_dir):
         "session_active": session.is_open(now),
         "state": "live" if session.is_open(now) else "closed",
         "last": f.get("last"), "vwap": f.get("vwap"), "atr_pct": f.get("atr_pct"),
-        "net_atr": f.get("net_atr"), "gates": [],
+        "net_atr": f.get("net_atr"), "atr_pts": f.get("atr_pts"), "atr_usd": f.get("atr_usd"),
+        "violence": f.get("violence"), "er": f.get("er"), "day_type": f.get("day_type"), "gates": [],
     }
     # position is now the multi-slot tournament shape — a LIST of open slots (one per gate).
     # Tolerate the legacy single-position dict too (so a revert to core+strategy still renders).
