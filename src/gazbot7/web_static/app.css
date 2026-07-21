@@ -162,6 +162,8 @@ table.tourn-tbl td,table.tourn-tbl th{padding:4px 5px}
 table.tourn-tbl td.tot{font-weight:700;font-family:var(--mono)}
 table.tourn-tbl tr.releg td{background:rgba(255,90,95,.09)}
 table.tourn-tbl tr.releg td:first-child{color:var(--red)}
+table.tourn-tbl tr.promo-cand td{background:rgba(55,208,122,.07)}
+table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
 /* execution entry funnel */
 .funnel .fn-bar{display:flex;gap:2px;height:34px;border-radius:5px;overflow:hidden}
 .funnel .fn-seg{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:44px;font-family:var(--mono);color:#04110f}

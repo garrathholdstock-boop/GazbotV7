@@ -308,6 +308,63 @@ def tournament_json(store_path, data_dir, cap_path):
     }
 
 
+# ── /api/futures/promotion — the shadow feeder → promotion candidates ─────────
+_SHADOW_FAMILY = [
+    ("grind", ("grind",)),
+    ("thrust", ("thrust", "cb_thrust", "abs_veto", "chand")),
+    ("reversal_grab", ("rg_long", "rg_short", "rg_")),
+    ("capitulation", ("capit",)),
+    ("exhaustion", ("exhaust",)),
+]
+
+
+def _shadow_family(name):
+    n = (name or "").lower()
+    for fam, keys in _SHADOW_FAMILY:
+        if any(n.startswith(k) or k in n for k in keys):
+            return fam
+    return "other"
+
+
+def promotion_json(shadow_path):
+    """The shadow board as the promotion FEEDER: each variant's honest real_pnl (all-time +
+    today), its gate family, and whether that family is already live in the tournament. Ranked
+    by net; a ``candidate`` = net-positive with a real track record (n≥20). ⚠ shadow is the
+    OPTIMISTIC feeder — it ignores the single-position constraint and enters at hindsight
+    bar-closes, so it OVERSTATES; it NOMINATES, the paper tournament JUDGES. Never auto-promote."""
+    from .slot_strategy import tournament_slots
+    live_families = {s.kind for s in tournament_slots()}
+    out = {"candidates": [], "live_families": sorted(live_families),
+           "note": "shadow overstates (feeder) — nominate, don't auto-promote; paper is the judge"}
+    try:
+        c = _conn(shadow_path)
+        t0 = datetime.fromisoformat(pnl.paris_day_start_utc(datetime.now(UTC))).timestamp()
+        rows = c.execute(
+            "SELECT st.strategy s, COUNT(*) n, SUM(sr.real_pnl) net, "
+            "SUM(CASE WHEN sr.real_pnl>0 THEN 1 ELSE 0 END) w, "
+            "SUM(CASE WHEN st.entry_ts>=? THEN sr.real_pnl ELSE 0 END) today, "
+            "SUM(CASE WHEN st.entry_ts>=? THEN 1 ELSE 0 END) today_n "
+            "FROM shadow_trades st JOIN shadow_real sr ON sr.trade_id=st.id "
+            "WHERE sr.fill_status='filled' AND sr.real_pnl IS NOT NULL GROUP BY st.strategy",
+            (t0, t0)).fetchall()
+        c.close()
+        cands = []
+        for r in rows:
+            n = r["n"] or 0
+            fam = _shadow_family(r["s"])
+            net = round(r["net"] or 0, 1)
+            cands.append({
+                "variant": r["s"], "family": fam, "family_live": fam in live_families,
+                "n": n, "net": net, "win": (round(100 * (r["w"] or 0) / n) if n else None),
+                "today": round(r["today"] or 0, 1), "today_n": r["today_n"] or 0,
+                "candidate": (net > 0 and n >= 20)})
+        cands.sort(key=lambda x: -x["net"])
+        out["candidates"] = cands
+    except Exception:
+        pass
+    return out
+
+
 # ── /api/futures/execution — the entry funnel: SAY-to-buy vs ACTUALLY-buy ─────
 def execution_json(store_path):
     """The full signal→fill funnel for the tournament, today (Paris day). Every entry
@@ -541,6 +598,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._json(us_terminal_json(cap_path, data_dir))
                 elif path.startswith("/api/futures/tournament"):
                     self._json(tournament_json(store_path, data_dir, cap_path))
+                elif path.startswith("/api/futures/promotion"):
+                    self._json(promotion_json(shadow_path))
                 elif path.startswith("/api/futures/mnq"):
                     self._json(mnq_json(store_path))
                 elif path.startswith("/api/futures/execution"):

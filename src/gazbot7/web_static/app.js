@@ -10,7 +10,7 @@
   const $ = (id) => document.getElementById(id);
   const POLL_FAST_MS = 1000;   // chart / price / ribbon / DTT — as live as the feed allows
   const POLL_SLOW_MS = 5000;   // header P&L / blotter / leaderboard / gate perf
-  let STATE = { mnq: null, us: null, tour: null, bars: null, drill: null, tf: 120 };  // tf = chart window in minutes (2h default)
+  let STATE = { mnq: null, us: null, tour: null, promo: null, bars: null, drill: null, tf: 120 };  // tf = chart window in minutes (2h default)
 
   /* ---------- formatting ---------- */
   const nf = (v, d = 2) => (v == null || isNaN(v)) ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -114,9 +114,11 @@
       if (mnq) STATE.mnq = mnq;
       const ex = await getJSON("api/futures/execution").catch(() => null);
       if (ex) STATE.exec = ex;
+      const promo = await getJSON("api/futures/promotion").catch(() => null);
+      if (promo) STATE.promo = promo;
       const m = STATE.mnq || {};
       try {
-        renderHeader(m); renderDesk(m); renderTrades(m); renderTabBadges(m); renderExec(STATE.exec);
+        renderHeader(m); renderDesk(m); renderTrades(m); renderTabBadges(m); renderExec(STATE.exec); renderPromotion();
         if (STATE.drill) reAggregateDrill();
       } catch (e) { console.error("slow", e); }
     } finally { _slowBusy = false; }
@@ -137,6 +139,7 @@
     renderDesk(m);
     renderHolding();
     renderTournament();
+    renderPromotion();
     renderTrades(m);
     renderTabBadges(m);
     renderExec(STATE.exec);
@@ -491,6 +494,22 @@
     $("tourn-meta").textContent =
       `${d.live_count}/${d.roster_count} live · today ${money(d.realized_today, 0)} · open ${money(d.open_unreal, 0)}`;
   }
+
+  function renderPromotion() {
+    const el = $("promo-rows");
+    if (!el) return;
+    const c = (STATE.promo && STATE.promo.candidates) || [];
+    el.innerHTML = c.length ? c.slice(0, 10).map((r) =>
+      `<tr class="${r.candidate ? "promo-cand" : ""}">`
+      + `<td>${r.candidate ? "★" : ""}</td>`
+      + `<td>${esc(r.variant)}</td>`
+      + `<td class="dim3">${esc(r.family)}</td>`
+      + `<td>${r.n}</td>`
+      + `<td class="${cls(r.net)}">${money(r.net, 0)}</td>`
+      + `<td class="${r.today_n ? cls(r.today) : "mut"}">${r.today_n ? money(r.today, 0) : "·"}</td>`
+      + `<td>${r.win == null ? "—" : r.win + "%"}</td></tr>`
+    ).join("") : '<tr><td class="empty" colspan="7">shadow warming up…</td></tr>';
+  }
   // Position chart for the HOLD tab — modelled on the old futures_terminal drawHoldingChart:
   // price line coloured by P&L + an IN (entry) ref line always, STOP, and a gold LOCK line ONLY
   // when profit is actually locked (est_locked_profit>0 at avg×(1∓lp%)) — else it'd pin to the floor.
@@ -647,7 +666,7 @@
         document.querySelectorAll(".panel[data-tab]").forEach((p) => p.classList.toggle("on", p.getAttribute("data-tab") === name));
         // the just-shown panel now has real dimensions — redraw its chart at the true size (charts skip
         // while hidden, so this is what draws them crisply on show; requestAnimationFrame lets layout settle)
-        requestAnimationFrame(() => { try { renderHero(); renderHolding(); renderTournament(); } catch (e) { } });
+        requestAnimationFrame(() => { try { renderHero(); renderHolding(); renderTournament(); renderPromotion(); } catch (e) { } });
       };
     });
   }

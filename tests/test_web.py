@@ -159,3 +159,31 @@ def test_execution_empty_when_no_signals(tmp_path):
     d = execution_json(store)
     assert d["funnel"] == {} or d["funnel"].get("submitted", 0) == 0
     assert d["current"] is None or d["current"]["events"] == 0
+
+
+# ── /api/futures/promotion — shadow feeder → candidates ───────────────────────
+def test_promotion_maps_family_and_flags_candidates(tmp_path):
+    from gazbot7.store import open_store, record_shadow_real, record_shadow_trade
+    from gazbot7.web import promotion_json
+    s = open_store(str(tmp_path / "shadow.db"))
+
+    def seed(strategy, pnl, n):
+        for i in range(n):
+            tid = record_shadow_trade(s, strategy=strategy, symbol="MNQ", side="LONG", qty=1,
+                                      entry_ts=1000 + i, entry_price=100.0, entry_atr=8.0, target_r=2.0,
+                                      stop_atr_mult=1.0, exit_ts=1100 + i, exit_price=101.0,
+                                      exit_reason="TARGET", ceiling_pnl=pnl)
+            record_shadow_real(s, trade_id=tid, strategy=strategy, symbol="MNQ", real_pnl=pnl,
+                               fill_status="filled", repriced_at="2026-07-21T00:00:00+00:00")
+
+    seed("grind_fast", 5.0, 25)      # +125, n25 → candidate, grind
+    seed("thrust_cont", 4.0, 30)     # +120, n30 → candidate, thrust
+    seed("rg_short_x", -2.0, 5)      # -10, n5  → not a candidate, reversal_grab
+    s.close()
+    d = promotion_json(str(tmp_path / "shadow.db"))
+    by = {c["variant"]: c for c in d["candidates"]}
+    assert by["grind_fast"]["family"] == "grind" and by["grind_fast"]["candidate"] is True
+    assert by["thrust_cont"]["family"] == "thrust" and by["thrust_cont"]["candidate"] is True
+    assert by["rg_short_x"]["family"] == "reversal_grab" and by["rg_short_x"]["candidate"] is False
+    assert d["candidates"][0]["net"] >= d["candidates"][-1]["net"]           # ranked by net
+    assert {"grind", "thrust", "reversal_grab", "capitulation", "exhaustion"} == set(d["live_families"])
