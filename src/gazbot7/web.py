@@ -308,25 +308,78 @@ def tournament_json(store_path, data_dir, cap_path):
     }
 
 
-# ── /api/futures/execution — signal→fill funnel ───────────────────────────────
+# ── /api/futures/execution — the entry funnel: SAY-to-buy vs ACTUALLY-buy ─────
 def execution_json(store_path):
+    """The full signal→fill funnel for the tournament, today (Paris day). Every entry
+    logs a ``submitted`` (we tried) then a ``filled`` (we got it) or a ``nofill`` (IOC
+    cancelled — said buy, got nothing) / ``rejected``. Reports the through-rate, the
+    per-entry SLIPPAGE (fill vs the intended ref), the failure reasons, an hourly trend,
+    and a per-gate breakdown — so you see exactly what we said vs bought, and why misses."""
+    from collections import defaultdict, deque
+
+    from .ticks import tick_for
+    out = {"current": None, "baseline_pct": None, "trend": [], "funnel": {}, "per_gate": [],
+           "slippage": {"avg_ticks": None, "avg_usd": None, "n": 0}, "window": "today"}
     try:
-        from .monitor import execution_health
         c = _conn(store_path)
-        since = (datetime.now(UTC) - timedelta(minutes=30)).isoformat()
-        v = execution_health(c, since_iso=since)
-        blocks = {r["block_reason"]: r["n"] for r in c.execute(
-            "SELECT block_reason, COUNT(*) n FROM signals WHERE outcome='blocked' AND ts>=? "
-            "GROUP BY block_reason", (since,)).fetchall() if r["block_reason"]}
+        t0 = pnl.paris_day_start_utc(datetime.now(UTC))
+        rows = c.execute(
+            "SELECT ts, gate, side, outcome, intended_price FROM signals "
+            "WHERE ts>=? AND outcome IN ('submitted','filled','nofill','rejected') ORDER BY ts",
+            (t0,)).fetchall()
         c.close()
-        events = v.submitted + v.rejects
-        through = v.fills
-        return {"current": {"pct": (round(100 * through / events) if events else 0),
-                            "events": events, "through": through, "level": v.status,
-                            "slip_ticks": None, "slip_usd": None, "blocks": blocks},
-                "baseline_pct": 51, "trend": []}
+        tick = tick_for("MNQ") or 0.25
+        g = defaultdict(lambda: {"submitted": 0, "filled": 0, "nofill": 0, "rejected": 0,
+                                 "side": None, "slip": []})
+        refq: dict = defaultdict(deque)          # per-gate FIFO of submitted refs → matched on fill
+        hourly: dict = defaultdict(lambda: {"submitted": 0, "filled": 0})
+        for r in rows:
+            gate, oc, side = (r["gate"] or "?"), r["outcome"], r["side"]
+            d = g[gate]; d["side"] = side
+            d[oc] = d.get(oc, 0) + 1
+            hr = (r["ts"] or "")[:13]
+            if oc == "submitted":
+                refq[gate].append(r["intended_price"]); hourly[hr]["submitted"] += 1
+            elif oc == "filled":
+                hourly[hr]["filled"] += 1
+                ref = refq[gate].popleft() if refq[gate] else None
+                if ref and r["intended_price"]:  # slippage = adverse move ref→fill, per side
+                    adv = (r["intended_price"] - ref) if side == "LONG" else (ref - r["intended_price"])
+                    d["slip"].append(adv)
+        sub = sum(d["submitted"] for d in g.values())
+        fil = sum(d["filled"] for d in g.values())
+        nof = sum(d["nofill"] for d in g.values())
+        rej = sum(d["rejected"] for d in g.values())
+        allslip = [s for d in g.values() for s in d["slip"]]
+        avg_pts = (sum(allslip) / len(allslip)) if allslip else None
+        blocks = {}
+        if nof:
+            blocks["nofill (IOC cancelled)"] = nof
+        if rej:
+            blocks["rejected"] = rej
+        out["funnel"] = {"submitted": sub, "filled": fil, "nofill": nof, "rejected": rej}
+        out["current"] = {
+            "pct": (round(100 * fil / sub) if sub else None), "events": sub, "through": fil,
+            "level": ("CRIT" if (sub >= 3 and fil == 0) else "OK"),
+            "slip_ticks": (round(avg_pts / tick, 1) if avg_pts is not None else None),
+            "slip_usd": (round(avg_pts * _VPP, 2) if avg_pts is not None else None),
+            "blocks": blocks}
+        out["slippage"] = {"avg_ticks": (round(avg_pts / tick, 1) if avg_pts is not None else None),
+                           "avg_usd": (round(avg_pts * _VPP, 2) if avg_pts is not None else None),
+                           "n": len(allslip)}
+        out["per_gate"] = sorted(
+            [{"gate": gate, "side": d["side"], "submitted": d["submitted"], "filled": d["filled"],
+              "nofill": d["nofill"],
+              "through": (round(100 * d["filled"] / d["submitted"]) if d["submitted"] else None),
+              "slip_ticks": (round(sum(d["slip"]) / len(d["slip"]) / tick, 1) if d["slip"] else None)}
+             for gate, d in g.items()], key=lambda x: -x["submitted"])
+        out["trend"] = [
+            {"pct": (round(100 * v["filled"] / v["submitted"]) if v["submitted"] else 0),
+             "events": v["submitted"], "level": ("CRIT" if (v["submitted"] >= 3 and v["filled"] == 0) else "OK")}
+            for _, v in sorted(hourly.items())]
     except Exception:
-        return {"current": None, "baseline_pct": 51, "trend": []}
+        pass
+    return out
 
 
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────

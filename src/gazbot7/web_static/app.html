@@ -129,20 +129,27 @@
 
   <!-- EXECUTION HEALTH — signal → fill through-rate + slippage + blocks -->
   <section class="panel" id="p-exec" data-tab="exec">
-    <div class="ph"><h2>EXECUTION</h2><span class="sub" id="exec-meta">signal → fill · 30m rolling</span></div>
+    <div class="ph"><h2>EXECUTION</h2><span class="sub" id="exec-meta">what we say → what we buy · today</span></div>
     <div class="pb">
-      <div class="sec">THROUGH-RATE <span class="dim3">· fired signals that reached the market</span></div>
+      <div class="sec">FILL-THROUGH RATE <span class="dim3">· of entries submitted, % that filled</span></div>
       <div class="big" id="exec-pct">—</div>
-      <div class="subval" id="exec-sub">monitor warming up…</div>
+      <div class="subval" id="exec-sub">…</div>
 
-      <div class="sec">SLIPPAGE · signal → fill</div>
+      <div class="sec">ENTRY FUNNEL · TODAY <span class="dim3">· said → bought</span></div>
+      <div class="funnel" id="exec-funnel"><div class="empty">—</div></div>
+
+      <div class="sec">SLIPPAGE · intended ref → fill</div>
       <div class="row"><span class="k">Avg adverse</span><span class="val" id="exec-slip">—</span></div>
 
-      <div class="sec">BLOCKED · why signals died</div>
+      <div class="sec">MISSES · why entries didn't fill</div>
       <table><thead><tr><th>REASON</th><th>N</th></tr></thead>
-        <tbody id="exec-blocks"><tr><td class="empty" colspan="2">—</td></tr></tbody></table>
+        <tbody id="exec-blocks"><tr><td class="empty" colspan="2">none</td></tr></tbody></table>
 
-      <div class="sec">TREND · last windows · 10-min</div>
+      <div class="sec">PER-GATE · submitted → filled</div>
+      <table><thead><tr><th>GATE</th><th>S</th><th>SUB</th><th>FILL</th><th>%</th><th>MISS</th><th>SLIP</th></tr></thead>
+        <tbody id="exec-pergate"><tr><td class="empty" colspan="7">—</td></tr></tbody></table>
+
+      <div class="sec">TREND · hourly fill-through</div>
       <div class="exec-trend" id="exec-trend"><div class="empty">—</div></div>
     </div>
   </section>

@@ -108,6 +108,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
         while max_seconds is None or (time.monotonic() - start) < max_seconds:
             if place_live and gw is not None:      # own core_health.json/status.json (liveness)
                 now_mono = time.monotonic()
+                core.expire_pending_opens(now_mono)   # free a gate whose entry IOC never filled (+log nofill)
                 if now_mono - last_hb >= 1.0:
                     core.write_heartbeat(conn=gw.state.value, healthy=gw.healthy)
                     sd_notify("WATCHDOG=1")        # prove the loop is live → systemd restarts a wedge

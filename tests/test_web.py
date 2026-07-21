@@ -121,3 +121,41 @@ def test_tournament_safety_naked_and_halted(tmp_path):
     assert d["desk"]["any_naked"] is True and d["desk"]["safety"] == "red"
     d2 = tournament_json(store, _dir(tmp_path, {"position": None, "halted": True}), _NO_CAP)
     assert d2["desk"]["halted"] is True and d2["desk"]["safety"] == "red"
+
+
+# ── /api/futures/execution — the entry funnel (say vs buy) ─────────────────────
+def test_execution_funnel_submitted_filled_nofill(tmp_path):
+    from datetime import UTC, datetime
+    from gazbot7.store import open_store, record_signal
+    from gazbot7.web import execution_json
+    store = str(tmp_path / "g.db")
+    s = open_store(store)
+    now = datetime.now(UTC).isoformat()
+
+    def sig(gate, side, oc, px):
+        record_signal(s, symbol="MNQ", gate=gate, side=side, outcome=oc, intended_price=px, ts=now)
+
+    sig("grind_long", "LONG", "submitted", 100.0)
+    sig("grind_long", "LONG", "filled", 100.5)            # +0.5 pt slip
+    sig("grind_long", "LONG", "submitted", 200.0)
+    sig("grind_long", "LONG", "filled", 200.25)           # +0.25 pt slip
+    sig("rgv_short", "SHORT", "submitted", 300.0)
+    sig("rgv_short", "SHORT", "nofill", None)             # missed — IOC cancelled
+    s.close()
+    d = execution_json(store)
+    assert d["funnel"] == {"submitted": 3, "filled": 2, "nofill": 1, "rejected": 0}
+    assert d["current"]["pct"] == 67 and d["current"]["blocks"] == {"nofill (IOC cancelled)": 1}
+    assert d["slippage"]["n"] == 2                            # two filled entries had a ref to compare
+    pg = {r["gate"]: r for r in d["per_gate"]}
+    assert pg["grind_long"]["through"] == 100 and pg["rgv_short"]["through"] == 0
+    assert pg["rgv_short"]["nofill"] == 1
+
+
+def test_execution_empty_when_no_signals(tmp_path):
+    from gazbot7.store import open_store
+    from gazbot7.web import execution_json
+    store = str(tmp_path / "g.db")
+    open_store(store).close()
+    d = execution_json(store)
+    assert d["funnel"] == {} or d["funnel"].get("submitted", 0) == 0
+    assert d["current"] is None or d["current"]["events"] == 0

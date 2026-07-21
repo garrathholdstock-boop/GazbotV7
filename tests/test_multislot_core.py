@@ -490,3 +490,39 @@ def test_unverified_escalates_only_when_a_slot_is_held():
     for _ in range(UNVERIFIED_PAGE_CYCLES):
         core._on_unverified(FakeGw())
     assert any("CANNOT VERIFY" in n for n in notes)       # held + can't verify → page
+
+
+def test_entry_open_records_submitted_signal():
+    core, eng, sb, sbrokers, store = _core()
+    _open(core, eng, "grind_long", "LONG", 29000.0)
+    rows = store.execute("SELECT gate, outcome, intended_price FROM signals").fetchall()
+    assert any(r["outcome"] == "submitted" and r["gate"] == "grind_long" for r in rows)
+    assert "grind_long" in core._pending                      # latched pending until fill/expiry
+
+
+def test_entry_fill_records_filled_signal():
+    core, eng, sb, sbrokers, store = _core()
+    coid = _open(core, eng, "grind_long", "LONG", 29000.0)
+    _fill(core, coid, "BUY", 1, 29001.0)
+    outs = [r["outcome"] for r in store.execute("SELECT outcome FROM signals WHERE gate='grind_long'").fetchall()]
+    assert "submitted" in outs and "filled" in outs
+    assert "grind_long" not in core._pending                  # freed on fill
+
+
+def test_unfilled_entry_expires_to_nofill_and_frees_the_gate():
+    core, eng, sb, sbrokers, store = _core()
+    _open(core, eng, "grind_long", "LONG", 29000.0)           # submitted, no fill arrives
+    assert "grind_long" in core._pending
+    core._pending_mono["grind_long"] = 0.0                    # pretend it was submitted long ago
+    core.expire_pending_opens(now_mono=100.0)                # 100s > entry_timeout_s → expire
+    assert "grind_long" not in core._pending                  # gate freed (no silent wedge)
+    outs = [r["outcome"] for r in store.execute("SELECT outcome FROM signals WHERE gate='grind_long'").fetchall()]
+    assert "nofill" in outs
+
+
+def test_pending_not_expired_before_timeout():
+    core, eng, sb, sbrokers, store = _core()
+    _open(core, eng, "grind_long", "LONG", 29000.0)
+    core._pending_mono["grind_long"] = 100.0
+    core.expire_pending_opens(now_mono=101.0)                # 1s < timeout → still pending
+    assert "grind_long" in core._pending

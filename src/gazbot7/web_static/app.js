@@ -147,37 +147,53 @@
   function renderExec(e) {
     e = e || {};
     const c = e.current || null;
+    const f = e.funnel || {};
     const pctEl = $("exec-pct"), subEl = $("exec-sub"), badge = $("tb-exec");
-    if (!c) {
-      pctEl.textContent = "—"; pctEl.className = "big"; subEl.textContent = "monitor warming up…";
+    if (!c || !f.submitted) {           // no entries yet today → honest empty state (not "broken")
+      pctEl.textContent = "—"; pctEl.className = "big mut";
+      subEl.textContent = c ? "no entries submitted yet today" : "monitor warming up…";
+      $("exec-funnel").innerHTML = '<div class="empty">no entries yet today</div>';
+      $("exec-blocks").innerHTML = '<tr><td class="empty" colspan="2">none</td></tr>';
+      $("exec-pergate").innerHTML = '<tr><td class="empty" colspan="7">—</td></tr>';
+      $("exec-slip").textContent = "—";
       if (badge) badge.textContent = "—";
       return;
     }
     const pct = c.pct;
-    let lvl, sub;
-    if (c.events < 6) {                 // too few signals to score (matches monitor MIN_EVENTS) → neutral, no false red
-      lvl = "mut";
-      pctEl.textContent = c.events ? pct + "%" : "—";
-      sub = c.events + " signals this window · quiet (need 6 to score) · baseline last wk " + (e.baseline_pct || 51) + "%";
-      if (badge) badge.textContent = "—";
-    } else {
-      lvl = c.level === "CRIT" ? "neg" : (c.level === "WARN" ? "warn" : (pct >= 70 ? "pos" : "warn"));
-      pctEl.textContent = pct + "%";
-      sub = c.through + "/" + c.events + " signals through · baseline last wk " + (e.baseline_pct || 51) + "%";
-      if (badge) badge.textContent = pct + "%";
-    }
-    pctEl.className = "big " + lvl;
-    subEl.textContent = sub;
+    pctEl.textContent = pct + "%";
+    pctEl.className = "big " + (c.level === "CRIT" ? "neg" : (pct >= 90 ? "pos" : pct >= 70 ? "warn" : "neg"));
+    subEl.textContent = f.filled + "/" + f.submitted + " entries filled" + (f.nofill ? " · " + f.nofill + " no-fill" : "");
+    if (badge) badge.textContent = pct + "%";
+
+    // the funnel: submitted → filled, with the misses called out
+    const miss = (f.nofill || 0) + (f.rejected || 0);
+    const seg = (label, n, klass) => n > 0
+      ? `<div class="fn-seg ${klass}" style="flex:${n}"><b>${n}</b><span>${label}</span></div>` : "";
+    $("exec-funnel").innerHTML =
+      `<div class="fn-bar">${seg("filled", f.filled, "fn-ok")}${seg("no-fill", f.nofill, "fn-miss")}${seg("rejected", f.rejected, "fn-rej")}</div>`
+      + `<div class="fn-cap">${f.submitted} submitted → <span class="grn">${f.filled} bought</span>${miss ? ` · <span class="red">${miss} missed</span>` : ""}</div>`;
+
     const slip = $("exec-slip");
     if (c.slip_ticks != null) {
-      slip.textContent = (c.slip_ticks > 0 ? "+" : "") + nf(c.slip_ticks, 1) + " tk ($" + (c.slip_usd > 0 ? "+" : "") + nf(c.slip_usd, 2) + ")";
+      slip.textContent = (c.slip_ticks > 0 ? "+" : "") + nf(c.slip_ticks, 1) + " tk (" + money(c.slip_usd, 2) + ")";
       slip.className = "val" + (c.slip_ticks > 4 ? " neg" : "");
     } else { slip.textContent = "—"; slip.className = "val"; }
+
     const bt = $("exec-blocks"), bl = c.blocks || {};
     const keys = Object.keys(bl).filter((k) => bl[k] > 0);
     bt.innerHTML = keys.length
-      ? keys.map((k) => "<tr><td>" + k.replace(/_/g, " ") + "</td><td>" + bl[k] + "</td></tr>").join("")
-      : '<tr><td class="empty" colspan="2">none</td></tr>';
+      ? keys.map((k) => "<tr><td>" + esc(k) + "</td><td class='neg'>" + bl[k] + "</td></tr>").join("")
+      : '<tr><td class="empty" colspan="2">none — every entry filled</td></tr>';
+
+    const pg = e.per_gate || [];
+    $("exec-pergate").innerHTML = pg.length ? pg.map((r) =>
+      `<tr><td>${esc(gateAbbr(r.gate))}</td><td class="${r.side === "SHORT" ? "red" : "grn"}">${(r.side || "")[0] || ""}</td>`
+      + `<td>${r.submitted}</td><td>${r.filled}</td>`
+      + `<td class="${r.through == null ? "" : (r.through >= 90 ? "grn" : "amb")}">${r.through == null ? "—" : r.through + "%"}</td>`
+      + `<td class="${r.nofill ? "red" : ""}">${r.nofill || 0}</td>`
+      + `<td>${r.slip_ticks == null ? "—" : (r.slip_ticks > 0 ? "+" : "") + nf(r.slip_ticks, 1) + "tk"}</td></tr>`
+    ).join("") : '<tr><td class="empty" colspan="7">—</td></tr>';
+
     const tr = $("exec-trend"), t = e.trend || [];
     tr.innerHTML = t.length
       ? t.map((x) => {

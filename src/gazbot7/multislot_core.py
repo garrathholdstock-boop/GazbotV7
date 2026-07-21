@@ -45,6 +45,7 @@ from .store import (
     get_slot_orders,
     get_slot_positions,
     record_fill,
+    record_signal,
     record_slot_order,
     record_trade,
     upsert_slot_position,
@@ -75,6 +76,8 @@ class MultiSlotCore:
         self._now = now_fn or (lambda: datetime.now(UTC))   # injectable wall clock (time-exits/tests)
         self._pending: dict[str, str] = {}      # gate -> in-flight OPEN coid
         self._pending_mono: dict[str, float] = {}
+        self._pending_side: dict[str, str] = {}  # gate -> side of the in-flight entry (for the nofill signal)
+        self._pending_ref: dict[str, float] = {}  # gate -> intended entry ref (for slippage)
         self._closing: dict[str, str] = {}      # gate -> in-flight CLOSE coid
         self._close_reason: dict[str, str] = {}
         self._open_atr: dict[str, float] = {}
@@ -190,6 +193,9 @@ class MultiSlotCore:
         self._register(coid, gate)           # route this slot's fills back to it (durably)
         self._pending[gate] = coid
         self._pending_mono[gate] = time.monotonic()
+        self._pending_side[gate] = side
+        self._pending_ref[gate] = float(ref) if ref else 0.0
+        self._signal(gate, side, "submitted", ref)   # "what we said to buy" — once per entry order
 
     def _close(self, intent: dict) -> None:
         gate = intent["slot"]
@@ -232,12 +238,48 @@ class MultiSlotCore:
     def _on_slot_opened(self, gate: str) -> None:
         self._pending.pop(gate, None)
         self._pending_mono.pop(gate, None)
+        self._pending_side.pop(gate, None)
+        self._pending_ref.pop(gate, None)
         slot = self._sb.slot(gate)
         slot.entry_atr = self._open_atr.get(gate, 0.0)   # for the manage layer's exit stack
+        self._signal(gate, slot.side, "filled", slot.entry_price)   # "what we actually bought" (vs the ref)
         sm = self._safeties[gate]
         st = sm.arm_stop(self._cfg.symbol, side=slot.side, qty=slot.qty,
                          entry_price=slot.entry_price, atr=slot.entry_atr)   # this slot's native 1-ATR stop
         self._register(st.coid, gate)        # a stop FILL must attribute to this slot too
+
+    # ── the entry funnel: what we SAY to buy vs what we ACTUALLY buy ───────────
+    def _signal(self, gate: str, side: str, outcome: str, price=None) -> None:
+        """Log one entry-funnel event to the ``signals`` table (submitted / filled / nofill
+        / rejected). This is the desk's signal→fill visibility — the EXEC tab reads it. Only
+        the entry path logs (closes/stops aren't 'signals'); each is once-per-entry so the
+        table never floods (the ``_pending`` guard dedups the per-tick re-fires)."""
+        if self._store is None:
+            return
+        try:
+            record_signal(self._store, symbol=self._cfg.symbol, gate=gate, side=side,
+                          outcome=outcome, intended_price=(float(price) if price else None))
+        except Exception:
+            pass  # visibility logging must never break the trading loop
+
+    def expire_pending_opens(self, now_mono: float) -> None:
+        """An entry order (marketable-limit IOC) that submitted but never filled leaves
+        ``_pending`` latched forever → that gate can never re-open (silent wedge). After
+        ``entry_timeout_s`` with the slot still flat, clear the latch and log a **nofill**
+        — the honest 'we said buy but got nothing' (IOC cancelled / thin book / fast move).
+        The IOC is already dead at the venue; this just frees the gate + records why."""
+        timeout = getattr(self._cfg, "entry_timeout_s", 3.0) or 3.0
+        for gate in list(self._pending):
+            if not self._sb.slot(gate).is_flat:
+                continue                     # a fill is arriving/arrived — _on_slot_opened handles it
+            if now_mono - self._pending_mono.get(gate, now_mono) < timeout:
+                continue
+            side = self._pending_side.pop(gate, "LONG")
+            self._pending.pop(gate, None)
+            self._pending_mono.pop(gate, None)
+            self._pending_ref.pop(gate, None)
+            self._signal(gate, side, "nofill", None)
+            self._notify(f"entry NOFILL slot {gate} {side} — IOC did not fill, gate freed")
 
     def _on_slot_closed(self, gate: str, trade: dict) -> None:
         self._safeties[gate].on_flat(self._cfg.symbol)   # cancel + forget THIS slot's stop

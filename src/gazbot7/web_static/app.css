@@ -162,6 +162,13 @@ table.tourn-tbl td,table.tourn-tbl th{padding:4px 5px}
 table.tourn-tbl td.tot{font-weight:700;font-family:var(--mono)}
 table.tourn-tbl tr.releg td{background:rgba(255,90,95,.09)}
 table.tourn-tbl tr.releg td:first-child{color:var(--red)}
+/* execution entry funnel */
+.funnel .fn-bar{display:flex;gap:2px;height:34px;border-radius:5px;overflow:hidden}
+.funnel .fn-seg{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:44px;font-family:var(--mono);color:#04110f}
+.funnel .fn-seg b{font-size:14px;line-height:1}
+.funnel .fn-seg span{font-size:9px;letter-spacing:.5px;opacity:.85}
+.funnel .fn-ok{background:var(--grn)} .funnel .fn-miss{background:var(--red)} .funnel .fn-rej{background:var(--amb)}
+.funnel .fn-cap{font-family:var(--mono);font-size:11px;color:var(--txt2);margin-top:5px}
 /* header safety pill */
 .chip.safety-green{color:var(--grn);border-color:rgba(55,208,122,.5)}
 .chip.safety-amber{color:var(--amb);border-color:rgba(240,180,60,.6);background:rgba(240,180,60,.1)}
