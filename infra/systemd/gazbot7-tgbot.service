@@ -1,0 +1,18 @@
+[Unit]
+Description=GAZBOT V7 — Telegram command bot (operator phone control: gate on/off + status)
+# Standalone: long-polls Telegram, obeys ONLY the authorized chat, and its only mutating
+# action is writing data/gate_switches.env (the intraday per-gate off-switch the tournament
+# reads live). Independent of the desk — if it dies, trading is unaffected.
+After=network.target
+
+[Service]
+Type=simple
+Slice=gazbot7.slice
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.telegram_bot
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
