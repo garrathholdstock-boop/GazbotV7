@@ -28,6 +28,25 @@ def execution_to_fill(execution, *, order_ref: str | None, symbol: str, time_iso
     )
 
 
+# Protective stops are placed as STOP-LIMITS with an EXPLICIT limit, this many points past the
+# trigger on the fill side. Why: a plain STP (limit unset) let IBKR's paper account attach its OWN
+# limit ~1 ATR toward entry (≈ the entry price) — the WRONG side — so it never filled on trigger
+# (2026-07-22 id114 / STOP_UNFILLED class, cost a −$216 max-hold ride). Setting our own fillable
+# limit forces the fill (bounded slippage) and is strictly better live too (caps a naked market
+# fill). Wide enough to fill through normal gaps; the stop-breach guard backstops a bigger gap.
+# MNQ-tuned; make per-contract if a non-MNQ contract is re-added.
+STOP_LIMIT_BAND_PTS = 20.0
+
+
+def stop_limit_price(trigger: float, side: str, tick: float, band: float = STOP_LIMIT_BAND_PTS) -> float:
+    """The fillable limit for a protective stop-LIMIT: `band` points PAST the trigger on the side
+    that fills. A SELL stop (long protection) fills at/below the trigger → limit below; a BUY stop
+    (short protection) → limit above. Rounded in the loosening direction so it stays marketable."""
+    from .ticks import round_stop
+    raw = trigger - band if side == "SELL" else trigger + band
+    return round_stop(raw, tick, closing_side=side)
+
+
 class IBBrokerAdapter:
     """Implements both BrokerPort (entries/exits) and StopBrokerPort (native STP)."""
 
@@ -65,15 +84,20 @@ class IBBrokerAdapter:
 
     # ── StopBrokerPort ───────────────────────────────────────────────────────
     def place_stop(self, *, symbol: str, side: str, qty: float, stop_price: float) -> str:
-        from ib_async import StopOrder
+        from ib_async import StopLimitOrder
 
         from .ticks import round_stop, tick_for
 
         self._stop_seq += 1
         coid = f"stp-{self._stop_seq:06d}"
-        # final tick guard (Error 110): idempotent if safety already rounded.
-        px = round_stop(stop_price, tick_for(symbol), closing_side=side)
-        ibo = StopOrder(side, qty, px)
+        tick = tick_for(symbol)
+        # trigger: final tick guard (Error 110), idempotent if safety already rounded (loosen only).
+        trig = round_stop(stop_price, tick, closing_side=side)
+        # STOP-LIMIT with an EXPLICIT fillable limit (see STOP_LIMIT_BAND_PTS) — a plain STP let the
+        # paper account attach a toothless wrong-sided limit. The recorded stop's trigger is `trig`;
+        # the stop-breach guard still backstops on that trigger if a gap outruns the limit band.
+        lmt = stop_limit_price(trig, side, tick)
+        ibo = StopLimitOrder(side, qty, lmt, trig)
         ibo.orderRef = coid
         ibo.tif = "GTC"  # server-side, rests until the position closes
         self._trades[coid] = self._ib.placeOrder(self._contract, ibo)

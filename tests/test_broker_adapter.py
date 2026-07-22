@@ -6,8 +6,9 @@ from types import SimpleNamespace
 
 import eventkit
 
-from gazbot7.broker_adapter import IBBrokerAdapter, execution_to_fill
+from gazbot7.broker_adapter import IBBrokerAdapter, execution_to_fill, stop_limit_price
 from gazbot7.config import RunConfig
+from gazbot7.ticks import tick_for
 
 
 class _FakeIB:
@@ -36,6 +37,25 @@ def test_bot_maps_to_buy():
 def test_sld_maps_to_sell():
     f = execution_to_fill(_exec(side="SLD"), order_ref="o1", symbol="MNQ", time_iso="t")
     assert f.side == "SELL"
+
+
+def test_stop_limit_price_is_on_the_fillable_side():
+    # 2026-07-22: a plain STP let IBKR attach a toothless limit on the WRONG side. Our explicit limit
+    # must sit PAST the trigger on the side that fills: SELL below, BUY above.
+    tk = tick_for("MNQ")
+    assert stop_limit_price(29120.25, "SELL", tk) < 29120.25   # long protection → sell below trigger
+    assert stop_limit_price(29131.5, "BUY", tk) > 29131.5      # short protection → buy above trigger
+
+
+def test_place_stop_sends_a_fillable_stop_limit():
+    ib = _FakeIB()
+    a = IBBrokerAdapter(ib, contract=SimpleNamespace(), symbol="MNQ", on_fill=lambda f: None)
+    coid = a.place_stop(symbol="MNQ", side="SELL", qty=1, stop_price=29120.25)
+    order = a._trades[coid].order
+    assert order.orderType == "STP LMT"                       # explicit limit, not a bare STP
+    assert order.auxPrice == 29120.25                         # trigger preserved (guard reads this)
+    assert order.lmtPrice < order.auxPrice                    # limit BELOW trigger → fills (not toothless)
+    assert order.tif == "GTC" and order.orderRef == coid
 
 
 def test_missing_order_ref_is_unknown():
