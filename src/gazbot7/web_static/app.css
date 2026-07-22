@@ -62,7 +62,7 @@ header{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px
 .ph h2{font-size:12.5px;letter-spacing:1.3px;font-weight:600;color:var(--txt)}
 .ph .sub{font-size:10.5px;letter-spacing:.8px;color:var(--mut);margin-left:auto}
 .ph .live{font-size:10.5px;letter-spacing:1px;color:var(--cyan);margin-left:auto}
-.pb{padding:11px 12px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
+.pb{padding:12px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 .sec{font-size:10.5px;letter-spacing:1.4px;color:var(--mut);margin:15px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
 .sec:first-child{margin-top:0}
 .row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:12.5px;gap:8px}
@@ -195,16 +195,21 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
 .curve-host svg{width:100%;height:100%;display:block}
 
 /* ---------- desktop grid ---------- */
-/* 2026-07-13: col4 widened (330→410, +~10%) and cols 2&3 pinched (each gives ~5%) so the
-   trades rail fits its content and never overflows the page. */
+/* 2026-07-22: re-synced to the ACTUAL 6 panels. The old grid placed a non-existent #p-gates
+   and left #p-tourn + #p-exec UNPLACED → they auto-flowed into a leftover 240px cell + an
+   implicit overflow row that `overflow:hidden` clipped (truncated scoreboard, clipped funnel,
+   dead space). Now every panel has an explicit cell. Cols 22/30/26/22; row1 (chart) ≈47%,
+   row2 (tournament/holding/exec activity) fills the remainder to 100vh. Left rail stacks DESK
+   STATS over EXECUTION; TODAY·TRADES spans full height at right. */
 .tabbar{display:none}
 .grid{display:grid;gap:8px;padding:8px;
-  grid-template-columns:290px minmax(0,0.95fr) minmax(0,0.95fr) 410px;
-  grid-template-rows:minmax(360px,1.2fr) minmax(240px,1fr);
+  grid-template-columns:minmax(0,22fr) minmax(0,30fr) minmax(0,26fr) minmax(0,22fr);
+  grid-template-rows:minmax(280px,0.9fr) minmax(0,1fr);
   height:calc(100vh - 49px);overflow:hidden}
-#p-desk{grid-column:1;grid-row:1 / span 2}
+#p-desk{grid-column:1;grid-row:1}
+#p-exec{grid-column:1;grid-row:2}
 #p-chart{grid-column:2 / span 2;grid-row:1}
-#p-gates{grid-column:2;grid-row:2}
+#p-tourn{grid-column:2;grid-row:2}
 #p-hold{grid-column:3;grid-row:2}
 #p-trades{grid-column:4;grid-row:1 / span 2}
 @media (min-width:900px){ .hero-body{flex:1} }
