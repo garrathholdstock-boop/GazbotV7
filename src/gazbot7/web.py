@@ -582,6 +582,10 @@ def reports_json(static_dir):
 
 def serve(port, store_path, cap_path, data_dir, shadow_path):
     class H(http.server.BaseHTTPRequestHandler):
+        # 2026-07-22: drop a slow/dead client after this long so its thread is freed (a client that
+        # gave up mid-response left a BrokenPipe + tied up the single thread → the whole page froze).
+        timeout = 30
+
         def _send(self, body, ct, code=200):
             self.send_response(code)
             self.send_header("Content-Type", ct)
@@ -631,7 +635,13 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
         def log_message(self, *a):
             pass
 
-    http.server.HTTPServer(("0.0.0.0", port), H).serve_forever()
+    # THREADING: one request per thread so a slow query (e.g. a scan over a large capture.db) can't
+    # block every other request and freeze the dashboard (2026-07-22). Each handler opens its own DB
+    # connections per call (functions take paths, not shared conns) → thread-safe. daemon threads so
+    # a stuck request can't block shutdown.
+    srv = http.server.ThreadingHTTPServer(("0.0.0.0", port), H)
+    srv.daemon_threads = True
+    srv.serve_forever()
 
 
 def main():
