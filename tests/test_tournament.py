@@ -88,17 +88,28 @@ def _feed(mb, closes, start_min=1_000_000):
 
 def test_step_er_gate_momentum_blocks_chop_allows_trend():
     _, mb, sb = _setup()
-    trend = [100 + i for i in range(30)]                 # ER ≈ 1.0 → above grind_long floor 0.20
+    trend = [100 + 25 * i for i in range(30)]            # ER ≈ 1.0 AND ATR ≈ 25pt → clears both floors
     now = _feed(mb, trend)
     strat = _FakeStrat([{"action": "OPEN", "slot": "grind_long", "side": "LONG"}])
     tape = {"ts_ms": now, "net_flow": 0.0, "last": float(trend[-1])}
-    assert [i["slot"] for i in step(strat, mb, tape, sb, now)] == ["grind_long"]  # trend → kept
+    assert [i["slot"] for i in step(strat, mb, tape, sb, now)] == ["grind_long"]  # big trend → kept
 
     mb2 = MinuteBars(60)
-    chop = [100 + (i % 2) for i in range(30)]            # ER ≈ 0 → below the floor
+    chop = [100 + (i % 2) for i in range(30)]            # ER ≈ 0 → below the ER floor
     now2 = _feed(mb2, chop)
     tape2 = {"ts_ms": now2, "net_flow": 0.0, "last": float(chop[-1])}
     assert step(strat, mb2, tape2, sb, now2) == []       # chop → grind_long OPEN suppressed
+
+
+def test_step_atr_gate_blocks_a_weak_trend():
+    # a clean trend (high ER) but a TINY one (ATR ~1pt) → grind_long clears the ER floor but the ATR
+    # floor (20pt) suppresses it: a trend too small to run.
+    _, mb, sb = _setup()
+    weak = [100 + i for i in range(30)]                  # ER ≈ 1.0, but ~1pt bars → ATR ≈ 1pt
+    now = _feed(mb, weak)
+    strat = _FakeStrat([{"action": "OPEN", "slot": "grind_long", "side": "LONG"}])
+    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(weak[-1])}
+    assert step(strat, mb, tape, sb, now) == []          # weak trend → ATR gate suppresses
 
 
 def test_step_er_gate_reversion_blocks_trend_keeps_close():

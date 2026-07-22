@@ -32,7 +32,7 @@ from dataclasses import replace
 from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
-from .deciders import compute_features, efficiency_ratio, er_blocks
+from .deciders import atr_blocks, compute_features, efficiency_ratio, er_blocks
 from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
 from .sdnotify import sd_notify
@@ -106,9 +106,14 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int,
     er = efficiency_ratio(bars)
     kept = []
     for i in intents:
-        if i.get("action") == "OPEN" and er_blocks(i.get("slot"), er):
-            log.info("ER gate: %s OPEN suppressed (er=%.2f, unfavourable condition)", i.get("slot"), er)
-            continue
+        slot = i.get("slot")
+        if i.get("action") == "OPEN":
+            if er_blocks(slot, er):        # wrong regime (chop for momentum / trend for reversion)
+                log.info("ER gate: %s OPEN suppressed (er=%.2f, unfavourable condition)", slot, er)
+                continue
+            if atr_blocks(slot, f.atr):    # trend too small to run (magnitude floor)
+                log.info("ATR gate: %s OPEN suppressed (atr=%.1fpt below floor)", slot, f.atr)
+                continue
         kept.append(i)
     return kept
 

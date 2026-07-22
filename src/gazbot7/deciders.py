@@ -89,8 +89,9 @@ def compute_features(bars: list[Bar]) -> Features:
 # money ACTUALLY sits by ER band (grind is momentum→floor; rgv needs a specific window→band):
 #   grind_long   FLOOR 0.20    — loses in EVERY band; floor only cuts the low-ER bulk-bleed. ⚠ still a
 #                                net loser tick-honest → RELEGATION candidate; the floor is damage control.
-#   thrust_short (UNGATED)     — winners/losers interleaved across ER (not separable); natural +$532
-#                                beats every cut, so it is intentionally NOT gated.
+#   thrust_short FLOOR 0.20    — WITH the ATR>=16 floor (below), ER>=0.20 sharpens it further: the
+#                                ER>=0.20+ATR>=16 population is +$726/38tr (vs +$381 ER-only). Operator
+#                                chose to ER-gate it too (2026-07-22) to realise that sweep number.
 #   rgv_long     BAND 0.10–0.40 — money is the mid-band (peak 0.3–0.4 +$488); bleeds only at the
 #                                extremes. Keeps +$864 (the old 0.25 ceiling strangled its best band).
 #   rgv_short    BAND 0.30–0.40 — its ONLY edge is that one sliver (+$507); everything else bleeds ~−$2k.
@@ -100,10 +101,20 @@ def compute_features(bars: list[Bar]) -> Features:
 #   exhaustion_short  CEIL 0.05 — tick+L2 duck edge is 0.0–0.05 (+$295). ⚠ fixed-exit-derived.
 # ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
-ER_FLOOR = {"grind_long": 0.20}
+ER_FLOOR = {"grind_long": 0.20, "thrust_short": 0.20}
 ER_CEIL = {"capitulation_long": 0.10, "exhaustion_short": 0.05}
 ER_BAND = {"rgv_long": (0.10, 0.40), "rgv_short": (0.30, 0.40)}   # (lo, hi): OPEN only when lo <= er <= hi
 ER_WINDOW = 30  # bars (1-min bars → the 30-min ER used across the desk)
+
+# ATR floor (entry ATR in POINTS) — a magnitude gate on TOP of the ER gate: don't ride a trend too
+# small to run. Tick-honest ER>=0.20 + ATR sweep 2026-07-22 (~9 days, scripts/momentum_atr_sweep.py):
+#   thrust_short 16 — the bleed is all at ATR<16; cutting it NEARLY DOUBLES the gate
+#                     (+$381 nat → +$726 / 38tr, +$345). A real sharpening of an already-+EV gate.
+#   grind_long   20 — grind is a tick-honest LOSER (nat −$1,228 at ER>=0.20); the floor only reduces
+#                     the bleed, first crossing to breakeven at ≥20 (+$16 / 42tr). HARM-REDUCTION on a
+#                     RELEGATION candidate — it doesn't make grind +EV, it bleeds less.
+# ⚠ 9-day one-regime lead; bump/drop per Saturday.
+ATR_FLOOR = {"grind_long": 20.0, "thrust_short": 16.0}
 
 
 def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:
@@ -128,6 +139,12 @@ def er_blocks(gate: str, er: float) -> bool:
         if er < lo or er > hi:
             return True
     return False
+
+
+def atr_blocks(gate: str, atr: float) -> bool:
+    """True when the gate's entry ATR is below its floor (a trend too small to run) → suppress this
+    OPEN. Magnitude gate on top of er_blocks; a gate with no ATR_FLOOR is never blocked here."""
+    return gate in ATR_FLOOR and atr < ATR_FLOOR[gate]
 
 
 # ── entry gates ───────────────────────────────────────────────────────────

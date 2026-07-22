@@ -81,10 +81,19 @@ def test_er_blocks_band_gate():
     assert er_blocks("rgv_long", hi + 0.05) is True         # above the band (too trendy)
 
 
-def test_er_blocks_ungated_gate_never_blocks():
-    # thrust_short is intentionally ungated (interleaved) → never blocked at any ER
-    assert er_blocks("thrust_short", 0.0) is False
-    assert er_blocks("thrust_short", 0.9) is False
+def test_er_blocks_thrust_short_momentum_floor():
+    # thrust_short is ER-floored too (2026-07-22: operator added ER>=0.20 to match the ATR-floor sweep)
+    assert er_blocks("thrust_short", ER_FLOOR["thrust_short"] - 0.05) is True   # chop → blocked
+    assert er_blocks("thrust_short", ER_FLOOR["thrust_short"] + 0.05) is False  # trend → allowed
+
+
+def test_atr_blocks_below_floor():
+    from gazbot7.deciders import ATR_FLOOR, atr_blocks
+    # a magnitude floor: grind_long blocked when the entry ATR (a trend too small to run) is below it
+    assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] - 1) is True
+    assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] + 1) is False
+    assert atr_blocks("thrust_short", ATR_FLOOR["thrust_short"] - 1) is True
+    assert atr_blocks("capitulation_long", 0.0) is False   # no ATR floor → never blocked here
 
 
 def test_er_blocks_unknown_gate_never_blocks():
