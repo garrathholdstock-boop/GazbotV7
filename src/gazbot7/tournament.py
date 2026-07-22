@@ -32,7 +32,7 @@ from dataclasses import replace
 from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
-from .deciders import compute_features
+from .deciders import compute_features, efficiency_ratio, er_blocks
 from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
 from .sdnotify import sd_notify
@@ -89,7 +89,9 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int,
          footprint: dict | None = None) -> list[dict]:
     """One decision cycle → per-slot intents (or []). Pure: freshness-gated, reads the
     rolling 1-min bars + the latest tape + the footprint summary (for the capitulation /
-    exhaustion slots), defers to SlotStrategy. No side effects."""
+    exhaustion slots), defers to SlotStrategy. Then applies the per-gate ER (favourable-
+    condition) gate: a momentum gate can't OPEN in chop, a reversion gate can't OPEN in a
+    trend — the gate rides its normal managed exit if already open. No side effects."""
     tape_ts = tape.get("ts_ms", 0)
     if not tape_ts or now_ms - tape_ts > _STALE_TAPE_MS:
         return []
@@ -100,7 +102,15 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int,
         return []
     f = compute_features(bars)
     price = tape.get("last") or f.price
-    return strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0), footprint)
+    intents = strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0), footprint)
+    er = efficiency_ratio(bars)
+    kept = []
+    for i in intents:
+        if i.get("action") == "OPEN" and er_blocks(i.get("slot"), er):
+            log.info("ER gate: %s OPEN suppressed (er=%.2f, unfavourable condition)", i.get("slot"), er)
+            continue
+        kept.append(i)
+    return kept
 
 
 def _ensure_live_cfg(cfg: RunConfig, place_live: bool) -> RunConfig:

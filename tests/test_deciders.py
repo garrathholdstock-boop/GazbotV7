@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from gazbot7.deciders import (
+    ER_BAND,
+    ER_CEIL,
+    ER_FLOOR,
     REVERSAL_SHORT_VARIANTS,
     Bar,
     Features,
     Position,
     compute_features,
+    efficiency_ratio,
+    er_blocks,
     exit_absorption,
     exit_adverse_cut,
     chandelier_start_k,
@@ -38,6 +43,52 @@ def test_compute_features_uptrend():
     assert f.net_atr_5 > 0  # price rose over the last 5 bars
     assert f.vol_surge is True
     assert f.ext_atr > 0  # price above the window VWAP in an uptrend
+
+
+# ── ER (favourable-condition) gate ──
+def _closes(vals):
+    return [Bar(i, v, v, v, v, 10) for i, v in enumerate(vals)]
+
+
+def test_efficiency_ratio_trend_vs_chop():
+    trend = efficiency_ratio(_closes([100 + i for i in range(30)]))       # straight line up
+    chop = efficiency_ratio(_closes([100 + (i % 2) for i in range(30)]))  # back-and-forth, no progress
+    assert trend > 0.9
+    assert chop < 0.1
+
+
+def test_efficiency_ratio_no_data_returns_one():
+    assert efficiency_ratio(_closes([100, 101, 102])) == 1.0  # <6 closes → 1.0 (don't gate)
+
+
+def test_er_blocks_momentum_floor():
+    # grind_long is momentum → blocked below its floor (chop), allowed above (trend)
+    assert er_blocks("grind_long", ER_FLOOR["grind_long"] - 0.05) is True
+    assert er_blocks("grind_long", ER_FLOOR["grind_long"] + 0.05) is False
+
+
+def test_er_blocks_reversion_ceiling():
+    # exhaustion_short is reversion → blocked above its ceiling (trend), allowed below (chop)
+    assert er_blocks("exhaustion_short", ER_CEIL["exhaustion_short"] + 0.05) is True
+    assert er_blocks("exhaustion_short", ER_CEIL["exhaustion_short"] - 0.02) is False
+
+
+def test_er_blocks_band_gate():
+    # rgv_long is a BAND → allowed only inside [lo, hi], blocked below lo and above hi
+    lo, hi = ER_BAND["rgv_long"]
+    assert er_blocks("rgv_long", (lo + hi) / 2) is False   # inside the band → allowed
+    assert er_blocks("rgv_long", lo - 0.05) is True         # below the band (too choppy)
+    assert er_blocks("rgv_long", hi + 0.05) is True         # above the band (too trendy)
+
+
+def test_er_blocks_ungated_gate_never_blocks():
+    # thrust_short is intentionally ungated (interleaved) → never blocked at any ER
+    assert er_blocks("thrust_short", 0.0) is False
+    assert er_blocks("thrust_short", 0.9) is False
+
+
+def test_er_blocks_unknown_gate_never_blocks():
+    assert er_blocks("some_ungated_gate", 0.0) is False
 
 
 # ── thrust ──

@@ -68,6 +68,52 @@ def test_read_disabled_mtime_cached_and_absent_is_none(tmp_path):
     assert read_disabled(p, cache) == set()                  # flipped back on → live
 
 
+class _FakeStrat:
+    """Returns a fixed intent list so we test step()'s ER filter deterministically."""
+
+    def __init__(self, intents):
+        self._i = intents
+
+    def decide(self, f, price, bars, slotbook, net_flow, footprint):
+        return [dict(i) for i in self._i]
+
+
+def _feed(mb, closes, start_min=1_000_000):
+    for k, c in enumerate(closes):
+        mb.fold((start_min + k) * 60, c, c, c, c, 10)
+    last = (start_min + len(closes)) * 60
+    mb.fold(last, closes[-1], closes[-1], closes[-1], closes[-1], 10)  # roll → finalise last bar
+    return last * 1000
+
+
+def test_step_er_gate_momentum_blocks_chop_allows_trend():
+    _, mb, sb = _setup()
+    trend = [100 + i for i in range(30)]                 # ER ≈ 1.0 → above grind_long floor 0.20
+    now = _feed(mb, trend)
+    strat = _FakeStrat([{"action": "OPEN", "slot": "grind_long", "side": "LONG"}])
+    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(trend[-1])}
+    assert [i["slot"] for i in step(strat, mb, tape, sb, now)] == ["grind_long"]  # trend → kept
+
+    mb2 = MinuteBars(60)
+    chop = [100 + (i % 2) for i in range(30)]            # ER ≈ 0 → below the floor
+    now2 = _feed(mb2, chop)
+    tape2 = {"ts_ms": now2, "net_flow": 0.0, "last": float(chop[-1])}
+    assert step(strat, mb2, tape2, sb, now2) == []       # chop → grind_long OPEN suppressed
+
+
+def test_step_er_gate_reversion_blocks_trend_keeps_close():
+    _, mb, sb = _setup()
+    trend = [100 + i for i in range(30)]                 # high ER → above exhaustion_short ceiling 0.05
+    now = _feed(mb, trend)
+    strat = _FakeStrat([
+        {"action": "OPEN", "slot": "exhaustion_short", "side": "SHORT"},   # blocked in trend
+        {"action": "CLOSE", "slot": "exhaustion_short", "reason": "STOP"},  # managed exit always kept
+    ])
+    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(trend[-1])}
+    out = [(i["action"], i["slot"]) for i in step(strat, mb, tape, sb, now)]
+    assert out == [("CLOSE", "exhaustion_short")]
+
+
 def test_disabled_filter_drops_opens_keeps_closes():
     # the loop's filter: a disabled gate takes NO new entries, but its open position still exits
     disabled = {"thrust_short"}

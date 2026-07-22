@@ -80,6 +80,56 @@ def compute_features(bars: list[Bar]) -> Features:
     return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars), net2, slope_fast)
 
 
+# ── favourable-condition (efficiency) gate — TICK-HONEST re-derivation 2026-07-21 ──
+# ER = Kaufman net-progress / total-path over the trailing 30 one-min closes (~0 chop, ~1 trend).
+# A gate only OPENs when the tape condition suits its style. Thresholds come from the TICK-HONEST
+# backtest (scripts/gate_backtest_tickhonest.py — entry on the 1-min signal, exit repriced on the
+# real ticks) + its per-ER-band sweep — NOT the optimistic BAR-CLOSE gate_backtest (that gave
+# illusory numbers: grind_long "+$1,664" was −$1,228 on honest fills). Set from where each gate's
+# money ACTUALLY sits by ER band (grind is momentum→floor; rgv needs a specific window→band):
+#   grind_long   FLOOR 0.20    — loses in EVERY band; floor only cuts the low-ER bulk-bleed. ⚠ still a
+#                                net loser tick-honest → RELEGATION candidate; the floor is damage control.
+#   thrust_short (UNGATED)     — winners/losers interleaved across ER (not separable); natural +$532
+#                                beats every cut, so it is intentionally NOT gated.
+#   rgv_long     BAND 0.10–0.40 — money is the mid-band (peak 0.3–0.4 +$488); bleeds only at the
+#                                extremes. Keeps +$864 (the old 0.25 ceiling strangled its best band).
+#   rgv_short    BAND 0.30–0.40 — its ONLY edge is that one sliver (+$507); everything else bleeds ~−$2k.
+#                                Fragile (37tr, single band) — currently DISABLED via switch; band applies
+#                                IF re-enabled. RELEGATION candidate.
+#   capitulation_long CEIL 0.10 — tick+L2 duck edge is 0.0–0.10 (+$257). ⚠ fixed-exit-derived.
+#   exhaustion_short  CEIL 0.05 — tick+L2 duck edge is 0.0–0.05 (+$295). ⚠ fixed-exit-derived.
+# ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
+# Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
+ER_FLOOR = {"grind_long": 0.20}
+ER_CEIL = {"capitulation_long": 0.10, "exhaustion_short": 0.05}
+ER_BAND = {"rgv_long": (0.10, 0.40), "rgv_short": (0.30, 0.40)}   # (lo, hi): OPEN only when lo <= er <= hi
+ER_WINDOW = 30  # bars (1-min bars → the 30-min ER used across the desk)
+
+
+def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:
+    """ER over the last `window` bar closes (see above). <6 closes → 1.0 (no data → don't gate)."""
+    cl = [b.close for b in bars[-window:]]
+    if len(cl) < 6:
+        return 1.0
+    path = sum(abs(cl[i] - cl[i - 1]) for i in range(1, len(cl))) or 1.0
+    return abs(cl[-1] - cl[0]) / path
+
+
+def er_blocks(gate: str, er: float) -> bool:
+    """True when the gate's efficiency condition is NOT met, so this OPEN should be suppressed:
+    a momentum gate below its FLOOR (chop), a reversion gate above its CEILING (trend), or any
+    gate outside its BAND (lo <= er <= hi). An ungated gate (in none of the three) is never blocked."""
+    if gate in ER_FLOOR and er < ER_FLOOR[gate]:
+        return True
+    if gate in ER_CEIL and er > ER_CEIL[gate]:
+        return True
+    if gate in ER_BAND:
+        lo, hi = ER_BAND[gate]
+        if er < lo or er > hi:
+            return True
+    return False
+
+
 # ── entry gates ───────────────────────────────────────────────────────────
 @dataclass(frozen=True, slots=True)
 class Entry:
