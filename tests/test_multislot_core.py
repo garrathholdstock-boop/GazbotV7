@@ -451,6 +451,60 @@ def test_stop_breach_ignored_when_flat_or_no_price():
     assert core.stop_breached("grind_short") is False        # held but no price noted yet
 
 
+def test_audit_loop_survives_a_cycle_exception_and_pages_once():
+    # 2026-07-22: a silent exception in the audit loop killed it → an unmanaged position rode
+    # 153min past max-hold. The loop must now CATCH, page (once), and CONTINUE — never die.
+    msgs = []
+    store = open_store(":memory:")
+    sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
+    safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
+    core = MultiSlotCore(RunConfig(place_live=True), FakeEngine(), sb, safeties, FakePub(), store,
+                         notifier=msgs.append)
+
+    async def boom(_gw):
+        raise RuntimeError("venue read blew up")
+    core._read_venue = boom
+
+    asyncio.run(core.venue_audit_loop(None, interval_s=0, max_cycles=3))   # must NOT raise
+    errs = [m for m in msgs if "AUDIT_LOOP_ERROR" in m]
+    assert len(errs) == 1                                                  # paged once, not every cycle
+
+
+def test_audit_age_grows_when_cycles_fail_and_resets_on_success():
+    from dataclasses import replace as _replace
+    store = open_store(":memory:")
+    sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
+    safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
+    core = MultiSlotCore(_replace(RunConfig(place_live=True), store_path=":memory:"),
+                         FakeEngine(), sb, safeties, FakePub(), store)
+    # never-run loop → audit_age is None (don't false-CRIT a dry/pre-start desk)
+    assert core._last_audit_ok_mono is None
+
+    async def ok(_gw):
+        return (0.0, [])                          # flat venue, no live stops → a clean cycle
+    core._read_venue = ok
+    asyncio.run(core.venue_audit_loop(None, interval_s=0, max_cycles=1))
+    assert core._last_audit_ok_mono is not None    # a good cycle stamped liveness
+
+
+def test_write_heartbeat_carries_audit_age(tmp_path):
+    import json as _json
+    from dataclasses import replace as _replace
+    dbp = str(tmp_path / "gb.db")
+    store = open_store(dbp)
+    sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
+    safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
+    core = MultiSlotCore(_replace(RunConfig(place_live=True), store_path=dbp),
+                         FakeEngine(), sb, safeties, FakePub(), store)
+    core.write_heartbeat(conn="HEALTHY", healthy=True)
+    h = _json.loads((tmp_path / "core_health.json").read_text())
+    assert "audit_age_s" in h and h["audit_age_s"] is None      # loop not started yet → None
+    core._last_audit_ok_mono = __import__("time").monotonic()
+    core.write_heartbeat(conn="HEALTHY", healthy=True)
+    h = _json.loads((tmp_path / "core_health.json").read_text())
+    assert h["audit_age_s"] is not None and h["audit_age_s"] < 5
+
+
 def test_write_heartbeat_reflects_flatness_and_held_slots(tmp_path):
     import json
     from dataclasses import replace

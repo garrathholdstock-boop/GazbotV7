@@ -153,6 +153,38 @@ def test_position_unverified_is_crit():
     assert r["status"] == "CRIT" and "UNVERIFIABLE" in r["detail"]
 
 
+def _write_health(tmp_path, **over):
+    import json
+    from dataclasses import replace
+    h = {"ts": NOW.isoformat(), "conn": "HEALTHY", "healthy": True, "place_live": True,
+         "flat": True, "halted": False,
+         "protection": {"held": False, "slots": [], "unverified_cycles": 0}, "audit_age_s": 2.0}
+    h.update(over)
+    (tmp_path / "core_health.json").write_text(json.dumps(h))
+    return replace(RunConfig(), store_path=str(tmp_path / "live.db"))
+
+
+def test_core_crit_on_stale_audit_loop(tmp_path):
+    # 2026-07-22 hardening: a dead safety loop (max-hold/stop-breach) while the heartbeat stays green
+    cfg = _write_health(tmp_path, audit_age_s=120.0)
+    r = sweep.check_core(cfg, NOW)
+    assert r["status"] == "CRIT" and "AUDIT LOOP STALE" in r["detail"]
+    assert r["preflight_ok"] is False
+
+
+def test_core_ok_with_fresh_audit_loop(tmp_path):
+    cfg = _write_health(tmp_path, audit_age_s=3.0)
+    r = sweep.check_core(cfg, NOW)
+    assert r["status"] == "OK" and r["preflight_ok"] is True
+
+
+def test_core_audit_none_does_not_crit(tmp_path):
+    # a dry / pre-start desk (loop hasn't run → audit_age None) must NOT false-CRIT
+    cfg = _write_health(tmp_path, audit_age_s=None, place_live=False)
+    r = sweep.check_core(cfg, NOW)
+    assert r["status"] == "OK"
+
+
 def test_run_sweep_smoke_produces_all_sections(tmp_path):
     # a fully isolated desk: empty stores, no core_health file → core CRIT, but
     # the driver must still return every section and a coherent overall verdict.

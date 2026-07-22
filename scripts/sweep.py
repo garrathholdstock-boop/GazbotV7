@@ -116,6 +116,12 @@ def check_core(cfg: RunConfig, now: datetime) -> dict:
     conn_ok = h.get("conn") == "HEALTHY" and h.get("healthy") is True
     halted = bool(h.get("halted"))
     fresh = age <= 180
+    # the audit-loop tell: the safety spine (max-hold/stop-breach/naked) runs in a SEPARATE loop
+    # from the main heartbeat. On 2026-07-22 it died silently while the heartbeat stayed green and a
+    # position rode 153min past max-hold. audit_age_s is how long since it last COMPLETED a cycle —
+    # stale (while live) = the auditor is dead/hung even though hb looks fine. CRIT.
+    audit_age = h.get("audit_age_s")
+    audit_stale = bool(h.get("place_live") and audit_age is not None and audit_age > 30)
     status = OK
     notes = []
     if not fresh:
@@ -124,13 +130,17 @@ def check_core(cfg: RunConfig, now: datetime) -> dict:
     if not conn_ok:
         status = CRIT
         notes.append(f"gateway conn={h.get('conn')} healthy={h.get('healthy')}")
+    if audit_stale:
+        status = CRIT
+        notes.append(f"AUDIT LOOP STALE {audit_age:.0f}s (safety spine dead — max-hold/stop-breach NOT running)")
     if halted:
         status = _worst(status, WARN)
         notes.append("desk HALTED (kill-switch)")
     detail = (f"HEALTHY, {'flat' if h.get('flat') else 'HOLDING'}, live={h.get('place_live')}, "
-              f"hb {age:.0f}s") if status == OK else "; ".join(notes)
-    # pre-flight is clean only when the heartbeat is fresh AND the gateway is healthy
-    return {"status": status, "detail": detail, "preflight_ok": fresh and conn_ok,
+              f"hb {age:.0f}s, audit {audit_age if audit_age is not None else 'n/a'}s") if status == OK else "; ".join(notes)
+    # pre-flight is clean only when the heartbeat is fresh, the gateway is healthy, AND the audit
+    # loop is live (a dead auditor = positions unmanaged, so downstream signals can't be trusted)
+    return {"status": status, "detail": detail, "preflight_ok": fresh and conn_ok and not audit_stale,
             "flat": bool(h.get("flat", True)), "halted": halted,
             "protection": h.get("protection")}
 

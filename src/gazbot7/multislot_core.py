@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 from datetime import UTC, datetime
@@ -52,11 +53,14 @@ from .store import (
 )
 from .ticks import round_to_tick, tick_for
 
+log = logging.getLogger(__name__)
+
 _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0        # per-slot naked-audit cadence
 PROTECT_BOOT_SETTLE_S = 120.0   # grace after (re)start — let a GTC stop reappear before acting
 NAKED_FLATTEN_STREAK = 2        # re-arm once, then flatten a slot still naked next cycle
 STOP_BREACH_FLATTEN_STREAK = 2  # price past a slot's stop trigger but still held → force-flatten (triggered-but-unfilled stop)
+AUDIT_STALE_S = 30.0            # audit loop hasn't COMPLETED a cycle in this long → it's dead/hung (was: silent)
 UNVERIFIED_PAGE_CYCLES = 3      # can't read venue while a slot is HELD → page fast
 UNVERIFIED_RECONNECT_CYCLES = 6 # → force a fresh session to heal the data path
 EXIT_STUCK_CYCLES = 3           # a slot's close in flight this many audit cycles w/o going flat → escalate
@@ -93,6 +97,11 @@ class MultiSlotCore:
         self._boot_mono = time.monotonic()   # boot-settle anchor for the naked auditor
         self._unverified = 0                  # consecutive cycles the venue couldn't be read
         self._unverified_alarmed = False
+        # audit-loop liveness: the loop stamps this each non-raising cycle; write_heartbeat exposes
+        # its age so a DEAD auditor (2026-07-22: a silent exception killed it → an unmanaged position
+        # rode 153min past max-hold while the MAIN heartbeat stayed green) is visible, not silent.
+        self._last_audit_ok_mono: float | None = None
+        self._audit_alarmed = False
 
     # ── durable ledger (restart-survivable per-slot P&L) ──────────────────────
     def _register(self, coid: str, gate: str) -> None:
@@ -321,9 +330,14 @@ class MultiSlotCore:
                           "stop_coid": stop.coid if stop else None})
         held = bool(slots)
         protection = {"held": held, "slots": slots, "unverified_cycles": self._unverified}
+        # age of the last COMPLETED audit cycle — the tell for a dead/hung safety loop. None until
+        # the loop has run (dry-run / pre-start); the main loop (this writer) stays green regardless,
+        # so this is the ONLY signal that the auditor itself stopped.
+        audit_age = (round(time.monotonic() - self._last_audit_ok_mono, 1)
+                     if self._last_audit_ok_mono is not None else None)
         health = {"ts": ts, "conn": conn, "healthy": healthy,
                   "place_live": self._cfg.place_live, "flat": not held,
-                  "halted": self._halted, "protection": protection}
+                  "halted": self._halted, "protection": protection, "audit_age_s": audit_age}
         status = {**health, "position": slots or None}
         for name, payload in (("core_health.json", health), ("status.json", status)):
             path = os.path.join(data_dir, name)
@@ -523,26 +537,44 @@ class MultiSlotCore:
 
     async def venue_audit_loop(self, gw, *, interval_s: float = PROTECT_INTERVAL_S,
                                max_cycles: int | None = None) -> None:
+        # This loop IS the safety spine (naked-audit, drift-halt, max-hold, stop-breach). If it
+        # dies, positions go unmanaged while the main heartbeat still reads green (2026-07-22). So
+        # every cycle is exception-GUARDED (a throw pages + CONTINUES, never kills the task) and
+        # stamps _last_audit_ok_mono on completion → write_heartbeat exposes the age → sweep CRITs
+        # if it goes stale. A dead/hung auditor can no longer hide behind the main loop's heartbeat.
+        self._last_audit_ok_mono = time.monotonic()      # baseline: loop is up
         i = 0
         while max_cycles is None or i < max_cycles:
             await asyncio.sleep(interval_s)
             i += 1
-            snap = await self._read_venue(gw)
-            if snap is None:
-                self._on_unverified(gw)
-                continue
-            self._unverified = 0
-            self._unverified_alarmed = False
-            net, live_coids = snap
-            if self.reconcile(net) == "drift":
-                continue                          # a lot unaccounted → halted; operator/adopt
-            self.time_exit_check()                # session-end / per-slot max-hold cuts (new closes)
-            now = time.monotonic()
-            for gate in self._gates:
-                verdict = self.assess_slot(gate, live_coids, now)
-                if verdict == "reprotect":
-                    self._reprotect_slot(gate)
-                elif verdict == "flatten":
-                    self._flatten_slot(gate)
-                self._check_stop_breach(gate)      # live stop but price ran past it → not executing
-                self.exit_watchdog_slot(gate, gw)  # escalate a slot close that isn't completing
+            cycle_ok = False
+            try:
+                snap = await self._read_venue(gw)
+                if snap is None:
+                    self._on_unverified(gw)              # venue unreadable — handled (not a dead auditor)
+                else:
+                    self._unverified = 0
+                    self._unverified_alarmed = False
+                    net, live_coids = snap
+                    if self.reconcile(net) != "drift":   # drift → halted (handled); else run the exits
+                        self.time_exit_check()            # session-end / per-slot max-hold cuts
+                        now = time.monotonic()
+                        for gate in self._gates:
+                            verdict = self.assess_slot(gate, live_coids, now)
+                            if verdict == "reprotect":
+                                self._reprotect_slot(gate)
+                            elif verdict == "flatten":
+                                self._flatten_slot(gate)
+                            self._check_stop_breach(gate)      # live stop but price ran past it
+                            self.exit_watchdog_slot(gate, gw)  # escalate a close that isn't completing
+                cycle_ok = True                          # reached here without raising → auditor ran
+                self._audit_alarmed = False
+            except Exception:
+                log.exception("venue_audit_loop cycle raised — auditor CONTINUES (not dead)")
+                if not self._audit_alarmed:              # page once per error-run, not every 5s
+                    self._audit_alarmed = True
+                    self._notify("AUDIT_LOOP_ERROR: a venue-audit cycle raised — safety checks "
+                                 "(max-hold/stop-breach/naked) SKIPPED this cycle; loop continues. "
+                                 "A persistent error → stale audit_age → sweep CRIT. Investigate.")
+            if cycle_ok:
+                self._last_audit_ok_mono = time.monotonic()
