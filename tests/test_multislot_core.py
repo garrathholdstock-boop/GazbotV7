@@ -470,6 +470,18 @@ def test_audit_loop_survives_a_cycle_exception_and_pages_once():
     assert len(errs) == 1                                                  # paged once, not every cycle
 
 
+def test_audit_stale_gates_the_watchdog():
+    # audit_stale() is what the run loop calls to decide whether to WITHHOLD the systemd watchdog
+    # ping (→ auto-restart). None (not started) must be False so the desk doesn't self-restart at boot.
+    import time as _t
+    core, *_ = _core()
+    assert core.audit_stale() is False                       # never started → not stale
+    core._last_audit_ok_mono = _t.monotonic()
+    assert core.audit_stale(threshold_s=30) is False         # just stamped → fresh
+    core._last_audit_ok_mono = _t.monotonic() - 100
+    assert core.audit_stale(threshold_s=30) is True          # 100s since last cycle → stale → restart
+
+
 def test_audit_age_grows_when_cycles_fail_and_resets_on_success():
     from dataclasses import replace as _replace
     store = open_store(":memory:")

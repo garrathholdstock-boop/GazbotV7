@@ -348,6 +348,16 @@ class MultiSlotCore:
             except Exception:
                 pass  # a status write must never break the loop
 
+    def audit_stale(self, threshold_s: float = AUDIT_STALE_S) -> bool:
+        """Has the audit loop (the safety spine) gone this long without COMPLETING a cycle?
+        The run loop calls this to gate the systemd watchdog ping — a stale auditor → withhold the
+        ping → systemd restarts the desk → it re-adopts open slots from the ledger and the revived
+        loop fires any overdue max-hold/stop-breach. Returns False before the loop has started
+        (None) so the desk doesn't self-restart at boot / on a dry desk."""
+        if self._last_audit_ok_mono is None:
+            return False
+        return (time.monotonic() - self._last_audit_ok_mono) > threshold_s
+
     # ── per-slot time-exits (never hold overnight / past a ceiling) ───────────
     def over_max_hold(self, gate: str, now) -> bool:
         """Has THIS slot been open past the hard max-hold ceiling? (Per-slot: each gate

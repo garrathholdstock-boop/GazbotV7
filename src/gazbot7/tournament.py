@@ -153,6 +153,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     log.info("tournament %s — slots=%s", "LIVE" if place_live else "DRY-RUN", gates)
     start = time.monotonic()
     last_hb = 0.0
+    audit_stale_paged = False
     if place_live:
         sd_notify("READY=1")                       # Type=notify — tournament is up (no-op off systemd)
     try:
@@ -162,7 +163,21 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 core.expire_pending_opens(now_mono)   # free a gate whose entry IOC never filled (+log nofill)
                 if now_mono - last_hb >= 1.0:
                     core.write_heartbeat(conn=gw.state.value, healthy=gw.healthy)
-                    sd_notify("WATCHDOG=1")        # prove the loop is live → systemd restarts a wedge
+                    # WATCHDOG is gated on the AUDIT loop's liveness, not just this loop's. If the
+                    # safety spine (naked/drift/max-hold/stop-breach) has gone stale, WITHHOLD the
+                    # ping → systemd (WatchdogSec=90) restarts the desk → it re-adopts open slots
+                    # from the ledger and the revived loop fires any overdue exit. A dead auditor
+                    # now SELF-HEALS in ~90s instead of riding a position all night (2026-07-22 −$216).
+                    if core.audit_stale():
+                        if not audit_stale_paged:
+                            audit_stale_paged = True
+                            _telegram_notifier("AUDIT LOOP STALE — safety spine not completing cycles; "
+                                               "withholding the systemd watchdog so the desk AUTO-RESTARTS "
+                                               "(~90s) to revive it. Any open slot is re-adopted from the ledger.")
+                        log.error("audit loop stale → withholding WATCHDOG ping (systemd will restart)")
+                    else:
+                        audit_stale_paged = False
+                        sd_notify("WATCHDOG=1")    # both loops live → prove it → systemd holds off
                     last_hb = now_mono
             msg = await md.poll(500)
             if msg is None:
