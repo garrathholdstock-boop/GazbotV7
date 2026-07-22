@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — capture.db retention prune (cap growth: book 3d / quotes 5d / ticks 7d)
+After=gazbot7-md.service
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+# Batched deletes with per-batch WAL checkpoint (no disk spike); caps growth, does NOT VACUUM.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/prune_capture.py
+Nice=10
+IOSchedulingClass=idle

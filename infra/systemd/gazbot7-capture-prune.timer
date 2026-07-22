@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — nightly capture.db retention prune
+
+[Timer]
+# 21:15 UTC = the CME equity-futures daily maintenance halt (16:15 CT) — market closed, so the
+# prune's deletes never contend with a live book write. Persistent so a missed run (box off) catches up.
+OnCalendar=*-*-* 21:15:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

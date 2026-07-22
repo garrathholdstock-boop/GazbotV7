@@ -1,0 +1,9 @@
+[Unit]
+Description=GAZBOT V7 — one-time VACUUM at tonight's CME halt
+
+[Timer]
+OnCalendar=2026-07-22 21:20:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — one-time capture.db VACUUM (reclaim disk after prune)
+After=gazbot7-capture-prune.service
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/vacuum_capture.py
+Nice=15
+IOSchedulingClass=idle
