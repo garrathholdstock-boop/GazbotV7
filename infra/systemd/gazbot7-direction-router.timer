@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — direction-router 15-min regime scan
+
+[Timer]
+# Every 15 min on the quarter-hour. Not Persistent: a missed mark's regime is stale — just run the
+# next one (the router recomputes the whole day's state each run, so it self-heals from any gap).
+OnCalendar=*:00/15
+AccuracySec=20s
+
+[Install]
+WantedBy=timers.target

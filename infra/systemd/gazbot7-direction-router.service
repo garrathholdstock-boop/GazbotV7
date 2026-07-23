@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — direction-router (bench counter-trend reversion faders on a proven trend)
+After=gazbot7-md.service
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+# Stateless: replays the Paris day's regime from capture, flips the switch file only on a change,
+# HOLDs on a stale/closed feed. Manages ONLY the 4 reversion faders. Reads the tournament's switch
+# file live (no restart). Backtested +$580 Mon-Thu 2026-07-20..23, no negative day.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.direction_router
+Nice=10
