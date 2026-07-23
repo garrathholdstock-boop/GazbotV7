@@ -67,13 +67,18 @@ def main() -> int:  # `python -m gazbot7.maint` — the daily hygiene sweep
     store = os.environ.get("GAZBOT7_STORE", "data/gazbot7.db")
     cap = os.environ.get("GAZBOT7_CAPTURE", "data/capture.db")
     bdir = os.environ.get("GAZBOT7_BACKUP_DIR", "/home/alphabot/gazbot7/backups")
-    for db in (store, cap):
+    # Per-DB retention (2026-07-23): a flat keep=7 let the ~3.5GB/night CAPTURE copies pile to 18GB
+    # and 86% disk. Capture is ephemeral market data (regenerated live + pruned nightly) → keep few;
+    # the gazbot7 STATE DB is <1MB → keep many. Env-overridable.
+    keep_store = int(os.environ.get("GAZBOT7_BACKUP_KEEP_STORE", "14"))
+    keep_cap = int(os.environ.get("GAZBOT7_BACKUP_KEEP_CAPTURE", "2"))
+    for db, keep in ((store, keep_store), (cap, keep_cap)):
         if not os.path.exists(db):
             continue
         checkpoint(db)
         try:
-            out = backup(db, bdir)
-            print(f"maint: {db} -> {out} ({os.path.getsize(out)} bytes)")
+            out = backup(db, bdir, keep=keep)
+            print(f"maint: {db} -> {out} ({os.path.getsize(out)} bytes, keep={keep})")
         except Exception as e:
             print(f"maint: BACKUP FAILED {db}: {e}")
             from .notify import notify

@@ -139,10 +139,18 @@ def run(now=None):
     fighters = [x["gate"] for x in gates if x["fighting"] and not x["disabled"]]
     escalate = heavy or violent or big_swing or drastic
 
+    # filter-effectiveness read for the hour: did the ER/ATR floors gate the losers, or did the
+    # gates lose in-regime? (standing operator monitor — are the floors working as filters?)
+    try:
+        import filter_check
+        filt = filter_check.hour_summary((now - dt.timedelta(hours=1)).timestamp())
+    except Exception as e:
+        filt = f"FILTER(1h): unavailable ({e})"
+
     return {
         "ts": now.isoformat(), "tape": tape, "expanding": expanding, "day_net": day_net,
         "hour_trades": total_hn, "active_trades": active_hn, "gates": gates, "disabled": sorted(disabled),
-        "bleeders": bleeders, "fighters": fighters, "drastic_hits": drastic_hits,
+        "bleeders": bleeders, "fighters": fighters, "drastic_hits": drastic_hits, "filter": filt,
         "safety": {"halted": halted, "any_naked": any_naked,
                    "unverified": (health.get("protection", {}) or {}).get("unverified_cycles", 0)},
         "triggers": {"heavy_action": heavy, "violent": violent, "big_swing": big_swing, "drastic": drastic},
@@ -166,6 +174,7 @@ def main():
     for x in r["gates"]:
         tag = " (disabled)" if x["disabled"] else (" 🩸FIGHTING" if x["fighting"] else "")
         print(f"  {x['gate']:16} {x['side']:5} {x['style']:9} 1h ${x['h']:>7} ({x['hn']}tr) day ${x['day']}{tag}")
+    print(r.get("filter", ""))
     print(f"TRIGGERS: {[k for k,v in r['triggers'].items() if v] or 'none'} → "
           f"{'*** ESCALATE — dissect + ATTENTION GAZ ***' if r['escalate'] else 'routine one-liner'}")
 

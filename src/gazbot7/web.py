@@ -84,14 +84,28 @@ def _features(cap_path):
         c.close()
         if len(rows) < 6:
             return None
-        bars = [Bar(r["bar_ts"], r["open"], r["high"], r["low"], r["close"], r["volume"]) for r in rows]
-        f = compute_features(bars[-120:] if len(bars) > 120 else bars)   # atr/vwap on the recent 10 min
-        atr_pts = round(f.atr, 1)
-        # ER over the 30-min 1-min closes (net progress / total distance walked)
-        mins: dict = {}
+        # Aggregate the 5s bars → 1-MINUTE OHLC — the SAME basis the gates + hour_watch use, so the
+        # ribbon's ATR + violence match the ATR floors and the Telegram (2026-07-23). A 5s-bar ATR
+        # reads ~4x smaller (~2.9 vs the ~12-23 the gate sees), which made a floor like 20 look
+        # impossible on the chart. ER already used 1-min closes and is unchanged.
+        agg: dict = {}
         for r in rows:
-            mins[(r["bar_ts"] // 60) * 60] = r["close"]
-        cl = [mins[m] for m in sorted(mins)]
+            m = (r["bar_ts"] // 60) * 60
+            a = agg.get(m)
+            if a is None:
+                agg[m] = [r["open"], r["high"], r["low"], r["close"], r["volume"]]
+            else:
+                a[1] = max(a[1], r["high"])
+                a[2] = min(a[2], r["low"])
+                a[3] = r["close"]
+                a[4] += r["volume"]
+        bars = [Bar(m, *agg[m]) for m in sorted(agg)]
+        if len(bars) < 6:
+            return None
+        f = compute_features(bars)   # 1-min ATR/VWAP — matches the live gate + hour_watch
+        atr_pts = round(f.atr, 1)
+        # ER over the 30-min 1-min closes (net progress / total distance walked) — unchanged, correct
+        cl = [b.close for b in bars]
         er = day_type = None
         if len(cl) >= 6:
             total = sum(abs(cl[i] - cl[i - 1]) for i in range(1, len(cl))) or 1

@@ -36,6 +36,10 @@ def run() -> int:
     try:
         con.execute("VACUUM")
         con.execute("PRAGMA journal_mode=WAL")                     # re-assert WAL (VACUUM can reset it)
+        # VACUUM in WAL mode rewrites the whole DB into the WAL → the -wal balloons to ~DB size and
+        # eats back the reclaimed space until checkpointed. TRUNCATE it now (2026-07-22 bug: left a
+        # 3.3GB WAL, disk went UP not down).
+        con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     except sqlite3.OperationalError as e:
         print(f"VACUUM busy/failed ({e}) — DB UNCHANGED, no harm; retry another window")
         con.close()
