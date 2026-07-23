@@ -6,6 +6,7 @@ from gazbot7.deciders import (
     ER_BAND,
     ER_CEIL,
     ER_FLOOR,
+    ER_HOLD,
     REVERSAL_SHORT_VARIANTS,
     Bar,
     Features,
@@ -13,6 +14,7 @@ from gazbot7.deciders import (
     compute_features,
     efficiency_ratio,
     er_blocks,
+    er_hold_blocks,
     exit_absorption,
     exit_adverse_cut,
     chandelier_start_k,
@@ -85,6 +87,29 @@ def test_er_blocks_thrust_short_momentum_floor():
     # thrust_short is ER-floored too (2026-07-22: operator added ER>=0.20 to match the ATR-floor sweep)
     assert er_blocks("thrust_short", ER_FLOOR["thrust_short"] - 0.05) is True   # chop → blocked
     assert er_blocks("thrust_short", ER_FLOOR["thrust_short"] + 0.05) is False  # trend → allowed
+
+
+# ── SHADOW momentum ER-hold spike-filter ──
+def test_er_hold_blocks_catches_single_bar_spike():
+    # grind_long: ER floor 0.20, hold N=2. A chop tape with ONE final directional bar — the CURRENT
+    # bar's ER clears the floor but the PRIOR bar's ER (still chop) does not. er_blocks (current bar
+    # only) lets it through; the hold-filter catches the single-bar spike.
+    spike = _closes([100 + (i % 2) for i in range(30)] + [130])
+    assert er_blocks("grind_long", efficiency_ratio(spike)) is False       # current bar clears the floor
+    assert er_blocks("grind_long", efficiency_ratio(spike[:-1])) is True   # prior bar still chop
+    assert er_hold_blocks("grind_long", spike) is True                     # hold-filter blocks the spike
+
+
+def test_er_hold_allows_sustained_trend():
+    trend = _closes([100 + i for i in range(31)])   # straight line — every bar in-rule
+    assert er_hold_blocks("grind_long", trend) is False
+
+
+def test_er_hold_only_momentum_gates():
+    # reversion gates have no ER_HOLD entry (they fire ahead of the trailing ER by design) → never blocked
+    chop = _closes([100 + (i % 2) for i in range(31)])
+    assert "capitulation_long" not in ER_HOLD
+    assert er_hold_blocks("capitulation_long", chop) is False
 
 
 def test_atr_blocks_below_floor():

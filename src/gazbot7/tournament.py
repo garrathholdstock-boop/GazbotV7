@@ -32,7 +32,7 @@ from dataclasses import replace
 from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
-from .deciders import atr_blocks, compute_features, efficiency_ratio, er_blocks
+from .deciders import ER_HOLD, atr_blocks, compute_features, efficiency_ratio, er_blocks, er_hold_blocks
 from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
 from .sdnotify import sd_notify
@@ -114,6 +114,17 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int,
             if atr_blocks(slot, f.atr):    # trend too small to run (magnitude floor)
                 log.info("ATR gate: %s OPEN suppressed (atr=%.1fpt below floor)", slot, f.atr)
                 continue
+            # SHADOW (observe-only, 2026-07-23): would the momentum ER-hold spike-filter block this
+            # OPEN (ER not held ER_HOLD[slot] consecutive bars)? Recorded on the intent + logged; the
+            # trade STILL opens — this does not gate live until forward-validated → promoted.
+            if slot in ER_HOLD:
+                meta = i.setdefault("meta", {})
+                meta["shadow_er_hold_block"] = er_hold_blocks(slot, bars)
+                meta["er_now"], meta["er_prev"] = round(er, 3), round(efficiency_ratio(bars[:-1]), 3)
+                if meta["shadow_er_hold_block"]:
+                    log.info("SHADOW er-hold(N=%d): %s OPEN would block (er_now=%.2f er_prev=%.2f) "
+                             "— observe-only, trade still opens", ER_HOLD[slot], slot,
+                             meta["er_now"], meta["er_prev"])
         kept.append(i)
     return kept
 

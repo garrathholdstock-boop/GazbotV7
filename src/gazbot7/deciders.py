@@ -126,6 +126,35 @@ def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:
     return abs(cl[-1] - cl[0]) / path
 
 
+# ── SHADOW: momentum ER-hold spike-filter (2026-07-23, observe-only) ──────────────────────────
+# Spike blind spot: a momentum gate fires when the LIVE/forming ER crosses its floor, but the move
+# is a violent-chop whipsaw the closed bars don't sustain. Require the gate's ER condition to hold
+# for ER_HOLD[gate] CONSECUTIVE completed bars, not just the latest one. Backtest (scripts/
+# er_hold_sweep.py, 7d): momentum-only, recovers the momentum spike bucket (~$190) for ~$23 of
+# sacrificed winners; N=1 already captures it, N=2 is a free safety margin (blocks nothing extra
+# in-sample). MOMENTUM ONLY — the reversion gates fire AHEAD of the trailing ER by design, and a
+# blanket application gutted the green capitulation/exhaustion gates (+$252/+$224 of winners cut).
+# SHADOW: tournament.step evaluates + logs this but does NOT gate on it until forward-validated.
+# ⚠ the live er_blocks already enforces the CURRENT completed-bar ER; this shadow's real job is to
+# measure whether the PRIOR-bar hold adds incremental blocks on live decision-time ER (it may not).
+ER_HOLD = {"grind_long": 2, "thrust_short": 2}
+
+
+def er_hold_blocks(gate: str, bars: list[Bar], window: int = ER_WINDOW) -> bool:
+    """True when the gate's ER condition is NOT met across all of the last ER_HOLD[gate] completed
+    bars — a single-bar ER spike the tape walked back. Momentum gates only (no ER_HOLD entry →
+    never blocked). Pure; same basis as er_blocks/efficiency_ratio (ER ending at each of the last
+    n bars: efficiency_ratio(bars), efficiency_ratio(bars[:-1]), …)."""
+    n = ER_HOLD.get(gate)
+    if not n or len(bars) < 6:
+        return False
+    for k in range(n):
+        window_bars = bars[: len(bars) - k] if k else bars
+        if er_blocks(gate, efficiency_ratio(window_bars, window)):
+            return True
+    return False
+
+
 def er_blocks(gate: str, er: float) -> bool:
     """True when the gate's efficiency condition is NOT met, so this OPEN should be suppressed:
     a momentum gate below its FLOOR (chop), a reversion gate above its CEILING (trend), or any
