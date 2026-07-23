@@ -33,6 +33,22 @@ def test_apply_gate_switch_appends_when_absent():
     assert tg.disabled_from(out) == {"grind_long"}
 
 
+def test_reactivate_all_flips_every_off_to_on():
+    # the Paris-midnight 1-day auto-reactivation: all off gates → on, comments preserved
+    txt = "# header\nrgv_long=on\nrgv_short=off\ngrind_long=off\n"
+    out, reactivated = tg.reactivate_all(txt)
+    assert reactivated == ["grind_long", "rgv_short"]   # sorted
+    assert tg.disabled_from(out) == set()               # nothing left off
+    assert "# header" in out and "rgv_long=on" in out
+
+
+def test_reactivate_all_noop_when_none_off():
+    txt = "# header\nrgv_long=on\nthrust_short=on\n"
+    out, reactivated = tg.reactivate_all(txt)
+    assert reactivated == []
+    assert tg.disabled_from(out) == set()
+
+
 def test_handle_off_writes_file_and_confirms(tmp_path):
     sw = str(tmp_path / "gate_switches.env")
     gate = tg.roster()[0]

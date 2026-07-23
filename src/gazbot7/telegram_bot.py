@@ -103,6 +103,17 @@ def disabled_from(text: str) -> set:
     return off
 
 
+def reactivate_all(text: str) -> tuple[str, list[str]]:
+    """Flip EVERY currently-off gate back to on — the Paris-midnight 1-day auto-reactivation of the
+    intraday off-switch (an off is 'for the day'; nothing should stay off across the day boundary
+    on its own). Returns (new_text, reactivated_gates). Pure — reuses apply_gate_switch per gate.
+    A longer hold (e.g. a relegation candidate) is the Saturday roster action, not this switch."""
+    reactivated = sorted(disabled_from(text))
+    for g in reactivated:
+        text = apply_gate_switch(text, g, "on")
+    return text, reactivated
+
+
 # ── read-only renders ──────────────────────────────────────────────────────────
 def _read(path):
     try:

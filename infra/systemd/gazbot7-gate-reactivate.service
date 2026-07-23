@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — Paris-midnight gate auto-reactivation (an intraday off lasts 1 day)
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+# Flip every off gate back to on; the tournament re-reads the switch file live (no restart).
+# Idempotent — nothing off → no write, no notify.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/reactivate_gates.py
+Nice=10

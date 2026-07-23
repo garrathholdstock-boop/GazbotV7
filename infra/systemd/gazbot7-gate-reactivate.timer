@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — reactivate off gates at Paris midnight (1-day off expiry)
+
+[Timer]
+# 00:00 Europe/Paris — the desk's trading-day boundary (daily P&L rolls here too). systemd 255
+# resolves the timezone incl. DST (22:00 UTC in CEST, 23:00 UTC in CET). Persistent so a missed
+# run (box off over midnight) still catches up and re-enables the gates.
+OnCalendar=*-*-* 00:00:00 Europe/Paris
+Persistent=true
+
+[Install]
+WantedBy=timers.target
