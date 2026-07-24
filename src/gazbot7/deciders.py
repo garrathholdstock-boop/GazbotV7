@@ -110,13 +110,18 @@ ER_CEIL = {"capitulation_long": 0.10, "exhaustion_short": 0.05}
 ER_BAND: dict = {}   # (lo, hi): OPEN only when lo <= er <= hi  (empty now — no gate uses a band)
 ER_WINDOW = 30  # bars (1-min bars → the 30-min ER used across the desk)
 
-# ── ★ 35s ABSORPTION-CONFIRM on the rgv faders (LIVE 2026-07-24, operator) ─────────────────────
+# ── 35s ABSORPTION-CONFIRM on the rgv faders — mechanism KEPT, gate set EMPTIED (revert pattern) ──
 # The mirror of the abs_veto momentum filter: a fader WANTS the move it fades to be exhausting, so
 # it delays entry CONFIRM_SECS and only fires if that move ABSORBS in the window (heavy aggressor
-# flow the WRONG way for the fade that FAILS to move price). Friday-lab sweep (07-20..24, tick-
-# honest): flips the rgv book −$556 → +$228 (35s, 13tr, 62%w), robust across 30–45s. The live loop
-# (tournament.run) buffers an rgv OPEN, waits CONFIRM_SECS, then calls confirm_absorption().
-CONFIRM_GATES = frozenset({"rgv_long", "rgv_short"})
+# flow the WRONG way for the fade that FAILS to move price).
+# ★ REMOVED FROM LIVE 2026-07-24 (operator). It went live at 12:27 UTC on a same-week sweep, but a
+# 2-WEEK tick-honest re-test (rgv_confirm_layer.py, 07-15..17 + 07-20..24) showed the confirm is a
+# blunt exposure cut, not a stabiliser: it DESTROYS the short side's robust tight-ext edge (2-wk net
+# +$670 raw → −$180 confirmed at ext3.0/turn0.15) and only marginally trims the weak long bleed. The
+# real cross-week edge is the tight-ext SHORT base with NO confirm/flow; the long side is a
+# direction-router problem, not a filter one. rgv now reverts to its raw base (ext 2.0, no ER band —
+# band was removed earlier the same day, also operator). RE-ENABLE: add the gates back + restart.
+CONFIRM_GATES: frozenset = frozenset()   # was {"rgv_long", "rgv_short"} — see note above
 CONFIRM_SECS = 35
 CONFIRM_MAX_SECS = 55     # give up on a signal older than this (the turn's gone)
 CONFIRM_FLOOR = 30.0      # min net-aggressor size to count as absorption
