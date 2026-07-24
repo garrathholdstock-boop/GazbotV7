@@ -50,6 +50,7 @@ class ShadowVariant:
     adverse_cut_atr: float = 1.5
     absorption_flow_min: float = 50.0
     confirm_s: float = 0.0  # delayed-entry absorption veto: wait N s before entering (0 = immediate)
+    side: str = ""  # "" = two-sided (gate picks); "LONG"/"SHORT" constrains to that direction only
     chandelier: bool = False  # profit exit = the tightening chandelier (ride) instead of the R-target
     chand_start_k: float = 3.5  # chandelier trail width at peak_r=0 (k*ATR); lower = tighter give-back
     chand_tighten: float = 0.75  # how fast k tightens toward min_k (0.5) as the peak extends
@@ -78,16 +79,20 @@ class ShadowSim:
 
     def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool, cap: dict):
         if v.gate == "thrust":
-            return gate_thrust(f, **v.params)
-        if v.gate == "reversal_grab":
-            return gate_reversal_grab(f, tape_net=tape_net, in_rth=in_rth, **v.params)
-        if v.gate == "capitulation":
-            return gate_capitulation(f, cap_sell=cap.get("sell", 0.0), cap_buy=cap.get("buy", 0.0),
-                                     cap_base=cap.get("base", 0.0), cap_dpx=cap.get("dpx", 0.0),
-                                     cap_flip=cap.get("flip", False), **v.params)
-        if v.gate == "grind":
-            return gate_grind(f, tape_net=tape_net, **v.params)
-        return None
+            e = gate_thrust(f, **v.params)
+        elif v.gate == "reversal_grab":
+            e = gate_reversal_grab(f, tape_net=tape_net, in_rth=in_rth, **v.params)
+        elif v.gate == "capitulation":
+            e = gate_capitulation(f, cap_sell=cap.get("sell", 0.0), cap_buy=cap.get("buy", 0.0),
+                                  cap_base=cap.get("base", 0.0), cap_dpx=cap.get("dpx", 0.0),
+                                  cap_flip=cap.get("flip", False), **v.params)
+        elif v.gate == "grind":
+            e = gate_grind(f, tape_net=tape_net, **v.params)
+        else:
+            e = None
+        if e is not None and v.side and e.side != v.side:
+            return None   # side-constrained variant (e.g. thrust_short) — drop the wrong direction
+        return e
 
     def _absorbed(self, v, side, tape_net, wpd) -> bool:
         return exit_absorption(Position(side, 0.0, 0.0, 0.0), tape_net=tape_net,
@@ -243,6 +248,17 @@ def default_slate() -> list[ShadowVariant]:
     # control; live desk runs 45s. Which wait best trades avoided-bleed vs missed moves?
     slate += [ShadowVariant(f"abs_veto_{s}s", "thrust", {"thr": 1.5, "amp_floor": 0.0004}, confirm_s=s)
               for s in (50, 55, 60)]  # 70/90s removed — failures (too much lag)
+    # ★ thrust_SHORT-specific abs_veto (2026-07-24, operator) — mirror the LIVE thrust_short slot
+    # (short-only, chandelier ride) to A/B whether the 55s continuation-confirm fixes its SPIKE-ENTRY
+    # whipsaws (3 stops -$127 in violence on 07-24). The confirm waits 55s and enters only if the
+    # down-thrust STILL fires + no absorption — dropping the unconfirmed spike-chases. _raw = the
+    # matched no-confirm control (both side=SHORT + chandelier, minus the live ER/ATR floors).
+    slate += [
+        ShadowVariant("thrust_short_raw", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                      side="SHORT", chandelier=True),
+        ShadowVariant("thrust_short_absveto55", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                      side="SHORT", chandelier=True, confirm_s=55),
+    ]
     slate += [ShadowVariant(name, "reversal_grab", params)
               for name, params in REVERSAL_SHORT_VARIANTS.items()]
     # target A/B (2026-07-16): the best-firing reversal_grab at a 1.5R take-profit vs
