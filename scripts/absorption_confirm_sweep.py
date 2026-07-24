@@ -28,9 +28,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--floor", type=float, default=30.0, help="min net-aggressor size to call it absorption")
     ap.add_argument("--ns", default="45,50,55,60", help="comma-separated confirm delays in seconds")
+    ap.add_argument("--gates", default="rgv_long,rgv_short", help="comma-separated fade gates to test")
     a = ap.parse_args()
     NS = [int(x) for x in a.ns.split(",")]
-    BAND = {"rgv_long": (0.10, 0.40), "rgv_short": (0.30, 0.40)}   # the LIVE ER band per gate (deciders.ER_BAND)
+    GATES = a.gates.split(",")
+    BAND = {"rgv_long": (0.10, 0.40), "rgv_short": (0.30, 0.40)}   # LIVE ER band (only rgv used one; cap/exh use CEIL)
     con = duckdb.connect()
     con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
     con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
@@ -42,22 +44,21 @@ def main():
         st AS (SELECT m, c, abs(c-lag(c) OVER w) step FROM m1 WINDOW w AS (ORDER BY m))
         SELECT m, abs(c-first_value(c) OVER w30)/NULLIF(SUM(step) OVER w30,0) er
         FROM st WINDOW w30 AS (ORDER BY m ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)""")
-    raw = con.execute("""
+    gph = ",".join(f"'{x}'" for x in GATES)
+    raw = con.execute(f"""
         WITH tr AS (SELECT gate, side, epoch(opened_at::TIMESTAMPTZ) te, pnl_usd, entry_price, qty,
                            strftime(opened_at::TIMESTAMPTZ, '%m-%d') d
-                    FROM g.trades WHERE symbol='MNQ' AND gate IN ('rgv_long','rgv_short')
+                    FROM g.trades WHERE symbol='MNQ' AND gate IN ({gph})
                       AND exit_reason NOT IN ('ADOPT_FLATTEN','RECONCILED_CLOSE'))
         SELECT tr.gate, tr.side, tr.te, tr.pnl_usd, tr.entry_price, tr.qty, tr.d, f.er
         FROM tr ASOF LEFT JOIN feat f ON f.m <= tr.te ORDER BY tr.te""").fetchall()
-    # apply the LIVE ER band uniformly (rgv has NO ATR floor, so no ATR filter — matches live)
+    # apply the live ER band ONLY to gates that have one (rgv); cap/exh use a CEIL, not a band → no filter
     n_all = len(raw)
-    trades = [t for t in raw if t[7] is not None and BAND[t[0]][0] <= t[7] <= BAND[t[0]][1]]
+    trades = [t for t in raw if (t[0] not in BAND) or (t[7] is not None and BAND[t[0]][0] <= t[7] <= BAND[t[0]][1])]
     n_erdrop = n_all - len(trades)
-    # keep only trades with real tick coverage in the confirm window (the accuracy gate)
     trades = [t[:7] for t in trades if con.execute(
         f"SELECT COUNT(*) FROM c.ticks WHERE symbol='MNQ' AND ts_ms>={t[2]*1000} AND ts_ms<{(t[2]+60)*1000}").fetchone()[0] >= 5]
-    print(f"[filters] live ER band applied ({BAND}); {n_erdrop} of {n_all} rgv trades dropped as out-of-band; "
-          f"no ATR floor on rgv (matches live).")
+    print(f"[filters] gates={GATES}; ER band applied only where one exists ({n_erdrop} dropped); no ATR floor.")
 
     def window(te, n):
         return con.execute(f"""
@@ -66,7 +67,8 @@ def main():
             FROM c.ticks WHERE symbol='MNQ' AND ts_ms>={te*1000} AND ts_ms<{(te+n)*1000}""").fetchone()
 
     days = sorted({t[6] for t in trades})
-    print(f"ABSORPTION-CONFIRM SWEEP — rgv_long/rgv_short LIVE trades (floor={a.floor})")
+    gstr = ", ".join(GATES)
+    print(f"ABSORPTION-CONFIRM SWEEP — {gstr} LIVE trades (floor={a.floor})")
     print(f"{len(trades)} trades with real tick coverage, {days[0]}–{days[-1]}. "
           f"Entry repriced at the real tick at T+N (delayed fill); exit unchanged. Confirm = faded move ABSORBED.\n")
     base = sum(t[3] for t in trades)

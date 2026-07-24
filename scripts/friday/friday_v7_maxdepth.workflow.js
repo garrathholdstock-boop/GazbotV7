@@ -25,7 +25,7 @@ const VERDICT = { type: 'object', required: ['holds', 'why'], properties: { hold
 // ── Phase 1 — freeze the census (ONE snapshot every other agent reads) ─────────────────────────
 phase('Census')
 const census = await agent(
-  `Read ${SCOPE}. Run \`cd /home/alphabot/gazbot7 && PYTHONPATH=src .venv/bin/python scripts/run_census.py --days 7 --html ${SEC}/movement1_census.html\` on the COMPLETED week (Friday's session is closed now). This is THE frozen census snapshot every other agent uses — no re-running with a different window. Return: total runs, sat-out count, hindsight ceiling $, the cluster breakdown, and the ordered lists of the TOP-25 and TOP-15 sat-out runs by size (each: time, dir, move-pts). Also confirm the Movement-1 census HTML fragment was written.`,
+  `The census has ALREADY been frozen out-of-band (run_census.py is a multi-minute tick crunch that must NOT be re-run inside the workflow — re-running it is exactly what timed out and failed the previous attempt). Read the pre-computed summary JSON at ${SEC}/census_summary.json and return its fields (runs, sat_out, ceiling, clusters, top25, top15) EXACTLY as they appear, via StructuredOutput. Also \`ls\` ${SEC}/movement1_census.html to confirm the Movement-1 HTML fragment exists. Do NOT run run_census.py under any circumstances. If ${SEC}/census_summary.json is missing, \`ls ${SEC}\` and return what you find in the summary field — do not fabricate numbers.`,
   { phase: 'Census', schema: CENSUS_SCHEMA })
 log(`census frozen: ${census?.runs} runs, ${census?.sat_out} sat out, $${census?.ceiling} ceiling`)
 

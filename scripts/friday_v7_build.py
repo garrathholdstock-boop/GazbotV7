@@ -40,26 +40,42 @@ def main():
     m = re.search(r"<style.*?</style>", tpl, re.S | re.I)
     css = m.group(0) if m else "<style>body{font-family:Georgia,serif;max-width:900px;margin:auto}</style>"
 
+    # Full report spine, in order: Part 1 (live) → Part 2 (shadow) → Part 2.5 (musings)
+    # → the three greenfield movements (census / idle-gate lab / greenfield).
+    SECTIONS = (
+        "part1_live.html",
+        "part2_shadow.html",
+        "part25_musings.html",
+        "movement1_census.html",
+        "movement2_idle_gates.html",
+        "movement3_greenfield.html",
+    )
     frags = []
-    for name in ("movement1_census.html", "movement2_idle_gates.html", "movement3_greenfield.html"):
+    missing = []
+    for name in SECTIONS:
         p = pathlib.Path(SEC) / name
         if p.exists():
             frags.append(p.read_text())
         else:
+            missing.append(name)
             frags.append(f'<div class="callout"><div class="ct">MISSING</div><p>{name} not generated yet.</p></div>')
+    if missing:
+        print("WARNING — missing sections: " + ", ".join(missing))
 
     intro = (
-        '<h1>GAZBOT V7 &mdash; How we grab the big runs</h1>'
-        f'<p class="lead" style="font-size:1.05em">Friday deep-dive, week ending {a.slug}. This is the cold, '
-        'tape-first half of the report: we ignore everything the desk did this week and ask, from the raw MNQ '
-        'tape and order book, <strong>where was the money and did we show up?</strong> Then &mdash; for the runs we '
-        'missed &mdash; we test whether the gates we already own could catch them, and finally we build brand-new '
-        'gates from scratch and backtest them to death (the ones that failed included; that is the point). Plain '
-        'English, honest money, every claim a table.</p>')
+        '<h1>GAZBOT V7 &mdash; the Friday report</h1>'
+        f'<p class="lead" style="font-size:1.05em">Full desk review, week ending {a.slug}. Two halves, one document. '
+        '<strong>Part 1</strong> is the warm half &mdash; what the live six-gate paper tournament actually did this '
+        'week, the direction-router on trial, and the shadow board that earned a promotion (Parts 1, 2 and 2.5). '
+        '<strong>Then the cold, tape-first half</strong>: we ignore everything the desk did and ask, from the raw MNQ '
+        'tape and order book, <strong>where was the money and did we show up?</strong> &mdash; then test whether the '
+        'gates we already own could have caught the runs we missed, and finally build brand-new gates from scratch and '
+        'backtest them to death, the ones that failed included (that is the point). Plain English, honest money, every '
+        'claim a table.</p>')
 
-    body = intro + '\n<hr class="frag-sep">\n'.join(frags)
+    body = intro + '\n<hr class="frag-sep">\n' + '\n<hr class="frag-sep">\n'.join(frags)
     doc = ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
-           f'<title>V7 — big runs deep-dive {a.slug}</title>{css}{SUPP}</head>'
+           f'<title>GAZBOT V7 — Friday report {a.slug}</title>{css}{SUPP}</head>'
            f'<body><div class="wrap">{body}</div></body></html>')
     out_html = f"{OUT}/v7_big_runs_{a.slug}.html"
     pathlib.Path(out_html).write_text(doc)
