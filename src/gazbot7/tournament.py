@@ -32,7 +32,18 @@ from dataclasses import replace
 from .agg import MinuteBars
 from .capture import open_capture
 from .config import RunConfig
-from .deciders import ER_HOLD, atr_blocks, compute_features, efficiency_ratio, er_blocks, er_hold_blocks
+from .deciders import (
+    CONFIRM_GATES,
+    CONFIRM_MAX_SECS,
+    CONFIRM_SECS,
+    ER_HOLD,
+    atr_blocks,
+    compute_features,
+    confirm_absorption,
+    efficiency_ratio,
+    er_blocks,
+    er_hold_blocks,
+)
 from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
 from .sdnotify import sd_notify
@@ -170,6 +181,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     start = time.monotonic()
     last_hb = 0.0
     audit_stale_paged = False
+    pending_confirm: dict = {}   # ★ rgv 35s absorption-confirm buffer: slot → (armed_ms, intent)
     if place_live:
         sd_notify("READY=1")                       # Type=notify — tournament is up (no-op off systemd)
     try:
@@ -225,6 +237,42 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                         else:
                             kept.append(i)
                     intents = kept
+                # ★ rgv 35s ABSORPTION-CONFIRM (LIVE 2026-07-24, operator): buffer an rgv OPEN, wait
+                # CONFIRM_SECS, take the fade ONLY if the faded move ABSORBED in that window. The
+                # strategy proposes OPEN only when flat, so the not-pending guard is enough. SAFETY:
+                # any read error / not-yet-absorbed → DON'T enter (never a bad fill); stale → drop.
+                out = []
+                for i in intents:
+                    if i.get("action") == "OPEN" and i.get("slot") in CONFIRM_GATES:
+                        pending_confirm.setdefault(i["slot"], (now_ms, i))   # arm once; do NOT emit yet
+                    else:
+                        out.append(i)
+                for slot in list(pending_confirm):
+                    armed_ms, intent = pending_confirm[slot]
+                    age = (now_ms - armed_ms) / 1000.0
+                    if age < CONFIRM_SECS:
+                        continue
+                    ok = None
+                    try:
+                        rows = cap.execute(
+                            "SELECT aggressor,size,price FROM ticks WHERE symbol=? AND ts_ms>=? AND ts_ms<? ORDER BY ts_ms",
+                            (cfg.symbol, armed_ms, now_ms)).fetchall()
+                        if len(rows) >= 5:
+                            flow = sum((s if a == "buy" else -s) for a, s, _ in rows)
+                            ok = confirm_absorption(intent.get("side", ""), flow, rows[-1][2] - rows[0][2])
+                    except Exception as e:
+                        log.warning("rgv confirm read failed %s: %s — dropping", slot, e)
+                        ok = False
+                    if ok:
+                        j = dict(intent)
+                        j["price"] = tape.get("last") or intent.get("price")
+                        out.append(j)
+                        del pending_confirm[slot]
+                        log.info("rgv CONFIRM: %s ABSORBED after %.0fs → OPEN @%s", slot, age, j["price"])
+                    elif age > CONFIRM_MAX_SECS or ok is False:
+                        del pending_confirm[slot]   # move not absorbed / turn gone → skip the fade
+                        log.info("rgv confirm: %s NOT absorbed after %.0fs → skipped", slot, age)
+                intents = out
                 if not intents:
                     continue
                 if place_live:

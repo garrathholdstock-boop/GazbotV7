@@ -12,6 +12,7 @@ from gazbot7.deciders import (
     Features,
     Position,
     compute_features,
+    confirm_absorption,
     efficiency_ratio,
     er_blocks,
     er_hold_blocks,
@@ -75,12 +76,22 @@ def test_er_blocks_reversion_ceiling():
     assert er_blocks("exhaustion_short", ER_CEIL["exhaustion_short"] - 0.02) is False
 
 
-def test_er_blocks_band_gate():
-    # rgv_long is a BAND → allowed only inside [lo, hi], blocked below lo and above hi
-    lo, hi = ER_BAND["rgv_long"]
-    assert er_blocks("rgv_long", (lo + hi) / 2) is False   # inside the band → allowed
-    assert er_blocks("rgv_long", lo - 0.05) is True         # below the band (too choppy)
-    assert er_blocks("rgv_long", hi + 0.05) is True         # above the band (too trendy)
+def test_er_band_removed_for_rgv():
+    # 2026-07-24: the ER band was REMOVED for rgv (the 35s absorption-confirm subsumes it) → ER_BAND
+    # is now empty and rgv is ER-ungated (never blocked on ER).
+    assert ER_BAND == {}
+    assert er_blocks("rgv_long", 0.05) is False and er_blocks("rgv_long", 0.60) is False
+    assert er_blocks("rgv_short", 0.05) is False and er_blocks("rgv_short", 0.60) is False
+
+
+def test_confirm_absorption():
+    # LONG fade wants the SELLING absorbed: heavy net-sell (<= -floor) that did NOT drop price.
+    assert confirm_absorption("LONG", -50, +2.0) is True     # selling hit, price held/rose → absorbed
+    assert confirm_absorption("LONG", -50, -5.0) is False    # selling hit AND price fell → falling knife
+    assert confirm_absorption("LONG", -10, +2.0) is False    # not enough selling to call absorption
+    # SHORT fade wants the BUYING absorbed: heavy net-buy (>= floor) that did NOT lift price.
+    assert confirm_absorption("SHORT", +50, -2.0) is True
+    assert confirm_absorption("SHORT", +50, +5.0) is False   # buying AND price rose → not absorbed
 
 
 def test_er_blocks_thrust_short_momentum_floor():

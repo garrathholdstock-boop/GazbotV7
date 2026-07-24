@@ -103,8 +103,31 @@ def compute_features(bars: list[Bar]) -> Features:
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
 ER_FLOOR = {"grind_long": 0.20, "thrust_short": 0.20}
 ER_CEIL = {"capitulation_long": 0.10, "exhaustion_short": 0.05}
-ER_BAND = {"rgv_long": (0.10, 0.40), "rgv_short": (0.30, 0.40)}   # (lo, hi): OPEN only when lo <= er <= hi
+# ★ 2026-07-24 (operator): ER band REMOVED for rgv_long/rgv_short — the 35s ABSORPTION-CONFIRM
+# (below) subsumes it (a Friday-lab grid found them near-identical at 35/40s: the confirm reads
+# "genuine reversion vs falling-knife" from the microstructure, sharper than the ER band read it
+# from the bar tape). rgv now runs ER-ungated + absorption-confirmed. Revert = restore the two bands.
+ER_BAND: dict = {}   # (lo, hi): OPEN only when lo <= er <= hi  (empty now — no gate uses a band)
 ER_WINDOW = 30  # bars (1-min bars → the 30-min ER used across the desk)
+
+# ── ★ 35s ABSORPTION-CONFIRM on the rgv faders (LIVE 2026-07-24, operator) ─────────────────────
+# The mirror of the abs_veto momentum filter: a fader WANTS the move it fades to be exhausting, so
+# it delays entry CONFIRM_SECS and only fires if that move ABSORBS in the window (heavy aggressor
+# flow the WRONG way for the fade that FAILS to move price). Friday-lab sweep (07-20..24, tick-
+# honest): flips the rgv book −$556 → +$228 (35s, 13tr, 62%w), robust across 30–45s. The live loop
+# (tournament.run) buffers an rgv OPEN, waits CONFIRM_SECS, then calls confirm_absorption().
+CONFIRM_GATES = frozenset({"rgv_long", "rgv_short"})
+CONFIRM_SECS = 35
+CONFIRM_MAX_SECS = 55     # give up on a signal older than this (the turn's gone)
+CONFIRM_FLOOR = 30.0      # min net-aggressor size to count as absorption
+
+
+def confirm_absorption(side: str, net_flow: float, price_change: float) -> bool:
+    """True if the faded move is being ABSORBED → take the fade. LONG fade (rgv_long): heavy net
+    SELLING that did NOT drop price. SHORT fade: heavy net BUYING that did NOT lift price."""
+    if side in ("LONG", "BUY"):
+        return net_flow <= -CONFIRM_FLOOR and price_change >= 0
+    return net_flow >= CONFIRM_FLOOR and price_change <= 0
 
 # ATR floor (entry ATR in POINTS) — a magnitude gate on TOP of the ER gate: don't ride a trend too
 # small to run. Tick-honest ER>=0.20 + ATR sweep 2026-07-22 (~9 days, scripts/momentum_atr_sweep.py):

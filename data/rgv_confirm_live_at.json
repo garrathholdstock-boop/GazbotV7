@@ -1,0 +1,12 @@
+{
+  "feature": "rgv_absorption_confirm",
+  "live_at_utc": "2026-07-24T12:27:17.757094+00:00",
+  "live_at_epoch": 1784896037.757094,
+  "confirm_secs": 35,
+  "er_band": "REMOVED",
+  "gates": [
+    "rgv_long",
+    "rgv_short"
+  ],
+  "note": "rgv now ER-ungated + 35s absorption-confirm. Split rgv trades before/after live_at_epoch for the A/B."
+}
