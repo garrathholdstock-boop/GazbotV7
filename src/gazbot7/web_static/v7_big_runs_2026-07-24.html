@@ -1,0 +1,271 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>V7 — big runs deep-dive 2026-07-24</title><style>
+  :root{--paper:#faf8f3;--ink:#1a1f2b;--ink2:#5b6472;--navy:#0f2942;--gold:#b8860b;
+         --pos:#1a7f47;--neg:#c0392b;--line:#e7e1d4;--card:#ffffff;--zebra:#f7f4ec}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+        font:16px/1.65 "Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif}
+  .wrap{max-width:940px;margin:0 auto;padding:0 28px 80px}
+  .masthead{border-bottom:3px double var(--navy);padding:46px 0 26px;margin-bottom:8px}
+  .brand{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:700;font-family:Georgia,serif}
+  h1{font-size:38px;line-height:1.15;margin:10px 0 6px;color:var(--navy);font-weight:700;letter-spacing:-.5px}
+  .dates{font-size:15px;color:var(--ink2);font-style:italic}
+  .verdict{font-size:21px;line-height:1.45;color:var(--ink);margin:24px 0 8px;font-weight:600}
+  .verdict b{color:var(--neg)}
+  .safety{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 4px}
+  .badge{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-family:ui-sans-serif,system-ui,sans-serif}
+  .badge .bn{font-size:22px;font-weight:800;color:var(--navy)} .badge .bl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2)}
+  h2{font-size:25px;color:var(--navy);margin:54px 0 4px;padding-bottom:8px;border-bottom:2px solid var(--gold);font-weight:700}
+  h2 .n{color:var(--gold);font-size:16px;font-weight:700;margin-right:10px}
+  h3{font-size:19px;color:var(--navy);margin:30px 0 8px}
+  p,li{font-size:16.5px}
+  .lead{font-size:18px;color:#33404f}
+  .grid{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0}
+  .stat{flex:1 1 150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,41,66,.05);font-family:ui-sans-serif,system-ui,sans-serif}
+  .stat .sv{font-size:27px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
+  .stat.neg .sv{color:var(--neg)} .stat.pos .sv{color:var(--pos)}
+  .stat .sl{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2);margin-top:4px}
+  .stat .ss{font-size:12.5px;color:var(--ink2);margin-top:5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:20px 0;box-shadow:0 1px 4px rgba(15,41,66,.05)}
+  .chartbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
+  svg.chart{width:100%;height:auto;display:block}
+  .ax{font:11px ui-sans-serif,system-ui,sans-serif;fill:var(--ink2)}
+  .dot-lbl{font:600 11.5px ui-sans-serif,system-ui,sans-serif}
+  .hb-lbl{font:600 13px ui-sans-serif,system-ui,sans-serif;fill:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px}
+  th{background:var(--navy);color:#fff;text-align:left;padding:9px 11px;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+  td{padding:8px 11px;border-bottom:1px solid var(--line)}
+  tr:nth-child(even) td{background:var(--zebra)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums} td.ln{font-weight:600;color:var(--navy)}
+  .row-hl td{background:#eafaf0 !important;font-weight:600}
+  .row-bad td{background:#fdf0ee !important}
+  .qa{border-left:4px solid var(--gold);padding:4px 0 4px 20px;margin:20px 0}
+  .qa .q{font-weight:700;color:var(--navy);font-size:17px}
+  .qa .a{margin-top:6px}
+  .qa .o{margin-top:8px;background:#f3f6f8;border-radius:8px;padding:10px 14px;font-size:15px;font-family:ui-sans-serif,system-ui,sans-serif}
+  .o b{color:var(--navy)}
+  .pill{display:inline-block;font:700 11px ui-sans-serif,system-ui,sans-serif;padding:2px 9px;border-radius:20px;letter-spacing:.5px}
+  .p-keep{background:#eafaf0;color:var(--pos)} .p-kill{background:#fdecea;color:var(--neg)} .p-tune{background:#fff5e0;color:#9a6b00}
+  .callout{background:#fff8e8;border:1px solid #f0dba8;border-left:4px solid var(--gold);border-radius:10px;padding:16px 20px;margin:22px 0}
+  .callout .ct{font-weight:700;color:#8a6500;font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#f1ede3;padding:1px 6px;border-radius:4px}
+  .foot{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px;font-style:italic}
+  a{color:#0a5e8a}
+  @media print{body{background:#fff} .card,.chartbox,.stat{box-shadow:none}}
+</style><style>
+.n{display:inline-block;min-width:1.6em;padding:0 .4em;margin-right:.4em;background:#0f2942;color:#fff;
+   border-radius:.3em;font-size:.62em;vertical-align:middle;font-weight:700;letter-spacing:.02em}
+.tag{display:inline-block;padding:.08em .5em;border-radius:.3em;font-size:.72em;font-weight:700;
+     background:#eee;color:#0f2942;border:1px solid #cbd5e0}
+.pill-shadow{background:#fff3d6;border-color:#e0b84a}.pill-null{background:#f0f0f0}
+.pill-dontarm{background:#fbe3e0;border-color:#c0392b;color:#8a1c10}
+.frag-sep{border:0;border-top:2px solid #e6e2d8;margin:2.4em 0}
+</style></head><body><div class="wrap"><h1>GAZBOT V7 &mdash; How we grab the big runs</h1><p class="lead" style="font-size:1.05em">Friday deep-dive, week ending 2026-07-24. This is the cold, tape-first half of the report: we ignore everything the desk did this week and ask, from the raw MNQ tape and order book, <strong>where was the money and did we show up?</strong> Then &mdash; for the runs we missed &mdash; we test whether the gates we already own could catch them, and finally we build brand-new gates from scratch and backtest them to death (the ones that failed included; that is the point). Plain English, honest money, every claim a table.</p><h2><span class="n">M1</span> The biggest runs on MNQ this week &mdash; did we show up?</h2>
+<p class="lead">Forget what the desk did this week &mdash; start from the raw tape. MNQ printed <strong>74 runs of 1.5&times;ATR or bigger</strong> in the last seven days (a 15-minute move of at least 75 points, against a typical 15-min range of 50). That is the whole tape, not a top-ten. We <strong>caught 10</strong>, we were positioned <em>against</em> <strong>11</strong>, and we <strong>sat out 53</strong>. The runs we aligned with banked <strong>+$180</strong> of honest money &mdash; but that is only 8% of their $2264 hindsight ceiling, and the 53 we sat out left <strong>$11264</strong> on the table. The bleed is not the runs; it is the fading we do around them.</p>
+<div class="callout"><div class="ct">THE FULL CENSUS</div><p>Every qualifying run, in order. <strong>Move</strong> is the swing in points; <strong>$ 1lot</strong> is that move on one MNQ lot ($2/pt) &mdash; the hindsight ceiling. <strong>real $</strong> is what a gate actually banked near it. <strong>Flow</strong> is net aggressor volume in the 60s before; <strong>amp</strong> is pre-run amplitude; <strong>book</strong> is the far-side L2 depth share (below 0.50 = the side price ran toward was thin). Green = we caught it, red = we fought it.</p></div>
+<table><tr><th>Time (UTC)</th><th>Dir</th><th>Move</th><th>$ 1lot</th><th>Us</th><th>Gate</th><th>real $</th><th>Flow</th><th>Amp</th><th>Book</th><th>Cluster</th></tr>
+<tr class="row-bad"><td class="ln">07-17 10:26</td><td>UP</td><td class="num">+86</td><td class="num">171</td><td>FOUGHT</td><td>thrust</td><td class="num">-70</td><td class="num">-386</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr class="row-bad"><td class="ln">07-17 13:30</td><td>DN</td><td class="num">-224</td><td class="num">448</td><td>FOUGHT</td><td>thrust</td><td class="num">-105</td><td class="num">+2340</td><td class="num">0.27</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-17 13:47</td><td>UP</td><td class="num">+283</td><td class="num">566</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-311</td><td class="num">0.24</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-17 14:04</td><td>UP</td><td class="num">+124</td><td class="num">248</td><td>caught</td><td>thrust</td><td class="num">+88</td><td class="num">-706</td><td class="num">0.43</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-17 14:48</td><td>DN</td><td class="num">-124</td><td class="num">248</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+1803</td><td class="num">0.31</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-17 15:24</td><td>UP</td><td class="num">+144</td><td class="num">289</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1422</td><td class="num">0.26</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-17 15:44</td><td>UP</td><td class="num">+169</td><td class="num">338</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+416</td><td class="num">0.27</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-17 16:04</td><td>UP</td><td class="num">+80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+72</td><td class="num">0.34</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-17 16:36</td><td>UP</td><td class="num">+93</td><td class="num">186</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+106</td><td class="num">0.14</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-bad"><td class="ln">07-17 17:29</td><td>DN</td><td class="num">-90</td><td class="num">180</td><td>FOUGHT</td><td>thrust</td><td class="num">-46</td><td class="num">-307</td><td class="num">0.20</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-17 18:04</td><td>DN</td><td class="num">-92</td><td class="num">184</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-138</td><td class="num">0.18</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-bad"><td class="ln">07-17 18:31</td><td>DN</td><td class="num">-75</td><td class="num">150</td><td>FOUGHT</td><td>thrust</td><td class="num">-42</td><td class="num">-263</td><td class="num">0.24</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-17 18:59</td><td>DN</td><td class="num">-109</td><td class="num">218</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-119</td><td class="num">0.12</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-17 19:52</td><td>DN</td><td class="num">-122</td><td class="num">245</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-72</td><td class="num">0.17</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-19 22:29</td><td>UP</td><td class="num">+80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+74</td><td class="num">0.13</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-hl"><td class="ln">07-20 00:01</td><td>UP</td><td class="num">+132</td><td class="num">264</td><td>caught</td><td>thrust</td><td class="num">-62</td><td class="num">-55</td><td class="num">0.19</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 00:42</td><td>DN</td><td class="num">-76</td><td class="num">152</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1</td><td class="num">0.17</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 01:54</td><td>UP</td><td class="num">+110</td><td class="num">220</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-64</td><td class="num">0.18</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 02:29</td><td>UP</td><td class="num">+97</td><td class="num">194</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-21</td><td class="num">0.10</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 04:57</td><td>DN</td><td class="num">-84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+2</td><td class="num">0.14</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 07:19</td><td>UP</td><td class="num">+109</td><td class="num">218</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+47</td><td class="num">0.09</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 09:37</td><td>UP</td><td class="num">+82</td><td class="num">163</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-40</td><td class="num">0.05</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr class="row-hl"><td class="ln">07-20 11:27</td><td>UP</td><td class="num">+114</td><td class="num">228</td><td>caught</td><td>grind</td><td class="num">+89</td><td class="num">+76</td><td class="num">0.04</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-20 11:48</td><td>DN</td><td class="num">-84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+253</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr class="row-hl"><td class="ln">07-20 13:29</td><td>UP</td><td class="num">+147</td><td class="num">294</td><td>caught</td><td>grind</td><td class="num">+29</td><td class="num">-131</td><td class="num">0.13</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-20 13:45</td><td>DN</td><td class="num">-195</td><td class="num">390</td><td>FOUGHT</td><td>grind</td><td class="num">-156</td><td class="num">+89</td><td class="num">0.23</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-20 14:07</td><td>DN</td><td class="num">-77</td><td class="num">154</td><td>FOUGHT</td><td>grind</td><td class="num">-68</td><td class="num">+674</td><td class="num">0.23</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-20 14:41</td><td>DN</td><td class="num">-98</td><td class="num">196</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-257</td><td class="num">0.15</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-20 15:06</td><td>UP</td><td class="num">+91</td><td class="num">182</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-655</td><td class="num">0.25</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 15:50</td><td>UP</td><td class="num">+102</td><td class="num">204</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+128</td><td class="num">0.18</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-hl"><td class="ln">07-20 16:40</td><td>DN</td><td class="num">-92</td><td class="num">185</td><td>caught</td><td>grind</td><td class="num">-50</td><td class="num">+376</td><td class="num">0.14</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 18:28</td><td>DN</td><td class="num">-92</td><td class="num">184</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-33</td><td class="num">0.12</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr class="row-bad"><td class="ln">07-20 19:00</td><td>DN</td><td class="num">-79</td><td class="num">158</td><td>FOUGHT</td><td>rgv_long</td><td class="num">-192</td><td class="num">+286</td><td class="num">0.15</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr class="row-hl"><td class="ln">07-20 19:26</td><td>UP</td><td class="num">+77</td><td class="num">154</td><td>caught</td><td>rgv_long</td><td class="num">-44</td><td class="num">-99</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 19:41</td><td>DN</td><td class="num">-102</td><td class="num">203</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-148</td><td class="num">0.19</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-20 23:47</td><td>DN</td><td class="num">-92</td><td class="num">183</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-202</td><td class="num">0.10</td><td class="num">0.51</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-21 00:16</td><td>UP</td><td class="num">+106</td><td class="num">212</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+245</td><td class="num">0.20</td><td class="num">0.46</td><td>FLOW-LED</td></tr>
+<tr class="row-hl"><td class="ln">07-21 13:30</td><td>DN</td><td class="num">-83</td><td class="num">166</td><td>caught</td><td>exhaustion_short</td><td class="num">+12</td><td class="num">-281</td><td class="num">0.15</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-21 14:01</td><td>DN</td><td class="num">-94</td><td class="num">189</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+23</td><td class="num">0.33</td><td class="num">0.49</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-21 14:17</td><td>UP</td><td class="num">+138</td><td class="num">276</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">+62</td><td class="num">-646</td><td class="num">0.24</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-21 15:03</td><td>UP</td><td class="num">+94</td><td class="num">188</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">-70</td><td class="num">-831</td><td class="num">0.17</td><td class="num">0.55</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-22 07:27</td><td>DN</td><td class="num">-80</td><td class="num">159</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+203</td><td class="num">0.12</td><td class="num">0.48</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-22 11:28</td><td>DN</td><td class="num">-78</td><td class="num">155</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-3</td><td class="num">0.10</td><td class="num">0.47</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-22 13:18</td><td>UP</td><td class="num">+83</td><td class="num">166</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+26</td><td class="num">0.07</td><td class="num">0.45</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-22 13:40</td><td>UP</td><td class="num">+102</td><td class="num">204</td><td>caught</td><td>grind_long</td><td class="num">-86</td><td class="num">+1437</td><td class="num">0.19</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-22 14:55</td><td>UP</td><td class="num">+110</td><td class="num">221</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1151</td><td class="num">0.14</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-22 19:51</td><td>DN</td><td class="num">-75</td><td class="num">150</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-912</td><td class="num">0.15</td><td class="num">0.53</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-22 20:06</td><td>UP</td><td class="num">+97</td><td class="num">194</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-44</td><td class="num">0.40</td><td class="num">0.48</td><td>VOL-EXPANSION</td></tr>
+<tr><td class="ln">07-22 20:53</td><td>DN</td><td class="num">-139</td><td class="num">278</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-10</td><td class="num">0.08</td><td class="num">0.48</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 00:13</td><td>UP</td><td class="num">+92</td><td class="num">184</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+40</td><td class="num">0.08</td><td class="num">0.50</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 06:57</td><td>DN</td><td class="num">-121</td><td class="num">242</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-37</td><td class="num">0.05</td><td class="num">0.50</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 07:28</td><td>DN</td><td class="num">-82</td><td class="num">165</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-104</td><td class="num">0.10</td><td class="num">0.48</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-23 08:02</td><td>UP</td><td class="num">+94</td><td class="num">189</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-118</td><td class="num">0.12</td><td class="num">0.51</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 08:48</td><td>UP</td><td class="num">+87</td><td class="num">174</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+3</td><td class="num">0.06</td><td class="num">0.44</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 11:22</td><td>DN</td><td class="num">-105</td><td class="num">210</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+20</td><td class="num">0.10</td><td class="num">0.52</td><td>UNCLASS</td></tr>
+<tr class="row-bad"><td class="ln">07-23 12:27</td><td>DN</td><td class="num">-87</td><td class="num">174</td><td>FOUGHT</td><td>rgv_long</td><td class="num">-98</td><td class="num">-3</td><td class="num">0.13</td><td class="num">0.49</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 13:02</td><td>DN</td><td class="num">-82</td><td class="num">163</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+136</td><td class="num">0.11</td><td class="num">0.53</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 13:28</td><td>UP</td><td class="num">+165</td><td class="num">330</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-341</td><td class="num">0.09</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-23 13:43</td><td>DN</td><td class="num">-178</td><td class="num">356</td><td>caught</td><td>rgv_short</td><td class="num">+198</td><td class="num">-637</td><td class="num">0.35</td><td class="num">0.48</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 14:18</td><td>DN</td><td class="num">-80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-183</td><td class="num">0.26</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 14:40</td><td>DN</td><td class="num">-184</td><td class="num">368</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+90</td><td class="num">0.43</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 14:59</td><td>DN</td><td class="num">-120</td><td class="num">239</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+18</td><td class="num">0.14</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-23 15:48</td><td>UP</td><td class="num">+123</td><td class="num">246</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">-56</td><td class="num">+346</td><td class="num">0.14</td><td class="num">0.47</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-23 16:08</td><td>UP</td><td class="num">+88</td><td class="num">176</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-179</td><td class="num">0.17</td><td class="num">0.53</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 16:39</td><td>DN</td><td class="num">-114</td><td class="num">228</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+598</td><td class="num">0.20</td><td class="num">0.53</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 17:05</td><td>UP</td><td class="num">+77</td><td class="num">154</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1019</td><td class="num">0.25</td><td class="num">0.51</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 17:25</td><td>DN</td><td class="num">-90</td><td class="num">179</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+68</td><td class="num">0.16</td><td class="num">0.56</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 17:52</td><td>DN</td><td class="num">-77</td><td class="num">154</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+119</td><td class="num">0.09</td><td class="num">0.47</td><td>VACUUM</td></tr>
+<tr class="row-hl"><td class="ln">07-23 19:10</td><td>UP</td><td class="num">+82</td><td class="num">164</td><td>caught</td><td>rgv_long</td><td class="num">+7</td><td class="num">-159</td><td class="num">0.09</td><td class="num">0.46</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 19:30</td><td>DN</td><td class="num">-79</td><td class="num">158</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-202</td><td class="num">0.12</td><td class="num">0.48</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-23 19:49</td><td>UP</td><td class="num">+226</td><td class="num">453</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-144</td><td class="num">0.09</td><td class="num">0.50</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 20:58</td><td>DN</td><td class="num">-100</td><td class="num">201</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-43</td><td class="num">0.06</td><td class="num">0.49</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-24 00:01</td><td>DN</td><td class="num">-86</td><td class="num">172</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+56</td><td class="num">0.21</td><td class="num">0.56</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-24 06:57</td><td>UP</td><td class="num">+104</td><td class="num">208</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+5</td><td class="num">0.07</td><td class="num">0.46</td><td>UNCLASS</td></tr>
+</table>
+<div class="card"><h3>What the runs were &mdash; by cause</h3><p>Each run gets a cause fingerprint from its pre-run tape. This is the map for where to hunt a new gate.</p><table><tr><th>Cluster</th><th>Runs</th><th>What it is</th></tr>
+<tr><td>VACUUM</td><td class="num">20</td><td>moved AGAINST the tape (a snap-back / stop-run)</td></tr>
+<tr><td>OPEN/NEWS</td><td class="num">20</td><td>the 13:00&ndash;15:00 UTC cash-open / data window</td></tr>
+<tr><td>FLOW-LED</td><td class="num">18</td><td>aggressors drove it (a continuation)</td></tr>
+<tr><td>UNCLASS</td><td class="num">15</td><td>no clear tape tell (quiet ignition)</td></tr>
+<tr><td>VOL-EXPANSION</td><td class="num">1</td><td>amplitude broke out of a coil</td></tr>
+</table></div>
+<div class="callout"><div class="ct">HONEST MONEY &mdash; ceiling vs what we banked</div><table><tr><th></th><th>Runs</th><th>Hindsight ceiling</th><th>What we really made</th></tr><tr class="row-hl"><td>Caught (aligned)</td><td class="num">10</td><td class="num">$2264</td><td class="num">+$180 &nbsp;(8%)</td></tr><tr class="row-bad"><td>Fought (against)</td><td class="num">11</td><td class="num">$2536</td><td class="num">$-841</td></tr><tr><td>Sat out</td><td class="num">53</td><td class="num">$11264</td><td class="num">$0 &larr; the money on the table</td></tr></table><p>The runs made money and the fading gave it back; we convert a fraction of the ceiling and ignore the rest. The next two movements ask whether we can do better &mdash; first with the gates we own, then with new ones.</p></div>
+<hr class="frag-sep">
+<h2><span class="n">M2</span> Could our own gates have caught them?</h2>
+
+<p class="lead">Short answer, Garrath: no — not in any way worth acting on. I took the 50-odd runs we sat out this week (about $10,900 of hindsight money on the table) and fired all six of our live gates at them mechanically, in the run's direction, in the 10 minutes before each one lit up — then priced the exits honestly on this week's own ticks. Between the six of them they'd have fired on just <strong>19 of the 50</strong> runs and banked about <strong>+$419</strong>. That's roughly <strong>4% of the money</strong> that got away, spread across single-digit trades per gate, and it's the <em>generous</em> number — I fired them ungated, so the live ER and ATR floors would knock it down further. Two of the six gates fired on zero of the 50. The runs we miss, we miss by design.</p>
+
+<div class="card">
+  <h3>The scoreboard — all six gates, fired on the 50 sat-out runs</h3>
+  <p>In-direction only (long gates on up-runs, short gates on down-runs), one position per fire, exits repriced tick-by-tick on this week's tape (grind/thrust ride the chandelier + 1-ATR stop; the fades take 2R or the 1-ATR stop). Honest money, same week the runs happened.</p>
+  <table>
+    <tr><th>Gate</th><th>Fires on sat-out runs</th><th>Honest $</th><th>Why it misses</th></tr>
+    <tr><td>rgv_long</td><td class="num">8 / 50</td><td class="num">+$230</td><td>Fades a VWAP stretch that's <em>rolling over</em> — needs price already 2+ ATR past VWAP and turning back. Fresh runs ignite near/through VWAP, not stretched past it, so it rarely arms — and when it does it's fading the run's own continuation.</td></tr>
+    <tr><td>grind_long</td><td class="num">7 / 50</td><td class="num">+$165</td><td>Needs an <em>established</em> up-trend (VWAP slope up, price riding above it). Most misses are vacuum snapbacks / news pops that ignite against a flat or opposite slope. It only arms once the trend's already running, enters mid-move, and the chandelier hands most of it back.</td></tr>
+    <tr><td>thrust_short</td><td class="num">1 / 50</td><td class="num">+$85</td><td>Wants a 5-bar (5-minute) momentum burst with a volume surge. These runs fire on 1-2 bars — by the time five bars confirm, the move's spent, so it almost never arms at ignition.</td></tr>
+    <tr><td>rgv_short</td><td class="num">3 / 50</td><td class="num">-$61</td><td>Same fader mechanics as rgv_long, wrong way round — it shorts up-turns. On directional runs it fades into strength and loses (net red across its 3 fires).</td></tr>
+    <tr><td>capitulation_long</td><td class="num">0 / 50</td><td class="num">$0</td><td>Fades a one-sided aggressor <em>climax</em> (one side 3x its baseline AND 70%+ of flow, price already moving that way). The sat-out runs are flow-led / vacuum moves, not blow-off climaxes — the trigger never trips.</td></tr>
+    <tr><td>exhaustion_short</td><td class="num">0 / 50</td><td class="num">$0</td><td>Mirror of capitulation — fades a buy blow-off. Same story: no aggressor climax in the pre-run tape, so it never fires. It catches exhaustion, not ignition.</td></tr>
+  </table>
+  <p>Nineteen distinct runs caught between all six (no gate overlapped another's runs), <strong>31 of the 50 runs get no fire at all</strong>, and the combined take is <strong>+$418.5</strong>. The best single gate, rgv_long at +$230, is eight trades in one week — noise-level, could flip next week. Nothing here separates from zero.</p>
+</div>
+
+<div class="card">
+  <h3>Why this is a structural miss, not a tuning gap</h3>
+  <p>Look at what the six gates <em>are</em>: four of them (rgv_long, rgv_short, capitulation_long, exhaustion_short) are <strong>faders</strong> — they exist to sell strength and buy weakness. A fresh run is the exact thing they're built to lean against, so of course they don't catch it; when they do fire it's late (price already stretched) and they're fading the move that's still going. The other two are momentum gates that need a <strong>shape the runs don't offer at ignition</strong>: grind wants a trend that's already established, thrust wants five bars of confirmed burst. Our runs ignite in one or two bars from a flat or opposite backdrop. No threshold tweak fixes a mechanism aimed the wrong way — you'd need a new gate that triggers <em>on the ignition itself</em> (the vacuum snap, the 1-2 bar impulse), which is the greenfield question, not this one.</p>
+</div>
+
+<div class="callout">
+  <div class="ct">VERDICT</div>
+  <p><span class="tag">HONEST NULL</span> <span class="tag">DON'T ARM</span> Fired ungated at the 50 runs we sat out, our six live gates cover 19 of them for about <strong>+$419 hindsight</strong> — ~4% of the ~$10.9k on the table — and that's before the live ER/ATR floors trim it further. Two gates fire zero times. The best gate is 8 trades of noise. This is a clean null: the existing lineup misses the sat-out runs by design (four faders + two momentum gates that need a trend/burst the runs don't give), so there is <strong>nothing to arm or re-tune here</strong>. The money in these runs needs a new ignition-catching mechanism, which M3 takes up. <em>Thin-n caveat: one week, one summer regime, single-digit fires per gate — a floor reading, not a verdict on the gates' broader edge.</em></p>
+</div>
+
+<hr class="frag-sep">
+<h2><span class="n">M3</span> The greenfield lab: building a gate to catch the runs</h2>
+
+<p class="lead">Garrath — this week the tape handed us 71 big MNQ runs (a 15-min move ≥ 75pt) and we sat out 49 of them, ~$10,584 of hindsight 1-lot ceiling left on the table. So I ignored every gate the desk owns, went back to a blank sheet, and tried to invent a brand-new entry that would have shown up for those runs. The honest headline: <b>nothing survived — this movement ends in a NULL, and it's the most useful thing I found all week.</b> Here's the shape of it. The runs are real money: if you could enter at the exact start with the right side, a plain chandelier bags <b>+$4,388</b> at 96% win, because these runs barely go against you once they leave (avg max-favourable +109pt, avg max-adverse just −10pt). The exit is fine. The money is fine. The <i>entire</i> problem is the entry — and every causal tell I could build off the tape (flow, volume, breakout) turns out to be a coin-flip. The one signal that actually <i>sees</i> almost every run — a 5-minute breakout — sees 48 of the 49 and then bleeds −$5,056 trading them at 49.9% win, because the tape print that starts a real run is statistically identical to the thousand chop-bursts that start nothing. I built four ideas, dug four graves, and there is no gate to arm. Below is the whole autopsy.</p>
+
+<div class="card">
+<h3>Step 1 — who is even catchable? Split the 49 sat-out runs into two families</h3>
+<p>Before building anything I split the sat-out runs by whether the aggressor tape in the 60s <i>before</i> the run leaned the way the run then went. Family A (flow already leaning the run's way) is the only family with a plausible pre-run tell. Family B fires <i>against</i> the standing flow — a vacuum snap-back — and by construction can't be predicted from flow. Family B is nearly half the book.</p>
+<table>
+<tr><th>Family</th><th>Count</th><th>What it is</th><th>Verdict up front</th></tr>
+<tr><td>A — flow-led continuation</td><td>21</td><td>Aggressors already leaning the run's way; a continuation <i>might</i> be tellable</td><td>The only hunting ground</td></tr>
+<tr><td>B — vacuum snap-back</td><td>23</td><td>Price runs <i>against</i> the standing flow on a thinning tape</td><td>Structurally unpredictable</td></tr>
+<tr><td>? — unclassified</td><td>5</td><td>Flat/ambiguous pre-run flow</td><td>Noise</td></tr>
+</table>
+<p>So even in the best case the ceiling for any flow-based idea is the 21 Family-A runs — under half the pot. That's the first cold splash.</p>
+</div>
+
+<div class="card">
+<h3>Step 2 — are the runs even worth chasing? The oracle says yes (and proves the problem is entry, not exit)</h3>
+<p>I ran an oracle: enter at the exact census-defined start of every sat-out run, on the correct side, and let a normal chandelier work (30pt stop / 25pt arm / 20pt give-back, tick-honest, −$5 round trip). This is cheating on timing — but it isolates whether the <i>runs</i> are tradeable or whether they whip you out. Result: they're beautifully tradeable. That is the whole tension of this movement — the money is sitting right there, and the exit is not the bottleneck.</p>
+<table>
+<tr><th>Metric (perfect entry + perfect side)</th><th>Value</th></tr>
+<tr><td>Avg max-favourable excursion</td><td>+109 pt</td></tr>
+<tr><td>Avg max-adverse excursion</td><td>−10 pt</td></tr>
+<tr><td>Net P&amp;L, 49 runs, chandelier, net of cost</td><td><b>+$4,388</b></td></tr>
+<tr><td>$/trade · win%</td><td>+$89.6 · 96%</td></tr>
+</table>
+<p>Read the −10pt adverse number twice. Entered at the start, these runs almost never go against you. So this was never an exit problem. Everything from here is one question: <b>can any real-time signal find that start?</b></p>
+</div>
+
+<div class="callout"><div class="ct">GRAVE #1 — Flow-continuation (the main hope)</div>
+<p>The obvious Family-A idea: fire when volume expands (≥1.5× baseline) AND net aggressor flow leans ≥150 AND price is already ticking that way. Enter with the flow, chandelier exit. Result: <b>260 trades, −$1,244, −$4.8/trade, 51.5% win</b> — a coin-flip that pays a fee. It saw only 4 of 49 runs. <b>Cause of death: "flow leaning" is a property of almost every minute of the session, not of run-starts. It doesn't separate the 21 catchable runs from the chop.</b></p></div>
+
+<div class="callout"><div class="ct">GRAVE #2 — Naive volume breakout</div>
+<p>Strip out flow entirely: fire on a volume spike (≥1.5× baseline) plus any ≥10pt push, go with the push. The textbook "something's happening, get in." Result: <b>254 trades, −$1,500, −$5.9/trade, 50.0% win.</b> Dead-even hit rate, so the −$5 cost is the whole P&amp;L. <b>Cause of death: a volume spike marks activity, not direction — half the spikes are the top/bottom of a fade.</b></p></div>
+
+<div class="callout"><div class="ct">GRAVE #3 — Chase the flow</div>
+<p>Maybe raw aggressor flow is the tell: whenever 60s net flow is extreme (≥300), enter in its direction. Result: <b>8,589 fires, 451 trades, −$3,444, −$7.6/trade, 48.3% win</b> — the worst of the lot. <b>Cause of death: on this tape strong flow is mildly CONTRARIAN, not continuation — heavy lifting into a level is where price turns. Chasing it is systematically wrong.</b></p></div>
+
+<div class="callout"><div class="ct">GRAVE #4 — Vacuum-fade (try to trade Family B)</div>
+<p>Family B fires against the flow, so I tried to trade the snap-back directly: when flow is heavy one way but price is already going the other, bet on the vacuum and enter with price. Result: <b>61 trades, −$532, −$8.7/trade, 47.5% win.</b> <b>Cause of death: the snap-backs that <i>do</i> run are indistinguishable beforehand from the far more common ones that just bounce 15pt and die. Family B stays declared structurally unpredictable — the data earned that label.</b></p></div>
+
+<div class="card">
+<h3>Step 3 — the one that nearly had me: the 5-minute breakout that SEES the runs</h3>
+<p>Here's the seductive one. A plain Donchian breakout — close takes out the prior 5-minute high (go long) or low (go short) — as a raw signal <b>sees 48 of the 49 sat-out runs</b>. It is genuinely watching the right thing. Then you trade it and it falls apart, because between the 48 real runs it also breaks out into a thousand chop-traps. Mechanical spec exactly as tested:</p>
+<table>
+<tr><th>Component</th><th>Rule</th></tr>
+<tr><td>Trigger</td><td>5s close &gt; max(close, prior 5 min) → LONG; &lt; min → SHORT</td></tr>
+<tr><td>Direction</td><td>With the breakout</td></tr>
+<tr><td>Entry</td><td>First real trade tick after the 5s bar closes</td></tr>
+<tr><td>Stop</td><td>Hard 25pt (≈1 unit)</td></tr>
+<tr><td>Exit</td><td>Chandelier — arm at +25pt, give back 15pt from peak; 15-min max hold</td></tr>
+<tr><td>Sequencing</td><td>One position at a time (no re-entry until the prior exits)</td></tr>
+<tr><td>Cost</td><td>−$5 round trip (honest, not the desk's optimistic $1.5)</td></tr>
+</table>
+<p>And the tick-honest backtest across the whole week — every candidate on one table so you can see the graveyard next to the hero, with the oracle as the ceiling:</p>
+<table>
+<tr><th>Config</th><th>n</th><th>Net $</th><th>$/trade</th><th>Win%</th><th>Big-moves caught</th></tr>
+<tr><td>ORACLE (perfect entry+side)</td><td>49</td><td>+$4,388</td><td>+$89.6</td><td>96%</td><td>49/49 (reference)</td></tr>
+<tr><td>Donchian 5-min breakout</td><td>1,136</td><td>−$5,056</td><td>−$4.5</td><td>49.9%</td><td>sees 48 · traded 16/49</td></tr>
+<tr><td>Grave 1 — flow-continuation</td><td>260</td><td>−$1,244</td><td>−$4.8</td><td>51.5%</td><td>4/49</td></tr>
+<tr><td>Grave 2 — naive vol-breakout</td><td>254</td><td>−$1,500</td><td>−$5.9</td><td>50.0%</td><td>3/49</td></tr>
+<tr><td>Grave 3 — chase-flow</td><td>451</td><td>−$3,444</td><td>−$7.6</td><td>48.3%</td><td>4/49</td></tr>
+<tr><td>Grave 4 — vacuum-fade</td><td>61</td><td>−$532</td><td>−$8.7</td><td>47.5%</td><td>2/49</td></tr>
+</table>
+<p>The Donchian line is the whole lesson in one row: it <i>sees</i> 48/49 but only banks 16 of them, because once it's parked in a losing chop-break it's not free to take the real run. 49.9% win is a literal coin-flip, and the −$5 cost turns the coin-flip into a −$5,056 bleed.</p>
+</div>
+
+<div class="card">
+<h3>Step 4 — robustness on the breakout (does any edge hide inside it?)</h3>
+<p>I stress-tested the breakout the way we kill things properly. It fails every test — no hidden pocket of edge, no direction that works, no lucky-trade dependence, no threshold where it turns.</p>
+<table>
+<tr><th>Test</th><th>Result</th><th>Read</th></tr>
+<tr><td>Day-by-day</td><td>−1,528 / +99 / −1,072 / +119 / −1,108 / −888 / −676</td><td>Red 5 of 7 days; the two green days are tiny. Systematic bleed, not one bad day.</td></tr>
+<tr><td>Long vs short</td><td>LONG −$2,372 (50%) · SHORT −$2,683 (50%)</td><td>Symmetric loss. Not a directional-bias artefact — it's just wrong both ways.</td></tr>
+<tr><td>Strip the 3 best trades</td><td>−$5,582 (was −$5,056)</td><td>Removing the luckiest wins makes it <i>worse</i> — no fat tail is carrying a hidden edge.</td></tr>
+<tr><td>Impulse-threshold sweep</td><td>≥8pt −$4,126 · ≥12 −$1,230 · ≥16 −$636 · ≥20 −$726</td><td>The tighter cousin (impulse instead of Donchian): loss shrinks only because <i>n</i> collapses — $/trade stays −$6 to −$9 and win% stays 50%. The classic curve-fit tell: no edge, just fewer bets.</td></tr>
+</table>
+<p>Caveats stated plainly: this is <b>one week, in-sample, thin per-family n (21 catchable runs)</b>, MNQ-only, paper. But the failure is so uniform — every idea lands on 48–52% win — that more data won't rescue it. The problem is structural, not sample size.</p>
+</div>
+
+<div class="card">
+<h3>The verdict</h3>
+<p><b>NULL. Nothing to arm — not even to shadow as a capital gate.</b> The durable, bankable lesson from this movement: the runs are worth ~$4.4k/week <i>only</i> with hindsight timing (their −10pt adverse excursion is itself an artefact of anchoring on the exact extreme). In real time, a run-start is statistically indistinguishable from the chop-bursts around it — the same breakout that catches 48/49 runs is a 50/50 coin-flip that bleeds after cost. Flow is not a continuation tell here (if anything it's contrarian), and the vacuum family (23 of 49) fires against the tape and cannot be predicted. <b>Do not build a "catch the runs" gate off price/volume/flow alone.</b> If there's a next attempt, it is NOT another entry threshold — it's the L2 order-book depletion angle (does the far side thin out <i>before</i> the run?), which this movement did not test and is the only stone left unturned.</p>
+<p>
+<span class="tag">NULL</span>
+<span class="tag">DON'T ARM</span>
+<span class="tag">4 GRAVES</span>
+<span class="tag">next: L2 book-depletion, not another entry threshold</span>
+</p>
+<p style="font-size:0.9em;opacity:0.7">One observe-only footnote for the regime board: the Donchian breakout is a lousy <i>entry</i> but a good <i>detector</i> — it flags 48/49 runs in real time. Zero P&amp;L claim, no capital. If we ever want a live "a run may be starting" label feeding the shadow/regime router (not a trade), that's the only reusable thing here. Shadow it as a label, never as a gate.</p>
+</div>
+</div></body></html>

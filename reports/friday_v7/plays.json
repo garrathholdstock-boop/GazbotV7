@@ -1,0 +1,72 @@
+[
+  {
+    "id": "promote-abs-veto-55s",
+    "section_ref": "Shadow desk",
+    "topic": "Promotion — abs_veto_55s",
+    "play": "PROMOTE abs_veto_55s into the live paper tournament. It is the #1 shadow variant: a thrust gate + a 55s absorption veto that skips the thrusts that get eaten. The veto is the whole edge — same win/loss sizes as plain thrust, but it doubles the hit-rate by ditching the fakeouts.",
+    "money_gbp": 270,
+    "verification": "verified",
+    "suggested_mode": "live",
+    "rationale": "Robustness battery PASSED: +$1,448 over 103 trades, 50% win, ~2:1 reward:risk, worst loss only -$71, max drawdown -$222. Profitable in BOTH chop (+$694) and trend (+$754), 2nd-half BETTER than 1st (no decay), beats the un-vetoed thrust by +$1,040 with HALF the drawdown. Caveat: ~9-day sample; the forward shadow run is green (+$218 today) but wants a red-trend day to fully confirm."
+  },
+  {
+    "id": "relegate-rgv-short",
+    "section_ref": "Shadow desk",
+    "topic": "Relegation — rgv_short",
+    "play": "RELEGATE rgv_short from the live tournament. Its only edge is one narrow ER band (0.30-0.40); everywhere else it bleeds, and it is the desk's clearest relegation candidate.",
+    "money_gbp": 0,
+    "verification": "verified",
+    "suggested_mode": "live",
+    "rationale": "Single-band edge, fragile. It did have one good chop day (+$310 on 07-23), so it is not worthless — but as a standing live gate it does not carry its weight. Free the slot for abs_veto_55s."
+  },
+  {
+    "id": "keep-faders-router-guard",
+    "section_ref": "Live desk",
+    "topic": "Keep rgv_long + capitulation_long — guarded",
+    "play": "KEEP the two long-faders (rgv_long, capitulation_long) in the lineup — do NOT relegate. Let the live direction-router be their guard: it benches them automatically in a proven down-trend, which is the only thing that hurt them.",
+    "money_gbp": 0,
+    "verification": "verified",
+    "suggested_mode": "live",
+    "rationale": "The gates are not broken, they were direction-blind: their ER bands read cleanliness not direction, so they faded a clean down-trend (rgv_long -$361 in an hour on 07-23). The router fixes exactly that, and on a chop day rgv_long was the desk's best gate (+$92.5). Keep + guard beats relegate."
+  },
+  {
+    "id": "router-architecture-review",
+    "section_ref": "Mid-week musings",
+    "topic": "Direction-router architecture",
+    "play": "The 15-min-timer direction-router works (+$580 Mon-Thu backtest, live-validated) but has a reaction lag and whipsaw cost. Interrogate whether a more elegant mechanism (per-gate direction-guard in-code / event-driven / continuous in-tournament gating) does the job better.",
+    "money_gbp": 0,
+    "verification": "exploratory",
+    "suggested_mode": "shadow",
+    "rationale": "Keep the router live as-is for now; the report researches + backtests the alternatives. The likely end-state is an in-code per-gate guard (per-tick, no polling lag, no switch-file), with the router as the automated bridge. Not a this-week change."
+  },
+  {
+    "id": "greenfield-run-catcher-null",
+    "section_ref": "Big-runs deep-dive (M3)",
+    "topic": "Greenfield run-catcher",
+    "play": "DO NOT ARM any new run-catching entry. Every causal entry I invented (flow-continuation, volume-breakout, chase-the-flow, vacuum-fade, Donchian breakout) is a 48-52% coin-flip that bleeds after realistic cost.",
+    "money_gbp": 0,
+    "verification": "refuted",
+    "suggested_mode": "skip",
+    "rationale": "The runs ARE real money (+$4,388 with perfect hindsight timing) and the exit is fine — the problem is purely the entry: a real-time run-start is statistically indistinguishable from the chop-bursts around it. Family B (vacuum snap-backs, ~half the pot) is confirmed structurally unpredictable. Durable negative lesson, no green light."
+  },
+  {
+    "id": "donchian-run-detector-shadow",
+    "section_ref": "Big-runs deep-dive (M3)",
+    "topic": "Donchian as a DETECTOR (not a gate)",
+    "play": "SHADOW the 5-min Donchian breakout as a non-trading 'a run may be starting' LABEL only — feeding the regime/shadow router, never as a capital gate.",
+    "money_gbp": 0,
+    "verification": "exploratory",
+    "suggested_mode": "shadow",
+    "rationale": "A lousy entry (bleeds -$5,056 traded) but a great detector — it flags 48 of 49 runs in real time. Zero capital, zero P&L claim; it may earn its keep as a signal the router listens to, not a trade."
+  },
+  {
+    "id": "l2-book-depletion-investigate",
+    "section_ref": "Big-runs deep-dive (M3)",
+    "topic": "L2 book depletion (next week)",
+    "play": "INVESTIGATE next Friday: does the far-side order book (58.9M depth rows) thin out BEFORE a run in a way price/volume/flow can't see? The one stone left unturned.",
+    "money_gbp": 0,
+    "verification": "exploratory",
+    "suggested_mode": "skip",
+    "rationale": "Price, volume and aggressor flow all failed to separate run-starts from chop. The order book is the only microstructure signal not yet tested against the runs. Next week's greenfield subject."
+  }
+]

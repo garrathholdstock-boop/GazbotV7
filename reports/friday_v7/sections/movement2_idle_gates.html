@@ -1,0 +1,28 @@
+<h2><span class="n">M2</span> Could our own gates have caught them?</h2>
+
+<p class="lead">Short answer, Garrath: no — not in any way worth acting on. I took the 50-odd runs we sat out this week (about $10,900 of hindsight money on the table) and fired all six of our live gates at them mechanically, in the run's direction, in the 10 minutes before each one lit up — then priced the exits honestly on this week's own ticks. Between the six of them they'd have fired on just <strong>19 of the 50</strong> runs and banked about <strong>+$419</strong>. That's roughly <strong>4% of the money</strong> that got away, spread across single-digit trades per gate, and it's the <em>generous</em> number — I fired them ungated, so the live ER and ATR floors would knock it down further. Two of the six gates fired on zero of the 50. The runs we miss, we miss by design.</p>
+
+<div class="card">
+  <h3>The scoreboard — all six gates, fired on the 50 sat-out runs</h3>
+  <p>In-direction only (long gates on up-runs, short gates on down-runs), one position per fire, exits repriced tick-by-tick on this week's tape (grind/thrust ride the chandelier + 1-ATR stop; the fades take 2R or the 1-ATR stop). Honest money, same week the runs happened.</p>
+  <table>
+    <tr><th>Gate</th><th>Fires on sat-out runs</th><th>Honest $</th><th>Why it misses</th></tr>
+    <tr><td>rgv_long</td><td class="num">8 / 50</td><td class="num">+$230</td><td>Fades a VWAP stretch that's <em>rolling over</em> — needs price already 2+ ATR past VWAP and turning back. Fresh runs ignite near/through VWAP, not stretched past it, so it rarely arms — and when it does it's fading the run's own continuation.</td></tr>
+    <tr><td>grind_long</td><td class="num">7 / 50</td><td class="num">+$165</td><td>Needs an <em>established</em> up-trend (VWAP slope up, price riding above it). Most misses are vacuum snapbacks / news pops that ignite against a flat or opposite slope. It only arms once the trend's already running, enters mid-move, and the chandelier hands most of it back.</td></tr>
+    <tr><td>thrust_short</td><td class="num">1 / 50</td><td class="num">+$85</td><td>Wants a 5-bar (5-minute) momentum burst with a volume surge. These runs fire on 1-2 bars — by the time five bars confirm, the move's spent, so it almost never arms at ignition.</td></tr>
+    <tr><td>rgv_short</td><td class="num">3 / 50</td><td class="num">-$61</td><td>Same fader mechanics as rgv_long, wrong way round — it shorts up-turns. On directional runs it fades into strength and loses (net red across its 3 fires).</td></tr>
+    <tr><td>capitulation_long</td><td class="num">0 / 50</td><td class="num">$0</td><td>Fades a one-sided aggressor <em>climax</em> (one side 3x its baseline AND 70%+ of flow, price already moving that way). The sat-out runs are flow-led / vacuum moves, not blow-off climaxes — the trigger never trips.</td></tr>
+    <tr><td>exhaustion_short</td><td class="num">0 / 50</td><td class="num">$0</td><td>Mirror of capitulation — fades a buy blow-off. Same story: no aggressor climax in the pre-run tape, so it never fires. It catches exhaustion, not ignition.</td></tr>
+  </table>
+  <p>Nineteen distinct runs caught between all six (no gate overlapped another's runs), <strong>31 of the 50 runs get no fire at all</strong>, and the combined take is <strong>+$418.5</strong>. The best single gate, rgv_long at +$230, is eight trades in one week — noise-level, could flip next week. Nothing here separates from zero.</p>
+</div>
+
+<div class="card">
+  <h3>Why this is a structural miss, not a tuning gap</h3>
+  <p>Look at what the six gates <em>are</em>: four of them (rgv_long, rgv_short, capitulation_long, exhaustion_short) are <strong>faders</strong> — they exist to sell strength and buy weakness. A fresh run is the exact thing they're built to lean against, so of course they don't catch it; when they do fire it's late (price already stretched) and they're fading the move that's still going. The other two are momentum gates that need a <strong>shape the runs don't offer at ignition</strong>: grind wants a trend that's already established, thrust wants five bars of confirmed burst. Our runs ignite in one or two bars from a flat or opposite backdrop. No threshold tweak fixes a mechanism aimed the wrong way — you'd need a new gate that triggers <em>on the ignition itself</em> (the vacuum snap, the 1-2 bar impulse), which is the greenfield question, not this one.</p>
+</div>
+
+<div class="callout">
+  <div class="ct">VERDICT</div>
+  <p><span class="tag">HONEST NULL</span> <span class="tag">DON'T ARM</span> Fired ungated at the 50 runs we sat out, our six live gates cover 19 of them for about <strong>+$419 hindsight</strong> — ~4% of the ~$10.9k on the table — and that's before the live ER/ATR floors trim it further. Two gates fire zero times. The best gate is 8 trades of noise. This is a clean null: the existing lineup misses the sat-out runs by design (four faders + two momentum gates that need a trend/burst the runs don't give), so there is <strong>nothing to arm or re-tune here</strong>. The money in these runs needs a new ignition-catching mechanism, which M3 takes up. <em>Thin-n caveat: one week, one summer regime, single-digit fires per gate — a floor reading, not a verdict on the gates' broader edge.</em></p>
+</div>

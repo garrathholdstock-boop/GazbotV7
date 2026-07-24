@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>GAZBOT V5 — Monday Playbook</title><style>
+  :root{--paper:#faf8f3;--ink:#1a1f2b;--ink2:#5b6472;--navy:#0f2942;--gold:#b8860b;
+         --pos:#1a7f47;--neg:#c0392b;--line:#e7e1d4;--card:#ffffff;--zebra:#f7f4ec}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+        font:16px/1.65 "Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif}
+  .wrap{max-width:940px;margin:0 auto;padding:0 28px 80px}
+  .masthead{border-bottom:3px double var(--navy);padding:46px 0 26px;margin-bottom:8px}
+  .brand{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:700;font-family:Georgia,serif}
+  h1{font-size:38px;line-height:1.15;margin:10px 0 6px;color:var(--navy);font-weight:700;letter-spacing:-.5px}
+  .dates{font-size:15px;color:var(--ink2);font-style:italic}
+  .verdict{font-size:21px;line-height:1.45;color:var(--ink);margin:24px 0 8px;font-weight:600}
+  .verdict b{color:var(--neg)}
+  .safety{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 4px}
+  .badge{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-family:ui-sans-serif,system-ui,sans-serif}
+  .badge .bn{font-size:22px;font-weight:800;color:var(--navy)} .badge .bl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2)}
+  h2{font-size:25px;color:var(--navy);margin:54px 0 4px;padding-bottom:8px;border-bottom:2px solid var(--gold);font-weight:700}
+  h2 .n{color:var(--gold);font-size:16px;font-weight:700;margin-right:10px}
+  h3{font-size:19px;color:var(--navy);margin:30px 0 8px}
+  p,li{font-size:16.5px}
+  .lead{font-size:18px;color:#33404f}
+  .grid{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0}
+  .stat{flex:1 1 150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,41,66,.05);font-family:ui-sans-serif,system-ui,sans-serif}
+  .stat .sv{font-size:27px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
+  .stat.neg .sv{color:var(--neg)} .stat.pos .sv{color:var(--pos)}
+  .stat .sl{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2);margin-top:4px}
+  .stat .ss{font-size:12.5px;color:var(--ink2);margin-top:5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:20px 0;box-shadow:0 1px 4px rgba(15,41,66,.05)}
+  .chartbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
+  svg.chart{width:100%;height:auto;display:block}
+  .ax{font:11px ui-sans-serif,system-ui,sans-serif;fill:var(--ink2)}
+  .dot-lbl{font:600 11.5px ui-sans-serif,system-ui,sans-serif}
+  .hb-lbl{font:600 13px ui-sans-serif,system-ui,sans-serif;fill:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px}
+  th{background:var(--navy);color:#fff;text-align:left;padding:9px 11px;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+  td{padding:8px 11px;border-bottom:1px solid var(--line)}
+  tr:nth-child(even) td{background:var(--zebra)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums} td.ln{font-weight:600;color:var(--navy)}
+  .row-hl td{background:#eafaf0 !important;font-weight:600}
+  .row-bad td{background:#fdf0ee !important}
+  .qa{border-left:4px solid var(--gold);padding:4px 0 4px 20px;margin:20px 0}
+  .qa .q{font-weight:700;color:var(--navy);font-size:17px}
+  .qa .a{margin-top:6px}
+  .qa .o{margin-top:8px;background:#f3f6f8;border-radius:8px;padding:10px 14px;font-size:15px;font-family:ui-sans-serif,system-ui,sans-serif}
+  .o b{color:var(--navy)}
+  .pill{display:inline-block;font:700 11px ui-sans-serif,system-ui,sans-serif;padding:2px 9px;border-radius:20px;letter-spacing:.5px}
+  .p-keep{background:#eafaf0;color:var(--pos)} .p-kill{background:#fdecea;color:var(--neg)} .p-tune{background:#fff5e0;color:#9a6b00}
+  .callout{background:#fff8e8;border:1px solid #f0dba8;border-left:4px solid var(--gold);border-radius:10px;padding:16px 20px;margin:22px 0}
+  .callout .ct{font-weight:700;color:#8a6500;font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#f1ede3;padding:1px 6px;border-radius:4px}
+  .foot{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px;font-style:italic}
+  a{color:#0a5e8a}
+  @media print{body{background:#fff} .card,.chartbox,.stat{box-shadow:none}}
+</style><style>
+.pk-intro{font-size:16.5px;color:#33404f}
+.pk-group{font-size:20px;color:var(--navy);margin:34px 0 6px;padding-bottom:6px;border-bottom:2px solid var(--gold);font-weight:700}
+.pk-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;box-shadow:0 1px 3px rgba(15,41,66,.05);font-family:ui-sans-serif,system-ui,sans-serif;border-left:4px solid var(--line)}
+.pk-card.m-live{border-left-color:var(--pos)} .pk-card.m-shadow{border-left-color:var(--gold)} .pk-card.m-skip{border-left-color:#c9cdd3}
+.pk-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.pk-ref{font:700 12px ui-monospace,Menlo,monospace;color:var(--gold)}
+.pk-play{font-size:15.5px;color:var(--ink);margin:7px 0 4px;font-family:Georgia,serif;line-height:1.4}
+.pk-meta{font-size:12.5px;color:var(--ink2)} .pk-money{font-weight:800;color:var(--navy)}
+.pk-opts{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-top:9px}
+.pk-opt{padding:7px 16px;font:600 13px ui-sans-serif,system-ui,sans-serif;cursor:pointer;background:#fff;border:0;border-right:1px solid var(--line)}
+.pk-opt:last-child{border-right:0}
+.pk-opt[data-mode=live].on{background:#eafaf0;color:var(--pos)}
+.pk-opt[data-mode=shadow].on{background:#fff5e0;color:#9a6b00}
+.pk-opt[data-mode=skip].on{background:#eef0f2;color:var(--ink2)}
+.pk-opt:disabled{opacity:.3;cursor:not-allowed;text-decoration:line-through}
+.pk-bar{position:sticky;bottom:12px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;margin:26px 0 10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-family:ui-sans-serif,system-ui,sans-serif;box-shadow:0 4px 18px rgba(15,41,66,.25)}
+.pk-bar .cnt{font-size:15px} .pk-bar .cnt b{font-size:20px}
+.pk-btn{background:var(--gold);color:#fff;border:0;border-radius:8px;padding:11px 18px;font:700 14px ui-sans-serif,system-ui,sans-serif;cursor:pointer;margin-left:auto}
+.pk-btn.alt{background:#0088cc;margin-left:8px}
+.pill.v-verified{background:#eafaf0;color:var(--pos)} .pill.v-bug{background:#e7edf5;color:var(--navy)}
+.pill.v-refuted{background:#fdecea;color:var(--neg)} .pill.v-exploratory{background:#f1f1f1;color:var(--ink2)}
+.pk-note{font-size:12.5px;color:var(--ink2);font-style:italic;margin-top:3px}
+</style></head><body><div class="wrap"><div class="masthead"><div class="brand">GAZBOT V5 · Futures Desk</div>
+<h1>Monday Playbook</h1>
+<div class="dates">Your picks from the forensic report · Week of 21-25 Jul 2026</div></div>
+<p class="pk-intro">Every concrete play from the report, one card each. Tap <b>Shadow</b>, <b>Live</b>, or <b>Skip</b> for each. Your picks save automatically — when you're done, hit <b>Copy my picks</b> or <b>Send to Telegram</b> and they come back to me for the shadow-vs-live conversation before Monday. <b>Refuted &amp; exploratory plays can't go Live</b> until they survive a week in shadow — that guardrail is built in.</p>
+<div class="pk-group">✅ Act on these — survived proof &amp; real bugs</div>
+<div class="pk-card" data-id="promote-abs-veto-55s" data-default="live"><div class="pk-top"><span class="pk-ref">Shadow desk · Promotion — abs_veto_55s</span><span class="pill v-verified">✓ VERIFIED</span></div><div class="pk-play">PROMOTE abs_veto_55s into the live paper tournament. It is the #1 shadow variant: a thrust gate + a 55s absorption veto that skips the thrusts that get eaten. The veto is the whole edge — same win/loss sizes as plain thrust, but it doubles the hit-rate by ditching the fakeouts.</div><div class="pk-meta"><span class="pk-money">£270/wk</span> · Robustness battery PASSED: +$1,448 over 103 trades, 50% win, ~2:1 reward:risk, worst loss only -$71, max drawdown -$222. Profitable in BOTH chop (+$694) and trend (+$754), 2nd-half BETTER than 1st (no decay), beats the un-vetoed thrust by +$1,040 with HALF the drawdown. Caveat: ~9-day sample; the forward shadow run is green (+$218 today) but wants a red-trend day to fully confirm.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div></div>
+<div class="pk-card" data-id="relegate-rgv-short" data-default="live"><div class="pk-top"><span class="pk-ref">Shadow desk · Relegation — rgv_short</span><span class="pill v-verified">✓ VERIFIED</span></div><div class="pk-play">RELEGATE rgv_short from the live tournament. Its only edge is one narrow ER band (0.30-0.40); everywhere else it bleeds, and it is the desk&#x27;s clearest relegation candidate.</div><div class="pk-meta">Single-band edge, fragile. It did have one good chop day (+$310 on 07-23), so it is not worthless — but as a standing live gate it does not carry its weight. Free the slot for abs_veto_55s.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div></div>
+<div class="pk-card" data-id="keep-faders-router-guard" data-default="live"><div class="pk-top"><span class="pk-ref">Live desk · Keep rgv_long + capitulation_long — guarded</span><span class="pill v-verified">✓ VERIFIED</span></div><div class="pk-play">KEEP the two long-faders (rgv_long, capitulation_long) in the lineup — do NOT relegate. Let the live direction-router be their guard: it benches them automatically in a proven down-trend, which is the only thing that hurt them.</div><div class="pk-meta">The gates are not broken, they were direction-blind: their ER bands read cleanliness not direction, so they faded a clean down-trend (rgv_long -$361 in an hour on 07-23). The router fixes exactly that, and on a chop day rgv_long was the desk&#x27;s best gate (+$92.5). Keep + guard beats relegate.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div></div>
+<div class="pk-group">🔍 Exploratory — shadow-test only</div>
+<div class="pk-card" data-id="router-architecture-review" data-default="shadow"><div class="pk-top"><span class="pk-ref">Mid-week musings · Direction-router architecture</span><span class="pill v-exploratory">◦ EXPLORATORY</span></div><div class="pk-play">The 15-min-timer direction-router works (+$580 Mon-Thu backtest, live-validated) but has a reaction lag and whipsaw cost. Interrogate whether a more elegant mechanism (per-gate direction-guard in-code / event-driven / continuous in-tournament gating) does the job better.</div><div class="pk-meta">Keep the router live as-is for now; the report researches + backtests the alternatives. The likely end-state is an in-code per-gate guard (per-tick, no polling lag, no switch-file), with the router as the automated bridge. Not a this-week change.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live" disabled title="Refuted/exploratory — must survive a week in shadow first">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div><div class="pk-note">Live locked — prove it in shadow first.</div></div>
+<div class="pk-card" data-id="greenfield-run-catcher-null" data-default="skip"><div class="pk-top"><span class="pk-ref">Big-runs deep-dive (M3) · Greenfield run-catcher</span><span class="pill v-refuted">⚠ REFUTED</span></div><div class="pk-play">DO NOT ARM any new run-catching entry. Every causal entry I invented (flow-continuation, volume-breakout, chase-the-flow, vacuum-fade, Donchian breakout) is a 48-52% coin-flip that bleeds after realistic cost.</div><div class="pk-meta">The runs ARE real money (+$4,388 with perfect hindsight timing) and the exit is fine — the problem is purely the entry: a real-time run-start is statistically indistinguishable from the chop-bursts around it. Family B (vacuum snap-backs, ~half the pot) is confirmed structurally unpredictable. Durable negative lesson, no green light.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live" disabled title="Refuted/exploratory — must survive a week in shadow first">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div><div class="pk-note">Live locked — prove it in shadow first.</div></div>
+<div class="pk-card" data-id="donchian-run-detector-shadow" data-default="shadow"><div class="pk-top"><span class="pk-ref">Big-runs deep-dive (M3) · Donchian as a DETECTOR (not a gate)</span><span class="pill v-exploratory">◦ EXPLORATORY</span></div><div class="pk-play">SHADOW the 5-min Donchian breakout as a non-trading &#x27;a run may be starting&#x27; LABEL only — feeding the regime/shadow router, never as a capital gate.</div><div class="pk-meta">A lousy entry (bleeds -$5,056 traded) but a great detector — it flags 48 of 49 runs in real time. Zero capital, zero P&amp;L claim; it may earn its keep as a signal the router listens to, not a trade.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live" disabled title="Refuted/exploratory — must survive a week in shadow first">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div><div class="pk-note">Live locked — prove it in shadow first.</div></div>
+<div class="pk-card" data-id="l2-book-depletion-investigate" data-default="skip"><div class="pk-top"><span class="pk-ref">Big-runs deep-dive (M3) · L2 book depletion (next week)</span><span class="pill v-exploratory">◦ EXPLORATORY</span></div><div class="pk-play">INVESTIGATE next Friday: does the far-side order book (58.9M depth rows) thin out BEFORE a run in a way price/volume/flow can&#x27;t see? The one stone left unturned.</div><div class="pk-meta">Price, volume and aggressor flow all failed to separate run-starts from chop. The order book is the only microstructure signal not yet tested against the runs. Next week&#x27;s greenfield subject.</div><div class="pk-opts"><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="live" disabled title="Refuted/exploratory — must survive a week in shadow first">Live</button><button class="pk-opt" data-mode="skip">Skip</button></div><div class="pk-note">Live locked — prove it in shadow first.</div></div>
+<div class="pk-bar"><span class="cnt"><b id="nLive">0</b> live &nbsp; <b id="nShadow">0</b> shadow &nbsp; <b id="nSkip">0</b> skip</span><button class="pk-btn" id="copyBtn">📋 Copy my picks</button><button class="pk-btn alt" id="tgBtn">✈ Send to Telegram</button></div><div class="foot">Picks are stored only in this browser until you send them. Nothing is armed automatically — every Live pick is a conversation first.</div><script>
+var KEY='gazPicks_2026-07-24';
+var picks=JSON.parse(localStorage.getItem(KEY)||'{}');
+function save(){localStorage.setItem(KEY,JSON.stringify(picks));}
+document.querySelectorAll('.pk-card').forEach(function(c){
+  var id=c.dataset.id; if(!(id in picks)) picks[id]=c.dataset.default;
+  c.querySelectorAll('.pk-opt').forEach(function(b){
+    b.addEventListener('click',function(){ if(b.disabled)return; picks[id]=b.dataset.mode; save(); paint(); });
+  });
+});
+function paint(){
+  var nL=0,nS=0,nK=0;
+  document.querySelectorAll('.pk-card').forEach(function(c){
+    var id=c.dataset.id, m=picks[id]||'skip';
+    c.className='pk-card m-'+m;
+    c.querySelectorAll('.pk-opt').forEach(function(b){ b.classList.toggle('on', b.dataset.mode===m && !b.disabled); });
+    if(m==='live')nL++; else if(m==='shadow')nS++; else nK++;
+  });
+  document.getElementById('nLive').textContent=nL;
+  document.getElementById('nShadow').textContent=nS;
+  document.getElementById('nSkip').textContent=nK;
+}
+function summary(){
+  var L=[],S=[];
+  document.querySelectorAll('.pk-card').forEach(function(c){
+    var id=c.dataset.id, m=picks[id]||'skip';
+    var ref=c.querySelector('.pk-ref').textContent.trim();
+    var play=c.querySelector('.pk-play').textContent.trim();
+    if(m==='live')L.push('• '+ref+' — '+play);
+    else if(m==='shadow')S.push('• '+ref+' — '+play);
+  });
+  var t='GAZBOT Monday Playbook — my picks ('+document.querySelector('.dates').textContent.replace('Your picks from the forensic report · ','')+')\n\n';
+  t+='ARM LIVE ('+L.length+'):\n'+(L.join('\n')||'  (none)')+'\n\nSHADOW ('+S.length+'):\n'+(S.join('\n')||'  (none)')+'\n\nLet\u2019s discuss which of these go for Monday.';
+  return t;
+}
+document.getElementById('copyBtn').addEventListener('click',function(){
+  var t=summary();
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){alert('Picks copied — paste them to me in chat.');},function(){prompt('Copy your picks:',t);});}
+  else prompt('Copy your picks:',t);
+});
+document.getElementById('tgBtn').addEventListener('click',function(){
+  window.open('https://t.me/share/url?url=&text='+encodeURIComponent(summary()),'_blank');
+});
+paint();
+</script></div></body></html>

@@ -1,0 +1,91 @@
+<h2><span class="n">M3</span> The greenfield lab: building a gate to catch the runs</h2>
+
+<p class="lead">Garrath — this week the tape handed us 71 big MNQ runs (a 15-min move ≥ 75pt) and we sat out 49 of them, ~$10,584 of hindsight 1-lot ceiling left on the table. So I ignored every gate the desk owns, went back to a blank sheet, and tried to invent a brand-new entry that would have shown up for those runs. The honest headline: <b>nothing survived — this movement ends in a NULL, and it's the most useful thing I found all week.</b> Here's the shape of it. The runs are real money: if you could enter at the exact start with the right side, a plain chandelier bags <b>+$4,388</b> at 96% win, because these runs barely go against you once they leave (avg max-favourable +109pt, avg max-adverse just −10pt). The exit is fine. The money is fine. The <i>entire</i> problem is the entry — and every causal tell I could build off the tape (flow, volume, breakout) turns out to be a coin-flip. The one signal that actually <i>sees</i> almost every run — a 5-minute breakout — sees 48 of the 49 and then bleeds −$5,056 trading them at 49.9% win, because the tape print that starts a real run is statistically identical to the thousand chop-bursts that start nothing. I built four ideas, dug four graves, and there is no gate to arm. Below is the whole autopsy.</p>
+
+<div class="card">
+<h3>Step 1 — who is even catchable? Split the 49 sat-out runs into two families</h3>
+<p>Before building anything I split the sat-out runs by whether the aggressor tape in the 60s <i>before</i> the run leaned the way the run then went. Family A (flow already leaning the run's way) is the only family with a plausible pre-run tell. Family B fires <i>against</i> the standing flow — a vacuum snap-back — and by construction can't be predicted from flow. Family B is nearly half the book.</p>
+<table>
+<tr><th>Family</th><th>Count</th><th>What it is</th><th>Verdict up front</th></tr>
+<tr><td>A — flow-led continuation</td><td>21</td><td>Aggressors already leaning the run's way; a continuation <i>might</i> be tellable</td><td>The only hunting ground</td></tr>
+<tr><td>B — vacuum snap-back</td><td>23</td><td>Price runs <i>against</i> the standing flow on a thinning tape</td><td>Structurally unpredictable</td></tr>
+<tr><td>? — unclassified</td><td>5</td><td>Flat/ambiguous pre-run flow</td><td>Noise</td></tr>
+</table>
+<p>So even in the best case the ceiling for any flow-based idea is the 21 Family-A runs — under half the pot. That's the first cold splash.</p>
+</div>
+
+<div class="card">
+<h3>Step 2 — are the runs even worth chasing? The oracle says yes (and proves the problem is entry, not exit)</h3>
+<p>I ran an oracle: enter at the exact census-defined start of every sat-out run, on the correct side, and let a normal chandelier work (30pt stop / 25pt arm / 20pt give-back, tick-honest, −$5 round trip). This is cheating on timing — but it isolates whether the <i>runs</i> are tradeable or whether they whip you out. Result: they're beautifully tradeable. That is the whole tension of this movement — the money is sitting right there, and the exit is not the bottleneck.</p>
+<table>
+<tr><th>Metric (perfect entry + perfect side)</th><th>Value</th></tr>
+<tr><td>Avg max-favourable excursion</td><td>+109 pt</td></tr>
+<tr><td>Avg max-adverse excursion</td><td>−10 pt</td></tr>
+<tr><td>Net P&amp;L, 49 runs, chandelier, net of cost</td><td><b>+$4,388</b></td></tr>
+<tr><td>$/trade · win%</td><td>+$89.6 · 96%</td></tr>
+</table>
+<p>Read the −10pt adverse number twice. Entered at the start, these runs almost never go against you. So this was never an exit problem. Everything from here is one question: <b>can any real-time signal find that start?</b></p>
+</div>
+
+<div class="callout"><div class="ct">GRAVE #1 — Flow-continuation (the main hope)</div>
+<p>The obvious Family-A idea: fire when volume expands (≥1.5× baseline) AND net aggressor flow leans ≥150 AND price is already ticking that way. Enter with the flow, chandelier exit. Result: <b>260 trades, −$1,244, −$4.8/trade, 51.5% win</b> — a coin-flip that pays a fee. It saw only 4 of 49 runs. <b>Cause of death: "flow leaning" is a property of almost every minute of the session, not of run-starts. It doesn't separate the 21 catchable runs from the chop.</b></p></div>
+
+<div class="callout"><div class="ct">GRAVE #2 — Naive volume breakout</div>
+<p>Strip out flow entirely: fire on a volume spike (≥1.5× baseline) plus any ≥10pt push, go with the push. The textbook "something's happening, get in." Result: <b>254 trades, −$1,500, −$5.9/trade, 50.0% win.</b> Dead-even hit rate, so the −$5 cost is the whole P&amp;L. <b>Cause of death: a volume spike marks activity, not direction — half the spikes are the top/bottom of a fade.</b></p></div>
+
+<div class="callout"><div class="ct">GRAVE #3 — Chase the flow</div>
+<p>Maybe raw aggressor flow is the tell: whenever 60s net flow is extreme (≥300), enter in its direction. Result: <b>8,589 fires, 451 trades, −$3,444, −$7.6/trade, 48.3% win</b> — the worst of the lot. <b>Cause of death: on this tape strong flow is mildly CONTRARIAN, not continuation — heavy lifting into a level is where price turns. Chasing it is systematically wrong.</b></p></div>
+
+<div class="callout"><div class="ct">GRAVE #4 — Vacuum-fade (try to trade Family B)</div>
+<p>Family B fires against the flow, so I tried to trade the snap-back directly: when flow is heavy one way but price is already going the other, bet on the vacuum and enter with price. Result: <b>61 trades, −$532, −$8.7/trade, 47.5% win.</b> <b>Cause of death: the snap-backs that <i>do</i> run are indistinguishable beforehand from the far more common ones that just bounce 15pt and die. Family B stays declared structurally unpredictable — the data earned that label.</b></p></div>
+
+<div class="card">
+<h3>Step 3 — the one that nearly had me: the 5-minute breakout that SEES the runs</h3>
+<p>Here's the seductive one. A plain Donchian breakout — close takes out the prior 5-minute high (go long) or low (go short) — as a raw signal <b>sees 48 of the 49 sat-out runs</b>. It is genuinely watching the right thing. Then you trade it and it falls apart, because between the 48 real runs it also breaks out into a thousand chop-traps. Mechanical spec exactly as tested:</p>
+<table>
+<tr><th>Component</th><th>Rule</th></tr>
+<tr><td>Trigger</td><td>5s close &gt; max(close, prior 5 min) → LONG; &lt; min → SHORT</td></tr>
+<tr><td>Direction</td><td>With the breakout</td></tr>
+<tr><td>Entry</td><td>First real trade tick after the 5s bar closes</td></tr>
+<tr><td>Stop</td><td>Hard 25pt (≈1 unit)</td></tr>
+<tr><td>Exit</td><td>Chandelier — arm at +25pt, give back 15pt from peak; 15-min max hold</td></tr>
+<tr><td>Sequencing</td><td>One position at a time (no re-entry until the prior exits)</td></tr>
+<tr><td>Cost</td><td>−$5 round trip (honest, not the desk's optimistic $1.5)</td></tr>
+</table>
+<p>And the tick-honest backtest across the whole week — every candidate on one table so you can see the graveyard next to the hero, with the oracle as the ceiling:</p>
+<table>
+<tr><th>Config</th><th>n</th><th>Net $</th><th>$/trade</th><th>Win%</th><th>Big-moves caught</th></tr>
+<tr><td>ORACLE (perfect entry+side)</td><td>49</td><td>+$4,388</td><td>+$89.6</td><td>96%</td><td>49/49 (reference)</td></tr>
+<tr><td>Donchian 5-min breakout</td><td>1,136</td><td>−$5,056</td><td>−$4.5</td><td>49.9%</td><td>sees 48 · traded 16/49</td></tr>
+<tr><td>Grave 1 — flow-continuation</td><td>260</td><td>−$1,244</td><td>−$4.8</td><td>51.5%</td><td>4/49</td></tr>
+<tr><td>Grave 2 — naive vol-breakout</td><td>254</td><td>−$1,500</td><td>−$5.9</td><td>50.0%</td><td>3/49</td></tr>
+<tr><td>Grave 3 — chase-flow</td><td>451</td><td>−$3,444</td><td>−$7.6</td><td>48.3%</td><td>4/49</td></tr>
+<tr><td>Grave 4 — vacuum-fade</td><td>61</td><td>−$532</td><td>−$8.7</td><td>47.5%</td><td>2/49</td></tr>
+</table>
+<p>The Donchian line is the whole lesson in one row: it <i>sees</i> 48/49 but only banks 16 of them, because once it's parked in a losing chop-break it's not free to take the real run. 49.9% win is a literal coin-flip, and the −$5 cost turns the coin-flip into a −$5,056 bleed.</p>
+</div>
+
+<div class="card">
+<h3>Step 4 — robustness on the breakout (does any edge hide inside it?)</h3>
+<p>I stress-tested the breakout the way we kill things properly. It fails every test — no hidden pocket of edge, no direction that works, no lucky-trade dependence, no threshold where it turns.</p>
+<table>
+<tr><th>Test</th><th>Result</th><th>Read</th></tr>
+<tr><td>Day-by-day</td><td>−1,528 / +99 / −1,072 / +119 / −1,108 / −888 / −676</td><td>Red 5 of 7 days; the two green days are tiny. Systematic bleed, not one bad day.</td></tr>
+<tr><td>Long vs short</td><td>LONG −$2,372 (50%) · SHORT −$2,683 (50%)</td><td>Symmetric loss. Not a directional-bias artefact — it's just wrong both ways.</td></tr>
+<tr><td>Strip the 3 best trades</td><td>−$5,582 (was −$5,056)</td><td>Removing the luckiest wins makes it <i>worse</i> — no fat tail is carrying a hidden edge.</td></tr>
+<tr><td>Impulse-threshold sweep</td><td>≥8pt −$4,126 · ≥12 −$1,230 · ≥16 −$636 · ≥20 −$726</td><td>The tighter cousin (impulse instead of Donchian): loss shrinks only because <i>n</i> collapses — $/trade stays −$6 to −$9 and win% stays 50%. The classic curve-fit tell: no edge, just fewer bets.</td></tr>
+</table>
+<p>Caveats stated plainly: this is <b>one week, in-sample, thin per-family n (21 catchable runs)</b>, MNQ-only, paper. But the failure is so uniform — every idea lands on 48–52% win — that more data won't rescue it. The problem is structural, not sample size.</p>
+</div>
+
+<div class="card">
+<h3>The verdict</h3>
+<p><b>NULL. Nothing to arm — not even to shadow as a capital gate.</b> The durable, bankable lesson from this movement: the runs are worth ~$4.4k/week <i>only</i> with hindsight timing (their −10pt adverse excursion is itself an artefact of anchoring on the exact extreme). In real time, a run-start is statistically indistinguishable from the chop-bursts around it — the same breakout that catches 48/49 runs is a 50/50 coin-flip that bleeds after cost. Flow is not a continuation tell here (if anything it's contrarian), and the vacuum family (23 of 49) fires against the tape and cannot be predicted. <b>Do not build a "catch the runs" gate off price/volume/flow alone.</b> If there's a next attempt, it is NOT another entry threshold — it's the L2 order-book depletion angle (does the far side thin out <i>before</i> the run?), which this movement did not test and is the only stone left unturned.</p>
+<p>
+<span class="tag">NULL</span>
+<span class="tag">DON'T ARM</span>
+<span class="tag">4 GRAVES</span>
+<span class="tag">next: L2 book-depletion, not another entry threshold</span>
+</p>
+<p style="font-size:0.9em;opacity:0.7">One observe-only footnote for the regime board: the Donchian breakout is a lousy <i>entry</i> but a good <i>detector</i> — it flags 48/49 runs in real time. Zero P&amp;L claim, no capital. If we ever want a live "a run may be starting" label feeding the shadow/regime router (not a trade), that's the only reusable thing here. Shadow it as a label, never as a gate.</p>
+</div>
