@@ -27,7 +27,7 @@ from gazbot7 import pnl  # noqa: E402
 DB = "/home/alphabot/gazbot7/data/gazbot7.db"
 
 
-def run_day(con, t0, t1, verbose=False):
+def run_day(con, t0, t1, fast_exit=False, verbose=False):
     """Backtest one Paris day [t0, t1). Returns a result dict; prints the regime timeline if verbose."""
     bars = con.execute(f"""
         SELECT (bar_ts-bar_ts%60) m, arg_max(close,bar_ts) c
@@ -44,7 +44,7 @@ def run_day(con, t0, t1, verbose=False):
         return {"date": date, "n": len(trades), "base": b, "router": b, "delta": 0.0, "blk": [], "flips": 0}
     mins = [b[0] for b in bars]
     closes = [b[1] for b in bars]
-    marks = dr.replay_marks(mins, closes, int(t0), int(t1))
+    marks = dr.replay_marks(mins, closes, int(t0), int(t1), fast_exit=fast_exit)
 
     def regime_at(te):
         st = "CHOP"
@@ -84,24 +84,29 @@ def main():
     con.execute(f"ATTACH '{dr.CAP}' AS c (TYPE sqlite, READ_ONLY)")
     con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
 
-    print(f"DIRECTION-ROUTER BACKTEST — last {days} day(s)  (validating the LIVE module config)")
+    print(f"DIRECTION-ROUTER BACKTEST — last {days} day(s)  ·  SHIPPED (sticky) vs sticky-EXIT FIX (fast_exit)")
     print(f"knobs: ER>={dr.ER_TREND} & |net|>={dr.NET_MIN}pt/{dr.WINDOW}min · scan {dr.STEP}min · hold {dr.HOLD} · "
           f"down-off {sorted(dr.DOWN_OFF)} · up-off {sorted(dr.UP_OFF)}\n")
-    results = [run_day(con, today0 - k * 86400, today0 - (k - 1) * 86400, verbose=(days == 1))
-               for k in range(days - 1, -1, -1)]
+    windows = [(today0 - k * 86400, today0 - (k - 1) * 86400) for k in range(days - 1, -1, -1)]
+    cur = [run_day(con, a, b, fast_exit=False) for a, b in windows]
+    fix = [run_day(con, a, b, fast_exit=True) for a, b in windows]
     con.close()
 
-    print(f"{'DATE':>6} {'trades':>7} {'baseline':>9} {'router':>8} {'delta':>7} {'flips':>6}  blocked")
-    tb = tr = 0.0
-    for r in results:
-        tb += r["base"]
-        tr += r["router"]
-        blk = " · ".join(f"{g} {s.split('_')[-1][:2]} ${pl:+.0f}" for (g, s), (n, pl) in r["blk"]) or "—"
-        print(f"{r['date']:>6} {r['n']:>7} ${r['base']:>+8.0f} ${r['router']:>+7.0f} ${r['delta']:>+6.0f} {r['flips']:>6}  {blk}")
-    print(f"{'TOTAL':>6} {sum(r['n'] for r in results):>7} ${tb:>+8.0f} ${tr:>+7.0f} ${tr-tb:>+6.0f}")
-    print(f"\n→ over {days} day(s): baseline ${tb:+.0f} → router ${tr:+.0f}  (DELTA ${tr-tb:+.0f})")
-    print("(delta>0 = router helped; high flips + delta<=0 = whipsaw churn. ⚠ realised trades already\n"
-          " partly hand-gated → illustrative lower bound, not a clean A/B.)")
+    print(f"{'DATE':>6} {'trades':>7} {'baseline':>9} | {'router_NOW':>10} {'ΔNOW':>6} {'fl':>3} | "
+          f"{'router_FIX':>10} {'ΔFIX':>6} {'fl':>3} | {'FIX−NOW':>8}")
+    tb = trn = trf = 0.0
+    for c, f in zip(cur, fix):
+        tb += c["base"]
+        trn += c["router"]
+        trf += f["router"]
+        print(f"{c['date']:>6} {c['n']:>7} ${c['base']:>+8.0f} | ${c['router']:>+9.0f} ${c['delta']:>+5.0f} "
+              f"{c['flips']:>3} | ${f['router']:>+9.0f} ${f['delta']:>+5.0f} {f['flips']:>3} | ${f['router']-c['router']:>+7.0f}")
+    print(f"{'TOTAL':>6} {sum(c['n'] for c in cur):>7} ${tb:>+8.0f} | ${trn:>+9.0f} ${trn-tb:>+5.0f}     | "
+          f"${trf:>+9.0f} ${trf-tb:>+5.0f}     | ${trf-trn:>+7.0f}")
+    print(f"\n→ baseline ${tb:+.0f}  ·  SHIPPED (sticky) ${trn:+.0f} (Δ{trn-tb:+.0f})  ·  "
+          f"FIX (fast-exit) ${trf:+.0f} (Δ{trf-tb:+.0f})  ·  FIX vs SHIPPED ${trf-trn:+.0f}")
+    print("(FIX−NOW>0 = the sticky-exit fix would have earned more; fewer flips is also better. ⚠ realised\n"
+          " trades already partly hand-gated → illustrative, not a clean A/B. LIVE still runs SHIPPED until you deploy.)")
 
 
 if __name__ == "__main__":

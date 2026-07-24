@@ -62,20 +62,36 @@ def er_net(closes: list[float]) -> tuple[float, float]:
     return abs(c[-1] - c[0]) / path, c[-1] - c[0]
 
 
-def replay_marks(minutes: list[int], closes: list[float], t_start: int, t_end: int) -> list[tuple]:
+def replay_marks(minutes: list[int], closes: list[float], t_start: int, t_end: int,
+                 fast_exit: bool = False) -> list[tuple]:
     """Replay STEP-min marks over [t_start, t_end], applying the HOLD-mark hysteresis. Returns
-    [(mark_epoch, effective_state, er, net)]. Shared by the live router and the backtest."""
+    [(mark_epoch, effective_state, er, net)]. Shared by the live router and the backtest.
+
+    ``fast_exit=False`` (SHIPPED behaviour): a trend flips only when HOLD consecutive marks are the
+    SAME new state — sticky, but can OVER-HOLD a trend through an alternating chop/reversal patch
+    (07-24: held TREND_DOWN through a chop→up patch, benching the longs ~45min too long).
+    ``fast_exit=True`` (the sticky-exit fix): still needs HOLD same-trend marks to ENTER a trend from
+    chop, but LEAVES a trend the moment the last HOLD marks are all NON-(current trend) — so a
+    reversal or chop patch exits promptly (to the opposite trend if all HOLD marks agree on it, else
+    to CHOP). Enter-lag (the whipsaw guard) is unchanged; only the exit is quicker."""
     marks: list[tuple] = []
-    state, run, last = "CHOP", 0, "CHOP"
+    state = "CHOP"
+    recent: list[str] = []
     t = max(minutes[0] - (minutes[0] % (STEP * 60)) + STEP * 60, int(t_start))
     while t <= t_end:
         er, net = er_net([closes[i] for i in range(len(minutes)) if minutes[i] <= t])
         raw = "TREND_UP" if (er >= ER_TREND and net >= NET_MIN) else \
               "TREND_DOWN" if (er >= ER_TREND and net <= -NET_MIN) else "CHOP"
-        run = run + 1 if raw == last else 1
-        last = raw
-        if run >= HOLD and raw != state:   # confirmed → flip effective state
-            state = raw
+        recent.append(raw)
+        if len(recent) > HOLD:
+            recent.pop(0)
+        if len(recent) == HOLD:
+            uniform = recent[0] if len(set(recent)) == 1 else None
+            if state == "CHOP" or not fast_exit:              # confirm: HOLD identical marks flip it
+                if uniform is not None and uniform != state:
+                    state = uniform
+            elif all(r != state for r in recent):             # in a trend + fast_exit: leave it now
+                state = uniform if uniform in ("TREND_UP", "TREND_DOWN") else "CHOP"
         marks.append((t, state, round(er, 2), round(net, 0)))
         t += STEP * 60
     return marks
