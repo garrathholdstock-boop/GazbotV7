@@ -214,7 +214,17 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                     last_disabled = set(disabled)
                 intents = step(strat, mb, tape, book, now_ms, fp)
                 if disabled:   # a disabled gate takes NO new entries; its open position still exits normally
-                    intents = [i for i in intents if not (i.get("action") == "OPEN" and i.get("slot") in disabled)]
+                    kept = []
+                    for i in intents:
+                        if i.get("action") == "OPEN" and i.get("slot") in disabled:
+                            # SUPPRESSED-OPEN: record what the gate WOULD have traded — the exact
+                            # counterfactual the filter used to drop SILENTLY. Greppable for a clean
+                            # gated-vs-ungated ("everything left on") P&L, live, per day.
+                            log.info("SUPPRESSED-OPEN: %s %s would open @%s (disabled by switch) t=%d",
+                                     i.get("slot"), i.get("side", ""), i.get("price", ""), now_ms)
+                        else:
+                            kept.append(i)
+                    intents = kept
                 if not intents:
                     continue
                 if place_live:
