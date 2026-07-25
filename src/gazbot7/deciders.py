@@ -37,6 +37,8 @@ class Features:
     n_bars: int
     net_atr_2: float = 0.0  # (close - close[-3]) / atr — the FAST 2-bar impulse
     vwap_slope_fast: float = 0.0  # VWAP slope over a SHORT (12-bar) window — flips at reversals
+    net30_pt: float = 0.0  # trailing 30-bar (≈30-min) net move in POINTS — regime-DEPTH gate for rgv_long
+                           # (2026-07-25: deep down-legs, net30<−125pt ≈ −5·ATR, are falling knives → skip the long fade)
 
 
 def _atr(bars: list[Bar], n: int = 14) -> float:
@@ -67,6 +69,7 @@ def compute_features(bars: list[Bar]) -> Features:
     ext = (price - vwap) / atr if atr > 0 else 0.0
     net5 = (price - bars[-6].close) / atr if (len(bars) >= 6 and atr > 0) else 0.0
     net2 = (price - bars[-3].close) / atr if (len(bars) >= 3 and atr > 0) else 0.0
+    net30 = (price - bars[-31].close) if len(bars) >= 31 else 0.0  # 30-min net move in POINTS (regime depth)
     # fast VWAP slope: a short (12-bar) window flips within minutes of a reversal,
     # where the 60-bar slope lags 30-40min and wrong-foots grind/rg (2026-07-16).
     _rec = bars[-12:] if len(bars) >= 12 else bars
@@ -77,7 +80,7 @@ def compute_features(bars: list[Bar]) -> Features:
         surge = bool(prior) and bars[-1].volume >= 1.5 * (sum(prior) / len(prior))
     else:
         surge = False
-    return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars), net2, slope_fast)
+    return Features(price, atr, atr / price if price else 0.0, vwap, slope, ext, net5, surge, len(bars), net2, slope_fast, net30)
 
 
 # ── favourable-condition (efficiency) gate — TICK-HONEST re-derivation 2026-07-21 ──
@@ -262,6 +265,7 @@ def gate_reversal_grab(
     fast_slope: bool = False,
     fast_turn: bool = False,
     atr_min: float = 0.0,
+    net30_floor: float | None = None,
 ) -> Entry | None:
     """Turnback momentum: over-extended past VWAP, then a fresh turn back, optionally
     confirmed by aggressor flow. SHORT fades a stretch ABOVE VWAP rolling over; LONG
@@ -293,6 +297,12 @@ def gate_reversal_grab(
     if turn < turn_atr:
         return None
     if flow_min is not None and tape_net < flow_min:
+        return None
+    # ★2026-07-25 regime-DEPTH floor (rgv_long): a fade of a stretch below VWAP that sits inside a DEEP
+    # established down-leg (30-min net move < net30_floor pt) is a falling knife, not a bounce — skip it.
+    # The one thing that separates rgv_long's knives from its flush-bounces (net30-depth AUC 0.64-0.69);
+    # per-entry IN the gate, which dominates the day-level direction-router bench. LONG-only.
+    if net30_floor is not None and f.net30_pt < net30_floor:
         return None
     return Entry(side="LONG", gate="reversal_grab")
 

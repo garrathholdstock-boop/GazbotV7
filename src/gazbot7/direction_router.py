@@ -48,8 +48,8 @@ STEP = 15           # minutes between marks
 HOLD = 2            # consecutive agreeing marks to flip the effective state (hysteresis, both ways)
 STALE_S = 200       # newest 1-min bar older than this → market closed / feed gap → HOLD
 
-DOWN_OFF = frozenset({"rgv_long", "capitulation_long"})   # long-faders — bench in a down-trend
-UP_OFF = frozenset({"rgv_short", "exhaustion_short"})      # short-faders — bench in an up-trend
+DOWN_OFF = frozenset({"capitulation_long"})   # long-faders — bench in a down-trend. ★2026-07-25: rgv_long REMOVED — it carries its OWN per-entry net30-depth floor in gate_reversal_grab, which dominates this coarse day-level bench (the router nuked rgv_long to −$9 by dropping 60% of its winners).
+UP_OFF = frozenset({"rgv_short"})      # short-faders — bench in an up-trend. ★2026-07-25: exhaustion_short REMOVED (retired from roster, replaced by rgv_long).
 MANAGED = DOWN_OFF | UP_OFF                                # the only gates the router controls
 
 

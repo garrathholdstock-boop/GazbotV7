@@ -89,10 +89,10 @@ def test_tournament_slate_shape():
     from gazbot7.slot_strategy import tournament_slots
     ss = tournament_slots()
     assert [s.tag for s in ss] == ["grind_long", "capitulation_long", "abs_veto_long",
-                                   "rgv_short", "exhaustion_short", "abs_veto_short"]
-    assert len([s for s in ss if s.side == "LONG"]) == 3
-    assert len([s for s in ss if s.side == "SHORT"]) == 3
-    assert len({s.kind for s in ss}) == 5          # grind/rgv/thrust/capitulation/exhaustion
+                                   "rgv_long", "rgv_short", "abs_veto_short"]
+    assert len([s for s in ss if s.side == "LONG"]) == 4
+    assert len([s for s in ss if s.side == "SHORT"]) == 2
+    assert len({s.kind for s in ss}) == 4          # grind/reversal_grab/thrust/capitulation (exhaustion retired)
 
 
 def _bars_trend(n=35, step=0.5, start=28900.0):

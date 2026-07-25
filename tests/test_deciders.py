@@ -96,6 +96,24 @@ def test_confirm_absorption():
     assert confirm_absorption("SHORT", +50, +5.0) is False   # buying AND price rose → not absorbed
 
 
+def test_rgv_long_net30_depth_floor():
+    # ★2026-07-25: rgv_long's in-gate regime-DEPTH floor — a long-fade that sits inside a DEEP established
+    # down-leg (30-min net move below net30_floor pt) is a falling knife, not a bounce → skip it. LONG-only.
+    from gazbot7.deciders import Features, gate_reversal_grab
+
+    def feat(n30):  # a Features that OTHERWISE fires rgv_long LONG (stretched below vwap, turning up)
+        return Features(price=20000.0, atr=20.0, atr_pct=0.001, vwap=20070.0, vwap_slope_atr=0.0,
+                        ext_atr=-3.5, net_atr_5=1.0, vol_surge=False, n_bars=40, net_atr_2=1.0,
+                        vwap_slope_fast=0.0, net30_pt=n30)
+
+    p = dict(side="LONG", ext_min=3.0, turn_atr=0.50, flow_min=50.0, atr_min=13.0, net30_floor=-125.0)
+    assert gate_reversal_grab(feat(-50.0), tape_net=100.0, **p) is not None    # mild flush → fires
+    assert gate_reversal_grab(feat(-150.0), tape_net=100.0, **p) is None       # deep down-leg (knife) → vetoed
+    assert gate_reversal_grab(feat(-150.0), tape_net=100.0, **{**p, "net30_floor": None}) is not None  # no floor → fires
+    # SHORT side ignores net30_floor (long-only mechanism)
+    assert gate_reversal_grab(feat(-150.0), tape_net=100.0, **{**p, "side": "SHORT"}) is None  # not a short setup anyway
+
+
 def test_er_blocks_abs_veto_long_momentum_floor():
     # abs_veto_long is ER-floored at 0.20 (2026-07-25 per-side chop-floor sweep). The short side is
     # ATR-floored instead — an ER floor on the short craters its earning, so it is NOT mirrored.

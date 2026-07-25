@@ -68,8 +68,13 @@ _RGV_SHORT = {"ext_min": 1.5, "turn_atr": 0.25, "flow_min": None, "atr_min": 20.
               # (live −$3,543 → +$778); ATR floor 13→20. Own per-side dict (rgv_long researched separately).
 
 
+_RGV_LONG = {"ext_min": 3.0, "turn_atr": 0.50, "flow_min": 50.0, "atr_min": 13.0,
+             "fast_slope": True, "fast_turn": False, "net30_floor": -125.0}  # ★2026-07-25 rehab base-A
+             # + the in-gate net30-depth floor (skip deep down-legs = falling knives). Router-UNMANAGED.
+
+
 def tournament_slots() -> list[SlotSpec]:
-    """The live tournament slate — 3 long / 3 short, single-position first-to-fire.
+    """The live tournament slate — 4 long / 2 short, single-position first-to-fire.
     ★ 2026-07-25 (operator, Saturday roster change): promoted abs_veto (thrust + 55s
     absorption-veto, the validated shadow abs_veto_55s = +$1,340 engine-truth 07-16..24)
     as TWO independently-switchable single-sided gates — abs_veto_long / abs_veto_short —
@@ -79,8 +84,9 @@ def tournament_slots() -> list[SlotSpec]:
     to read like-for-like against the still-running shadow (scale on live evidence).
     ★ 2026-07-25 REHAB (operator, gate-rehab-findings): grind_long (scalp-2R + no give-back;
     ATR≥24, ER floor dropped), capitulation_long (require_flip=True is the edge + give-back off;
-    ATR≥10, ER ceiling dropped — was bug-based), rgv_short (fast_turn off + ATR≥20). Each
-    root-caused, not benched at face value."""
+    ATR≥10, ER ceiling dropped — was bug-based), rgv_short (fast_turn off + ATR≥20), rgv_long (REVIVED — base-A + in-gate net30-depth
+    floor, replacing exhaustion_short → 4L/2S; router-unmanaged, size 1). Each root-caused,
+    not benched at face value; exhaustion_short queued for a Friday rehab dossier, not written off."""
     return [
         # LONG
         SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-25 rehab: scalp-2R BEATS chandelier for grind; no give-back; ATR≥24 + ER floor DROPPED (deciders)
@@ -92,12 +98,13 @@ def tournament_slots() -> list[SlotSpec]:
         SlotSpec("abs_veto_long", "thrust", "LONG",   # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+        SlotSpec("rgv_long", "reversal_grab", "LONG",   # ★2026-07-25 rehab REVIVED: base-A + in-gate net30-depth floor (skip deep down-legs = falling knives); give-back off; router-UNMANAGED; size 1 (thin, promotion-ladder)
+                 params={"side": "LONG", **_RGV_LONG}, sizing="flat", base_size=1,
+                 exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
         # SHORT
         SlotSpec("rgv_short", "reversal_grab", "SHORT",   # ★2026-07-25 rehab: fast_turn OFF + ATR floor 13→20 (see _RGV_SHORT)
                  params={"side": "SHORT", **_RGV_SHORT}, sizing="flat", base_size=2,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
-        SlotSpec("exhaustion_short", "exhaustion", "SHORT",     # fade heavy buying into an ask wall
-                 params={}, sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
         SlotSpec("abs_veto_short", "thrust", "SHORT",  # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
