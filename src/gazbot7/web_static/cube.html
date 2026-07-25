@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- GAZBOT V7 — CUBE tab. The daily capture X-ray: a market x session-phase heatmap of what
+     the market did (regime / flow from capture) + what we traded (P&L / gates from the store),
+     with a per-contract drill. Read-only over api/cube. Descriptive, NOT edge (the courtroom
+     judges). Faithful port of the retired V5 Cube. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base href="/v7/">
+<title>GAZBOT V7 — Cube</title>
+<link rel="stylesheet" href="static/day_review.css">
+<link rel="stylesheet" href="static/cube.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">GAZBOT V7<span class="sub">CUBE</span></div>
+  <nav class="topnav">
+    <a class="navlink" href="./">Desk</a>
+    <a class="navlink" href="shadow">Shadow</a>
+    <a class="navlink" href="reports">Reports</a>
+    <a class="navlink active" href="cube">Cube</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="clock"><span id="clock">--:--:--</span><span class="l">PARIS</span></div>
+</div>
+
+<main class="cube-wrap">
+
+  <div class="cube-head">
+    <div class="cube-title">DAILY CAPTURE X-RAY <span class="sub" id="cube-day">—</span></div>
+    <div class="cube-controls">
+      <label class="daysel">DAY
+        <select id="day-select"><option>—</option></select>
+      </label>
+      <div class="measures" id="measures">
+        <button class="meas" data-m="regime">REGIME</button>
+        <button class="meas on" data-m="pnl">P&amp;L</button>
+        <button class="meas" data-m="flow">FLOW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- daily themes strip (V7 has no desk_analysis — shows the "generate nightly" note) -->
+  <section class="cube-themes" id="themes"><div class="empty">loading…</div></section>
+
+  <!-- the heatmap grid -->
+  <section class="cube-grid-region">
+    <div class="legend" id="legend"></div>
+    <div class="grid-scroll"><table class="cube-grid" id="grid"></table></div>
+    <div class="cube-note" id="note"></div>
+  </section>
+
+  <!-- per-contract drill (opens on cell click) -->
+  <section class="cube-drill" id="drill" hidden>
+    <div class="drill-head"><span id="drill-title">—</span>
+      <button class="drill-close" id="drill-close">close</button></div>
+    <div id="drill-body"></div>
+  </section>
+
+</main>
+
+<script src="static/cube.js"></script>
+</body>
+</html>

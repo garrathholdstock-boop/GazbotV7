@@ -1,0 +1,247 @@
+/* GAZBOT V5 — Day-Review cockpit (B6). Self-contained dark theme; matches the
+   futures-terminal palette. One whole page, regions stacked; mobile = single column. */
+:root{
+  --bg:#0a0e14; --panel:#0e131c; --panel2:#11171f; --line:#1c2530; --line2:#283341;
+  --ink:#e6edf3; --ink2:#b5c8de; --ink3:#70859b;
+  --grn:#3fd97f; --grn-d:#1d6b40; --red:#ff5d5d; --red-d:#7a2a2a;
+  --amb:#f5b13d; --amb-d:#7a5a1d; --blu:#5aa9ff; --pur:#b48cff; --cyan:#52d8e0; --mag:#ff5cf0;
+  --chip-bg:#1a2230;
+  --mono:'JetBrains Mono','SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  --fs-cell:13px; --fs-label:10.5px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px;line-height:1.35;-webkit-font-smoothing:antialiased}
+.dim{color:var(--ink3)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--grn)} .neg{color:var(--red)} .flat{color:var(--ink3)}
+
+/* topbar */
+.topbar{display:flex;align-items:center;gap:16px;height:54px;border-bottom:1px solid var(--line);
+  padding:0 18px;background:linear-gradient(180deg,#0c111a,#0a0e14);position:sticky;top:0;z-index:30}
+/* embedded in the unified dashboard shell (?embed=1) — the shell provides the chrome; hide the page's own topbar */
+body.embed .topbar{display:none}
+body.embed .filterbar{top:0}
+.brand{font-size:18px;font-weight:600;letter-spacing:.5px}
+.brand .sub{font-size:10px;color:var(--amb);margin-left:8px;letter-spacing:2px;vertical-align:middle}
+.navlink{color:var(--blu);text-decoration:none;font-size:12px;opacity:.85}
+.navlink:hover{opacity:1;text-decoration:underline}
+.spacer{flex:1}
+.clock{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.clock span:first-child{font-size:15px;font-variant-numeric:tabular-nums}
+.clock .l{font-size:9px;color:var(--ink3);letter-spacing:2px}
+
+/* filter bar */
+.filterbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;padding:12px 18px;
+  background:var(--panel2);border-bottom:1px solid var(--line);position:sticky;top:54px;z-index:20}
+.fgrp{display:flex;flex-direction:column;gap:3px}
+.fgrp label{font-size:var(--fs-label);color:var(--ink3);letter-spacing:1.2px}
+.fgrp input,.fgrp select{background:#0b0f16;color:var(--ink);border:1px solid var(--line2);
+  border-radius:5px;padding:5px 7px;font-family:var(--mono);font-size:12.5px;min-width:96px}
+.fgrp input:focus,.fgrp select:focus{outline:none;border-color:var(--blu)}
+/* multi-select checkbox dropdown (operator 2026-06-26) — replaces the single <select>s */
+.ms{position:relative;min-width:96px}
+.ms-btn{width:100%;text-align:left;background:#0b0f16;color:var(--ink);border:1px solid var(--line2);
+  border-radius:5px;padding:5px 22px 5px 7px;font-family:var(--mono);font-size:12.5px;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-btn::after{content:"▾";position:absolute;right:7px;color:var(--ink3);pointer-events:none}
+.ms-btn.active{border-color:var(--blu);color:var(--blu)}
+.ms.open .ms-btn{border-color:var(--blu)}
+.ms-panel{display:none;position:absolute;z-index:40;top:calc(100% + 3px);left:0;min-width:100%;
+  max-height:280px;overflow:auto;background:#0c1119;border:1px solid var(--blu);border-radius:6px;
+  padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.ms.open .ms-panel{display:block}
+.ms-opt{display:flex;align-items:center;gap:7px;padding:4px 8px;font-size:12.5px;color:var(--ink);
+  white-space:nowrap;cursor:pointer;border-radius:4px}
+.ms-opt:hover{background:rgba(95,176,255,.10)}
+.ms-opt input{margin:0;cursor:pointer;accent-color:var(--blu)}
+/* SHADOW gates (observe-only) — shaded tint + a · prefix so they read as distinct from live gates (operator 2026-06-29) */
+.ms-opt.ms-shadow{background:rgba(70,217,138,.10);font-style:italic;color:var(--dim,#9aa3b2)}
+.ms-opt.ms-shadow:hover{background:rgba(70,217,138,.18)}
+.ms-opt.ms-shadow span::before{content:"◔ ";opacity:.7}
+.ms-opt.ms-shadow input{accent-color:#46d97a}
+/* OBSERVE-ONLY badge shown in the filter-status line when a shadow gate is the active filter */
+.sh-observe-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.3px;color:#0c1a12;background:#46d97a}
+/* passive_lit OOS-delta sparkline (the nightly lit_track trend) */
+.sh-spark{font-family:ui-monospace,Menlo,monospace;letter-spacing:1px;color:#6aa0ff}
+.ms-empty{padding:5px 8px;color:var(--ink3);font-size:12px}
+.btn{background:var(--chip-bg);color:var(--ink2);border:1px solid var(--line2);border-radius:5px;
+  padding:6px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;align-self:flex-end;height:30px}
+.btn:hover{border-color:var(--blu);color:var(--ink)}
+.fstatus{align-self:flex-end;font-size:11px;color:var(--ink3);margin-left:auto;height:30px;line-height:30px}
+.fstatus.busy{color:var(--amb)}
+
+/* cockpit grid — regions visible together */
+.cockpit{display:grid;gap:1px;background:var(--line);padding:1px;
+  grid-template-columns:repeat(12,1fr);
+  grid-template-areas:
+    "sc sc sc sc sc sc sc sc ql ql ql ql"
+    "ar ar ar ar ar ar ar ar tm tm tm tm"
+    "le le le le le le le le le le le le"
+    "de de de de de de de de de de de de"
+    "co co co co co co co co co co co co"
+    "ct ct ct ct ct ct ct ct ct ct ct ct"
+    "cf cf cf cf cf cf cf cf cf cf cf cf";}
+.region{background:var(--panel);padding:12px 14px;min-width:0;overflow:hidden}
+.region--score{grid-area:sc} .region--arc{grid-area:ar} .region--ledger{grid-area:le}
+.region--decisions{grid-area:de} .region--cond{grid-area:co} .region--controls{grid-area:ct}
+.region--config{grid-area:cf} .region--timing{grid-area:tm} .region--quality{grid-area:ql}
+.rhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:9px;
+  border-bottom:1px solid var(--line);padding-bottom:7px}
+.rhead .ttl{font-size:12px;font-weight:600;letter-spacing:1.4px;color:var(--ink2)}
+.rhead .rmeta{font-size:10.5px;color:var(--ink3);letter-spacing:.5px;text-align:right}
+.empty{color:var(--ink3);font-size:12px;padding:8px 2px}
+.ignored-note{font-size:10.5px;color:var(--amb);margin:-2px 0 8px;min-height:0}
+.ignored-note:empty{display:none}
+
+/* scoreboard */
+.narrative{font-size:14.5px;line-height:1.5;color:var(--ink);background:#0b1018;
+  border:1px solid var(--line);border-left:3px solid var(--blu);border-radius:5px;padding:10px 12px;margin-bottom:11px}
+.scoregrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:9px}
+.scell{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:8px 9px}
+.scell .l{font-size:9.5px;color:var(--ink3);letter-spacing:1px;display:block;margin-bottom:3px}
+.scell .v{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* arc */
+.arc-host{width:100%;height:200px}
+.arc-host svg{width:100%;height:100%;display:block}
+
+/* ledger */
+.tbl-wrap{overflow-x:auto}
+table.ledger{width:100%;border-collapse:collapse;font-size:var(--fs-cell)}
+.ledger th{font-size:var(--fs-label);color:var(--ink3);letter-spacing:.8px;text-align:left;
+  padding:5px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+.ledger th.num{text-align:right}
+.ledger td{padding:6px 8px;border-bottom:1px solid #151c26;white-space:nowrap}
+.ledger tr.trow{cursor:pointer}
+.ledger tr.trow:hover{background:#121a25}
+.ledger tr.trow.open{background:#13202c}
+.ledger .sym{font-weight:600}
+.tag{display:inline-block;font-size:9.5px;padding:1px 6px;border-radius:3px;letter-spacing:.5px}
+.tag.long{background:var(--grn-d);color:var(--grn)} .tag.short{background:var(--mag-d,#7a2a72);color:var(--mag)}
+.dossier td{background:#0b1119;padding:0;border-bottom:1px solid var(--line)}
+.dossier-inner{padding:12px 14px;display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.dossier-inner h4{margin:0 0 6px;font-size:11px;letter-spacing:1px;color:var(--ink2);font-weight:600}
+.doss-chart{height:170px;background:#080c12;border:1px solid var(--line);border-radius:5px}
+.doss-chart svg{width:100%;height:100%}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:2px 0;border-bottom:1px solid #131a24}
+.kv .k{color:var(--ink3)}
+.pm{margin-top:8px;font-size:12px;line-height:1.45;color:var(--ink2);background:#0b1018;border:1px solid var(--line);border-radius:5px;padding:8px}
+
+/* decision + control cards */
+.dec3,.ctrl3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dcard{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-width:0}
+.dttl{font-size:10.5px;letter-spacing:1.2px;color:var(--ink3);margin-bottom:7px}
+.dbody{font-size:12.5px}
+.big{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.row{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #131a24}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .v{color:var(--ink);font-variant-numeric:tabular-nums;flex-shrink:0}
+.sev{font-size:9.5px;font-weight:600;letter-spacing:.5px}
+.sev.CRIT{color:var(--red)} .sev.WARN{color:var(--amb)} .sev.INFO{color:var(--blu)}
+
+/* timing — by phase rows + by-hour strip (B7.1) */
+.byphase{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.phrow{display:grid;grid-template-columns:84px 1fr 86px;grid-template-rows:auto auto;
+  column-gap:9px;align-items:center}
+.phname{font-size:12px;color:var(--ink2);grid-row:1/3}
+.phbar-wrap{background:#0b0f16;border:1px solid var(--line);border-radius:3px;height:13px;overflow:hidden}
+.phbar{display:block;height:100%;border-radius:2px}
+.phbar.pos{background:var(--grn)} .phbar.neg{background:var(--red)} .phbar.flat{background:var(--line2)}
+.phval{font-size:13px;font-weight:600;text-align:right}
+.phsub{grid-column:2/4;font-size:10.5px;margin-top:1px}
+.hourstrip-wrap{border-top:1px solid var(--line);padding-top:8px}
+.hslabel{font-size:10px;letter-spacing:1px;margin-bottom:5px}
+.hourstrip{display:flex;gap:3px;align-items:flex-end;height:78px;overflow-x:auto}
+.hcol{display:flex;flex-direction:column;align-items:center;gap:2px;flex:0 0 auto;justify-content:flex-end;height:100%}
+.hbar{width:13px;border-radius:2px 2px 0 0;min-height:3px}
+.hbar.pos{background:var(--grn)} .hbar.neg{background:var(--red)} .hbar.flat{background:var(--line2)}
+.hlab{font-size:9px}
+
+/* trade quality — verdict + class breakdown (B7.2) */
+.qverdict{display:flex;align-items:baseline;gap:10px;font-size:18px;font-weight:700;letter-spacing:.5px;
+  padding:7px 10px;border-radius:6px;margin-bottom:9px;border:1px solid var(--line2)}
+.qverdict .qsub{font-size:10.5px;font-weight:400;letter-spacing:.5px}
+.q-entries{background:rgba(255,93,93,.12);color:var(--red);border-color:var(--red-d)}
+.q-exits{background:rgba(245,177,61,.12);color:var(--amb);border-color:var(--amb-d)}
+.q-mixed{background:var(--panel2);color:var(--ink2)}
+.q-clean{background:rgba(63,217,127,.12);color:var(--grn);border-color:var(--grn-d)}
+.row.hot{background:rgba(255,93,93,.10);border-radius:3px;padding-left:5px;padding-right:5px}
+
+/* "TELL ME HOW" inline disclosure — reveals Claude's nightly prescription in place */
+.tellme{margin:7px 0 2px}
+.tellme>summary{cursor:pointer;list-style:none;font-size:10.5px;letter-spacing:1px;font-weight:600;
+  color:var(--blu);padding:4px 8px;border:1px solid var(--line2);border-radius:4px;display:inline-flex;
+  align-items:center;gap:6px;user-select:none}
+.tellme>summary::-webkit-details-marker{display:none}
+.tellme>summary::before{content:"▸";font-size:10px}
+.tellme[open]>summary::before{content:"▾"}
+.tellme>summary:hover{border-color:var(--blu);color:var(--ink)}
+.tellme[open]>summary{color:var(--ink);border-color:var(--blu)}
+.prescription{white-space:pre-wrap;font-size:12.5px;line-height:1.5;color:var(--ink);background:#0b1018;
+  border:1px solid var(--line);border-left:3px solid var(--amb);border-radius:5px;padding:10px 12px;margin-top:6px}
+.prescription .conf{display:block;font-size:10px;letter-spacing:1px;color:var(--ink3);margin-top:7px}
+.tellme-pending{font-size:10.5px;color:var(--ink3);margin-top:6px;font-style:italic}
+/* analyst's read — the daily wrap, under the scoreboard narrative */
+.analyst-read{font-size:13px;line-height:1.5;color:var(--ink2);background:#0b1018;border:1px solid var(--line);
+  border-left:3px solid var(--amb);border-radius:5px;padding:9px 12px;margin-bottom:11px;white-space:pre-wrap}
+.analyst-read .lbl{display:block;font-size:9.5px;letter-spacing:1.4px;color:var(--amb);margin-bottom:4px;font-weight:600}
+/* chart time axis — HTML row beneath the (stretched) SVG, so labels aren't distorted */
+.chart-axis{display:flex;justify-content:space-between;font-size:9.5px;color:var(--ink3);
+  font-variant-numeric:tabular-nums;padding:2px 2px 0;letter-spacing:.3px}
+.chart-axis:empty{display:none}
+
+/* conditions ribbon */
+.ribbon{display:flex;gap:2px;align-items:flex-end;height:90px;overflow-x:auto;padding:4px 0}
+.rbar{flex:0 0 auto;width:10px;background:var(--line2);border-radius:2px 2px 0 0;position:relative;min-height:3px}
+.rbar.fired{background:var(--grn)}
+.rbar.caut{background:var(--amb)}
+.rbar.susp{background:var(--red)}
+
+/* desk config */
+.cfgbody{font-size:12.5px}
+.cfg-sec{margin-bottom:10px}
+.cfg-sec .h{font-size:10px;letter-spacing:1.2px;color:var(--ink3);margin-bottom:4px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.chip{display:inline-block;font-size:10px;padding:2px 7px;border-radius:3px;margin:2px 3px 2px 0;letter-spacing:.4px}
+.chip.armed{background:var(--grn-d);color:var(--grn)}
+.chip.dark{background:#23272e;color:var(--ink3)}
+
+/* mobile — single vertical stack (operator: ONE page, not tabs) */
+@media (max-width:880px){
+  .cockpit{grid-template-columns:1fr;grid-template-areas:"sc" "ql" "ar" "tm" "le" "de" "co" "ct" "cf";}
+  .dec3,.ctrl3{grid-template-columns:1fr}
+  .dossier-inner{grid-template-columns:1fr}
+  .filterbar{top:54px}
+  .fgrp input,.fgrp select,.fgrp .ms{min-width:0;width:100%}
+  .fgrp{flex:1 1 44%}
+  /* filter dropdown panels on phone (operator 2026-06-27): span the FULL bar width,
+     left-aligned, fully on-screen. .ms goes static so the absolute panel anchors to
+     the sticky .filterbar (not the narrow 44%-wide .ms, which pushed a right-column
+     panel off the right edge so its text was cut off). left/right gutters keep it
+     inside the viewport; .ms-btn stays relative so its ▾ caret stays on the button. */
+  .ms{position:static}
+  .ms-btn{position:relative}
+  .ms-panel{left:10px;right:10px;min-width:0;max-width:none;white-space:normal}
+  .ms-opt{white-space:normal}
+}
+
+/* ── 👁 SHADOW STRATEGIES panel (observe-only) ── */
+.region--shadow .rmeta{color:var(--ink3)}
+.sh-grp{margin:0 0 12px;padding:8px 10px;border:1px solid var(--line2);border-left:2px solid #6aa0ff;border-radius:6px;background:rgba(106,160,255,.04)}
+.sh-h{font-size:12px;letter-spacing:.4px;margin-bottom:5px;font-weight:600}
+.sh-tbl{font-size:12px}
+.sh-row{display:grid;grid-template-columns:84px 1fr 1.3fr;gap:6px;padding:2px 0;align-items:baseline}
+.sh-row.sh-hd{color:var(--ink3);font-size:10.5px;letter-spacing:.5px;border-bottom:1px solid var(--line2);margin-bottom:2px}
+.sh-ev{color:var(--ink2);font-weight:600}
+/* THE HUNT — 6-col grid (label,n,rvol,slope,ampl,hold); winners green / run-overs red (operator 2026-06-29) */
+.sh-tbl.sh-hunt .sh-row{grid-template-columns:84px 34px 1fr 1fr 1fr 1fr}
+.sh-row.sh-win{background:rgba(70,217,138,.10);border-radius:4px}
+.sh-row.sh-win>span:first-child{color:#2faa63;font-weight:700}
+.sh-row.sh-loss{background:rgba(255,99,99,.10);border-radius:4px}
+.sh-row.sh-loss>span:first-child{color:#d9534f;font-weight:700}
+.sh-mfe{font-size:11.5px;color:var(--ink2);margin-top:5px;padding-top:4px;border-top:1px dotted var(--line2)}
+.sh-verd{margin-top:8px;font-size:11.5px}
+.sh-v{display:inline-block;margin:2px 4px 2px 0;padding:1px 6px;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid var(--line2)}
+.sh-v.surv{color:var(--grn);border-color:var(--grn)}
+.sh-v.conv{color:var(--red)}
+.sh-v.accum{color:#f0c040}

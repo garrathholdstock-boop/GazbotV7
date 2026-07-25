@@ -594,6 +594,236 @@ def reports_json(static_dir):
     return {"reports": out}
 
 
+# ── /api/cube/* — the daily-capture X-ray (market × session-phase grid) ────────
+# Faithful V7 port of the retired V5 Cube: each cell = what the tape did (regime / flow
+# from capture.db) + what we traded (P&L / gates from the store), sliced by session phase.
+# Descriptive, NOT edge — a rough per-minute heuristic, not the courtroom verdict.
+_CUBE_MARKETS = ["US"]
+_CUBE_PHASES = ["overnight", "eu_session", "us_open", "us_midday", "us_pm"]
+
+
+def _cube_iso_epoch(iso):
+    """ISO-8601 text → epoch seconds (UTC-anchored; naive treated as UTC)."""
+    dt = datetime.fromisoformat(iso)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.timestamp()
+
+
+def _cube_paris_date(iso):
+    """The Paris calendar date (YYYY-MM-DD) an ISO-8601 UTC instant falls on."""
+    try:
+        dt = datetime.fromisoformat(iso)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt.astimezone(_PARIS).strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+
+
+def _session_phase(ts_epoch):
+    """UTC session phase for an epoch timestamp (seconds; ms auto-normalised). Ported
+    verbatim from V5 intelligence/session_phase.py — same UTC boundaries so the grid's
+    time buckets match the desk's capture convention."""
+    ts = float(ts_epoch)
+    if ts > 1e12:  # milliseconds
+        ts /= 1000.0
+    dt = datetime.fromtimestamp(ts, tz=UTC)
+    h = dt.hour + dt.minute / 60.0
+    if h < 7.0 or h >= 22.0:
+        return "overnight"
+    if h < 13.5:
+        return "eu_session"
+    if h < 15.5:
+        return "us_open"
+    if h < 19.0:
+        return "us_midday"
+    return "us_pm"
+
+
+def _paris_day_utc_bounds(date_str):
+    """(start, end) UTC datetimes bracketing the Paris day ``date_str`` — DST-correct
+    (each midnight localised independently, so a 23h/25h DST day is exact)."""
+    d0 = datetime.strptime(date_str, "%Y-%m-%d")
+    start = d0.replace(tzinfo=_PARIS).astimezone(UTC)
+    end = (d0 + timedelta(days=1)).replace(tzinfo=_PARIS).astimezone(UTC)
+    return start, end
+
+
+def _cube_classify(bars):
+    """Regime read for a phase's 5s bars: aggregate to 1-min windows, classify each window
+    (dead / shock / trending / chop) by its range + own efficiency, return the dominant, the
+    mix (pct), the window count (cycles) and mean net-move-in-ATR. Rough by design — MVP."""
+    if not bars:
+        return {"cycles": 0, "dominant_regime": None, "regime_mix": {}, "avg_net_atr": None}
+    agg: dict = {}
+    for b in bars:
+        m = (b["bar_ts"] // 60) * 60
+        a = agg.get(m)
+        if a is None:
+            agg[m] = [b["open"], b["high"], b["low"], b["close"]]
+        else:
+            a[1] = max(a[1], b["high"])
+            a[2] = min(a[2], b["low"])
+            a[3] = b["close"]
+    windows = [agg[m] for m in sorted(agg)]
+    cycles = len(windows)
+    ranges = [w[1] - w[2] for w in windows]
+    atr = (sum(ranges) / len(ranges)) if ranges else 0.0
+    counts = {"trending": 0, "chop": 0, "shock": 0, "dead": 0}
+    net_atrs = []
+    for o, h, low, cl in windows:
+        rng = h - low
+        net = cl - o
+        er = abs(net) / rng if rng > 1e-9 else 0.0
+        # cutoffs calibrated to MNQ 1-min range percentiles (p10≈7pt, median≈13pt, p90≈29pt):
+        # dead = the quietest ~decile, shock = the most violent ~decile, the rest split by efficiency.
+        if rng < 6.0:
+            reg = "dead"
+        elif rng > 30.0:
+            reg = "shock"
+        elif er >= 0.5:
+            reg = "trending"
+        else:
+            reg = "chop"
+        counts[reg] += 1
+        if atr > 1e-9:
+            net_atrs.append(net / atr)
+    dom = max(counts, key=lambda k: counts[k]) if cycles else None
+    if dom and counts[dom] == 0:
+        dom = None
+    mix = {k: round(100.0 * v / cycles, 1) for k, v in counts.items() if v > 0} if cycles else {}
+    avg_net_atr = round(sum(net_atrs) / len(net_atrs), 2) if net_atrs else None
+    return {"cycles": cycles, "dominant_regime": dom, "regime_mix": mix, "avg_net_atr": avg_net_atr}
+
+
+def cube_days_json(store_path):
+    """Distinct Paris-days present in the trades store (by ``closed_at``), newest first —
+    the day picker's option list."""
+    days = set()
+    try:
+        c = _conn(store_path)
+        rows = c.execute(
+            "SELECT DISTINCT closed_at FROM trades WHERE symbol='MNQ' AND exit_reason NOT IN ("
+            + ",".join("?" * len(_CLEANUP)) + ")", tuple(_CLEANUP)).fetchall()
+        c.close()
+        for r in rows:
+            d = _cube_paris_date(r["closed_at"])
+            if d:
+                days.add(d)
+    except Exception:
+        pass
+    return {"days": sorted(days, reverse=True)}
+
+
+def cube_json(store_path, cap_path, day):
+    """The X-ray for one Paris day (or ``latest``): a dense market×phase grid + per-contract
+    drill. Cells fuse the trades store (P&L / trades / win% / gates, phase-bucketed by
+    ``opened_at``) with capture.db (regime + cycles from 5s ``bars``; signed-aggressor OFI
+    from ``ticks``). ``themes`` is always null in V7 (no desk_analysis) — the UI degrades."""
+    now = datetime.now(UTC)
+    avail = cube_days_json(store_path)["days"]
+    if day == "latest" or not day:
+        day = avail[0] if avail else now.astimezone(_PARIS).strftime("%Y-%m-%d")
+    try:
+        start, end = _paris_day_utc_bounds(day)
+    except Exception:
+        day = now.astimezone(_PARIS).strftime("%Y-%m-%d")
+        start, end = _paris_day_utc_bounds(day)
+
+    phases = _CUBE_PHASES
+    # --- what we traded: P&L / trades / wins / gates per phase (from the store) ---
+    pnl_by_phase = {ph: {"pnl": 0.0, "n": 0, "w": 0, "gates": {}} for ph in phases}
+    try:
+        c = _conn(store_path)
+        trows = c.execute(
+            "SELECT opened_at, closed_at, pnl_usd, gate FROM trades WHERE symbol='MNQ' "
+            "AND exit_reason NOT IN (" + ",".join("?" * len(_CLEANUP)) + ")", tuple(_CLEANUP)).fetchall()
+        c.close()
+        for r in trows:
+            if _cube_paris_date(r["closed_at"]) != day:  # same day-convention as available-days
+                continue
+            ph = _session_phase(_cube_iso_epoch(r["opened_at"]))
+            b = pnl_by_phase[ph]
+            b["pnl"] += r["pnl_usd"]
+            b["n"] += 1
+            if r["pnl_usd"] > 0:
+                b["w"] += 1
+            g = r["gate"] or "—"
+            b["gates"][g] = b["gates"].get(g, 0) + 1
+    except Exception:
+        pass
+
+    # --- what the tape did: FLOW (signed-aggressor OFI) per phase, aggregated in SQL ---
+    start_ms, end_ms = int(start.timestamp() * 1000), int(end.timestamp() * 1000)
+    ofi_by_phase: dict = {}
+    try:
+        c = _conn(cap_path)
+        hx = ("(CAST(strftime('%H', ts_ms/1000, 'unixepoch') AS REAL)"
+              " + CAST(strftime('%M', ts_ms/1000, 'unixepoch') AS REAL)/60.0)")
+        rows = c.execute(
+            f"SELECT CASE WHEN {hx}<7.0 OR {hx}>=22.0 THEN 'overnight' "
+            f"WHEN {hx}<13.5 THEN 'eu_session' WHEN {hx}<15.5 THEN 'us_open' "
+            f"WHEN {hx}<19.0 THEN 'us_midday' ELSE 'us_pm' END phase, "
+            f"SUM(CASE aggressor WHEN 'buy' THEN size WHEN 'sell' THEN -size ELSE 0 END) signed, "
+            f"COUNT(*) n FROM ticks WHERE symbol='MNQ' AND ts_ms>=? AND ts_ms<? GROUP BY phase",
+            (start_ms, end_ms)).fetchall()
+        c.close()
+        for r in rows:
+            n = r["n"] or 0
+            ofi_by_phase[r["phase"]] = (r["signed"] / n) if n else None
+    except Exception:
+        pass
+
+    # --- what the tape did: REGIME + cycles + net-ATR per phase (from 5s bars) ---
+    regime_by_phase = {ph: _cube_classify([]) for ph in phases}
+    try:
+        c = _conn(cap_path)
+        brows = c.execute(
+            "SELECT bar_ts, open, high, low, close FROM bars WHERE symbol='MNQ' "
+            "AND timeframe='5s' AND bar_ts>=? AND bar_ts<? ORDER BY bar_ts",
+            (int(start.timestamp()), int(end.timestamp()))).fetchall()
+        c.close()
+        buckets = {ph: [] for ph in phases}
+        for b in brows:
+            buckets[_session_phase(b["bar_ts"])].append(b)
+        for ph, bars in buckets.items():
+            regime_by_phase[ph] = _cube_classify(bars)
+    except Exception:
+        pass
+
+    # --- assemble the dense grid + per-contract drill ---
+    grid: dict = {"US": {}}
+    drill: dict = {"US": {}}
+    for ph in phases:
+        reg = regime_by_phase[ph]
+        pb = pnl_by_phase[ph]
+        ofi = ofi_by_phase.get(ph)
+        ofi = round(ofi, 2) if ofi is not None else None
+        n = pb["n"]
+        wr = (pb["w"] / n) if n else None
+        grid["US"][ph] = {
+            "cycles": reg["cycles"], "dominant_regime": reg["dominant_regime"],
+            "regime_mix": reg["regime_mix"], "pnl": round(pb["pnl"], 2), "trades": n,
+            "win_rate": wr, "avg_ofi": ofi,
+        }
+        if reg["cycles"] or n:
+            drill["US"][ph] = [{
+                "symbol": "MNQ", "dominant_regime": reg["dominant_regime"], "avg_ofi": ofi,
+                "avg_net_atr": reg["avg_net_atr"], "cycles": reg["cycles"], "trades": n,
+                "win_rate": wr, "pnl": round(pb["pnl"], 2), "gates": pb["gates"],
+            }]
+        else:
+            drill["US"][ph] = []
+
+    return {
+        "day": day, "markets": _CUBE_MARKETS, "phases": phases, "grid": grid, "drill": drill,
+        "themes": None,  # V7 has no desk_analysis — the frontend shows the "generate nightly" note
+        "note": "Descriptive X-ray from capture + trades. Regime is a rough per-minute heuristic "
+                "(range + efficiency), not the courtroom verdict.",
+    }
+
+
 def serve(port, store_path, cap_path, data_dir, shadow_path):
     class H(http.server.BaseHTTPRequestHandler):
         # 2026-07-22: drop a slow/dead client after this long so its thread is freed (a client that
@@ -620,8 +850,14 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._send(open(os.path.join(_STATIC, "shadow.html"), "rb").read(), _CT[".html"])
                 elif path == "/reports" or path == "/reports/":
                     self._send(open(os.path.join(_STATIC, "reports.html"), "rb").read(), _CT[".html"])
+                elif path == "/cube" or path == "/cube/":
+                    self._send(open(os.path.join(_STATIC, "cube.html"), "rb").read(), _CT[".html"])
                 elif path.startswith("/api/reports"):
                     self._json(reports_json(_STATIC))
+                elif path.startswith("/api/cube/available-days"):
+                    self._json(cube_days_json(store_path))
+                elif path.startswith("/api/cube/"):
+                    self._json(cube_json(store_path, cap_path, path.rsplit("/", 1)[-1]))
                 elif path.startswith("/static/"):
                     fp = os.path.join(_STATIC, os.path.basename(path))
                     self._send(open(fp, "rb").read(), _CT.get(os.path.splitext(fp)[1], "text/plain"))
