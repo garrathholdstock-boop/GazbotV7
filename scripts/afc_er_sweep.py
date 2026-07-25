@@ -182,6 +182,40 @@ def main():
         knet = sum(t["pnl"] for t in keep)
         kw = sum(1 for t in keep if t["pnl"] > 0)
         print(f"  {f'≥{floor}pt':>10}{len(keep):>7}${knet:>+8.0f}${knet/len(keep):>+7.1f}{100*kw/len(keep):>5.0f}%")
+
+    # ── LOSS-DISTRIBUTION VIEW (operator): where the BULK of losers + the BIGGEST losers live ──
+    losers = [t for t in trades if t["pnl"] < 0]
+    bleed = sum(t["pnl"] for t in losers)
+    print(f"\nLOSS DISTRIBUTION — {len(losers)}/{len(trades)} fires lose, total bleed ${bleed:+.0f}. "
+          "Every hard stop = −$45; that's the only 'big' loser (trail/time losers are small).")
+
+    def loss_by(key, lbl, bands):
+        print(f"\n  by {lbl} — (share = % of the whole ${bleed:+.0f} bleed that lands in this band):")
+        print(f"  {lbl:>12}{'fires':>7}{'losers':>8}{'lose%':>7}{'stops(−$45)':>13}{'band loss$':>12}{'share':>7}")
+        for b0, b1, name in bands:
+            g = [t for t in trades if t.get(key) is not None and b0 <= t[key] < b1]
+            if not g:
+                continue
+            gl = [t for t in g if t["pnl"] < 0]
+            gloss = sum(t["pnl"] for t in gl)
+            gstop = sum(1 for t in g if t["reason"] == "stop")
+            print(f"  {name:>12}{len(g):>7}{len(gl):>8}{100*len(gl)/len(g):>6.0f}%{gstop:>13}${gloss:>+11.0f}"
+                  f"{100*gloss/bleed if bleed else 0:>6.0f}%")
+
+    er_b = [(x / 10, x / 10 + 0.1, f"{x/10:.1f}-{x/10+0.1:.1f}") for x in range(8)]
+    atr_b = [(0, 8, "0-8"), (8, 12, "8-12"), (12, 16, "12-16"), (16, 20, "16-20"),
+             (20, 25, "20-25"), (25, 30, "25-30"), (30, 100, "30+")]
+    loss_by("er", "ER band", er_b)
+    loss_by("atr", "ATR band", atr_b)
+
+    nstop = sum(1 for t in trades if t["reason"] == "stop")
+    print(f"\n  the −$45 stop-outs ({nstop} of them = ${-45*nstop} = "
+          f"{100*45*nstop/-bleed if bleed else 0:.0f}% of all bleed) — where they cluster:")
+    print(f"  {'ER band':>12}{'stops':>7}   {'ATR band':>12}{'stops':>7}")
+    for (e0, e1, en), (a0, a1, an) in zip(er_b, atr_b + [(0, 0, "")]):
+        es = sum(1 for t in trades if t["reason"] == "stop" and t.get("er") is not None and e0 <= t["er"] < e1)
+        aa = sum(1 for t in trades if t["reason"] == "stop" and t.get("atr") is not None and a0 <= t["atr"] < a1) if an else ""
+        print(f"  {en:>12}{es:>7}   {an:>12}{aa:>7}")
     con.close()
     print("\n(⚠ one week, in-sample, tick-honest at $5/RT. If NO band is green, the entry is dead across "
           "regimes; if a high-ER band is green, that's the conditioned survivor to carry forward.)")
