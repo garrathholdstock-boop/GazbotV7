@@ -48,24 +48,33 @@ def main():
         AND ts_ms>={int(lo)*1000} AND ts_ms<{int(hi)*1000} ORDER BY ts_ms""").df()
     tts, tpx = tk.ts_ms.values.astype(np.int64), tk.price.values.astype(float)
 
-    # 1-min closes → Kaufman 30-bar ER per minute
+    # 1-min OHLC → Kaufman 30-bar ER + 14-bar ATR (points) per minute
     bdf = con.execute(f"""
-        WITH b AS (SELECT (bar_ts-bar_ts%60) m, arg_max(close,bar_ts) cl FROM c.bars
-                   WHERE symbol='MNQ' AND timeframe='5s' AND bar_ts>={int(lo)} AND bar_ts<{int(hi)} GROUP BY 1)
-        SELECT m, cl FROM b ORDER BY m""").df()
-    mins, cls = bdf.m.values.astype(np.int64), bdf.cl.values.astype(float)
-    er_at = {}
+        WITH b AS (SELECT (bar_ts-bar_ts%60) m, max(high) h, min(low) l, arg_max(close,bar_ts) cl
+                   FROM c.bars WHERE symbol='MNQ' AND timeframe='5s' AND bar_ts>={int(lo)} AND bar_ts<{int(hi)} GROUP BY 1)
+        SELECT m, h, l, cl FROM b ORDER BY m""").df()
+    mins = bdf.m.values.astype(np.int64)
+    cls, hh, ll = bdf.cl.values.astype(float), bdf.h.values.astype(float), bdf.l.values.astype(float)
+    tr = np.zeros(len(mins))
+    for i in range(1, len(mins)):
+        tr[i] = max(hh[i] - ll[i], abs(hh[i] - cls[i - 1]), abs(ll[i] - cls[i - 1]))
+    er_at, atr_at = {}, {}
     for i in range(len(mins)):
-        if i < 30:
-            continue
-        seg = cls[i - 30:i + 1]
-        tot = np.abs(np.diff(seg)).sum()
-        er_at[int(mins[i])] = (abs(seg[-1] - seg[0]) / tot) if tot > 0 else 0.0
+        if i >= 30:
+            seg = cls[i - 30:i + 1]
+            tot = np.abs(np.diff(seg)).sum()
+            er_at[int(mins[i])] = (abs(seg[-1] - seg[0]) / tot) if tot > 0 else 0.0
+        if i >= 14:
+            atr_at[int(mins[i])] = float(tr[i - 13:i + 1].mean())
+
+    def _min_of(ts_ms):
+        return int((ts_ms // 1000) - ((ts_ms // 1000) % 60))
 
     def er_for(ts_ms):
-        m = (ts_ms // 1000) - ((ts_ms // 1000) % 60)
-        # nearest minute at or before
-        return er_at.get(int(m))
+        return er_at.get(_min_of(ts_ms))
+
+    def atr_for(ts_ms):
+        return atr_at.get(_min_of(ts_ms))
 
     # state machine: rising-edge fire while flat, one position, tick-honest exit
     over = np.abs(F) >= TH
@@ -103,7 +112,7 @@ def main():
                 exit_px, exit_ts, reason = tpx[-1], int(tts[-1]), "time"
             pnl = (exit_px - entry_px) * d * VPP - FEE
             trades.append({"ts": entry_ts, "dir": d, "pnl": pnl, "reason": reason,
-                           "er": er_for(entry_ts)})
+                           "er": er_for(entry_ts), "atr": atr_for(entry_ts)})
             exit_sec = exit_ts // 1000
             while i < n and secs[i] <= exit_sec:       # skip seconds held; fresh cross needed to re-arm
                 i += 1
@@ -150,6 +159,29 @@ def main():
         knet = sum(t["pnl"] for t in keep)
         kw = sum(1 for t in keep if t["pnl"] > 0)
         print(f"  {f'≥{floor:.2f}':>9}{len(keep):>7}${knet:>+8.0f}${knet/len(keep):>+7.1f}{100*kw/len(keep):>5.0f}%")
+
+    # ATR (magnitude) band + floor sweep — does the AFC only work when the move is big enough to run?
+    have_atr = [t for t in trades if t.get("atr") is not None]
+    print(f"\nATR BAND SWEEP (entry 14-min ATR in points · {len(have_atr)}/{len(trades)} fires have an ATR)")
+    print(f"  {'ATR band(pt)':>13}{'fires':>7}{'net$':>9}{'$/fire':>8}{'win%':>6}{'stop%':>7}")
+    aedges = [0, 8, 12, 16, 20, 25, 30, 100]
+    for a0, a1 in zip(aedges, aedges[1:]):
+        g = [t for t in have_atr if a0 <= t["atr"] < a1]
+        if not g:
+            continue
+        gnet = sum(t["pnl"] for t in g)
+        gw = sum(1 for t in g if t["pnl"] > 0)
+        gs = sum(1 for t in g if t["reason"] == "stop")
+        print(f"  {f'{a0}-{a1}':>13}{len(g):>7}${gnet:>+8.0f}${gnet/len(g):>+7.1f}{100*gw/len(g):>5.0f}%{100*gs/len(g):>6.0f}%")
+    print("\n  ── cumulative: keep fires with ATR ≥ floor (does a magnitude floor turn it green?) ──")
+    print(f"  {'ATR floor':>10}{'fires':>7}{'net$':>9}{'$/fire':>8}{'win%':>6}")
+    for floor in [0, 8, 12, 16, 20, 25, 30]:
+        keep = [t for t in have_atr if t["atr"] >= floor]
+        if not keep:
+            continue
+        knet = sum(t["pnl"] for t in keep)
+        kw = sum(1 for t in keep if t["pnl"] > 0)
+        print(f"  {f'≥{floor}pt':>10}{len(keep):>7}${knet:>+8.0f}${knet/len(keep):>+7.1f}{100*kw/len(keep):>5.0f}%")
     con.close()
     print("\n(⚠ one week, in-sample, tick-honest at $5/RT. If NO band is green, the entry is dead across "
           "regimes; if a high-ER band is green, that's the conditioned survivor to carry forward.)")
