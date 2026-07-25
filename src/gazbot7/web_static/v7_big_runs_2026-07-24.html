@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>V7 — big runs deep-dive 2026-07-24</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>GAZBOT V7 — Friday report 2026-07-24</title><style>
   :root{--paper:#faf8f3;--ink:#1a1f2b;--ink2:#5b6472;--navy:#0f2942;--gold:#b8860b;
          --pos:#1a7f47;--neg:#c0392b;--line:#e7e1d4;--card:#ffffff;--zebra:#f7f4ec}
   *{box-sizing:border-box}
@@ -59,213 +59,706 @@
 .pill-shadow{background:#fff3d6;border-color:#e0b84a}.pill-null{background:#f0f0f0}
 .pill-dontarm{background:#fbe3e0;border-color:#c0392b;color:#8a1c10}
 .frag-sep{border:0;border-top:2px solid #e6e2d8;margin:2.4em 0}
-</style></head><body><div class="wrap"><h1>GAZBOT V7 &mdash; How we grab the big runs</h1><p class="lead" style="font-size:1.05em">Friday deep-dive, week ending 2026-07-24. This is the cold, tape-first half of the report: we ignore everything the desk did this week and ask, from the raw MNQ tape and order book, <strong>where was the money and did we show up?</strong> Then &mdash; for the runs we missed &mdash; we test whether the gates we already own could catch them, and finally we build brand-new gates from scratch and backtest them to death (the ones that failed included; that is the point). Plain English, honest money, every claim a table.</p><h2><span class="n">M1</span> The biggest runs on MNQ this week &mdash; did we show up?</h2>
-<p class="lead">Forget what the desk did this week &mdash; start from the raw tape. MNQ printed <strong>74 runs of 1.5&times;ATR or bigger</strong> in the last seven days (a 15-minute move of at least 75 points, against a typical 15-min range of 50). That is the whole tape, not a top-ten. We <strong>caught 10</strong>, we were positioned <em>against</em> <strong>11</strong>, and we <strong>sat out 53</strong>. The runs we aligned with banked <strong>+$180</strong> of honest money &mdash; but that is only 8% of their $2264 hindsight ceiling, and the 53 we sat out left <strong>$11264</strong> on the table. The bleed is not the runs; it is the fading we do around them.</p>
-<div class="callout"><div class="ct">THE FULL CENSUS</div><p>Every qualifying run, in order. <strong>Move</strong> is the swing in points; <strong>$ 1lot</strong> is that move on one MNQ lot ($2/pt) &mdash; the hindsight ceiling. <strong>real $</strong> is what a gate actually banked near it. <strong>Flow</strong> is net aggressor volume in the 60s before; <strong>amp</strong> is pre-run amplitude; <strong>book</strong> is the far-side L2 depth share (below 0.50 = the side price ran toward was thin). Green = we caught it, red = we fought it.</p></div>
-<table><tr><th>Time (UTC)</th><th>Dir</th><th>Move</th><th>$ 1lot</th><th>Us</th><th>Gate</th><th>real $</th><th>Flow</th><th>Amp</th><th>Book</th><th>Cluster</th></tr>
-<tr class="row-bad"><td class="ln">07-17 10:26</td><td>UP</td><td class="num">+86</td><td class="num">171</td><td>FOUGHT</td><td>thrust</td><td class="num">-70</td><td class="num">-386</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr class="row-bad"><td class="ln">07-17 13:30</td><td>DN</td><td class="num">-224</td><td class="num">448</td><td>FOUGHT</td><td>thrust</td><td class="num">-105</td><td class="num">+2340</td><td class="num">0.27</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-17 13:47</td><td>UP</td><td class="num">+283</td><td class="num">566</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-311</td><td class="num">0.24</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr class="row-hl"><td class="ln">07-17 14:04</td><td>UP</td><td class="num">+124</td><td class="num">248</td><td>caught</td><td>thrust</td><td class="num">+88</td><td class="num">-706</td><td class="num">0.43</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-17 14:48</td><td>DN</td><td class="num">-124</td><td class="num">248</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+1803</td><td class="num">0.31</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-17 15:24</td><td>UP</td><td class="num">+144</td><td class="num">289</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1422</td><td class="num">0.26</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-17 15:44</td><td>UP</td><td class="num">+169</td><td class="num">338</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+416</td><td class="num">0.27</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-17 16:04</td><td>UP</td><td class="num">+80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+72</td><td class="num">0.34</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-17 16:36</td><td>UP</td><td class="num">+93</td><td class="num">186</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+106</td><td class="num">0.14</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr class="row-bad"><td class="ln">07-17 17:29</td><td>DN</td><td class="num">-90</td><td class="num">180</td><td>FOUGHT</td><td>thrust</td><td class="num">-46</td><td class="num">-307</td><td class="num">0.20</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-17 18:04</td><td>DN</td><td class="num">-92</td><td class="num">184</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-138</td><td class="num">0.18</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr class="row-bad"><td class="ln">07-17 18:31</td><td>DN</td><td class="num">-75</td><td class="num">150</td><td>FOUGHT</td><td>thrust</td><td class="num">-42</td><td class="num">-263</td><td class="num">0.24</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-17 18:59</td><td>DN</td><td class="num">-109</td><td class="num">218</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-119</td><td class="num">0.12</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-17 19:52</td><td>DN</td><td class="num">-122</td><td class="num">245</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-72</td><td class="num">0.17</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-19 22:29</td><td>UP</td><td class="num">+80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+74</td><td class="num">0.13</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr class="row-hl"><td class="ln">07-20 00:01</td><td>UP</td><td class="num">+132</td><td class="num">264</td><td>caught</td><td>thrust</td><td class="num">-62</td><td class="num">-55</td><td class="num">0.19</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-20 00:42</td><td>DN</td><td class="num">-76</td><td class="num">152</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1</td><td class="num">0.17</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-20 01:54</td><td>UP</td><td class="num">+110</td><td class="num">220</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-64</td><td class="num">0.18</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-20 02:29</td><td>UP</td><td class="num">+97</td><td class="num">194</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-21</td><td class="num">0.10</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-20 04:57</td><td>DN</td><td class="num">-84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+2</td><td class="num">0.14</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-20 07:19</td><td>UP</td><td class="num">+109</td><td class="num">218</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+47</td><td class="num">0.09</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-20 09:37</td><td>UP</td><td class="num">+82</td><td class="num">163</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-40</td><td class="num">0.05</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
-<tr class="row-hl"><td class="ln">07-20 11:27</td><td>UP</td><td class="num">+114</td><td class="num">228</td><td>caught</td><td>grind</td><td class="num">+89</td><td class="num">+76</td><td class="num">0.04</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-20 11:48</td><td>DN</td><td class="num">-84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+253</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr class="row-hl"><td class="ln">07-20 13:29</td><td>UP</td><td class="num">+147</td><td class="num">294</td><td>caught</td><td>grind</td><td class="num">+29</td><td class="num">-131</td><td class="num">0.13</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr class="row-bad"><td class="ln">07-20 13:45</td><td>DN</td><td class="num">-195</td><td class="num">390</td><td>FOUGHT</td><td>grind</td><td class="num">-156</td><td class="num">+89</td><td class="num">0.23</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr class="row-bad"><td class="ln">07-20 14:07</td><td>DN</td><td class="num">-77</td><td class="num">154</td><td>FOUGHT</td><td>grind</td><td class="num">-68</td><td class="num">+674</td><td class="num">0.23</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-20 14:41</td><td>DN</td><td class="num">-98</td><td class="num">196</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-257</td><td class="num">0.15</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-20 15:06</td><td>UP</td><td class="num">+91</td><td class="num">182</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-655</td><td class="num">0.25</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-20 15:50</td><td>UP</td><td class="num">+102</td><td class="num">204</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+128</td><td class="num">0.18</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr class="row-hl"><td class="ln">07-20 16:40</td><td>DN</td><td class="num">-92</td><td class="num">185</td><td>caught</td><td>grind</td><td class="num">-50</td><td class="num">+376</td><td class="num">0.14</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-20 18:28</td><td>DN</td><td class="num">-92</td><td class="num">184</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-33</td><td class="num">0.12</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
-<tr class="row-bad"><td class="ln">07-20 19:00</td><td>DN</td><td class="num">-79</td><td class="num">158</td><td>FOUGHT</td><td>rgv_long</td><td class="num">-192</td><td class="num">+286</td><td class="num">0.15</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr class="row-hl"><td class="ln">07-20 19:26</td><td>UP</td><td class="num">+77</td><td class="num">154</td><td>caught</td><td>rgv_long</td><td class="num">-44</td><td class="num">-99</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-20 19:41</td><td>DN</td><td class="num">-102</td><td class="num">203</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-148</td><td class="num">0.19</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-20 23:47</td><td>DN</td><td class="num">-92</td><td class="num">183</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-202</td><td class="num">0.10</td><td class="num">0.51</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-21 00:16</td><td>UP</td><td class="num">+106</td><td class="num">212</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+245</td><td class="num">0.20</td><td class="num">0.46</td><td>FLOW-LED</td></tr>
-<tr class="row-hl"><td class="ln">07-21 13:30</td><td>DN</td><td class="num">-83</td><td class="num">166</td><td>caught</td><td>exhaustion_short</td><td class="num">+12</td><td class="num">-281</td><td class="num">0.15</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-21 14:01</td><td>DN</td><td class="num">-94</td><td class="num">189</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+23</td><td class="num">0.33</td><td class="num">0.49</td><td>OPEN/NEWS</td></tr>
-<tr class="row-bad"><td class="ln">07-21 14:17</td><td>UP</td><td class="num">+138</td><td class="num">276</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">+62</td><td class="num">-646</td><td class="num">0.24</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
-<tr class="row-bad"><td class="ln">07-21 15:03</td><td>UP</td><td class="num">+94</td><td class="num">188</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">-70</td><td class="num">-831</td><td class="num">0.17</td><td class="num">0.55</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-22 07:27</td><td>DN</td><td class="num">-80</td><td class="num">159</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+203</td><td class="num">0.12</td><td class="num">0.48</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-22 11:28</td><td>DN</td><td class="num">-78</td><td class="num">155</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-3</td><td class="num">0.10</td><td class="num">0.47</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-22 13:18</td><td>UP</td><td class="num">+83</td><td class="num">166</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+26</td><td class="num">0.07</td><td class="num">0.45</td><td>OPEN/NEWS</td></tr>
-<tr class="row-hl"><td class="ln">07-22 13:40</td><td>UP</td><td class="num">+102</td><td class="num">204</td><td>caught</td><td>grind_long</td><td class="num">-86</td><td class="num">+1437</td><td class="num">0.19</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-22 14:55</td><td>UP</td><td class="num">+110</td><td class="num">221</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1151</td><td class="num">0.14</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-22 19:51</td><td>DN</td><td class="num">-75</td><td class="num">150</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-912</td><td class="num">0.15</td><td class="num">0.53</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-22 20:06</td><td>UP</td><td class="num">+97</td><td class="num">194</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-44</td><td class="num">0.40</td><td class="num">0.48</td><td>VOL-EXPANSION</td></tr>
-<tr><td class="ln">07-22 20:53</td><td>DN</td><td class="num">-139</td><td class="num">278</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-10</td><td class="num">0.08</td><td class="num">0.48</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-23 00:13</td><td>UP</td><td class="num">+92</td><td class="num">184</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+40</td><td class="num">0.08</td><td class="num">0.50</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-23 06:57</td><td>DN</td><td class="num">-121</td><td class="num">242</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-37</td><td class="num">0.05</td><td class="num">0.50</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-23 07:28</td><td>DN</td><td class="num">-82</td><td class="num">165</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-104</td><td class="num">0.10</td><td class="num">0.48</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-23 08:02</td><td>UP</td><td class="num">+94</td><td class="num">189</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-118</td><td class="num">0.12</td><td class="num">0.51</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 08:48</td><td>UP</td><td class="num">+87</td><td class="num">174</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+3</td><td class="num">0.06</td><td class="num">0.44</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-23 11:22</td><td>DN</td><td class="num">-105</td><td class="num">210</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+20</td><td class="num">0.10</td><td class="num">0.52</td><td>UNCLASS</td></tr>
-<tr class="row-bad"><td class="ln">07-23 12:27</td><td>DN</td><td class="num">-87</td><td class="num">174</td><td>FOUGHT</td><td>rgv_long</td><td class="num">-98</td><td class="num">-3</td><td class="num">0.13</td><td class="num">0.49</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-23 13:02</td><td>DN</td><td class="num">-82</td><td class="num">163</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+136</td><td class="num">0.11</td><td class="num">0.53</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-23 13:28</td><td>UP</td><td class="num">+165</td><td class="num">330</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-341</td><td class="num">0.09</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
-<tr class="row-hl"><td class="ln">07-23 13:43</td><td>DN</td><td class="num">-178</td><td class="num">356</td><td>caught</td><td>rgv_short</td><td class="num">+198</td><td class="num">-637</td><td class="num">0.35</td><td class="num">0.48</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-23 14:18</td><td>DN</td><td class="num">-80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-183</td><td class="num">0.26</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-23 14:40</td><td>DN</td><td class="num">-184</td><td class="num">368</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+90</td><td class="num">0.43</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
-<tr><td class="ln">07-23 14:59</td><td>DN</td><td class="num">-120</td><td class="num">239</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+18</td><td class="num">0.14</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
-<tr class="row-bad"><td class="ln">07-23 15:48</td><td>UP</td><td class="num">+123</td><td class="num">246</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">-56</td><td class="num">+346</td><td class="num">0.14</td><td class="num">0.47</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-23 16:08</td><td>UP</td><td class="num">+88</td><td class="num">176</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-179</td><td class="num">0.17</td><td class="num">0.53</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 16:39</td><td>DN</td><td class="num">-114</td><td class="num">228</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+598</td><td class="num">0.20</td><td class="num">0.53</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 17:05</td><td>UP</td><td class="num">+77</td><td class="num">154</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1019</td><td class="num">0.25</td><td class="num">0.51</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 17:25</td><td>DN</td><td class="num">-90</td><td class="num">179</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+68</td><td class="num">0.16</td><td class="num">0.56</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 17:52</td><td>DN</td><td class="num">-77</td><td class="num">154</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+119</td><td class="num">0.09</td><td class="num">0.47</td><td>VACUUM</td></tr>
-<tr class="row-hl"><td class="ln">07-23 19:10</td><td>UP</td><td class="num">+82</td><td class="num">164</td><td>caught</td><td>rgv_long</td><td class="num">+7</td><td class="num">-159</td><td class="num">0.09</td><td class="num">0.46</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 19:30</td><td>DN</td><td class="num">-79</td><td class="num">158</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-202</td><td class="num">0.12</td><td class="num">0.48</td><td>FLOW-LED</td></tr>
-<tr><td class="ln">07-23 19:49</td><td>UP</td><td class="num">+226</td><td class="num">453</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-144</td><td class="num">0.09</td><td class="num">0.50</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-23 20:58</td><td>DN</td><td class="num">-100</td><td class="num">201</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-43</td><td class="num">0.06</td><td class="num">0.49</td><td>UNCLASS</td></tr>
-<tr><td class="ln">07-24 00:01</td><td>DN</td><td class="num">-86</td><td class="num">172</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+56</td><td class="num">0.21</td><td class="num">0.56</td><td>VACUUM</td></tr>
-<tr><td class="ln">07-24 06:57</td><td>UP</td><td class="num">+104</td><td class="num">208</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+5</td><td class="num">0.07</td><td class="num">0.46</td><td>UNCLASS</td></tr>
-</table>
-<div class="card"><h3>What the runs were &mdash; by cause</h3><p>Each run gets a cause fingerprint from its pre-run tape. This is the map for where to hunt a new gate.</p><table><tr><th>Cluster</th><th>Runs</th><th>What it is</th></tr>
-<tr><td>VACUUM</td><td class="num">20</td><td>moved AGAINST the tape (a snap-back / stop-run)</td></tr>
-<tr><td>OPEN/NEWS</td><td class="num">20</td><td>the 13:00&ndash;15:00 UTC cash-open / data window</td></tr>
-<tr><td>FLOW-LED</td><td class="num">18</td><td>aggressors drove it (a continuation)</td></tr>
-<tr><td>UNCLASS</td><td class="num">15</td><td>no clear tape tell (quiet ignition)</td></tr>
-<tr><td>VOL-EXPANSION</td><td class="num">1</td><td>amplitude broke out of a coil</td></tr>
-</table></div>
-<div class="callout"><div class="ct">HONEST MONEY &mdash; ceiling vs what we banked</div><table><tr><th></th><th>Runs</th><th>Hindsight ceiling</th><th>What we really made</th></tr><tr class="row-hl"><td>Caught (aligned)</td><td class="num">10</td><td class="num">$2264</td><td class="num">+$180 &nbsp;(8%)</td></tr><tr class="row-bad"><td>Fought (against)</td><td class="num">11</td><td class="num">$2536</td><td class="num">$-841</td></tr><tr><td>Sat out</td><td class="num">53</td><td class="num">$11264</td><td class="num">$0 &larr; the money on the table</td></tr></table><p>The runs made money and the fading gave it back; we convert a fraction of the ceiling and ignore the rest. The next two movements ask whether we can do better &mdash; first with the gates we own, then with new ones.</p></div>
+</style></head><body><div class="wrap"><h1>GAZBOT V7 &mdash; the Friday report</h1><p class="lead" style="font-size:1.05em">Full desk review, week ending 2026-07-24. Two halves, one document. <strong>Part 1</strong> is the warm half &mdash; what the live six-gate paper tournament actually did this week, the direction-router on trial, and the shadow board that earned a promotion (Parts 1, 2 and 2.5). <strong>Then the cold, tape-first half</strong>: we ignore everything the desk did and ask, from the raw MNQ tape and order book, <strong>where was the money and did we show up?</strong> &mdash; then test whether the gates we already own could have caught the runs we missed, and finally build brand-new gates from scratch and backtest them to death, the ones that failed included (that is the point). Plain English, honest money, every claim a table.</p>
 <hr class="frag-sep">
-<h2><span class="n">M2</span> Could our own gates have caught them?</h2>
+<h2><span class="n">Part 1</span> The Live Desk — the 6-gate paper tournament, this week</h2>
 
-<p class="lead">Short answer, Garrath: no — not in any way worth acting on. I took the 50-odd runs we sat out this week (about $10,900 of hindsight money on the table) and fired all six of our live gates at them mechanically, in the run's direction, in the 10 minutes before each one lit up — then priced the exits honestly on this week's own ticks. Between the six of them they'd have fired on just <strong>19 of the 50</strong> runs and banked about <strong>+$419</strong>. That's roughly <strong>4% of the money</strong> that got away, spread across single-digit trades per gate, and it's the <em>generous</em> number — I fired them ungated, so the live ER and ATR floors would knock it down further. Two of the six gates fired on zero of the 50. The runs we miss, we miss by design.</p>
+<p class="lead">Straight up, Garrath: the desk did not make money this week. The six-gate paper tournament went <b>&minus;$1,604 across 185 trades</b> since it went live on the evening of the 20th. So before anything else — nobody gets promoted on this week's P&amp;L. But two things genuinely <b>survived the skeptic</b>, and they're the reason I'm not gloomy: the <b>direction-router did exactly the job we built it for</b> (it benched the counter-trend faders on every proven trend leg and let precisely <b>zero</b> new counter-trend entries slip through), and the <b>STOP_UNFILLED self-heal caught 20 would-be naked positions</b> and closed them itself instead of leaving us hanging. The money was red; the machinery worked. That's the honest headline.</p>
+
+<div class="callout"><div class="ct">What survived — lead with this</div>
+<ul>
+<li><b>The router benched correctly, 0 leaks.</b> On Friday it flipped 12 times and benched the long-faders on five separate down-legs. Across every one of those bench windows, <b>0 of 18</b> long-fader entries fired while a down-trend was proven. When it benched the shorts on the 07:30 up-move, <b>0</b> short-fader entries fired either. It didn't just log the right regime — it actually stopped the trades.</li>
+<li><b>capitulation_long was the only gate that didn't bleed</b> — +$17 over 10 trades. Thin as anything (n=10), so it's "didn't lose," not "found an edge." But on a week where everything else was red, flat is a survivor.</li>
+<li><b>The short book was far cheaper than the long book.</b> The three long gates lost &minus;$1,140 between them; the three short gates lost &minus;$464. The bleed is a <b>long-side, fade-the-down-trend problem</b>, not a whole-desk problem.</li>
+</ul></div>
 
 <div class="card">
-  <h3>The scoreboard — all six gates, fired on the 50 sat-out runs</h3>
-  <p>In-direction only (long gates on up-runs, short gates on down-runs), one position per fire, exits repriced tick-by-tick on this week's tape (grind/thrust ride the chandelier + 1-ATR stop; the fades take 2R or the 1-ATR stop). Honest money, same week the runs happened.</p>
-  <table>
-    <tr><th>Gate</th><th>Fires on sat-out runs</th><th>Honest $</th><th>Why it misses</th></tr>
-    <tr><td>rgv_long</td><td class="num">8 / 50</td><td class="num">+$230</td><td>Fades a VWAP stretch that's <em>rolling over</em> — needs price already 2+ ATR past VWAP and turning back. Fresh runs ignite near/through VWAP, not stretched past it, so it rarely arms — and when it does it's fading the run's own continuation.</td></tr>
-    <tr><td>grind_long</td><td class="num">7 / 50</td><td class="num">+$165</td><td>Needs an <em>established</em> up-trend (VWAP slope up, price riding above it). Most misses are vacuum snapbacks / news pops that ignite against a flat or opposite slope. It only arms once the trend's already running, enters mid-move, and the chandelier hands most of it back.</td></tr>
-    <tr><td>thrust_short</td><td class="num">1 / 50</td><td class="num">+$85</td><td>Wants a 5-bar (5-minute) momentum burst with a volume surge. These runs fire on 1-2 bars — by the time five bars confirm, the move's spent, so it almost never arms at ignition.</td></tr>
-    <tr><td>rgv_short</td><td class="num">3 / 50</td><td class="num">-$61</td><td>Same fader mechanics as rgv_long, wrong way round — it shorts up-turns. On directional runs it fades into strength and loses (net red across its 3 fires).</td></tr>
-    <tr><td>capitulation_long</td><td class="num">0 / 50</td><td class="num">$0</td><td>Fades a one-sided aggressor <em>climax</em> (one side 3x its baseline AND 70%+ of flow, price already moving that way). The sat-out runs are flow-led / vacuum moves, not blow-off climaxes — the trigger never trips.</td></tr>
-    <tr><td>exhaustion_short</td><td class="num">0 / 50</td><td class="num">$0</td><td>Mirror of capitulation — fades a buy blow-off. Same story: no aggressor climax in the pre-run tape, so it never fires. It catches exhaustion, not ignition.</td></tr>
-  </table>
-  <p>Nineteen distinct runs caught between all six (no gate overlapped another's runs), <strong>31 of the 50 runs get no fire at all</strong>, and the combined take is <strong>+$418.5</strong>. The best single gate, rgv_long at +$230, is eight trades in one week — noise-level, could flip next week. Nothing here separates from zero.</p>
+<h3>The week's scoreboard — per-gate card (6-gate tournament, since 20 Jul eve)</h3>
+<table>
+<thead><tr><th>Gate</th><th>N</th><th>Net $</th><th>Win %</th><th>Avg win</th><th>Avg loss</th><th>Best</th><th>Worst</th><th>Exit mix</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">capitulation_long</td><td class="num">10</td><td class="num">+17</td><td class="num">50</td><td class="num">+66</td><td class="num">&minus;62</td><td class="num">+118</td><td class="num">&minus;117</td><td class="ln">give 4 · target 3 · stop 1 · unfilled 2</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_short</td><td class="num">21</td><td class="num">&minus;94</td><td class="num">57</td><td class="num">+45</td><td class="num">&minus;70</td><td class="num">+90</td><td class="num">&minus;107</td><td class="ln">give 9 · stop 9 · target 3</td></tr>
+<tr class="row-bad"><td class="ln">thrust_short</td><td class="num">18</td><td class="num">&minus;109</td><td class="num">44</td><td class="num">+33</td><td class="num">&minus;37</td><td class="num">+73</td><td class="num">&minus;59</td><td class="ln">stop 7 · give 6 · chand 3 · unfilled 2</td></tr>
+<tr class="row-bad"><td class="ln">rgv_short</td><td class="num">40</td><td class="num">&minus;262</td><td class="num">48</td><td class="num">+57</td><td class="num">&minus;64</td><td class="num">+158</td><td class="num">&minus;171</td><td class="ln">stop 17 · give 15 · target 6 · maxhold 1 · unfilled 1</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td class="num">36</td><td class="num">&minus;466</td><td class="num">33</td><td class="num">+53</td><td class="num">&minus;46</td><td class="num">+182</td><td class="num">&minus;216</td><td class="ln">stop 15 · unfilled 8 · chand 7 · give 5 · maxhold 1</td></tr>
+<tr class="row-bad"><td class="ln">rgv_long</td><td class="num">60</td><td class="num">&minus;691</td><td class="num">47</td><td class="num">+43</td><td class="num">&minus;60</td><td class="num">+121</td><td class="num">&minus;134</td><td class="ln">give 30 · stop 20 · unfilled 7 · target 3</td></tr>
+<tr class="row-bad"><td class="ln"><b>TOURNAMENT</b></td><td class="num"><b>185</b></td><td class="num"><b>&minus;1,604</b></td><td class="num"><b>45</b></td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="ln">&mdash;</td></tr>
+</tbody>
+</table>
+<p>Read this the plain way. <b>rgv_long is the single biggest hole</b> — it traded the most (60 times), won just under half its trades, but its losers were bigger than its winners (&minus;$60 vs +$43) so the arithmetic never worked; it fades dips and this week the dips kept going. <b>grind_long</b> is our one momentum gate here and it had the week's ugliest single trade (&minus;$216) — momentum-continuation on a chop-into-reversal week is a bad marriage. The three shorts are all small-red and, notably, <b>win their trades more often than they lose</b> (exhaustion_short 57%, rgv_short 48%, thrust_short 44%) — the shorts are a size problem on the losers, not a direction problem.</p>
 </div>
 
 <div class="card">
-  <h3>Why this is a structural miss, not a tuning gap</h3>
-  <p>Look at what the six gates <em>are</em>: four of them (rgv_long, rgv_short, capitulation_long, exhaustion_short) are <strong>faders</strong> — they exist to sell strength and buy weakness. A fresh run is the exact thing they're built to lean against, so of course they don't catch it; when they do fire it's late (price already stretched) and they're fading the move that's still going. The other two are momentum gates that need a <strong>shape the runs don't offer at ignition</strong>: grind wants a trend that's already established, thrust wants five bars of confirmed burst. Our runs ignite in one or two bars from a flat or opposite backdrop. No threshold tweak fixes a mechanism aimed the wrong way — you'd need a new gate that triggers <em>on the ignition itself</em> (the vacuum snap, the 1-2 bar impulse), which is the greenfield question, not this one.</p>
+<h3>Long book vs short book — where the bleed actually lives</h3>
+<table>
+<thead><tr><th>Side</th><th>Gates</th><th>N</th><th>Net $</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">LONG (the faders + grind)</td><td class="ln">rgv_long · grind_long · capitulation_long</td><td class="num">106</td><td class="num">&minus;1,140</td></tr>
+<tr class="row-bad"><td class="ln">SHORT</td><td class="ln">rgv_short · thrust_short · exhaustion_short</td><td class="num">79</td><td class="num">&minus;464</td></tr>
+</tbody>
+</table>
+<p>71% of the week's loss is on the long side. That matters for what we do next: the fix isn't "trade less," it's "stop the long-faders buying into proven down-trends" — which is exactly what the router is for, and exactly what Friday tested in the wild.</p>
+</div>
+
+<div class="card">
+<h3>Day-by-day, and did a gate's P&amp;L depend on trend vs chop?</h3>
+<p>Every day this week leaned <b>down or chop-into-down</b> — there was no clean sustained up-day to reward the longs. So the honest read on "day-type dependence" is: the long-faders got steadily worse as the down-pressure built (Wed→Fri), and the shorts flipped from red to green exactly on the days the tape actually trended down (Thu was the tell — shorts +$186, longs got chopped).</p>
+<table>
+<thead><tr><th>Gate</th><th class="num">Mon 20</th><th class="num">Tue 21</th><th class="num">Wed 22</th><th class="num">Thu 23</th><th class="num">Fri 24</th><th class="num">Total</th></tr></thead>
+<tbody>
+<tr><td class="ln">rgv_long</td><td class="num">&minus;175</td><td class="num">+30</td><td class="num">+18</td><td class="num">&minus;382</td><td class="num">&minus;183</td><td class="num">&minus;691</td></tr>
+<tr><td class="ln">grind_long</td><td class="num">+129</td><td class="num">&minus;207</td><td class="num">&minus;312</td><td class="num">&minus;14</td><td class="num">&minus;62</td><td class="num">&minus;466</td></tr>
+<tr><td class="ln">capitulation_long</td><td class="num">0</td><td class="num">+205</td><td class="num">0</td><td class="num">&minus;188</td><td class="num">0</td><td class="num">+17</td></tr>
+<tr><td class="ln">thrust_short</td><td class="num">&minus;60</td><td class="num">+10</td><td class="num">&minus;108</td><td class="num">+176</td><td class="num">&minus;128</td><td class="num">&minus;109</td></tr>
+<tr class="row-hl"><td class="ln">rgv_short</td><td class="num">0</td><td class="num">&minus;234</td><td class="num">0</td><td class="num">+158</td><td class="num">&minus;186</td><td class="num">&minus;262</td></tr>
+<tr><td class="ln">exhaustion_short</td><td class="num">0</td><td class="num">&minus;14</td><td class="num">+88</td><td class="num">&minus;148</td><td class="num">&minus;20</td><td class="num">&minus;94</td></tr>
+<tr class="row-bad"><td class="ln"><b>DAY TOTAL</b></td><td class="num"><b>&minus;106</b></td><td class="num"><b>&minus;210</b></td><td class="num"><b>&minus;312</b></td><td class="num"><b>&minus;398</b></td><td class="num"><b>&minus;578</b></td><td class="num"><b>&minus;1,604</b></td></tr>
+</tbody>
+</table>
+<p>Look at the <b>rgv_short row</b> — it's the whole thesis in one line. On Tue (a choppy up-grind day) it lost &minus;$234 fading strength that wasn't there to fade. On Thu (a genuine down-trend) it made +$158. Same gate, opposite result, and the only thing that changed was <b>whether the tape actually trended in its direction</b>. A gate isn't good or bad — it's <b>in-regime or out-of-regime</b>. Hold that thought for the Friday story below, because Friday put that exact behaviour on a stopwatch.</p>
+</div>
+
+<div class="card">
+<h3>The STOP_UNFILLED self-heals — 20 catches, and why they're a good-news line</h3>
+<p>Twenty times this week a resting stop order <b>didn't get filled by the venue</b> when price crossed it (the book gapped or thinned right through the level). In the old world that's how you end up sitting naked in a losing position for hours. This week, every single time, the desk <b>detected the un-filled stop and force-closed the position itself</b> — that's what the STOP_UNFILLED exit reason is. They cost money (&minus;$1,104 total, avg &minus;$55) because you're closing a trade that was already offside — but that money was <b>already lost the moment the stop was breached</b>; the self-heal just stopped it getting worse. Zero of these turned into a naked-position bleed. That safety net firing 20 times is the net doing its job, not a new problem.</p>
+<table>
+<thead><tr><th>Day</th><th class="num">Self-heals</th><th class="num">$ closed</th><th>Which gates</th></tr></thead>
+<tbody>
+<tr><td class="ln">Tue 21</td><td class="num">5</td><td class="num">&minus;141</td><td class="ln">grind_long ×5</td></tr>
+<tr><td class="ln">Wed 22</td><td class="num">5</td><td class="num">&minus;152</td><td class="ln">grind_long ×3 · thrust_short ×2</td></tr>
+<tr class="row-bad"><td class="ln">Thu 23</td><td class="num">9</td><td class="num">&minus;747</td><td class="ln">rgv_long ×7 · capitulation_long ×2</td></tr>
+<tr><td class="ln">Fri 24</td><td class="num">1</td><td class="num">&minus;65</td><td class="ln">rgv_short ×1</td></tr>
+<tr><td class="ln"><b>Total</b></td><td class="num"><b>20</b></td><td class="num"><b>&minus;1,104</b></td><td class="ln">rgv_long 7 · grind_long 8 · cap 2 · thrust_short 2 · rgv_short 1</td></tr>
+</tbody>
+</table>
+<p>Thursday is the one to note — nine self-heals for &minus;$747, all on the long faders. That wasn't the stop mechanism failing; it was the long-faders standing in front of a fast down-move so often that the venue kept blowing through their stops. Which, again, is the case for benching them — and brings us to the router.</p>
+</div>
+
+<div class="card">
+<h3>The direction-router trial — how it behaved live</h3>
+<p>The router is the reactive fix for the "gate fades a proven trend" problem. Every 15 minutes it replays the day's regime from the tape, and if it sees a proven trend it <b>benches the gates that would fade it</b> — long-faders (rgv_long, capitulation_long) off in a down-trend, short-faders (rgv_short, exhaustion_short) off in an up-trend — writing an off-switch the tournament re-reads with no restart. Momentum gates (grind_long) are left alone by design. It needs a trend to be <i>proven</i> before it acts, and it needs the flip to hold two reads (hysteresis) before it commits — so it lags a fresh move by 15&ndash;30 minutes, and it does nothing in genuine chop. That's the deal we signed up for, and Friday exercised all of it.</p>
+<table>
+<thead><tr><th class="num">Fri metric</th><th class="num">Value</th></tr></thead>
+<tbody>
+<tr><td class="ln">Regime flips across the session</td><td class="num">12</td></tr>
+<tr><td class="ln">Long-fader bench windows (down-legs)</td><td class="num">5</td></tr>
+<tr><td class="ln">Short-fader bench windows (up-moves)</td><td class="num">1</td></tr>
+<tr class="row-hl"><td class="ln">Long-fader entries that leaked through a bench</td><td class="num">0 of 18</td></tr>
+<tr class="row-hl"><td class="ln">Short-fader entries that leaked through the 07:30 up-bench</td><td class="num">0</td></tr>
+</tbody>
+</table>
+<p>That zero-leak line is the whole point. The router isn't just <i>labelling</i> the regime correctly — when it said "down-trend, bench the longs," <b>not one</b> new long-fade trade actually opened until it un-benched them. The mechanism reaches all the way through to the order.</p>
+</div>
+
+<h2><span class="n">Flagship</span> Friday 24 July — three regimes in one session, on a stopwatch</h2>
+
+<p class="lead">Friday is the case study of the whole week because it wasn't one market — it was three, stacked back to back: a <b>down leg</b> into the US morning, then a <b>violent V-reversal up that mushed into a choppy up-grind</b>, then a <b>clean sustained down-trend</b> into the close. The router had to read all three and re-point the desk each time. It got the trend legs right and blocked the fades cleanly. What it can't do — and this is the honest edge of the finding — is protect you inside a <b>choppy up-grind</b> that never reads as a proven trend. That gap is exactly where rgv_short lost its shirt before winning it back. Friday still finished &minus;$578, but it's the most <i>instructive</i> red day we've had.</p>
+
+<div class="card">
+<h3>The router's Friday timeline — every flip, in order</h3>
+<table>
+<thead><tr><th class="num">UTC</th><th>Router call</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td class="num">06:15</td><td class="ln">TREND_DOWN (ER 0.51)</td><td class="ln">bench longs (rgv_long, cap_long)</td></tr>
+<tr><td class="num">06:45</td><td class="ln">CHOP</td><td class="ln">longs back on</td></tr>
+<tr><td class="num">07:30</td><td class="ln">TREND_UP (ER 0.53, +98pt)</td><td class="ln">bench shorts (rgv_short, exhaustion_short)</td></tr>
+<tr><td class="num">08:00</td><td class="ln">CHOP</td><td class="ln">shorts back on</td></tr>
+<tr class="row-bad"><td class="num">13:00</td><td class="ln">TREND_DOWN (ER 0.53, &minus;88pt)</td><td class="ln">bench longs — the morning down-leg</td></tr>
+<tr><td class="num">13:30</td><td class="ln">CHOP</td><td class="ln">longs back on</td></tr>
+<tr class="row-bad"><td class="num">14:00</td><td class="ln">TREND_DOWN (ER 0.37, &minus;208pt)</td><td class="ln">bench longs — the hard down-thrust</td></tr>
+<tr class="row-hl"><td class="num">14:30</td><td class="ln">CHOP (V-reversal begins)</td><td class="ln">longs back on — the bottom is in</td></tr>
+<tr class="row-bad"><td class="num">14:30&ndash;16:45</td><td class="ln">CHOP throughout (net swings +231, +101, +67…)</td><td class="ln">nobody benched — the choppy up-grind</td></tr>
+<tr><td class="num">17:15</td><td class="ln">TREND_DOWN (ER 0.26)</td><td class="ln">bench longs — clean down-trend starts</td></tr>
+<tr><td class="num">17:30</td><td class="ln">CHOP</td><td class="ln">longs back on (brief)</td></tr>
+<tr class="row-bad"><td class="num">18:45</td><td class="ln">TREND_DOWN (ER 0.67, &minus;148pt)</td><td class="ln">bench longs — the strong close down-leg</td></tr>
+<tr><td class="num">18:45&ndash;19:30</td><td class="ln">TREND_DOWN held (3 reads)</td><td class="ln">longs stayed benched — no re-arm churn</td></tr>
+<tr><td class="num">19:45</td><td class="ln">CHOP</td><td class="ln">longs back on into the close</td></tr>
+</tbody>
+</table>
+<p>Two things to like here. First, on the <b>14:00 down-thrust</b> (its strongest down-read of the day, ER 0.37 / &minus;208pt) it benched the longs and then <b>un-benched them at 14:30 right as the V-reversal bottomed</b> — it didn't stay stubbornly short into the bounce. Second, on the <b>18:45 close-leg</b> it read down, benched the longs, and <b>held that bench across three straight reads</b> instead of whipsawing them on and off — the hysteresis doing its job on a genuine trend.</p>
+</div>
+
+<div class="card">
+<h3>The three knife-catches at the turns — where the money went</h3>
+<p>Every regime turn on Friday had a gate standing on the wrong side of it at the exact wrong moment. Here are the three, each a clean fact:</p>
+<table>
+<thead><tr><th>Turn</th><th>Gate caught out</th><th class="num">$</th><th>What happened</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">The morning down-leg (13:32&ndash;13:34)</td><td class="ln">thrust_short</td><td class="num">&minus;128</td><td class="ln">Three back-to-back shorts (&minus;41, &minus;40, &minus;46) all stopped inside 90 seconds — spike-whipsaw, it shorted the down-thrust right as it snapped back.</td></tr>
+<tr class="row-bad"><td class="ln">The V-bottom (14:22&ndash;14:35)</td><td class="ln">exhaustion_short</td><td class="num">&minus;78</td><td class="ln">Shorted the exhaustion low (&minus;84 stop) then a scratch (+6) — it called the bottom for a reversal and the reversal went straight up through it.</td></tr>
+<tr class="row-bad"><td class="ln">The choppy up-grind (15:18&ndash;16:12)</td><td class="ln">rgv_short</td><td class="num">&minus;345</td><td class="ln">Thirteen shorts into a grind that kept grinding up. The router read CHOP the whole time (correctly — net was swinging both ways), so it never benched the shorts. Unfiltered, they bled.</td></tr>
+</tbody>
+</table>
+<p>The first two are single-turn scars — a spike-whipsaw and a called-bottom that snapped back — the kind of thing you accept as the cost of trading turns. The third is the important one, so it gets its own line.</p>
+</div>
+
+<div class="card">
+<h3>rgv_short on Friday — the &minus;$345 lesson, then the +$183 redemption</h3>
+<p>This is the single clearest thing the desk taught us this week, so I'll lay it out slowly. From 15:18 to 16:12, rgv_short fired <b>13 times</b> shorting a <b>choppy up-grind</b> — price grinding higher in a messy, two-way way that the router (rightly) calls chop, not a trend. Because it wasn't a <i>proven</i> up-trend, the router never benched the shorts, and un-filtered they got fed to the grind one after another for <b>&minus;$345</b>. Then, at 16:13, the tape finally turned into a <b>real down-trend</b> — and the very same gate, now pointing the right way, made <b>+$183 on its next three fires</b> (including a +$156 target). Nothing about the gate changed. The market changed, and rgv_short went from &minus;$345 to +$183 on the flip.</p>
+<table>
+<thead><tr><th>Phase</th><th class="num">Fires</th><th class="num">Net $</th><th>Read</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">Chop up-grind (15:18&ndash;16:12)</td><td class="num">13</td><td class="num">&minus;345</td><td class="ln">Shorting strength that kept coming — un-benched because chop isn't a trend.</td></tr>
+<tr class="row-hl"><td class="ln">Aligned down-trend (16:13&ndash;16:30)</td><td class="num">3</td><td class="num">+183</td><td class="ln">Same gate, tape now down — clean money, one +$156 target.</td></tr>
+<tr><td class="ln">Trend continuation (17:37)</td><td class="num">1</td><td class="num">+42</td><td class="ln">Still aligned, still green.</td></tr>
+</tbody>
+</table>
+<p>The takeaway is not "rgv_short is bad" and it is <b>not</b> "relegate the short side" — the short side made money the moment the tape aligned. The takeaway is that the <b>router protects against proven trends but has a blind spot for choppy grinds against you</b>, and closing that blind spot is a <i>filter</i> job (the absorption-confirm layer), not a router job or a relegation. That's the thread Part 2 and 2.5 pick up.</p>
+</div>
+
+<div class="callout"><div class="ct">Honesty box — what this week is NOT</div>
+<ul>
+<li><b>One week. In-sample. Thin.</b> The tournament has run four-and-a-half days. capitulation_long's "+$17" is 10 trades; exhaustion_short's tidy 57% win-rate is 21. None of these numbers are stable enough to bet the sizing ladder on — they're this week's weather, not the climate.</li>
+<li><b>Every day leaned down or chop.</b> There was no clean up-day to fairly test the long book, and no long dull day to test whether the shorts over-trade. The long-side bleed is real, but "the longs are broken" would be over-reading a one-sided week.</li>
+<li><b>The router worked <i>mechanically</i>; we can't yet prove it made money.</b> Zero leaks is a fact. "It saved $X" is a counterfactual — the fades it blocked didn't get to lose, but we're inferring the saving, not banking it. The backtest says +$580 Mon&ndash;Thu; live Friday is consistent with that but is a sample of one violent day.</li>
+<li><b>These are paper fills, honest but paper.</b> The tournament trades on live ticks, so this P&amp;L is real-fill honest — but it's a paper account, and live money still adds slippage and nerves the paper desk doesn't feel.</li>
+</ul></div>
+
+<hr class="frag-sep">
+<h2><span class="n">P2</span> The shadow desk &mdash; what earned a promotion this week</h2>
+<p class="lead">One sim survived every stress test I could throw at it: <strong>abs_veto_55s</strong>. It made <strong>+$1,340</strong> over 106 trades since last Thursday, it stayed green in chop <em>and</em> in trend, it held up in the back half of its own history, and it beat the plain un-vetoed thrust by <strong>+$974</strong> on the same board. And the part that matters most for Monday: it is a <strong>two-sided</strong> gate and <strong>both sides make money</strong> &mdash; long +$518 and short +$823 all-time. The live desk only runs the short half of this idea (<code>thrust_short</code>), so we are leaving the long side on the table. My recommendation is to promote it <strong>two-sided</strong>, not short-only. Everything below is the honest battery behind that call, plus the reframes on <code>rgv_short</code> and the faders &mdash; none of which are relegation cases once you split them by regime.</p>
+
+<div class="card">
+<h3>What abs_veto_55s actually is (in one breath)</h3>
+<p>It is the loose thrust gate with one extra rule bolted on: after a thrust fires, it <strong>waits 55 seconds</strong> and only takes the trade if the burst is still going &mdash; if the move got absorbed and stalled in that window, it skips it. That single "let it prove itself" delay throws away about <strong>44%</strong> of the raw thrusts. What is left is a much cleaner book: it does not make <em>bigger</em> winners than raw thrust, it just <strong>wins more often</strong> (48% vs 37%) because it stopped taking the fake bursts that immediately reverse. It is a fakeout filter, nothing more clever than that.</p>
+</div>
+
+<div class="card">
+<h3>1 &mdash; The headline, and how it stacks against raw thrust</h3>
+<p>Head-to-head on the same shadow board, same window. The veto version does not win by taking home-run trades &mdash; the average win and average loss are almost identical. It wins by <strong>hitting more often and bleeding a much shallower drawdown</strong> ($222 worst dip vs $522 for raw thrust). That is exactly the signature of a filter that removes bad entries rather than one that got lucky on a few big trades.</p>
+<table>
+<tr><th>Sim</th><th>Trades</th><th>Net $</th><th>Win %</th><th>Avg win</th><th>Avg loss</th><th>Worst</th><th>$/trade</th><th>Max drawdown</th></tr>
+<tr class="row-hl"><td class="ln">abs_veto_55s <span class="tag">PROMOTE</span></td><td class="num">106</td><td class="num">+1,340</td><td class="num">48%</td><td class="num">+63</td><td class="num">&minus;34</td><td class="num">&minus;71</td><td class="num">+12.6</td><td class="num">&minus;222</td></tr>
+<tr class="row-bad"><td class="ln">thrust_loose (raw, no veto)</td><td class="num">195</td><td class="num">+366</td><td class="num">37%</td><td class="num">+66</td><td class="num">&minus;36</td><td class="num">&minus;90</td><td class="num">+1.9</td><td class="num">&minus;522</td></tr>
+</table>
+<p>The veto's own contribution &mdash; abs_veto_55s minus raw thrust across the whole board &mdash; is <strong>+$974</strong>. Same raw signal, one delay rule, and it turns a barely-alive +$366 into a healthy +$1,340.</p>
+</div>
+
+<div class="card">
+<h3>2 &mdash; Is it one lucky day, or spread out?</h3>
+<p>Spread out. <strong>5 of 7 days green.</strong> Yes, two days (07-17 and 07-23) do the heavy lifting, but the other green days are genuinely green and the two red days are small &mdash; the worst day of its whole life is &minus;$148. It never had a day that blew up.</p>
+<table>
+<tr><th>Day</th><th>Trades</th><th>Net $</th><th>Win %</th><th>Read</th></tr>
+<tr class="row-bad"><td class="ln">07-16</td><td class="num">1</td><td class="num">&minus;50</td><td class="num">0%</td><td>one trade, ignore</td></tr>
+<tr class="row-hl"><td class="ln">07-17</td><td class="num">20</td><td class="num">+549</td><td class="num">60%</td><td>strong</td></tr>
+<tr class="row-hl"><td class="ln">07-20</td><td class="num">22</td><td class="num">+36</td><td class="num">36%</td><td>scratched, still green</td></tr>
+<tr class="row-hl"><td class="ln">07-21</td><td class="num">10</td><td class="num">+83</td><td class="num">50%</td><td>fine</td></tr>
+<tr class="row-bad"><td class="ln">07-22</td><td class="num">12</td><td class="num">&minus;148</td><td class="num">25%</td><td>its worst day &mdash; small</td></tr>
+<tr class="row-hl"><td class="ln">07-23</td><td class="num">23</td><td class="num">+761</td><td class="num">65%</td><td>best day</td></tr>
+<tr class="row-hl"><td class="ln">07-24</td><td class="num">18</td><td class="num">+110</td><td class="num">44%</td><td>green through the 07-24 violence</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>3 &mdash; Does it only work in one kind of market?</h3>
+<p>This is the test I care about most, because our whole problem this year is gates that only work in one regime. Split every trade by how trendy the tape was at entry (efficiency ratio &mdash; below 0.18 is chop, above is trend). It made money in <strong>both</strong>, and almost the same money in each. That is rare on this desk and it is the single best thing about this sim.</p>
+<table>
+<tr><th>Regime</th><th>Trades</th><th>Net $</th><th>Win %</th><th>$/trade</th><th>Max drawdown</th></tr>
+<tr class="row-hl"><td class="ln">Chop (ER &lt; 0.18)</td><td class="num">55</td><td class="num">+627</td><td class="num">47%</td><td class="num">+11.4</td><td class="num">&minus;200</td></tr>
+<tr class="row-hl"><td class="ln">Trend (ER &ge; 0.18)</td><td class="num">51</td><td class="num">+713</td><td class="num">49%</td><td class="num">+14.0</td><td class="num">&minus;116</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>4 &mdash; Did the edge fade over time? (walk-forward)</h3>
+<p>Split its history down the middle by trade order &mdash; a rough "did the first half predict the second half" check. The second half is actually <strong>slightly better</strong> than the first. No decay, no sign the edge was front-loaded and dying.</p>
+<table>
+<tr><th>Half</th><th>Trades</th><th>Net $</th><th>Win %</th><th>$/trade</th></tr>
+<tr class="row-hl"><td class="ln">First half</td><td class="num">53</td><td class="num">+618</td><td class="num">47%</td><td class="num">+11.7</td></tr>
+<tr class="row-hl"><td class="ln">Second half</td><td class="num">53</td><td class="num">+722</td><td class="num">49%</td><td class="num">+13.6</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>5 &mdash; The big one for Monday: BOTH sides earn</h3>
+<p>The live desk runs this idea short-only (<code>thrust_short</code>). But the shadow proves the <strong>long side is also green</strong> &mdash; and this week specifically. So promoting it short-only would throw away real money the long side is making. Both windows, both sides, positive.</p>
+<table>
+<tr><th>Window</th><th>Side</th><th>Trades</th><th>Net $</th><th>Win %</th><th>$/trade</th></tr>
+<tr class="row-hl"><td class="ln">All-time (07-16&rarr;24)</td><td>SHORT</td><td class="num">53</td><td class="num">+823</td><td class="num">51%</td><td class="num">+15.5</td></tr>
+<tr class="row-hl"><td class="ln">All-time (07-16&rarr;24)</td><td>LONG</td><td class="num">53</td><td class="num">+518</td><td class="num">45%</td><td class="num">+9.8</td></tr>
+<tr class="row-hl"><td class="ln">This week (07-20&rarr;24)</td><td>SHORT</td><td class="num">42</td><td class="num">+467</td><td class="num">48%</td><td class="num">&mdash;</td></tr>
+<tr class="row-hl"><td class="ln">This week (07-20&rarr;24)</td><td>LONG</td><td class="num">43</td><td class="num">+375</td><td class="num">44%</td><td class="num">&mdash;</td></tr>
+</table>
+<p>The short side is the stronger of the two (higher win rate, more per trade), but the long side is clearly additive, not dead weight. <strong>Promote two-sided.</strong> <span class="tag">TWO-SIDED &mdash; both sides green</span></p>
+</div>
+
+<div class="card">
+<h3>6 &mdash; Why 55 seconds, and is that knob cheating?</h3>
+<p>Honest answer: I swept the delay and 55s is the best <em>total-dollar</em> setting on this one window, so some of its edge over 50s and 60s is me picking the winner after the fact. But look at the shape &mdash; every delay is green, and a longer delay trades away volume for a higher hit rate. 60s hits 55% but only fired 38 times (too thin to trust). 55s is the balance of "clean enough" and "still trades enough to matter." I would not read the 55-vs-50 gap as real edge; I <em>would</em> read "all delays beat raw thrust" as real.</p>
+<table>
+<tr><th>Delay</th><th>Trades</th><th>Net $</th><th>Win %</th><th>$/trade</th><th>Note</th></tr>
+<tr class="row-hl"><td class="ln">50s</td><td class="num">116</td><td class="num">+962</td><td class="num">44%</td><td class="num">+8.3</td><td>green</td></tr>
+<tr class="row-hl"><td class="ln">55s (chosen)</td><td class="num">106</td><td class="num">+1,340</td><td class="num">48%</td><td class="num">+12.6</td><td>best total $</td></tr>
+<tr class="row-hl"><td class="ln">60s</td><td class="num">38</td><td class="num">+657</td><td class="num">55%</td><td class="num">+17.3</td><td>highest win% but thin n</td></tr>
+<tr class="row-bad"><td class="ln">raw thrust (0s)</td><td class="num">195</td><td class="num">+366</td><td class="num">37%</td><td class="num">+1.9</td><td>the thing we're beating</td></tr>
+</table>
+<p>And the exit mix confirms it is a hit-rate filter, not a bigger-winners story: the winners and losers are the same size as raw thrust, there are just fewer bad ones.</p>
+<table>
+<tr><th>Exit</th><th>Trades</th><th>Net $</th></tr>
+<tr class="row-hl"><td class="ln">TARGET</td><td class="num">51</td><td class="num">+2,633</td></tr>
+<tr class="row-bad"><td class="ln">STOP</td><td class="num">54</td><td class="num">&minus;1,222</td></tr>
+<tr class="row-bad"><td class="ln">ABSORPTION_CUT</td><td class="num">1</td><td class="num">&minus;71</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>7 &mdash; The new A/B I seeded today: raw short vs vetoed short</h3>
+<p>The live <code>thrust_short</code> gate took <strong>3 spike-entry stops for &minus;$128</strong> in the 07-24 violence &mdash; bursts that fired the gate and instantly reversed. That is precisely what the 55s veto is built to skip. So today I added a clean head-to-head shadow, both short-only with the same chandelier the live slot uses: <code>thrust_short_raw</code> (fires on every short thrust) versus <code>thrust_short_absveto55</code> (fires only if the burst survives 55s). This is the honest apples-to-apples test of "would the veto have saved us the &minus;$128."</p>
+<table>
+<tr><th>Gate</th><th>Trades</th><th>Net $</th><th>Detail</th></tr>
+<tr class="row-bad"><td class="ln">LIVE thrust_short (07-24)</td><td class="num">3</td><td class="num">&minus;128</td><td>3 spike-entry stops, 0% win &mdash; the reason for the A/B</td></tr>
+<tr><td class="ln">thrust_short_raw (shadow)</td><td class="num">2</td><td class="num">+65</td><td>07-24 18:30 chandelier +113, 21:07 stop &minus;48</td></tr>
+<tr><td class="ln">thrust_short_absveto55 (shadow)</td><td class="num">0</td><td class="num">&mdash;</td><td>no confirmed short thrust yet</td></tr>
+</table>
+<p><strong>Too thin to read &mdash; this is a Monday-onward watch, not a finding.</strong> Two raw fires and zero vetoed fires is nothing. I am flagging it as seeded and honest, not scoring it. <span class="tag">SEEDED &mdash; read Monday+</span></p>
+</div>
+
+<div class="card">
+<h3>8 &mdash; rgv_short is NOT a relegation case (the reframe)</h3>
+<p>It is tempting to look at the live desk and say "rgv_short lost money, retire the short side." That is the wrong read and today's tape proves it. The rule on this desk is: a gate runs two-sided with <em>independently tuned</em> thresholds per side &mdash; you never retire a <strong>direction</strong>, you tune the <strong>side</strong>. <code>rgv_short</code> is regime-dependent, not broken. Watch what the exact same gate, shorting in the exact same direction, did across today as the market changed under it:</p>
+<table>
+<tr><th>Hour (UTC)</th><th>Trades</th><th>Net $</th><th>What the tape was doing</th></tr>
+<tr class="row-bad"><td class="ln">05:00</td><td class="num">1</td><td class="num">&minus;65</td><td>fading a fresh move before any trend was proven</td></tr>
+<tr class="row-bad"><td class="ln">15:00</td><td class="num">9</td><td class="num">&minus;165</td><td>knife-shorting a choppy UP-grind &mdash; wrong regime</td></tr>
+<tr class="row-hl"><td class="ln">16:00</td><td class="num">7</td><td class="num">+3</td><td>regime turning down, stops the bleed, catches a +156 target</td></tr>
+<tr class="row-hl"><td class="ln">17:00</td><td class="num">1</td><td class="num">+42</td><td>aligned on the clean down-leg</td></tr>
+</table>
+<p>Same gate, same short direction, all day: it bled <strong>&minus;$230 through the up-grind, then made +$45 back the moment the trend aligned</strong> (net &minus;$186 on the day, 44% win). Its problem was <strong>regime plus being unfiltered on chop</strong>, never the short direction itself. And the shadow board backs this &mdash; a tight-extension raw short is genuinely green:</p>
+<table>
+<tr><th>Shadow short variant</th><th>Trades</th><th>Net $</th><th>Win %</th><th>$/trade</th></tr>
+<tr class="row-hl"><td class="ln">rg_short_025_raw (tight ext, no flow)</td><td class="num">20</td><td class="num">+182</td><td class="num">45%</td><td class="num">+9.1</td></tr>
+<tr class="row-hl"><td class="ln">rg_short_025_flow25</td><td class="num">18</td><td class="num">+156</td><td class="num">44%</td><td class="num">+8.7</td></tr>
+<tr class="row-bad"><td class="ln">rg_short_050 (looser ext)</td><td class="num">13</td><td class="num">&minus;1</td><td class="num">38%</td><td class="num">&minus;0.1</td></tr>
+</table>
+<p><strong>Recommendation: per-side tune the short (tight-extension base) + let the direction-router bench it on a proven counter-grind. Do NOT relegate the short.</strong> <span class="tag">REFRAME &mdash; tune the side, not retire it</span></p>
+</div>
+
+<div class="card">
+<h3>9 &mdash; The long faders: KEEP, with the router as their guard</h3>
+<p>The long-side reversion faders (<code>rgv_long</code>, <code>capitulation_long</code>) are the ones that genuinely bleed when left alone &mdash; their unfiltered shadow proxies are ugly. But the fix is not to kill them, it is the direction-router, which benched them correctly on today's down-legs. Left naked they lose; guarded by the router they are a chop specialist.</p>
+<table>
+<tr><th>Long-fader shadow proxy (unfiltered)</th><th>Trades</th><th>Net $</th><th>Win %</th><th>$/trade</th></tr>
+<tr class="row-bad"><td class="ln">capit_loose</td><td class="num">144</td><td class="num">&minus;3,268</td><td class="num">15%</td><td class="num">&minus;22.7</td></tr>
+<tr class="row-bad"><td class="ln">rg_long_fast</td><td class="num">181</td><td class="num">&minus;1,650</td><td class="num">27%</td><td class="num">&minus;9.1</td></tr>
+<tr class="row-bad"><td class="ln">rg_long_fast_v</td><td class="num">100</td><td class="num">&minus;1,062</td><td class="num">26%</td><td class="num">&minus;10.6</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_rev</td><td class="num">152</td><td class="num">&minus;577</td><td class="num">37%</td><td class="num">&minus;3.8</td></tr>
+</table>
+<p>Live today, <code>rgv_long</code> won 56% of the time but still finished &minus;$183 across 18 trades &mdash; it wins small and loses big when it fades into the wrong regime, the classic fader shape. That is a <strong>router problem, not a filter one</strong>, and the router already handled it correctly today. <span class="tag">KEEP + router guard</span></p>
 </div>
 
 <div class="callout">
-  <div class="ct">VERDICT</div>
-  <p><span class="tag">HONEST NULL</span> <span class="tag">DON'T ARM</span> Fired ungated at the 50 runs we sat out, our six live gates cover 19 of them for about <strong>+$419 hindsight</strong> — ~4% of the ~$10.9k on the table — and that's before the live ER/ATR floors trim it further. Two gates fire zero times. The best gate is 8 trades of noise. This is a clean null: the existing lineup misses the sat-out runs by design (four faders + two momentum gates that need a trend/burst the runs don't give), so there is <strong>nothing to arm or re-tune here</strong>. The money in these runs needs a new ignition-catching mechanism, which M3 takes up. <em>Thin-n caveat: one week, one summer regime, single-digit fires per gate — a floor reading, not a verdict on the gates' broader edge.</em></p>
+<div class="ct">THE HONEST CAVEATS &mdash; read these before you promote anything</div>
+<p><strong>1. Everything here is one week (really nine days) in one summer regime.</strong> abs_veto_55s has 106 trades since last Thursday. That is a lead, not proof. The only true out-of-sample test is the forward shadow run, which is why it keeps trading observe-only.</p>
+<p><strong>2. Shadow overstates.</strong> These sims are 1-lot, tick-repriced, and they NOMINATE &mdash; the paper tournament JUDGES. Live fills are worse than modelled fills every time. Treat every shadow winner as a ceiling, not a promise.</p>
+<p><strong>3. Two days carry abs_veto's total</strong> (07-17 and 07-23). The edge is spread and every other day is at least flat, but if you deleted those two days the total shrinks a lot. It survives that strip because the drawdown never blew up &mdash; but be honest that the fat days matter.</p>
+<p><strong>4. The 55s delay is in-sample-picked.</strong> "55 beats 50 beats 60" is partly curve-fit to this window. What survives is "any delay beats raw thrust," which is the robust part. Do not over-trust the exact 55.</p>
+<p><strong>5. The A/B and the rgv_short arc are single-day live reads.</strong> 2 shadow fires and one afternoon of live rgv_short are directional evidence, not conclusions.</p>
+<p><strong>Bottom line:</strong> the one thing I would actually move on Monday is promoting <strong>abs_veto_55s two-sided</strong> &mdash; it is the only sim that passed spread, regime, walk-forward, and head-to-head at once. Everything else (rgv_short per-side tune, faders + router) is a tuning/routing decision for Saturday, not a relegation.</p>
 </div>
 
 <hr class="frag-sep">
-<h2><span class="n">M3</span> The greenfield lab: building a gate to catch the runs</h2>
+<h2><span class="n">P2.5</span> Mid-week musings &mdash; the direction-router, put on trial</h2>
+<p class="lead">You asked the hard question this week, Garrath: the direction-router works, but is a polling timer that flips a switch-file every 15 minutes really the <em>best</em> way to do it &mdash; or is there something more elegant? So I built the three elegant alternatives you named &mdash; a per-tick guard baked into each gate, an event-driven flip, and a continuous in-tournament gate &mdash; and I raced all of them against the shipped router on this week's actual trades. The honest answer surprised me: <strong>every elegant alternative made LESS money.</strong> The clunky 15-minute sticky poll kept <strong>+$736</strong> this week; the prettier per-tick version kept only <strong>+$341</strong>, and the event-confirmed one actually <em>lost</em> $125. The ugliness is doing real work. Keep the router as it is.</p>
 
-<p class="lead">Garrath — this week the tape handed us 71 big MNQ runs (a 15-min move ≥ 75pt) and we sat out 49 of them, ~$10,584 of hindsight 1-lot ceiling left on the table. So I ignored every gate the desk owns, went back to a blank sheet, and tried to invent a brand-new entry that would have shown up for those runs. The honest headline: <b>nothing survived — this movement ends in a NULL, and it's the most useful thing I found all week.</b> Here's the shape of it. The runs are real money: if you could enter at the exact start with the right side, a plain chandelier bags <b>+$4,388</b> at 96% win, because these runs barely go against you once they leave (avg max-favourable +109pt, avg max-adverse just −10pt). The exit is fine. The money is fine. The <i>entire</i> problem is the entry — and every causal tell I could build off the tape (flow, volume, breakout) turns out to be a coin-flip. The one signal that actually <i>sees</i> almost every run — a 5-minute breakout — sees 48 of the 49 and then bleeds −$5,056 trading them at 49.9% win, because the tape print that starts a real run is statistically identical to the thousand chop-bursts that start nothing. I built four ideas, dug four graves, and there is no gate to arm. Below is the whole autopsy.</p>
+<div class="callout"><div class="ct">What survived &mdash; lead with this</div>
+<p>The shipped router (15-minute poll, 2-mark hysteresis, switch-file) is the <strong>best-earning</strong> of the five plumbings I tested, by a clear margin. Its slowness is a feature: it waits until a trend is truly proven and sustained, then benches only the <strong>23 most concentrated knife-catch losers</strong> (&minus;$736, almost all <code>rgv_long</code> fading a proven drop) and leaves the counter-trend faders that snap back to green alone. Every &ldquo;more elegant&rdquo; design reacts to every wiggle and starts benching <code>rgv_short</code> trades that turned out <em>green</em>. Verdict: <span class="tag">KEEP THE ROUTER AS-IS</span> &mdash; migrate the plumbing later for code hygiene only, and if you do, port the <em>coarseness</em>, never go naive per-tick.</p></div>
 
 <div class="card">
-<h3>Step 1 — who is even catchable? Split the 49 sat-out runs into two families</h3>
-<p>Before building anything I split the sat-out runs by whether the aggressor tape in the 60s <i>before</i> the run leaned the way the run then went. Family A (flow already leaning the run's way) is the only family with a plausible pre-run tell. Family B fires <i>against</i> the standing flow — a vacuum snap-back — and by construction can't be predicted from flow. Family B is nearly half the book.</p>
-<table>
-<tr><th>Family</th><th>Count</th><th>What it is</th><th>Verdict up front</th></tr>
-<tr><td>A — flow-led continuation</td><td>21</td><td>Aggressors already leaning the run's way; a continuation <i>might</i> be tellable</td><td>The only hunting ground</td></tr>
-<tr><td>B — vacuum snap-back</td><td>23</td><td>Price runs <i>against</i> the standing flow on a thinning tape</td><td>Structurally unpredictable</td></tr>
-<tr><td>? — unclassified</td><td>5</td><td>Flat/ambiguous pre-run flow</td><td>Noise</td></tr>
-</table>
-<p>So even in the best case the ceiling for any flow-based idea is the 21 Family-A runs — under half the pot. That's the first cold splash.</p>
+<h3>1 &mdash; The objective, in one plain sentence</h3>
+<p>Stop a gate from trading <em>against a proven trend</em>. Our efficiency-ratio bands read how <em>clean</em> the tape is, not which <em>way</em> it's going &mdash; so a clean down-trend sits happily inside a long-fader's band and the gate cheerfully buys the falling knife (that's the &minus;$361-in-an-hour <code>rgv_long</code> bleed from 07-23 that started all this). We want to switch the counter-trend faders off once a trend is real, back on in chop &mdash; <strong>reactively</strong>, and without clipping the chop days those faders actually earn on. That's the whole job. The question this week isn't <em>whether</em> to do it &mdash; it's <em>which machine</em> does it best.</p>
 </div>
 
 <div class="card">
-<h3>Step 2 — are the runs even worth chasing? The oracle says yes (and proves the problem is entry, not exit)</h3>
-<p>I ran an oracle: enter at the exact census-defined start of every sat-out run, on the correct side, and let a normal chandelier work (30pt stop / 25pt arm / 20pt give-back, tick-honest, −$5 round trip). This is cheating on timing — but it isolates whether the <i>runs</i> are tradeable or whether they whip you out. Result: they're beautifully tradeable. That is the whole tension of this movement — the money is sitting right there, and the exit is not the bottleneck.</p>
+<h3>2 &mdash; What we built, and what it costs us live</h3>
+<p>A stateless timer that wakes every 15 minutes, replays the Paris day's regime from the tape, and writes <code>gate_switches.env</code> when the managed set needs to change. It benches the four reversion faders (<code>rgv_long</code>, <code>capitulation_long</code> in a down-trend; <code>rgv_short</code>, <code>exhaustion_short</code> in an up-trend). Here are its known warts, measured on this week's data rather than asserted:</p>
 <table>
-<tr><th>Metric (perfect entry + perfect side)</th><th>Value</th></tr>
-<tr><td>Avg max-favourable excursion</td><td>+109 pt</td></tr>
-<tr><td>Avg max-adverse excursion</td><td>−10 pt</td></tr>
-<tr><td>Net P&amp;L, 49 runs, chandelier, net of cost</td><td><b>+$4,388</b></td></tr>
-<tr><td>$/trade · win%</td><td>+$89.6 · 96%</td></tr>
+<tr><th>The cost you flagged</th><th>What it actually is</th><th>Measured this week</th></tr>
+<tr class="row-bad"><td class="ln">Reaction lag</td><td>can't bench until a trend is proven ~15&ndash;30 min in; a few counter-trend fades slip through before the switch flips</td><td class="num">&minus;$57 over 40 trades</td></tr>
+<tr><td class="ln">Sticky exit</td><td>over-holds a trend through an alternating chop patch; the &ldquo;fast-exit&rdquo; fix is built but dormant</td><td class="num">fix = +$0</td></tr>
+<tr class="row-bad"><td class="ln">Whipsaw churn</td><td>on a fast-flipping day the effective regime label see-saws</td><td class="num">18 flips (Fri)</td></tr>
+<tr><td class="ln">Partial-bar vs replay</td><td>a live run reads a half-formed current bar; a clean replay doesn't &mdash; tiny drift between the two</td><td class="ln">plumbing artifact</td></tr>
 </table>
-<p>Read the −10pt adverse number twice. Entered at the start, these runs almost never go against you. So this was never an exit problem. Everything from here is one question: <b>can any real-time signal find that start?</b></p>
-</div>
-
-<div class="callout"><div class="ct">GRAVE #1 — Flow-continuation (the main hope)</div>
-<p>The obvious Family-A idea: fire when volume expands (≥1.5× baseline) AND net aggressor flow leans ≥150 AND price is already ticking that way. Enter with the flow, chandelier exit. Result: <b>260 trades, −$1,244, −$4.8/trade, 51.5% win</b> — a coin-flip that pays a fee. It saw only 4 of 49 runs. <b>Cause of death: "flow leaning" is a property of almost every minute of the session, not of run-starts. It doesn't separate the 21 catchable runs from the chop.</b></p></div>
-
-<div class="callout"><div class="ct">GRAVE #2 — Naive volume breakout</div>
-<p>Strip out flow entirely: fire on a volume spike (≥1.5× baseline) plus any ≥10pt push, go with the push. The textbook "something's happening, get in." Result: <b>254 trades, −$1,500, −$5.9/trade, 50.0% win.</b> Dead-even hit rate, so the −$5 cost is the whole P&amp;L. <b>Cause of death: a volume spike marks activity, not direction — half the spikes are the top/bottom of a fade.</b></p></div>
-
-<div class="callout"><div class="ct">GRAVE #3 — Chase the flow</div>
-<p>Maybe raw aggressor flow is the tell: whenever 60s net flow is extreme (≥300), enter in its direction. Result: <b>8,589 fires, 451 trades, −$3,444, −$7.6/trade, 48.3% win</b> — the worst of the lot. <b>Cause of death: on this tape strong flow is mildly CONTRARIAN, not continuation — heavy lifting into a level is where price turns. Chasing it is systematically wrong.</b></p></div>
-
-<div class="callout"><div class="ct">GRAVE #4 — Vacuum-fade (try to trade Family B)</div>
-<p>Family B fires against the flow, so I tried to trade the snap-back directly: when flow is heavy one way but price is already going the other, bet on the vacuum and enter with price. Result: <b>61 trades, −$532, −$8.7/trade, 47.5% win.</b> <b>Cause of death: the snap-backs that <i>do</i> run are indistinguishable beforehand from the far more common ones that just bounce 15pt and die. Family B stays declared structurally unpredictable — the data earned that label.</b></p></div>
-
-<div class="card">
-<h3>Step 3 — the one that nearly had me: the 5-minute breakout that SEES the runs</h3>
-<p>Here's the seductive one. A plain Donchian breakout — close takes out the prior 5-minute high (go long) or low (go short) — as a raw signal <b>sees 48 of the 49 sat-out runs</b>. It is genuinely watching the right thing. Then you trade it and it falls apart, because between the 48 real runs it also breaks out into a thousand chop-traps. Mechanical spec exactly as tested:</p>
-<table>
-<tr><th>Component</th><th>Rule</th></tr>
-<tr><td>Trigger</td><td>5s close &gt; max(close, prior 5 min) → LONG; &lt; min → SHORT</td></tr>
-<tr><td>Direction</td><td>With the breakout</td></tr>
-<tr><td>Entry</td><td>First real trade tick after the 5s bar closes</td></tr>
-<tr><td>Stop</td><td>Hard 25pt (≈1 unit)</td></tr>
-<tr><td>Exit</td><td>Chandelier — arm at +25pt, give back 15pt from peak; 15-min max hold</td></tr>
-<tr><td>Sequencing</td><td>One position at a time (no re-entry until the prior exits)</td></tr>
-<tr><td>Cost</td><td>−$5 round trip (honest, not the desk's optimistic $1.5)</td></tr>
-</table>
-<p>And the tick-honest backtest across the whole week — every candidate on one table so you can see the graveyard next to the hero, with the oracle as the ceiling:</p>
-<table>
-<tr><th>Config</th><th>n</th><th>Net $</th><th>$/trade</th><th>Win%</th><th>Big-moves caught</th></tr>
-<tr><td>ORACLE (perfect entry+side)</td><td>49</td><td>+$4,388</td><td>+$89.6</td><td>96%</td><td>49/49 (reference)</td></tr>
-<tr><td>Donchian 5-min breakout</td><td>1,136</td><td>−$5,056</td><td>−$4.5</td><td>49.9%</td><td>sees 48 · traded 16/49</td></tr>
-<tr><td>Grave 1 — flow-continuation</td><td>260</td><td>−$1,244</td><td>−$4.8</td><td>51.5%</td><td>4/49</td></tr>
-<tr><td>Grave 2 — naive vol-breakout</td><td>254</td><td>−$1,500</td><td>−$5.9</td><td>50.0%</td><td>3/49</td></tr>
-<tr><td>Grave 3 — chase-flow</td><td>451</td><td>−$3,444</td><td>−$7.6</td><td>48.3%</td><td>4/49</td></tr>
-<tr><td>Grave 4 — vacuum-fade</td><td>61</td><td>−$532</td><td>−$8.7</td><td>47.5%</td><td>2/49</td></tr>
-</table>
-<p>The Donchian line is the whole lesson in one row: it <i>sees</i> 48/49 but only banks 16 of them, because once it's parked in a losing chop-break it's not free to take the real run. 49.9% win is a literal coin-flip, and the −$5 cost turns the coin-flip into a −$5,056 bleed.</p>
+<p>Two things worth saying out loud. The reaction lag everyone worries about costs a grand total of <strong>&minus;$57 all week</strong> &mdash; it is nearly free. And the sticky-exit fix, when I backtested it head-to-head, earned <strong>exactly $0 more</strong> than the shipped sticky version &mdash; so it stays switched off, correctly. The costs are real but small; the question is whether a cleverer machine removes them <em>without giving back the $736</em>.</p>
 </div>
 
 <div class="card">
-<h3>Step 4 — robustness on the breakout (does any edge hide inside it?)</h3>
-<p>I stress-tested the breakout the way we kill things properly. It fails every test — no hidden pocket of edge, no direction that works, no lucky-trade dependence, no threshold where it turns.</p>
+<h3>3 &mdash; The race: five plumbings, same signal, same week</h3>
+<p>This is the heart of it. Every machine reads the <em>same</em> trend signal (efficiency ratio and net move over the last 30 minutes) &mdash; the only thing that changes is <strong>when it looks</strong>. I ran all five over the 131 counter-trend fader trades the desk actually took Mon&ndash;Fri (those are the only trades any of these machines can touch). Base P&amp;L on those 131 trades was &minus;$1,030; a machine &ldquo;earns&rdquo; by benching losers.</p>
 <table>
-<tr><th>Test</th><th>Result</th><th>Read</th></tr>
-<tr><td>Day-by-day</td><td>−1,528 / +99 / −1,072 / +119 / −1,108 / −888 / −676</td><td>Red 5 of 7 days; the two green days are tiny. Systematic bleed, not one bad day.</td></tr>
-<tr><td>Long vs short</td><td>LONG −$2,372 (50%) · SHORT −$2,683 (50%)</td><td>Symmetric loss. Not a directional-bias artefact — it's just wrong both ways.</td></tr>
-<tr><td>Strip the 3 best trades</td><td>−$5,582 (was −$5,056)</td><td>Removing the luckiest wins makes it <i>worse</i> — no fat tail is carrying a hidden edge.</td></tr>
-<tr><td>Impulse-threshold sweep</td><td>≥8pt −$4,126 · ≥12 −$1,230 · ≥16 −$636 · ≥20 −$726</td><td>The tighter cousin (impulse instead of Donchian): loss shrinks only because <i>n</i> collapses — $/trade stays −$6 to −$9 and win% stays 50%. The classic curve-fit tell: no edge, just fewer bets.</td></tr>
+<tr><th>Machine (plumbing)</th><th>What it is</th><th>Benched</th><th>Benched $</th><th>Kept</th><th>vs base</th></tr>
+<tr class="row-hl"><td class="ln">ROUTER-NOW <span class="tag">SHIPPED</span></td><td>15-min poll, 2-mark sticky</td><td class="num">23</td><td class="num">&minus;736</td><td class="num">&minus;294</td><td class="num">+736</td></tr>
+<tr class="row-bad"><td class="ln">CONTINUOUS</td><td>per-tick in-code guard (alt a/c)</td><td class="num">54</td><td class="num">&minus;341</td><td class="num">&minus;688</td><td class="num">+341</td></tr>
+<tr class="row-bad"><td class="ln">POLL-5</td><td>same router, 5-min grid (alt d)</td><td class="num">44</td><td class="num">&minus;55</td><td class="num">&minus;974</td><td class="num">+55</td></tr>
+<tr class="row-bad"><td class="ln">POLL-1</td><td>same router, 1-min grid (alt d)</td><td class="num">50</td><td class="num">+125</td><td class="num">&minus;1,154</td><td class="num">&minus;125</td></tr>
+<tr class="row-bad"><td class="ln">EVENT-HYST</td><td>event-confirmed per-tick flip (alt b)</td><td class="num">50</td><td class="num">+125</td><td class="num">&minus;1,154</td><td class="num">&minus;125</td></tr>
 </table>
-<p>Caveats stated plainly: this is <b>one week, in-sample, thin per-family n (21 catchable runs)</b>, MNQ-only, paper. But the failure is so uniform — every idea lands on 48–52% win — that more data won't rescue it. The problem is structural, not sample size.</p>
+<p>Read the last column top to bottom. The shipped clunker wins by a street. Going finer and faster &mdash; which is exactly the direction &ldquo;more elegant per-tick&rdquo; pulls you &mdash; makes it steadily <em>worse</em>, until the 1-minute and event-driven versions are benching so twitchily they start throwing away <strong>winners</strong> (that &ldquo;+125&rdquo; benched means the trades they cut were net-positive &mdash; the machine is now hurting you). The elegant designs aren't just no-better; on this week's money they're a downgrade.</p>
 </div>
 
 <div class="card">
-<h3>The verdict</h3>
-<p><b>NULL. Nothing to arm — not even to shadow as a capital gate.</b> The durable, bankable lesson from this movement: the runs are worth ~$4.4k/week <i>only</i> with hindsight timing (their −10pt adverse excursion is itself an artefact of anchoring on the exact extreme). In real time, a run-start is statistically indistinguishable from the chop-bursts around it — the same breakout that catches 48/49 runs is a 50/50 coin-flip that bleeds after cost. Flow is not a continuation tell here (if anything it's contrarian), and the vacuum family (23 of 49) fires against the tape and cannot be predicted. <b>Do not build a "catch the runs" gate off price/volume/flow alone.</b> If there's a next attempt, it is NOT another entry threshold — it's the L2 order-book depletion angle (does the far side thin out <i>before</i> the run?), which this movement did not test and is the only stone left unturned.</p>
+<h3>4 &mdash; WHY the slow one wins: it's surgical, they carpet-bomb</h3>
+<p>The shipped router removes $736 of losses by touching just <strong>23 trades</strong> &mdash; that's <strong>$32 of pure loss removed per trade it benches</strong>, and every one of those 23 was a loser. The per-tick version has to bench <strong>54 trades</strong> to remove less money ($6 per trade), because it's firing at every micro-trend and scooping up green <code>rgv_short</code> trades along the way. Same idea, wildly different precision:</p>
+<table>
+<tr><th>Machine</th><th>Benched</th><th>$ removed / trade</th><th>Benched a winner?</th></tr>
+<tr class="row-hl"><td class="ln">ROUTER-NOW</td><td class="num">23</td><td class="num">$32.0</td><td class="ln">no &mdash; all 23 losers</td></tr>
+<tr class="row-bad"><td class="ln">CONTINUOUS</td><td class="num">54</td><td class="num">$6.3</td><td class="ln">yes &mdash; benched <code>rgv_short</code> +$62</td></tr>
+<tr class="row-bad"><td class="ln">POLL-1 / EVENT-HYST</td><td class="num">50</td><td class="num">net &minus;$2.5</td><td class="ln">yes &mdash; net-positive trades cut</td></tr>
+</table>
+<p>And here's the decomposition that settles the lag argument. I split the difference between the twitchy per-tick machine and the shipped poll into two buckets:</p>
+<table>
+<tr><th>Bucket</th><th>Meaning</th><th>Trades</th><th>P&amp;L</th></tr>
+<tr><td class="ln">LAG-CAUGHT</td><td>losers the 15-min lag let through that per-tick would've blocked</td><td class="num">40</td><td class="num">&minus;$57</td></tr>
+<tr class="row-hl"><td class="ln">STICKY-HELD</td><td>trades the sticky poll benched that per-tick released &mdash; all losers</td><td class="num">9</td><td class="num">&minus;$452</td></tr>
+</table>
+<p>The lag the elegant designs are meant to fix is worth &minus;$57 all week. The stickiness they'd <em>remove</em> is worth <strong>&minus;$452</strong> &mdash; nine concentrated losers the poll holds a proven trend long enough to bench, that a jumpy per-tick guard flips back &ldquo;on&rdquo; in time to take. You'd trade a $57 problem for a $452 one. That's the trap in one line.</p>
+</div>
+
+<div class="card">
+<h3>5 &mdash; Alt (d): does ANY grid/hysteresis setting beat 15-min sticky?</h3>
+<p>Rather than trust one setting, I swept the polling speed (STEP) against the confirmation-strength (HOLD) &mdash; router net P&amp;L in every cell, higher is better, base is &minus;$1,030. This is the map of the whole design space you're choosing a point in:</p>
+<table>
+<tr><th>poll every &darr; / confirm marks &rarr;</th><th>HOLD 1</th><th>HOLD 2</th><th>HOLD 3</th></tr>
+<tr class="row-bad"><td class="ln">1 min (per-tick-ish)</td><td class="num">&minus;688</td><td class="num">&minus;1,154</td><td class="num">&minus;1,320</td></tr>
+<tr class="row-bad"><td class="ln">5 min</td><td class="num">&minus;1,042</td><td class="num">&minus;974</td><td class="num">&minus;638</td></tr>
+<tr class="row-hl"><td class="ln">10 min</td><td class="num">&minus;798</td><td class="num">&minus;244</td><td class="num">&minus;164</td></tr>
+<tr class="row-hl"><td class="ln">15 min <span class="tag">SHIPPED</span></td><td class="num">&minus;722</td><td class="num">&minus;294</td><td class="num">&minus;1,030</td></tr>
+<tr><td class="ln">30 min</td><td class="num">&minus;85</td><td class="num">&minus;1,030</td><td class="num">&minus;1,030</td></tr>
+</table>
+<p>Two honest reads. First, the shipped 15-min / 2-mark cell (&minus;$294) is <em>not</em> the single best square &mdash; a couple of coarser neighbours (10-min/3-mark at &minus;$164, and a lone 30-min/1-mark at &minus;$85) beat it. I won't pretend 15/2 is provably optimal on one week; the exact best cell is noise. Second &mdash; and this is the part that matters &mdash; look at the <em>shape</em>: the good numbers live in the <strong>coarse, sticky corner</strong> (slow poll, more confirmation) and the whole <strong>fast-and-twitchy top row is a graveyard</strong>. The gradient is unmistakable and it points the opposite way to &ldquo;elegant per-tick.&rdquo; The exact knob is in-sample luck; the direction is robust.</p>
+</div>
+
+<div class="card">
+<h3>6 &mdash; Alt (a) taken literally: the pure &ldquo;don't fade against net&rdquo; in-code guard</h3>
+<p>The simplest possible in-code version: forget efficiency ratio, just veto a long-fade whenever the net move is down by more than X, and a short-fade whenever it's up by X. Per-tick, no service, no file &mdash; the cleanest plumbing there is. I swept the net-floor:</p>
+<table>
+<tr><th>net floor (pt)</th><th>Benched</th><th>Benched $</th><th>Kept</th></tr>
+<tr class="row-bad"><td class="ln">20</td><td class="num">104</td><td class="num">&minus;1,162</td><td class="num">+132</td></tr>
+<tr class="row-bad"><td class="ln">30</td><td class="num">99</td><td class="num">&minus;942</td><td class="num">&minus;87</td></tr>
+<tr class="row-bad"><td class="ln">40</td><td class="num">92</td><td class="num">&minus;906</td><td class="num">&minus;124</td></tr>
+<tr class="row-bad"><td class="ln">50</td><td class="num">79</td><td class="num">&minus;1,143</td><td class="num">+114</td></tr>
+<tr class="row-bad"><td class="ln">60</td><td class="num">62</td><td class="num">&minus;1,024</td><td class="num">&minus;6</td></tr>
+</table>
+<p>This looks tempting at floor-20 (+$132 kept) until you see it benches <strong>104 of 131 trades</strong> to get there. That's not a guard, it's a near-total shutdown of the fader book &mdash; and because the faders lost money this week, blocking almost all of them &ldquo;wins&rdquo; trivially. The proof it's carpet-bombing not aiming: the result <strong>bounces</strong> as you tighten the floor (+132, &minus;87, &minus;124, +114, &minus;6) with no stable structure &mdash; pure noise. The efficiency-ratio router removes the <em>same kind of money</em> by touching a quarter as many trades. Selectivity is the edge; this blunt guard doesn't have it.</p>
+</div>
+
+<div class="card">
+<h3>7 &mdash; How the shipped router actually landed, day by day</h3>
+<p>For completeness, the shipped router on the <em>full</em> desk (all trades, not just the four faders), the number that matters for the real book: it turned a &minus;$2,986 week into &minus;$2,250 &mdash; <strong>+$736 saved, no day made worse.</strong> Mon&ndash;Thu was the +$580 you were quoted; Friday added +$156.</p>
+<table>
+<tr><th>Day</th><th>Baseline $</th><th>With router $</th><th>Saved</th><th>Regime flips</th></tr>
+<tr class="row-bad"><td class="ln">07-20 Mon</td><td class="num">&minus;1,732</td><td class="num">&minus;1,508</td><td class="num">+224</td><td class="num">14</td></tr>
+<tr><td class="ln">07-21 Tue</td><td class="num">+52</td><td class="num">+52</td><td class="num">+0</td><td class="num">14</td></tr>
+<tr class="row-hl"><td class="ln">07-22 Wed</td><td class="num">&minus;330</td><td class="num">&minus;274</td><td class="num">+56</td><td class="num">9</td></tr>
+<tr class="row-hl"><td class="ln">07-23 Thu</td><td class="num">&minus;398</td><td class="num">&minus;98</td><td class="num">+300</td><td class="num">16</td></tr>
+<tr class="row-hl"><td class="ln">07-24 Fri</td><td class="num">&minus;578</td><td class="num">&minus;423</td><td class="num">+156</td><td class="num">18</td></tr>
+<tr class="row-hl"><td class="ln">Mon&ndash;Fri</td><td class="num">&minus;2,986</td><td class="num">&minus;2,250</td><td class="num">+736</td><td class="num">71</td></tr>
+</table>
+<p>Note Friday: 18 regime flips &mdash; the whippy day the scope flagged &mdash; and the sticky poll <em>still</em> saved +$156 through it. That's the point. A per-tick machine on a day that flips 18 times would have churned far harder, not less.</p>
+</div>
+
+<div class="callout"><div class="ct">Honesty box &mdash; what this test is NOT</div>
+<p>One week, in-sample, and thin where it counts. The whole finding leans on the <strong>23 trades</strong> the shipped router benched &mdash; and really on one gate, <code>rgv_long</code> (&minus;$584 of the &minus;$736). The realised trades are already partly hand-gated by your own <code>/off</code> switches this week, so this is an <em>illustrative lower bound</em>, not a spotless A/B. The exact 15-min / 2-mark setting is <em>not</em> provably best &mdash; a coarser neighbour matched it and the best cell will drift week to week. What I'm confident about is the <strong>direction</strong>, because it's the same story from three independent angles: the five-machine race, the STEP&times;HOLD map, and the carpet-bomb net-guard all say <em>coarse-and-sticky beats fine-and-twitchy on this week's money</em>. That's a robust gradient even if every single dollar figure is soft.</p></div>
+
+<div class="card">
+<h3>8 &mdash; The verdict, and the one thing worth stealing</h3>
+<p><strong>Keep the router exactly as it is.</strong> The three elegant alternatives you asked me to chase &mdash; per-tick in-code guard, event-driven flip, continuous in-tournament gate &mdash; are all real, all buildable, and all <em>lose money</em> versus the shipped poll this week, because they remove the very slowness (&minus;$452 of concentrated losers held long enough to bench) that makes it work.</p>
+<table>
+<tr><th>Alternative</th><th>Cleaner plumbing?</th><th>Kept this week</th><th>Verdict</th></tr>
+<tr class="row-hl"><td class="ln">Router as shipped</td><td class="ln">no (service+file)</td><td class="num">+$736</td><td class="ln"><span class="tag">KEEP</span></td></tr>
+<tr class="row-bad"><td class="ln">Per-tick in-code guard (a)</td><td class="ln">yes</td><td class="num">+$341</td><td class="ln"><span class="tag">WORSE ON MONEY</span></td></tr>
+<tr class="row-bad"><td class="ln">Event-driven flip (b)</td><td class="ln">yes</td><td class="num">&minus;$125</td><td class="ln"><span class="tag">REFUTED</span></td></tr>
+<tr class="row-bad"><td class="ln">Continuous in-tournament (c)</td><td class="ln">yes (no file)</td><td class="num">+$341</td><td class="ln"><span class="tag">WORSE ON MONEY</span></td></tr>
+<tr class="row-bad"><td class="ln">Finer timer (d)</td><td class="ln">same</td><td class="num">+$55 &rarr; &minus;$125</td><td class="ln"><span class="tag">REFUTED</span></td></tr>
+</table>
+<p>You were right that the plumbing is inelegant &mdash; a polling timer writing a switch-file is not pretty. But the elegance that matters here isn't in the code, it's in the <em>selectivity</em>: benching 23 trades to save $736 is the elegant part, and the coarse sticky poll is what delivers it. <strong>The one thing worth stealing from the in-code idea</strong> is purely cosmetic: if the switch-file race and partial-bar drift ever bother us, let the tournament call the router's <code>current_regime()</code> itself &mdash; same coarse, sticky logic, no timer, no file, <em>identical</em> latency and therefore identical money. That kills the two plumbing warts (partial-bar artifact, file race) for free without touching the behaviour that earns. Migrate for hygiene if you like; do <em>not</em> migrate to naive per-tick. <span class="tag">architecture question: answered, with the backtest behind it</span></p>
+<p>That's the router. But two more mid-week leads earned their own autopsy this week, and both landed on the <em>same</em> gate family the router guards &mdash; the rgv faders. Here they are in full; nothing was dropped.</p>
+</div>
+
+<div class="card">
+<h3>Mid-week lead #2 &mdash; the rgv absorption-confirm: LIVE at 12:27, REMOVED at 14:06, <em>same day</em></h3>
+<p>Garrath, this one is the cleanest forward-validation lesson of the week, so I'm telling it as it happened &mdash; including the part where I was wrong for ninety minutes. The rgv faders are direction-blind: they fade a stretch past VWAP whether or not the tape is trending, so a clean move against them just keeps going. The idea was to bolt on a <strong>35-second absorption-confirm</strong> &mdash; after the fade signal, wait 35s and only take it if the faded move is actually <em>absorbing</em> (heavy aggressor flow the wrong way that fails to move price). At <strong>12:27 UTC I put it live</strong> on both rgv sides and removed their ER band, on the strength of a one-week tick-honest grid that looked great: the rgv book went <strong>&minus;$556 &rarr; +$228</strong> (35s, 62% win). At <strong>14:06 UTC I pulled it back off.</strong> Here's why.</p>
+<p><strong>The two-week re-test killed it.</strong> That +$228 was one week. When I re-ran the same confirm across <em>two</em> weeks (07-15&ndash;17 and 07-20&ndash;24), tick-honest, base versus base-plus-confirm, the confirm stopped looking like a filter and started looking like a blunt <em>exposure cut</em> &mdash; it barely fires (drops ~85% of trades), and where the raw base was a real winner it threw the winners away with the losers:</p>
+<table>
+<tr><th>Base config</th><th>2-wk base $</th><th>+ 35s confirm $</th><th>What the confirm did</th></tr>
+<tr class="row-bad"><td class="ln">SHORT ext3.0 / turn0.15</td><td class="num">+$670</td><td class="num">&minus;$180</td><td class="ln">destroyed a robust green edge</td></tr>
+<tr class="row-bad"><td class="ln">SHORT ext2.5 / turn0.15</td><td class="num">+$520</td><td class="num">&minus;$248</td><td class="ln">destroyed a robust green edge</td></tr>
+<tr class="row-bad"><td class="ln">SHORT ext2.0 / turn0.25</td><td class="num">+$518</td><td class="num">&minus;$232</td><td class="ln">destroyed a robust green edge</td></tr>
+<tr class="row-hl"><td class="ln">LONG ext3.0 / turn0.15</td><td class="num">&minus;$159</td><td class="num">&minus;$5</td><td class="ln">trimmed a weak bleed &mdash; marginal</td></tr>
+<tr class="row-hl"><td class="ln">LONG ext2.5 / turn0.25</td><td class="num">+$38</td><td class="num">&minus;$6</td><td class="ln">flattened a small winner to zero</td></tr>
+<tr class="row-hl"><td class="ln">LONG ext2.0 / turn0.25</td><td class="num">&minus;$634</td><td class="num">&minus;$136</td><td class="ln">cut the bleed by cutting exposure</td></tr>
+</table>
+<p>Read the short rows. The rgv <em>short</em> base is genuinely green across both weeks (+$500&ndash;$670) &mdash; and the confirm turns every one of those into a two-week loser. It's not stabilising the edge; it's shrinking everything toward zero and, on the side that actually earns, that's pure destruction. On the long side it trims the bleed a little, but the long side is weak anyway. A filter that helps only where the base already loses, and hurts where the base wins, isn't a filter &mdash; it's an off-switch with extra steps.</p>
+<p><strong>Then the live tape settled it the same afternoon.</strong> With the confirm removed, rgv_short ran raw &mdash; and in Part 1 you saw exactly what happened: it bled <strong>&minus;$345</strong> shorting a choppy up-grind (13 fires, unfiltered), then made <strong>+$183</strong> the moment the tape turned into a real down-trend. The confirm <em>would</em> have blocked most of those &minus;$345 knife-shorts (that's precisely the chop-grind it's built to sit out) &mdash; but it would <em>also</em> have skipped the +$183 aligned run, because on a clean trend nothing is "absorbing", it's just moving. That's the whole lesson in one afternoon.</p>
+<div class="callout"><div class="ct">The verdict &mdash; regime-conditional, not good-or-bad</div>
+<p>The confirm isn't a win or a loss &mdash; it's a <strong>regime-conditional</strong> filter. It earns its keep in exactly one place: a choppy grind <em>against</em> the fade, which is the one thing the direction-router can't bench (chop never reads as a proven trend). It's dead weight &mdash; worse, it's a winner-killer &mdash; on a clean aligned trend. So the honest open question isn't "confirm on or off"; it's <strong>"re-enable it only when the router reads chop"</strong> &mdash; a confirm that's live in chop and dormant in trend. That's a Saturday design decision, not a mid-week flip. The go-live/removal timestamps are stamped in <code>data/rgv_confirm_live_at.json</code>, so the desk can run a clean <strong>3-phase A/B</strong> forward: pre-12:27 (ER-banded) &rarr; 12:27&ndash;14:06 (confirmed) &rarr; post-14:06 (raw base). <span class="tag">LIVE 12:27 &rarr; REMOVED 14:06 &mdash; regime-conditional</span></p></div>
+</div>
+
+<div class="card">
+<h3>Mid-week lead #3 &mdash; the per-side rgv base grid: the two sides want OPPOSITE bases</h3>
+<p>If the confirm isn't the fix for rgv_short, what is? The base thresholds themselves &mdash; tuned <em>per side</em>. Your standing rule on this desk is that a gate runs two-sided with <strong>independently tuned</strong> thresholds, and you never relegate a direction. So I swept the raw rgv base (how far past VWAP counts as "stretched" (<code>ext</code>), how big a turn-back to require (<code>turn</code>), and whether to demand an aggressor-flow confirm (<code>flow</code>)) <em>separately</em> for long and short, tick-honest, on this week's tape. The two sides did not land in the same place &mdash; they landed on opposite ends:</p>
+<table>
+<tr><th>Side</th><th>Its own best base (this week)</th><th>Net $</th><th>Shape of the edge</th></tr>
+<tr class="row-hl"><td class="ln">SHORT</td><td class="ln">ext <strong>2.0</strong> / turn 0.25 / <strong>flow 25</strong></td><td class="num">+$765</td><td class="ln">green across a <em>wide</em> band (95 tr, +$8.1/tr, 43% win)</td></tr>
+<tr class="row-bad"><td class="ln">LONG</td><td class="ln">ext <strong>3.0</strong> / turn 0.15 / <strong>no flow</strong></td><td class="num">+$81</td><td class="ln">red everywhere <em>except</em> the extreme corner (57 tr, +$1.4/tr)</td></tr>
+</table>
+<p>Short wants a <em>moderate</em> stretch and likes a flow confirm; long only crawls above zero at an <em>extreme</em> 3-ATR stretch and only <em>without</em> flow. Mirror one side's tuning onto the other and you lose money both ways: tune on short's sweet spot and apply it to long &rarr; long does <strong>&minus;$481</strong>; tune on long's sweet spot and apply it to short &rarr; short does +$308, leaving <strong>~$457 on the table</strong> versus short's own optimum. And the flow confirm is side-asymmetric &mdash; it <em>helps</em> short (+$718&rarr;+$765) and <em>hurts</em> long (+$81&rarr;&minus;$54). A single gate-wide "flow on/off" switch would be wrong; it belongs on the short side only.</p>
+<p><strong>But here's the part that keeps us honest &mdash; and it's why this is a router story, not a relegation story.</strong> I re-ran the identical grid on <em>last</em> week (07-15&ndash;17), and the per-side optima <strong>moved</strong>:</p>
+<table>
+<tr><th>Side</th><th>Best base LAST week</th><th>Best base THIS week</th></tr>
+<tr class="row-hl"><td class="ln">LONG</td><td class="ln">ext 2.5 / no flow &rarr; <strong>+$300</strong> (healthy)</td><td class="ln">ext 3.0 / no flow &rarr; +$81 (barely)</td></tr>
+<tr class="row-hl"><td class="ln">SHORT</td><td class="ln">ext 3.0 / no flow &rarr; +$362 <em>(flow was CATASTROPHIC: &minus;$600 to &minus;$810)</em></td><td class="ln">ext 2.0 / <strong>flow 25</strong> &rarr; +$765</td></tr>
+</table>
+<p>Both weeks leaned <em>down</em>, yet last week the <strong>long</strong> side was the strong one (+$300) and the flow confirm that helped short this week was a disaster last week. The "best cell" drifted week to week, and the flow confirm flipped sign. That tells us the per-side asymmetry is <strong>regime, not structure</strong> &mdash; which is exactly why the answer is the direction-router (bench the wrong-way side when a trend is proven), <em>not</em> "relegate rgv_short". The one thing that <em>did</em> survive both weeks is the robust core: a <strong>tight-extension short (ext 2.5&ndash;3.0), no flow, no confirm</strong> is green in both (~+$300 each week); the long side has no stable green zone and belongs to the router.</p>
+<div class="callout"><div class="ct">Verdict &mdash; tune the side, route the direction</div>
+<p><strong>Short:</strong> move to a tight-extension base (ext 2.5&ndash;3.0, no flow, no confirm) &mdash; the one cross-week-robust rgv edge on the board. <strong>Long:</strong> it's a router problem, not a filter problem &mdash; keep it, let the router bench it on proven down-trends, don't chase a base tune that won't hold. And do <em>not</em> read "rgv_short lost money this week" as a case to retire the short direction &mdash; it's the strongest, most stable side of the gate once you tune it and route it. This is the Saturday per-side-tuning candidate. <span class="tag">SHORT &rarr; tight-ext base &middot; LONG &rarr; router-only</span></p></div>
+</div>
+
+<hr class="frag-sep">
+<h2><span class="n">M1</span> The biggest runs on MNQ this week &mdash; did we show up?</h2>
+<p class="lead">Forget what the desk did this week &mdash; start from the raw tape. MNQ printed <strong>66 runs of 1.5&times;ATR or bigger</strong> in the last seven days (a 15-minute move of at least 74 points, against a typical 15-min range of 49). That is the whole tape, not a top-ten. We <strong>caught 15</strong>, we were positioned <em>against</em> <strong>8</strong>, and we <strong>sat out 43</strong>. The runs we aligned with banked <strong>+$382</strong> of honest money &mdash; but that is only 11% of their $3419 hindsight ceiling, and the 43 we sat out left <strong>$8959</strong> on the table. The bleed is not the runs; it is the fading we do around them.</p>
+<div class="callout"><div class="ct">THE FULL CENSUS</div><p>Every qualifying run, in order. <strong>Move</strong> is the swing in points; <strong>$ 1lot</strong> is that move on one MNQ lot ($2/pt) &mdash; the hindsight ceiling. <strong>real $</strong> is what a gate actually banked near it. <strong>Flow</strong> is net aggressor volume in the 60s before; <strong>amp</strong> is pre-run amplitude; <strong>book</strong> is the far-side L2 depth share (below 0.50 = the side price ran toward was thin). Green = we caught it, red = we fought it.</p></div>
+<table><tr><th>Time (UTC)</th><th>Dir</th><th>Move</th><th>$ 1lot</th><th>Us</th><th>Gate</th><th>real $</th><th>Flow</th><th>Amp</th><th>Book</th><th>Cluster</th></tr>
+<tr><td class="ln">07-19 22:29</td><td>UP</td><td class="num">+80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+70</td><td class="num">0.15</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-hl"><td class="ln">07-20 00:02</td><td>UP</td><td class="num">+133</td><td class="num">266</td><td>caught</td><td>thrust</td><td class="num">-62</td><td class="num">+228</td><td class="num">0.25</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-20 01:54</td><td>UP</td><td class="num">+100</td><td class="num">200</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-118</td><td class="num">0.18</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 02:09</td><td>DN</td><td class="num">-75</td><td class="num">150</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+23</td><td class="num">0.10</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 02:29</td><td>UP</td><td class="num">+89</td><td class="num">178</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-8</td><td class="num">0.10</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 04:18</td><td>UP</td><td class="num">+74</td><td class="num">149</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+143</td><td class="num">0.15</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-20 04:57</td><td>DN</td><td class="num">-84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+20</td><td class="num">0.14</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-20 07:19</td><td>UP</td><td class="num">+109</td><td class="num">218</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-32</td><td class="num">0.11</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr class="row-hl"><td class="ln">07-20 11:27</td><td>UP</td><td class="num">+108</td><td class="num">216</td><td>caught</td><td>grind</td><td class="num">+89</td><td class="num">-32</td><td class="num">0.04</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr class="row-hl"><td class="ln">07-20 11:58</td><td>DN</td><td class="num">-82</td><td class="num">165</td><td>caught</td><td>grind</td><td class="num">-68</td><td class="num">-62</td><td class="num">0.07</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-hl"><td class="ln">07-20 13:29</td><td>UP</td><td class="num">+154</td><td class="num">308</td><td>caught</td><td>grind</td><td class="num">+29</td><td class="num">-42</td><td class="num">0.13</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-20 13:45</td><td>DN</td><td class="num">-194</td><td class="num">388</td><td>FOUGHT</td><td>grind</td><td class="num">-156</td><td class="num">-21</td><td class="num">0.24</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-20 14:04</td><td>DN</td><td class="num">-91</td><td class="num">182</td><td>caught</td><td>grind</td><td class="num">-68</td><td class="num">+952</td><td class="num">0.30</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-20 14:21</td><td>UP</td><td class="num">+97</td><td class="num">194</td><td>caught</td><td>rgv</td><td class="num">+114</td><td class="num">-265</td><td class="num">0.29</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-20 14:40</td><td>DN</td><td class="num">-105</td><td class="num">210</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+101</td><td class="num">0.19</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-20 15:06</td><td>UP</td><td class="num">+87</td><td class="num">174</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-345</td><td class="num">0.25</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 15:50</td><td>UP</td><td class="num">+104</td><td class="num">208</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+297</td><td class="num">0.17</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr class="row-hl"><td class="ln">07-20 16:30</td><td>DN</td><td class="num">-87</td><td class="num">174</td><td>caught</td><td>grind</td><td class="num">-31</td><td class="num">+627</td><td class="num">0.11</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 16:49</td><td>DN</td><td class="num">-87</td><td class="num">174</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+74</td><td class="num">0.20</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 18:28</td><td>DN</td><td class="num">-86</td><td class="num">172</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-26</td><td class="num">0.12</td><td class="num">&mdash;</td><td>UNCLASS</td></tr>
+<tr class="row-hl"><td class="ln">07-20 19:26</td><td>UP</td><td class="num">+83</td><td class="num">166</td><td>caught</td><td>rgv_long</td><td class="num">-44</td><td class="num">-165</td><td class="num">0.13</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-20 19:41</td><td>DN</td><td class="num">-103</td><td class="num">206</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-68</td><td class="num">0.19</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-20 23:47</td><td>DN</td><td class="num">-87</td><td class="num">174</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-104</td><td class="num">0.10</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-21 00:16</td><td>UP</td><td class="num">+112</td><td class="num">224</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+321</td><td class="num">0.20</td><td class="num">&mdash;</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-21 14:00</td><td>DN</td><td class="num">-97</td><td class="num">194</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+258</td><td class="num">0.33</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-21 14:16</td><td>UP</td><td class="num">+145</td><td class="num">290</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">+62</td><td class="num">-498</td><td class="num">0.24</td><td class="num">&mdash;</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-21 15:03</td><td>UP</td><td class="num">+88</td><td class="num">177</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">-70</td><td class="num">-1301</td><td class="num">0.18</td><td class="num">&mdash;</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-22 07:27</td><td>DN</td><td class="num">-80</td><td class="num">159</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+195</td><td class="num">0.12</td><td class="num">0.49</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-22 13:18</td><td>UP</td><td class="num">+87</td><td class="num">174</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+64</td><td class="num">0.08</td><td class="num">0.43</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-22 13:40</td><td>UP</td><td class="num">+105</td><td class="num">210</td><td>caught</td><td>grind_long</td><td class="num">-86</td><td class="num">+1152</td><td class="num">0.19</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-22 14:55</td><td>UP</td><td class="num">+110</td><td class="num">220</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-1194</td><td class="num">0.14</td><td class="num">0.53</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-22 19:50</td><td>DN</td><td class="num">-79</td><td class="num">158</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-264</td><td class="num">0.13</td><td class="num">0.52</td><td>FLOW-LED</td></tr>
+<tr class="row-bad"><td class="ln">07-22 20:05</td><td>UP</td><td class="num">+102</td><td class="num">204</td><td>FOUGHT</td><td>thrust_short</td><td class="num">+23</td><td class="num">-148</td><td class="num">0.40</td><td class="num">0.44</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-22 20:52</td><td>DN</td><td class="num">-139</td><td class="num">278</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-27</td><td class="num">0.08</td><td class="num">0.51</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 00:13</td><td>UP</td><td class="num">+98</td><td class="num">197</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-78</td><td class="num">0.08</td><td class="num">0.51</td><td>VACUUM</td></tr>
+<tr class="row-bad"><td class="ln">07-23 02:08</td><td>DN</td><td class="num">-77</td><td class="num">154</td><td>FOUGHT</td><td>rgv_long</td><td class="num">-14</td><td class="num">-87</td><td class="num">0.13</td><td class="num">0.49</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-23 06:58</td><td>DN</td><td class="num">-119</td><td class="num">238</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-340</td><td class="num">0.06</td><td class="num">0.49</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-23 07:27</td><td>DN</td><td class="num">-83</td><td class="num">166</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+179</td><td class="num">0.10</td><td class="num">0.55</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 08:02</td><td>UP</td><td class="num">+84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-146</td><td class="num">0.12</td><td class="num">0.51</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 08:48</td><td>UP</td><td class="num">+79</td><td class="num">158</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+21</td><td class="num">0.06</td><td class="num">0.43</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 11:22</td><td>DN</td><td class="num">-106</td><td class="num">212</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-19</td><td class="num">0.11</td><td class="num">0.52</td><td>UNCLASS</td></tr>
+<tr class="row-bad"><td class="ln">07-23 12:22</td><td>DN</td><td class="num">-97</td><td class="num">194</td><td>FOUGHT</td><td>rgv_long</td><td class="num">-56</td><td class="num">+1</td><td class="num">0.14</td><td class="num">0.50</td><td>UNCLASS</td></tr>
+<tr><td class="ln">07-23 13:02</td><td>DN</td><td class="num">-86</td><td class="num">172</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+281</td><td class="num">0.11</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 13:28</td><td>UP</td><td class="num">+166</td><td class="num">332</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-354</td><td class="num">0.09</td><td class="num">0.49</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-23 13:43</td><td>DN</td><td class="num">-170</td><td class="num">341</td><td>caught</td><td>rgv_short</td><td class="num">+198</td><td class="num">-8</td><td class="num">0.35</td><td class="num">0.48</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 14:40</td><td>DN</td><td class="num">-178</td><td class="num">357</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-591</td><td class="num">0.41</td><td class="num">0.51</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-23 14:59</td><td>DN</td><td class="num">-118</td><td class="num">236</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+17</td><td class="num">0.14</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr class="row-bad"><td class="ln">07-23 15:48</td><td>UP</td><td class="num">+118</td><td class="num">237</td><td>FOUGHT</td><td>exhaustion_short</td><td class="num">-56</td><td class="num">+421</td><td class="num">0.15</td><td class="num">0.47</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-23 16:14</td><td>UP</td><td class="num">+80</td><td class="num">160</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-274</td><td class="num">0.12</td><td class="num">0.49</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 16:39</td><td>DN</td><td class="num">-117</td><td class="num">234</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+736</td><td class="num">0.20</td><td class="num">0.53</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 17:26</td><td>DN</td><td class="num">-91</td><td class="num">182</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+44</td><td class="num">0.17</td><td class="num">0.52</td><td>UNCLASS</td></tr>
+<tr class="row-hl"><td class="ln">07-23 19:11</td><td>UP</td><td class="num">+82</td><td class="num">165</td><td>caught</td><td>rgv_long</td><td class="num">+66</td><td class="num">-122</td><td class="num">0.09</td><td class="num">0.47</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 19:31</td><td>DN</td><td class="num">-84</td><td class="num">168</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+379</td><td class="num">0.12</td><td class="num">0.49</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 19:49</td><td>UP</td><td class="num">+217</td><td class="num">434</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-168</td><td class="num">0.09</td><td class="num">0.49</td><td>VACUUM</td></tr>
+<tr><td class="ln">07-23 20:59</td><td>DN</td><td class="num">-104</td><td class="num">208</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-66</td><td class="num">0.06</td><td class="num">0.52</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-24 00:01</td><td>DN</td><td class="num">-88</td><td class="num">176</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-193</td><td class="num">0.16</td><td class="num">0.53</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-24 06:57</td><td>UP</td><td class="num">+107</td><td class="num">214</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+63</td><td class="num">0.08</td><td class="num">0.46</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-24 13:38</td><td>DN</td><td class="num">-194</td><td class="num">388</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+457</td><td class="num">0.36</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr><td class="ln">07-24 13:59</td><td>UP</td><td class="num">+99</td><td class="num">198</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-85</td><td class="num">0.19</td><td class="num">0.53</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-24 14:25</td><td>DN</td><td class="num">-116</td><td class="num">233</td><td>caught</td><td>exhaustion_short</td><td class="num">-84</td><td class="num">-297</td><td class="num">0.38</td><td class="num">0.49</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-24 14:46</td><td>UP</td><td class="num">+176</td><td class="num">351</td><td>caught</td><td>rgv_long</td><td class="num">+108</td><td class="num">-713</td><td class="num">0.19</td><td class="num">0.50</td><td>OPEN/NEWS</td></tr>
+<tr class="row-hl"><td class="ln">07-24 15:10</td><td>UP</td><td class="num">+146</td><td class="num">292</td><td>caught</td><td>grind_long</td><td class="num">+70</td><td class="num">-463</td><td class="num">0.24</td><td class="num">0.53</td><td>VACUUM</td></tr>
+<tr class="row-bad"><td class="ln">07-24 15:49</td><td>UP</td><td class="num">+84</td><td class="num">167</td><td>FOUGHT</td><td>rgv_short</td><td class="num">-160</td><td class="num">+21</td><td class="num">0.14</td><td class="num">0.47</td><td>UNCLASS</td></tr>
+<tr class="row-hl"><td class="ln">07-24 16:27</td><td>DN</td><td class="num">-78</td><td class="num">156</td><td>caught</td><td>rgv_short</td><td class="num">+151</td><td class="num">-108</td><td class="num">0.08</td><td class="num">0.56</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-24 18:17</td><td>DN</td><td class="num">-104</td><td class="num">209</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">-156</td><td class="num">0.08</td><td class="num">0.47</td><td>FLOW-LED</td></tr>
+<tr><td class="ln">07-24 19:01</td><td>DN</td><td class="num">-102</td><td class="num">203</td><td>sat out</td><td>&mdash;</td><td class="num"></td><td class="num">+169</td><td class="num">0.14</td><td class="num">0.51</td><td>VACUUM</td></tr>
+</table>
+<div class="card"><h3>What the runs were &mdash; by cause</h3><p>Each run gets a cause fingerprint from its pre-run tape. This is the map for where to hunt a new gate.</p><table><tr><th>Cluster</th><th>Runs</th><th>What it is</th></tr>
+<tr><td>OPEN/NEWS</td><td class="num">19</td><td>the 13:00&ndash;15:00 UTC cash-open / data window</td></tr>
+<tr><td>VACUUM</td><td class="num">18</td><td>moved AGAINST the tape (a snap-back / stop-run)</td></tr>
+<tr><td>FLOW-LED</td><td class="num">17</td><td>aggressors drove it (a continuation)</td></tr>
+<tr><td>UNCLASS</td><td class="num">12</td><td>no clear tape tell (quiet ignition)</td></tr>
+</table></div>
+<div class="callout"><div class="ct">HONEST MONEY &mdash; ceiling vs what we banked</div><table><tr><th></th><th>Runs</th><th>Hindsight ceiling</th><th>What we really made</th></tr><tr class="row-hl"><td>Caught (aligned)</td><td class="num">15</td><td class="num">$3419</td><td class="num">+$382 &nbsp;(11%)</td></tr><tr class="row-bad"><td>Fought (against)</td><td class="num">8</td><td class="num">$1810</td><td class="num">$-427</td></tr><tr><td>Sat out</td><td class="num">43</td><td class="num">$8959</td><td class="num">$0 &larr; the money on the table</td></tr></table><p>The runs made money and the fading gave it back; we convert a fraction of the ceiling and ignore the rest. The next two movements ask whether we can do better &mdash; first with the gates we own, then with new ones.</p></div>
+<hr class="frag-sep">
+<h2><span class="n">M2</span> Could our own gates have caught the runs we sat out?</h2>
+
+<p class="lead">Short answer, Garrath: <strong>no</strong> — and this is a clean, provable no, not a hopeful one. I took the <strong>43 runs we sat out</strong> this week (the frozen census — <strong>$8,959</strong> of hindsight money left on the table) and fired all six of our live gates at them mechanically, <em>ungated</em> (no ER floor, no ATR floor, no absorption-confirm — the most generous version), in the run's own direction, anywhere in the <strong>10 minutes before</strong> each one lit up. Then I priced every exit honestly on this week's own trade ticks. Between the six of them they would have fired just <strong>15 times</strong>, on <strong>14 of the 43 runs</strong>, and banked <strong>+$198</strong>. That is about <strong>2% of the money</strong> that got away — and it is fool's gold: <strong>take away the 3 luckiest trades and it turns into −$57</strong>. The runs we sit out, we sit out because our gates never see them coming.</p>
+
+<div class="callout"><div class="ct">What survived the skeptic — the one durable fact</div>
+<p>Nothing here survived as a tradeable edge, so I will not dress one up. What <em>did</em> survive is a mechanism, and it is the most useful thing in this section: <strong>on 29 of the 43 sat-out runs, not a single one of our six gates fired at all</strong> in the ten minutes before ignition. We did not lose this money by trading badly — we lost it by <strong>never showing up</strong>. Our gates have narrow, specific triggers (a five-bar burst, an established VWAP slope, a stretched-and-turning fade, a one-sided climax, a wall-absorption). These 43 ignitions matched none of those. That tells us plainly where the work is: <strong>not tuning what we own harder, but inventing triggers we do not yet have</strong> — which is exactly Movement 3's job. Arming the current gates is a dead end, and here is the proof.</p></div>
+
+<div class="card">
+  <h3>The scoreboard — all six gates, fired ungated at the 43 sat-out runs</h3>
+  <p>In-direction only: the three long gates can only catch the <strong>18 up-runs</strong>, the three short gates only the <strong>25 down-runs</strong> — so "eligible" is how many sat-out runs each gate could physically have caught. One position per fire, first trigger in the pre-run window wins, exits repriced tick-by-tick on this week's tape (grind and thrust ride the chandelier + the native 1-ATR stop; the three fades take 2R or the 1-ATR stop). Honest money, the same week the runs happened. Green = it made money over its handful of fires, red = it lost.</p>
+  <table>
+    <tr><th>Gate</th><th>Eligible</th><th>Fires</th><th>Honest $</th><th>$/fire</th><th>Win%</th><th>Exits</th></tr>
+    <tr class="row-hl"><td>grind_long</td><td class="num">18</td><td class="num">4</td><td class="num">+$140.0</td><td class="num">+$35.0</td><td class="num">75%</td><td class="ln">3 chandelier · 1 stop</td></tr>
+    <tr class="row-hl"><td>rgv_short</td><td class="num">25</td><td class="num">3</td><td class="num">+$69.0</td><td class="num">+$23.0</td><td class="num">67%</td><td class="ln">2 target · 1 stop</td></tr>
+    <tr class="row-hl"><td>rgv_long</td><td class="num">18</td><td class="num">4</td><td class="num">+$68.5</td><td class="num">+$17.1</td><td class="num">50%</td><td class="ln">2 target · 2 stop</td></tr>
+    <tr class="row-bad"><td>thrust_short</td><td class="num">25</td><td class="num">3</td><td class="num">−$3.0</td><td class="num">−$1.0</td><td class="num">33%</td><td class="ln">1 chandelier · 2 stop</td></tr>
+    <tr class="row-bad"><td>exhaustion_short</td><td class="num">25</td><td class="num">1</td><td class="num">−$76.5</td><td class="num">−$76.5</td><td class="num">0%</td><td class="ln">1 stop</td></tr>
+    <tr><td>capitulation_long</td><td class="num">18</td><td class="num">0</td><td class="num">$0</td><td class="num">—</td><td class="num">—</td><td class="ln">never fired</td></tr>
+    <tr class="row-hl"><td><strong>ALL SIX</strong></td><td class="num"><strong>43</strong></td><td class="num"><strong>15</strong></td><td class="num"><strong>+$198.0</strong></td><td class="num"><strong>+$13.2</strong></td><td class="num"><strong>53%</strong></td><td class="ln">14 distinct runs</td></tr>
+  </table>
+  <p>Fifteen fires across a whole week, on 14 different runs, for +$198. The best single gate — grind_long at +$140 — is <strong>four trades</strong>, and three of those wins are the chandelier scraping $20–90 out of small 80–98pt pops. This is noise-level. Nothing here separates from zero, and the next table proves it.</p>
+</div>
+
+<div class="card">
+  <h3>The killer cut — it is three lucky trades, not an edge</h3>
+  <p>The honest test for "is +$198 real or is it a couple of fluke winners?" is to strip out the best trades and see what is left. There is nothing left.</p>
+  <table>
+    <tr><th>What we keep</th><th>Trades</th><th>Honest $</th><th>Verdict</th></tr>
+    <tr class="row-hl"><td>All 15 fires</td><td class="num">15</td><td class="num">+$198.0</td><td>the headline</td></tr>
+    <tr class="row-bad"><td>Strip the best 3 trades</td><td class="num">12</td><td class="num">−$57.0</td><td>gone — now a loser</td></tr>
+    <tr class="row-bad"><td>Strip the best 5 trades</td><td class="num">10</td><td class="num">−$186.0</td><td>deep red</td></tr>
+  </table>
+  <p>The entire "profit" lives in three trades: grind_long's +$89.5 (07-22 13:18), thrust_short's +$84.5 (07-23 11:22), and grind_long's +$70.5 (07-23 16:14). Remove them and firing all six gates at every miss <em>loses</em> money. An edge does not evaporate when you remove three of fifteen trades — a fluke does. This is a fluke.</p>
+</div>
+
+<div class="card">
+  <h3>Where the money actually was — the 8 biggest runs we sat out</h3>
+  <p>The $8,959 on the table is not evenly spread; it is concentrated in the monsters. So the only question that matters is: <strong>did arming our gates catch the big ones?</strong> Here are the eight largest sat-out runs (worth $2,497 of ceiling between them) and exactly what our gates did on each.</p>
+  <table>
+    <tr><th>Run (UTC)</th><th>Dir</th><th>Move</th><th>$ ceiling</th><th>What our gates did</th><th>Honest $</th></tr>
+    <tr class="row-bad"><td class="ln">07-23 19:49</td><td>UP</td><td class="num">+217</td><td class="num">$434</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-24 13:38</td><td>DN</td><td class="num">−194</td><td class="num">$388</td><td>thrust_short + exhaustion_short — both stopped</td><td class="num">−$115.0</td></tr>
+    <tr class="row-bad"><td class="ln">07-23 14:40</td><td>DN</td><td class="num">−178</td><td class="num">$357</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-23 13:28</td><td>UP</td><td class="num">+166</td><td class="num">$332</td><td>rgv_long faded it — stopped</td><td class="num">−$35.0</td></tr>
+    <tr class="row-bad"><td class="ln">07-22 20:52</td><td>DN</td><td class="num">−139</td><td class="num">$278</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-23 06:58</td><td>DN</td><td class="num">−119</td><td class="num">$238</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-23 14:59</td><td>DN</td><td class="num">−118</td><td class="num">$236</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-23 16:39</td><td>DN</td><td class="num">−117</td><td class="num">$234</td><td>rgv_short faded it — stopped</td><td class="num">−$41.0</td></tr>
+  </table>
+  <p>The eight biggest runs we missed — the real money — returned <strong>−$191</strong> from the gates that fired, and <strong>five of the eight drew no fire at all</strong>. Across the whole top-15 biggest sat-out runs, our gates fired on five and <strong>made money on exactly two</strong> (the +112 on 07-21 and the −106 on 07-23), both near the bottom of that list. The gates catch the crumbs and no-show the feasts. That is the null in one sentence.</p>
+</div>
+
+<div class="card">
+  <h3>Why each gate misses — the mechanism, gate by gate</h3>
+  <p>None of this is bad luck; each miss is baked into what the gate is built to look for. This is the useful part — it tells us what trigger we are <em>missing</em>.</p>
+  <table>
+    <tr><th>Gate</th><th>Fires</th><th>Why it can't catch these runs</th></tr>
+    <tr><td>capitulation_long</td><td class="num">0 / 18</td><td>It fades a one-sided aggressor <em>climax</em> — one side running 3× its baseline rate AND 70%+ of flow, with price already flushing that way. The up-runs we sat out do not start from a sell-flush blow-off; they ignite from quiet or flow-led setups. The trigger simply never trips — zero fires all week.</td></tr>
+    <tr><td>exhaustion_short</td><td class="num">1 / 25</td><td>It needs heavy buying (400+ net contracts) absorbed into a resting ask wall <em>without</em> price moving. Our down-runs are flow-led drives where the aggression <em>does</em> move price — so the "absorbed, price stuck" precondition fails. Its one fire (the −194 on 07-24) was a knife it tried to fade and got stopped. Caveat: the L2 book only covers ~17 of the 25 down-runs, so it was blind to the rest by data, not just by logic.</td></tr>
+    <tr><td>thrust_short</td><td class="num">3 / 25</td><td>Wants a five-bar (five-minute) momentum burst with a volume surge. These ignitions fire in one or two bars — by the time five bars confirm, the move is spent, so it almost never arms <em>before</em> ignition. When it does (3 times) it is a coin-flip: −$3 net.</td></tr>
+    <tr><td>grind_long</td><td class="num">4 / 18</td><td>Needs an <em>established</em> up-trend — VWAP sloping up with price riding above it. Most misses are vacuum snapbacks or news pops against a flat or opposite slope. It only arms once a trend is already running, enters mid-move, and the chandelier hands most of it back (+$20–90 on 80–98pt runs). Its +$140 is the whole section's "profit," and it is four trades.</td></tr>
+    <tr><td>rgv_long / rgv_short</td><td class="num">4 / 7</td><td>The two faders need price already stretched 2+ ATR past VWAP and rolling back. Fresh runs ignite near or through VWAP, not stretched past it, so they rarely arm — and when they do, a 2R scalp target banks $50–60 and hands the rest of a 100–200pt run straight back, or it fades the wrong way into strength and stops out. They are structurally incapable of monetising a big directional run: they are built to fade, not to ride.</td></tr>
+  </table>
+</div>
+
+<div class="callout"><div class="ct">Verdict</div>
+<p><span class="tag">HONEST NULL</span> <span class="tag">DON'T ARM</span> Firing all six live gates at the money we left on the table recovers essentially none of it: <strong>+$198 that becomes −$57 the moment you strip three lucky trades</strong>, only <strong>2 of the 15 biggest runs caught profitably</strong>, and <strong>29 of 43 runs that draw no fire whatsoever</strong>. There is no tuning knob here — the gates do not misfire on these runs, they are simply blind to the setups that launch them. Do not arm anything off this section. The honest read is that the sat-out money belongs to <em>triggers we don't own yet</em>, and hunting those is Movement 3.</p>
+<p><strong>Be honest about the caveats:</strong> this is one week, in-sample, with tiny counts (15 fires total — one busy afternoon's worth). The exhaustion gate was L2-blind on ~8 of its 25 candidate runs. The +$198 is not just thin, it is fake (the strip-3 test kills it), so the null does not depend on the sample being large — a gate that only "wins" via three trades has told you it has no edge regardless of n. The one stone left unturned: I fired each gate as a first-touch single entry per run; a re-entry / stacking variant on the momentum gates is the only thing I did not test, and Movement 3 should note it.</p></div>
+
+<hr class="frag-sep">
+<h2><span class="n">M3</span> The greenfield lab: can we invent a gate to catch the runs we sat out?</h2>
+
+<p class="lead">Garrath — this is the flagship, and it ends in a <b>NULL</b>. I threw out every gate the desk owns, went back to a blank sheet, and tried to invent a brand-new entry that would have shown up for the big MNQ runs we sat out this week. I ran it three times over: on the <b>full</b> census, then on just the <b>top-25</b> biggest runs, then on the <b>top-15</b> biggest — the whole point of narrowing being to see if the <i>biggest, cleanest</i> footprints hide a stronger tell than the marginal ones. Nine hunts, three footprint families, a graveyard of invented signals. <b>Not one survived.</b> And the single most useful thing I can hand you is the answer to the exact question this exercise was built to answer: <b>how big does a footprint have to be before it becomes tradeable? The answer is: there is no such size.</b> For flow, the relationship is <i>inverted</i> — the biggest, cleanest prints are the <i>least</i> tradeable of all. That is the finding. The runs are real money; the problem is 100% the <b>entry</b>; and no size threshold rescues it. Full autopsy below.</p>
+
+<div class="callout"><div class="ct">What SURVIVED the whole hunt — the one durable, bankable rule</div>
+<p>Nothing survived as a tradeable edge, so I will not dress one up. What survived is a <b>rule</b>, and it is worth more than a losing gate: <b>you cannot catch these runs by the size or "cleanness" of the tape print that starts them.</b> I proved it the hard way — I sorted the runs biggest-first and hunted the monsters specifically, and the monsters were <i>harder</i>, not easier. In flow terms the biggest prints reverse the most; in vacuum terms the signal literally does not fire on the two biggest runs of the week; in the news window the best fader is positioned <i>against</i> the two biggest moves. <b>Do not build, shadow, or arm any "catch-the-runs" gate off tape price, volume or aggressor flow. The next attempt must be a different data source entirely — the L2 order book — and nothing else.</b> That is the stone still unturned, named at the bottom.</p></div>
+
+<div class="card">
+<h3>Step 1 — the Family A / B split: who is even catchable?</h3>
+<p>Before inventing anything I split every sat-out run by the aggressor tape in the <b>60 seconds before</b> it fired. That gives two footprint families with opposite predictability, plus a third target that is not a footprint at all but a clock window. These three are exactly the nine hunts below.</p>
+<table>
+<tr><th>Family / cluster</th><th>Runs</th><th>What the pre-run tape looks like</th><th>Prior on catchability</th></tr>
+<tr class="row-hl"><td><b>A — FLOW-LED</b> (continuation)</td><td class="num">17</td><td>Heavy aggressor flow (|flow|&gt;50) already leaning the run's way</td><td>The only family with a plausible pre-run tell — the main hope</td></tr>
+<tr class="row-bad"><td><b>B — VACUUM</b> (snap-back)</td><td class="num">18</td><td>Heavy flow pointing the <i>opposite</i> way — trapped aggressors, price snaps back</td><td>Fires <i>against</i> the standing flow — structurally can't be predicted from flow</td></tr>
+<tr><td><b>OPEN-NEWS</b> (clock bucket)</td><td class="num">19</td><td>No shared footprint — just a run that starts inside 13:00–15:00 UTC (US open / data drop)</td><td>A time bucket, not a footprint — a two-sided whipsaw</td></tr>
+</table>
+<p>So even the best case is unpromising: Family A (flow-led) is the only real hunting ground, and it is barely a third of the pot. Family B fires against the tape by definition, and OPEN-NEWS is a clock window, not a shape. That is the first cold splash — and every hunt below confirms it.</p>
+</div>
+
+<div class="card">
+<h3>Step 2 — the oracle: are the runs even worth chasing? (yes — and it proves the problem is the ENTRY)</h3>
+<p>The whole hunt rests on one thing being true: that the runs are <b>real money</b> if only you could find their start. Every hunt checked this directly with a "big-moves-caught" pass — enter at the census-defined start, on the correct side, tick-honest chandelier, −$5 round-trip. The runs pay handsomely <i>when you are on them</i>. Here is the cleanest proof, from the Family-A full hunt:</p>
+<table>
+<tr><th>On-the-run proof (Family A, full)</th><th>Value</th></tr>
+<tr class="row-hl"><td>Runs the flow-continuation signal caught (of 17)</td><td class="num">15 / 17</td></tr>
+<tr class="row-hl"><td>Net P&amp;L on those exact on-run entries</td><td class="num"><b>+$664</b></td></tr>
+<tr class="row-hl"><td>Of those, green</td><td class="num">14 / 15</td></tr>
+<tr><td>Hindsight ceiling per run (VACUUM / OPEN-NEWS clusters)</td><td class="num">$158 – $434</td></tr>
+</table>
+<p>Read that twice: entered <i>at the start</i>, in the right direction, these runs are almost all winners. <b>The money is real and the exit is fine.</b> So this movement is one question only, asked nine ways: <b>can any real-time signal find that start without also firing on the thousand look-alikes around it?</b> Spoiler — it fires on the runs (+$664 on 15 of them) and then fires <b>1,465 more times</b> on tape that looks identical and goes nowhere.</p>
+</div>
+
+<div class="card">
+<h3>Step 3 — THE FINDING: at what footprint SIZE does a run become tradeable?</h3>
+<p>This is the question the full → top25 → top15 narrowing exists to answer, so I am putting the answer front and centre. The hypothesis was: the marginal runs are noisy, but the <i>biggest</i> ones carry a cleaner footprint we can trade. <b>It is false in all three families — and for flow it is exactly backwards.</b></p>
+<table>
+<tr><th>Family</th><th>What the biggest / cleanest footprints do</th><th>Tradeable size threshold?</th></tr>
+<tr class="row-bad"><td><b>A — FLOW-LED</b></td><td>The strongest flow bucket (&gt;300 contracts) has the <i>most negative</i> forward return: <b>−3.6 pt</b> over the next 15 min, 47% continued. Strong <i>sell</i> aggression is followed by price drifting <i>up</i>. To catch all 3 top-15 runs you must fire loose and bleed <b>−$5,099</b>; tighten the threshold to stop the bleed and you catch <b>0 of 3</b>.</td><td class="num"><b>NONE — inverted</b><br>(bigger = worse)</td></tr>
+<tr class="row-bad"><td><b>B — VACUUM</b></td><td>The run-catcher fires <b>0 trades</b> on the two biggest runs of the week (+221 and −103 pt). At the tuned "best" config it catches <b>1 of 15</b> big runs. Narrowing to the monsters made it strictly <i>worse</i>.</td><td class="num"><b>NONE — misses the biggest</b></td></tr>
+<tr class="row-bad"><td><b>OPEN-NEWS</b></td><td>The only net-positive fader is positioned <b>against</b> the two biggest news runs (−194 and −178 pt, each −$85), and catches <b>2 of 6</b>. Bigger runs are on the <i>wrong side</i> of the one thing that "works."</td><td class="num"><b>NONE — anti-correlated</b></td></tr>
+</table>
+<p><b>The finding in one line: there is no footprint size at which a run becomes tradeable off the tape.</b> For flow it is worse than "no edge" — the cleaner and heavier the print, the more it reverts, so the very runs that look most catchable are the ones you'd be most wrong about. Every "least-bad" config in every family only stops bleeding by raising the threshold until it fires so rarely it catches none of the runs. The loss asymptotes toward zero <i>from below</i> and never crosses positive.</p>
+</div>
+
+<div class="card">
+<h3>Step 4 — the graveyard: nine hunts, best-looking config from each</h3>
+<p>Here is every hunt on one table — the single best-looking configuration each one could produce, before robustness kills it. Some hunts headline as a <b>BLEED</b> (a straight loss); some as a <b>MIRAGE</b> (a green number that evaporates on the first honest test). Every one is a GRAVE. "Big-caught" is how many of that level's target runs the config actually traded in the run's direction.</p>
+<table>
+<tr><th>Family</th><th>Level</th><th>Best-looking config</th><th>n</th><th>Net $</th><th>Win%</th><th>Big-caught</th><th>Headline</th></tr>
+<tr class="row-bad"><td>A · FLOW-LED</td><td>full</td><td class="ln">flow-continuation W60/TH150</td><td class="num">1,482</td><td class="num">−$7,907</td><td class="num">50%</td><td class="num">15/17</td><td><span class="tag">BLEED</span></td></tr>
+<tr class="row-bad"><td>A · FLOW-LED</td><td>top25</td><td class="ln">flow-continuation W60/TH250</td><td class="num">851</td><td class="num">−$5,745</td><td class="num">47%</td><td class="num">4/5</td><td><span class="tag">BLEED</span></td></tr>
+<tr class="row-bad"><td>A · FLOW-LED</td><td>top15</td><td class="ln">flow-continuation (catch cfg TH100)</td><td class="num">883</td><td class="num">−$5,099</td><td class="num">—</td><td class="num">3/3</td><td><span class="tag">BLEED</span></td></tr>
+<tr class="row-bad"><td>B · VACUUM</td><td>full</td><td class="ln">absorption-fade F150/TGT90</td><td class="num">245</td><td class="num">+$1,496</td><td class="num">44%</td><td class="num">5/18</td><td><span class="tag">MIRAGE</span></td></tr>
+<tr class="row-bad"><td>B · VACUUM</td><td>top25</td><td class="ln">trap-reclaim scalp F300/TGT30</td><td class="num">274</td><td class="num">+$2,110</td><td class="num">62%</td><td class="num">7/20*</td><td><span class="tag">MIRAGE</span></td></tr>
+<tr class="row-bad"><td>B · VACUUM</td><td>top15</td><td class="ln">trapped-flow reversal F450/TGT80</td><td class="num">16</td><td class="num">+$242</td><td class="num">44%</td><td class="num">1/15</td><td><span class="tag">MIRAGE</span></td></tr>
+<tr class="row-bad"><td>OPEN-NEWS</td><td>full</td><td class="ln">news breakout (trail) L24/B5</td><td class="num">27</td><td class="num">+$570</td><td class="num">85%</td><td class="num">12/19</td><td><span class="tag">MIRAGE</span></td></tr>
+<tr class="row-bad"><td>OPEN-NEWS</td><td>top25</td><td class="ln">impulse-fade (ride) L60/TH40</td><td class="num">25</td><td class="num">+$1,534</td><td class="num">64%</td><td class="num">4/8</td><td><span class="tag">MIRAGE</span></td></tr>
+<tr class="row-bad"><td>OPEN-NEWS</td><td>top15</td><td class="ln">impulse-fade L30/TH30/t40</td><td class="num">54</td><td class="num">+$791</td><td class="num">63%</td><td class="num">2/6</td><td><span class="tag">MIRAGE</span></td></tr>
+</table>
+<p style="font-size:0.9em;opacity:0.75">*VACUUM top25 scalp "catches" 7/20 only as 30-pt fragments of 200-pt runs — it exits at +30 and structurally cannot ride a run. The green MIRAGE numbers are the trap: every one dies in Step 5.</p>
+</div>
+
+<div class="callout"><div class="ct">GRAVE — Family A, FLOW-LED (the main hope, buried at all three zoom levels)</div>
+<p>The obvious continuation idea: when trailing net aggressor flow crosses a threshold, enter <i>with</i> the flow. It fails <b>before any backtest</b> — forward, 60-second net flow has correlation <b>−0.012</b> with the next 15 minutes; strong buy aggression leads a mildly <i>down</i> tape. So the entry is a 50/50 coin-flip that pays the $5 fee every fire. <b>Full:</b> −$7,907 across 1,482 fires; the whole 72-cell parameter grid is red, least-bad −$2,947. <b>top25 / top15:</b> the survivorship squeeze in the raw — to catch all the big runs you fire loose (top15: caught 3/3, on-run +$42, off-run <b>−$5,112</b>); to stop bleeding you fire so tight you catch 0/3 (−$681). There is no threshold between the ~3 winners and the ~880 look-alikes, <b>because forward there is nothing separating them.</b> Cause of death: FLOW-LED is a hindsight label for runs where flow happened to align; it is not a real-time tell.</p></div>
+
+<div class="callout"><div class="ct">GRAVE — Family B, VACUUM (fade the trapped flow — buried, and worse when narrowed)</div>
+<p>Fade heavy aggressor flow when price refuses to follow (trapped aggressors → snap-back). Each honest side is deeply negative on its own trade set — <b>full: longs −$3,649, shorts −$1,610</b>. The only green configs are cooldown-scheduling accidents on a razor's edge (a 10-lot flow nudge flips +$1,496 to −$266). <b>top25:</b> the "best" +$2,110 is a <b>short-beta mirage</b> — SHORT +$2,454 vs LONG +$324, printing only because MNQ fell 1,316 pt this week; flip the week and it's the loser. It fires <b>0 trades on the two biggest runs</b>. <b>top15:</b> the tuned +$242 exists only at n=16; strip its 3 best trades and it's −$224; big-caught 1/15. Cause of death: at the instant a real snap-back begins, the tape is <i>identical</i> to heavy flow that just keeps going. Not separable in real time.</p></div>
+
+<div class="callout"><div class="ct">GRAVE — OPEN-NEWS (a clock bucket, not a footprint — buried three ways)</div>
+<p>No shared pre-run shape, so I bet on volatility expansion. <b>Full:</b> a Donchian breakout nets a pretty +$570 at 85% win — but long-only −$32 / short-only +$36 (no side has an edge), and a 2-point buffer nudge flips it (B3 −$278 → B5 +$570 → B10 −$181). <b>top25:</b> the forward tape <i>flips the mechanism</i> — news-window impulses mean-revert (continuation only 35–44%), so a fade looks alive (+$1,534) until you find 73% of it comes from 5 survivorship-defined on-target trades and the winning side flips. <b>top15:</b> the +$791 fader is a buy-the-dip chop-scalp that <b>fights the two biggest runs</b> (−194 and −178, each −$85), catches 2/6, sits on a 10-pt target knife-edge (t30 −$134 → t40 +$791), and loses −$240 on the one trend day where 3 of the 6 targets live. Cause of death: two-sided open-drive whipsaw with no real-time directional tell.</p></div>
+
+<div class="card">
+<h3>Step 5 — why every single one died: the same four fingerprints</h3>
+<p>The reason I trust the NULL is that all nine hunts failed the <i>same</i> way. When a thing has a real edge, it survives at least one of these. Nothing survived any.</p>
+<table>
+<tr><th>Kill test</th><th>What it catches</th><th>Representative result</th></tr>
+<tr class="row-bad"><td>Forward coin-flip</td><td>Is the premise even true before you trade it?</td><td>Flow vs 15-min forward corr = −0.012; continuation% sits 46–53% across every window &amp; horizon</td></tr>
+<tr class="row-bad"><td>Long/short symmetry</td><td>Is the "edge" just one lucky side / a cooldown artifact?</td><td>VACUUM full: longs −$3,649, shorts −$1,610 independently. Winning side <i>flips</i> config-to-config in every mirage</td></tr>
+<tr class="row-bad"><td>Parameter razor-edge</td><td>Does a tiny nudge flip the sign? (curve-fit tell)</td><td>News buffer B3 −$278 → B5 +$570 → B10 −$181; VACUUM F150 +$1,496 → F160 −$266</td></tr>
+<tr class="row-bad"><td>Strip-3-best / n-collapse</td><td>Is it a base rate or 3 fat tails / just fewer bets?</td><td>VACUUM top15 +$242 → −$224 after 3 trades; FLOW-LED loss only shrinks as threshold starves n, never crosses positive</td></tr>
+</table>
+<p>Caveats stated plainly and up front: this is <b>one week, in-sample, thin n</b> (at top-15, Family A is <b>3 runs</b>), <b>MNQ-only, paper, tick-honest at −$5/round-trip</b>. Normally thin-n means "inconclusive, get more data." Here it does not rescue anything — the failure is so uniform (every honest full-population number lands at 46–53% win) that the problem is <b>structural, not sample size</b>. More weeks will sharpen the graves, not resurrect them.</p>
+</div>
+
+<div class="card">
+<h3>The verdict — and the one stone still unturned</h3>
+<p><b>NULL. Nothing to arm, nothing even to shadow as a capital gate.</b> The bankable lesson: a run-start is statistically indistinguishable from the chop-bursts around it <i>on the tape</i>, and the biggest, cleanest footprints are the <i>least</i> tradeable of all (flow reverts hardest at the top, vacuum doesn't fire on the monsters, news puts the monsters on the wrong side). Every green number in the graveyard is a cooldown artifact, a razor-edge peak, a short-beta mirage, or three lucky trades — never a base rate. <b>Do not build a catch-the-runs gate off price, volume or aggressor flow. Full stop.</b></p>
+<p>There is exactly <b>one</b> data source this entire hunt never touched, and it is the only stone left to turn: the <b>L2 order book</b>. Every signal above lived on the trade tape (aggressor flow, price, volume). The untested hypothesis is <b>book depletion</b> — does the <i>far side of the book thin out</i> in the seconds before a run, in a way the trade tape can't see? The book capture only began 07-21, so it was deliberately out of scope this week. That is next week's single job: not another tape-based entry threshold — a book-depletion tell, or nothing.</p>
 <p>
-<span class="tag">NULL</span>
-<span class="tag">DON'T ARM</span>
-<span class="tag">4 GRAVES</span>
-<span class="tag">next: L2 book-depletion, not another entry threshold</span>
+<span class="tag">NULL — nothing to arm</span>
+<span class="tag">9 hunts · 9 graves</span>
+<span class="tag">no tradeable footprint size</span>
+<span class="tag">flow tell is inverted</span>
+<span class="tag">next &amp; only: L2 book depletion</span>
 </p>
-<p style="font-size:0.9em;opacity:0.7">One observe-only footnote for the regime board: the Donchian breakout is a lousy <i>entry</i> but a good <i>detector</i> — it flags 48/49 runs in real time. Zero P&amp;L claim, no capital. If we ever want a live "a run may be starting" label feeding the shadow/regime router (not a trade), that's the only reusable thing here. Shadow it as a label, never as a gate.</p>
+<p style="font-size:0.9em;opacity:0.7">One observe-only footnote for the regime board: several of these signals are lousy <i>entries</i> but decent <i>detectors</i> — the full-cluster news breakout flags 12/19 runs and the flow-continuation signal fires on 15/17 in real time. Zero P&amp;L claim, no capital. If we ever want a live "a run may be starting" label feeding the shadow / regime router (a label, never a trade), that is the only reusable thing here. Shadow it as a label; never arm it as a gate.</p>
 </div>
 </div></body></html>

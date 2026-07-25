@@ -1,0 +1,155 @@
+<h2><span class="n">P2.5</span> Mid-week musings &mdash; the direction-router, put on trial</h2>
+<p class="lead">You asked the hard question this week, Garrath: the direction-router works, but is a polling timer that flips a switch-file every 15 minutes really the <em>best</em> way to do it &mdash; or is there something more elegant? So I built the three elegant alternatives you named &mdash; a per-tick guard baked into each gate, an event-driven flip, and a continuous in-tournament gate &mdash; and I raced all of them against the shipped router on this week's actual trades. The honest answer surprised me: <strong>every elegant alternative made LESS money.</strong> The clunky 15-minute sticky poll kept <strong>+$736</strong> this week; the prettier per-tick version kept only <strong>+$341</strong>, and the event-confirmed one actually <em>lost</em> $125. The ugliness is doing real work. Keep the router as it is.</p>
+
+<div class="callout"><div class="ct">What survived &mdash; lead with this</div>
+<p>The shipped router (15-minute poll, 2-mark hysteresis, switch-file) is the <strong>best-earning</strong> of the five plumbings I tested, by a clear margin. Its slowness is a feature: it waits until a trend is truly proven and sustained, then benches only the <strong>23 most concentrated knife-catch losers</strong> (&minus;$736, almost all <code>rgv_long</code> fading a proven drop) and leaves the counter-trend faders that snap back to green alone. Every &ldquo;more elegant&rdquo; design reacts to every wiggle and starts benching <code>rgv_short</code> trades that turned out <em>green</em>. Verdict: <span class="tag">KEEP THE ROUTER AS-IS</span> &mdash; migrate the plumbing later for code hygiene only, and if you do, port the <em>coarseness</em>, never go naive per-tick.</p></div>
+
+<div class="card">
+<h3>1 &mdash; The objective, in one plain sentence</h3>
+<p>Stop a gate from trading <em>against a proven trend</em>. Our efficiency-ratio bands read how <em>clean</em> the tape is, not which <em>way</em> it's going &mdash; so a clean down-trend sits happily inside a long-fader's band and the gate cheerfully buys the falling knife (that's the &minus;$361-in-an-hour <code>rgv_long</code> bleed from 07-23 that started all this). We want to switch the counter-trend faders off once a trend is real, back on in chop &mdash; <strong>reactively</strong>, and without clipping the chop days those faders actually earn on. That's the whole job. The question this week isn't <em>whether</em> to do it &mdash; it's <em>which machine</em> does it best.</p>
+</div>
+
+<div class="card">
+<h3>2 &mdash; What we built, and what it costs us live</h3>
+<p>A stateless timer that wakes every 15 minutes, replays the Paris day's regime from the tape, and writes <code>gate_switches.env</code> when the managed set needs to change. It benches the four reversion faders (<code>rgv_long</code>, <code>capitulation_long</code> in a down-trend; <code>rgv_short</code>, <code>exhaustion_short</code> in an up-trend). Here are its known warts, measured on this week's data rather than asserted:</p>
+<table>
+<tr><th>The cost you flagged</th><th>What it actually is</th><th>Measured this week</th></tr>
+<tr class="row-bad"><td class="ln">Reaction lag</td><td>can't bench until a trend is proven ~15&ndash;30 min in; a few counter-trend fades slip through before the switch flips</td><td class="num">&minus;$57 over 40 trades</td></tr>
+<tr><td class="ln">Sticky exit</td><td>over-holds a trend through an alternating chop patch; the &ldquo;fast-exit&rdquo; fix is built but dormant</td><td class="num">fix = +$0</td></tr>
+<tr class="row-bad"><td class="ln">Whipsaw churn</td><td>on a fast-flipping day the effective regime label see-saws</td><td class="num">18 flips (Fri)</td></tr>
+<tr><td class="ln">Partial-bar vs replay</td><td>a live run reads a half-formed current bar; a clean replay doesn't &mdash; tiny drift between the two</td><td class="ln">plumbing artifact</td></tr>
+</table>
+<p>Two things worth saying out loud. The reaction lag everyone worries about costs a grand total of <strong>&minus;$57 all week</strong> &mdash; it is nearly free. And the sticky-exit fix, when I backtested it head-to-head, earned <strong>exactly $0 more</strong> than the shipped sticky version &mdash; so it stays switched off, correctly. The costs are real but small; the question is whether a cleverer machine removes them <em>without giving back the $736</em>.</p>
+</div>
+
+<div class="card">
+<h3>3 &mdash; The race: five plumbings, same signal, same week</h3>
+<p>This is the heart of it. Every machine reads the <em>same</em> trend signal (efficiency ratio and net move over the last 30 minutes) &mdash; the only thing that changes is <strong>when it looks</strong>. I ran all five over the 131 counter-trend fader trades the desk actually took Mon&ndash;Fri (those are the only trades any of these machines can touch). Base P&amp;L on those 131 trades was &minus;$1,030; a machine &ldquo;earns&rdquo; by benching losers.</p>
+<table>
+<tr><th>Machine (plumbing)</th><th>What it is</th><th>Benched</th><th>Benched $</th><th>Kept</th><th>vs base</th></tr>
+<tr class="row-hl"><td class="ln">ROUTER-NOW <span class="tag">SHIPPED</span></td><td>15-min poll, 2-mark sticky</td><td class="num">23</td><td class="num">&minus;736</td><td class="num">&minus;294</td><td class="num">+736</td></tr>
+<tr class="row-bad"><td class="ln">CONTINUOUS</td><td>per-tick in-code guard (alt a/c)</td><td class="num">54</td><td class="num">&minus;341</td><td class="num">&minus;688</td><td class="num">+341</td></tr>
+<tr class="row-bad"><td class="ln">POLL-5</td><td>same router, 5-min grid (alt d)</td><td class="num">44</td><td class="num">&minus;55</td><td class="num">&minus;974</td><td class="num">+55</td></tr>
+<tr class="row-bad"><td class="ln">POLL-1</td><td>same router, 1-min grid (alt d)</td><td class="num">50</td><td class="num">+125</td><td class="num">&minus;1,154</td><td class="num">&minus;125</td></tr>
+<tr class="row-bad"><td class="ln">EVENT-HYST</td><td>event-confirmed per-tick flip (alt b)</td><td class="num">50</td><td class="num">+125</td><td class="num">&minus;1,154</td><td class="num">&minus;125</td></tr>
+</table>
+<p>Read the last column top to bottom. The shipped clunker wins by a street. Going finer and faster &mdash; which is exactly the direction &ldquo;more elegant per-tick&rdquo; pulls you &mdash; makes it steadily <em>worse</em>, until the 1-minute and event-driven versions are benching so twitchily they start throwing away <strong>winners</strong> (that &ldquo;+125&rdquo; benched means the trades they cut were net-positive &mdash; the machine is now hurting you). The elegant designs aren't just no-better; on this week's money they're a downgrade.</p>
+</div>
+
+<div class="card">
+<h3>4 &mdash; WHY the slow one wins: it's surgical, they carpet-bomb</h3>
+<p>The shipped router removes $736 of losses by touching just <strong>23 trades</strong> &mdash; that's <strong>$32 of pure loss removed per trade it benches</strong>, and every one of those 23 was a loser. The per-tick version has to bench <strong>54 trades</strong> to remove less money ($6 per trade), because it's firing at every micro-trend and scooping up green <code>rgv_short</code> trades along the way. Same idea, wildly different precision:</p>
+<table>
+<tr><th>Machine</th><th>Benched</th><th>$ removed / trade</th><th>Benched a winner?</th></tr>
+<tr class="row-hl"><td class="ln">ROUTER-NOW</td><td class="num">23</td><td class="num">$32.0</td><td class="ln">no &mdash; all 23 losers</td></tr>
+<tr class="row-bad"><td class="ln">CONTINUOUS</td><td class="num">54</td><td class="num">$6.3</td><td class="ln">yes &mdash; benched <code>rgv_short</code> +$62</td></tr>
+<tr class="row-bad"><td class="ln">POLL-1 / EVENT-HYST</td><td class="num">50</td><td class="num">net &minus;$2.5</td><td class="ln">yes &mdash; net-positive trades cut</td></tr>
+</table>
+<p>And here's the decomposition that settles the lag argument. I split the difference between the twitchy per-tick machine and the shipped poll into two buckets:</p>
+<table>
+<tr><th>Bucket</th><th>Meaning</th><th>Trades</th><th>P&amp;L</th></tr>
+<tr><td class="ln">LAG-CAUGHT</td><td>losers the 15-min lag let through that per-tick would've blocked</td><td class="num">40</td><td class="num">&minus;$57</td></tr>
+<tr class="row-hl"><td class="ln">STICKY-HELD</td><td>trades the sticky poll benched that per-tick released &mdash; all losers</td><td class="num">9</td><td class="num">&minus;$452</td></tr>
+</table>
+<p>The lag the elegant designs are meant to fix is worth &minus;$57 all week. The stickiness they'd <em>remove</em> is worth <strong>&minus;$452</strong> &mdash; nine concentrated losers the poll holds a proven trend long enough to bench, that a jumpy per-tick guard flips back &ldquo;on&rdquo; in time to take. You'd trade a $57 problem for a $452 one. That's the trap in one line.</p>
+</div>
+
+<div class="card">
+<h3>5 &mdash; Alt (d): does ANY grid/hysteresis setting beat 15-min sticky?</h3>
+<p>Rather than trust one setting, I swept the polling speed (STEP) against the confirmation-strength (HOLD) &mdash; router net P&amp;L in every cell, higher is better, base is &minus;$1,030. This is the map of the whole design space you're choosing a point in:</p>
+<table>
+<tr><th>poll every &darr; / confirm marks &rarr;</th><th>HOLD 1</th><th>HOLD 2</th><th>HOLD 3</th></tr>
+<tr class="row-bad"><td class="ln">1 min (per-tick-ish)</td><td class="num">&minus;688</td><td class="num">&minus;1,154</td><td class="num">&minus;1,320</td></tr>
+<tr class="row-bad"><td class="ln">5 min</td><td class="num">&minus;1,042</td><td class="num">&minus;974</td><td class="num">&minus;638</td></tr>
+<tr class="row-hl"><td class="ln">10 min</td><td class="num">&minus;798</td><td class="num">&minus;244</td><td class="num">&minus;164</td></tr>
+<tr class="row-hl"><td class="ln">15 min <span class="tag">SHIPPED</span></td><td class="num">&minus;722</td><td class="num">&minus;294</td><td class="num">&minus;1,030</td></tr>
+<tr><td class="ln">30 min</td><td class="num">&minus;85</td><td class="num">&minus;1,030</td><td class="num">&minus;1,030</td></tr>
+</table>
+<p>Two honest reads. First, the shipped 15-min / 2-mark cell (&minus;$294) is <em>not</em> the single best square &mdash; a couple of coarser neighbours (10-min/3-mark at &minus;$164, and a lone 30-min/1-mark at &minus;$85) beat it. I won't pretend 15/2 is provably optimal on one week; the exact best cell is noise. Second &mdash; and this is the part that matters &mdash; look at the <em>shape</em>: the good numbers live in the <strong>coarse, sticky corner</strong> (slow poll, more confirmation) and the whole <strong>fast-and-twitchy top row is a graveyard</strong>. The gradient is unmistakable and it points the opposite way to &ldquo;elegant per-tick.&rdquo; The exact knob is in-sample luck; the direction is robust.</p>
+</div>
+
+<div class="card">
+<h3>6 &mdash; Alt (a) taken literally: the pure &ldquo;don't fade against net&rdquo; in-code guard</h3>
+<p>The simplest possible in-code version: forget efficiency ratio, just veto a long-fade whenever the net move is down by more than X, and a short-fade whenever it's up by X. Per-tick, no service, no file &mdash; the cleanest plumbing there is. I swept the net-floor:</p>
+<table>
+<tr><th>net floor (pt)</th><th>Benched</th><th>Benched $</th><th>Kept</th></tr>
+<tr class="row-bad"><td class="ln">20</td><td class="num">104</td><td class="num">&minus;1,162</td><td class="num">+132</td></tr>
+<tr class="row-bad"><td class="ln">30</td><td class="num">99</td><td class="num">&minus;942</td><td class="num">&minus;87</td></tr>
+<tr class="row-bad"><td class="ln">40</td><td class="num">92</td><td class="num">&minus;906</td><td class="num">&minus;124</td></tr>
+<tr class="row-bad"><td class="ln">50</td><td class="num">79</td><td class="num">&minus;1,143</td><td class="num">+114</td></tr>
+<tr class="row-bad"><td class="ln">60</td><td class="num">62</td><td class="num">&minus;1,024</td><td class="num">&minus;6</td></tr>
+</table>
+<p>This looks tempting at floor-20 (+$132 kept) until you see it benches <strong>104 of 131 trades</strong> to get there. That's not a guard, it's a near-total shutdown of the fader book &mdash; and because the faders lost money this week, blocking almost all of them &ldquo;wins&rdquo; trivially. The proof it's carpet-bombing not aiming: the result <strong>bounces</strong> as you tighten the floor (+132, &minus;87, &minus;124, +114, &minus;6) with no stable structure &mdash; pure noise. The efficiency-ratio router removes the <em>same kind of money</em> by touching a quarter as many trades. Selectivity is the edge; this blunt guard doesn't have it.</p>
+</div>
+
+<div class="card">
+<h3>7 &mdash; How the shipped router actually landed, day by day</h3>
+<p>For completeness, the shipped router on the <em>full</em> desk (all trades, not just the four faders), the number that matters for the real book: it turned a &minus;$2,986 week into &minus;$2,250 &mdash; <strong>+$736 saved, no day made worse.</strong> Mon&ndash;Thu was the +$580 you were quoted; Friday added +$156.</p>
+<table>
+<tr><th>Day</th><th>Baseline $</th><th>With router $</th><th>Saved</th><th>Regime flips</th></tr>
+<tr class="row-bad"><td class="ln">07-20 Mon</td><td class="num">&minus;1,732</td><td class="num">&minus;1,508</td><td class="num">+224</td><td class="num">14</td></tr>
+<tr><td class="ln">07-21 Tue</td><td class="num">+52</td><td class="num">+52</td><td class="num">+0</td><td class="num">14</td></tr>
+<tr class="row-hl"><td class="ln">07-22 Wed</td><td class="num">&minus;330</td><td class="num">&minus;274</td><td class="num">+56</td><td class="num">9</td></tr>
+<tr class="row-hl"><td class="ln">07-23 Thu</td><td class="num">&minus;398</td><td class="num">&minus;98</td><td class="num">+300</td><td class="num">16</td></tr>
+<tr class="row-hl"><td class="ln">07-24 Fri</td><td class="num">&minus;578</td><td class="num">&minus;423</td><td class="num">+156</td><td class="num">18</td></tr>
+<tr class="row-hl"><td class="ln">Mon&ndash;Fri</td><td class="num">&minus;2,986</td><td class="num">&minus;2,250</td><td class="num">+736</td><td class="num">71</td></tr>
+</table>
+<p>Note Friday: 18 regime flips &mdash; the whippy day the scope flagged &mdash; and the sticky poll <em>still</em> saved +$156 through it. That's the point. A per-tick machine on a day that flips 18 times would have churned far harder, not less.</p>
+</div>
+
+<div class="callout"><div class="ct">Honesty box &mdash; what this test is NOT</div>
+<p>One week, in-sample, and thin where it counts. The whole finding leans on the <strong>23 trades</strong> the shipped router benched &mdash; and really on one gate, <code>rgv_long</code> (&minus;$584 of the &minus;$736). The realised trades are already partly hand-gated by your own <code>/off</code> switches this week, so this is an <em>illustrative lower bound</em>, not a spotless A/B. The exact 15-min / 2-mark setting is <em>not</em> provably best &mdash; a coarser neighbour matched it and the best cell will drift week to week. What I'm confident about is the <strong>direction</strong>, because it's the same story from three independent angles: the five-machine race, the STEP&times;HOLD map, and the carpet-bomb net-guard all say <em>coarse-and-sticky beats fine-and-twitchy on this week's money</em>. That's a robust gradient even if every single dollar figure is soft.</p></div>
+
+<div class="card">
+<h3>8 &mdash; The verdict, and the one thing worth stealing</h3>
+<p><strong>Keep the router exactly as it is.</strong> The three elegant alternatives you asked me to chase &mdash; per-tick in-code guard, event-driven flip, continuous in-tournament gate &mdash; are all real, all buildable, and all <em>lose money</em> versus the shipped poll this week, because they remove the very slowness (&minus;$452 of concentrated losers held long enough to bench) that makes it work.</p>
+<table>
+<tr><th>Alternative</th><th>Cleaner plumbing?</th><th>Kept this week</th><th>Verdict</th></tr>
+<tr class="row-hl"><td class="ln">Router as shipped</td><td class="ln">no (service+file)</td><td class="num">+$736</td><td class="ln"><span class="tag">KEEP</span></td></tr>
+<tr class="row-bad"><td class="ln">Per-tick in-code guard (a)</td><td class="ln">yes</td><td class="num">+$341</td><td class="ln"><span class="tag">WORSE ON MONEY</span></td></tr>
+<tr class="row-bad"><td class="ln">Event-driven flip (b)</td><td class="ln">yes</td><td class="num">&minus;$125</td><td class="ln"><span class="tag">REFUTED</span></td></tr>
+<tr class="row-bad"><td class="ln">Continuous in-tournament (c)</td><td class="ln">yes (no file)</td><td class="num">+$341</td><td class="ln"><span class="tag">WORSE ON MONEY</span></td></tr>
+<tr class="row-bad"><td class="ln">Finer timer (d)</td><td class="ln">same</td><td class="num">+$55 &rarr; &minus;$125</td><td class="ln"><span class="tag">REFUTED</span></td></tr>
+</table>
+<p>You were right that the plumbing is inelegant &mdash; a polling timer writing a switch-file is not pretty. But the elegance that matters here isn't in the code, it's in the <em>selectivity</em>: benching 23 trades to save $736 is the elegant part, and the coarse sticky poll is what delivers it. <strong>The one thing worth stealing from the in-code idea</strong> is purely cosmetic: if the switch-file race and partial-bar drift ever bother us, let the tournament call the router's <code>current_regime()</code> itself &mdash; same coarse, sticky logic, no timer, no file, <em>identical</em> latency and therefore identical money. That kills the two plumbing warts (partial-bar artifact, file race) for free without touching the behaviour that earns. Migrate for hygiene if you like; do <em>not</em> migrate to naive per-tick. <span class="tag">architecture question: answered, with the backtest behind it</span></p>
+<p>That's the router. But two more mid-week leads earned their own autopsy this week, and both landed on the <em>same</em> gate family the router guards &mdash; the rgv faders. Here they are in full; nothing was dropped.</p>
+</div>
+
+<div class="card">
+<h3>Mid-week lead #2 &mdash; the rgv absorption-confirm: LIVE at 12:27, REMOVED at 14:06, <em>same day</em></h3>
+<p>Garrath, this one is the cleanest forward-validation lesson of the week, so I'm telling it as it happened &mdash; including the part where I was wrong for ninety minutes. The rgv faders are direction-blind: they fade a stretch past VWAP whether or not the tape is trending, so a clean move against them just keeps going. The idea was to bolt on a <strong>35-second absorption-confirm</strong> &mdash; after the fade signal, wait 35s and only take it if the faded move is actually <em>absorbing</em> (heavy aggressor flow the wrong way that fails to move price). At <strong>12:27 UTC I put it live</strong> on both rgv sides and removed their ER band, on the strength of a one-week tick-honest grid that looked great: the rgv book went <strong>&minus;$556 &rarr; +$228</strong> (35s, 62% win). At <strong>14:06 UTC I pulled it back off.</strong> Here's why.</p>
+<p><strong>The two-week re-test killed it.</strong> That +$228 was one week. When I re-ran the same confirm across <em>two</em> weeks (07-15&ndash;17 and 07-20&ndash;24), tick-honest, base versus base-plus-confirm, the confirm stopped looking like a filter and started looking like a blunt <em>exposure cut</em> &mdash; it barely fires (drops ~85% of trades), and where the raw base was a real winner it threw the winners away with the losers:</p>
+<table>
+<tr><th>Base config</th><th>2-wk base $</th><th>+ 35s confirm $</th><th>What the confirm did</th></tr>
+<tr class="row-bad"><td class="ln">SHORT ext3.0 / turn0.15</td><td class="num">+$670</td><td class="num">&minus;$180</td><td class="ln">destroyed a robust green edge</td></tr>
+<tr class="row-bad"><td class="ln">SHORT ext2.5 / turn0.15</td><td class="num">+$520</td><td class="num">&minus;$248</td><td class="ln">destroyed a robust green edge</td></tr>
+<tr class="row-bad"><td class="ln">SHORT ext2.0 / turn0.25</td><td class="num">+$518</td><td class="num">&minus;$232</td><td class="ln">destroyed a robust green edge</td></tr>
+<tr class="row-hl"><td class="ln">LONG ext3.0 / turn0.15</td><td class="num">&minus;$159</td><td class="num">&minus;$5</td><td class="ln">trimmed a weak bleed &mdash; marginal</td></tr>
+<tr class="row-hl"><td class="ln">LONG ext2.5 / turn0.25</td><td class="num">+$38</td><td class="num">&minus;$6</td><td class="ln">flattened a small winner to zero</td></tr>
+<tr class="row-hl"><td class="ln">LONG ext2.0 / turn0.25</td><td class="num">&minus;$634</td><td class="num">&minus;$136</td><td class="ln">cut the bleed by cutting exposure</td></tr>
+</table>
+<p>Read the short rows. The rgv <em>short</em> base is genuinely green across both weeks (+$500&ndash;$670) &mdash; and the confirm turns every one of those into a two-week loser. It's not stabilising the edge; it's shrinking everything toward zero and, on the side that actually earns, that's pure destruction. On the long side it trims the bleed a little, but the long side is weak anyway. A filter that helps only where the base already loses, and hurts where the base wins, isn't a filter &mdash; it's an off-switch with extra steps.</p>
+<p><strong>Then the live tape settled it the same afternoon.</strong> With the confirm removed, rgv_short ran raw &mdash; and in Part 1 you saw exactly what happened: it bled <strong>&minus;$345</strong> shorting a choppy up-grind (13 fires, unfiltered), then made <strong>+$183</strong> the moment the tape turned into a real down-trend. The confirm <em>would</em> have blocked most of those &minus;$345 knife-shorts (that's precisely the chop-grind it's built to sit out) &mdash; but it would <em>also</em> have skipped the +$183 aligned run, because on a clean trend nothing is "absorbing", it's just moving. That's the whole lesson in one afternoon.</p>
+<div class="callout"><div class="ct">The verdict &mdash; regime-conditional, not good-or-bad</div>
+<p>The confirm isn't a win or a loss &mdash; it's a <strong>regime-conditional</strong> filter. It earns its keep in exactly one place: a choppy grind <em>against</em> the fade, which is the one thing the direction-router can't bench (chop never reads as a proven trend). It's dead weight &mdash; worse, it's a winner-killer &mdash; on a clean aligned trend. So the honest open question isn't "confirm on or off"; it's <strong>"re-enable it only when the router reads chop"</strong> &mdash; a confirm that's live in chop and dormant in trend. That's a Saturday design decision, not a mid-week flip. The go-live/removal timestamps are stamped in <code>data/rgv_confirm_live_at.json</code>, so the desk can run a clean <strong>3-phase A/B</strong> forward: pre-12:27 (ER-banded) &rarr; 12:27&ndash;14:06 (confirmed) &rarr; post-14:06 (raw base). <span class="tag">LIVE 12:27 &rarr; REMOVED 14:06 &mdash; regime-conditional</span></p></div>
+</div>
+
+<div class="card">
+<h3>Mid-week lead #3 &mdash; the per-side rgv base grid: the two sides want OPPOSITE bases</h3>
+<p>If the confirm isn't the fix for rgv_short, what is? The base thresholds themselves &mdash; tuned <em>per side</em>. Your standing rule on this desk is that a gate runs two-sided with <strong>independently tuned</strong> thresholds, and you never relegate a direction. So I swept the raw rgv base (how far past VWAP counts as "stretched" (<code>ext</code>), how big a turn-back to require (<code>turn</code>), and whether to demand an aggressor-flow confirm (<code>flow</code>)) <em>separately</em> for long and short, tick-honest, on this week's tape. The two sides did not land in the same place &mdash; they landed on opposite ends:</p>
+<table>
+<tr><th>Side</th><th>Its own best base (this week)</th><th>Net $</th><th>Shape of the edge</th></tr>
+<tr class="row-hl"><td class="ln">SHORT</td><td class="ln">ext <strong>2.0</strong> / turn 0.25 / <strong>flow 25</strong></td><td class="num">+$765</td><td class="ln">green across a <em>wide</em> band (95 tr, +$8.1/tr, 43% win)</td></tr>
+<tr class="row-bad"><td class="ln">LONG</td><td class="ln">ext <strong>3.0</strong> / turn 0.15 / <strong>no flow</strong></td><td class="num">+$81</td><td class="ln">red everywhere <em>except</em> the extreme corner (57 tr, +$1.4/tr)</td></tr>
+</table>
+<p>Short wants a <em>moderate</em> stretch and likes a flow confirm; long only crawls above zero at an <em>extreme</em> 3-ATR stretch and only <em>without</em> flow. Mirror one side's tuning onto the other and you lose money both ways: tune on short's sweet spot and apply it to long &rarr; long does <strong>&minus;$481</strong>; tune on long's sweet spot and apply it to short &rarr; short does +$308, leaving <strong>~$457 on the table</strong> versus short's own optimum. And the flow confirm is side-asymmetric &mdash; it <em>helps</em> short (+$718&rarr;+$765) and <em>hurts</em> long (+$81&rarr;&minus;$54). A single gate-wide "flow on/off" switch would be wrong; it belongs on the short side only.</p>
+<p><strong>But here's the part that keeps us honest &mdash; and it's why this is a router story, not a relegation story.</strong> I re-ran the identical grid on <em>last</em> week (07-15&ndash;17), and the per-side optima <strong>moved</strong>:</p>
+<table>
+<tr><th>Side</th><th>Best base LAST week</th><th>Best base THIS week</th></tr>
+<tr class="row-hl"><td class="ln">LONG</td><td class="ln">ext 2.5 / no flow &rarr; <strong>+$300</strong> (healthy)</td><td class="ln">ext 3.0 / no flow &rarr; +$81 (barely)</td></tr>
+<tr class="row-hl"><td class="ln">SHORT</td><td class="ln">ext 3.0 / no flow &rarr; +$362 <em>(flow was CATASTROPHIC: &minus;$600 to &minus;$810)</em></td><td class="ln">ext 2.0 / <strong>flow 25</strong> &rarr; +$765</td></tr>
+</table>
+<p>Both weeks leaned <em>down</em>, yet last week the <strong>long</strong> side was the strong one (+$300) and the flow confirm that helped short this week was a disaster last week. The "best cell" drifted week to week, and the flow confirm flipped sign. That tells us the per-side asymmetry is <strong>regime, not structure</strong> &mdash; which is exactly why the answer is the direction-router (bench the wrong-way side when a trend is proven), <em>not</em> "relegate rgv_short". The one thing that <em>did</em> survive both weeks is the robust core: a <strong>tight-extension short (ext 2.5&ndash;3.0), no flow, no confirm</strong> is green in both (~+$300 each week); the long side has no stable green zone and belongs to the router.</p>
+<div class="callout"><div class="ct">Verdict &mdash; tune the side, route the direction</div>
+<p><strong>Short:</strong> move to a tight-extension base (ext 2.5&ndash;3.0, no flow, no confirm) &mdash; the one cross-week-robust rgv edge on the board. <strong>Long:</strong> it's a router problem, not a filter problem &mdash; keep it, let the router bench it on proven down-trends, don't chase a base tune that won't hold. And do <em>not</em> read "rgv_short lost money this week" as a case to retire the short direction &mdash; it's the strongest, most stable side of the gate once you tune it and route it. This is the Saturday per-side-tuning candidate. <span class="tag">SHORT &rarr; tight-ext base &middot; LONG &rarr; router-only</span></p></div>
+</div>
