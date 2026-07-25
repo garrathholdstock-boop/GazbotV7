@@ -63,7 +63,9 @@ def grind_long_short_slots() -> list[SlotSpec]:
     ]
 
 
-_RGV = {"ext_min": 2.0, "turn_atr": 0.15, "fast_slope": True, "fast_turn": True, "atr_min": 13.0}
+_RGV_SHORT = {"ext_min": 1.5, "turn_atr": 0.25, "flow_min": None, "atr_min": 20.0,
+              "fast_slope": False, "fast_turn": False}  # ★2026-07-25 rehab: fast_turn fired on NOISE
+              # (live −$3,543 → +$778); ATR floor 13→20. Own per-side dict (rgv_long researched separately).
 
 
 def tournament_slots() -> list[SlotSpec]:
@@ -74,21 +76,25 @@ def tournament_slots() -> list[SlotSpec]:
     replacing thrust_short (superseded) and rgv_long (worst performer, −$691). The 55s
     veto itself is applied in tournament.run() (VETO_GATES); side-filtering is automatic
     (_gate_fires drops the wrong-direction thrust). base_size=1 for the first live week
-    to read like-for-like against the still-running shadow (scale on live evidence)."""
+    to read like-for-like against the still-running shadow (scale on live evidence).
+    ★ 2026-07-25 REHAB (operator, gate-rehab-findings): grind_long (scalp-2R + no give-back;
+    ATR≥24, ER floor dropped), capitulation_long (require_flip=True is the edge + give-back off;
+    ATR≥10, ER ceiling dropped — was bug-based), rgv_short (fast_turn off + ATR≥20). Each
+    root-caused, not benched at face value."""
     return [
         # LONG
-        SlotSpec("grind_long", "grind", "LONG",
+        SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-25 rehab: scalp-2R BEATS chandelier for grind; no give-back; ATR≥24 + ER floor DROPPED (deciders)
                  params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
-                 exit="chandelier", vol_adaptive_chandelier=True),
-        SlotSpec("capitulation_long", "capitulation", "LONG",   # fade a sell-flush bottom
-                 params={"climax_min": 3.0, "dom_min": 0.7, "require_flip": False},
-                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+                 exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
+        SlotSpec("capitulation_long", "capitulation", "LONG",   # ★2026-07-25 rehab: require_flip=True IS the edge (wait for buyers to step in); give-back off; ATR≥10 + ER ceiling DROPPED (was bug-based)
+                 params={"climax_min": 2.5, "dom_min": 0.6, "require_flip": True},
+                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
         SlotSpec("abs_veto_long", "thrust", "LONG",   # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
         # SHORT
-        SlotSpec("rgv_short", "reversal_grab", "SHORT",
-                 params={"side": "SHORT", **_RGV}, sizing="flat", base_size=2,
+        SlotSpec("rgv_short", "reversal_grab", "SHORT",   # ★2026-07-25 rehab: fast_turn OFF + ATR floor 13→20 (see _RGV_SHORT)
+                 params={"side": "SHORT", **_RGV_SHORT}, sizing="flat", base_size=2,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
         SlotSpec("exhaustion_short", "exhaustion", "SHORT",     # fade heavy buying into an ask wall
                  params={}, sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0),

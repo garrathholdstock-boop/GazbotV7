@@ -64,10 +64,12 @@ def test_efficiency_ratio_no_data_returns_one():
     assert efficiency_ratio(_closes([100, 101, 102])) == 1.0  # <6 closes → 1.0 (don't gate)
 
 
-def test_er_blocks_momentum_floor():
-    # grind_long is momentum → blocked below its floor (chop), allowed above (trend)
-    assert er_blocks("grind_long", ER_FLOOR["grind_long"] - 0.05) is True
-    assert er_blocks("grind_long", ER_FLOOR["grind_long"] + 0.05) is False
+def test_grind_long_er_floor_removed_rehab():
+    # ★2026-07-25 rehab: grind_long's ER floor was DROPPED (proven fake — runners and false-starts
+    # share the same ER 0.14; grind's real filter is the ATR floor). grind is now ER-ungated.
+    assert "grind_long" not in ER_FLOOR
+    assert er_blocks("grind_long", 0.01) is False    # chop no longer blocks grind
+    assert er_blocks("grind_long", 0.50) is False
 
 
 def test_er_blocks_reversion_ceiling():
@@ -104,18 +106,18 @@ def test_er_blocks_abs_veto_long_momentum_floor():
 
 # ── SHADOW momentum ER-hold spike-filter ──
 def test_er_hold_blocks_catches_single_bar_spike():
-    # grind_long: ER floor 0.20, hold N=2. A chop tape with ONE final directional bar — the CURRENT
-    # bar's ER clears the floor but the PRIOR bar's ER (still chop) does not. er_blocks (current bar
-    # only) lets it through; the hold-filter catches the single-bar spike.
+    # abs_veto_long: ER floor 0.20, hold N=2 (the ER-hold shadow moved here in the 07-25 rehab when
+    # grind's ER floor was dropped). A chop tape with ONE final directional bar — the CURRENT bar's ER
+    # clears the floor but the PRIOR bar's ER (still chop) does not; the hold-filter catches the spike.
     spike = _closes([100 + (i % 2) for i in range(30)] + [130])
-    assert er_blocks("grind_long", efficiency_ratio(spike)) is False       # current bar clears the floor
-    assert er_blocks("grind_long", efficiency_ratio(spike[:-1])) is True   # prior bar still chop
-    assert er_hold_blocks("grind_long", spike) is True                     # hold-filter blocks the spike
+    assert er_blocks("abs_veto_long", efficiency_ratio(spike)) is False       # current bar clears the floor
+    assert er_blocks("abs_veto_long", efficiency_ratio(spike[:-1])) is True   # prior bar still chop
+    assert er_hold_blocks("abs_veto_long", spike) is True                     # hold-filter blocks the spike
 
 
 def test_er_hold_allows_sustained_trend():
     trend = _closes([100 + i for i in range(31)])   # straight line — every bar in-rule
-    assert er_hold_blocks("grind_long", trend) is False
+    assert er_hold_blocks("abs_veto_long", trend) is False
 
 
 def test_er_hold_only_momentum_gates():
@@ -132,7 +134,7 @@ def test_atr_blocks_below_floor():
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] + 1) is False
     assert atr_blocks("abs_veto_short", ATR_FLOOR["abs_veto_short"] - 1) is True    # too small → blocked
     assert atr_blocks("abs_veto_short", ATR_FLOOR["abs_veto_short"] + 1) is False   # enough range → allowed
-    assert atr_blocks("capitulation_long", 0.0) is False   # no ATR floor → never blocked here
+    assert atr_blocks("exhaustion_short", 0.0) is False   # no ATR floor → never blocked here
 
 
 def test_er_blocks_unknown_gate_never_blocks():

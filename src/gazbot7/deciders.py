@@ -101,8 +101,8 @@ def compute_features(bars: list[Bar]) -> Features:
 #   exhaustion_short  CEIL 0.05 — tick+L2 duck edge is 0.0–0.05 (+$295). ⚠ fixed-exit-derived.
 # ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
-ER_FLOOR = {"grind_long": 0.20, "abs_veto_long": 0.20}  # ★2026-07-25 chop-floor sweep: abs_veto_LONG wants ER≥0.20 (chop −$365→+$34, keeps 96% earning); abs_veto_SHORT wants ATR not ER (an ER floor craters short earning $822→$226) → see ATR_FLOOR. thrust_short dropped (retired gate).
-ER_CEIL = {"capitulation_long": 0.10, "exhaustion_short": 0.05}
+ER_FLOOR = {"abs_veto_long": 0.20}  # ★2026-07-25: abs_veto_LONG wants ER≥0.20. grind_long ER floor DROPPED (rehab: ER is a FAKE filter — runners & false-starts have identical ER 0.14; the ATR floor is grind's real lever). thrust_short retired.
+ER_CEIL = {"exhaustion_short": 0.05}  # ★2026-07-25: capitulation_long ER ceiling DROPPED — it was BACKWARDS and bug-based (footprint_backtest_duck.py DuckDB integer-division bug); capitulation is ATR-floored instead (see ATR_FLOOR).
 # ★ 2026-07-24 (operator): ER band REMOVED for rgv_long/rgv_short — the 35s ABSORPTION-CONFIRM
 # (below) subsumes it (a Friday-lab grid found them near-identical at 35/40s: the confirm reads
 # "genuine reversion vs falling-knife" from the microstructure, sharper than the ER band read it
@@ -153,7 +153,7 @@ def confirm_absorption(side: str, net_flow: float, price_change: float) -> bool:
 #                     the bleed, first crossing to breakeven at ≥20 (+$16 / 42tr). HARM-REDUCTION on a
 #                     RELEGATION candidate — it doesn't make grind +EV, it bleeds less.
 # ⚠ 9-day one-regime lead; bump/drop per Saturday.
-ATR_FLOOR = {"grind_long": 20.0, "abs_veto_short": 16.0}  # ★2026-07-25 chop-floor sweep, PER-SIDE: abs_veto_SHORT wants ATR≥16 (no ER floor); full +$478. thrust_short dropped (retired gate).
+ATR_FLOOR = {"grind_long": 24.0, "capitulation_long": 10.0, "abs_veto_short": 16.0}  # ★2026-07-25 rehab: grind_long 20→24 (the real lever — isolates volatile/trending days, +$1,118); capitulation_long 10 (winner-keeper, rescues the bad week); abs_veto_short 16. thrust_short retired.
 
 
 def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:
@@ -176,7 +176,7 @@ def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:
 # SHADOW: tournament.step evaluates + logs this but does NOT gate on it until forward-validated.
 # ⚠ the live er_blocks already enforces the CURRENT completed-bar ER; this shadow's real job is to
 # measure whether the PRIOR-bar hold adds incremental blocks on live decision-time ER (it may not).
-ER_HOLD = {"grind_long": 2, "thrust_short": 2}
+ER_HOLD = {"abs_veto_long": 2}  # ★2026-07-25: moved to the current ER-floored momentum gate (grind's ER floor dropped in rehab; thrust_short retired). Observe-only shadow.
 
 
 def er_hold_blocks(gate: str, bars: list[Bar], window: int = ER_WINDOW) -> bool:
