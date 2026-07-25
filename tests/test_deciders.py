@@ -72,10 +72,13 @@ def test_grind_long_er_floor_removed_rehab():
     assert er_blocks("grind_long", 0.50) is False
 
 
-def test_er_blocks_reversion_ceiling():
-    # exhaustion_short is reversion → blocked above its ceiling (trend), allowed below (chop)
-    assert er_blocks("exhaustion_short", ER_CEIL["exhaustion_short"] + 0.05) is True
-    assert er_blocks("exhaustion_short", ER_CEIL["exhaustion_short"] - 0.02) is False
+def test_er_ceilings_dropped_rehab():
+    # ★2026-07-25: BOTH footprint-gate ER ceilings dropped (capitulation 0.10, exhaustion 0.05) — both
+    # traced to the same footprint_backtest_duck.py float-division bug; the gates were revived on the
+    # EXIT fix instead. No gate uses an ER ceiling now.
+    assert ER_CEIL == {}
+    assert er_blocks("exhaustion_short", 0.9) is False   # high ER no longer blocks it (ceiling gone)
+    assert er_blocks("capitulation_long", 0.9) is False
 
 
 def test_er_band_removed_for_rgv():
@@ -112,6 +115,18 @@ def test_rgv_long_net30_depth_floor():
     assert gate_reversal_grab(feat(-150.0), tape_net=100.0, **{**p, "net30_floor": None}) is not None  # no floor → fires
     # SHORT side ignores net30_floor (long-only mechanism)
     assert gate_reversal_grab(feat(-150.0), tape_net=100.0, **{**p, "side": "SHORT"}) is None  # not a short setup anyway
+
+
+def test_exit_fixed():
+    # ★2026-07-25: exhaustion_short's fixed POINT stop/target (ATR-independent snap-back exit).
+    from gazbot7.deciders import exit_fixed, Position
+    sht = Position("SHORT", 100.0, 20.0, 0.0)
+    assert exit_fixed(sht, 108.0, stop_pt=8.0, target_pt=12.0) == "STOP"     # +8pt against → stop
+    assert exit_fixed(sht, 88.0, stop_pt=8.0, target_pt=12.0) == "TARGET"    # −12pt favour → target
+    assert exit_fixed(sht, 103.0, stop_pt=8.0, target_pt=12.0) is None       # in between → hold
+    lng = Position("LONG", 100.0, 20.0, 0.0)
+    assert exit_fixed(lng, 92.0, stop_pt=8.0, target_pt=12.0) == "STOP"
+    assert exit_fixed(lng, 112.0, stop_pt=8.0, target_pt=12.0) == "TARGET"
 
 
 def test_er_blocks_abs_veto_long_momentum_floor():

@@ -22,6 +22,7 @@ from .deciders import (
     Position,
     chandelier_start_k,
     exit_chandelier,
+    exit_fixed,
     exit_giveback,
     exit_scalp,
     gate_capitulation,
@@ -41,9 +42,11 @@ class SlotSpec:
     params: dict = field(default_factory=dict)
     sizing: str = "flat"                   # "flat" (base_size) | "conviction" (0..base by ER)
     base_size: int = 1
-    exit: str = "chandelier"               # "chandelier" | "scalp"
+    exit: str = "chandelier"               # "chandelier" | "scalp" | "fixed"
     target_r: float = 2.0
     stop_atr_mult: float = 1.0
+    fixed_stop_pt: float = 0.0             # exit="fixed": POINT stop/target (ATR-independent snap-back fade)
+    fixed_target_pt: float = 0.0
     vol_adaptive_chandelier: bool = True
     chandelier_start_k: float = 3.5
     chandelier_min_k: float = 0.5
@@ -74,7 +77,7 @@ _RGV_LONG = {"ext_min": 3.0, "turn_atr": 0.50, "flow_min": 50.0, "atr_min": 13.0
 
 
 def tournament_slots() -> list[SlotSpec]:
-    """The live tournament slate — 4 long / 2 short, single-position first-to-fire.
+    """The live tournament slate — 3 long / 3 short, single-position first-to-fire.
     ★ 2026-07-25 (operator, Saturday roster change): promoted abs_veto (thrust + 55s
     absorption-veto, the validated shadow abs_veto_55s = +$1,340 engine-truth 07-16..24)
     as TWO independently-switchable single-sided gates — abs_veto_long / abs_veto_short —
@@ -84,9 +87,11 @@ def tournament_slots() -> list[SlotSpec]:
     to read like-for-like against the still-running shadow (scale on live evidence).
     ★ 2026-07-25 REHAB (operator, gate-rehab-findings): grind_long (scalp-2R + no give-back;
     ATR≥24, ER floor dropped), capitulation_long (require_flip=True is the edge + give-back off;
-    ATR≥10, ER ceiling dropped — was bug-based), rgv_short (fast_turn off + ATR≥20), rgv_long (REVIVED — base-A + in-gate net30-depth
-    floor, replacing exhaustion_short → 4L/2S; router-unmanaged, size 1). Each root-caused,
-    not benched at face value; exhaustion_short queued for a Friday rehab dossier, not written off."""
+    ATR≥10, ER ceiling dropped — was bug-based), rgv_short (fast_turn off + ATR≥20), exhaustion_short (REVIVED — FIXED 8/12 exit = its
+    FootprintShadow design, ER ceiling dropped as bug-based, edge=flow-absorption). rgv_long
+    was researched + given a net30-depth floor but SWAPPED OUT for the more-robust exhaustion
+    (its _RGV_LONG + gate net30_floor kept in code for a possible shadow). Each root-caused, not
+    benched at face value."""
     return [
         # LONG
         SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-25 rehab: scalp-2R BEATS chandelier for grind; no give-back; ATR≥24 + ER floor DROPPED (deciders)
@@ -98,13 +103,13 @@ def tournament_slots() -> list[SlotSpec]:
         SlotSpec("abs_veto_long", "thrust", "LONG",   # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
-        SlotSpec("rgv_long", "reversal_grab", "LONG",   # ★2026-07-25 rehab REVIVED: base-A + in-gate net30-depth floor (skip deep down-legs = falling knives); give-back off; router-UNMANAGED; size 1 (thin, promotion-ladder)
-                 params={"side": "LONG", **_RGV_LONG}, sizing="flat", base_size=1,
-                 exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
         # SHORT
         SlotSpec("rgv_short", "reversal_grab", "SHORT",   # ★2026-07-25 rehab: fast_turn OFF + ATR floor 13→20 (see _RGV_SHORT)
                  params={"side": "SHORT", **_RGV_SHORT}, sizing="flat", base_size=2,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+        SlotSpec("exhaustion_short", "exhaustion", "SHORT",   # ★2026-07-25 rehab REVIVED (swapped in for rgv_long): FIXED 8pt-stop/12pt-target exit (its FootprintShadow design — ATR-2R was too wide for a snap-back), give-back off, ER ceiling dropped (bug-based). Edge = flow-absorption. Router-unmanaged.
+                 params={}, sizing="flat", base_size=2,
+                 exit="fixed", fixed_stop_pt=8.0, fixed_target_pt=12.0, giveback_enabled=False),
         SlotSpec("abs_veto_short", "thrust", "SHORT",  # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
@@ -185,6 +190,8 @@ class SlotStrategy:
             if exit_chandelier(pos, price, start_k=sk, min_k=spec.chandelier_min_k,
                                tighten=spec.chandelier_tighten):
                 reason = "CHANDELIER"
+        elif spec.exit == "fixed":   # fixed POINT stop+target (snap-back fade); native 1-ATR STP is the backstop
+            reason = exit_fixed(pos, price, stop_pt=spec.fixed_stop_pt, target_pt=spec.fixed_target_pt)
         elif exit_scalp(pos, price, target_r=spec.target_r,
                         stop_atr_mult=spec.stop_atr_mult) == "TARGET":
             reason = "TARGET"

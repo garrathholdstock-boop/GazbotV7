@@ -105,7 +105,7 @@ def compute_features(bars: list[Bar]) -> Features:
 # ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
 ER_FLOOR = {"abs_veto_long": 0.20}  # ★2026-07-25: abs_veto_LONG wants ER≥0.20. grind_long ER floor DROPPED (rehab: ER is a FAKE filter — runners & false-starts have identical ER 0.14; the ATR floor is grind's real lever). thrust_short retired.
-ER_CEIL = {"exhaustion_short": 0.05}  # ★2026-07-25: capitulation_long ER ceiling DROPPED — it was BACKWARDS and bug-based (footprint_backtest_duck.py DuckDB integer-division bug); capitulation is ATR-floored instead (see ATR_FLOOR).
+ER_CEIL: dict = {}  # ★2026-07-25: BOTH footprint-gate ER ceilings DROPPED — capitulation_long (0.10) AND exhaustion_short (0.05) traced to the SAME footprint_backtest_duck.py DuckDB float-division bug (ts/5000*5000 never buckets → garbage ER); both revived on the exit fix instead. No gate uses an ER ceiling now.
 # ★ 2026-07-24 (operator): ER band REMOVED for rgv_long/rgv_short — the 35s ABSORPTION-CONFIRM
 # (below) subsumes it (a Friday-lab grid found them near-identical at 35/40s: the confirm reads
 # "genuine reversion vs falling-knife" from the microstructure, sharper than the ER band read it
@@ -367,6 +367,26 @@ def gate_grind(f: Features, *, tape_net: float = 0.0, slope_min: float = 0.5,
         return Entry(side="LONG", gate="grind")
     if slope <= -slope_min and -ext_hi <= f.ext_atr <= -ext_lo and tape_net <= -flow_min:
         return Entry(side="SHORT", gate="grind")
+    return None
+
+
+def exit_fixed(pos: Position, price: float, *, stop_pt: float, target_pt: float) -> str | None:
+    """Fixed POINT stop + fixed POINT target — the snap-back-fade exit (exhaustion_short's
+    original FootprintShadow design, 2026-07-25 rehab). ATR-INDEPENDENT, unlike exit_scalp: a
+    tight fixed target banks the fade before it reverses (an ATR-scaled 2R target is too wide on
+    a snap-back and rarely fills). The managed layer takes BOTH sides here; the native 1-ATR STP
+    (armed at entry_atr·stop_atr_mult, wider than stop_pt) stays the outer server-side backstop.
+    Returns 'STOP' / 'TARGET' / None."""
+    if pos.side == "LONG":
+        if price <= pos.entry_price - stop_pt:
+            return "STOP"
+        if price >= pos.entry_price + target_pt:
+            return "TARGET"
+    else:
+        if price >= pos.entry_price + stop_pt:
+            return "STOP"
+        if price <= pos.entry_price - target_pt:
+            return "TARGET"
     return None
 
 

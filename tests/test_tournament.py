@@ -33,13 +33,13 @@ def test_grind_long_short_slots_shape():
     assert [s.side for s in specs] == ["LONG", "SHORT"]
 
 
-def test_tournament_slate_is_four_long_two_short_distinct():
+def test_tournament_slate_is_three_long_three_short_distinct():
     specs = tournament_slots()
     assert [s.tag for s in specs] == ["grind_long", "capitulation_long", "abs_veto_long",
-                                      "rgv_long", "rgv_short", "abs_veto_short"]
-    assert sum(s.side == "LONG" for s in specs) == 4
-    assert sum(s.side == "SHORT" for s in specs) == 2
-    assert {s.kind for s in specs} == {"reversal_grab", "grind", "thrust", "capitulation"}
+                                      "rgv_short", "exhaustion_short", "abs_veto_short"]
+    assert sum(s.side == "LONG" for s in specs) == 3
+    assert sum(s.side == "SHORT" for s in specs) == 3
+    assert {s.kind for s in specs} == {"reversal_grab", "grind", "thrust", "capitulation", "exhaustion"}
 
 
 def test_live_run_coerces_cfg_place_live():
@@ -112,17 +112,19 @@ def test_step_atr_gate_blocks_a_weak_trend():
     assert step(strat, mb, tape, sb, now) == []          # weak trend → ATR gate suppresses
 
 
-def test_step_er_gate_reversion_blocks_trend_keeps_close():
+def test_step_er_gate_momentum_blocks_chop_keeps_close():
+    # ★2026-07-25: with both reversion ER ceilings dropped, the surviving ER gate is the momentum FLOOR
+    # (abs_veto_long ER≥0.20). step() suppresses its OPEN in chop (low ER) but always keeps the CLOSE.
     _, mb, sb = _setup()
-    trend = [100 + i for i in range(30)]                 # high ER → above exhaustion_short ceiling 0.05
-    now = _feed(mb, trend)
+    chop = [100 + (i % 2) for i in range(30)]            # low ER → below abs_veto_long floor 0.20
+    now = _feed(mb, chop)
     strat = _FakeStrat([
-        {"action": "OPEN", "slot": "exhaustion_short", "side": "SHORT"},   # blocked in trend
-        {"action": "CLOSE", "slot": "exhaustion_short", "reason": "STOP"},  # managed exit always kept
+        {"action": "OPEN", "slot": "abs_veto_long", "side": "LONG"},    # blocked in chop (ER floor)
+        {"action": "CLOSE", "slot": "abs_veto_long", "reason": "STOP"},  # managed exit always kept
     ])
-    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(trend[-1])}
+    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(chop[-1])}
     out = [(i["action"], i["slot"]) for i in step(strat, mb, tape, sb, now)]
-    assert out == [("CLOSE", "exhaustion_short")]
+    assert out == [("CLOSE", "abs_veto_long")]
 
 
 def test_disabled_filter_drops_opens_keeps_closes():

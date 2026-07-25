@@ -22,7 +22,7 @@ def _feat(net5: float) -> Features:
 def test_roster_promotion():
     tags = [s.tag for s in tournament_slots()]
     assert tags.count("abs_veto_long") == 1 and tags.count("abs_veto_short") == 1
-    assert "rgv_long" in tags and "thrust_short" not in tags and "exhaustion_short" not in tags  # rgv_long REVIVED 07-25 (net30-floor), replaced exhaustion
+    assert "rgv_long" not in tags and "thrust_short" not in tags and "exhaustion_short" in tags  # rgv_long swapped back OUT 07-25 for the rehabbed exhaustion
     assert len(tags) == 6
     by = {s.tag: s for s in tournament_slots()}
     for t, side in (("abs_veto_long", "LONG"), ("abs_veto_short", "SHORT")):
