@@ -1,4 +1,4 @@
-/* GAZBOT V5 — MNQ DESK (read-only presentation)
+/* GAZBOT V7 — MNQ DESK (read-only presentation)
  * Reuses: /api/futures/mnq (MNQ-scoped header/rolling/gates/blotter/curve),
  *         /api/futures/us-terminal (holdings/activity-DTT/regime/margin — filter to MNQ),
  *         /api/futures/bars/MNQ (hero price).
@@ -29,23 +29,13 @@
     if (!g || g === "—") return "—";
     const k = String(g).toLowerCase().replace(/_(long|short)$/, "");
     if (tiny) {
-      const T = {
-        thrust_cont: "THR", thrust: "THR", tw_mnq_thrust_cont: "THR", tw_mnq_thrust_loose: "THR",
-        xconfirm_veto: "VET", tw_xconfirm_veto: "VET",
-        orb_iso: "ORB", orb: "ORB", orb_shadow: "ORB", orb_shadow_isolated: "ORB",
-        vwap_pullback: "PUL", pullback: "PUL", vwap_dip: "DIP",
-        momentum: "MOM", momentum_shadow: "MOM", momentum_persistence: "MMP", momentum_continuation: "MMC",
-        chop_capture: "CHP", passive_chop: "PCH",
+      const T = {   // the 6 live V7 tournament gates (base names; _long/_short stripped above)
+        rgv: "RGV", grind: "GRD", capitulation: "CAP", thrust: "THR", exhaustion: "EXH",
       };
       return T[k] || k.toUpperCase().replace(/[_-]/g, "").slice(0, 3);
     }
     const M = {
-      thrust_cont: "THRUST", thrust: "THRUST", tw_mnq_thrust_cont: "THRUST", tw_mnq_thrust_loose: "THRUST",
-      xconfirm_veto: "VETO", tw_xconfirm_veto: "VETO",
-      orb_iso: "ORB", orb: "ORB", orb_shadow: "ORB", orb_shadow_isolated: "ORB",
-      vwap_pullback: "PULLBK", pullback: "PULLBK", vwap_dip: "DIP",
-      momentum: "MOM", momentum_shadow: "MOM", momentum_persistence: "MOM-P", momentum_continuation: "MOM-C",
-      chop_capture: "CHOP", passive_chop: "PCHOP",
+      rgv: "RGV", grind: "GRIND", capitulation: "CAPIT", thrust: "THRUST", exhaustion: "EXHST",
     };
     return M[k] || k.toUpperCase().replace(/[_-]/g, "").slice(0, 6);
   }

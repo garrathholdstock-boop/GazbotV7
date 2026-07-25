@@ -190,7 +190,7 @@ def _strategy_trades(c, since_iso=None):
 def _gate_groups(rows):
     g = {}
     for r in rows:
-        k = ((r["gate"] or "thrust"), r["side"])
+        k = ((r["gate"] or "—"), r["side"])
         d = g.setdefault(k, {"gate": k[0], "side": k[1], "n": 0, "w": 0, "gw": 0.0, "gl": 0.0, "net": 0.0})
         d["n"] += 1
         d["net"] += r["pnl_usd"]
@@ -245,7 +245,7 @@ def mnq_json(store_path):
             sign = 1 if r["side"] == "LONG" else -1
             ppct = (round(sign * (r["exit_price"] - r["entry_price"]) / r["entry_price"] * 100, 3)
                     if r["entry_price"] else None)
-            out["blotter"].append({"time": r["closed_at"], "side": r["side"], "gate": r["gate"] or "thrust",
+            out["blotter"].append({"time": r["closed_at"], "side": r["side"], "gate": r["gate"] or "—",
                                    "exit": r["exit_reason"], "pnl_usd": round(r["pnl_usd"], 2), "pnl_pct": ppct})
         gp = _gate_groups(today_rows)
         out["gate_perf"] = gp
