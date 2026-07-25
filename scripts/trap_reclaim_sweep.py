@@ -40,7 +40,8 @@ def main():
         seg=cls[i-30:i+1]; tot=np.abs(np.diff(seg)).sum()
         er=abs(seg[-1]-seg[0])/tot if tot>0 else 0.0
         atr=float(trr[i-13:i+1].mean()) if i>=14 else None
-        return er,atr
+        net30=float(seg[-1]-seg[0])          # signed 30-min move = trend direction
+        return er,atr,net30
     def scalp(ei,d):
         ep,et,j=tpx[ei],int(tts[ei]),ei+1
         while j<len(tts):
@@ -60,8 +61,8 @@ def main():
         if d!=0:
             ei=int(np.searchsorted(tts,(s+1)*1000,"left"))
             if ei>=len(tts): break
-            pnl=scalp(ei,d); er,atr=er_atr(int(tts[ei]))
-            trades.append({"d":d,"pnl":pnl,"er":er,"atr":atr,"ts":int(tts[ei])})
+            pnl=scalp(ei,d); er,atr,net30=er_atr(int(tts[ei]))
+            trades.append({"d":d,"pnl":pnl,"er":er,"atr":atr,"ts":int(tts[ei]),"net30":net30})
             busy_until=s+COOL
     def st(rows):
         n=len(rows); net=sum(r["pnl"] for r in rows); w=100*sum(1 for r in rows if r["pnl"]>0)/n if n else 0
@@ -112,6 +113,17 @@ def main():
     for fl in [0.25,0.30,0.35,0.40,0.45,0.50]:
         g=[t for t in have if t["er"]>=fl]; gn,gnet,gw=_s(g)
         print(f"    ER>={fl:.2f}: {gn}tr · ${gnet:+.0f} · ${gnet/gn if gn else 0:+.1f}/tr · {gw:.0f}%w")
+    # ── BETA vs EDGE: are the ER>=0.35 LONG wins across trend directions, or all up-trends? ──
+    core=[t for t in have if t["er"]>=0.35 and t["net30"] is not None]
+    print("\n  ═══ BETA-vs-EDGE (ER>=0.35 trades, by side x concurrent 30-min trend dir) ═══")
+    for side,dv in [("LONG",1.0),("SHORT",-1.0)]:
+        g=[t for t in core if t["d"]==dv]
+        up=[t for t in g if t["net30"]>0]; dn=[t for t in g if t["net30"]<=0]
+        def q(rows): 
+            n=len(rows); return f"{n}tr ${sum(r['pnl'] for r in rows):+.0f} {100*sum(1 for r in rows if r['pnl']>0)/n if n else 0:.0f}%w"
+        print(f"    {side}: in UP-trend {q(up)}  |  in DOWN-trend {q(dn)}")
+    print("    (if the winning side only wins WITH the trend = beta we already get from grind. "
+          "if it wins in BOTH trend directions = a real reclaim edge.)")
     print("\n(key test: does ANY ER/ATR band isolate a positive edge that survives on the LONG side too? "
           "if only SHORT is green it's just down-week beta, not an edge. next: strip-best + flip-week. 1wk in-sample.)")
 if __name__=="__main__": main()
