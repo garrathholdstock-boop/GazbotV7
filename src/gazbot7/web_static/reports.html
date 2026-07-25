@@ -24,28 +24,29 @@
     border-bottom:2px solid transparent;letter-spacing:.2px}
   .tab.active{color:var(--ink);border-bottom-color:var(--blu)}
   .body{padding:16px 12px}
-  .sub{color:var(--ink3);font-size:12.5px;font-family:var(--mono);letter-spacing:.3px;margin:2px 4px 16px}
-  .rcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    padding:16px 17px;margin:0 0 12px;transition:border-color .12s,background .12s}
-  .rcard:hover{border-color:var(--blu)}
-  .rhit{display:block}
-  .rk{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-  .kind{font:600 9.5px/1 var(--mono);letter-spacing:.6px;text-transform:uppercase;color:var(--amb);
-    border:1px solid var(--amb);border-radius:4px;padding:3px 6px}
-  .rdate{font:600 11px var(--mono);color:var(--ink3);margin-left:auto;letter-spacing:.3px}
-  .rtitle{font-size:16px;font-weight:700;letter-spacing:-.1px;line-height:1.3;text-wrap:balance}
-  .ractions{display:flex;align-items:center;gap:10px;margin-top:13px;flex-wrap:wrap}
-  .open,.pdf{display:inline-flex;align-items:center;gap:6px;font:600 12.5px var(--mono);letter-spacing:.3px;
-    padding:7px 13px;border-radius:8px;border:1px solid var(--line2)}
-  .open{color:#0a0e14;background:var(--blu);border-color:var(--blu)}
-  .open::after{content:"→"}
-  .pdf{color:var(--ink2)}
-  .pdf::before{content:"⬇ "}
-  .pdf:hover{border-color:var(--ink3);color:var(--ink)}
-  .play{color:var(--amb);border-color:var(--amb)}
-  .play:hover{background:rgba(245,177,61,.12)}
+  .sub{color:var(--ink3);font-size:12.5px;font-family:var(--mono);letter-spacing:.3px;margin:2px 4px 14px}
+  /* the concise index — one tight row per report, click to open */
+  .rlist{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+  .row{display:flex;align-items:center;gap:12px;padding:0;border-bottom:1px solid var(--line);
+    transition:background .12s}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:var(--panel2)}
+  .rmain{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;gap:11px;padding:14px 4px 14px 16px}
+  .rdate{flex:0 0 auto;font:600 12px var(--mono);color:var(--blu);letter-spacing:.2px;width:92px}
+  .rtitle{flex:1 1 auto;min-width:0;font-size:14.5px;font-weight:600;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rtag{flex:0 0 auto;font:600 9px/1 var(--mono);letter-spacing:.5px;color:var(--ink3);
+    border:1px solid var(--line2);border-radius:4px;padding:3px 5px}
+  .racts{flex:0 0 auto;display:flex;align-items:center;gap:4px;padding-right:10px}
+  .ic{display:inline-flex;align-items:center;justify-content:center;font:600 11px var(--mono);
+    color:var(--ink3);border:1px solid var(--line2);border-radius:7px;padding:6px 9px;letter-spacing:.2px}
+  .ic:hover{color:var(--ink);border-color:var(--ink3)}
+  .ic.play:hover{color:var(--amb);border-color:var(--amb)}
+  .arrow{flex:0 0 auto;color:var(--ink3);font:600 15px var(--mono);padding:0 14px 0 2px}
+  .row:hover .arrow{color:var(--blu)}
   .empty{color:var(--ink3);text-align:center;padding:48px 12px;font-size:14px}
-  .foot{color:var(--ink3);font:11px/1.7 var(--mono);text-align:center;margin-top:24px;padding:0 16px;opacity:.8}
+  .foot{color:var(--ink3);font:11px/1.7 var(--mono);text-align:center;margin-top:20px;padding:0 16px;opacity:.8}
+  @media(max-width:520px){ .rmain{flex-wrap:wrap;gap:2px 11px} .rtitle{white-space:normal} .rtag{display:none} }
 </style></head>
 <body>
 <div class="wrap">
@@ -58,29 +59,40 @@
     </nav>
   </div>
   <div class="body">
-    <div class="sub">The lab reports — the shadow desk, interrogated. Tap one to open in full.</div>
+    <div class="sub">Every Friday report — newest first. Click a row to open it.</div>
     <div id="list"><div class="empty">Loading…</div></div>
     <div class="foot">Reports are authored on the desk · nothing here arms anything · prescribe, you decide.</div>
   </div>
 </div>
 <script>
-(async function(){
-  const el = document.getElementById('list');
-  try{
-    const r = await fetch('api/reports'); const d = await r.json();
-    const reps = d.reports || [];
+(function(){
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmtDate(iso){ var p=(iso||'').split('-'); if(p.length!==3) return iso;
+    return p[2]+' '+(MON[(+p[1])-1]||'')+' '+p[0]; }
+  function decode(s){ var t=document.createElement('textarea'); t.innerHTML=s||''; return t.value; }
+  function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  var el = document.getElementById('list');
+  fetch('api/reports').then(function(r){return r.json();}).then(function(d){
+    var reps = d.reports || [];
     if(!reps.length){ el.innerHTML = '<div class="empty">No reports yet.</div>'; return; }
-    el.innerHTML = reps.map(function(x){
-      var pdf = x.pdf ? '<a class="pdf" href="static/'+x.pdf+'" download>Download PDF</a>' : '';
-      var play = x.play ? '<a class="play" href="static/'+x.play+'">🗓 Monday Playbook</a>' : '';
-      return '<div class="rcard">'
-        + '<a class="rhit" href="static/'+x.file+'">'
-        +   '<div class="rk"><span class="kind">Weekly</span><span class="rdate">'+x.date+'</span></div>'
-        +   '<div class="rtitle">'+ (x.title||x.file) +'</div></a>'
-        + '<div class="ractions"><a class="open" href="static/'+x.file+'">Open report</a>'+pdf+play+'</div>'
+    el.innerHTML = '<div class="rlist">' + reps.map(function(x){
+      var title = esc(decode(x.title||x.file));
+      var tag = /V7/i.test(x.title||'') ? 'V7' : 'V5';
+      var acts = '';
+      if(x.pdf)  acts += '<a class="ic" href="static/'+x.pdf+'" download title="Download PDF">PDF</a>';
+      if(x.play) acts += '<a class="ic play" href="static/'+x.play+'" title="Monday playbook">Playbook</a>';
+      return '<div class="row">'
+        + '<a class="rmain" href="static/'+x.file+'">'
+        +   '<span class="rdate">'+fmtDate(x.date)+'</span>'
+        +   '<span class="rtitle">'+title+'</span>'
+        +   '<span class="rtag">'+tag+'</span>'
+        + '</a>'
+        + '<span class="racts">'+acts+'</span>'
+        + '<a class="arrow" href="static/'+x.file+'" aria-label="Open">&rarr;</a>'
         + '</div>';
-    }).join('');
-  }catch(e){ el.innerHTML = '<div class="empty">Could not load reports.<br>'+e+'</div>'; }
+    }).join('') + '</div>';
+  }).catch(function(e){ el.innerHTML = '<div class="empty">Could not load reports.<br>'+e+'</div>'; });
 })();
 </script>
 </body></html>
