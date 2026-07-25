@@ -85,8 +85,8 @@ def test_tournament_full_6_roster_even_when_empty(tmp_path):
     store = str(tmp_path / "g.db")
     open_store(store).close()
     d = tournament_json(store, _dir(tmp_path, {"position": None, "flat": True}), _NO_CAP)
-    assert {r["gate"] for r in d["gates"]} == {"rgv_long", "grind_long", "capitulation_long",
-                                               "thrust_short", "rgv_short", "exhaustion_short"}
+    assert {r["gate"] for r in d["gates"]} == {"grind_long", "capitulation_long", "abs_veto_long",
+                                               "rgv_short", "exhaustion_short", "abs_veto_short"}
     assert d["desk"]["roster_count"] == 6 and d["desk"]["flat"] is True
     assert d["desk"]["safety"] == "green" and d["desk"]["live_count"] == 0
 
@@ -97,16 +97,16 @@ def test_tournament_ranks_and_flags_relegation(tmp_path):
     store = str(tmp_path / "g.db")
     s = open_store(store)
     _seed_trade(s, "grind_long", "LONG", 100.0)      # winner
-    _seed_trade(s, "thrust_short", "SHORT", 5.0)      # small +
+    _seed_trade(s, "abs_veto_short", "SHORT", 5.0)    # small +
     _seed_trade(s, "rgv_short", "SHORT", -170.0)      # loser
     s.close()
     d = tournament_json(store, _dir(tmp_path, {"position": None, "flat": True}), _NO_CAP)
     g = {r["gate"]: r for r in d["gates"]}
     assert d["gates"][0]["gate"] == "grind_long"      # top of the scoreboard
     assert g["grind_long"]["realized"] == 100.0 and g["rgv_short"]["realized"] == -170.0
-    # bottom-2 of the ACTIVE (traded) gates → rgv_short + thrust_short
+    # bottom-2 of the ACTIVE (traded) gates → rgv_short + abs_veto_short
     releg = {r["gate"] for r in d["gates"] if r["relegate"]}
-    assert releg == {"rgv_short", "thrust_short"}
+    assert releg == {"rgv_short", "abs_veto_short"}
     assert g["capitulation_long"]["relegate"] is False   # 0-trade gate not judged
 
 

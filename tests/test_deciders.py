@@ -94,10 +94,12 @@ def test_confirm_absorption():
     assert confirm_absorption("SHORT", +50, +5.0) is False   # buying AND price rose → not absorbed
 
 
-def test_er_blocks_thrust_short_momentum_floor():
-    # thrust_short is ER-floored too (2026-07-22: operator added ER>=0.20 to match the ATR-floor sweep)
-    assert er_blocks("thrust_short", ER_FLOOR["thrust_short"] - 0.05) is True   # chop → blocked
-    assert er_blocks("thrust_short", ER_FLOOR["thrust_short"] + 0.05) is False  # trend → allowed
+def test_er_blocks_abs_veto_long_momentum_floor():
+    # abs_veto_long is ER-floored at 0.20 (2026-07-25 per-side chop-floor sweep). The short side is
+    # ATR-floored instead — an ER floor on the short craters its earning, so it is NOT mirrored.
+    assert er_blocks("abs_veto_long", ER_FLOOR["abs_veto_long"] - 0.05) is True   # chop → blocked
+    assert er_blocks("abs_veto_long", ER_FLOOR["abs_veto_long"] + 0.05) is False  # trend → allowed
+    assert "abs_veto_short" not in ER_FLOOR   # per-side: short is ATR-floored, not ER
 
 
 # ── SHADOW momentum ER-hold spike-filter ──
@@ -128,7 +130,8 @@ def test_atr_blocks_below_floor():
     # a magnitude floor: grind_long blocked when the entry ATR (a trend too small to run) is below it
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] - 1) is True
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] + 1) is False
-    assert atr_blocks("thrust_short", ATR_FLOOR["thrust_short"] - 1) is True
+    assert atr_blocks("abs_veto_short", ATR_FLOOR["abs_veto_short"] - 1) is True    # too small → blocked
+    assert atr_blocks("abs_veto_short", ATR_FLOOR["abs_veto_short"] + 1) is False   # enough range → allowed
     assert atr_blocks("capitulation_long", 0.0) is False   # no ATR floor → never blocked here
 
 

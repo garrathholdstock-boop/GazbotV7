@@ -37,12 +37,18 @@ from .deciders import (
     CONFIRM_MAX_SECS,
     CONFIRM_SECS,
     ER_HOLD,
+    VETO_FLOW_MIN,
+    VETO_GATES,
+    VETO_MAX_SECS,
+    VETO_SECS,
+    Position,
     atr_blocks,
     compute_features,
     confirm_absorption,
     efficiency_ratio,
     er_blocks,
     er_hold_blocks,
+    exit_absorption,
 )
 from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
@@ -182,6 +188,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     last_hb = 0.0
     audit_stale_paged = False
     pending_confirm: dict = {}   # ★ rgv 35s absorption-confirm buffer: slot → (armed_ms, intent)
+    pending_veto: dict = {}      # ★ abs_veto 55s momentum-veto buffer: slot → (armed_ms, intent)
     if place_live:
         sd_notify("READY=1")                       # Type=notify — tournament is up (no-op off systemd)
     try:
@@ -273,6 +280,49 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                         del pending_confirm[slot]   # move not absorbed / turn gone → skip the fade
                         log.info("rgv confirm: %s NOT absorbed after %.0fs → skipped", slot, age)
                 intents = out
+                # ★ abs_veto 55s momentum VETO (LIVE 2026-07-25, operator): buffer an abs_veto thrust
+                # OPEN, wait VETO_SECS, take it ONLY if the thrust STILL fires (re-emitted this tick,
+                # slot flat) AND the burst was NOT absorbed over the window. Faithful promotion of the
+                # shadow abs_veto_55s end-decision. SAFETY: any read error / <5 ticks / thrust gone →
+                # VETO or skip (never a bad fill); a tape-gap past VETO_MAX_SECS drops the stale signal.
+                fired_now = {i.get("slot") for i in intents if i.get("action") == "OPEN"}
+                vout = []
+                for i in intents:
+                    if i.get("action") == "OPEN" and i.get("slot") in VETO_GATES:
+                        pending_veto.setdefault(i["slot"], (now_ms, i))   # arm once; do NOT emit yet
+                    else:
+                        vout.append(i)
+                for slot in list(pending_veto):
+                    armed_ms, intent = pending_veto[slot]
+                    age = (now_ms - armed_ms) / 1000.0
+                    if age < VETO_SECS:
+                        continue                          # still watching the burst
+                    if age > VETO_MAX_SECS or slot not in fired_now:
+                        del pending_veto[slot]            # tape gap / thrust no longer firing → skip
+                        log.info("abs_veto: %s thrust gone/stale after %.0fs → skipped", slot, age)
+                        continue
+                    absorbed = True                       # default-VETO on any read failure / thin tape
+                    try:
+                        rows = cap.execute(
+                            "SELECT aggressor,size,price FROM ticks WHERE symbol=? AND ts_ms>=? AND ts_ms<? ORDER BY ts_ms",
+                            (cfg.symbol, armed_ms, now_ms)).fetchall()
+                        if len(rows) >= 5:
+                            flow = sum((s if a == "buy" else -s) for a, s, _ in rows)
+                            absorbed = exit_absorption(Position(intent.get("side", ""), 0.0, 0.0, 0.0),
+                                                       tape_net=flow, window_price_delta=rows[-1][2] - rows[0][2],
+                                                       flow_min=VETO_FLOW_MIN) is not None
+                    except Exception as e:
+                        log.warning("abs_veto read failed %s: %s — vetoing", slot, e)
+                    if absorbed:
+                        del pending_veto[slot]
+                        log.info("abs_veto: %s ABSORBED (fakeout) after %.0fs → vetoed", slot, age)
+                    else:
+                        j = dict(intent)
+                        j["price"] = tape.get("last") or intent.get("price")
+                        vout.append(j)
+                        del pending_veto[slot]
+                        log.info("abs_veto: %s clean thrust after %.0fs → OPEN @%s", slot, age, j["price"])
+                intents = vout
                 if not intents:
                     continue
                 if place_live:

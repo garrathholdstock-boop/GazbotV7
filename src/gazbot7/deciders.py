@@ -101,7 +101,7 @@ def compute_features(bars: list[Bar]) -> Features:
 #   exhaustion_short  CEIL 0.05 — tick+L2 duck edge is 0.0–0.05 (+$295). ⚠ fixed-exit-derived.
 # ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
-ER_FLOOR = {"grind_long": 0.20, "thrust_short": 0.20}
+ER_FLOOR = {"grind_long": 0.20, "abs_veto_long": 0.20}  # ★2026-07-25 chop-floor sweep: abs_veto_LONG wants ER≥0.20 (chop −$365→+$34, keeps 96% earning); abs_veto_SHORT wants ATR not ER (an ER floor craters short earning $822→$226) → see ATR_FLOOR. thrust_short dropped (retired gate).
 ER_CEIL = {"capitulation_long": 0.10, "exhaustion_short": 0.05}
 # ★ 2026-07-24 (operator): ER band REMOVED for rgv_long/rgv_short — the 35s ABSORPTION-CONFIRM
 # (below) subsumes it (a Friday-lab grid found them near-identical at 35/40s: the confirm reads
@@ -126,6 +126,17 @@ CONFIRM_SECS = 35
 CONFIRM_MAX_SECS = 55     # give up on a signal older than this (the turn's gone)
 CONFIRM_FLOOR = 30.0      # min net-aggressor size to count as absorption
 
+# ── 55s momentum ABSORPTION-VETO on the abs_veto thrust gates (LIVE 2026-07-25, operator) ──
+# abs_veto_long/short: a thrust fires, WAIT VETO_SECS, take it ONLY if the thrust STILL fires AND the
+# burst was NOT absorbed in the window (heavy aggressor flow OUR way that FAILED to extend price = a
+# fakeout to skip). The faithful promotion of the shadow variant abs_veto_55s (+$1,340 both sides,
+# engine-truth 07-16..24). OPPOSITE polarity to the fader CONFIRM_GATES above (a fader enters ON
+# absorption; a momentum gate SKIPS on it) — the veto TEST is exit_absorption(), not confirm_absorption().
+VETO_GATES: frozenset = frozenset({"abs_veto_long", "abs_veto_short"})
+VETO_SECS = 55            # wait this long after the thrust before entering
+VETO_MAX_SECS = 75        # abandon a thrust signal older than this (a tape gap ate the window)
+VETO_FLOW_MIN = 50.0      # net-aggressor size for the exit_absorption fakeout test (shadow default)
+
 
 def confirm_absorption(side: str, net_flow: float, price_change: float) -> bool:
     """True if the faded move is being ABSORBED → take the fade. LONG fade (rgv_long): heavy net
@@ -142,7 +153,7 @@ def confirm_absorption(side: str, net_flow: float, price_change: float) -> bool:
 #                     the bleed, first crossing to breakeven at ≥20 (+$16 / 42tr). HARM-REDUCTION on a
 #                     RELEGATION candidate — it doesn't make grind +EV, it bleeds less.
 # ⚠ 9-day one-regime lead; bump/drop per Saturday.
-ATR_FLOOR = {"grind_long": 20.0, "thrust_short": 16.0}
+ATR_FLOOR = {"grind_long": 20.0, "abs_veto_short": 16.0}  # ★2026-07-25 chop-floor sweep, PER-SIDE: abs_veto_SHORT wants ATR≥16 (no ER floor); full +$478. thrust_short dropped (retired gate).
 
 
 def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:

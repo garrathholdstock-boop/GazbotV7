@@ -88,8 +88,8 @@ def _feat2(slope_fast, ext_atr, net_atr_2=0.0, atr=20.0, price=29000.0):
 def test_tournament_slate_shape():
     from gazbot7.slot_strategy import tournament_slots
     ss = tournament_slots()
-    assert [s.tag for s in ss] == ["rgv_long", "grind_long", "capitulation_long",
-                                   "thrust_short", "rgv_short", "exhaustion_short"]
+    assert [s.tag for s in ss] == ["grind_long", "capitulation_long", "abs_veto_long",
+                                   "rgv_short", "exhaustion_short", "abs_veto_short"]
     assert len([s for s in ss if s.side == "LONG"]) == 3
     assert len([s for s in ss if s.side == "SHORT"]) == 3
     assert len({s.kind for s in ss}) == 5          # grind/rgv/thrust/capitulation/exhaustion
