@@ -28,6 +28,15 @@ SUPP = """<style>
 .pill-shadow{background:#fff3d6;border-color:#e0b84a}.pill-null{background:#f0f0f0}
 .pill-dontarm{background:#fbe3e0;border-color:#c0392b;color:#8a1c10}
 .frag-sep{border:0;border-top:2px solid #e6e2d8;margin:2.4em 0}
+/* PDF-only: force wide tables (esp. the 11-col census) to fit the page — screen HTML untouched.
+   weasyprint renders as print media; table-layout:fixed + word-break guarantees no right-edge overflow. */
+@media print{
+  @page{size:A4;margin:1.2cm 1cm}
+  .wrap{max-width:none;padding-left:12px;padding-right:12px}
+  table{table-layout:fixed;width:100%;font-size:9px}
+  th,td{padding:3px 4px !important;overflow-wrap:break-word;word-break:break-word;white-space:normal}
+  pre,code{white-space:pre-wrap;word-break:break-word}
+}
 </style>"""
 
 
