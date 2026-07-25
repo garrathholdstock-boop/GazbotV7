@@ -573,7 +573,7 @@ def reports_json(static_dir):
     import re
     out = []
     for fn in sorted(os.listdir(static_dir)):
-        m = re.match(r"weekly_(\d{4}-\d{2}-\d{2})\.html$", fn)
+        m = re.match(r"(?:weekly|v7_big_runs)_(\d{4}-\d{2}-\d{2})\.html$", fn)
         if not m:
             continue
         title = fn
