@@ -61,7 +61,7 @@ def main():
             ei=int(np.searchsorted(tts,(s+1)*1000,"left"))
             if ei>=len(tts): break
             pnl=scalp(ei,d); er,atr=er_atr(int(tts[ei]))
-            trades.append({"d":d,"pnl":pnl,"er":er,"atr":atr})
+            trades.append({"d":d,"pnl":pnl,"er":er,"atr":atr,"ts":int(tts[ei])})
             busy_until=s+COOL
     def st(rows):
         n=len(rows); net=sum(r["pnl"] for r in rows); w=100*sum(1 for r in rows if r["pnl"]>0)/n if n else 0
@@ -83,6 +83,35 @@ def main():
         g=[t for t in ha if a<=t["atr"]<b]
         if not g: continue
         gn,gnet,gw=st(g); print(f"  {f'{a}-{b}':>26}{gn:>5}${gnet:>+7.0f}${gnet/gn:>+6.1f}{gw:>5.0f}%")
+    # ── INTERROGATE the ER>=0.4 sliver ──
+    import datetime as _dt
+    sl=[t for t in have if t["er"]>=0.4]
+    def _s(rows): 
+        n=len(rows); net=sum(r["pnl"] for r in rows); w=100*sum(1 for r in rows if r["pnl"]>0)/n if n else 0
+        return n,net,w
+    n,net,w=_s(sl)
+    print(f"\n════ INTERROGATE ER>=0.4 sliver ({n}tr · ${net:+.0f} · {w:.0f}%w) ════")
+    print("  the trades:")
+    for t in sorted(sl,key=lambda x:x["ts"]):
+        tm=_dt.datetime.fromtimestamp(t["ts"]/1000,_dt.UTC).strftime("%m-%d %H:%M")
+        print(f"    {tm}  {'LONG ' if t['d']>0 else 'SHORT'}  ER {t['er']:.2f}  ATR {t['atr']:.0f}  ${t['pnl']:+.0f}")
+    print("\n  strip-best (fluke test):")
+    srt=sorted([t['pnl'] for t in sl])
+    for k in [0,1,2,3,5]:
+        kept=srt[:len(srt)-k] if k else srt
+        print(f"    strip best {k}: {len(kept)}tr · ${sum(kept):+.0f}"+("  <- gone" if sum(kept)<0 else ""))
+    print("\n  long/short split:")
+    for lbl,g in [("LONG",[t for t in sl if t['d']>0]),("SHORT",[t for t in sl if t['d']<0])]:
+        gn,gnet,gw=_s(g); print(f"    {lbl}: {gn}tr · ${gnet:+.0f} · {gw:.0f}%w")
+    print("\n  per-day:")
+    days={}
+    for t in sl:
+        dd=_dt.datetime.fromtimestamp(t["ts"]/1000,_dt.UTC).strftime("%m-%d"); days.setdefault(dd,[]).append(t["pnl"])
+    for dd in sorted(days): print(f"    {dd}: {len(days[dd])}tr · ${sum(days[dd]):+.0f}")
+    print("\n  ER-floor knife-edge (is 0.4 special?):")
+    for fl in [0.25,0.30,0.35,0.40,0.45,0.50]:
+        g=[t for t in have if t["er"]>=fl]; gn,gnet,gw=_s(g)
+        print(f"    ER>={fl:.2f}: {gn}tr · ${gnet:+.0f} · ${gnet/gn if gn else 0:+.1f}/tr · {gw:.0f}%w")
     print("\n(key test: does ANY ER/ATR band isolate a positive edge that survives on the LONG side too? "
           "if only SHORT is green it's just down-week beta, not an edge. next: strip-best + flip-week. 1wk in-sample.)")
 if __name__=="__main__": main()
