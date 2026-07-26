@@ -20,6 +20,7 @@ from gazbot7.deciders import (
     exit_adverse_cut,
     chandelier_start_k,
     exit_chandelier,
+    exit_chandelier_lock,
     exit_giveback,
     exit_scalp,
     gate_capitulation,
@@ -326,6 +327,39 @@ def test_chandelier_short_mirror():
 def test_chandelier_dormant_before_any_green():
     pos = Position("LONG", 100.0, 4.0, 0.0)  # never went green
     assert exit_chandelier(pos, 105.0) is None
+
+
+# ── exit_chandelier_lock — the threshold (loose-then-lock) trend-capture exit ──
+# grind_long deploy 2026-07-26 (§356): start_k=3.5, lock_r=6.0, lock_k=0.5.
+def test_chandelier_lock_holds_wide_below_lock_r():
+    # LONG entry 100, ATR 4, peak +20 (5R < 6R = LOOSE). k=start_k=3.5 → give-back 14pt.
+    pos = Position("LONG", 100.0, 4.0, 20.0)
+    assert exit_chandelier_lock(pos, 106.0, start_k=3.5, lock_r=6.0, lock_k=0.5) == "CHANDELIER"  # fav 6 <= 20-14
+    assert exit_chandelier_lock(pos, 107.0, start_k=3.5, lock_r=6.0, lock_k=0.5) is None          # fav 7 > 6, wide trail lets it breathe
+
+
+def test_chandelier_lock_firms_up_past_lock_r():
+    # peak +28 (7R >= 6R = LOCKED). k=lock_k=0.5 → give-back 2pt (banks the tail tight).
+    pos = Position("LONG", 100.0, 4.0, 28.0)
+    assert exit_chandelier_lock(pos, 126.0, start_k=3.5, lock_r=6.0, lock_k=0.5) == "CHANDELIER"  # fav 26 <= 28-2
+    assert exit_chandelier_lock(pos, 127.0, start_k=3.5, lock_r=6.0, lock_k=0.5) is None          # fav 27 > 26
+
+
+def test_chandelier_lock_never_exits_at_a_loss():
+    pos = Position("LONG", 100.0, 4.0, 28.0)
+    assert exit_chandelier_lock(pos, 95.0, start_k=3.5, lock_r=6.0, lock_k=0.5) is None  # underwater → never
+
+
+def test_chandelier_lock_dormant_before_any_green():
+    pos = Position("LONG", 100.0, 4.0, 0.0)  # never armed
+    assert exit_chandelier_lock(pos, 105.0, start_k=3.5, lock_r=6.0, lock_k=0.5) is None
+
+
+def test_chandelier_lock_short_mirror_locked():
+    # SHORT, peak +28 (7R, LOCKED), give-back 2pt → exit when fav <= 26.
+    pos = Position("SHORT", 100.0, 4.0, 28.0)
+    assert exit_chandelier_lock(pos, 74.0, start_k=3.5, lock_r=6.0, lock_k=0.5) == "CHANDELIER"  # fav 26 <= 26
+    assert exit_chandelier_lock(pos, 73.0, start_k=3.5, lock_r=6.0, lock_k=0.5) is None          # fav 27 still running
 
 
 # ── vol-adaptive chandelier: trail width graded by entry ATR ───────────────────

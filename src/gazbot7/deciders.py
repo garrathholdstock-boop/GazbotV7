@@ -428,6 +428,29 @@ def exit_chandelier(pos: Position, price: float, *, start_k: float = 3.5,
     return None
 
 
+def exit_chandelier_lock(pos: Position, price: float, *, start_k: float = 3.5,
+                         lock_r: float = 6.0, lock_k: float = 0.5) -> str | None:
+    """THRESHOLD (loose-then-lock) chandelier — grind_long's trend-capture profit exit
+    (2026-07-26 deploy, DECISIONS §356). Unlike ``exit_chandelier`` (which tightens
+    CONTINUOUSLY as the peak grows), this holds a WIDE trail (``start_k * entry_atr``)
+    until the run reaches ``lock_r`` R, then STEP-LOCKS to a firm tight trail
+    (``lock_k * entry_atr``) for the rest of the ride: ``peak_r = peak_favorable/atr``,
+    ``k = start_k if peak_r < lock_r else lock_k``. Loose early lets a trend run breathe
+    through its retraces; the firm lock past lock_r banks the tail once it's a proven big
+    move. Uncapped; ONLY ever exits in profit (the native 1-ATR STP owns the downside, so
+    a bad peak seed can't fire a red exit). Returns 'CHANDELIER' or None."""
+    atr = pos.entry_atr
+    if atr <= 0 or pos.peak_favorable <= 0:  # not armed / never went green
+        return None
+    peak_r = pos.peak_favorable / atr
+    k = start_k if peak_r < lock_r else lock_k
+    giveback = k * atr
+    fav = (price - pos.entry_price) if pos.side == "LONG" else (pos.entry_price - price)
+    if fav > 0 and fav <= pos.peak_favorable - giveback:
+        return "CHANDELIER"
+    return None
+
+
 def chandelier_start_k(entry_atr: float, *, atr_hi: float = 35.0, atr_mid: float = 20.0,
                        k_hi: float = 2.0, k_mid: float = 3.0, k_lo: float = 3.5) -> float:
     """VOL-ADAPTIVE chandelier — pick the trail width from the entry ATR.

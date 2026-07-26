@@ -22,6 +22,7 @@ from .deciders import (
     Position,
     chandelier_start_k,
     exit_chandelier,
+    exit_chandelier_lock,
     exit_fixed,
     exit_giveback,
     exit_scalp,
@@ -42,7 +43,7 @@ class SlotSpec:
     params: dict = field(default_factory=dict)
     sizing: str = "flat"                   # "flat" (base_size) | "conviction" (0..base by ER)
     base_size: int = 1
-    exit: str = "chandelier"               # "chandelier" | "scalp" | "fixed"
+    exit: str = "chandelier"               # "chandelier" | "chandelier_lock" | "scalp" | "fixed"
     target_r: float = 2.0
     stop_atr_mult: float = 1.0
     fixed_stop_pt: float = 0.0             # exit="fixed": POINT stop/target (ATR-independent snap-back fade)
@@ -51,6 +52,8 @@ class SlotSpec:
     chandelier_start_k: float = 3.5
     chandelier_min_k: float = 0.5
     chandelier_tighten: float = 0.75
+    lock_r: float = 0.0                    # exit="chandelier_lock": hold start_k trail until peak_r>=lock_r, then step-lock to lock_k
+    lock_k: float = 0.0
     giveback_enabled: bool = True
     giveback_arm_usd: float = 50.0
     giveback_usd: float = 40.0
@@ -94,9 +97,9 @@ def tournament_slots() -> list[SlotSpec]:
     benched at face value."""
     return [
         # LONG
-        SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-25 rehab: scalp-2R BEATS chandelier for grind; no give-back; ATR≥24 + ER floor DROPPED (deciders)
+        SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-26 deploy (§356): threshold-chandelier (loose start_k=3.5 until 6.0R, then firm lock_k=0.5) captures the trend tail — +$1,782 full/+$747 wk30, robust 15/15 LODO, BEATS scalp-2R +$508+. ATR≥24 + ER floor DROPPED (deciders); no give-back.
                  params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
-                 exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
+                 exit="chandelier_lock", chandelier_start_k=3.5, lock_r=6.0, lock_k=0.5, giveback_enabled=False),
         SlotSpec("capitulation_long", "capitulation", "LONG",   # ★2026-07-25 rehab: require_flip=True IS the edge (wait for buyers to step in); give-back off; ATR≥10 + ER ceiling DROPPED (was bug-based)
                  params={"climax_min": 2.5, "dom_min": 0.6, "require_flip": True},
                  sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
@@ -192,6 +195,9 @@ class SlotStrategy:
                 reason = "CHANDELIER"
         elif spec.exit == "fixed":   # fixed POINT stop+target (snap-back fade); native 1-ATR STP is the backstop
             reason = exit_fixed(pos, price, stop_pt=spec.fixed_stop_pt, target_pt=spec.fixed_target_pt)
+        elif spec.exit == "chandelier_lock":   # loose start_k trail until lock_r R, then firm lock_k lock (grind_long trend-capture)
+            reason = exit_chandelier_lock(pos, price, start_k=spec.chandelier_start_k,
+                                          lock_r=spec.lock_r, lock_k=spec.lock_k)
         elif exit_scalp(pos, price, target_r=spec.target_r,
                         stop_atr_mult=spec.stop_atr_mult) == "TARGET":
             reason = "TARGET"
