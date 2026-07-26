@@ -41,8 +41,11 @@ CAP = f"{DATA}/capture.db"
 SWITCH = f"{DATA}/gate_switches.env"
 
 # ── tuned + validated knobs (edit here → both live AND the backtest move together) ──
-ER_TREND = 0.25     # ER must clear this for a mark to read as a trend (above the 0.18 bucket line)
-NET_MIN = 40.0      # AND |net| over the window must be >= this (a real directional leg)
+ER_TREND = 0.20     # ★2026-07-26 loosened 0.25→0.20 (operator, router_study.py): the 0.25 trigger was too STRICT
+                    # — mild-but-real trends read as CHOP and the faders bled into them unblocked (leaked −$641 live /
+                    # −$1,453 hist of counter-trend near-miss losers vs blocking only −$152/−$736). Both fader sets agreed
+                    # looser blocks more net loss; this is the MODERATE step (grid-best pinned every knob to the edge = overfit).
+NET_MIN = 30.0      # ★2026-07-26 loosened 40→30 with ER (same study). AND |net| over the window must be >= this (a real leg).
 WINDOW = 30         # trailing 1-min bars for ER/net (matches the gate's 30-min ER)
 STEP = 15           # minutes between marks
 HOLD = 2            # consecutive agreeing marks to flip the effective state (hysteresis, both ways)

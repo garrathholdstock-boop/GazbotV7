@@ -52,10 +52,11 @@ def test_fast_exit_leaves_a_trend_sooner():
     # V-shape: chop warmup → a down leg (enters TREND_DOWN) → an up reversal. The sticky-exit fix
     # (fast_exit=True) must spend FEWER marks stuck in TREND_DOWN than the shipped sticky logic,
     # while still ENTERING the down-trend in the first place (the enter-lag/whipsaw guard is unchanged).
-    minutes = [i * 60 for i in range(200)]
-    # long steady down leg (enters TREND_DOWN over several marks) then a full up reversal
+    minutes = [i * 60 for i in range(240)]   # == len(closes): 40 + 60 + 120 + 20
+    # long steady down leg (enters TREND_DOWN over several marks) then a SLOW up recovery: the sticky
+    # logic over-holds TREND_DOWN one extra mark through the gentle reversal; fast_exit releases sooner.
     closes = ([300.0] * 40 + [300.0 - 3 * i for i in range(1, 61)]
-              + [120.0 + 3 * i for i in range(1, 61)] + [300.0] * 39)
+              + [120.0 + 1.5 * i for i in range(1, 121)] + [300.0] * 20)
     m_now = dr.replay_marks(minutes, closes, 0, minutes[-1], fast_exit=False)
     m_fix = dr.replay_marks(minutes, closes, 0, minutes[-1], fast_exit=True)
     down_now = sum(1 for _, s, _, _ in m_now if s == "TREND_DOWN")
