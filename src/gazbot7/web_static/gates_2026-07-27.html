@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This Week's Gates — GAZBOT V7</title>
+<style>
+  :root{
+    --ground:#f3f6f9; --panel:#ffffff; --ink:#141a20; --ink2:#3c4752; --muted:#67727e;
+    --line:#dce3ea; --line2:#eef2f6; --head:#1a2129; --headink:#f4f7fa;
+    --long:#12864a; --short:#c23a40; --accent:#2b6f7d;
+    --shadow:0 1px 2px rgba(20,30,40,.05),0 6px 20px rgba(20,30,40,.05);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0e1318; --panel:#151c23; --ink:#e7edf2; --ink2:#b8c2cc; --muted:#8894a0;
+    --line:#232d36; --line2:#1a2229; --head:#1f2831; --headink:#e7edf2;
+    --long:#43dd82; --short:#ff6d72; --accent:#54b6c8;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.28);
+  }}
+  :root[data-theme="light"]{
+    --ground:#f3f6f9; --panel:#ffffff; --ink:#141a20; --ink2:#3c4752; --muted:#67727e;
+    --line:#dce3ea; --line2:#eef2f6; --head:#1a2129; --headink:#f4f7fa;
+    --long:#12864a; --short:#c23a40; --accent:#2b6f7d;
+    --shadow:0 1px 2px rgba(20,30,40,.05),0 6px 20px rgba(20,30,40,.05);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1318; --panel:#151c23; --ink:#e7edf2; --ink2:#b8c2cc; --muted:#8894a0;
+    --line:#232d36; --line2:#1a2229; --head:#1f2831; --headink:#e7edf2;
+    --long:#43dd82; --short:#ff6d72; --accent:#54b6c8;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.28);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.45;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 48px;}
+  .toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .back{font-size:12px;color:var(--accent);text-decoration:none;font-weight:600;}
+  .back:hover{text-decoration:underline;}
+  .dl{font-size:12px;color:var(--muted);text-decoration:none;border:1px solid var(--line);
+    border-radius:6px;padding:5px 10px;font-weight:600;}
+  .dl:hover{color:var(--ink);border-color:var(--accent);}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+    border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:6px;}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:4px;}
+  h1{margin:0;font-size:30px;letter-spacing:-.01em;font-weight:800;line-height:1.05;text-wrap:balance;}
+  .lede{color:var(--muted);font-size:13.5px;margin-top:7px;max-width:60ch;}
+  .datebox{text-align:right;color:var(--muted);font-size:12px;line-height:1.3;}
+  .datebox b{display:block;color:var(--ink);font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 2px 0;font-size:11.5px;color:var(--muted);}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:5px;}
+  .tablewrap{overflow-x:auto;margin-top:20px;border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);background:var(--panel);}
+  table{width:100%;border-collapse:collapse;min-width:760px;}
+  th{background:var(--head);color:var(--headink);text-align:left;font-size:10.5px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;padding:11px 12px;white-space:nowrap;}
+  th.num{text-align:right;}
+  td{padding:12px;vertical-align:top;border-top:1px solid var(--line);font-size:13px;color:var(--ink2);}
+  tbody tr:nth-child(even) td{background:var(--line2);}
+  .gate{font-weight:800;font-size:14px;letter-spacing:-.01em;font-family:ui-monospace,"SF Mono",Menlo,monospace;}
+  .gate.long{color:var(--long);} .gate.short{color:var(--short);}
+  .tag{display:inline-block;font-size:11px;font-weight:700;color:var(--ink);}
+  .tag small{display:block;font-weight:500;color:var(--muted);font-size:10.5px;letter-spacing:.02em;}
+  .k{color:var(--ink);font-weight:700;}
+  .pnl{text-align:right;white-space:nowrap;}
+  .pnl b{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:15px;font-weight:800;color:var(--long);
+    font-variant-numeric:tabular-nums;}
+  .pnl small{display:block;color:var(--muted);font-size:10.5px;margin-top:1px;}
+  .notes{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:10px;padding:16px 18px;box-shadow:var(--shadow);}
+  .notes h2{margin:0 0 9px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);}
+  .notes ul{margin:0;padding-left:18px;} .notes li{margin-bottom:7px;font-size:12.5px;color:var(--ink2);}
+  .notes b{color:var(--ink);}
+  .pill{display:inline-block;background:var(--line2);border:1px solid var(--line);color:var(--ink2);
+    border-radius:4px;padding:0 6px;font-size:11px;font-weight:700;letter-spacing:.03em;}
+  footer{margin-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:11px;}
+  @media (max-width:560px){ h1{font-size:24px;} .wrap{padding:20px 14px 40px;} }
+</style></head><body>
+
+<div class="wrap">
+  <div class="toprow">
+    <a class="back" href="reports">&larr; Reports</a>
+    <a class="dl" href="static/gates_2026-07-27.pdf" download>Download PDF</a>
+  </div>
+
+  <header>
+    <div>
+      <div class="eyebrow">GAZBOT V7 &middot; Live paper desk</div>
+      <h1>This Week&rsquo;s Gates</h1>
+      <div class="lede">The 6 live gates on the MNQ-only tournament &mdash; 3 trend, 3 fader, first-to-fire on one netted account. How each one earns, and what keeps it from bleeding.</div>
+    </div>
+    <div class="datebox"><b>Mon 27 Jul 2026</b>the live roster<br>&amp; how each earns</div>
+  </header>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--long)"></span>long</span>
+    <span><span class="dot" style="background:var(--short)"></span>short</span>
+    <span>Trend = momentum / breakout &middot; Fader = mean-reversion</span>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>Gate</th><th>Type</th><th>How it works</th><th>What triggers it</th><th>Filters (anti-bleed)</th><th class="num">Tested&nbsp;&middot;&nbsp;~1&nbsp;wk</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="gate long">grind_long</td>
+          <td><span class="tag">Trend<small>momentum</small></span></td>
+          <td>Rides an established up-trend and lets it run &mdash; the desk&rsquo;s big-trend-day workhorse.</td>
+          <td>Fast VWAP up-slope (&ge;0.4) + price extension in band + net-buy tape flow.</td>
+          <td><span class="k">ATR&ge;24</span> (big-range trend days only) + tape-flow gate; ER floor dropped. Exit: pure-6.0 chandelier.</td>
+          <td class="pnl"><b>+$747</b><small>best wk, chandelier&sup1;</small></td>
+        </tr>
+        <tr>
+          <td class="gate long">capitulation_long</td>
+          <td><span class="tag">Fader<small>reversal</small></span></td>
+          <td>Buys a selling flush &mdash; but only once buyers actually step back in.</td>
+          <td>Sell-climax (climax&nbsp;2.5 / dom&nbsp;0.6) <span class="k">then a buy-flip</span>.</td>
+          <td><span class="k">require_flip</span> (wait for the flip = the edge) + ATR&ge;10; router benches it on a proven down-trend.</td>
+          <td class="pnl"><b>+$683</b><small>3-wk rehab</small></td>
+        </tr>
+        <tr>
+          <td class="gate long">abs_veto_long</td>
+          <td><span class="tag">Trend<small>thrust</small></span></td>
+          <td>Enters a bullish breakout only if the burst actually persists &mdash; a fakeout filter.</td>
+          <td>Up-thrust (thr&nbsp;1.5) <span class="k">then 55&nbsp;s with no absorption against it</span>.</td>
+          <td><span class="k">55&nbsp;s absorption-veto</span> + ER&ge;0.20 chop-floor + ER-hold.</td>
+          <td class="pnl"><b>+$488</b><small>last wk, &frac12;-size&sup2;</small></td>
+        </tr>
+        <tr>
+          <td class="gate short">rgv_short</td>
+          <td><span class="tag">Fader<small>reversal</small></span></td>
+          <td>Fades an upward pop back down (reversal-grab).</td>
+          <td>Reversal-grab short signal, fast-turn <span class="k">off</span>.</td>
+          <td><span class="k">ATR&ge;20</span> (fast-turn off kills the noise trades); router benches it on a proven up-trend.</td>
+          <td class="pnl"><b>+$778</b><small>3-wk, robust</small></td>
+        </tr>
+        <tr>
+          <td class="gate short">exhaustion_short</td>
+          <td><span class="tag">Fader<small>absorption</small></span></td>
+          <td>Shorts heavy buy-flow that <em>failed</em> to move price &mdash; absorbed at a wall, a stalled push.</td>
+          <td>Big net-buy flow + tiny price move into the ask wall.</td>
+          <td><span class="k">Fixed 8&nbsp;pt stop / 12&nbsp;pt target</span> (tight, matched to the snap-back); give-back off.</td>
+          <td class="pnl"><b>+$683</b><small>3-wk, down-wk green</small></td>
+        </tr>
+        <tr>
+          <td class="gate short">abs_veto_short</td>
+          <td><span class="tag">Trend<small>thrust</small></span></td>
+          <td>Mirror of abs_veto_long on the downside &mdash; a bear breakout that persists.</td>
+          <td>Down-thrust <span class="k">then 55&nbsp;s no-absorption confirm</span>.</td>
+          <td><span class="k">55&nbsp;s absorption-veto</span> + ATR&ge;16 chop-floor.</td>
+          <td class="pnl"><b>+$538</b><small>last wk, &frac12;-size&sup2;</small></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="notes">
+    <h2>Read the numbers honestly</h2>
+    <ul>
+      <li><b>&sup1; grind</b> deploys the pure-6.0 threshold-chandelier tonight (loose 3.5&middot;ATR trail to 6R, then a firm 0.5&middot;ATR lock). +$747 is its best single week; <b>+$1,782 over the full 3-week archive, robust 15/15 leave-one-day-out</b>.</li>
+      <li><b>&sup2; abs_veto</b> runs at <b>base_size 1</b> &mdash; half the others&rsquo; 2 lots &mdash; for its first live week; figures are engine-truth from the live shadow, so roughly double them for a like-for-like size comparison.</li>
+      <li>The three rehab faders (capitulation, rgv_short, exhaustion) are ~3-week archive totals from the gate-rehabilitation battery. Every figure is in-sample, one summer <span class="pill">RANGE</span> regime &mdash; a real trend week could look very different.</li>
+      <li><b>The design idea:</b> each gate is filtered to <em>bleed less, not catch more</em> &mdash; the ATR/ER floors and the 55&nbsp;s veto keep it <em>out</em> of the tape where it loses. That&rsquo;s why the tested P&amp;Ls are net-positive despite low win rates: the edge is in <em>not trading the wrong tape</em>.</li>
+    </ul>
+  </div>
+
+  <footer>
+    <span>GAZBOT V7 &middot; live paper desk &middot; roster changes are Saturday-only</span>
+    <span>generated 27 Jul 2026</span>
+  </footer>
+</div>
+</body></html>
