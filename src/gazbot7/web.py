@@ -282,9 +282,11 @@ def tournament_json(store_path, data_dir, cap_path):
     slot_by_gate = {s.get("gate"): s for s in live if s.get("gate")}
 
     stats: dict = {}
+    wstats: dict = {}   # week-to-date, for the avg-winner/avg-loser/delta/expectancy block
     try:
+        now = datetime.now(UTC)
         c = _conn(store_path)
-        for r in _strategy_trades(c, since_iso=pnl.paris_day_start_utc(datetime.now(UTC))):
+        for r in _strategy_trades(c, since_iso=pnl.paris_day_start_utc(now)):
             d = stats.setdefault(r["gate"] or "?",
                                  {"realized": 0.0, "n": 0, "wins": 0, "gw": 0.0, "gl": 0.0, "exits": {}})
             d["realized"] += r["pnl_usd"]
@@ -295,6 +297,14 @@ def tournament_json(store_path, data_dir, cap_path):
             else:
                 d["gl"] += -r["pnl_usd"]
             d["exits"][r["exit_reason"]] = d["exits"].get(r["exit_reason"], 0) + 1
+        for r in _strategy_trades(c, since_iso=pnl.paris_week_start_utc(now)):
+            d = wstats.setdefault(r["gate"] or "?", {"n": 0, "wins": 0, "gw": 0.0, "gl": 0.0})
+            d["n"] += 1
+            if r["pnl_usd"] > 0:
+                d["wins"] += 1
+                d["gw"] += r["pnl_usd"]
+            else:
+                d["gl"] += -r["pnl_usd"]
         c.close()
     except Exception:
         pass
@@ -310,6 +320,15 @@ def tournament_json(store_path, data_dir, cap_path):
             open_unreal = round((1 if side == "LONG" else -1) * (last - entry) * _VPP * qty, 2)
         realized = round(d.get("realized", 0.0), 2)
         n = d.get("n", 0)
+        # week-to-date winner/loser expectancy: with W winners and L losers the desk
+        # nets W·avg_win − L·avg_loss, so this is where a low-win-rate/big-winner gate
+        # (grind chandelier) shows whether the fat winners outweigh the many small losers.
+        wd = wstats.get(gate, {})
+        w_n = wd.get("n", 0)
+        w_wins = wd.get("wins", 0)
+        w_losses = w_n - w_wins
+        avg_win = round(wd["gw"] / w_wins) if w_wins else None
+        avg_loss = round(wd["gl"] / w_losses) if w_losses else None
         rows.append({
             "gate": gate, "side": side, "live": slot is not None,
             "qty": qty, "entry": entry, "stop": (slot.get("stop_price") if slot else None),
@@ -318,6 +337,10 @@ def tournament_json(store_path, data_dir, cap_path):
             "n": n, "win_pct": (round(100 * d.get("wins", 0) / n) if n else None),
             "pf": (round(d["gw"] / d["gl"], 2) if d.get("gl", 0) > 1e-9 else None),
             "exits": d.get("exits", {}),
+            "wk_n": w_n, "wk_wins": w_wins, "wk_losses": w_losses,
+            "wk_avg_win": avg_win, "wk_avg_loss": avg_loss,
+            "wk_delta": (avg_win - avg_loss) if (avg_win is not None and avg_loss is not None) else None,
+            "wk_exp": (round((wd["gw"] - wd["gl"]) / w_n, 1) if w_n else None),
         })
     rows.sort(key=lambda x: x["total"], reverse=True)
     active = [r for r in rows if r["n"] > 0 or r["live"]]

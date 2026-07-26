@@ -110,6 +110,29 @@ def test_tournament_ranks_and_flags_relegation(tmp_path):
     assert g["capitulation_long"]["relegate"] is False   # 0-trade gate not judged
 
 
+def test_tournament_week_winner_loser_delta(tmp_path):
+    # Per-gate week-to-date avg-winner / avg-loser / delta / expectancy (the operator's
+    # low-win-rate/big-winner lens): net = W·avg_win − L·avg_loss.
+    from gazbot7.store import open_store
+    from gazbot7.web import tournament_json
+    store = str(tmp_path / "g.db")
+    s = open_store(store)
+    _seed_trade(s, "grind_long", "LONG", 80.0)    # winners: 80, 40 -> avg_win 60
+    _seed_trade(s, "grind_long", "LONG", 40.0)
+    _seed_trade(s, "grind_long", "LONG", -50.0)   # losers: 50, 30 -> avg_loss 40
+    _seed_trade(s, "grind_long", "LONG", -30.0)
+    s.close()
+    g = {r["gate"]: r for r in tournament_json(
+        store, _dir(tmp_path, {"position": None, "flat": True}), _NO_CAP)["gates"]}
+    r = g["grind_long"]
+    assert r["wk_wins"] == 2 and r["wk_losses"] == 2 and r["wk_n"] == 4
+    assert r["wk_avg_win"] == 60 and r["wk_avg_loss"] == 40 and r["wk_delta"] == 20
+    assert r["wk_exp"] == 10.0                     # (120 − 80) / 4
+    # a gate with no trades this week carries None, not 0 (so the dashboard shows "·")
+    assert g["capitulation_long"]["wk_avg_win"] is None
+    assert g["capitulation_long"]["wk_delta"] is None
+
+
 def test_tournament_safety_naked_and_halted(tmp_path):
     from gazbot7.store import open_store
     from gazbot7.web import tournament_json

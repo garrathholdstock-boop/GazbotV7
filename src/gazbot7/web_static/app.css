@@ -165,6 +165,9 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
 .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--grn);margin-right:5px;box-shadow:0 0 5px var(--grn);vertical-align:middle}
 table.tourn-tbl td,table.tourn-tbl th{padding:4px 5px}
 table.tourn-tbl td.tot{font-weight:700;font-family:var(--mono)}
+/* week-to-date winner/loser/delta block — a hair-line separates it from the today columns */
+table.tourn-tbl td.wk,table.tourn-tbl th.wk{font-family:var(--mono);font-size:.92em}
+table.tourn-tbl td.wkstart,table.tourn-tbl th.wkstart{border-left:1px solid var(--line2)}
 table.tourn-tbl tr.releg td{background:rgba(255,90,95,.09)}
 table.tourn-tbl tr.releg td:first-child{color:var(--red)}
 table.tourn-tbl tr.promo-cand td{background:rgba(55,208,122,.07)}

@@ -472,6 +472,12 @@
     $("tourn-rows").innerHTML = g.length ? g.map((r, i) => {
       const dot = r.live ? `<span class="live-dot" title="live now"></span>` : "";
       const clk = r.n ? "clickable" : "";       // only gates with trades have a drill
+      // week-to-date winner/loser expectancy (operator's low-win-rate/big-winner lens):
+      // avg winner $, avg loser $ (both shown as plain magnitudes), and their delta.
+      const plain = (v) => v == null ? "·" : "$" + nf(Math.abs(v), 0);
+      const wkT = r.wk_n
+        ? `week-to-date: ${r.wk_wins}W / ${r.wk_losses}L · expectancy ${money(r.wk_exp, 1)}/trade`
+        : "no trades this week";
       return `<tr class="${r.relegate ? "releg " : ""}${clk}" data-key="${esc(r.gate)}|${r.side}">
         <td>${r.relegate ? "🔻" : (i + 1)}</td>
         <td>${dot}${esc(gateAbbr(r.gate))}</td>
@@ -482,8 +488,11 @@
         <td>${r.n}</td>
         <td>${r.win_pct == null ? "—" : r.win_pct + "%"}</td>
         <td>${r.pf == null ? "—" : nf(r.pf, 2)}</td>
+        <td class="wk ${r.wk_avg_win == null ? "mut" : "pos"}" title="${r.wk_wins || 0} winners this week">${plain(r.wk_avg_win)}</td>
+        <td class="wk ${r.wk_avg_loss == null ? "mut" : "neg"}" title="${r.wk_losses || 0} losers this week">${plain(r.wk_avg_loss)}</td>
+        <td class="wk ${cls(r.wk_delta)}" title="${esc(wkT)}">${r.wk_delta == null ? "·" : money(r.wk_delta, 0)}</td>
       </tr>`;
-    }).join("") : `<tr><td class="empty" colspan="9">—</td></tr>`;
+    }).join("") : `<tr><td class="empty" colspan="12">—</td></tr>`;
     document.querySelectorAll("#tourn-rows tr.clickable").forEach((tr) => {
       tr.onclick = () => openDrill(tr.getAttribute("data-key"));
     });

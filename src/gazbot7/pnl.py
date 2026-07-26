@@ -26,6 +26,16 @@ def paris_day_start_utc(now: datetime) -> str:
     return start.astimezone(_UTC).isoformat()
 
 
+def paris_week_start_utc(now: datetime) -> str:
+    """ISO-UTC instant of the current Paris week's Monday-midnight (the desk's week
+    boundary — used by the scoreboard's week-to-date winner/loser expectancy block)."""
+    from datetime import timedelta
+    local = now.astimezone(_PARIS)
+    monday = (local - timedelta(days=local.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    return monday.astimezone(_UTC).isoformat()
+
+
 def realized(store, symbol: str, *, since_iso: str | None = None) -> tuple[float, int, int]:
     """Net-of-fees realized P&L (sign-aware), trade count, win count — for trades
     closed at/after ``since_iso`` (default all-time)."""
