@@ -2,22 +2,25 @@
 
 The per-gate ER condition reads tape CLEANLINESS, not DIRECTION, so a clean DOWN-trend at ER 0.32
 sits inside a long-fader's band and it fades the falling knife (07-23: rgv_long −$361 in one hour).
-This flips the COUNTER-TREND REVERSION faders off once a trend is PROVEN, back on in chop:
+This flips the COUNTER-TREND REVERSION faders off once a trend is PROVEN, and (★2026-07-27) benches the
+MOMENTUM gates in CHOP — the symmetric completion:
 
-    TREND DOWN → off {rgv_long, capitulation_long}   (long-faders fade the drop)
-    TREND UP   → off {rgv_short, exhaustion_short}    (short-faders fade the rise)
-    CHOP       → all managed gates ON
+    TREND DOWN → off {capitulation_long}                    (long-fader fades the drop)
+    TREND UP   → off {rgv_short}                            (short-fader fades the rise)
+    CHOP       → off {grind_long, abs_veto_long, abs_veto_short}   (momentum whipsaws in chop)
 
-Momentum gates (grind_long, thrust_short) are NOT managed — they fire WITH thrusts (a down-thrust in
-an up-trend can be the reversal), so direction doesn't bench them (tune: benching thrust_short cost a
-winner and nothing else). HYSTERESIS: a raw per-mark signal becomes the effective state only after
+★2026-07-27 (operator): the router already KNOWS when it's chop — so it benches the momentum gates then.
+Validated on realised trades 07-20..27: the momentum book is −$757 in CHOP-regime@entry vs +$18 in TREND
+(robust — chop bled them 5 of 7 days). Momentum stays ON in a proven trend (it self-selects by direction:
+grind_long/abs_veto_long ride up-legs, abs_veto_short down-legs). Faders stay ON in chop (reversion's home).
+HYSTERESIS: a raw per-mark signal becomes the effective state only after
 HOLD consecutive marks agree — survives the sub-hour whipsaws that make hand-steering churn.
 
 STATELESS: each run replays the Paris day's STEP-min marks from capture → the current effective state,
 so a 15-min cron needs no persisted state. Writes gate_switches.env ONLY when the managed set must
 change; logs + Telegrams (routine → self-suppresses in quiet hours) every flip. Market-closed /
-stale-feed → HOLD (never flips on stale bars). It manages ONLY the 4 reversion faders — thrust_short /
-grind_long and any operator switch on them are left untouched.
+stale-feed → HOLD (never flips on stale bars). MANAGED = the 2 faders + the 3 momentum gates (CHOP_OFF);
+gates outside MANAGED and any operator switch on the unmanaged ones are left untouched.
 
 Backtest = scripts/direction_router_backtest.py (imports THIS module's logic + constants — no drift).
 Tuned + validated Mon–Thu 2026-07-20..23: baseline −$2408 → router −$1828 (+$580), no negative day.
@@ -53,7 +56,12 @@ STALE_S = 200       # newest 1-min bar older than this → market closed / feed 
 
 DOWN_OFF = frozenset({"capitulation_long"})   # long-faders — bench in a down-trend. ★2026-07-25: rgv_long REMOVED — it carries its OWN per-entry net30-depth floor in gate_reversal_grab, which dominates this coarse day-level bench (the router nuked rgv_long to −$9 by dropping 60% of its winners).
 UP_OFF = frozenset({"rgv_short"})      # short-faders — bench in an up-trend. ★2026-07-25: exhaustion_short REMOVED (retired from roster, replaced by rgv_long).
-MANAGED = DOWN_OFF | UP_OFF                                # the only gates the router controls
+CHOP_OFF = frozenset({"grind_long", "abs_veto_long", "abs_veto_short"})   # MOMENTUM gates — bench in CHOP.
+# ★2026-07-27 (operator): the symmetric completion — faders off in trends (above), momentum off in chop. Momentum
+# gates fire on short bursts that revert in choppy tape; validated on realised trades 07-20..27: the momentum book
+# is −$757 in CHOP-regime@entry vs +$18 in TREND (robust — chop bled them on 5 of 7 days). The router already
+# KNOWS it's chop; this uses that read. Momentum stays ON in TREND_UP/DOWN (self-selects by direction).
+MANAGED = DOWN_OFF | UP_OFF | CHOP_OFF                     # the gates the router controls
 
 
 def er_net(closes: list[float]) -> tuple[float, float]:
@@ -106,7 +114,7 @@ def desired_off(state: str) -> set:
         return set(DOWN_OFF)
     if state == "TREND_UP":
         return set(UP_OFF)
-    return set()
+    return set(CHOP_OFF)   # CHOP → bench the momentum gates (they whipsaw in chop); faders stay on
 
 
 def _day_bounds(now: dt.datetime) -> tuple[float, float]:

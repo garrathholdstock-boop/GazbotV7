@@ -15,10 +15,13 @@ def test_er_net_trend_vs_chop():
 def test_desired_off_mapping():
     assert dr.desired_off("TREND_DOWN") == set(dr.DOWN_OFF)   # long-faders benched
     assert dr.desired_off("TREND_UP") == set(dr.UP_OFF)       # short-faders benched
-    assert dr.desired_off("CHOP") == set()                    # everything on
-    # momentum gates are NEVER in the managed off-sets
-    assert "thrust_short" not in dr.MANAGED
-    assert "grind_long" not in dr.MANAGED
+    assert dr.desired_off("CHOP") == set(dr.CHOP_OFF)         # ★momentum gates benched in chop
+    assert {"grind_long", "abs_veto_long", "abs_veto_short"} == set(dr.CHOP_OFF)
+    assert dr.CHOP_OFF <= dr.MANAGED and dr.DOWN_OFF <= dr.MANAGED and dr.UP_OFF <= dr.MANAGED
+    # momentum gates ARE managed now (chop-benched) — but ONLY via CHOP_OFF, never the trend off-sets
+    assert "grind_long" in dr.MANAGED and "grind_long" in dr.CHOP_OFF
+    assert "grind_long" not in dr.DOWN_OFF and "grind_long" not in dr.UP_OFF
+    assert "thrust_short" not in dr.MANAGED   # retired gate, unmanaged
 
 
 def _raw(minutes, closes, t):
