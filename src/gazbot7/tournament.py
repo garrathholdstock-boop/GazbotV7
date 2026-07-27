@@ -351,7 +351,7 @@ async def _build_live(cfg: RunConfig, gates):
     """Live execution wiring (paper account). The per-slot venue-audit loop (naked/adopt/wedge/
     time-exit) is started by the caller; here we build the gateway + engine + per-slot safety +
     MultiSlotCore, with the operator notifier wired through so every safety alarm pages."""
-    from ib_async import ContFuture
+    from ib_async import ContFuture, Future
 
     from .broker_adapter import IBBrokerAdapter
     from .engine import OrderEngine
@@ -366,9 +366,16 @@ async def _build_live(cfg: RunConfig, gates):
     ref: dict = {}
     await gw.start()
     (contract,) = await gw._ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
+    # Protective stops must REST on the concrete front-month Future, NOT the ContFuture: IBKR
+    # intermittently never fires a resting stop's trigger on a continuous contract (stuck
+    # PreSubmitted/whyHeld='trigger' → the stop-breach guard market-flattens = STOP_UNFILLED). The
+    # ContFuture already resolved the front month, so its conId IS the concrete contract — qualify a
+    # Future off that conId. Same conId → positions/naked-audit reconcile at the venue.
+    (stop_contract,) = await gw._ib.qualifyContractsAsync(Future(conId=contract.conId, exchange=cfg.exchange))
     broker = IBBrokerAdapter(gw._ib, contract, cfg.symbol,
                              on_fill=lambda f: ref["core"].on_fill(f),
-                             on_stop_event=lambda coid, status: None)
+                             on_stop_event=lambda coid, status: None,
+                             stop_contract=stop_contract)
     engine = OrderEngine(broker, store)
     slotbook = SlotBook(gates, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
     safeties = {g: SafetyManager(broker, notifier=_telegram_notifier) for g in gates}

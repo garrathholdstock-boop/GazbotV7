@@ -17,7 +17,8 @@ class _FakeIB:
         self.orderStatusEvent = eventkit.Event()
 
     def placeOrder(self, contract, order):
-        return SimpleNamespace(order=order, orderStatus=SimpleNamespace(status="PreSubmitted"))
+        return SimpleNamespace(order=order, contract=contract,
+                               orderStatus=SimpleNamespace(status="PreSubmitted"))
 
 
 def _status(ref, status):
@@ -56,6 +57,30 @@ def test_place_stop_sends_a_fillable_stop_limit():
     assert order.auxPrice == 29120.25                         # trigger preserved (guard reads this)
     assert order.lmtPrice < order.auxPrice                    # limit BELOW trigger → fills (not toothless)
     assert order.tif == "GTC" and order.orderRef == coid
+
+
+def test_stop_rests_on_the_stop_contract_not_the_entry_contract():
+    # 2026-07-27: IBKR won't fire a resting stop's trigger on the continuous ContFuture (stuck
+    # PreSubmitted/whyHeld='trigger' → STOP_UNFILLED). Stops must rest on the CONCRETE front-month
+    # Future; entries/exits stay on the (marketable) ContFuture.
+    ib = _FakeIB()
+    entry_c = SimpleNamespace(kind="ContFuture")
+    stop_c = SimpleNamespace(kind="Future")
+    a = IBBrokerAdapter(ib, contract=entry_c, symbol="MNQ", on_fill=lambda f: None, stop_contract=stop_c)
+    scoid = a.place_stop(symbol="MNQ", side="SELL", qty=1, stop_price=29120.25)
+    assert a._trades[scoid].contract is stop_c                # stop → concrete Future
+    a.place(SimpleNamespace(order_type="MKT", side="SELL", qty=1, limit_price=None,
+                            tif=None, client_order_id="x1"))
+    assert a._trades["x1"].contract is entry_c                # entry/exit → ContFuture
+
+
+def test_stop_contract_defaults_to_entry_contract():
+    # back-compat: no stop_contract → stops rest on the same contract as before.
+    ib = _FakeIB()
+    c = SimpleNamespace(kind="only")
+    a = IBBrokerAdapter(ib, contract=c, symbol="MNQ", on_fill=lambda f: None)
+    scoid = a.place_stop(symbol="MNQ", side="SELL", qty=1, stop_price=29120.25)
+    assert a._trades[scoid].contract is c
 
 
 def test_missing_order_ref_is_unknown():

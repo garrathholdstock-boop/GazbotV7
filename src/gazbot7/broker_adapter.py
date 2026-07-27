@@ -51,9 +51,16 @@ class IBBrokerAdapter:
     """Implements both BrokerPort (entries/exits) and StopBrokerPort (native STP)."""
 
     def __init__(self, ib, contract, symbol: str, on_fill: Callable[[Fill], None],
-                 on_stop_event: Callable[[str, str], None] | None = None) -> None:
+                 on_stop_event: Callable[[str, str], None] | None = None,
+                 stop_contract=None) -> None:
         self._ib = ib
         self._contract = contract
+        # Protective stops REST on their own contract — the CONCRETE front-month Future, not the
+        # continuous ContFuture used for (marketable) entries/exits. IBKR intermittently never fires
+        # a resting stop's TRIGGER on a continuous contract (order sits PreSubmitted/whyHeld='trigger';
+        # our stop-breach guard then has to market-flatten = STOP_UNFILLED). Same conId, so positions/
+        # naked-audit still reconcile at the venue. Defaults to `contract` (back-compat).
+        self._stop_contract = stop_contract if stop_contract is not None else contract
         self._symbol = symbol
         self._on_fill = on_fill
         self._on_stop_event = on_stop_event  # (coid, status) when a protective stop goes dead
@@ -100,7 +107,7 @@ class IBBrokerAdapter:
         ibo = StopLimitOrder(side, qty, lmt, trig)
         ibo.orderRef = coid
         ibo.tif = "GTC"  # server-side, rests until the position closes
-        self._trades[coid] = self._ib.placeOrder(self._contract, ibo)
+        self._trades[coid] = self._ib.placeOrder(self._stop_contract, ibo)  # concrete Future, not ContFuture
         return coid
 
     # ── protective-stop liveness (S1 fast path) ──────────────────────────────
