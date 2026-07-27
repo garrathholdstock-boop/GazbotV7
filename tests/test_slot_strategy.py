@@ -168,3 +168,42 @@ def test_capitulation_does_not_fire_short_slot_on_a_sell_flush():
     b = SlotBook(["exhaustion_short"], value_per_point=VPP, fee_rt=1.5)
     fp = {"cap_sell": 100.0, "cap_buy": 10.0, "cap_base": 20.0, "cap_dpx": -5.0, "cap_flip": False}
     assert s.decide(_feat(0.0, 0.0), 29000.0, [], b, tape_net=0.0, footprint=fp) == []
+
+
+# ── regime-3-exit selector (adaptive_exit, 2026-07-27) ────────────────────────
+def _bars(closes):
+    from gazbot7.deciders import Bar
+    return [Bar(i * 60, c, c + 0.1, c - 0.1, c, 10.0) for i, c in enumerate(closes)]
+
+
+def test_regime_mode_aligned_trend_is_wide_counter_is_mid():
+    up = _bars([28000 + 5 * i for i in range(35)])           # clean up-trend: net +170, ER ~1
+    assert SlotStrategy._regime_mode("LONG", up) == "wide"    # long WITH the up-trend → ride wide
+    assert SlotStrategy._regime_mode("SHORT", up) == "mid"    # short AGAINST it → k2.0 damage-control
+
+
+def test_regime_mode_chop_is_tight():
+    chop = _bars([28000 + (5 if i % 2 else -5) for i in range(35)])   # oscillate: net ~0, ER ~0
+    assert SlotStrategy._regime_mode("LONG", chop) == "tight"
+    assert SlotStrategy._regime_mode("SHORT", chop) == "tight"
+    assert SlotStrategy._regime_mode("LONG", _bars([1, 2, 3])) == "tight"   # <6 bars → tight (safe)
+
+
+def _held_single(mode, atr=4.0):
+    spec = SlotSpec("g", "grind", "LONG", adaptive_exit=True)
+    ss = SlotStrategy([spec], value_per_point=VPP)
+    b = SlotBook(["g"], value_per_point=VPP, fee_rt=1.5)
+    b.register("o-g", "g")
+    b.apply(Fill("e-g", "o-g", "MNQ", "BUY", 1, 29000.0, "2026-07-20T14:00:00+00:00"))
+    b.slot("g").entry_atr = atr
+    ss._exit_mode["g"] = mode
+    return spec, ss, b.slot("g")
+
+
+def test_adaptive_tight_banks_where_wide_holds():
+    # peak +12 (3R, atr 4): TIGHT k1.5 (→giveback ~2pt) banks at fav<=10; WIDE lock (start_k3.5 until
+    # 6R → giveback 14pt) still holds it. Same trade, opposite exit — proves the width dispatch.
+    for mode, expect in (("tight", "CHANDELIER"), ("wide", None)):
+        spec, ss, slot = _held_single(mode)
+        assert ss._manage(spec, slot, 29012.0) is None        # ride to peak +12
+        assert ss._manage(spec, slot, 29009.0) == expect      # fav 9: tight banks, wide holds
