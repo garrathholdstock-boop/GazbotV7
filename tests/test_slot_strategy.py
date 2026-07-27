@@ -207,3 +207,20 @@ def test_adaptive_tight_banks_where_wide_holds():
         spec, ss, slot = _held_single(mode)
         assert ss._manage(spec, slot, 29012.0) is None        # ride to peak +12
         assert ss._manage(spec, slot, 29009.0) == expect      # fav 9: tight banks, wide holds
+
+
+def test_adaptive_exit_suppresses_giveback_overlay():
+    # under adaptive_exit, the give-back overlay must NOT fire (chandelier is the pure profit exit),
+    # even with giveback_enabled=True — else it pre-empts the tight/wide chandelier.
+    spec = SlotSpec("g", "grind", "LONG", adaptive_exit=True, giveback_enabled=True,
+                    giveback_arm_usd=50.0, giveback_usd=40.0)
+    ss = SlotStrategy([spec], value_per_point=VPP)
+    b = SlotBook(["g"], value_per_point=VPP, fee_rt=1.5)
+    b.register("o-g", "g")
+    b.apply(Fill("e-g", "o-g", "MNQ", "BUY", 1, 29000.0, "2026-07-20T14:00:00+00:00"))
+    b.slot("g").entry_atr = 20.0                      # wide lock trail = 3.5*20 = 70pt (won't fire on small pullbacks)
+    ss._exit_mode["g"] = "wide"
+    slot = b.slot("g")
+    ss._manage(spec, slot, 29025.0)                   # peak +25pt = $50 favourable → ARMS give-back
+    # fav back to +5pt ($10): dropped $40 from peak → give-back WOULD fire; wide 70pt trail does NOT.
+    assert ss._manage(spec, slot, 29005.0) is None    # → None proves give-back suppressed under adaptive_exit

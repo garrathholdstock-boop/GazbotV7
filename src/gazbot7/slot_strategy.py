@@ -243,7 +243,9 @@ class SlotStrategy:
         elif exit_scalp(pos, price, target_r=spec.target_r,
                         stop_atr_mult=spec.stop_atr_mult) == "TARGET":
             reason = "TARGET"
-        if reason is None and spec.giveback_enabled:
+        if reason is None and spec.giveback_enabled and not spec.adaptive_exit:
+            # ★2026-07-27: under the regime-3-exit selector the chandelier IS the profit exit —
+            # the give-back overlay is off so it can't pre-empt the (tight/wide) chandelier.
             if exit_giveback(pos, price, value_per_point=self._vpp, qty=(slot.qty or 1),
                              arm_usd=spec.giveback_arm_usd, giveback_usd=spec.giveback_usd):
                 reason = "GIVEBACK"
