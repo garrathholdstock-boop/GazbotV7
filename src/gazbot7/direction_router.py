@@ -63,6 +63,19 @@ CHOP_OFF = frozenset({"grind_long", "abs_veto_long", "abs_veto_short"})   # MOME
 # KNOWS it's chop; this uses that read. Momentum stays ON in TREND_UP/DOWN (self-selects by direction).
 MANAGED = DOWN_OFF | UP_OFF | CHOP_OFF                     # the gates the router controls
 
+# ★2026-07-28 (operator): the US cash open (13:30 UTC = 15:30 Paris summer) produces big directional
+# RUNS the momentum gates exist to catch. Even if the pre-open read CHOP, do NOT bench the momentum
+# gates across the open — keep them ON to capture the opening move. Window opens 13:15 UTC so the
+# 13:15 router mark un-benches momentum ~15 min BEFORE the 13:30 open; runs to 14:00 (first 30 min of
+# the cash session). Faders stay regime-managed (a fader fading the opening run SHOULD stay benched).
+OPEN_WINDOW_UTC = (13, 15, 14, 0)   # (start_h, start_m, end_h, end_m) UTC
+
+
+def in_open_window(now: dt.datetime) -> bool:
+    h1, m1, h2, m2 = OPEN_WINDOW_UTC
+    t = now.hour * 60 + now.minute
+    return h1 * 60 + m1 <= t < h2 * 60 + m2
+
 
 def er_net(closes: list[float]) -> tuple[float, float]:
     """Kaufman ER + signed net over the last WINDOW closes. <6 → (0,0) (no data → read as chop)."""
@@ -157,6 +170,7 @@ def current_regime(cap_path: str = CAP, now: dt.datetime | None = None):
 def run(now: dt.datetime | None = None) -> int:
     """One router cycle (systemd timer, every STEP min). Read regime → set the managed gates → write
     the switch file ONLY on a change, log + notify. Never raises (a hygiene job must not crash)."""
+    now = now or dt.datetime.now(dt.UTC)
     try:
         state, info = current_regime(now=now)
     except Exception as e:
@@ -166,14 +180,18 @@ def run(now: dt.datetime | None = None) -> int:
         print(f"direction_router: HOLD — {info}")
         return 0
     target = desired_off(state)
+    if in_open_window(now):
+        target = target - CHOP_OFF   # US cash open — keep momentum ON to catch the opening run
+        info["open_window"] = True
     try:
         text = Path(SWITCH).read_text()
     except OSError as e:
         print(f"direction_router: no switch file ({e}) — HOLD")
         return 0
     cur = disabled_from(text) & MANAGED
+    tag = " [OPEN-WINDOW: momentum forced on]" if info.get("open_window") else ""
     if target == cur:
-        print(f"direction_router: {state} (ER {info['er']}, net {info['net']:+.0f}) — no change, off={sorted(cur)}")
+        print(f"direction_router: {state} (ER {info['er']}, net {info['net']:+.0f}) — no change, off={sorted(cur)}{tag}")
         return 0
     new = text
     for g in sorted(MANAGED):

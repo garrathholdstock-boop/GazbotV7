@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime as dt
+
 from gazbot7 import direction_router as dr
 
 
@@ -75,3 +77,22 @@ def test_shipped_default_is_unchanged():
     default = dr.replay_marks(minutes, closes, 0, minutes[-1])
     explicit = dr.replay_marks(minutes, closes, 0, minutes[-1], fast_exit=False)
     assert [m[1] for m in default] == [m[1] for m in explicit]
+
+
+# ── US-open window override (2026-07-28): momentum not benched across the cash open ──
+def test_in_open_window_bounds():
+    def at(h, m):
+        return dt.datetime(2026, 7, 28, h, m, tzinfo=dt.UTC)
+    assert dr.in_open_window(at(13, 15)) and dr.in_open_window(at(13, 30)) and dr.in_open_window(at(13, 59))
+    assert not dr.in_open_window(at(13, 14))   # before the window (13:15 UTC = 15:15 Paris)
+    assert not dr.in_open_window(at(14, 0))     # window is [13:15, 14:00)
+    assert not dr.in_open_window(at(10, 0))     # mid-morning, no override
+
+
+def test_open_window_suppresses_the_momentum_chop_bench():
+    # normally CHOP benches the momentum gates; the open-window override removes them → momentum ON.
+    off_chop = dr.desired_off("CHOP")
+    assert dr.CHOP_OFF <= off_chop                    # momentum benched in chop normally
+    assert (off_chop - dr.CHOP_OFF) == set()          # open window → none of CHOP_OFF benched
+    # a TREND_UP open still benches the counter-fader (rgv_short), momentum was never in that set anyway
+    assert (dr.desired_off("TREND_UP") - dr.CHOP_OFF) == set(dr.UP_OFF)
