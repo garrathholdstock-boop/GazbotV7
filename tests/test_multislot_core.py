@@ -415,19 +415,22 @@ def test_stop_breached_true_when_price_runs_past_the_trigger():
 
 
 def test_stop_breach_force_flattens_after_streak():
-    # id114: a triggered-but-unfilled stop — price past the trigger, slot still held → cut it.
+    # guard-as-PRIMARY (2026-07-28): note_price drives the breach check every tick — 2 consecutive
+    # breached ticks → market-flatten AT the stop, booked STOP (we do NOT wait for IBKR's paper-flaky
+    # resting-stop trigger). _flatten_slot's _closing latch keeps repeated per-tick calls idempotent.
     core, eng, sb, sbrokers, store = _core()
     cS = _open(core, eng, "grind_short", "SHORT", 29050.0, atr=20.0)
     _fill(core, cS, "SELL", 1, 29050.0)
     stop = core._safeties["grind_short"].stop_for("MNQ")
-    core.note_price(stop.stop_price + 5.0)
     n = len(eng.orders)
-    core._check_stop_breach("grind_short")                   # cycle 1 → just streaks, no cut yet
+    core.note_price(stop.stop_price + 5.0)                   # tick 1 → streak 1, no cut yet
     assert len(eng.orders) == n
-    core._check_stop_breach("grind_short")                   # cycle 2 → STREAK reached → flatten
+    core.note_price(stop.stop_price + 5.0)                   # tick 2 → STREAK reached → flatten
     assert len(eng.orders) == n + 1
     assert eng.orders[-1]["type"] == "MKT" and eng.orders[-1]["side"] == "BUY"   # cover the short
-    assert core._close_reason["grind_short"] == "STOP_UNFILLED"
+    assert core._close_reason["grind_short"] == "STOP"
+    core.note_price(stop.stop_price + 5.0)                   # still breached → idempotent, no 2nd close
+    assert len(eng.orders) == n + 1
 
 
 def test_stop_breach_streak_resets_when_price_recovers():
@@ -435,12 +438,11 @@ def test_stop_breach_streak_resets_when_price_recovers():
     cS = _open(core, eng, "grind_short", "SHORT", 29050.0, atr=20.0)
     _fill(core, cS, "SELL", 1, 29050.0)
     stop = core._safeties["grind_short"].stop_for("MNQ")
-    core.note_price(stop.stop_price + 5.0)
-    core._check_stop_breach("grind_short")                   # streak 1
-    core.note_price(stop.stop_price - 5.0)                   # price recovered below trigger
-    core._check_stop_breach("grind_short")                   # resets
+    core.note_price(stop.stop_price + 5.0)                   # tick 1 → streak 1 (below STREAK=2)
+    assert core._stop_breach_streak["grind_short"] == 1
+    core.note_price(stop.stop_price - 5.0)                   # price recovered below trigger → resets
     assert core._stop_breach_streak["grind_short"] == 0
-    assert "grind_short" not in core._closing               # not flattened
+    assert "grind_short" not in core._closing               # never flattened (only 1 breached tick)
 
 
 def test_stop_breach_ignored_when_flat_or_no_price():

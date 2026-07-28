@@ -460,9 +460,17 @@ class MultiSlotCore:
 
     # ── triggered-but-unfilled stop guard (2026-07-21, from id114) ────────────
     def note_price(self, price) -> None:
-        """Feed the latest tape print — the stop-breach guard reads it."""
+        """Feed the latest tape print AND run the stop as our PRIMARY exit (2026-07-28): check the
+        breach every tick (~1s) and flatten fast, instead of waiting ~10s for the 5s audit loop. IBKR
+        (esp. PAPER) intermittently never fires a resting stop's trigger even on the concrete Future
+        (whyHeld='trigger' → STOP_UNFILLED), so we DON'T rely on it — our tape sees price hit the
+        level and we flatten. The native StopLimitOrder stays as a backup (live-account primary + a
+        tape-feed-stall backstop); `_flatten_slot`'s `_closing` latch makes the per-tick call
+        idempotent. The 5s audit loop still calls `_check_stop_breach` as a second backstop."""
         if price:
             self._last_price = float(price)
+            for gate in self._gates:
+                self._check_stop_breach(gate)
 
     def stop_breached(self, gate: str) -> bool:
         """True when price has traded PAST this slot's stop trigger yet the slot is still
@@ -483,16 +491,18 @@ class MultiSlotCore:
                 else self._last_price >= stop.stop_price)
 
     def _check_stop_breach(self, gate: str) -> None:
-        """Streak the breach (avoid racing a normal fill that's about to arrive), then force
-        a market flatten — catches the toothless stop in ~STREAK×interval, not the 120-min
-        MAX_HOLD backstop."""
+        """Our PRIMARY stop: streak the breach (STOP_BREACH_FLATTEN_STREAK consecutive checks — a
+        1-tick spike guard), then market-flatten AT the stop level. Driven per-tick from note_price
+        (~2s) with the 5s audit loop as a backstop. Books `STOP` — this IS the stop-out (not a
+        failure); we no longer wait for IBKR's paper-flaky resting-stop trigger. `_flatten_slot`
+        is idempotent (the `_closing` latch), so repeated per-tick calls fire exactly one close."""
         if self.stop_breached(gate):
             self._stop_breach_streak[gate] += 1
             if self._stop_breach_streak[gate] >= STOP_BREACH_FLATTEN_STREAK:
                 sp = self._safeties[gate].stop_for(self._cfg.symbol)
-                self._notify(f"STOP NOT EXECUTING slot {gate}: price {self._last_price:g} past stop "
-                             f"{sp.stop_price:g} but still held — force-flattening")
-                self._flatten_slot(gate, "STOP_UNFILLED")
+                self._notify(f"STOP slot {gate}: price {self._last_price:g} hit stop {sp.stop_price:g} "
+                             f"— flattening (tape-primary stop)")
+                self._flatten_slot(gate, "STOP")
         else:
             self._stop_breach_streak[gate] = 0
 
