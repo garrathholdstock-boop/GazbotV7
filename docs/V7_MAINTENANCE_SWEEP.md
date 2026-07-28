@@ -19,7 +19,7 @@ gateway. **Do NOT re-arm the V5 crons.** Re-arm the two below.
 2. If absent, `CronCreate` it (`recurring: true`). Box is **UTC**, so cron fields are UTC directly.
 3. Confirm to Garrath you're back on shift with the posture line (see bottom).
 
-**★ THE FULL STANDING SET IS NOW FIVE CRONS (grown 2026-07-27/28) — re-arm ALL, not just the two below:**
+**★ THE FULL STANDING SET IS NOW SIX CRONS (grown 2026-07-27/28) — re-arm ALL, not just the two below:**
 | # | schedule (UTC) | job | verbatim prompt |
 |---|---|---|---|
 | A | `41 */3 * * 1-5` | FULL health sweep + heartbeat | Cron A below |
@@ -27,6 +27,7 @@ gateway. **Do NOT re-arm the V5 crons.** Re-arm the two below.
 | C | `8 5-21 * * 1-5` | Adaptive hourly TAPE/GATE WATCH (`scripts/hour_watch.py`, tiered) | the standing hour-watch prompt (2-tier: routine line / `ATTENTION GAZ` escalate) |
 | D | `43 22 * * 1-5` | Grind-exit shadow watchers (`two_ratchet_shadow_watch.py --ping` + `partial_shadow_watch.py`) | run both, ping only on a runner-clip; ⚠ note grind moved off pure-6.0 to the adaptive selector |
 | E | `50 22 * * 1-5` | **Nightly router + selector performance review** (`router_nightly.py` + `selector_nightly.py`) | run both, write the dated ledgers, ping only if notable; feeds Friday part25 — see memory `nightly-router-selector-review` |
+| F | `25 13 * * 1-5` | **US-open router check** (5 min before the 13:30 cash open) | run the router (apply the OPEN_WINDOW override), verify the 3 momentum gates are `on` + desk-ready, ping green/⚠ — the momentum gates MUST be armed to catch the opening run |
 Crons C/D/E post-date this doc's original 2-cron ritual; if their verbatim prompts aren't to hand on a cold start, recover C from the hour_watch behaviour above, D from the grind-exit shadow scope, E from memory `nightly-router-selector-review` + the two scripts' `--help`/docstrings.
 
 The heavy lifting lives in a **tested, read-only** collector — the cron prompts
