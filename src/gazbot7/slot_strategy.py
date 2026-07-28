@@ -62,6 +62,12 @@ class SlotSpec:
                                            # (aligned-trend→WIDE lock-chandelier, chop→TIGHT k1.5, counter→k2.0).
                                            # Validated regime-only, +$756 OOS/6-of-7d (exit_selector_sweep.py).
                                            # Overrides `exit` when True. Revert: set False (falls back to `exit`).
+    veto_counter_regime: bool = False      # ★2026-07-28 (operator): SKIP the OPEN when regime-at-entry is
+                                           # COUNTER (_regime_mode=='mid' — a fade fired against a local trend).
+                                           # exhaustion_short bled −$190/56tr shorting INTO up-trends (225-tr shadow
+                                           # reprice); the router's DAY-path UP_OFF misses these (0 fires, see
+                                           # memory router-exhaustion-short-null) so the cut is at ENTRY on the
+                                           # LOCAL regime the selector already reads. Revert: set False.
 
 
 def grind_long_short_slots() -> list[SlotSpec]:
@@ -120,7 +126,8 @@ def tournament_slots() -> list[SlotSpec]:
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
         SlotSpec("exhaustion_short", "exhaustion", "SHORT",   # ★2026-07-25 rehab REVIVED (swapped in for rgv_long): FIXED 8pt-stop/12pt-target exit (its FootprintShadow design — ATR-2R was too wide for a snap-back), give-back off, ER ceiling dropped (bug-based). Edge = flow-absorption. Router-unmanaged.
                  params={}, sizing="flat", base_size=2,
-                 exit="fixed", fixed_stop_pt=8.0, fixed_target_pt=12.0, giveback_enabled=False),
+                 exit="fixed", fixed_stop_pt=8.0, fixed_target_pt=12.0, giveback_enabled=False,
+                 veto_counter_regime=True),   # ★2026-07-28: skip shorts fired INTO a local up-trend (counter −$190/56tr)
         SlotSpec("abs_veto_short", "thrust", "SHORT",  # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
@@ -199,9 +206,15 @@ class SlotStrategy:
                 self._peak[spec.tag] = 0.0
                 if self._gate_fires(spec, f, tape_net, footprint):
                     qty = self._size(spec, bars, f.atr)
+                    # regime-at-entry (local trailing bars) — drives the exit-width selector AND the
+                    # counter-regime entry veto; compute once when either needs it.
+                    mode = (self._regime_mode(spec.side, bars)
+                            if (spec.adaptive_exit or spec.veto_counter_regime) else None)
+                    if spec.veto_counter_regime and mode == "mid":      # fade fired INTO a local trend → skip
+                        continue
                     if qty > 0:
                         if spec.adaptive_exit:                          # freeze the exit width at entry
-                            self._exit_mode[spec.tag] = self._regime_mode(spec.side, bars)
+                            self._exit_mode[spec.tag] = mode
                         intents.append({"action": "OPEN", "slot": spec.tag, "gate": spec.tag,
                                         "side": spec.side, "qty": qty, "price": price,
                                         "meta": {"entry_atr": f.atr,

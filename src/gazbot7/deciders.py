@@ -104,7 +104,7 @@ def compute_features(bars: list[Bar]) -> Features:
 #   exhaustion_short  CEIL 0.05 — tick+L2 duck edge is 0.0–0.05 (+$295). ⚠ fixed-exit-derived.
 # ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
-ER_FLOOR = {"abs_veto_long": 0.20}  # ★2026-07-25: abs_veto_LONG wants ER≥0.20. grind_long ER floor DROPPED (rehab: ER is a FAKE filter — runners & false-starts have identical ER 0.14; the ATR floor is grind's real lever). thrust_short retired.
+ER_FLOOR = {"abs_veto_long": 0.20}  # ★2026-07-25: abs_veto_LONG wants ER≥0.20. grind_long ER floor DROPPED (rehab: ER is a FAKE filter — runners & false-starts have identical ER 0.14; the ATR floor is grind's real lever). thrust_short retired. ★2026-07-28: an exhaustion_short ER floor 0.08 was tried+REVERTED same day — the 225-trade shadow reprice under the live exit showed the real bleed is DIRECTIONAL (counter-trend short-into-uptrend −$190/56tr), NOT low-ER (chop ≈breakeven). Fixed via a counter-regime ENTRY veto in slot_strategy instead (see veto_counter_regime).
 ER_CEIL: dict = {}  # ★2026-07-25: BOTH footprint-gate ER ceilings DROPPED — capitulation_long (0.10) AND exhaustion_short (0.05) traced to the SAME footprint_backtest_duck.py DuckDB float-division bug (ts/5000*5000 never buckets → garbage ER); both revived on the exit fix instead. No gate uses an ER ceiling now.
 # ★ 2026-07-24 (operator): ER band REMOVED for rgv_long/rgv_short — the 35s ABSORPTION-CONFIRM
 # (below) subsumes it (a Friday-lab grid found them near-identical at 35/40s: the confirm reads
