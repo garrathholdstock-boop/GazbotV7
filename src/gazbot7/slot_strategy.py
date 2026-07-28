@@ -108,9 +108,9 @@ def tournament_slots() -> list[SlotSpec]:
         SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-26 deploy (§356): threshold-chandelier (loose start_k=3.5 until 6.0R, then firm lock_k=0.5) captures the trend tail — +$1,782 full/+$747 wk30, robust 15/15 LODO, BEATS scalp-2R +$508+. ATR≥24 + ER floor DROPPED (deciders); no give-back.
                  params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
                  exit="chandelier_lock", chandelier_start_k=3.5, lock_r=6.0, lock_k=0.5, giveback_enabled=False),
-        SlotSpec("capitulation_long", "capitulation", "LONG",   # ★2026-07-25 rehab: require_flip=True IS the edge (wait for buyers to step in); give-back off; ATR≥10 + ER ceiling DROPPED (was bug-based)
+        SlotSpec("capitulation_long", "capitulation", "LONG",   # ★2026-07-25 rehab: require_flip=True IS the edge (wait for buyers to step in); give-back off; ATR≥10 + ER ceiling DROPPED (was bug-based). ★2026-07-28: base_size 2→1 (operator) — it's the gate most exposed to fast directional drops (fades a knife); a fast-move stop split its 2 lots (1 at the stop, 1 −28pt deeper) for −$147 07-28. Halve the exposure.
                  params={"climax_min": 2.5, "dom_min": 0.6, "require_flip": True},
-                 sizing="flat", base_size=2, exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
+                 sizing="flat", base_size=1, exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
         SlotSpec("abs_veto_long", "thrust", "LONG",   # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
