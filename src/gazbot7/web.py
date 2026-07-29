@@ -266,15 +266,40 @@ def mnq_json(store_path):
     return out
 
 
+def _disabled_gates(data_dir):
+    """Gates switched OFF in ``gate_switches.env`` — the live intraday on/off the tournament
+    re-reads. Mirrors ``tournament.parse_switches`` (kept in sync by
+    tests/test_web.py::test_disabled_gates_matches_tournament_parser); reimplemented here so
+    the stdlib-only web server never imports the trading stack. Missing/bad file → none off."""
+    off = set()
+    try:
+        with open(os.path.join(data_dir, "gate_switches.env")) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                if v.strip().lower() in ("off", "0", "no", "false", "disable", "disabled"):
+                    off.add(k.strip())
+    except OSError:
+        pass
+    return off
+
+
 # ── /api/futures/tournament — the per-gate scoreboard (roster × trades × live) ─
 def tournament_json(store_path, data_dir, cap_path):
     """The tournament scoreboard: the full 6-gate roster (from ``tournament_slots()`` so
     0-trade gates still show), each gate's today-realized (from ``trades``) + open-unrealized
     (from the live ``status.json`` slots × last price), ranked by total, bottom-2 flagged for
     relegation. Plus a desk-level safety block for the header pill. Read-only."""
-    from .slot_strategy import tournament_slots
-
-    roster = [(s.tag, s.side) for s in tournament_slots()]
+    from .slot_strategy import grind_long_short_slots, scaleout_slots, tournament_slots
+    # ★2026-07-29: roster follows the LIVE slate (GAZBOT7_TOURNAMENT_SLATE), so the dual-slot _A/_B
+    # sub-slots show. Was hardcoded tournament_slots() → the scaleout slate's _A/_B trades were invisible
+    # and the scoreboard didn't add up (abs_veto_short showed only pre-deploy −135, the +768 win hidden).
+    _slate_fn = {"tournament": tournament_slots, "grind2": grind_long_short_slots,
+                 "scaleout": scaleout_slots}.get(os.environ.get("GAZBOT7_TOURNAMENT_SLATE", "tournament"), tournament_slots)
+    roster = [(s.tag, s.side) for s in _slate_fn()]
+    disabled = _disabled_gates(data_dir)   # live intraday on/off (gate_switches.env)
     st = _status(data_dir)
     last = (_features(cap_path) or {}).get("last")
     raw = st.get("position")
@@ -288,7 +313,7 @@ def tournament_json(store_path, data_dir, cap_path):
         c = _conn(store_path)
         for r in _strategy_trades(c, since_iso=pnl.paris_day_start_utc(now)):
             d = stats.setdefault(r["gate"] or "?",
-                                 {"realized": 0.0, "n": 0, "wins": 0, "gw": 0.0, "gl": 0.0, "exits": {}})
+                                 {"realized": 0.0, "n": 0, "wins": 0, "gw": 0.0, "gl": 0.0, "exits": {}, "side": r["side"]})
             d["realized"] += r["pnl_usd"]
             d["n"] += 1
             if r["pnl_usd"] > 0:
@@ -308,6 +333,14 @@ def tournament_json(store_path, data_dir, cap_path):
         c.close()
     except Exception:
         pass
+
+    # ★ union: any gate that ACTUALLY traded today but isn't in the live-slate roster (e.g. pre-deploy
+    # base-gate trades, or a web-vs-desk slate mismatch) still shows — so the scoreboard reflects reality
+    # and always adds up, regardless of the web service's env.
+    _rtags = {t for t, _ in roster}
+    for _g, _dd in stats.items():
+        if _g not in _rtags:
+            roster.append((_g, _dd.get("side", "SHORT")))
 
     rows = []
     for gate, side in roster:
@@ -331,6 +364,7 @@ def tournament_json(store_path, data_dir, cap_path):
         avg_loss = round(wd["gl"] / w_losses) if w_losses else None
         rows.append({
             "gate": gate, "side": side, "live": slot is not None,
+            "enabled": gate not in disabled,   # armed to take NEW entries (gate_switches.env)
             "qty": qty, "entry": entry, "stop": (slot.get("stop_price") if slot else None),
             "protected": (bool(slot.get("stop_coid")) if slot else None),
             "open_unreal": open_unreal, "realized": realized, "total": round(realized + open_unreal, 2),
@@ -358,6 +392,8 @@ def tournament_json(store_path, data_dir, cap_path):
             "realized_today": round(sum(r["realized"] for r in rows), 2),
             "open_unreal": round(sum(r["open_unreal"] for r in rows), 2),
             "live_count": sum(1 for r in rows if r["live"]), "roster_count": len(rows),
+            "enabled_count": sum(1 for r in rows if r["enabled"]),
+            "benched": sorted(g for g, _ in roster if g in disabled),
             "halted": halted, "any_naked": any_naked, "unverified_cycles": unverified,
             "flat": not live, "safety": level, "last": last,
         },
