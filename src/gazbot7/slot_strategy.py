@@ -16,7 +16,7 @@ the single-position ``strategy._manage``). Clean-room.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from .deciders import (
     Position,
@@ -135,6 +135,35 @@ def tournament_slots() -> list[SlotSpec]:
     for s in specs:            # ★2026-07-27: regime-3-exit selector LIVE roster-wide (revert: set False)
         s.adaptive_exit = True
     return specs
+
+
+# ★2026-07-29 (operator): DUAL-SLOT SCALE-OUT — the unified profit exit. Each gate splits into TWO
+# independent 1-lot sub-slots that BOTH fire on the same signal: Lot A banks a fixed-R scalp (guaranteed
+# floor), Lot B rides the chandelier for the tail. Replaces the mixed per-gate exits. base-name benching /
+# the 55s veto / the exhaustion confirm all key on the BASE gate (tournament._base strips the _A/_B suffix).
+# BIG-RUN gates → A@2.5R + B wide lock-chandelier; FADERS → A@1.5R + B tight k1.5 chandelier.
+# Revert: GAZBOT7_TOURNAMENT_SLATE=tournament (back to the single-position first-to-fire slate).
+_BIG_RUN = frozenset({"grind_long", "abs_veto_short", "abs_veto_long", "exhaustion_short"})
+
+
+def scaleout_slots() -> list[SlotSpec]:
+    """Dual-slot scale-out slate (12 sub-slots). Inherits each base gate's entry config (kind/side/
+    params/vetoes) via ``replace`` — single source of truth, no drift — overriding only tag+exit."""
+    out: list[SlotSpec] = []
+    for base in tournament_slots():
+        big = base.tag in _BIG_RUN
+        a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
+                    exit="scalp", target_r=(2.5 if big else 1.5), stop_atr_mult=1.0, giveback_enabled=False)
+        if big:   # Lot B: wide lock-chandelier — ride the fat tail
+            b = replace(base, tag=f"{base.tag}_B", sizing="flat", base_size=1, adaptive_exit=False,
+                        exit="chandelier_lock", chandelier_start_k=3.5, lock_r=6.0, lock_k=0.5,
+                        giveback_enabled=False)
+        else:     # Lot B (faders): tight fixed k1.5 chandelier — bank the snap-back
+            b = replace(base, tag=f"{base.tag}_B", sizing="flat", base_size=1, adaptive_exit=False,
+                        exit="chandelier", vol_adaptive_chandelier=False, chandelier_start_k=1.5,
+                        chandelier_min_k=0.5, chandelier_tighten=0.75, giveback_enabled=False)
+        out += [a, b]
+    return out
 
 
 class SlotStrategy:

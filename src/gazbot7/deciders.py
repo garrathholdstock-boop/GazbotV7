@@ -140,6 +140,19 @@ VETO_SECS = 55            # wait this long after the thrust before entering
 VETO_MAX_SECS = 75        # abandon a thrust signal older than this (a tape gap ate the window)
 VETO_FLOW_MIN = 50.0      # net-aggressor size for the exit_absorption fakeout test (shadow default)
 
+# ── 5s CONFIRM-VETO on exhaustion_short (LIVE 2026-07-29, operator) ──────────────────────────
+# The fade's own "did the absorption hold?" check: after the exhaustion SHORT signal, WAIT
+# EXH_CONFIRM_SECS and take it ONLY if the short has NOT gone adverse by > EXH_ADVERSE_PT (i.e.
+# buyers didn't keep pushing = they really were exhausted). A short delay is the whole trick — long
+# enough to catch the immediate failure, short enough to keep the winners' head-start.
+# Backtest (89 faithful exhaustion_rev SHORT shadow fires, native 8/12/120s reprice): 5s/5pt cut 27
+# fast-failing shorts, 0 winners cut, book +$9 → +$236, better on 4/5 days. ⚠ 1wk/one-regime fit;
+# net-flow log running in parallel for the net_min tune. Revert: empty EXH_CONFIRM_GATES.
+EXH_CONFIRM_GATES: frozenset = frozenset({"exhaustion_short"})
+EXH_CONFIRM_SECS = 5           # wait this long after the signal before entering
+EXH_CONFIRM_MAX_SECS = 20      # abandon a signal older than this (the turn's gone)
+EXH_ADVERSE_PT = 5.0           # skip if price moved this many pt AGAINST the fade during the wait
+
 
 def confirm_absorption(side: str, net_flow: float, price_change: float) -> bool:
     """True if the faded move is being ABSORBED → take the fade. LONG fade (rgv_long): heavy net

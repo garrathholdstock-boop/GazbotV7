@@ -119,6 +119,17 @@ class FootprintShadow:
         self._cfg = cfg
         self._name = name
         self._open: dict | None = None
+        # ★2026-07-28 (operator): net-flow instrumentation — log the entry net_signed with every
+        # fire so the net_min threshold (400 vs 450 vs 500) can be tuned from real data. Own table,
+        # additive, best-effort (never breaks the shadow loop). Join to shadow_trades on trade_id.
+        try:
+            self._store.execute(
+                "CREATE TABLE IF NOT EXISTS footprint_signal_net ("
+                "trade_id INTEGER, strategy TEXT, side TEXT, entry_ts INTEGER, "
+                "net_signed REAL, price_move REAL, bid1 REAL, ask1 REAL)")
+            self._store.commit()
+        except Exception:
+            pass
 
     def on_cycle(self, cap, now_ms: int) -> None:
         if self._open is not None:
@@ -139,7 +150,9 @@ class FootprintShadow:
         sig = exhaustion_signal(net, move, bs or 0, as_ or 0, bp, ap, self._cfg)
         if sig is not None:
             side, entry = sig
-            self._open = {"side": side, "entry_ts": now_ms // 1000, "entry_price": entry}
+            self._open = {"side": side, "entry_ts": now_ms // 1000, "entry_price": entry,
+                          "net_signed": net, "price_move": move,
+                          "bid1": bs or 0.0, "ask1": as_ or 0.0}
 
     # ── exit: first 8pt stop / 12pt target on the tick path, else 120s time ──────
     def _try_close(self, cap, now_ms: int) -> None:
@@ -174,7 +187,7 @@ class FootprintShadow:
             gross = (exit_price - op["entry_price"]) * self._vpp
         else:
             gross = (op["entry_price"] - exit_price) * self._vpp
-        record_shadow_trade(
+        tid = record_shadow_trade(
             self._store,
             strategy=self._name, symbol=self._sym, side=op["side"], qty=1.0,
             entry_ts=op["entry_ts"], entry_price=op["entry_price"],
@@ -183,3 +196,14 @@ class FootprintShadow:
             exit_ts=exit_ts, exit_price=exit_price, exit_reason=reason,
             ceiling_pnl=gross - self._fee,
         )
+        # net-flow log (best-effort, observe-only — never break recording)
+        try:
+            self._store.execute(
+                "INSERT INTO footprint_signal_net "
+                "(trade_id, strategy, side, entry_ts, net_signed, price_move, bid1, ask1) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (tid, self._name, op["side"], op["entry_ts"], op.get("net_signed"),
+                 op.get("price_move"), op.get("bid1"), op.get("ask1")))
+            self._store.commit()
+        except Exception:
+            pass

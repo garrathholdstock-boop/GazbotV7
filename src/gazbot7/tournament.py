@@ -37,6 +37,10 @@ from .deciders import (
     CONFIRM_MAX_SECS,
     CONFIRM_SECS,
     ER_HOLD,
+    EXH_ADVERSE_PT,
+    EXH_CONFIRM_GATES,
+    EXH_CONFIRM_MAX_SECS,
+    EXH_CONFIRM_SECS,
     VETO_FLOW_MIN,
     VETO_GATES,
     VETO_MAX_SECS,
@@ -53,7 +57,7 @@ from .deciders import (
 from .footprint import footprint_summary
 from .ipc import MD_STREAM, T_BAR, T_TAPE, Subscriber
 from .sdnotify import sd_notify
-from .slot_strategy import SlotStrategy, grind_long_short_slots, tournament_slots
+from .slot_strategy import SlotStrategy, grind_long_short_slots, scaleout_slots, tournament_slots
 
 # The tournament REPLACES gazbot7-core as the desk, so it takes the master clientId 0
 # (full order visibility/adoption) — core must be stopped first (one account, no co-trade).
@@ -77,6 +81,13 @@ def parse_switches(text: str) -> set:
         if v.strip().lower() in ("off", "0", "no", "false", "disable", "disabled"):
             off.add(k.strip())
     return off
+
+
+def _base(slot: str) -> str:
+    """Base gate name of a (possibly dual-slot) tag: 'exhaustion_short_A' → 'exhaustion_short'.
+    So base-name benching / the 55s veto / the exhaustion-confirm apply to BOTH sub-slots, while a
+    full '_A'/'_B' tag still matches itself for granular control. A non-dual tag is returned as-is."""
+    return slot[:-2] if (slot.endswith("_A") or slot.endswith("_B")) else slot
 
 
 def read_disabled(path: str, cache: dict) -> set:
@@ -189,6 +200,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     audit_stale_paged = False
     pending_confirm: dict = {}   # ★ rgv 35s absorption-confirm buffer: slot → (armed_ms, intent)
     pending_veto: dict = {}      # ★ abs_veto 55s momentum-veto buffer: slot → (armed_ms, intent)
+    pending_exh: dict = {}       # ★ exhaustion 5s confirm-veto buffer: slot → (armed_ms, intent)
     if place_live:
         sd_notify("READY=1")                       # Type=notify — tournament is up (no-op off systemd)
     try:
@@ -235,7 +247,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 if disabled:   # a disabled gate takes NO new entries; its open position still exits normally
                     kept = []
                     for i in intents:
-                        if i.get("action") == "OPEN" and i.get("slot") in disabled:
+                        if i.get("action") == "OPEN" and (i.get("slot") in disabled or _base(i.get("slot", "")) in disabled):
                             # SUPPRESSED-OPEN: record what the gate WOULD have traded — the exact
                             # counterfactual the filter used to drop SILENTLY. Greppable for a clean
                             # gated-vs-ungated ("everything left on") P&L, live, per day.
@@ -288,7 +300,7 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 fired_now = {i.get("slot") for i in intents if i.get("action") == "OPEN"}
                 vout = []
                 for i in intents:
-                    if i.get("action") == "OPEN" and i.get("slot") in VETO_GATES:
+                    if i.get("action") == "OPEN" and _base(i.get("slot", "")) in VETO_GATES:
                         pending_veto.setdefault(i["slot"], (now_ms, i))   # arm once; do NOT emit yet
                     else:
                         vout.append(i)
@@ -323,6 +335,45 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                         del pending_veto[slot]
                         log.info("abs_veto: %s clean thrust after %.0fs → OPEN @%s", slot, age, j["price"])
                 intents = vout
+                # ★ exhaustion 5s CONFIRM-VETO (LIVE 2026-07-29, operator): buffer an exhaustion_short
+                # OPEN, wait EXH_CONFIRM_SECS, take it ONLY if the fade has NOT gone adverse by more
+                # than EXH_ADVERSE_PT over the window (buyers still pushing = absorption failed → skip).
+                # Backtest: cuts fast-failing shorts, 0 winners cut, +$9→+$236 / 89 faithful shadow fires.
+                # SAFETY: any read error / <3 ticks → default-SKIP (never a bad fill); stale → drop.
+                eout = []
+                for i in intents:
+                    if i.get("action") == "OPEN" and _base(i.get("slot", "")) in EXH_CONFIRM_GATES:
+                        pending_exh.setdefault(i["slot"], (now_ms, i))   # arm once; do NOT emit yet
+                    else:
+                        eout.append(i)
+                for slot in list(pending_exh):
+                    armed_ms, intent = pending_exh[slot]
+                    age = (now_ms - armed_ms) / 1000.0
+                    if age < EXH_CONFIRM_SECS:
+                        continue                          # still watching the confirm window
+                    adverse = True                        # default-SKIP on any read failure / thin tape
+                    try:
+                        rows = cap.execute(
+                            "SELECT price FROM ticks WHERE symbol=? AND ts_ms>=? AND ts_ms<? ORDER BY ts_ms",
+                            (cfg.symbol, armed_ms, now_ms)).fetchall()
+                        if len(rows) >= 3:
+                            sig_px = intent.get("price")
+                            if intent.get("side") == "SHORT":
+                                adverse = (max(r[0] for r in rows) - sig_px) > EXH_ADVERSE_PT
+                            else:                          # LONG fade: adverse = price fell
+                                adverse = (sig_px - min(r[0] for r in rows)) > EXH_ADVERSE_PT
+                    except Exception as e:
+                        log.warning("exh confirm read failed %s: %s — skipping", slot, e)
+                    if adverse or age > EXH_CONFIRM_MAX_SECS:
+                        del pending_exh[slot]
+                        log.info("exh confirm: %s adverse/stale after %.0fs → vetoed", slot, age)
+                    else:
+                        j = dict(intent)
+                        j["price"] = tape.get("last") or intent.get("price")
+                        eout.append(j)
+                        del pending_exh[slot]
+                        log.info("exh confirm: %s held after %.0fs → OPEN @%s", slot, age, j["price"])
+                intents = eout
                 if not intents:
                     continue
                 if place_live:
@@ -385,7 +436,8 @@ async def _build_live(cfg: RunConfig, gates):
     return core, gw
 
 
-_SLATES = {"tournament": tournament_slots, "grind2": grind_long_short_slots}
+_SLATES = {"tournament": tournament_slots, "grind2": grind_long_short_slots,
+           "scaleout": scaleout_slots}   # ★2026-07-29 dual-slot scale-out (A@R scalp + B chandelier)
 
 
 def main() -> None:  # `python -m gazbot7.tournament`  (GAZBOT7_TOURNAMENT_LIVE=1 to trade)
