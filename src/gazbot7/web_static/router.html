@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROUTER — GAZBOT V7</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1b222b; --line:#232b35;
+    --ink:#c9d3de; --mut:#7d8794; --dim:#535d69;
+    --amber:#e0a94a; --grn:#46b95c; --grn-bg:#12351d; --red:#ef5a44; --red-bg:#3a1712;
+    --blu:#4a9ee0; --blu-bg:#122a3a; --gry:#3a434e;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:20px 16px 60px}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .pos{color:var(--grn)} .neg{color:var(--red)} .mutx{color:var(--mut)}
+  .mast{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:8px}
+  .mast h1{font-size:22px;letter-spacing:.28em;font-weight:700;margin:0;color:var(--amber)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--grn);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(70,185,92,.5)}70%{box-shadow:0 0 0 7px rgba(70,185,92,0)}100%{box-shadow:0 0 0 0 rgba(70,185,92,0)}}
+  @media (prefers-reduced-motion:reduce){.dot{animation:none}}
+  .sub{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .daychip{margin-left:auto;font-family:var(--mono);font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid var(--gry)}
+  .daychip.up{background:var(--grn-bg);color:var(--grn);border-color:#245231}
+  .daychip.dn{background:var(--red-bg);color:var(--red);border-color:#5a2419}
+  .daychip small{color:var(--mut);font-size:11px}
+  .upd{font-size:10px;color:var(--dim);font-family:var(--mono);margin:0 0 18px}
+  h2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);font-weight:600;margin:24px 0 10px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .regime{padding:14px 16px}
+  .verdict{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.06em;background:var(--blu-bg);color:var(--blu);border:1px solid #1c4258;padding:4px 10px;border-radius:6px;margin-bottom:12px}
+  .clocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .clk{background:var(--panel2);padding:9px 12px}
+  .clk .lab{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+  .clk .val{font-family:var(--mono);font-size:20px;line-height:1.2;margin-top:2px}
+  .clk .tag{font-size:10px;font-family:var(--mono)}
+  .tg-trend{color:var(--amber)} .tg-mix{color:var(--mut)} .tg-chop{color:var(--blu)}
+  .metrics{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;font-family:var(--mono);font-size:13px}
+  .metrics b{color:var(--mut);font-weight:400;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .rng{margin-top:14px}
+  .rngbar{position:relative;height:26px;background:linear-gradient(90deg,var(--red-bg),#1b222b 50%,var(--grn-bg));border:1px solid var(--line);border-radius:6px}
+  .rngbar .mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+  .rngbar .cap{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--mut);padding:0 6px}
+  .rngbar .cL{left:0} .rngbar .cR{right:0}
+  .explain{padding:12px 14px;margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:6px;font-size:13px}
+  .explain b{color:var(--amber)}
+  .gates{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid #1b2029;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .gname{font-family:var(--mono);font-weight:600}
+  .mech{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;letter-spacing:.04em}
+  .on{background:var(--grn-bg);color:var(--grn);border:1px solid #245231}
+  .off{background:#1b2029;color:var(--mut);border:1px solid var(--gry)}
+  .reason{color:var(--mut);font-size:12px}
+  td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .shad{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .sfam{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 13px}
+  .sfam .sl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .sfam .sv{font-family:var(--mono);font-size:17px;margin-top:2px}
+  .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .rule{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .rule .rh{font-family:var(--mono);font-size:12px;margin-bottom:6px}
+  .rule.arm .rh{color:var(--grn)} .rule.bench .rh{color:var(--red)} .rule.keep .rh{color:var(--blu)}
+  .rule p{margin:0;font-size:12.5px}
+  .rule code{font-family:var(--mono);color:var(--amber);font-size:12px}
+  .stream{font-family:var(--mono);font-size:12px}
+  .ev{display:grid;grid-template-columns:52px 74px 1fr;gap:10px;padding:7px 12px;border-bottom:1px solid #1b2029;align-items:baseline}
+  .ev:last-child{border-bottom:none}
+  .ev .t{color:var(--dim)} .ev .st{font-size:10px;letter-spacing:.04em} .ev .txt{color:var(--mut)}
+  .ev.chg{background:rgba(224,169,74,.06)} .ev.chg .txt{color:var(--ink)}
+  .st-hold{color:var(--dim)} .st-chg{color:var(--amber);font-weight:600}
+  .hold{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .slot{background:var(--panel);border:1px dashed var(--gry);border-radius:8px;padding:14px;min-height:64px;display:flex;flex-direction:column;justify-content:center}
+  .slot.filled{border:1px solid #245231;background:var(--grn-bg)}
+  .slot .em{color:var(--dim);font-family:var(--mono);font-size:12px}
+  .slot .sg{font-family:var(--mono);font-weight:600}
+  .slot .sd{font-size:11px;color:var(--mut);font-family:var(--mono);margin-top:3px}
+  .foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <h1>ROUTER</h1>
+    <span class="live"><span class="dot"></span>live · 5-min cadence</span>
+    <span class="sub">GAZBOT V7 · MNQ · PAPER · auto-router OFF (Claude owns switches)</span>
+    <span class="daychip up" id="daychip">day —</span>
+  </div>
+  <p class="upd" id="upd">loading…</p>
+
+  <h2>Regime read — which clock are you looking at?</h2>
+  <div class="panel regime">
+    <span class="verdict" id="verdict">—</span>
+    <div class="clocks">
+      <div class="clk"><div class="lab">30-min ER · gate / dashboard clock</div><div class="val tg-trend" id="er30">—</div><div class="tag tg-trend">per leg = looks like trend</div></div>
+      <div class="clk"><div class="lab">Day ER · full session</div><div class="val tg-chop" id="erday">—</div><div class="tag tg-chop">round-trip = chop</div></div>
+      <div class="clk"><div class="lab">Day bias · net from Paris open</div><div class="val" id="daynet">—</div><div class="tag mutx" id="biaslab">—</div></div>
+    </div>
+    <div class="metrics">
+      <span><b>ATR</b><br><span class="num" id="atr">—</span></span>
+      <span><b>Price</b><br><span class="num" id="last">—</span></span>
+      <span><b>Rotation range (3h)</b><br><span class="num" id="rng">—</span></span>
+    </div>
+    <div class="rng"><div class="rngbar"><div class="mk" id="mk" style="left:50%"></div><span class="cap cL" id="rlo">—</span><span class="cap cR" id="rhi">—</span></div></div>
+    <div class="explain">
+      <b>Why "chop" when the dashboard shows ER 0.30–0.50?</b> Those are different clocks. The 30-min ER is high because each intraday <b>leg</b> is a clean directional half-hour push — but the legs <b>alternate</b> and cancel, so over the session price round-trips inside its band → day-ER stays near 0.03. That <em>is</em> chop: real short legs that net nowhere. It's why "clean trend hours" keep faking, and why momentum gates buy the top / sell the bottom of a leg right before it rotates. The router runs momentum only when the legs <b>sustain</b>, not when they alternate.
+    </div>
+  </div>
+
+  <h2>Gate board — on / off + why</h2>
+  <div class="panel gates">
+    <table><thead><tr><th>Gate</th><th>State</th><th>Reason</th><th style="text-align:right">Live&nbsp;$</th></tr></thead>
+    <tbody id="gatebody"></tbody></table>
+  </div>
+
+  <h2>Shadow cross-check — unbenched counterfactual (today)</h2>
+  <div class="shad" id="shad"></div>
+
+  <h2>Flip rules — what the router is waiting for</h2>
+  <div class="rules">
+    <div class="rule arm"><div class="rh">▲ RE-ARM momentum longs</div><p>grind_long + abs_veto_long when price <code>breaks &gt; range top</code> clean <b>AND</b> the momentum-long shadow stops bleeding.</p></div>
+    <div class="rule arm"><div class="rh">▼ RE-ARM shorts</div><p>abs_veto / exhaustion_short when <code>day-bias flips &lt; +40</code> toward down <b>AND</b> short shadow goes green. rgv_short only on an up-stretch that fails.</p></div>
+    <div class="rule bench"><div class="rh">✕ BENCH a gate</div><p>Recent trades show a <code>wall of STOP</code> + wrong mechanism for the regime, <b>or</b> the gate goes <code>net-red live</code>.</p></div>
+    <div class="rule keep"><div class="rh">● KEEP through chop</div><p>Reversion (capitulation_long) stays armed — the one mechanism with a green shadow in a rotation.</p></div>
+  </div>
+
+  <h2>Activity stream — every 5-min check</h2>
+  <div class="panel stream" id="stream"></div>
+
+  <h2 id="holdh">Holdings — 2 slots max (Lot A scalp · Lot B chandelier)</h2>
+  <div class="hold" id="hold"></div>
+
+  <div class="foot" id="foot">router_trial_log.txt is the source of truth · auto-refresh 20s</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const money=v=>v==null?"—":(v>=0?"+$":"−$")+Math.abs(v).toFixed(0);
+const cls=v=>v==null?"mutx":(v>=0?"pos":"neg");
+function held(s){if(s==null)return"";const m=Math.floor(s/60);return m<60?m+"m":Math.floor(m/60)+"h"+(m%60)+"m";}
+
+async function tick(){
+  let d;
+  try{ d=await (await fetch("api/futures/router",{cache:"no-store"})).json(); }
+  catch(e){ $("upd").textContent="connection lost — retrying…"; return; }
+  const r=d.regime||{}, day=d.day||{};
+  // masthead
+  const chip=$("daychip"), up=(day.pnl||0)>=0;
+  chip.className="daychip "+(up?"up":"dn");
+  chip.innerHTML=`day <span class="num">${money(day.pnl)}</span> &nbsp;<small>peak ${money(day.peak)} · ${day.flat?"flat":"holding"} · ${day.trades||0} tr</small>`;
+  $("upd").textContent="updated "+(d.ts||"").replace("T"," ").replace("+00:00","")+" UTC · "+(day.healthy?"healthy":"CHECK")+(day.halted?" · HALTED":"");
+  // regime
+  $("verdict").textContent=r.verdict||"—";
+  $("er30").textContent=r.er_30min==null?"—":r.er_30min.toFixed(2);
+  $("erday").textContent=r.day_er==null?"—":r.day_er.toFixed(2);
+  const dn=$("daynet"); dn.textContent=(r.day_net>0?"+":"")+(r.day_net==null?"—":r.day_net)+"pt";
+  dn.className="val "+(r.day_bias==="UP"?"pos":r.day_bias==="DOWN"?"neg":"mutx");
+  $("biaslab").textContent=r.day_bias||"—";
+  $("atr").textContent=r.atr_pts==null?"—":Math.round(r.atr_pts)+"pt"+(r.violence?" · "+r.violence:"");
+  $("last").textContent=r.last==null?"—":Math.round(r.last);
+  $("rng").textContent=(r.range_lo&&r.range_hi)?Math.round(r.range_lo)+"–"+Math.round(r.range_hi)+" · "+Math.round(r.range_hi-r.range_lo)+"pt":"—";
+  $("rlo").textContent=r.range_lo?Math.round(r.range_lo)+" lo":"";
+  $("rhi").textContent=r.range_hi?Math.round(r.range_hi)+" hi":"";
+  if(r.range_pos!=null)$("mk").style.left=r.range_pos+"%";
+  // gates
+  $("gatebody").innerHTML=(d.gates||[]).map(g=>`<tr>
+    <td><div class="gname">${g.name}</div><div class="mech">${g.family} · ${g.mech}</div></td>
+    <td><span class="pill ${g.on?"on":"off"}">${g.on?"ON":"OFF"}</span></td>
+    <td class="reason">${g.reason}</td>
+    <td class="n ${cls(g.live_pnl)}">${g.live_pnl==null?"—":money(g.live_pnl)}${g.trades?`<span class="mutx" style="font-size:10px"> ${g.trades}tr</span>`:""}</td></tr>`).join("");
+  // shadow
+  const sh=d.shadow||{};
+  $("shad").innerHTML=Object.keys(sh).map(k=>`<div class="sfam"><div class="sl">${k}</div><div class="sv ${cls(sh[k].pnl)}">${sh[k].pnl==null?"—":money(sh[k].pnl)}</div></div>`).join("")||`<div class="sfam"><div class="sl">shadow</div><div class="sv mutx">—</div></div>`;
+  // activity
+  $("stream").innerHTML=(d.activity||[]).map(e=>`<div class="ev ${e.is_change?"chg":""}">
+    <span class="t">${e.t}</span><span class="st ${e.is_change?"st-chg":"st-hold"}">${e.tag}</span>
+    <span class="txt">${e.text.replace(/</g,"&lt;")}</span></div>`).join("")||'<div class="ev"><span class="txt mutx">no activity yet</span></div>';
+  // holdings (pad to 2)
+  const hs=d.holdings||[];
+  let hh="";
+  for(let i=0;i<2;i++){const h=hs[i];
+    hh+=h?`<div class="slot filled"><div class="sg">${h.gate} ${h.side} ${h.qty}</div><div class="sd">@${Math.round(h.entry)} · stop ${h.stop?Math.round(h.stop):"—"} · ${held(h.held_s)} · <span class="${cls(h.pnl_usd)}">${money(h.pnl_usd)}</span>${h.protected?" · 🔒":" · ⚠"}</div></div>`
+       :`<div class="slot"><span class="em">slot ${i+1} — empty (flat)</span></div>`;}
+  $("hold").innerHTML=hh;
+}
+tick(); setInterval(tick, 20000);
+</script>
+</body>
+</html>

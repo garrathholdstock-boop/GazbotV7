@@ -531,6 +531,210 @@ def execution_json(store_path):
     return out
 
 
+# ── /api/futures/router — the intelligent-router panel (regime + gates + stream) ─
+_ROUTER_META = {  # gate → (family, mechanism, side)
+    "grind_long": ("momentum", "continuation", "LONG"),
+    "abs_veto_long": ("momentum", "thrust", "LONG"),
+    "capitulation_long": ("reversion", "flush-fade", "LONG"),
+    "exhaustion_short": ("reversion", "reversal", "SHORT"),
+    "abs_veto_short": ("momentum", "thrust", "SHORT"),
+    "rgv_short": ("fade", "turnback", "SHORT"),
+}
+
+
+def _router_reason(on, fam, side, is_chop, bias):
+    """Derive WHY a gate is on/off from its mechanism + the live regime — so it stays true
+    as the regime changes, rather than a hardcoded string that goes stale."""
+    if on:
+        if fam in ("reversion", "fade"):
+            return "armed — reversion fits a rotation"
+        return "armed — aligned momentum"
+    if side == "SHORT" and bias == "UP":
+        return "benched — counter to the up-day"
+    if side == "LONG" and bias == "DOWN":
+        return "benched — counter to the down-day"
+    if fam == "momentum" and is_chop:
+        return "benched — momentum bleeds in the rotation"
+    if fam == "fade" and side == "SHORT":
+        return "benched — needs an over-extension above VWAP; no setup"
+    return "benched"
+
+
+def router_json(store_path, cap_path, data_dir):
+    """The ROUTER watch panel: multi-clock regime read (why a 0.3 ER can still be chop),
+    per-gate on/off + reason + live P&L, the shadow-family cross-check, the timestamped
+    activity stream (from router_trial_log.txt), and the <=2 open slots. Read-only; every
+    section is independently guarded so one bad read never blanks the page."""
+    now = datetime.now(UTC)
+    out = {"ts": now.isoformat(timespec="seconds"), "regime": {}, "gates": [],
+           "shadow": {}, "activity": [], "holdings": [], "day": {}}
+    cl = []
+    try:
+        s = pnl.paris_day_start_utc(now)
+        ds_dt = datetime.fromisoformat(s) if isinstance(s, str) else s
+        ds_ep = int(ds_dt.timestamp())
+        ds_iso = ds_dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        ds_ep = int(now.timestamp()) - now.hour * 3600
+        ds_iso = now.strftime("%Y-%m-%dT00:00:00")
+
+    day_bias, day_net, day_er, day_hi, day_lo = "FLAT", 0.0, None, None, None
+    try:
+        c = _conn(cap_path)
+        rows = c.execute(
+            "SELECT bar_ts, close FROM bars WHERE symbol='MNQ' AND timeframe='5s' "
+            "AND bar_ts>=? AND bar_ts<=? ORDER BY bar_ts", (ds_ep, int(now.timestamp()))).fetchall()
+        c.close()
+        mins = {}  # last close per minute → same 1-min basis as desk_view, so day-ER matches
+        for r in rows:
+            mins[r["bar_ts"] // 60] = r["close"]
+        cl = [mins[k] for k in sorted(mins)]
+        if len(cl) >= 6:
+            day_net = cl[-1] - cl[0]
+            path = sum(abs(cl[i] - cl[i - 1]) for i in range(1, len(cl))) or 1.0
+            day_er = round(abs(cl[-1] - cl[0]) / path, 3)
+            day_hi, day_lo = max(cl), min(cl)
+            day_bias = "DOWN" if day_net < -40 else ("UP" if day_net > 40 else "FLAT")
+    except Exception:
+        pass
+    f = _features(cap_path) or {}
+    last = f.get("last") or (cl[-1] if cl else None)
+    r_lo, r_hi = day_lo, day_hi
+    try:
+        c = _conn(cap_path)
+        rr = c.execute("SELECT MIN(low) lo, MAX(high) hi FROM bars WHERE symbol='MNQ' "
+                       "AND timeframe='5s' AND bar_ts>=?", (int(now.timestamp()) - 3 * 3600,)).fetchone()
+        c.close()
+        if rr and rr["lo"] is not None:
+            r_lo, r_hi = rr["lo"], rr["hi"]
+    except Exception:
+        pass
+    er30 = f.get("er")
+    is_chop = (day_er is not None and day_er < 0.12)
+    verdict = ("TREND " + day_bias if (day_er or 0) >= 0.20
+               else "RANGE-ROTATION" if is_chop else "MIXED")
+    posn = None
+    if last is not None and r_hi is not None and r_hi > (r_lo or 0):
+        posn = round(max(0.0, min(1.0, (last - r_lo) / (r_hi - r_lo))) * 100)
+    out["regime"] = {
+        "verdict": verdict, "day_bias": day_bias, "day_net": round(day_net),
+        "day_er": day_er, "er_30min": round(er30, 2) if er30 is not None else None,
+        "atr_pts": f.get("atr_pts"), "violence": f.get("violence"), "last": last,
+        "range_lo": r_lo, "range_hi": r_hi, "range_pos": posn,
+        "day_hi": day_hi, "day_lo": day_lo,
+    }
+
+    live = {}
+    try:
+        c = _conn(store_path)
+        for r in c.execute("SELECT gate, ROUND(SUM(pnl_usd),1) p, COUNT(*) n FROM trades "
+                           "WHERE closed_at>=? GROUP BY gate", (ds_iso,)).fetchall():
+            g = r["gate"] or ""
+            base = g.rsplit("_", 1)[0] if g.rsplit("_", 1)[-1] in ("A", "B") else g
+            d = live.setdefault(base, [0.0, 0])
+            d[0] += r["p"] or 0.0
+            d[1] += r["n"]
+        c.close()
+    except Exception:
+        pass
+    switches = {}
+    try:
+        for ln in open(os.path.join(data_dir, "gate_switches.env")):
+            ln = ln.strip()
+            if ln and not ln.startswith("#") and "=" in ln:
+                k, v = ln.split("=", 1)
+                switches[k.strip()] = v.strip().lower() == "on"
+    except Exception:
+        pass
+    for name, (fam, sub, side) in _ROUTER_META.items():
+        on = switches.get(name, True)
+        lv = live.get(name)
+        out["gates"].append({
+            "name": name, "family": fam, "mech": sub, "side": side, "on": on,
+            "reason": _router_reason(on, fam, side, is_chop, day_bias),
+            "live_pnl": round(lv[0], 1) if lv else None, "trades": lv[1] if lv else 0,
+        })
+
+    try:
+        c = _conn(os.path.join(data_dir, "shadow.db"))
+        fam_map = {"momentum-long": ("grind_fast", "thrust_aligned", "thrust_loose", "thrust_fast", "chand_k25", "chand_k20"),
+                   "momentum-short": ("thrust_short_raw", "thrust_short_absveto55"),
+                   "reversion": ("capit_loose", "capit_mid", "rg_long_fast", "rg_long_fast_v")}
+        for fam, strats in fam_map.items():
+            q = ",".join("?" * len(strats))
+            r = c.execute(f"SELECT ROUND(SUM(ceiling_pnl),1) p, COUNT(*) n FROM shadow_trades "
+                          f"WHERE CAST(entry_ts AS BIGINT)>=? AND exit_price IS NOT NULL AND strategy IN ({q})",
+                          (ds_ep, *strats)).fetchone()
+            out["shadow"][fam] = {"pnl": r["p"], "n": r["n"]} if r and r["p"] is not None else {"pnl": None, "n": 0}
+        c.close()
+    except Exception:
+        pass
+
+    try:
+        lines = open(os.path.join(data_dir, "router_trial_log.txt")).read().splitlines()
+        for ln in reversed(lines[-24:]):
+            parts = [p.strip() for p in ln.split(" | ")]
+            if len(parts) < 3:
+                continue
+            t = parts[0][11:16] if len(parts[0]) >= 16 else parts[0]
+            kind = parts[1] if len(parts) > 1 else ""
+            changed, gist = "", ""
+            for p in parts:
+                if p.startswith("changed:"):
+                    changed = p[8:].strip()
+                if p.startswith("HOLISTIC:") or p.startswith("KEY:") or "VINDICAT" in p or "★" in p:
+                    gist = p.split(":", 1)[-1].strip() if ":" in p else p
+            if not gist:
+                gist = parts[2]
+            is_change = bool(changed) and changed.lower() not in ("none", "none (hold)")
+            tag = "EXTEND" if kind == "EXTEND" else ("CHG" if is_change else "hold")
+            out["activity"].append({"t": t, "tag": tag, "changed": changed,
+                                    "text": gist[:180], "is_change": is_change})
+    except Exception:
+        pass
+
+    try:
+        c = _conn(store_path)
+        rr = c.execute("SELECT pnl_usd FROM trades WHERE closed_at>=? ORDER BY closed_at", (ds_iso,)).fetchall()
+        c.close()
+        run, peak = 0.0, 0.0
+        for r in rr:
+            run += r["pnl_usd"] or 0.0
+            peak = max(peak, run)
+        out["day"] = {"pnl": round(run, 1), "peak": round(peak, 1), "trades": len(rr)}
+    except Exception:
+        out["day"] = {}
+    try:
+        st = _status(data_dir)
+        out["day"]["flat"] = bool(st.get("flat", not st.get("position")))
+        out["day"]["healthy"] = st.get("healthy")
+        out["day"]["halted"] = st.get("halted")
+        raw = st.get("position")
+        slots = raw if isinstance(raw, list) else ([raw] if isinstance(raw, dict) and not raw.get("flat") else [])
+        for s in slots:
+            entry = s.get("entry_price") or s.get("entry")
+            if entry is None:
+                continue
+            side = s.get("side") or ("SHORT" if (s.get("qty") or 0) < 0 else "LONG")
+            sign = 1 if side == "LONG" else -1
+            lastp = last or entry
+            held = None
+            if s.get("opened_at"):
+                try:
+                    held = int((now - datetime.fromisoformat(s["opened_at"])).total_seconds())
+                except (ValueError, TypeError):
+                    held = None
+            out["holdings"].append({
+                "gate": s.get("gate", "—"), "side": side, "qty": abs(s.get("qty") or 1),
+                "entry": entry, "stop": s.get("stop_price") or s.get("stop"),
+                "pnl_usd": round(sign * (lastp - entry) * _VPP * abs(s.get("qty") or 1), 1),
+                "held_s": held, "protected": bool(s.get("stop_coid")),
+            })
+    except Exception:
+        pass
+    return out
+
+
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────
 def _shadow_block(vals):
     """The {n, real_pnl, win} block the shadow UI reads — honest net, win% or null."""
@@ -911,6 +1115,10 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._send(open(os.path.join(_STATIC, "reports.html"), "rb").read(), _CT[".html"])
                 elif path == "/cube" or path == "/cube/":
                     self._send(open(os.path.join(_STATIC, "cube.html"), "rb").read(), _CT[".html"])
+                elif path == "/router" or path == "/router/":
+                    self._send(open(os.path.join(_STATIC, "router.html"), "rb").read(), _CT[".html"])
+                elif path.startswith("/api/futures/router"):
+                    self._json(router_json(store_path, cap_path, data_dir))
                 elif path.startswith("/api/reports"):
                     self._json(reports_json(_STATIC))
                 elif path.startswith("/api/cube/available-days"):
