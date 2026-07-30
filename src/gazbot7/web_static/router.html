@@ -215,16 +215,16 @@ async function tick(){
     const badge = c.active ? '<span class="badge on">● ACTIVE · locked</span>'
                            : '<span class="badge arm">ARMING</span>';
     const note = c.active ? `locked to a tight <b>${c.k}×ATR</b> trail — banking the tail`
-               : (c.lock_r ? `needs <b>+${c.r_to_activate}R</b> more (peak ${c.peak_r}R / ${c.lock_r}R) to LOCK`
-                           : `trailing <b>${c.k}×ATR</b> (tightens as it runs)`);
+               : (c.lock_r ? `needs <b>+$${c.to_activate_usd}</b> more peak to LOCK (peak $${c.peak_usd} → $${c.lock_usd} target)`
+                           : `trailing <b>${c.k}×ATR</b> — tightens as it runs`);
     return `<div class="chcard ${c.active?'active':''}">
       <div class="chhead"><span class="g">${c.gate}</span> ${badge}</div>
       <div class="chprog"><div class="fill" style="width:${prog}%"></div></div>
       <div class="chnote">${note}</div>
-      <div class="chrow"><span class="l">now / peak</span><span>${c.cur_r}R / ${c.peak_r}R</span></div>
-      <div class="chrow"><span class="l">give-back (${c.k}×ATR)</span><span>${c.giveback_pts}pt · $${c.giveback_usd}</span></div>
-      <div class="chrow"><span class="l">exits at</span><span class="num">${c.exit_price}</span></div>
-      <div class="chrow"><span class="l">locked so far</span><span class="pos num">${money(c.locked_usd)}</span></div>
+      <div class="chrow"><span class="l">now / peak</span><span>$${c.cur_usd} / $${c.peak_usd} <span class="mutx">(${c.cur_r}R/${c.peak_r}R)</span></span></div>
+      <div class="chrow"><span class="l">give-back if it drops</span><span>$${c.giveback_usd} <span class="mutx">(${c.giveback_pts}pt, ${c.k}×ATR)</span></span></div>
+      <div class="chrow"><span class="l">exits @${c.exit_price} → banks</span><span class="pos num">${money(c.locked_usd)}</span></div>
+      <div class="chrow"><span class="l mutx">1R = $${c.r_usd}</span><span class="mutx">${c.side} · lock ${c.lock_r||'—'}R</span></div>
     </div>`;
   }).join("") : "";
 }

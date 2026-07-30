@@ -781,11 +781,16 @@ def router_json(store_path, cap_path, data_dir):
             giveback_pts = k * atr
             exit_fav = peakfav - giveback_pts   # fav level that fires CHANDELIER
             exit_price = entry + exit_fav if side == "LONG" else entry - exit_fav
+            r_usd = atr * _VPP * qty            # 1R in dollars (stop distance × $2/pt × qty)
             out["chandeliers"].append({
                 "gate": g, "side": side, "type": ctype, "armed": peakfav > 0, "active": bool(active),
                 "cur_r": round(cur_r, 2), "peak_r": round(peak_r, 2), "lock_r": lock_r,
-                "r_to_activate": r_to_go, "k": round(k, 2), "giveback_pts": round(giveback_pts, 1),
-                "giveback_usd": round(giveback_pts * _VPP * qty), "exit_price": round(exit_price, 1),
+                "r_to_activate": r_to_go, "k": round(k, 2),
+                "r_usd": round(r_usd), "cur_usd": round(cur_r * r_usd), "peak_usd": round(peak_r * r_usd),
+                "lock_usd": (round(lock_r * r_usd) if lock_r else None),
+                "to_activate_usd": (round(r_to_go * r_usd) if r_to_go else None),
+                "giveback_pts": round(giveback_pts, 1), "giveback_usd": round(giveback_pts * _VPP * qty),
+                "exit_price": round(exit_price, 1),
                 "peak_price": round(entry + peakfav if side == "LONG" else entry - peakfav, 1),
                 "locked_usd": round(max(0.0, exit_fav) * _VPP * qty),
             })
