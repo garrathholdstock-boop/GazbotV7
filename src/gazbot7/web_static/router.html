@@ -83,6 +83,10 @@
   .slot .em{color:var(--dim);font-family:var(--mono);font-size:12px}
   .slot .sg{font-family:var(--mono);font-weight:600}
   .slot .sd{font-size:11px;color:var(--mut);font-family:var(--mono);margin-top:3px}
+  .claimbtn{margin-top:9px;width:100%;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.04em;padding:7px;border-radius:6px;background:var(--amber);color:#1a1000;border:none;cursor:pointer}
+  .claimbtn:hover{filter:brightness(1.12)}
+  .claimbtn:active{transform:translateY(1px)}
+  .claimbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   .chand{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
   .chcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
   .chcard.active{border-color:var(--amber);box-shadow:0 0 0 1px rgba(244,194,115,.35)}
@@ -204,7 +208,7 @@ async function tick(){
   const hs=d.holdings||[];
   let hh="";
   for(let i=0;i<2;i++){const h=hs[i];
-    hh+=h?`<div class="slot filled"><div class="sg">${h.gate} ${h.side} ${h.qty}</div><div class="sd">@${Math.round(h.entry)} · stop ${h.stop?Math.round(h.stop):"—"} · ${held(h.held_s)} · <span class="${cls(h.pnl_usd)}">${money(h.pnl_usd)}</span>${h.protected?" · 🔒":" · ⚠"}</div></div>`
+    hh+=h?`<div class="slot filled"><div class="sg">${h.gate} ${h.side} ${h.qty}</div><div class="sd">@${Math.round(h.entry)} · stop ${h.stop?Math.round(h.stop):"—"} · ${held(h.held_s)} · <span class="${cls(h.pnl_usd)}">${money(h.pnl_usd)}</span>${h.protected?" · 🔒":" · ⚠"}</div><button class="claimbtn" onclick="claim('${h.gate}',${h.pnl_usd})">Claim profit ${money(h.pnl_usd)}</button></div>`
        :`<div class="slot"><span class="em">slot ${i+1} — empty (flat)</span></div>`;}
   $("hold").innerHTML=hh;
   // chandelier — Lot B tails
@@ -227,6 +231,16 @@ async function tick(){
       <div class="chrow"><span class="l mutx">1R = $${c.r_usd}</span><span class="mutx">${c.side} · lock ${c.lock_r||'—'}R</span></div>
     </div>`;
   }).join("") : "";
+}
+async function claim(gate, pnl){
+  const amt=(pnl>=0?"+$":"−$")+Math.abs(Math.round(pnl));
+  const pin=prompt(`CLAIM ${gate} — flatten this lot now and bank ${amt}?\n\nThis closes the slot at market (no new entries; the tail stops here).\nEnter PIN to confirm:`);
+  if(pin===null||pin==="") return;
+  let r;
+  try{ r=await (await fetch("api/control/claim",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({gate,pin})})).json(); }
+  catch(e){ alert("✗ request failed — try again"); return; }
+  alert(r.ok?`✓ ${r.msg}`:`✗ ${r.error}`);
+  if(r.ok) setTimeout(tick, 1500);
 }
 tick(); setInterval(tick, 20000);
 </script>

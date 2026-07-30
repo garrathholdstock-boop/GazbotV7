@@ -24,3 +24,5 @@ data/
 scratch/
 *.log
 backups/
+data/claim_pin.txt
+data/claim_requests.txt

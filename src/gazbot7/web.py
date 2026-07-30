@@ -799,6 +799,35 @@ def router_json(store_path, cap_path, data_dir):
     return out
 
 
+# ── POST /api/control/claim — operator "Claim profit" per-slot flatten ─────────
+def claim_post(body, data_dir):
+    """PIN-guarded per-slot flatten REQUEST. Verifies {pin} against data/claim_pin.txt
+    (server-side), then appends {gate} to data/claim_requests.txt for the tournament to
+    consume on its next manage cycle via the desk's OWN safe _flatten_slot. This web layer
+    NEVER touches positions/broker — zero ledger risk from here; the trading core owns the
+    actual flatten. Fat-finger guard, not real auth (fine for PAPER; not for real money)."""
+    try:
+        req = json.loads(body or b"{}")
+    except Exception:
+        return {"ok": False, "error": "bad request"}
+    gate = str(req.get("gate", "")).strip()
+    pin = str(req.get("pin", "")).strip()
+    if not gate:
+        return {"ok": False, "error": "no gate given"}
+    try:
+        want = open(os.path.join(data_dir, "claim_pin.txt")).read().strip()
+    except Exception:
+        return {"ok": False, "error": "claim PIN not set on server"}
+    if not want or pin != want:
+        return {"ok": False, "error": "wrong PIN"}
+    try:
+        with open(os.path.join(data_dir, "claim_requests.txt"), "a") as f:
+            f.write(gate + "\n")
+    except Exception as e:
+        return {"ok": False, "error": f"write failed: {e}"}
+    return {"ok": True, "gate": gate, "msg": f"claim requested — {gate} flattens on the next cycle"}
+
+
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────
 def _shadow_block(vals):
     """The {n, real_pnl, win} block the shadow UI reads — honest net, win% or null."""
@@ -1166,6 +1195,18 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
 
         def _json(self, obj):
             self._send(json.dumps(obj).encode(), "application/json")
+
+        def do_POST(self):
+            try:
+                path = urlparse(self.path).path
+                n = int(self.headers.get("Content-Length", "0") or 0)
+                body = self.rfile.read(n) if n else b""
+                if path == "/api/control/claim":
+                    self._json(claim_post(body, data_dir))
+                else:
+                    self._send(b"not found", "text/plain", 404)
+            except Exception as e:
+                self._send(f"error: {e}".encode(), "text/plain", 500)
 
         def do_GET(self):
             try:

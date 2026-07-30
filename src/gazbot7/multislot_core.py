@@ -388,6 +388,29 @@ class MultiSlotCore:
             elif self.over_max_hold(gate, now):
                 self._flatten_slot(gate, "MAX_HOLD")
 
+    def claim_check(self) -> None:
+        """Operator 'Claim profit' — read data/claim_requests.txt (one gate per line, written
+        by the dashboard's PIN-guarded button) and flatten each requested OPEN slot via the SAME
+        safe per-slot MKT close as the time-exits. Idempotent; the request file is truncated once
+        read (a request for an already-flat/closing slot is simply dropped)."""
+        if not self._cfg.place_live:
+            return
+        path = os.path.join(os.path.dirname(self._cfg.store_path) or ".", "claim_requests.txt")
+        try:
+            with open(path) as f:
+                gates = [ln.strip() for ln in f if ln.strip()]
+        except (FileNotFoundError, OSError):
+            return
+        if not gates:
+            return
+        for gate in gates:
+            if gate in self._gates and not self._sb.slot(gate).is_flat and gate not in self._closing:
+                self._flatten_slot(gate, "MANUAL_CLAIM")
+        try:
+            open(path, "w").close()   # consume all requests
+        except OSError:
+            pass
+
     # ── per-slot exit wedge-breaker (a close that never completes) ─────────────
     def exit_watchdog_slot(self, gate: str, gw=None) -> None:
         """A slot's close went in-flight but the slot hasn't gone flat — the 2026-07-20
@@ -578,6 +601,7 @@ class MultiSlotCore:
                     net, live_coids = snap
                     if self.reconcile(net) != "drift":   # drift → halted (handled); else run the exits
                         self.time_exit_check()            # session-end / per-slot max-hold cuts
+                        self.claim_check()                # operator 'Claim profit' per-slot flatten
                         now = time.monotonic()
                         for gate in self._gates:
                             verdict = self.assess_slot(gate, live_coids, now)
