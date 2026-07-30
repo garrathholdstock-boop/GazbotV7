@@ -566,8 +566,8 @@ def router_json(store_path, cap_path, data_dir):
     activity stream (from router_trial_log.txt), and the <=2 open slots. Read-only; every
     section is independently guarded so one bad read never blanks the page."""
     now = datetime.now(UTC)
-    out = {"ts": now.isoformat(timespec="seconds"), "regime": {}, "gates": [],
-           "shadow": {}, "activity": [], "holdings": [], "day": {}}
+    out = {"ts": now.astimezone(_PARIS).strftime("%Y-%m-%d %H:%M:%S"), "tz": "Paris",
+           "regime": {}, "gates": [], "shadow": {}, "activity": [], "holdings": [], "day": {}}
     cl = []
     try:
         s = pnl.paris_day_start_utc(now)
@@ -676,7 +676,10 @@ def router_json(store_path, cap_path, data_dir):
             parts = [p.strip() for p in ln.split(" | ")]
             if len(parts) < 3:
                 continue
-            t = parts[0][11:16] if len(parts[0]) >= 16 else parts[0]
+            try:
+                t = datetime.fromisoformat(parts[0].replace("Z", "+00:00")).astimezone(_PARIS).strftime("%H:%M")
+            except (ValueError, TypeError):
+                t = parts[0][11:16] if len(parts[0]) >= 16 else parts[0]
             kind = parts[1] if len(parts) > 1 else ""
             changed, gist = "", ""
             for p in parts:

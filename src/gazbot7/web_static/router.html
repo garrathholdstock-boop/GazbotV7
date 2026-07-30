@@ -156,7 +156,7 @@ async function tick(){
   const chip=$("daychip"), up=(day.pnl||0)>=0;
   chip.className="daychip "+(up?"up":"dn");
   chip.innerHTML=`day <span class="num">${money(day.pnl)}</span> &nbsp;<small>peak ${money(day.peak)} · ${day.flat?"flat":"holding"} · ${day.trades||0} tr</small>`;
-  $("upd").textContent="updated "+(d.ts||"").replace("T"," ").replace("+00:00","")+" UTC · "+(day.healthy?"healthy":"CHECK")+(day.halted?" · HALTED":"");
+  $("upd").textContent="updated "+(d.ts||"")+" "+(d.tz||"Paris")+" · "+(day.healthy?"healthy":"CHECK")+(day.halted?" · HALTED":"");
   // regime
   $("verdict").textContent=r.verdict||"—";
   $("er30").textContent=r.er_30min==null?"—":r.er_30min.toFixed(2);
