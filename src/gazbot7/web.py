@@ -567,7 +567,8 @@ def router_json(store_path, cap_path, data_dir):
     section is independently guarded so one bad read never blanks the page."""
     now = datetime.now(UTC)
     out = {"ts": now.astimezone(_PARIS).strftime("%Y-%m-%d %H:%M:%S"), "tz": "Paris",
-           "regime": {}, "gates": [], "shadow": {}, "activity": [], "holdings": [], "day": {}}
+           "regime": {}, "gates": [], "shadow": {}, "activity": [], "holdings": [],
+           "chandeliers": [], "day": {}}
     cl = []
     try:
         s = pnl.paris_day_start_utc(now)
@@ -732,6 +733,61 @@ def router_json(store_path, cap_path, data_dir):
                 "entry": entry, "stop": s.get("stop_price") or s.get("stop"),
                 "pnl_usd": round(sign * (lastp - entry) * _VPP * abs(s.get("qty") or 1), 1),
                 "held_s": held, "protected": bool(s.get("stop_coid")),
+            })
+        # ── Lot B chandelier tail metrics — the give-back-exit visibility ──
+        # peak_favorable isn't stored, so reconstruct it from capture bars since entry.
+        # BIG-RUN gates use exit_chandelier_lock (wide 3.5xATR trail → LOCK to 0.5xATR at
+        # lock_r=6R); FADERS use the continuously-tightening exit_chandelier (start 1.5).
+        CH = {"grind_long": ("lock", 3.5, 6.0, 0.5), "abs_veto_long": ("lock", 3.5, 6.0, 0.5),
+              "abs_veto_short": ("lock", 3.5, 6.0, 0.5), "exhaustion_short": ("lock", 3.5, 6.0, 0.5),
+              "rgv_short": ("trail", 1.5, 0.5, 0.75), "capitulation_long": ("trail", 1.5, 0.5, 0.75)}
+        for s in slots:
+            g = s.get("gate", "")
+            base = g[:-2] if g.endswith(("_A", "_B")) else g
+            if not g.endswith("_B") or base not in CH:
+                continue
+            entry = s.get("entry_price") or s.get("entry")
+            atr = s.get("entry_atr") or 0
+            if not entry or atr <= 0:
+                continue
+            side = s.get("side") or "LONG"
+            qty = abs(s.get("qty") or 1)
+            lastp = last or entry
+            peakfav = 0.0
+            try:
+                op = int(datetime.fromisoformat(s["opened_at"]).timestamp())
+                c2 = _conn(cap_path)
+                rr = c2.execute("SELECT MAX(high) hi, MIN(low) lo FROM bars WHERE symbol='MNQ' "
+                                "AND timeframe='5s' AND bar_ts>=?", (op,)).fetchone()
+                c2.close()
+                if rr and rr["hi"] is not None:
+                    peakfav = (rr["hi"] - entry) if side == "LONG" else (entry - rr["lo"])
+            except Exception:
+                pass
+            peakfav = max(peakfav, (lastp - entry) if side == "LONG" else (entry - lastp), 0.0)
+            peak_r = peakfav / atr
+            cur_r = ((lastp - entry) if side == "LONG" else (entry - lastp)) / atr
+            ctype, start_k, p2, p3 = CH[base]
+            if ctype == "lock":
+                active = peak_r >= p2
+                k = p3 if active else start_k
+                r_to_go = None if active else round(max(0.0, p2 - peak_r), 2)
+                lock_r = p2
+            else:
+                k = max(p2, start_k - p3 * peak_r)
+                active = peakfav > 0
+                r_to_go = None
+                lock_r = None
+            giveback_pts = k * atr
+            exit_fav = peakfav - giveback_pts   # fav level that fires CHANDELIER
+            exit_price = entry + exit_fav if side == "LONG" else entry - exit_fav
+            out["chandeliers"].append({
+                "gate": g, "side": side, "type": ctype, "armed": peakfav > 0, "active": bool(active),
+                "cur_r": round(cur_r, 2), "peak_r": round(peak_r, 2), "lock_r": lock_r,
+                "r_to_activate": r_to_go, "k": round(k, 2), "giveback_pts": round(giveback_pts, 1),
+                "giveback_usd": round(giveback_pts * _VPP * qty), "exit_price": round(exit_price, 1),
+                "peak_price": round(entry + peakfav if side == "LONG" else entry - peakfav, 1),
+                "locked_usd": round(max(0.0, exit_fav) * _VPP * qty),
             })
     except Exception:
         pass

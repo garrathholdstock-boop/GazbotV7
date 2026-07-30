@@ -83,6 +83,20 @@
   .slot .em{color:var(--dim);font-family:var(--mono);font-size:12px}
   .slot .sg{font-family:var(--mono);font-weight:600}
   .slot .sd{font-size:11px;color:var(--mut);font-family:var(--mono);margin-top:3px}
+  .chand{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .chcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .chcard.active{border-color:var(--amber);box-shadow:0 0 0 1px rgba(244,194,115,.35)}
+  .chhead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .chhead .g{font-family:var(--mono);font-weight:600}
+  .badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .badge.on{background:var(--amber);color:#1a1000}
+  .badge.arm{background:#22303c;color:var(--mut);border:1px solid var(--gry)}
+  .chprog{height:8px;background:#1b2029;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin:8px 0 3px}
+  .chprog .fill{height:100%;background:linear-gradient(90deg,var(--blu),var(--amber));transition:width .4s}
+  .chnote{font-size:11px;color:var(--dim);margin:2px 0 8px}
+  .chnote b{color:var(--amber)}
+  .chrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;padding:2px 0;border-top:1px solid #1b2029}
+  .chrow .l{color:var(--mut)}
   .foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center;font-family:var(--mono)}
 </style>
 </head>
@@ -138,6 +152,9 @@
   <h2 id="holdh">Holdings — 2 slots max (Lot A scalp · Lot B chandelier)</h2>
   <div class="hold" id="hold"></div>
 
+  <h2 id="chandh">Chandelier — Lot B tails (loose trail → LOCK tight at target R → give-back exit)</h2>
+  <div class="chand" id="chand"></div>
+
   <div class="foot" id="foot">router_trial_log.txt is the source of truth · auto-refresh 20s</div>
 </div>
 
@@ -190,6 +207,26 @@ async function tick(){
     hh+=h?`<div class="slot filled"><div class="sg">${h.gate} ${h.side} ${h.qty}</div><div class="sd">@${Math.round(h.entry)} · stop ${h.stop?Math.round(h.stop):"—"} · ${held(h.held_s)} · <span class="${cls(h.pnl_usd)}">${money(h.pnl_usd)}</span>${h.protected?" · 🔒":" · ⚠"}</div></div>`
        :`<div class="slot"><span class="em">slot ${i+1} — empty (flat)</span></div>`;}
   $("hold").innerHTML=hh;
+  // chandelier — Lot B tails
+  const chs=d.chandeliers||[];
+  $("chandh").style.display = chs.length ? "" : "none";
+  $("chand").innerHTML = chs.length ? chs.map(c=>{
+    const prog = c.lock_r ? Math.min(100, Math.round(100*c.peak_r/c.lock_r)) : 100;
+    const badge = c.active ? '<span class="badge on">● ACTIVE · locked</span>'
+                           : '<span class="badge arm">ARMING</span>';
+    const note = c.active ? `locked to a tight <b>${c.k}×ATR</b> trail — banking the tail`
+               : (c.lock_r ? `needs <b>+${c.r_to_activate}R</b> more (peak ${c.peak_r}R / ${c.lock_r}R) to LOCK`
+                           : `trailing <b>${c.k}×ATR</b> (tightens as it runs)`);
+    return `<div class="chcard ${c.active?'active':''}">
+      <div class="chhead"><span class="g">${c.gate}</span> ${badge}</div>
+      <div class="chprog"><div class="fill" style="width:${prog}%"></div></div>
+      <div class="chnote">${note}</div>
+      <div class="chrow"><span class="l">now / peak</span><span>${c.cur_r}R / ${c.peak_r}R</span></div>
+      <div class="chrow"><span class="l">give-back (${c.k}×ATR)</span><span>${c.giveback_pts}pt · $${c.giveback_usd}</span></div>
+      <div class="chrow"><span class="l">exits at</span><span class="num">${c.exit_price}</span></div>
+      <div class="chrow"><span class="l">locked so far</span><span class="pos num">${money(c.locked_usd)}</span></div>
+    </div>`;
+  }).join("") : "";
 }
 tick(); setInterval(tick, 20000);
 </script>
