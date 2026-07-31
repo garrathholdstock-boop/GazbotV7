@@ -16,6 +16,9 @@ the single-position ``strategy._manage``). Clean-room.
 
 from __future__ import annotations
 
+import json
+import os
+
 from dataclasses import dataclass, field, replace
 
 from .deciders import (
@@ -145,34 +148,72 @@ def tournament_slots() -> list[SlotSpec]:
 # Revert: GAZBOT7_TOURNAMENT_SLATE=tournament (back to the single-position first-to-fire slate).
 _BIG_RUN = frozenset({"grind_long", "abs_veto_short", "abs_veto_long", "exhaustion_short"})
 
+# ★2026-07-31 (operator): PER-GATE EXIT OVERRIDES — the regime-flex control panel. gate_switches.env is the
+# on/off (arming) axis; data/exit_overrides.json is the EXIT axis — put ANY gate on scalp (both lots fixed-R,
+# tunable) OR chandelier, matched to the regime, so we tune the exit instead of sitting out. Format:
+#   {gate: {"a_r": <LotA scalp R>, "b": <LotB: number = scalp R | "wide" = lock-chandelier ride | "tight" = k1.5 snap-back>}}
+# e.g. {"exhaustion_short":{"a_r":0.5,"b":1.5}, "abs_veto_long":{"a_r":1.5,"b":2.5}, "grind_long":{"a_r":2.5,"b":"wide"}}
+# A gate ABSENT from the file uses its built-in default (BIG-RUN → A@2.5R + B wide; FADERS → A@1.5R + B tight).
+# Read at slate build → RESTART tournament to apply. FAIL-SAFE: missing/malformed file or entry → that gate falls
+# back to its default (never breaks the desk). Revert slate entirely: GAZBOT7_TOURNAMENT_SLATE=tournament.
+_EXIT_OVERRIDES_PATH = os.environ.get("GAZBOT7_EXIT_OVERRIDES", "/home/alphabot/gazbot7/data/exit_overrides.json")
+
+
+def _load_exit_overrides() -> dict:
+    """Validated per-gate exit overrides. Any bad file/entry is skipped so that gate keeps its built-in default."""
+    try:
+        with open(_EXIT_OVERRIDES_PATH) as f:
+            raw = json.load(f)
+        assert isinstance(raw, dict)
+    except Exception:
+        return {}
+    ok: dict = {}
+    for gate, o in raw.items():
+        try:
+            a = float(o["a_r"]); b = o["b"]
+            if not 0 < a <= 20:
+                continue
+            if isinstance(b, (int, float)):
+                if not 0 < float(b) <= 20:
+                    continue
+                b = float(b)
+            elif b not in ("wide", "tight"):
+                continue
+            ok[gate] = {"a_r": a, "b": b}
+        except Exception:
+            continue
+    return ok
+
+
+def _lot_b(base: SlotSpec, b) -> SlotSpec:
+    """Lot B from a spec: number = fixed-R scalp; "wide" = lock-chandelier (ride tail); "tight" = k1.5 chandelier (snap-back)."""
+    common = dict(tag=f"{base.tag}_B", sizing="flat", base_size=1, adaptive_exit=False, giveback_enabled=False)
+    if b == "wide":
+        return replace(base, exit="chandelier_lock", chandelier_start_k=3.5, lock_r=6.0, lock_k=0.5, **common)
+    if b == "tight":
+        return replace(base, exit="chandelier", vol_adaptive_chandelier=False, chandelier_start_k=1.5,
+                       chandelier_min_k=0.5, chandelier_tighten=0.75, **common)
+    return replace(base, exit="scalp", target_r=float(b), stop_atr_mult=1.0, **common)
+
 
 def scaleout_slots() -> list[SlotSpec]:
-    """Dual-slot scale-out slate (12 sub-slots). Inherits each base gate's entry config (kind/side/
-    params/vetoes) via ``replace`` — single source of truth, no drift — overriding only tag+exit."""
+    """Dual-slot scale-out slate (12 sub-slots). Inherits each base gate's entry config (kind/side/params/vetoes)
+    via ``replace`` — single source of truth — overriding only tag+exit. Per-gate exit is the built-in default
+    (BIG-RUN → A@2.5R + B wide-chandelier; FADERS → A@1.5R + B tight-chandelier) UNLESS overridden per
+    data/exit_overrides.json (the regime-flex control). Revert slate: GAZBOT7_TOURNAMENT_SLATE=tournament."""
+    ov = _load_exit_overrides()
     out: list[SlotSpec] = []
     for base in tournament_slots():
-        big = base.tag in _BIG_RUN
-        if base.tag == "exhaustion_short":   # ★LIVE TRIAL 2026-07-31 (operator, watched): quiet-tape fade-scalp — A@0.5R + B@1.5R,
-            # both fixed-R scalp on the 1-ATR native stop (inherits veto_counter_regime). Matches the 93-trade live reprice
-            # (config +$136 vs actual −$266, edge concentrated in LOW/MID ATR). Revert: delete this branch (→ A@2.5R + B wide-chandelier).
-            out += [
-                replace(base, tag="exhaustion_short_A", sizing="flat", base_size=1, adaptive_exit=False,
-                        exit="scalp", target_r=0.5, stop_atr_mult=1.0, giveback_enabled=False),
-                replace(base, tag="exhaustion_short_B", sizing="flat", base_size=1, adaptive_exit=False,
-                        exit="scalp", target_r=1.5, stop_atr_mult=1.0, giveback_enabled=False),
-            ]
+        o = ov.get(base.tag)
+        if o:   # operator exit override (data/exit_overrides.json)
+            a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
+                        exit="scalp", target_r=o["a_r"], stop_atr_mult=1.0, giveback_enabled=False)
+            out += [a, _lot_b(base, o["b"])]
             continue
+        big = base.tag in _BIG_RUN   # built-in default
         a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
                     exit="scalp", target_r=(2.5 if big else 1.5), stop_atr_mult=1.0, giveback_enabled=False)
-        if big:   # Lot B: wide lock-chandelier — ride the fat tail
-            b = replace(base, tag=f"{base.tag}_B", sizing="flat", base_size=1, adaptive_exit=False,
-                        exit="chandelier_lock", chandelier_start_k=3.5, lock_r=6.0, lock_k=0.5,
-                        giveback_enabled=False)
-        else:     # Lot B (faders): tight fixed k1.5 chandelier — bank the snap-back
-            b = replace(base, tag=f"{base.tag}_B", sizing="flat", base_size=1, adaptive_exit=False,
-                        exit="chandelier", vol_adaptive_chandelier=False, chandelier_start_k=1.5,
-                        chandelier_min_k=0.5, chandelier_tighten=0.75, giveback_enabled=False)
-        out += [a, b]
+        out += [a, _lot_b(base, "wide" if big else "tight")]
     return out
 
 
