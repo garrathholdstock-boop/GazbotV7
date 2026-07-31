@@ -152,6 +152,16 @@ def scaleout_slots() -> list[SlotSpec]:
     out: list[SlotSpec] = []
     for base in tournament_slots():
         big = base.tag in _BIG_RUN
+        if base.tag == "exhaustion_short":   # ★LIVE TRIAL 2026-07-31 (operator, watched): quiet-tape fade-scalp — A@0.5R + B@1.5R,
+            # both fixed-R scalp on the 1-ATR native stop (inherits veto_counter_regime). Matches the 93-trade live reprice
+            # (config +$136 vs actual −$266, edge concentrated in LOW/MID ATR). Revert: delete this branch (→ A@2.5R + B wide-chandelier).
+            out += [
+                replace(base, tag="exhaustion_short_A", sizing="flat", base_size=1, adaptive_exit=False,
+                        exit="scalp", target_r=0.5, stop_atr_mult=1.0, giveback_enabled=False),
+                replace(base, tag="exhaustion_short_B", sizing="flat", base_size=1, adaptive_exit=False,
+                        exit="scalp", target_r=1.5, stop_atr_mult=1.0, giveback_enabled=False),
+            ]
+            continue
         a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
                     exit="scalp", target_r=(2.5 if big else 1.5), stop_atr_mult=1.0, giveback_enabled=False)
         if big:   # Lot B: wide lock-chandelier — ride the fat tail
