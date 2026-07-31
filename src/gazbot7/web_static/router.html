@@ -49,6 +49,20 @@
   .rngbar .cL{left:0} .rngbar .cR{right:0}
   .explain{padding:12px 14px;margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:6px;font-size:13px}
   .explain b{color:var(--amber)}
+  .untr{padding:14px 16px}
+  .untr-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .untr-title{font-weight:600;font-size:12px;letter-spacing:.04em;color:var(--mut)}
+  .untr-score{font-family:var(--mono);font-size:26px;font-weight:700}
+  .untr-verdict{margin-left:auto;font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:4px 10px;border-radius:6px;border:1px solid var(--gry)}
+  .untr-verdict.out{background:var(--red-bg);color:var(--red);border-color:#5a2419}
+  .untr-verdict.caution{background:#3a3410;color:var(--amber);border-color:#5a4d19}
+  .untr-verdict.ok{background:var(--grn-bg);color:var(--grn);border-color:#245231}
+  .meter{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .mlab{width:230px;font-size:12px;color:var(--mut)} .mlab small{display:block;color:var(--dim);font-size:10px}
+  .mbar{flex:1;height:16px;background:#141a22;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .mfill{height:100%;width:0;border-radius:8px;transition:width .5s ease}
+  .mval{width:40px;text-align:right;font-family:var(--mono);font-size:13px}
+  .untr-detail{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--dim);font-family:var(--mono)}
   .gates{overflow-x:auto}
   table{border-collapse:collapse;width:100%;font-size:13px}
   th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
@@ -99,6 +113,13 @@
   .chprog .fill{height:100%;background:linear-gradient(90deg,var(--blu),var(--amber));transition:width .4s}
   .chnote{font-size:11px;color:var(--dim);margin:2px 0 8px}
   .chnote b{color:var(--amber)}
+  .chtarget{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 6px;padding:10px 13px;background:var(--blu-bg);border:1px solid #1c4258;border-radius:7px}
+  .chtarget .tl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--blu)}
+  .chtarget .td{font-size:11px;font-family:var(--mono);color:var(--mut);margin-top:2px}
+  .chtarget .tv{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--amber);line-height:1;white-space:nowrap;text-shadow:0 0 12px rgba(244,194,115,.3)}
+  .chcard.active .chtarget{background:var(--grn-bg);border-color:#245231}
+  .chcard.active .chtarget .tl{color:var(--grn)}
+  .chcard.active .chtarget .tv{color:var(--grn);text-shadow:0 0 12px rgba(99,214,124,.3)}
   .chrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;padding:2px 0;border-top:1px solid #1b2029}
   .chrow .l{color:var(--mut)}
   .foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center;font-family:var(--mono)}
@@ -113,6 +134,12 @@
     <span class="daychip up" id="daychip">day —</span>
   </div>
   <p class="upd" id="upd">loading…</p>
+
+  <h2 id="holdh">Holdings — 2 slots max (Lot A scalp · Lot B chandelier)</h2>
+  <div class="hold" id="hold"></div>
+
+  <h2 id="chandh">Chandelier — Lot B tails (loose trail → LOCK tight at target R → give-back exit)</h2>
+  <div class="chand" id="chand"></div>
 
   <h2>Regime read — which clock are you looking at?</h2>
   <div class="panel regime">
@@ -131,6 +158,19 @@
     <div class="explain">
       <b>Why "chop" when the dashboard shows ER 0.30–0.50?</b> Those are different clocks. The 30-min ER is high because each intraday <b>leg</b> is a clean directional half-hour push — but the legs <b>alternate</b> and cancel, so over the session price round-trips inside its band → day-ER stays near 0.03. That <em>is</em> chop: real short legs that net nowhere. It's why "clean trend hours" keep faking, and why momentum gates buy the top / sell the bottom of a leg right before it rotates. The router runs momentum only when the legs <b>sustain</b>, not when they alternate.
     </div>
+  </div>
+
+  <h2>Untradeable-day meter — the stay-out evidence</h2>
+  <div class="panel untr">
+    <div class="untr-head">
+      <span class="untr-title">STAY-OUT score</span>
+      <span class="untr-score" id="untrScore">—</span>
+      <span class="untr-verdict" id="untrVerdict">—</span>
+    </div>
+    <div class="meter"><div class="mlab">Round-trip<small>net move vs range — did the day go anywhere?</small></div><div class="mbar"><div class="mfill" id="mChop"></div></div><span class="mval" id="mChopV">—</span></div>
+    <div class="meter"><div class="mlab">Give-back<small>% of the day's biggest move handed back</small></div><div class="mbar"><div class="mfill" id="mGive"></div></div><span class="mval" id="mGiveV">—</span></div>
+    <div class="meter"><div class="mlab">Gate stops<small>recent live trades that hit their stop</small></div><div class="mbar"><div class="mfill" id="mStop"></div></div><span class="mval" id="mStopV">—</span></div>
+    <div class="untr-detail" id="untrDetail">—</div>
   </div>
 
   <h2>Gate board — on / off + why</h2>
@@ -152,12 +192,6 @@
 
   <h2>Activity stream — every 5-min check</h2>
   <div class="panel stream" id="stream"></div>
-
-  <h2 id="holdh">Holdings — 2 slots max (Lot A scalp · Lot B chandelier)</h2>
-  <div class="hold" id="hold"></div>
-
-  <h2 id="chandh">Chandelier — Lot B tails (loose trail → LOCK tight at target R → give-back exit)</h2>
-  <div class="chand" id="chand"></div>
 
   <div class="foot" id="foot">router_trial_log.txt is the source of truth · auto-refresh 20s</div>
 </div>
@@ -191,6 +225,19 @@ async function tick(){
   $("rlo").textContent=r.range_lo?Math.round(r.range_lo)+" lo":"";
   $("rhi").textContent=r.range_hi?Math.round(r.range_hi)+" hi":"";
   if(r.range_pos!=null)$("mk").style.left=r.range_pos+"%";
+  // untradeable-day meter
+  const u=d.untradeable||{}, um=u.meters||{};
+  const setMeter=(fill,val,v)=>{
+    const f=$(fill); if(f){f.style.width=(v==null?0:v)+"%"; f.style.background=v>=65?"var(--red)":(v>=45?"var(--amber)":"var(--grn)");}
+    const x=$(val); if(x)x.textContent=(v==null?"—":v);
+  };
+  setMeter("mChop","mChopV",um.chop);
+  setMeter("mGive","mGiveV",um.giveback);
+  setMeter("mStop","mStopV",um.stops);
+  $("untrScore").textContent=u.score==null?"—":u.score;
+  const uv=$("untrVerdict"); uv.textContent=u.verdict||"—";
+  uv.className="untr-verdict "+(u.verdict==="STAY-OUT"?"out":(u.verdict==="CAUTION"?"caution":"ok"));
+  $("untrDetail").textContent=u.detail||"";
   // gates
   $("gatebody").innerHTML=(d.gates||[]).map(g=>`<tr>
     <td><div class="gname">${g.name}</div><div class="mech">${g.family} · ${g.mech}</div></td>
@@ -219,10 +266,16 @@ async function tick(){
     const badge = c.active ? '<span class="badge on">● ACTIVE · locked</span>'
                            : '<span class="badge arm">ARMING</span>';
     const note = c.active ? `locked to a tight <b>${c.k}×ATR</b> trail — banking the tail`
-               : (c.lock_r ? `needs <b>+$${c.to_activate_usd}</b> more peak to LOCK (peak $${c.peak_usd} → $${c.lock_usd} target)`
+               : (c.lock_r ? `climbing toward lock — trailing <b>${c.k}×ATR</b> wide (peak now $${c.peak_usd})`
                            : `trailing <b>${c.k}×ATR</b> — tightens as it runs`);
+    const target = c.lock_r ? `<div class="chtarget">
+        <div><div class="tl">${c.active?`${c.lock_r}R lock hit — banking`:`${c.lock_r}R lock target`}</div>
+             <div class="td">${c.active?`tight ${c.k}×ATR trail now`:`needs +$${c.to_activate_usd} more peak to get here`}</div></div>
+        <div class="tv">$${c.lock_usd}</div>
+      </div>` : '';
     return `<div class="chcard ${c.active?'active':''}">
       <div class="chhead"><span class="g">${c.gate}</span> ${badge}</div>
+      ${target}
       <div class="chprog"><div class="fill" style="width:${prog}%"></div></div>
       <div class="chnote">${note}</div>
       <div class="chrow"><span class="l">now / peak</span><span>$${c.cur_usd} / $${c.peak_usd} <span class="mutx">(${c.cur_r}R/${c.peak_r}R)</span></span></div>

@@ -20,7 +20,7 @@ PY = f"{GB}/.venv/bin/python"
 GATES = ["grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short", "abs_veto_short", "rgv_short"]
 # ★LIVE TRIAL 2026-07-31 (operator): exhaustion_short is PINNED ON for a fade-scalp (0.5R/1.5R) live trial —
 # the durable tick must NOT bench it while the trial runs. Revert: PINNED = frozenset().
-PINNED = frozenset({"exhaustion_short"})
+PINNED = frozenset({"grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short", "abs_veto_short", "rgv_short"})  # ★US-OPEN OVERRIDE 2026-07-31 (operator: "enable all gates, US OPEN"): all 6 pinned ON through the open so the durable tick won't re-bench. Revert to frozenset({"exhaustion_short"}) once the open settles.
 MAINT_HOUR_UTC = 21  # CME index-futures daily maintenance halt 21:00-22:00 UTC
 
 
@@ -89,6 +89,19 @@ def main():
     logtail = sh(f"tail -6 {LOG}")
     cur = read_switches()
 
+    # UNTRADEABLE-DAY METER — the stay-out evidence (guarded; never blocks the tick)
+    try:
+        import sys as _sys
+        if f"{GB}/src" not in _sys.path:
+            _sys.path.insert(0, f"{GB}/src")
+        from gazbot7 import untradeable as _U, pnl as _pnl
+        _s = _pnl.paris_day_start_utc(datetime.now(timezone.utc))
+        _ds = int((datetime.fromisoformat(_s) if isinstance(_s, str) else _s).timestamp())
+        _u = _U.compute(f"{GB}/data/capture.db", f"{GB}/data/gazbot7.db", _ds)
+        untr_txt = f"score {_u['score']}/100 -> {_u['verdict']} | {_u['detail']}"
+    except Exception as e:
+        untr_txt = f"(unavailable: {e})"
+
     prompt = (
         "You are the GAZBOT V7 intelligent router making ONE 5-min bench/enable decision (PAPER, "
         "benching-only). Decide which of the 6 gates should be on/off on a HOLISTIC regime read "
@@ -97,11 +110,15 @@ def main():
         "reversion (capitulation_long). day-bias UP>=+40 -> bench shorts; DOWN<=-40 -> bench longs. "
         "Re-arm momentum only on a real range-break WITH ER climbing + vol expanding (not a delta-blip). "
         "abs_veto_long is veto-protected (≈0-cost armed in chop unless it's firing+stopping); grind_long "
-        "is a churner (keep OFF unless ER>=0.35 strong trend). exhaustion_short is PINNED ON for an operator "
-        "live-trial today — do NOT include it in changes, leave it on regardless of regime. "
+        "is a churner (keep OFF unless ER>=0.35 strong trend). Some gates may be operator-PINNED (auto-excluded "
+        "from your changes) — decide holistically regardless. "
+        "★ UNTRADEABLE-DAY RULE: if the UNTRADEABLE METER reads STAY-OUT (score>=65 — a big range but ~0 net "
+        "roundtrip + the day's move given back + gates stopping across mechanisms), bench ALL gates and keep flat; "
+        "do NOT hunt for a gate that works — a no-trade day is correct (chasing an untradeable chop cost -$900 on 07-31). "
         "Reversion stays through chop. DON'T THRASH — change a switch ONLY when evidence genuinely changed; "
         "most ticks are no-change.\n\n"
         f"CURRENT SWITCHES: {json.dumps(cur)}\n\n"
+        f"=== UNTRADEABLE METER ===\n{untr_txt}\n\n"
         f"=== DESK VIEW ===\n{desk}\n=== RECENT TRADES ===\n{recent}\n=== RECENT ROUTER LOG ===\n{logtail}\n\n"
         "Output ONLY a JSON object, nothing else:\n"
         '{"changes": {"<gate>": "on"|"off"}, "reason": "<one tight line>", "notify": "<telegram text, or empty string if no change>"}\n'

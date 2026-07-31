@@ -568,7 +568,7 @@ def router_json(store_path, cap_path, data_dir):
     now = datetime.now(UTC)
     out = {"ts": now.astimezone(_PARIS).strftime("%Y-%m-%d %H:%M:%S"), "tz": "Paris",
            "regime": {}, "gates": [], "shadow": {}, "activity": [], "holdings": [],
-           "chandeliers": [], "day": {}}
+           "chandeliers": [], "day": {}, "untradeable": {}}
     cl = []
     try:
         s = pnl.paris_day_start_utc(now)
@@ -578,6 +578,12 @@ def router_json(store_path, cap_path, data_dir):
     except Exception:
         ds_ep = int(now.timestamp()) - now.hour * 3600
         ds_iso = now.strftime("%Y-%m-%dT00:00:00")
+
+    try:   # UNTRADEABLE-DAY METER (stay-out evidence) — guarded, never blanks the page
+        from .untradeable import compute as _untradeable_compute
+        out["untradeable"] = _untradeable_compute(cap_path, store_path, ds_ep, int(now.timestamp()))
+    except Exception:
+        out["untradeable"] = {}
 
     day_bias, day_net, day_er, day_hi, day_lo = "FLAT", 0.0, None, None, None
     try:
