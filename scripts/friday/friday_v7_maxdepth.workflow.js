@@ -8,7 +8,8 @@ export const meta = {
     { title: 'BigRuns',    detail: 'Movement 1 census section + Movement 2 idle-gate lab' },
     { title: 'Greenfield', detail: 'Movement 3 — the escalating hunt, per cluster, full→top25→top15' },
     { title: 'Skeptic',    detail: 'adversarially re-run every survivor from scratch' },
-    { title: 'Assemble',   detail: 'stitch → light HTML + PDF + playbook, publish' },
+    { title: 'Assemble',   detail: 'stitch → light HTML + PDF + playbook, publish (Rev1)' },
+    { title: 'Proofread',  detail: 'adversarial read as the operator → gap-fill unanswered questions → Revision 2 → wake-up-standard final check' },
   ],
 }
 
@@ -27,6 +28,12 @@ const VERDICT = { type: 'object', required: ['holds', 'why'], properties: { hold
 const REHAB_SCHEMA = { type: 'object', required: ['targets'], properties: { targets: { type: 'array', items: {
   type: 'object', required: ['name', 'kind', 'symptom'], properties: {
     name: { type: 'string' }, kind: { type: 'string' }, symptom: { type: 'string' }, this_week_pnl: { type: 'number' } } } } } }
+const PROOF_SCHEMA = { type: 'object', required: ['mission_ok', 'reads_ok', 'thorough_ok', 'sensible_ok', 'issues', 'unanswered'], properties: {
+  mission_ok: { type: 'boolean' }, reads_ok: { type: 'boolean' }, thorough_ok: { type: 'boolean' }, sensible_ok: { type: 'boolean' },
+  issues: { type: 'array', items: { type: 'object', required: ['section', 'problem', 'fix'], properties: {
+    section: { type: 'string' }, problem: { type: 'string' }, fix: { type: 'string' } } } },
+  unanswered: { type: 'array', items: { type: 'object', required: ['question', 'why_he_pokes', 'how_to_answer'], properties: {
+    question: { type: 'string' }, why_he_pokes: { type: 'string' }, how_to_answer: { type: 'string' } } } } } }
 
 // ── Phase 1 — freeze the census (ONE snapshot every other agent reads) ─────────────────────────
 phase('Census')
@@ -104,4 +111,30 @@ const built = await agent(
   `Assemble the full V7 report. Sections live in ${SEC}: part1_live, part1_5_rehab, part2_shadow, part25_musings, movement1_census, movement2_idle_gates, movement3_greenfield. Extend scripts/friday_v7_build.py so it stitches ALL of these (Part 1 live desk, then Part 1.5 the REHABILITATION dossier, then Parts 2 + 2.5, then the 3 movements) into the light-theme shell in that order (the Rehabilitation section is a headline live-desk section — place it right after the live desk, not buried), then run it with system python3 to render the HTML + PDF into src/gazbot7/web_static/. Regenerate reports/friday_v7/plays.json from THIS week's actual findings — derive each play from a verdict a section above actually reached (live-desk, rehabilitation, shadow/promotion, musings/router-study, greenfield). Do NOT carry over any prior week's plays; if a section didn't conclude something, it isn't a play. Then build the Monday playbook via /home/alphabot/alphabot2/scripts/friday/build_playbook.py into web_static as monday_<date>.html. Verify all three outputs exist and every section is present, then report the file paths + word count. Do NOT publish a thin report.`,
   { phase: 'Assemble', label: 'assemble+render' })
 
-return { census: census, greenfield_survivor: survivor, built: built }
+// ── Phase 7 — PROOFREAD + REVISION 2 (operator-critical: must be GOOD on wake-up) ───────────────
+// Operator (2026-07-31): "proof-read it — sticks to the mission, reads well, thorough, makes sense;
+// if it leaves questions I'd poke at, send agents to answer them and do a Revision 2. I fly tomorrow
+// lunch, no time to revise — it must be good when I wake up." This runs headless, so it does not
+// depend on any live session.
+phase('Proofread')
+const critique = await agent(
+  `ADVERSARIAL PROOF-READER — read the just-built report as GARRATH will, and be HARD on it. Find the newest src/gazbot7/web_static/weekly_*.html (Rev1) and read it IN FULL, plus ${SCOPE} (the mission). Grade five things: (1) MISSION — sticks to the V7 shadow-desk / regime mission, LEADS with what SURVIVED the skeptic, honest baselines (never cherry-picked), no gate benched at face value (rehab shown)? (2) READS WELL — plain daily English written TO Garrath, money-first, NO maths-professor jargon, LOTS of clear fact-tables? (3) THOROUGH — every section complete, no thin / placeholder / "TODO" bits, every number a REAL computation? (4) MAKES SENSE — no contradictions, shadow-vs-live reconciled, each verdict follows its own numbers? (5) ★ UNANSWERED QUESTIONS Garrath WILL poke at — list EVERY loose end / obvious follow-up the report raises but doesn't close. His known tells: a shadow number without the live cross-check; a claim on thin-n stated as fact; "so what do I actually DO Monday"; a $ figure without its baseline; a gate called bad without the rehab attempt; the exit-ladder rungs left unproven (esp. BIG-TREND); a "why" not chased to root cause; a promotion/relegation call without the robustness battery. Be specific and cite the section. Return the structured critique.`,
+  { phase: 'Proofread', schema: PROOF_SCHEMA })
+log(`proofread: mission=${critique?.mission_ok} reads=${critique?.reads_ok} thorough=${critique?.thorough_ok} sensible=${critique?.sensible_ok} · ${(critique?.unanswered||[]).length} unanswered · ${(critique?.issues||[]).length} issues`)
+const gaps = [
+  ...((critique?.unanswered) || []).map((g, i) => ({ slug: `q${i}`, task: `UNANSWERED QUESTION Garrath will poke at: "${g.question}" (he pokes because: ${g.why_he_pokes}). ANSWER it fully from the REAL data — ${g.how_to_answer}. Tick-honest + regime-segmented. ${SEGMENT}` })),
+  ...((critique?.issues) || []).map((g, i) => ({ slug: `fix${i}`, task: `REPORT ISSUE in "${g.section}": ${g.problem}. FIX: ${g.fix}. Recompute / rewrite from real data as needed.` })),
+]
+if (gaps.length) {
+  await parallel(gaps.map((g) => () => agent(
+    `${g.task}\n\nProduce a tight, REPORT-READY block — plain English to Garrath + a clear fact-table — that FULLY resolves this. Write it to ${SEC}/rev2_${g.slug}.html, opening with a one-line marker naming which report section it patches/extends.`,
+    { phase: 'Proofread', label: `rev2:${g.slug}` })))
+  await agent(
+    `REVISION 2 — the report MUST be good when Garrath wakes (he flies tomorrow lunch, no time to revise). Fold EVERY ${SEC}/rev2_*.html answer/fix into the correct section, apply every proofread fix, then re-run scripts/friday_v7_build.py with system python3 to re-render HTML+PDF, and re-run the publish gate (publish_report.py). The Rev2 must stick to the mission, read clean, be thorough, and leave NO obvious unanswered question. Report the Rev1→Rev2 changelog.`,
+    { phase: 'Proofread', label: 'revise:rev2' })
+}
+const finalx = await agent(
+  `FINAL CHECK — the wake-up standard. Re-read the published report end-to-end: confirm MISSION / READS-WELL / THOROUGH / MAKES-SENSE all pass and the proofread's unanswered questions are now closed. If any MATERIAL gap remains, fix it directly and re-render. Then confirm it is publish-ready and PING the operator via Telegram (\`PYTHONPATH=src ./.venv/bin/python -c "from gazbot7.notify import notify; notify('<msg>', critical=True)"\`) with the /v7/reports link + a 3-line "what SURVIVED" summary + "Rev2 · proofread · N questions closed". He needs it GOOD on wake-up.`,
+  { phase: 'Proofread', label: 'final-check' })
+
+return { census: census, greenfield_survivor: survivor, built: built, critique: critique, final: finalx }
