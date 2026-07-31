@@ -1,0 +1,10 @@
+[Unit]
+Description=Fire the GAZBOT V7 durable Friday report every Friday 22:07 UTC (box is UTC)
+
+[Timer]
+OnCalendar=Fri *-*-* 22:07:00
+Persistent=false
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
