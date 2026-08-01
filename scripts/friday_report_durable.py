@@ -21,7 +21,7 @@ the workflow in a live session, which is proven to work).
 
 FAIL-SAFE: every step logged to data/friday_durable.log + Telegram-alerted; hard 5h timeout.
 """
-import subprocess, os, json, time, threading
+import subprocess, os, sys, json, time, threading
 
 GB = "/home/alphabot/gazbot7"
 PY = f"{GB}/.venv/bin/python"
@@ -83,12 +83,13 @@ def main():
         f"passed. If it dies mid-run, read its journal and resume via Workflow scriptPath+resumeFromRunId."
     )
     msg = json.dumps({"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": prompt}]}}) + "\n"
+    done = False   # bound BEFORE the try: an exception in Popen must not NameError the exit-code path
     try:
         p = subprocess.Popen([CLAUDE, "-p", "--input-format", "stream-json", "--output-format", "stream-json",
                               "--allowedTools", "Bash", "Workflow", "Read", "Write", "Edit", "Agent", "Task"],
                              stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True, cwd=GB, env=ENV)
         p.stdin.write(msg); p.stdin.flush()          # send prompt, KEEP stdin open (session persists)
-        t0 = time.time(); done = False
+        t0 = time.time()
         while time.time() - t0 < MAX_S:
             time.sleep(POLL_S)
             if newest_weekly_mtime() > baseline_mtime + 60:   # a fresh report landed
@@ -107,8 +108,15 @@ def main():
             log("NO fresh report after build window"); notify("⚠ Durable Friday: headless build did NOT produce a fresh report — session-backstop must recover. CHECK.", crit=True)
     except Exception as e:
         log(f"build error: {e}"); notify(f"⚠ Durable Friday build error: {e} — CHECK.", crit=True)
-    log("=== DURABLE FRIDAY REPORT — END ===")
+    log(f"=== DURABLE FRIDAY REPORT — END (ok={done}) ===")
+    return done
 
 
 if __name__ == "__main__":
-    main()
+    # ★ FIX 2026-08-01 (#2) — EXIT CODE must reflect the REPORT, not the driver.
+    # The 07-31 run logged its own failure and still returned 0, so systemd recorded
+    # "Finished ... SUCCESS" on a report that was never built and nobody was alerted by
+    # the unit state. Now: no fresh weekly_*.html => exit 1 => the unit goes `failed`,
+    # shows red in `systemctl status`, and OnFailure= can fire. Pairs with the
+    # stream-json keep-alive fix (c4e7192), which fixed the driver exiting early.
+    sys.exit(0 if main() else 1)
