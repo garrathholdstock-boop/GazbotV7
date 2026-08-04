@@ -29,11 +29,32 @@ def test_records_the_resolved_ladder_not_the_source_file(journal):
     # the RESOLVED slate is what the desk runs — every slot must be present
     assert r["n_slots"] == len(specs)
     assert set(r["resolved"]) == {s.tag for s in specs}
-    # and the quiet-tape clip must be visible in the resolved ladder, since that is exactly the kind of
-    # thing whose absence from the record broke the stop-width study
+    # every slot must record the exit fields a stop/target study needs
     ga = r["resolved"]["grind_long_A"]
-    assert ga["atr_split"] == 22.0
+    for f in ("exit", "target_r", "stop_atr_mult", "atr_split", "lo_target_usd"):
+        assert f in ga, f"{f} missing from the resolved record"
     assert ga["stop_atr_mult"] == 1.0
+
+
+def test_clip_fields_are_captured_when_present(journal):
+    """★2026-08-04 — this used to assert `grind_long_A["atr_split"] == 22.0` against the LIVE config, and
+    it broke the moment the operator lifted the clip for a trending day. Pinning a test to a value that
+    is DELIBERATELY temporary makes a legitimate config change look like a regression. What actually
+    needs pinning is that the journal RECORDS the clip faithfully whatever it is set to — so assert on a
+    synthetic spec, and let the live value be whatever the tape calls for."""
+    from dataclasses import replace
+    specs = scaleout_slots()
+    clipped = [replace(s, atr_split=22.0, lo_target_usd=40.0) for s in specs]
+    r = cj.record(clipped, slate="scaleout", place_live=False)
+    for tag, c in r["resolved"].items():
+        assert c["atr_split"] == 22.0, f"{tag} clip not recorded"
+        assert c["lo_target_usd"] == 40.0
+
+    lifted = [replace(s, atr_split=0.0, lo_target_usd=0.0) for s in specs]
+    r2 = cj.record(lifted, slate="scaleout", place_live=False)
+    assert all(c["atr_split"] == 0.0 for c in r2["resolved"].values())
+    assert r2["config_hash"] != r["config_hash"], "lifting the clip must change the hash"
+    assert r2["changed_from_previous"] is True
 
 
 def test_identical_config_hashes_identically_and_change_is_flagged(journal):
