@@ -20,10 +20,29 @@ DB = "/home/alphabot/gazbot7/data/capture.db"
 BATCH = 50_000
 # (table, time_col, ms?, retain_days) — book is the bulk → tightest; bars are tiny → keep long
 RETAIN = [
-    ("book", "ts_ms", True, 3),
-    ("quotes", "ts_ms", True, 5),
-    ("ticks", "ts_ms", True, 7),
-    ("bars", "bar_ts", False, 60),
+    # ★ 2026-07-31 (operator): ROLLING 4-WEEK retention for all streams (was book 3d/quotes 5d/ticks 7d,
+    # which capped the data below the 4wk needed for Friday backtesting). Grows the DB — watch disk.
+    #
+    # ★★ 2026-08-04 (operator: "do the book retention change, 5 days") — BOOK ALONE back to 5d.
+    # MEASURED: book + its index grows 0.80 GB/DAY, against 0.14 GB/day for ticks+quotes+bars COMBINED.
+    # It is 81% of capture.db. At 28 days x the two symbols now captured it projects to ~45 GB live plus
+    # ~90 GB of local backups, on a 75 GB disk with 15 GB free — it fills the disk in roughly two weeks,
+    # and the 07-31 move to 28d is what created that.
+    # WHY BOOK SPECIFICALLY AND NOTHING ELSE:
+    #   * it is the WEAKER COPY. data/depth.db holds 10 levels at ~0.045 GB/day/symbol because it dedups
+    #     an unchanged book; this table holds levels 0..4 at 13.9M rows/day — ~35x the rows for half the
+    #     depth. Anything wanting real book history should read depth.db.
+    #   * the only live reader is footprint.py: `SELECT ... FROM book WHERE ... level=1 AND ts_ms<=?`.
+    #     It wants the LATEST book, never history, so 5 days is already far more than it can use.
+    #   * ticks/quotes/bars KEEP the full 4 weeks — they are what Friday backtesting actually consumes
+    #     and together cost 0.14 GB/day, affordable for both symbols.
+    # Deleting CAPS growth immediately (freed pages get reused) but does NOT shrink the file — run
+    # gazbot7-capture-vacuum in a market-closed window to reclaim it.
+    # Revert: set back to 28 and make sure the disk can take ~45 GB.
+    ("book", "ts_ms", True, 5),
+    ("quotes", "ts_ms", True, 28),
+    ("ticks", "ts_ms", True, 28),
+    ("bars", "bar_ts", False, 60),   # bars are tiny (189K rows) → keep 60d of free extra history
 ]
 DROP_TMP = ("tmp_book", "tmp_tick")   # leftover scratch tables — safe to drop
 
