@@ -39,7 +39,16 @@ RETAIN = [
     # Deleting CAPS growth immediately (freed pages get reused) but does NOT shrink the file — run
     # gazbot7-capture-vacuum in a market-closed window to reclaim it.
     # Revert: set back to 28 and make sure the disk can take ~45 GB.
-    ("book", "ts_ms", True, 5),
+    # ★★2026-08-04 REVERTED to 28d, same evening (operator: "i dont want any short cuts. make sure the
+    # DBs are rich granular data. i will pay for the hd space") — AND because my justification for 5d was
+    # WRONG. I called book "the weaker copy of depth.db". It is shallower (levels 0..4 vs 10) but it is
+    # SIX TIMES FINER IN TIME: measured 87,142 distinct timestamps/hour = one every 41 ms, event-driven
+    # on every DOM update, against depth.db's 250 ms sample (14,124/hour). Fleeting quotes — the actual
+    # spoofing tell, and the order-vs-trade imbalance divergence flagged as the highest-value unused
+    # signal on this desk — live BETWEEN 250 ms samples and are invisible to depth.db. Cutting book to
+    # 5 days would have thrown away the only stream that can see them.
+    # Cost, stated plainly: ~0.80 GB/day/symbol, so ~45 GB for both at 28 days, plus local backups.
+    ("book", "ts_ms", True, 28),
     ("quotes", "ts_ms", True, 28),
     ("ticks", "ts_ms", True, 28),
     ("bars", "bar_ts", False, 60),   # bars are tiny (189K rows) → keep 60d of free extra history

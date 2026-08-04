@@ -73,11 +73,78 @@ TIERS = {
         (f"{GB}/data/depth.db", True),
         (f"{GB}/data/capture.db", True),
     ], 2),
+    # ★2026-08-04 "tape" is the PERMANENT corpus and the reason any of this matters. See build_tape().
+    "tape": ("permanent Parquet tape archive (never pruned)", [], 0),
     "cold": ("frozen V5 archive (one-shot)", [
         ("/home/alphabot/alphabot2/data/alphabot.db", True),
         ("/home/alphabot/alphabot2/data/ticks.db", True),
     ], 1),
 }
+
+
+
+# ── PERMANENT TAPE ARCHIVE ────────────────────────────────────────────────────────────────────────
+# Operator: "wire the monthly archive roll into the backup script."
+#
+# ★ WHY PARQUET AND NOT A .db SNAPSHOT. Measured on this box: 12,659,634 MNQ ticks occupy ~410 MB
+# inside capture.db but 28.2 MB as zstd Parquet — a 15x reduction — and DuckDB reads Parquet directly
+# from object storage with column and row-group pushdown. A SQLite snapshot must be downloaded WHOLE
+# before a single row can be read. Format is what decides whether the archive is queryable or merely
+# stored, so the archive is written in the format the backtests will actually read.
+#
+# ★ WHY IT ROLLS WEEKLY DESPITE BEING CALLED A MONTHLY ARCHIVE. capture.db retention is 28 days. A
+# job that ran on the 1st to export "last month" would find the start of that month ALREADY PRUNED —
+# it would silently archive a partial month and nobody would notice until a backtest came up short.
+# Rolling every week with an 8-day window (one day of deliberate overlap) means no day can age out
+# unexported, and day-partitioned files make the overlap idempotent: re-uploading a day overwrites it.
+#
+# ★ NEVER PRUNED (keep=0). This is the corpus that answers the question local retention cannot: at
+# ~95 signals/day, detecting a $2/trade edge needs ~10,800 trades ~= 16 weeks of tape, and a $1 edge
+# needs 65 weeks. No disk retention setting reaches that; an ever-growing archive does, for pennies.
+TAPE_DAYS = 8
+
+
+def build_tape(into: str) -> list[str]:
+    """Export the trailing TAPE_DAYS to day-partitioned zstd Parquet. Returns the files written."""
+    import duckdb
+    out: list[str] = []
+    con = duckdb.connect()
+    con.execute(f"ATTACH '{GB}/data/capture.db' AS cap (TYPE sqlite, READ_ONLY)")
+    con.execute(f"ATTACH '{GB}/data/depth.db' AS dep (TYPE sqlite, READ_ONLY)")
+    cut_ms = int((dt.datetime.now(dt.UTC) - dt.timedelta(days=TAPE_DAYS)).timestamp() * 1000)
+    # ★★2026-08-04 `book` was MISSING from this list and it is the FINEST-GRAINED STREAM WE OWN.
+    # Measured: capture.book writes on every DOM update — 87,142 distinct timestamps/hour, one every
+    # 41 ms — while depth.db is a 250 ms SAMPLE (14,124/hour). They are COMPLEMENTARY, not duplicates:
+    # book is 5 levels at 41 ms, depth is 10 levels at 250 ms. Any microstructure question that turns
+    # on FLEETING quotes — spoofing, absorption, order-imbalance vs trade-imbalance divergence — needs
+    # the 41 ms event stream, because a 250 ms sample cannot see a quote that appears and vanishes
+    # between samples. Archiving depth but not book would have permanently discarded the only data that
+    # can answer those, which is exactly the "shortcut" the operator ruled out.
+    srcs = [("ticks", "cap.ticks", "ts_ms", cut_ms),
+            ("quotes", "cap.quotes", "ts_ms", cut_ms),
+            ("bars", "cap.bars", "bar_ts", cut_ms // 1000),
+            ("book", "cap.book", "ts_ms", cut_ms),
+            ("depth", "dep.depth_snap", "ts_ms", cut_ms)]
+    for name, tbl, tcol, cut in srcs:
+        scale = 1000 if tcol != "bar_ts" else 1
+        try:
+            days = con.execute(
+                f"SELECT DISTINCT CAST({tcol}/{86400*scale} AS BIGINT) d, symbol "
+                f"FROM {tbl} WHERE {tcol} >= {cut}").fetchall()
+        except Exception as e:
+            log(f"  skip {name}: {e}")
+            continue
+        for d, sym in days:
+            day = dt.datetime.fromtimestamp(d * 86400, dt.UTC).strftime("%Y-%m-%d")
+            f = os.path.join(into, f"{name}__{sym}__{day}.parquet")
+            lo, hi = d * 86400 * scale, (d + 1) * 86400 * scale
+            con.execute(
+                f"COPY (SELECT * FROM {tbl} WHERE symbol='{sym}' AND {tcol}>={lo} AND {tcol}<{hi}) "
+                f"TO '{f}' (FORMAT parquet, COMPRESSION zstd)")
+            if os.path.getsize(f) > 0:
+                out.append(f)
+    con.close()
+    return out
 
 
 def log(msg: str) -> None:
@@ -119,6 +186,40 @@ def snapshot(path: str, into: str) -> str | None:
         return None
 
 
+def run_tape(dry: bool) -> int:
+    """The permanent corpus: day-partitioned Parquet, uploaded under tape/, never pruned."""
+    tmp = tempfile.mkdtemp(prefix="gaztape-", dir="/tmp")
+    try:
+        files = build_tape(tmp)
+        tot = sum(os.path.getsize(f) for f in files)
+        log(f"tape: {len(files)} day-partition(s), {tot/1e6:.1f} MB parquet (zstd) from the last "
+            f"{TAPE_DAYS} days")
+        for f in sorted(files)[:6]:
+            log(f"   {os.path.getsize(f)/1e6:>8.2f} MB  {os.path.basename(f)}")
+        if len(files) > 6:
+            log(f"   ... and {len(files)-6} more")
+        if dry:
+            log("DRY RUN — nothing uploaded.")
+            return 0
+        if not files:
+            log("nothing to archive")
+            return 0
+        if not remote_ok():
+            log(f"remote '{REMOTE}' NOT CONFIGURED — nothing uploaded, exiting cleanly.")
+            return 0
+        # flat names carry symbol+date, so re-uploading an overlapping day simply overwrites it
+        r = subprocess.run(["rclone", "copy", tmp, f"{REMOTE}tape/", "--bwlimit", BWLIMIT,
+                            "--transfers", "4", "--retries", "3", "--stats", "0"],
+                           capture_output=True, text=True, timeout=7200)
+        if r.returncode != 0:
+            log(f"UPLOAD FAILED rc={r.returncode}: {(r.stderr or '')[:300]}")
+            return 0
+        log(f"archived {len(files)} file(s), {tot/1e6:.1f} MB -> {REMOTE}tape/  (never pruned)")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tier", choices=sorted(TIERS), required=True)
@@ -128,6 +229,8 @@ def main() -> int:
     label, items, keep = TIERS[a.tier]
     stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
 
+    if a.tier == "tape":
+        return run_tape(a.dry_run)
     present = [(p, s) for p, s in items if os.path.exists(p)]
     total = sum(os.path.getsize(p) for p, _ in present)
     log(f"tier={a.tier} ({label}) — {len(present)} file(s), {total/1e9:.2f} GB, remote={REMOTE}")

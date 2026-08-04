@@ -1,0 +1,44 @@
+[Unit]
+# ★2026-08-04 PORTED FROM alphabot-depth-capture.service (retired V5 tree) at operator request.
+# Same isolation guarantees as the V5 unit: own IBKR clientId, read-only connection, own database.
+# It cannot affect pricing, orders or exits. What changed is OWNERSHIP: V7 naming, gazbot7.slice, V7
+# data dir, and scripts/sweep.py now watches it — the V5 placement meant nothing swept it and I was
+# able to tell the operator we had no L2 book at all while 4.2M snapshots sat on disk.
+Description=GAZBOT V7 — L2 depth capture (MNQ, 10 levels both sides, isolated clientId 97, read-only)
+After=network-online.target alphabot-gateway.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Slice=gazbot7.slice
+User=alphabot
+Group=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+# ★2026-08-04 11:35 set to MNQ-only ("we dont need anything but mnq"); ★★MGC RE-ADDED 17:2x when the
+# operator raised reintroducing gold for diversification. The MNQ-only window cost ~6h of MGC book.
+# ⚠ HARD CAP: IBKR allows only THREE simultaneous market-depth subscriptions — a fourth returns
+# `Error 309: Max number (3) of market depth requests has been reached`, which is why M2K silently
+# stopped on 07-29 and nobody noticed. Two slots used, one spare. Do NOT add a fourth without dropping one.
+# MGC is COMEX (not CME) — the exchange suffix matters, it will not resolve as MGC:CME.
+Environment=DEPTH_SYMBOLS=MNQ:CME,MGC:COMEX
+Environment=DEPTH_CLIENT_ID=97
+# ★2026-08-04 20:1x (operator: "full caputre 4 weeks rolling. level 1 and 2") — 20d -> 28d.
+# depth.db is the REAL L2 record: 10 levels both sides, deduped on change, ~0.056 GB/day for MNQ and
+# ~0.032 for MGC. Four weeks of both is ~2.5 GB, which is nothing — this is the cheap half of L2 and
+# the copy worth keeping. capture.db's `book` table is the expensive, WORSE one (levels 0..4 at 0.80
+# GB/day) and stays at 5 days.
+Environment=DEPTH_RETENTION_DAYS=28
+# 5.0 -> 1.0: this table is now read LIVE by cl_sims.book_snapshot() at signal time, and the V5 5s
+# write batching meant a live read was up to 5s stale by design. See the script docstring.
+Environment=DEPTH_FLUSH_S=1.0
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/depth_capture.py
+Restart=always
+RestartSec=10
+# The box is tight (edge-drain OOM history) and this must NEVER contribute to a global OOM — a runaway
+# is killed in its OWN cgroup. Depth capture is one ib_async connection plus a small buffer, so 512M is
+# generous; MemoryHigh throttles via reclaim before the hard kill.
+MemoryHigh=400M
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

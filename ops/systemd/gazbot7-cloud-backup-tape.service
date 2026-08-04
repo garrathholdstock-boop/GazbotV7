@@ -1,0 +1,22 @@
+[Unit]
+# ★2026-08-04 the PERMANENT corpus. Exports the trailing 8 days of every stream — ticks, quotes, bars,
+# the 41ms event-driven `book`, and the 10-level `depth` — to day-partitioned zstd Parquet and uploads
+# it to tape/, where it is NEVER pruned. Local retention is 28 days; this is what survives that.
+# Sized: one day of MNQ book is 16.8M rows = ~800 MB in SQLite but 20 MB as Parquet. A month of
+# everything, both symbols, is ~1.5 GB — pennies at B2, against ~45 GB to keep the same window hot.
+# INERT until `rclone config` runs.
+Description=GAZBOT V7 — permanent Parquet tape archive (never pruned)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# Environment=GAZBOT7_BACKUP_REMOTE=gaz:
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/cloud_backup.py --tier tape
+TimeoutStartSec=7500
+
+[Install]
+WantedBy=multi-user.target

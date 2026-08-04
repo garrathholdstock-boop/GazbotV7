@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V7 — capture.db VACUUM (weekly, inside the Sunday maintenance halt)
+
+[Timer]
+# ★2026-08-04 (operator: "run the vacuum in the halt"). 21:40 UTC sits inside the CME halt
+# (21:00-22:00) and AFTER the other halt jobs, so nothing contends for the database:
+#   21:15 gazbot7-capture-prune  (frees the pages this reclaims)
+#   21:15 gazbot7-clip-revert    (restarts the tournament)
+#   21:30 gazbot7-nightly-audit  (reads capture.db heavily — nipc_replay pulls millions of ticks)
+# WEEKLY, not nightly: VACUUM rewrites the entire file, so running it every night would rewrite ~5 GB
+# to reclaim one day of pruned book. Sunday is the safest slot — Globex is shut all weekend and only
+# reopens 22:00 Sunday, so there is no feed to contend with at all.
+# If the nightly audit overruns, VACUUM takes SQLITE_BUSY, leaves the DB untouched and exits 0 by
+# design — a missed week costs nothing.
+OnCalendar=Sun *-*-* 21:40:00
+Persistent=false
+AccuracySec=60s
+
+[Install]
+WantedBy=timers.target

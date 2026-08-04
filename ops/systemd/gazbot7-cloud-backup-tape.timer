@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V7 — tape archive timer (Sundays 22:30 UTC)
+
+[Timer]
+# WEEKLY with an 8-day window (one day of deliberate overlap) even though this is "the monthly roll":
+# local retention is 28 days, so a monthly job would find the start of its month ALREADY PRUNED and
+# would silently archive a partial month. Day-partitioned filenames make the overlap idempotent.
+# Sunday 22:30 UTC: Globex has just reopened, volume is minimal, and the export is read-only against
+# capture.db so it cannot block the feed the way VACUUM does.
+OnCalendar=Sun *-*-* 22:30:00
+# Persistent=FALSE deliberately. With true, systemd fires a CATCH-UP run the moment the timer is first
+# started (the calendar time has "already passed"), which would kick a 135M-row export off at whatever
+# hour you happened to install it. Safe to skip a run because the window has slack: an 8-day export
+# against 28-day local retention means TWO consecutive weeks can be missed before any day ages out
+# unarchived. If a week is missed, run it by hand — nothing is lost in the meantime.
+Persistent=false
+AccuracySec=5m
+
+[Install]
+WantedBy=timers.target
