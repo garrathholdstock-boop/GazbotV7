@@ -86,7 +86,12 @@ def parse_switches(text: str) -> set:
 def _base(slot: str) -> str:
     """Base gate name of a (possibly dual-slot) tag: 'exhaustion_short_A' → 'exhaustion_short'.
     So base-name benching / the 55s veto / the exhaustion-confirm apply to BOTH sub-slots, while a
-    full '_A'/'_B' tag still matches itself for granular control. A non-dual tag is returned as-is."""
+    full '_A'/'_B' tag still matches itself for granular control. A non-dual tag is returned as-is.
+    ★2026-08-01 (audit FIX): None/'' tolerated. step() now calls _base(i.get("slot")) UNDEFAULTED on
+    the ER/ATR floor path, so a malformed intent without a "slot" key used to be a harmless
+    ``None in ER_FLOOR`` and would now be an AttributeError that kills the decision loop.
+    Revert: return slot[:-2] if (slot.endswith("_A") or slot.endswith("_B")) else slot."""
+    slot = slot or ""
     return slot[:-2] if (slot.endswith("_A") or slot.endswith("_B")) else slot
 
 
@@ -130,28 +135,43 @@ def step(strat: SlotStrategy, mb: MinuteBars, tape: dict, slotbook, now_ms: int,
         return []
     f = compute_features(bars)
     price = tape.get("last") or f.price
-    intents = strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0), footprint)
+    # now_ms is the decision clock: NIPC needs it for its 13:00–15:00 UTC window, the 5s bar
+    # folding, the 1-min trigger expiry, the 20-min cap and the 15:30 flat. Every other gate
+    # ignores it (additive kwarg — no behaviour change).
+    intents = strat.decide(f, price, bars, slotbook, tape.get("net_flow", 0.0), footprint, now_ms)
     er = efficiency_ratio(bars)
     kept = []
     for i in intents:
         slot = i.get("slot")
         if i.get("action") == "OPEN":
-            if er_blocks(slot, er):        # wrong regime (chop for momentum / trend for reversion)
+            # ★2026-08-01 FIX — pass _base(slot). ER_FLOOR/ATR_FLOOR are keyed on BASE gate names,
+            # but under the dual-slot scale-out slate every tag carries an _A/_B suffix, so the raw
+            # tag never matched and EVERY floor silently returned "don't block" from 07-29 16:20
+            # onward (383 de-duped blocked episodes in the 8d before, zero after). _base() was already
+            # applied at the benching / veto / confirm sites below — these two calls were missed.
+            # Revert (kill switch for the floor values too): drop the two _base() calls.
+            if er_blocks(_base(slot), er):        # wrong regime (chop for momentum / trend for reversion)
                 log.info("ER gate: %s OPEN suppressed (er=%.2f, unfavourable condition)", slot, er)
                 continue
-            if atr_blocks(slot, f.atr):    # trend too small to run (magnitude floor)
+            if atr_blocks(_base(slot), f.atr):    # trend too small to run (magnitude floor)
                 log.info("ATR gate: %s OPEN suppressed (atr=%.1fpt below floor)", slot, f.atr)
                 continue
             # SHADOW (observe-only, 2026-07-23): would the momentum ER-hold spike-filter block this
             # OPEN (ER not held ER_HOLD[slot] consecutive bars)? Recorded on the intent + logged; the
             # trade STILL opens — this does not gate live until forward-validated → promoted.
-            if slot in ER_HOLD:
+            # ★2026-08-01 (audit FIX) — SAME BUG CLASS as the two floor calls above, and MISSED by
+            # that fix: ER_HOLD is keyed on BASE gate names, so under the scale-out slate
+            # 'abs_veto_long_A' never matched and this shadow has recorded NOTHING since the 07-29
+            # cutover. Observe-only, so no trading behaviour changes — but the measurement it exists
+            # to collect was silently dead. Revert: drop the two _base() calls on this block.
+            base = _base(slot)
+            if base in ER_HOLD:
                 meta = i.setdefault("meta", {})
-                meta["shadow_er_hold_block"] = er_hold_blocks(slot, bars)
+                meta["shadow_er_hold_block"] = er_hold_blocks(base, bars)
                 meta["er_now"], meta["er_prev"] = round(er, 3), round(efficiency_ratio(bars[:-1]), 3)
                 if meta["shadow_er_hold_block"]:
                     log.info("SHADOW er-hold(N=%d): %s OPEN would block (er_now=%.2f er_prev=%.2f) "
-                             "— observe-only, trade still opens", ER_HOLD[slot], slot,
+                             "— observe-only, trade still opens", ER_HOLD[base], slot,
                              meta["er_now"], meta["er_prev"])
         kept.append(i)
     return kept
@@ -262,7 +282,12 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 # any read error / not-yet-absorbed → DON'T enter (never a bad fill); stale → drop.
                 out = []
                 for i in intents:
-                    if i.get("action") == "OPEN" and i.get("slot") in CONFIRM_GATES:
+                    # ★2026-08-01 (audit FIX) — _base(), same bug class as the ER/ATR floors and the
+                    # ER_HOLD shadow. CONFIRM_GATES is empty today so this is INERT, but it is keyed
+                    # on base names ({"rgv_long","rgv_short"} when populated), so re-arming the 35s
+                    # absorption-confirm would have silently done nothing under the scale-out slate.
+                    # Matches the VETO_GATES / EXH_CONFIRM_GATES sites below. Revert: drop _base().
+                    if i.get("action") == "OPEN" and _base(i.get("slot", "")) in CONFIRM_GATES:
                         pending_confirm.setdefault(i["slot"], (now_ms, i))   # arm once; do NOT emit yet
                     else:
                         out.append(i)
@@ -446,7 +471,18 @@ def main() -> None:  # `python -m gazbot7.tournament`  (GAZBOT7_TOURNAMENT_LIVE=
     live = os.environ.get("GAZBOT7_TOURNAMENT_LIVE") == "1"
     slate = _SLATES.get(os.environ.get("GAZBOT7_TOURNAMENT_SLATE", "tournament"), tournament_slots)
     cfg = RunConfig(place_live=live, client_id=TOURNAMENT_CLIENT_ID)
-    asyncio.run(run(slate(), cfg, place_live=live))
+    specs = slate()
+    # ★2026-08-04: journal the RESOLVED exit ladder before trading. Tracking exit_overrides.json in git
+    # makes the config visible; this makes it HISTORICAL, so "what was live at 14:00 last Thursday?" is
+    # answerable without reading git log and guessing. See config_journal's docstring for the study that
+    # failed for want of it. Wrapped: a journal failure must never stop the desk from starting.
+    try:
+        from .config_journal import record as _journal_config
+        _journal_config(specs, slate=os.environ.get("GAZBOT7_TOURNAMENT_SLATE", "tournament"),
+                        place_live=live)
+    except Exception as e:                                  # pragma: no cover - defensive only
+        logging.getLogger("tournament").warning("config journal skipped: %s", e)
+    asyncio.run(run(specs, cfg, place_live=live))
 
 
 if __name__ == "__main__":

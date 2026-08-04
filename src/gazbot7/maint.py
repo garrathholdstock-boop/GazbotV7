@@ -83,7 +83,43 @@ def main() -> int:  # `python -m gazbot7.maint` — the daily hygiene sweep
             print(f"maint: BACKUP FAILED {db}: {e}")
             from .notify import notify
             notify(f"Garrath — V7 DB backup FAILED: {db} ({e})", critical=True)
+    backup_plain_files(bdir)
     return 0  # a hygiene sweep must never fail its host
+
+
+# ★2026-08-04: NON-DB files that are IRREPLACEABLE HISTORY.
+# `backup()` only handles SQLite (VACUUM INTO), so these were covered by nothing. That is fine for
+# regenerable state and fatal for a history log: data/config_journal.jsonl exists precisely so the
+# resolved exit ladder is recoverable after the fact, and a history that lives on exactly one disk is
+# one failure from being as unrecoverable as the untracked exit_overrides.json it was built to replace.
+# gate_switches.env is here for the same reason — the router rewrites it constantly and it is gitignored.
+_PLAIN_FILES = ("data/config_journal.jsonl", "data/exit_overrides.json", "data/gate_switches.env")
+
+
+def backup_plain_files(backup_dir: str, *, keep: int = 14, root: str = "/home/alphabot/gazbot7",
+                       stamp: str | None = None) -> list[str]:
+    """Timestamped copies of small append-only/config files. Never raises — hygiene, not the order path."""
+    import shutil
+    out: list[str] = []
+    stamp = stamp or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    dest_dir = os.path.join(backup_dir, "config")
+    for rel in _PLAIN_FILES:
+        src = os.path.join(root, rel)
+        if not os.path.exists(src):
+            continue
+        try:
+            os.makedirs(dest_dir, exist_ok=True)
+            base = Path(rel).name
+            dst = os.path.join(dest_dir, f"{base}.{stamp}")
+            shutil.copy2(src, dst)
+            out.append(dst)
+            keepers = sorted(Path(dest_dir).glob(f"{base}.*"))
+            for f in keepers[:-keep]:
+                f.unlink()
+            print(f"maint: {rel} -> {dst} ({os.path.getsize(dst)} bytes)")
+        except Exception as e:
+            print(f"maint: plain-file backup FAILED {rel}: {e}")
+    return out
 
 
 if __name__ == "__main__":
