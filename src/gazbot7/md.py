@@ -15,12 +15,17 @@ re-subscribes the farm (wired in S3 — the liveness/reconnect hardening). Clean
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 
 from .capture import CaptureManager, open_capture, recent_tape
 from .config import RunConfig
 from .ib_gateway import IBGateway
 from .ipc import MD_STREAM, T_TAPE, Publisher
+
+# ★2026-08-04 md.py had no module logger — adding a log call without this is the exact
+# NameError that took gazbot7-shadow down 11 times this morning.
+log = logging.getLogger("md")
 
 MD_CLIENT_ID = 2  # dedicated md client (core=0 master, strategy touches IBKR never)
 
@@ -38,7 +43,19 @@ async def run(cfg: RunConfig, *, tape_interval_s: float = 1.0,
     cap = open_capture(cfg.capture_path)
     pub = Publisher(MD_STREAM)
     gw = IBGateway(cfg.host, cfg.port, client_id=MD_CLIENT_ID, readonly=True)
-    cm = CaptureManager(gw, cap, [cfg.symbol], exchange=cfg.exchange, publisher=pub)
+    # ★2026-08-04 (operator: "add mgc to v7 md capture") — multi-symbol capture, env-driven so the
+    # default is byte-identical to before. "MNQ:CME,MGC:COMEX"; gold is COMEX and will not resolve as CME.
+    # ⚠ DEPTH stays MNQ-ONLY here: IBKR caps depth at THREE subscriptions account-wide and
+    # gazbot7-depth-capture already holds two (MNQ + MGC, 10 levels, deduped). md's own 5-level book is
+    # the weaker copy — a fourth request would take Error 309, exactly how M2K died unnoticed on 07-29.
+    import os as _os
+    syms = [x.strip() for x in _os.environ.get(
+        "GAZBOT7_CAPTURE_SYMBOLS", f"{cfg.symbol}:{cfg.exchange}").split(",") if x.strip()]
+    depth_for = {x.strip() for x in _os.environ.get(
+        "GAZBOT7_MD_DEPTH_SYMBOLS", cfg.symbol).split(",") if x.strip()}
+    log.info("md capture symbols=%s depth=%s", syms, sorted(depth_for))
+    cm = CaptureManager(gw, cap, syms, exchange=cfg.exchange, publisher=pub,
+                        depth_symbols=depth_for)
     # re-subscribe the reqRealTimeBars farm on the initial connect AND every
     # reconnect (S3) — a gateway bounce must not leave md silently unsubscribed.
     gw.on_reconnect(lambda _ib: cm.start())

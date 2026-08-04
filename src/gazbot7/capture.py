@@ -200,11 +200,20 @@ class CaptureManager:
     ticks / L2 depth via the gateway's IB, and writes to the capture store."""
 
     def __init__(self, gateway, cap_store, symbols, *, exchange: str = "CME",
-                 depth_rows: int = 5, publisher=None) -> None:
+                 depth_rows: int = 5, publisher=None, depth_symbols=None) -> None:
+        """symbols: "MNQ" (uses `exchange`) or "MGC:COMEX" for a per-symbol exchange — gold is COMEX,
+        not CME, and a wrong exchange does not resolve at all.
+
+        ★2026-08-04 depth_symbols: which symbols get reqMktDepth. IBKR allows only THREE simultaneous
+        depth subscriptions across the whole account; md holds one and gazbot7-depth-capture holds two
+        (MNQ + MGC), so that cap is ALREADY FULL. Adding a symbol here without this would request a
+        fourth and take `Error 309`, which is how M2K silently stopped on 07-29. None = every symbol
+        (legacy behaviour, unchanged for existing callers)."""
         self._gw = gateway
         self._store = cap_store
-        self._symbols = list(symbols)
+        self._symbols = [str(x) for x in symbols]
         self._exchange = exchange
+        self._depth_symbols = None if depth_symbols is None else set(depth_symbols)
         self._depth_rows = depth_rows
         self._contracts: dict[str, object] = {}
         self._pub = publisher  # optional ipc.Publisher → live MD_STREAM (bars)
@@ -213,8 +222,10 @@ class CaptureManager:
         from ib_async import ContFuture
 
         ib = self._gw._ib
-        for sym in self._symbols:
-            (qc,) = await ib.qualifyContractsAsync(ContFuture(sym, self._exchange))
+        for spec in self._symbols:
+            sym, _, exch = spec.partition(":")
+            exch = exch or self._exchange
+            (qc,) = await ib.qualifyContractsAsync(ContFuture(sym, exch))
             self._contracts[sym] = qc
             bars = ib.reqRealTimeBars(qc, 5, "TRADES", False)
             bars.updateEvent += self._bar_handler(sym)
@@ -222,6 +233,8 @@ class CaptureManager:
             tkr.updateEvent += self._quote_handler(sym)
             tbt = ib.reqTickByTickData(qc, "AllLast", 0, False)
             tbt.updateEvent += self._tick_handler(sym)
+            if self._depth_symbols is not None and sym not in self._depth_symbols:
+                continue   # bars/quotes/ticks only — depth slot reserved (see __init__)
             dom = ib.reqMktDepth(qc, self._depth_rows, False)
             dom.updateEvent += self._depth_handler(sym)
 

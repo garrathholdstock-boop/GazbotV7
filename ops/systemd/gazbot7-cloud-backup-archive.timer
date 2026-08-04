@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — off-box backup timer, archive tier (daily in the CME halt; ~10 GB)
+
+[Timer]
+# 21:25 UTC sits inside the 21:00-22:00 maintenance halt, after gazbot7-clip-revert (21:15). The desk is
+# flat and the feed is idle, so a multi-GB upload cannot compete with market data. The script also caps
+# bandwidth, but timing it here means the cap never has to matter.
+OnCalendar=*-*-* 21:25:00
+Persistent=false
+AccuracySec=60s
+
+[Install]
+WantedBy=timers.target
