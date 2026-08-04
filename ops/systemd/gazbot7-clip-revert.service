@@ -1,0 +1,15 @@
+[Unit]
+# ★2026-08-04 — expires an intraday quiet-tape-clip LIFT, so "while the trend holds" cannot silently
+# become permanent. Same policy as reactivate_gates.py applies to gate benches: an intraday change lasts
+# ONE DAY. Runs inside the CME maintenance halt (21:00-22:00 UTC) when the desk is flat, because the
+# restore needs a tournament restart to take effect.
+Description=GAZBOT V7 — restore the quiet-tape clip (daily expiry of an intraday lift)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/revert_clip_lift.py
+TimeoutStartSec=180
