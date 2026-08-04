@@ -1,0 +1,19 @@
+[Unit]
+# ★2026-08-04 (operator): an agent reading the tape EVERY MINUTE through the first hour of the US open,
+# so the watching does not depend on my attention. Built after the 08-04 break: the tape turned at 13:35
+# and the aligned trend-rider stayed benched 17 minutes while I was answering an unrelated question.
+# ★ ALERT-ONLY BY DESIGN. It must NEVER write gate_switches.env — gazbot7-router-tick.timer owns that
+# file, and a second writer is the "two routers" hazard. This runs as root because it invokes headless
+# claude (/root/.local/bin/claude), same as the durable router tick.
+Description=GAZBOT V7 — US-open-hour tape watcher (every minute 13:30-14:30 UTC, ALERT-ONLY)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# PATH pinned explicitly: a systemd PATH change previously produced FileNotFoundError: 'claude'
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/open_hour_watch.py
+TimeoutStartSec=240

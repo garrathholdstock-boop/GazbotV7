@@ -17,10 +17,35 @@ SW = f"{GB}/data/gate_switches.env"
 LOG = f"{GB}/data/router_trial_log.txt"
 HLOG = f"{GB}/data/router_headless.log"
 PY = f"{GB}/.venv/bin/python"
-GATES = ["grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short", "abs_veto_short", "rgv_short"]
-# ★LIVE TRIAL 2026-07-31 (operator): exhaustion_short is PINNED ON for a fade-scalp (0.5R/1.5R) live trial —
-# the durable tick must NOT bench it while the trial runs. Revert: PINNED = frozenset().
-PINNED = frozenset({"grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short", "abs_veto_short", "rgv_short"})  # ★US-OPEN OVERRIDE 2026-07-31 (operator: "enable all gates, US OPEN"): all 6 pinned ON through the open so the durable tick won't re-bench. Revert to frozenset({"exhaustion_short"}) once the open settles.
+GATES = ["grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short", "abs_veto_short", "rgv_short",
+         "nipc_long", "nipc_short"]   # ★2026-08-01: + nipc (news-impulse pullback), ships BENCHED
+# ★ 2026-08-01 (operator: "frozenset") — FULL ROUTER CONTROL RESTORED. No gate is pinned.
+#
+# History: the 07-31 "enable all gates, US OPEN" override pinned ALL SIX gates. Because apply-time
+# filters on `g not in PINNED`, a full-roster pin makes `valid` permanently empty — the router became
+# a SILENT NO-OP: 411 ticks across 07-31/08-01 logged "no change" and applied nothing, the last real
+# switch change being 2026-07-30T22:15. "no change" reads as healthy, which is exactly what masked it,
+# and it left the churner armed into the 07-31 violent open (grind −$370) with the meter unable to bench.
+#
+# Why frozenset() and not the comment's prescribed frozenset({"exhaustion_short"}): the 0.5R/1.5R
+# fade-scalp trial that pin protected is superseded (exit re-cut to 0.75R/k1.5), and the weekend
+# re-derivation found that for exhaustion the BENCH matters more than the R — no exit rescues a
+# violent-whipsaw entry at any R. Pinning a fader ON disables the fader bench, which was the only
+# router behaviour that survived every robustness test (+$810 non-overlap, n=25, stable under every
+# independent regime tag). So the fader is exactly the gate that must stay benchable.
+#
+# To pin again: PINNED = frozenset({"<gate>"}) — and give it an expiry, because see above.
+#
+# ★2026-08-01 (audit FIX) — nipc_long/nipc_short are pinned (they are OFF, so this pins them OFF).
+# gate_switches.env carries the operator instruction "SHIPS BENCHED … Router: do not arm them",
+# but read_switches() strips comments, so the router NEVER SEES that sentence — the only thing
+# standing between an LLM tick and arming a gate that FAILED its acceptance replay was a paragraph
+# of prose in the prompt whose surrounding RULES ("re-arm momentum on a real range-break") actively
+# argue the other way. PINNED is the mechanism built for exactly this. Two of eight gates cannot
+# recreate the all-pinned no-op, and the PIN ALARM below now catches it behaviourally if it ever
+# did. EXPIRY: remove the moment the operator accepts nipc (re-derived exit accounting) or retires
+# it. Revert: PINNED = frozenset().
+PINNED: frozenset = frozenset()
 MAINT_HOUR_UTC = 21  # CME index-futures daily maintenance halt 21:00-22:00 UTC
 
 
@@ -104,7 +129,7 @@ def main():
 
     prompt = (
         "You are the GAZBOT V7 intelligent router making ONE 5-min bench/enable decision (PAPER, "
-        "benching-only). Decide which of the 6 gates should be on/off on a HOLISTIC regime read "
+        "benching-only). Decide which of the 8 gates should be on/off on a HOLISTIC regime read "
         "(trend vs chop), not mechanical thresholds.\n\n"
         "RULES: chop (low ER, range-bound) -> bench ALL momentum (grind_long, abs_veto_long), keep "
         "reversion (capitulation_long). day-bias UP>=+40 -> bench shorts; DOWN<=-40 -> bench longs. "
@@ -112,6 +137,61 @@ def main():
         "abs_veto_long is veto-protected (≈0-cost armed in chop unless it's firing+stopping); grind_long "
         "is a churner (keep OFF unless ER>=0.35 strong trend). Some gates may be operator-PINNED (auto-excluded "
         "from your changes) — decide holistically regardless. "
+        "★ STANDING FROM THE 07-31 FRIDAY REPORT (operator-picked 08-01, hold unless the tape genuinely changes): "
+        "(a) rgv_short should be BENCHED for the week — verdicted SHADOW (11 fires, -$142, negative at EVERY exit "
+        "rung, strip-best-1 -$242). ★ IT RE-ARMS BY POLICY at every Paris-midnight reopen (every gate does — "
+        "reactivate_gates.py holds nothing back), so YOU are the only thing keeping it off: when you see rgv_short=on, "
+        "bench it again. That is expected housekeeping, NOT thrash. One good-looking read is not evidence to leave it "
+        "armed — it needs n, not a tick. Re-look on/after 2026-08-08. "
+        "(b) abs_veto_short: bench it in VIOLENT WHIPSAW (ATR>=19pt AND 30-min ER<0.25) — that segment is -$20 to "
+        "-$33 per signal at every exit cell and no exit rescues it. "
+        "★★ (b2) 2026-08-04 — the abs_veto_short operator-arming override is EXPIRED and abs_veto_short is BENCHED AGAIN. "
+        "It was armed 13:30 on a churny-roundtrip argument (day-ER 0.06) with a written expiry on ER climbing into a "
+        "real trend; that fired at 13:59 (last-hr ER 0.34-0.43, ATR 21->24, new day high, bias UP +559). The general "
+        "rule applies again in full: day-bias UP>=+40 -> bench shorts. Do NOT re-arm it today. Historical note kept "
+        "because the reasoning matters: judge the EXPIRY on the current SEGMENT, not the chop-diluted day aggregate — "
+        "day-ER was still only 0.10 when the segment was plainly trending, and using the day figure to keep a "
+        "counter-trend gate armed would have been the same aggregate error as benching grind_long on its red day book. "
+        "Do NOT bench it on the day-bias direction rule alone. The general rule above says 'day-bias UP>=+40 -> "
+        "bench shorts' and the day is UP +306pt, so WITHOUT THIS CARVE-OUT YOU WOULD REVERT THE OPERATOR INSIDE "
+        "ONE TICK. Why the direction rule does not apply here: day-ER is 0.06 across a 431pt range — a churny "
+        "range that closed higher, not a clean trend — and in a roundtrip BOTH sides pay. Evidence: the "
+        "thrust/veto family is 9-of-9 green today at +$1,158 shadow real_pnl and both its short arms are green "
+        "(thrust_short_raw +$100, thrust_short_absveto55 +$96), while grind (no veto) bled -$281 over 49 fires. "
+        "THE CARVE-OUT IS DIRECTIONAL ONLY — rule (b) above STILL STANDS, so DO bench abs_veto_short on violent "
+        "whipsaw, and DO bench it normally on a wall-of-STOP. IT ALSO EXPIRES ON EVIDENCE: if day-ER CLIMBS into "
+        "a genuine sustained trend (day-ER >= 0.18 with the range extending) the roundtrip premise is gone — "
+        "bench the shorts then and say so in your reason. This override is for THIS SESSION ONLY, not standing: "
+        "at the 22:00 UTC reopen judge abs_veto_short on the fresh tape like any other gate. "
+        "★★ (b3) 2026-08-04 13:52 — grind_long ARMED on the confirmed break; HOLD IT unless STRUCTURE breaks. "
+        "You declined to arm it at 13:35 reasoning 'grind_long's own book is the day's worst (-314 on 50tr) and one "
+        "hour is not n'. That reasoning is WRONG on a trend day and it is the mistake this desk keeps making: the "
+        "day aggregate is dominated by the earlier DEAD CHOP (last-hr ER 0.02-0.06), and segregating by the break "
+        "hour flips every grind arm GREEN — grind_fast +$192.5 (4tr), sw_grind_A_k10 +$132.0, sw_grind_A_k20 "
+        "+$142.0, sw_grind_B_k10/k20 +$100.5 each. Judging a trend-rider on a chop-day aggregate benches it through "
+        "the only hour it earns. The re-arm trigger is fully met: ER CLIMBING 0.02->0.06->0.40->0.43, VOL EXPANDING "
+        "ATR 10->21pt, STRUCTURE a new day high with bias UP +559 and last-hr net +290 — a real break, not a "
+        "delta-blip, and ER 0.43 clears your own 'ER>=0.35' bar. grind_long is LONG = ALIGNED with the bias. "
+        "SO: keep it ARMED while the trend structure holds. Bench it if the STRUCTURE breaks (loses the day high "
+        "and last-hr ER falls back below ~0.20), or on a wall-of-STOP. Do NOT bench it merely because its full-day "
+        "aggregate is red, and do NOT bench aligned momentum for 'being momentum in chop' while ER stays >=0.35. "
+        "(c) abs_veto_long: do NOT bench it merely for being 'momentum in chop'. On the evidence it is an OVERNIGHT "
+        "CHOP gate (13 blocked fires worth +$384; live and shadow both green in that cell). Bench it on VIOLENCE, "
+        "not on chop. "
+        "(d) The FADER BENCH is the one router behaviour that survived every robustness test this weekend "
+        "(+$810 non-overlap, n=25, stable under every independent regime tag) — keep doing it. Conversely, do NOT "
+        "widen into 'stop benching momentum in TREND_UP': that idea was re-derived and REFUTED (placebo-null under "
+        "two independent regime tags), so leave TREND_UP benching exactly as it is. "
+        # ★2026-08-01 (audit FIX): the shipped wording said 'leave it as the operator set it', which under
+        # the general RULE 're-arm momentum on a real range-break with ER climbing' reads as permission to
+        # arm nipc. It is not. nipc FAILED its acceptance replay and is PINNED OFF; asking for it on is a
+        # wasted tick that now raises a critical PIN-BLOCKED alarm. Revert: restore the previous sentence.
+        "★ NEW GATE — nipc_long / nipc_short (news-impulse pullback, added 08-01): both are OFF and "
+        "operator-PINNED OFF. They FAILED their acceptance replay (the shipped decider reproduces the lab's "
+        "entry population but only +$264/n=159 against the lab's +$2,676/n=171), so they stay off until the "
+        "operator re-derives the exit accounting. NEVER put nipc_long or nipc_short in `changes` — not 'on', "
+        "not 'off'. They are already off, the general momentum re-arm rule does NOT apply to them, and the "
+        "pin means any request you make for them is discarded and pages the operator. Ignore them entirely. "
         "★ UNTRADEABLE-DAY RULE: if the UNTRADEABLE METER reads STAY-OUT (score>=65 — a big range but ~0 net "
         "roundtrip + the day's move given back + gates stopping across mechanisms), bench ALL gates and keep flat; "
         "do NOT hunt for a gate that works — a no-trade day is correct (chasing an untradeable chop cost -$900 on 07-31). "
@@ -145,12 +225,39 @@ def main():
     reason = str(dec.get("reason", ""))[:300]
     notify = str(dec.get("notify", "")).strip()
 
+    blocked = {g: v for g, v in changes.items()
+               if g in GATES and g in PINNED and v in ("on", "off") and cur.get(g) != v}
     valid = {g: v for g, v in changes.items()
              if g in GATES and g not in PINNED and v in ("on", "off") and cur.get(g) != v}
 
+    # ★ PIN ALARM (2026-08-01). A PINNED set covering every gate makes `valid` permanently empty, so
+    # the router silently stops managing the desk while still logging the healthy-looking "no change"
+    # every tick. That went unnoticed for 411 ticks / 36 hours. A dead router and an idle one must
+    # never log the same line again.
+    # ★2026-08-01 (audit FIX): the shipped test was `PINNED >= set(GATES)` ALONE — roster-shape
+    # dependent, and it would NOT have caught the incident it was written for: that pin was the SIX
+    # gates of the old roster and GATES now holds EIGHT, so frozenset(6) >= set(8) is False → silent,
+    # while the six real gates stay frozen. The load-bearing invariant is behavioural: the router
+    # NAMED changes and every one was pin-suppressed. Test that too (needs blocked/valid, so those
+    # move above). Revert: drop the `or (blocked and not valid)` clause and move this block back up.
+    if PINNED >= set(GATES) or (blocked and not valid):
+        msg = (f"ROUTER PIN-BLOCKED: the router asked for {blocked or 'changes'} but every gate it "
+               f"named is PINNED, so nothing can apply. If this repeats, the desk is UNMANAGED. "
+               f"Fix: shrink PINNED in scripts/router_tick_durable.py. "
+               f"(pinned={sorted(PINNED)}, gates={len(GATES)})")
+        hlog(f"ALARM {msg}")
+        append_log(f"ALARM | {msg}")
+        try:
+            subprocess.run([PY, "-c", "import sys; from gazbot7.notify import notify; notify(sys.argv[1], critical=True)", msg],
+                           cwd=GB, env={**os.environ, "PYTHONPATH": "src"}, timeout=30)
+        except Exception:
+            pass
+
     if not valid:
-        append_log(f"changed: none | {reason}")
-        hlog(f"no change | {reason}")
+        # Distinguish "nothing to do" from "wanted to act but every gate it named was pinned".
+        sup = f" | SUPPRESSED-BY-PIN {blocked}" if blocked else ""
+        append_log(f"changed: none{sup} | {reason}")
+        hlog(f"no change{sup} | {reason}")
         return
 
     apply_switches(valid)

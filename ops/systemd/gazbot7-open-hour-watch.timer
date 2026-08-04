@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — US-open-hour watcher timer (weekdays, every minute 13:30-14:29 UTC)
+
+[Timer]
+# Two ranges because a single '13:30..14:29' spec is not valid systemd calendar syntax (it parses the
+# range within ONE hour field, not across the boundary — verified with systemd-analyze calendar).
+# The script ALSO checks the window itself, so a stray fire outside it exits in milliseconds.
+OnCalendar=Mon-Fri *-*-* 13:30..59:00
+OnCalendar=Mon-Fri *-*-* 14:00..29:00
+Persistent=false
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
