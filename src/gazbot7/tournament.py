@@ -251,6 +251,18 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
                 continue
             topic, body = msg
             if topic == T_BAR:
+                # ★★2026-08-04 CRITICAL — FILTER BY SYMBOL. md publishes every captured symbol on one
+                # stream and always tagged it, but this consumer folded them ALL into the MNQ deque.
+                # Harmless while md captured one symbol; the moment MGC was added to capture (17:30
+                # today) gold bars (~3,300) interleaved with MNQ bars (~29,800) and true range across
+                # that jump is astronomic. ATR read 1848.16 against a true 15.11 — 122x — and the desk
+                # opened two abs_veto_short lots at 22:02 with stops 1,848 points away instead of ~15,
+                # i.e. ~$3,700 of risk per lot instead of ~$30. Every gate threshold is ATR-relative,
+                # so this corrupted entries and exits simultaneously.
+                # The bug was latent for the entire life of the desk and only a config change exposed
+                # it. Anything consuming MD_STREAM must filter: the stream is multi-symbol by design.
+                if body.get("symbol") != cfg.symbol:
+                    continue
                 mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
             elif topic == T_TAPE:
                 tape = body

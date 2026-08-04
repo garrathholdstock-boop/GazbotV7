@@ -337,6 +337,11 @@ async def run(cfg: RunConfig, *, max_seconds: float | None = None) -> None:
                 continue
             topic, body = msg
             if topic == T_BAR:
+                # ★2026-08-04 same multi-symbol hole as tournament.py/shadow.py. This desk is RETIRED
+                # (superseded by gazbot7-tournament) so it is not currently exposed, but it is the
+                # documented revert target — fixing it here means a revert cannot resurrect the bug.
+                if body.get("symbol") != cfg.symbol:
+                    continue
                 strat.on_bar(body)
             elif topic == T_TAPE:
                 strat.on_tape(body)

@@ -578,6 +578,14 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
             if msg is not None:
                 topic, body = msg
                 if topic == T_BAR:
+                    # ★★2026-08-04 SAME BUG AS tournament.py — MD_STREAM is MULTI-SYMBOL and this
+                    # folded every symbol into one deque. Latent for the desk's whole life; adding MGC
+                    # to md capture at 17:30 today exposed it, interleaving gold (~3,300) with MNQ
+                    # (~29,800) so true range across the jump made ATR read 1848 against a true 15.
+                    # Every shadow sim is ATR-relative, so all 36 — including the stop-width and clip
+                    # A/B arms built today — were being fed corrupt features from 17:30 onward.
+                    if body.get("symbol") != cfg.symbol:
+                        continue
                     mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
                 elif topic == T_TAPE:
                     now_ms = body.get("ts_ms")
