@@ -9,7 +9,17 @@ venv/
 .mypy_cache/
 
 # Data / DB — never commit the DB or captured data (it lives on disk / archive)
-data/
+# NOTE: `data/*`, not `data/` — git does not descend into an excluded DIRECTORY, so a `!` exception
+# cannot re-include anything under it. With `data/` the un-ignore below silently does nothing.
+data/*
+# ★2026-08-04 EXCEPTION (operator: "track exit_overrides.json in git").
+# This file decides EVERY exit on the live desk (per-gate a_r/b plus the quiet-tape clip) and was
+# untracked, so there was no record of what the desk was actually running on any given day. Concrete
+# cost, found the same day: the stop-width study could not evaluate 2026-07-31→08-02 at all, because the
+# live exit ladder for that window is UNRECOVERABLE — not hard to find, gone — with only two undated
+# ad-hoc snapshots surviving. The trailing `*` deliberately covers those .pre-* snapshots too, so no
+# future one is lost either.
+!data/exit_overrides.json*
 *.db
 *.db-wal
 *.db-shm

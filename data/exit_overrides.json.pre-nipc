@@ -1,0 +1,6 @@
+{
+  "capitulation_long": {"a_r": 1.0, "b": "tight"},
+  "exhaustion_short": {"a_r": 0.75, "b": "tight"},
+  "abs_veto_long": {"a_r": 1.0, "b": 1.5},
+  "abs_veto_short": {"a_r": 1.5, "b": 2.5}
+}
