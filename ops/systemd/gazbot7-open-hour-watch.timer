@@ -1,12 +1,14 @@
 [Unit]
-Description=GAZBOT V7 — US-open-hour watcher timer (weekdays, every minute 13:30-14:29 UTC)
+Description=GAZBOT V7 — tape watcher timer (weekdays 13:30-20:00 UTC; script sets the cadence)
 
 [Timer]
-# Two ranges because a single '13:30..14:29' spec is not valid systemd calendar syntax (it parses the
-# range within ONE hour field, not across the boundary — verified with systemd-analyze calendar).
-# The script ALSO checks the window itself, so a stray fire outside it exits in milliseconds.
+# Fires every minute across the whole span; the SCRIPT decides whether to act (every minute in the
+# 13:30-14:30 open hour, every 3rd minute in the 14:30-20:00 afternoon fade window). Keeping the cadence
+# in one place means the timer cannot disagree with the script about when it should run, and a skipped
+# invocation costs milliseconds. Ranges are per-hour because systemd cannot express a range that
+# crosses the hour boundary (verified: systemd-analyze rejects '13:30..14:29').
 OnCalendar=Mon-Fri *-*-* 13:30..59:00
-OnCalendar=Mon-Fri *-*-* 14:00..29:00
+OnCalendar=Mon-Fri *-*-* 14..19:*:00
 Persistent=false
 AccuracySec=5s
 
