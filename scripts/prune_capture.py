@@ -51,10 +51,10 @@ RETAIN = [
     # signal on this desk — live BETWEEN 250 ms samples and are invisible to depth.db. Cutting book to
     # 5 days would have thrown away the only stream that can see them.
     # Cost, stated plainly: ~0.80 GB/day/symbol, so ~45 GB for both at 28 days, plus local backups.
-    ("book", "ts_ms", True, 28),
-    ("quotes", "ts_ms", True, 28),
-    ("ticks", "ts_ms", True, 28),
-    ("bars", "bar_ts", False, 60),   # bars are tiny (189K rows) → keep 60d of free extra history
+    ("book", "ts_ms", True, 5),
+    ("quotes", "ts_ms", True, 5),
+    ("ticks", "ts_ms", True, 5),
+    ("bars", "bar_ts", False, 60),   # bars are tiny (236K rows) → keep 60 trading days, effectively free
 ]
 DROP_TMP = ("tmp_book", "tmp_tick")   # leftover scratch tables — safe to drop
 
@@ -85,14 +85,30 @@ def run(dry: bool):
         floor_ms = 0                       # 0 = clamp everything away = delete nothing
 
     for tbl, tcol, is_ms, days in RETAIN:
-        cutoff = (now - days * 86400) * (1000 if is_ms else 1)
+        # ★★2026-08-04 (operator: "cut sqlite to 5 days. each trading week is 5 days") — retention is
+        # counted in TRADING DAYS, i.e. days that actually contain rows, NOT calendar days.
+        # A calendar cutoff does not mean what it looks like: run on a Monday, "5 days" keeps
+        # Mon/Sun/Sat/Fri/Thu — only THREE trading days, because the weekend eats two. Measured across
+        # the week a 5-calendar-day rule retains 3,3,3,4,5,4,3 trading days depending on when it runs.
+        # Counting days-with-rows instead handles weekends and exchange holidays for free, and makes
+        # "5 days" mean one trading week on every day of the week.
+        unit = 86400000 if is_ms else 86400
+        have = [r[0] for r in con.execute(
+            f"SELECT DISTINCT CAST({tcol}/{unit} AS BIGINT) d FROM {tbl} ORDER BY d DESC").fetchall()]
+        have = [d for d in have if con.execute(
+            f"SELECT 1 FROM {tbl} WHERE {tcol}>=? AND {tcol}<? LIMIT 1",
+            (d * unit, (d + 1) * unit)).fetchone()]          # drop empty boundary buckets
+        if len(have) <= days:
+            cutoff = 0                                        # fewer trading days than we keep
+        else:
+            cutoff = have[days - 1] * unit                    # start of the OLDEST day we keep
         if floor_ms is not None:
             clamp = floor_ms if is_ms else floor_ms / 1000
             cutoff = min(cutoff, clamp)    # never delete past what is verifiably archived
         if dry:
             n = con.execute(f"SELECT COUNT(*) FROM {tbl} WHERE {tcol} < ?", (cutoff,)).fetchone()[0]
             keep = con.execute(f"SELECT COUNT(*) FROM {tbl}", ()).fetchone()[0] - n
-            print(f"  {tbl:8} would delete {n:>12,} (older than {days}d) · keep {keep:,}")
+            print(f"  {tbl:8} would delete {n:>12,} (keeping {days} TRADING days) · keep {keep:,}")
             total += n
             continue
         deleted = 0
@@ -105,7 +121,7 @@ def run(dry: bool):
             deleted += cur.rowcount
             if cur.rowcount < BATCH:
                 break
-        print(f"  {tbl:8} deleted {deleted:>12,} rows older than {days}d")
+        print(f"  {tbl:8} deleted {deleted:>12,} rows (kept {days} trading days)")
         total += deleted
     if not dry:
         for t in DROP_TMP:
