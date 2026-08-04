@@ -15,6 +15,9 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sqlite3
+import sys
+
+sys.path.insert(0, "/home/alphabot/gazbot7/scripts")
 
 DB = "/home/alphabot/gazbot7/data/capture.db"
 BATCH = 50_000
@@ -61,8 +64,31 @@ def run(dry: bool):
     con.execute("PRAGMA busy_timeout=60000")
     now = dt.datetime.now(dt.UTC).timestamp()
     total = 0
+
+    # ★★ THE INTERLOCK. This prune may NOT delete a day that tape_mirror.py has not exported to
+    # Parquet AND verified by row count. Without it, an archive that merely MIGHT have run feeds a
+    # delete that always runs — a machine for losing tape quietly, which is the exact failure class
+    # that cost this desk the 07-31..08-02 exit ladder (untracked file, no record, unrecoverable).
+    # If the mirror stops, the clamp stops the prune and capture.db grows instead. Growth is a
+    # nuisance you notice; a silent gap in the tape is not.
+    floor_ms = None
+    try:
+        from tape_mirror import mirrored_floor_ms
+        floor_ms = mirrored_floor_ms()
+        if floor_ms is None:
+            print("  ⚠ tape manifest EMPTY — nothing verified in Parquet, so NOTHING will be deleted.")
+        else:
+            print(f"  tape mirror verified up to {dt.datetime.fromtimestamp(floor_ms/1000, dt.UTC):%Y-%m-%d}"
+                  f" — prune clamped to that day")
+    except Exception as e:
+        print(f"  ⚠ tape_mirror unavailable ({e}) — refusing to delete anything this run")
+        floor_ms = 0                       # 0 = clamp everything away = delete nothing
+
     for tbl, tcol, is_ms, days in RETAIN:
         cutoff = (now - days * 86400) * (1000 if is_ms else 1)
+        if floor_ms is not None:
+            clamp = floor_ms if is_ms else floor_ms / 1000
+            cutoff = min(cutoff, clamp)    # never delete past what is verifiably archived
         if dry:
             n = con.execute(f"SELECT COUNT(*) FROM {tbl} WHERE {tcol} < ?", (cutoff,)).fetchone()[0]
             keep = con.execute(f"SELECT COUNT(*) FROM {tbl}", ()).fetchone()[0] - n
