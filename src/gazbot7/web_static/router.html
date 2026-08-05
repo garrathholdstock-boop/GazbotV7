@@ -135,6 +135,19 @@
   </div>
   <p class="upd" id="upd">loading…</p>
 
+  <h2>Which way is the day leaning?</h2>
+  <div class="panel untr" id="leanPanel">
+    <div class="untr-head">
+      <span class="untr-title">DRIFT since 13:30</span>
+      <span class="untr-score" id="leanDir">—</span>
+      <span class="untr-verdict" id="leanState">—</span>
+    </div>
+    <div class="meter"><div class="mlab">Efficiency<small>net move vs distance travelled — going somewhere, or thrashing?</small></div><div class="mbar"><div class="mfill" id="mEff"></div></div><span class="mval" id="mEffV">—</span></div>
+    <div class="meter"><div class="mlab">Round-trip<small>net move vs the range so far</small></div><div class="mbar"><div class="mfill" id="mRt"></div></div><span class="mval" id="mRtV">—</span></div>
+    <div class="untr-detail" id="leanDetail">—</div>
+    <div id="leanNeeds" style="margin-top:10px;padding:10px;border-radius:6px;background:rgba(255,255,255,.04);border-left:3px solid #4a9"></div>
+  </div>
+
   <h2>Untradeable-day meter — the stay-out evidence, and what has to change</h2>
   <div class="panel untr">
     <div class="untr-head">
@@ -226,6 +239,46 @@ async function tick(){
   $("rlo").textContent=r.range_lo?Math.round(r.range_lo)+" lo":"";
   $("rhi").textContent=r.range_hi?Math.round(r.range_hi)+" hi":"";
   if(r.range_pos!=null)$("mk").style.left=r.range_pos+"%";
+  // ★2026-08-05 DAY LEANING — operator: "dashboard needs a way to indicate to me the way the day is
+  // leaning. so i know. then when its confirmed we buy 2 lots."
+  // Both bars are drawn as a FRACTION OF THEIR OWN THRESHOLD, so the bar filling to 100% *is* the
+  // confirmation — the operator watches it build rather than being told only at the moment it fires.
+  // Data comes from gazbot7.drift, the same module the live service reads: one source of truth.
+  const L=d.leaning||{};
+  {
+    const dirEl=$("leanDir"), stEl=$("leanState");
+    if(dirEl) dirEl.textContent = L.ok ? (L.direction||"FLAT") + " " + (L.net_pt>0?"+":"") + Math.round(L.net_pt||0) + "pt" : "—";
+    if(stEl){
+      const armed = L.confirmed===true;
+      stEl.textContent = !L.ok ? "waiting" : (armed ? "CONFIRMED" : "building");
+      stEl.style.color = !L.ok ? "" : (armed ? "var(--grn)" : "var(--amber)");
+    }
+    if(dirEl && L.ok) dirEl.style.color = L.direction==="UP" ? "var(--grn)" : "var(--red)";
+    const pct=(v,m)=> m ? Math.max(0,Math.min(100,Math.round(100*v/m))) : 0;
+    const setL=(fill,val,v,m)=>{
+      const f=$(fill);
+      if(f){const p=pct(v,m); f.style.width=p+"%";
+            f.style.background = p>=100 ? "var(--grn)" : (p>=70 ? "var(--amber)" : "var(--red)");}
+      const x=$(val); if(x) x.textContent = (v==null?"—":v.toFixed(2)+" / "+m);
+    };
+    setL("mEff","mEffV", L.efficiency, L.er_min);
+    setL("mRt","mRtV",  L.roundtrip,  L.rt_min);
+    const de=$("leanDetail"); if(de) de.textContent = L.detail || "—";
+    const nd=$("leanNeeds");
+    if(nd){
+      if(L.confirmed){
+        nd.innerHTML = "<b style='color:var(--grn)'>CONFIRMED "+(L.direction||"")+"</b> — both thresholds cleared after "
+          +(L.minutes||0)+" min. This is the moment the strategy buys 2 lots.";
+      } else if(!L.ok){
+        nd.textContent = L.detail || "not enough tape since the open yet";
+      } else {
+        const bits=[];
+        if(L.er_needed>0) bits.push("efficiency needs +"+L.er_needed.toFixed(2)+" (a cleaner path, less thrashing)");
+        if(L.rt_needed>0) bits.push("round-trip needs +"+L.rt_needed.toFixed(2)+" (hold the move instead of giving it back)");
+        nd.innerHTML = "<b>To confirm "+(L.direction||"a direction")+":</b> "+(bits.join(" &nbsp;·&nbsp; ")||"—");
+      }
+    }
+  }
   // untradeable-day meter
   // ★2026-08-05 RETIRED the 0-10 tradeability gauge. scripts/meter_showdown.py scored both meters
   // predictively (computed pre-14:30, judged on shadow P&L after): the gauge correlated -0.06 with the

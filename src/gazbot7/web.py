@@ -583,7 +583,7 @@ def router_json(store_path, cap_path, data_dir):
     now = datetime.now(UTC)
     out = {"ts": now.astimezone(_PARIS).strftime("%Y-%m-%d %H:%M:%S"), "tz": "Paris",
            "regime": {}, "gates": [], "shadow": {}, "activity": [], "holdings": [],
-           "chandeliers": [], "day": {}, "untradeable": {}}
+           "chandeliers": [], "day": {}, "untradeable": {}, "leaning": {}}
     cl = []
     try:
         s = pnl.paris_day_start_utc(now)
@@ -599,6 +599,26 @@ def router_json(store_path, cap_path, data_dir):
         out["untradeable"] = _untradeable_compute(cap_path, store_path, ds_ep, int(now.timestamp()))
     except Exception:
         out["untradeable"] = {}
+
+    # ★2026-08-05 DAY LEANING — operator: "dashboard needs a way to indicate to me the way the day is
+    # leaning. so i know. then when its confirmed we buy 2 lots."
+    # It calls the SAME gazbot7.drift.read() the live service calls, so the panel can never show one
+    # thing while the desk acts on another (pnl.py's one-source-of-truth rule, applied to a signal).
+    # The `*_needed` fields are surfaced on purpose: the operator wants to watch it BUILD toward
+    # confirmation, not just be told the instant it fires.
+    try:
+        from .drift import ER_MIN as _ERM, RT_MIN as _RTM, read as _drift_read
+        _d = _drift_read(cap_path, now=now)
+        out["leaning"] = {
+            "ok": _d.ok, "direction": _d.direction, "confirmed": _d.confirmed,
+            "minutes": _d.minutes, "net_pt": round(_d.net_pt, 1), "range_pt": round(_d.range_pt, 1),
+            "efficiency": round(_d.efficiency, 3), "roundtrip": round(_d.roundtrip, 3),
+            "er_min": _ERM, "rt_min": _RTM,
+            "er_needed": round(_d.er_needed, 3), "rt_needed": round(_d.rt_needed, 3),
+            "blockers": _d.blockers, "detail": _d.detail,
+        }
+    except Exception:
+        out["leaning"] = {}
 
     day_bias, day_net, day_er, day_hi, day_lo = "FLAT", 0.0, None, None, None
     try:
