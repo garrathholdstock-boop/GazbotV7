@@ -130,6 +130,9 @@ class RunConfig:
     # KILL-SWITCHES — live-money safety, DISABLED for paper tuning (2026-07-16 operator:
     # "its paper, we need to see action"). Both work (proven); re-enable for go-live:
     # daily 300, streak 4. The native 1-ATR stop still caps every individual trade.
+    # ★2026-08-05 bench the Asian session permanently (operator). Shadow n=1840: -$3.17/trade, the
+    # worst block on the desk by a wide margin. NEW ENTRIES ONLY — exits and flattens are untouched.
+    no_open_asia: bool = True
     max_daily_loss_usd: float = 0.0    # 0 = no daily-loss halt (paper tuning)
     loss_streak_halt: int = 0          # 0 = no loss-streak halt (paper tuning)
     # paths

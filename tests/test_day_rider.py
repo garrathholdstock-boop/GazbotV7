@@ -144,3 +144,19 @@ def test_nipc_regime_buckets_and_filter():
     # allowed: the two that pay
     assert nipc_bad_regime(20, 0.40) is False     # in-between-building
     assert nipc_bad_regime(15, 0.60) is False     # clean-trend
+
+
+def test_asia_block_window_and_semantics():
+    """★2026-08-05 'bench asia permanently'. Shadow n=1840 at -$3.17/trade, the worst block.
+    Note the operator's original framing ('don't trade until the US open') was REFUTED: pre-open is
+    -$1.75/tr vs the US session's -$1.93. It is Asia specifically, not 'pre-open'."""
+    from datetime import UTC, datetime
+    from gazbot7 import session
+    for h in (0, 3, 6):
+        assert session.in_asia_block(datetime(2026, 8, 6, h, 30, tzinfo=UTC)) is True
+    for h in (7, 12, 13, 20, 22, 23):      # London, US and the post-halt reopen all stay tradeable
+        assert session.in_asia_block(datetime(2026, 8, 6, h, 30, tzinfo=UTC)) is False
+    # and the day-rider is unaffected — it only ever trades 13:38-20:40
+    from gazbot7 import day_rider as dr
+    assert dr.ENTRY_CUTOFF_MIN > 7 * 60
+    assert dr.FLAT_UTC_MIN > 7 * 60

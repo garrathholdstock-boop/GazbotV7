@@ -183,6 +183,14 @@ class MultiSlotCore:
         gate = intent["slot"]
         if self._halted or not self._sb.slot(gate).is_flat or gate in self._pending:
             return                           # halted, slot occupied, or an open already in flight
+        # ★2026-08-05 ASIA BENCH — placed HERE because _open is the single funnel every tournament
+        # entry passes through, so one guard covers all 8 gates and every sub-slot; a per-gate check
+        # would have to be repeated and could be missed on the next gate added. NEW ENTRIES ONLY.
+        if getattr(self._cfg, "no_open_asia", False):
+            from datetime import UTC, datetime as _dtm
+            from . import session as _sess
+            if _sess.in_asia_block(_dtm.now(UTC)):
+                return
         side = intent["side"]
         qty = int(intent.get("qty") or 1)
         if qty <= 0 or not self._cfg.place_live:

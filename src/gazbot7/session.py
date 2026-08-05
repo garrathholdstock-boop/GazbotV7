@@ -18,6 +18,7 @@ from datetime import datetime, time as dtime, timedelta
 from zoneinfo import ZoneInfo
 
 _ET = ZoneInfo("America/New_York")
+_UTC = ZoneInfo("UTC")
 DAILY_CLOSE = dtime(17, 0)  # CME Globex daily halt begins (ET)
 DAILY_OPEN = dtime(18, 0)   # reopen (ET)
 
@@ -54,6 +55,29 @@ def minutes_to_next_close(now: datetime) -> float | None:
     else:
         close_dt = datetime.combine(day, DAILY_CLOSE, tzinfo=_ET)
     return (close_dt - et).total_seconds() / 60.0
+
+
+# ── ★★2026-08-05 ASIA IS BENCHED PERMANENTLY (operator: "bench asia permanently") ─────────────────
+# Measured on the SHADOW book, which fires regardless of benching and is therefore the unconfounded
+# counterfactual — n=6,324 MNQ sims:
+#     ASIA   00-07 UTC   n=1840   -$5,838   -$3.17/trade   35% win   <- benched
+#     LONDON 07-13 UTC   n=1516   +$1,055   +$0.70/trade   37%       <- the ONLY positive block
+#     US     13-21 UTC   n=2394   -$4,613   -$1.93/trade   36%
+#     post   21-24 UTC   n= 574   -$2,078   -$3.62/trade   31%
+# The operator's original framing was "don't day-trade MNQ until the US open", and the data refuted it:
+# pre-open is -$1.75/trade against the US session's -$1.93 — indistinguishable, US marginally WORSE.
+# The real signal is that ASIA specifically is the worst block by a wide margin, and LONDON is the best
+# thing the desk has. So the policy is "bench Asia", not "wait for the US open".
+# ⚠ It blocks NEW ENTRIES ONLY — identical semantics to a gate bench. Open positions still manage and
+# exit normally, and every flatten path is untouched. Never let a risk-reducing action be gated by this.
+# Revert: RunConfig(no_open_asia=False).
+ASIA_BLOCK_FROM_UTC_H = 0
+ASIA_BLOCK_TO_UTC_H = 7
+
+
+def in_asia_block(now: datetime) -> bool:
+    """True during 00:00-07:00 UTC — the session the desk is benched out of."""
+    return ASIA_BLOCK_FROM_UTC_H <= now.astimezone(_UTC).hour < ASIA_BLOCK_TO_UTC_H
 
 
 def in_no_open_window(now: datetime, minutes_before: float = 20.0) -> bool:
