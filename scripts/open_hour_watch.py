@@ -374,7 +374,19 @@ def main() -> int:
         return 0
 
     # ── dedup: only a CHANGED alert fires, else a minute cadence produces 60 identical pages ──
-    fp = hashlib.sha256(f"{urg}|{what}".encode()).hexdigest()[:12]
+    # ★2026-08-05 FIXED: this fingerprinted the PROSE, so the model rewording the same verdict
+    # ("Bench grind_long (both A and B)" vs "(both slots)") minted a new hash and re-paged. It fired
+    # the identical bench-grind_long call four minutes running. That is precisely the failure this
+    # module's own docstring warns about — re-alerting a condition trains everyone to ignore it.
+    # Fingerprint the DECISION instead: urgency + the verb + which gates it names. Stable across any
+    # rewording, still changes the moment the actual recommendation does.
+    lo = what.lower()
+    verb = next((v for v in ("bench", "arm", "flatten", "halt", "claim", "widen", "cut")
+                 if v in lo), lo.split(" ")[0] if lo else "")
+    gates = sorted({g for g in ("grind_long", "capitulation_long", "abs_veto_long", "abs_veto_short",
+                                "exhaustion_short", "rgv_short", "nipc_long", "nipc_short")
+                    if g in lo})
+    fp = hashlib.sha256(f"{urg}|{verb}|{','.join(gates)}".encode()).hexdigest()[:12]
     prev = None
     try:
         prev = json.load(open(STATE)).get("fp")
