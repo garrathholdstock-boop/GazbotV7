@@ -39,8 +39,25 @@ def paris_week_start_utc(now: datetime) -> str:
 def realized(store, symbol: str, *, since_iso: str | None = None) -> tuple[float, int, int]:
     """Net-of-fees realized P&L (sign-aware), trade count, win count — for trades
     closed at/after ``since_iso`` (default all-time)."""
+    # ★2026-08-05 EXCLUDE data_quality-flagged rows AT THE SOURCE.
+    # The flag was added this morning (rows 538/539 — the two abs_veto_short lots the MD_STREAM bug
+    # sized with 1,848-point stops, -$255.50) and NOT ONE of the ~20 trade-table consumers filtered it.
+    # So the open-hour watcher reported abs_veto_short at -$387.50 when the true figure was -$132.00
+    # and recommended a bench on a number 3x too large. That is the SAME mistake as the original bug:
+    # a field was added and the CONSUMERS were not audited (md-stream-multi-symbol-filter).
+    # Fixed here rather than at 20 call sites because this module is the single P&L source — the
+    # docstring's own invariant. `data_quality IS NULL` is the normal case, so every unflagged row
+    # behaves exactly as before and no existing figure moves except the two corrupt ones.
+    # ⚠ AND IT MUST TOLERATE THE COLUMN NOT EXISTING. Adding the clause unconditionally broke 8 tests
+    # instantly (their fixtures build `trades` without it) — and would equally break a fresh deployment
+    # or any older database. A P&L source that throws is worse than one that over-counts two rows, so
+    # the clause is applied only when the column is actually present.
     placeholders = ",".join("?" * len(_CLEANUP_REASONS))
+    has_dq = any(r[1] == "data_quality"
+                 for r in store.execute("PRAGMA table_info(trades)").fetchall())
     q = f"SELECT pnl_usd FROM trades WHERE symbol=? AND exit_reason NOT IN ({placeholders})"
+    if has_dq:
+        q += " AND data_quality IS NULL"
     args: list = [symbol, *_CLEANUP_REASONS]
     if since_iso is not None:
         q += " AND closed_at>=?"
