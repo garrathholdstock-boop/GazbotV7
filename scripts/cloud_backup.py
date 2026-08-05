@@ -59,6 +59,19 @@ LOG = f"{GB}/data/cloud_backup.log"
 # invisible during the halt; raise it only if you have measured headroom.
 BWLIMIT = os.environ.get("GAZBOT7_BACKUP_BWLIMIT", "8M")
 
+# ★★2026-08-05 SPLIT BY SENSITIVITY, NOT BY HABIT.
+# Everything was encrypted at first because "financial records". That conflated two different things:
+#   * the record of YOUR TRADING — gazbot7.db, configs, P&L, order history. Genuinely private. Encrypted.
+#   * MARKET TAPE — ticks, bars, book, depth. This is data CME sells to anyone with a subscription.
+#     There is nothing to protect, and encrypting it costs something real: rclone crypt means DuckDB
+#     CANNOT read it from B2, so every study must download whole files first.
+# Measured after moving the tape to plaintext: DuckDB queries it straight off B2 — 1.2M rows counted in
+# 0.73s, a 7-day / 11.2M-row sweep in 12.1s, with column and row-group pushdown fetching only the bytes
+# a query touches. Through rclone the same work means pulling entire files.
+# So: PLAIN_REMOTE for tape, REMOTE (crypt) for state. The worst anyone can read out of the plaintext
+# half is what the market did — never what we did.
+PLAIN_REMOTE = os.environ.get("GAZBOT7_BACKUP_PLAIN", "b2raw:gazbotv7/plain")
+
 TIERS = {
     # tier: (label, [(path, is_sqlite)], keep_versions)
     "state": ("irreplaceable desk state", [
@@ -208,13 +221,14 @@ def run_tape(dry: bool) -> int:
             log(f"remote '{REMOTE}' NOT CONFIGURED — nothing uploaded, exiting cleanly.")
             return 0
         # flat names carry symbol+date, so re-uploading an overlapping day simply overwrites it
-        r = subprocess.run(["rclone", "copy", tmp, f"{REMOTE}tape/", "--bwlimit", BWLIMIT,
+        r = subprocess.run(["rclone", "copy", tmp, f"{PLAIN_REMOTE}/tape/", "--bwlimit", BWLIMIT,
                             "--transfers", "4", "--retries", "3", "--stats", "0"],
                            capture_output=True, text=True, timeout=7200)
         if r.returncode != 0:
             log(f"UPLOAD FAILED rc={r.returncode}: {(r.stderr or '')[:300]}")
             return 0
-        log(f"archived {len(files)} file(s), {tot/1e6:.1f} MB -> {REMOTE}tape/  (never pruned)")
+        log(f"archived {len(files)} file(s), {tot/1e6:.1f} MB -> {PLAIN_REMOTE}/tape/  "
+            f"(PLAINTEXT market data, never pruned, DuckDB-queryable over S3)")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return 0
