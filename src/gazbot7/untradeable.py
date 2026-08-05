@@ -135,6 +135,29 @@ def compute(cap_path, store_path, day_start_ep, now_ep=None):
         score = round(0.50 * chop + 0.50 * give)
     out["score"] = score
     out["verdict"] = "STAY-OUT" if score >= 65 else ("CAUTION" if score >= 45 else "TRADEABLE")
+
+    # ★2026-08-05 (operator: "show me the thresholds where we will jump back in. so i know what to
+    # expect") — a score with no stated exit condition is a mood, not a signal. Solve the blend for
+    # each input holding the others fixed, so the panel can say exactly what has to move and by how
+    # much. Where a single input cannot get there alone, SAY SO rather than printing an out-of-range
+    # number that looks achievable.
+    #   score = wc*(1-rt)*100 + wg*gb*100  (+ ws*stop_rate*100 when the stop meter has a real sample)
+    wc = wg = (0.40 if have_stops else 0.50)
+    ws = 0.20 if have_stops else 0.0
+    fixed = (ws * stops) if have_stops else 0.0
+    tgt = []
+    for name, thr in (("CAUTION", 65), ("TRADEABLE", 45)):
+        need = {}
+        # round-trip needed, holding give-back fixed
+        rt_need = 1.0 - ((thr - wg * give - fixed) / (wc * 100.0))
+        need["roundtrip"] = round(rt_need, 3) if 0.0 <= rt_need <= 1.0 else None
+        # give-back needed, holding round-trip fixed
+        gb_need = (thr - wc * chop - fixed) / (wg * 100.0)
+        need["giveback"] = round(gb_need, 3) if 0.0 <= gb_need <= 1.0 else None
+        need["reachable_alone"] = any(v is not None for v in (need["roundtrip"], need["giveback"]))
+        tgt.append({"verdict": name, "score": thr, **need})
+    out["thresholds"] = tgt
+    out["now"] = {"roundtrip": rt, "giveback": gb}
     rtxt = "n/a" if rt is None else f"{rt:.2f}"
     gtxt = "n/a" if gb is None else f"{int(gb*100)}%"
     sr = "n/a" if out["stop_rate"] is None else f"{int(out['stop_rate']*100)}%"
