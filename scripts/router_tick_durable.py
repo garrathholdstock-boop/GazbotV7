@@ -79,7 +79,61 @@ def read_switches():
     return cur
 
 
+def switch_notes(limit: int = 45) -> str:
+    """The ★★ carve-out comments at the TOP of gate_switches.env.
+
+    ★2026-08-05: these were INVISIBLE to the router. `cur` is built with
+    `if "=" in s and not s.startswith("#")` and the prompt received only json.dumps(cur), so every
+    written carve-out — the session's, the open-hour watcher's, the operator's — was stripped before
+    the model ever saw it. The watcher was writing "this was a full break-trio pass, let it run" into
+    a file the router reads values from and reasons about without. A one-way channel that looks
+    two-way is worse than no channel, because both sides believe they have coordinated.
+    Only the leading block is passed: that is where a fresh carve-out is prepended, and it bounds
+    the prompt against the file's long historical commentary."""
+    try:
+        out = []
+        for line in open(SW):
+            if not line.startswith("#"):
+                if out:
+                    break          # leading comment block ended — stop at the first switch line
+                continue
+            out.append(line.rstrip())
+            if len(out) >= limit:
+                break
+        return "\n".join(out)
+    except Exception:
+        return ""
+
+
 def apply_switches(valid):
+    # ★2026-08-05 SHARED LOCK. The open-hour watcher may now also write this file (arm-only) and it
+    # takes data/gate_switches.lock via O_EXCL. A lock only one writer respects is not a lock — this
+    # is a read-modify-write, so an interleaved write from the watcher would be silently lost or the
+    # file torn. Fail CLOSED: if the lock is held, skip this tick's write entirely rather than race;
+    # the next tick is 5 minutes away and benching-later is the cheap error.
+    import time as _t
+    _lock = f"{GB}/data/gate_switches.lock"
+    _fd = None
+    for _ in range(30):                       # ~3s — the watcher holds it for milliseconds
+        try:
+            _fd = os.open(_lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            _t.sleep(0.1)
+    if _fd is None:
+        hlog("apply_switches SKIPPED — gate_switches.lock held (watcher writing); no change this tick")
+        return
+    try:
+        _apply_locked(valid)
+    finally:
+        os.close(_fd)
+        try:
+            os.unlink(_lock)
+        except Exception:
+            pass
+
+
+def _apply_locked(valid):
     lines = open(SW).read().splitlines()
     out = []
     for line in lines:
@@ -89,8 +143,10 @@ def apply_switches(valid):
                 out.append(f"{g}={v}"); hit = True; break
         if not hit:
             out.append(line)
-    with open(SW, "w") as f:
+    tmp = SW + ".tmp"                      # atomic: a torn switches file beats a lost write
+    with open(tmp, "w") as f:
         f.write("\n".join(out) + "\n")
+    os.replace(tmp, SW)
 
 
 def append_log(msg):
@@ -194,18 +250,32 @@ def main():
         # the general RULE 're-arm momentum on a real range-break with ER climbing' reads as permission to
         # arm nipc. It is not. nipc FAILED its acceptance replay and is PINNED OFF; asking for it on is a
         # wasted tick that now raises a critical PIN-BLOCKED alarm. Revert: restore the previous sentence.
-        "★ NEW GATE — nipc_long / nipc_short (news-impulse pullback, added 08-01): both are OFF and "
-        "operator-PINNED OFF. They FAILED their acceptance replay (the shipped decider reproduces the lab's "
-        "entry population but only +$264/n=159 against the lab's +$2,676/n=171), so they stay off until the "
-        "operator re-derives the exit accounting. NEVER put nipc_long or nipc_short in `changes` — not 'on', "
-        "not 'off'. They are already off, the general momentum re-arm rule does NOT apply to them, and the "
-        "pin means any request you make for them is discarded and pages the operator. Ignore them entirely. "
+        # ★★2026-08-05: THIS PARAGRAPH WAS FALSE AND DANGEROUS THE MOMENT nipc WAS ARMED. It asserted
+        # "both are OFF" and told the model to ignore them entirely — so with nipc LIVE the router was
+        # blind to two armed gates and could not bench them however they bled. PINNED is also empty
+        # (frozenset()), so the "pin discards it" claim was untrue as well. Corrected to state the real
+        # position and to hand the router explicit bench authority, which the operator's own written kill
+        # criterion requires someone to hold.
+        "★ nipc_long / nipc_short (news-impulse pullback): ARMED 2026-08-05 on EXPLICIT operator "
+        "instruction — \"we just need to run nipc and see how it goes. i dont care if it loses. we are on "
+        "paper this is what its for\" — overriding the 08-03 bench. Its live/replay divergence is diagnosed "
+        "but NOT resolved (replay +$3.1/tr vs live -$9.33/tr), and the run exists to gather live/replay "
+        "PAIRS, so do NOT bench it merely for losing money or for being in chop: losing is inside the "
+        "operator's stated tolerance and a bench destroys the sample being collected. "
+        "★ BUT YOU DO HOLD BENCH AUTHORITY, and must use it in exactly two cases: (1) cumulative nipc P&L "
+        "<= -$400 — the operator's own written kill criterion, which is at -$280 as of the arming, so it is "
+        "CLOSE; (2) any execution pathology (naked stop, absurd entry_atr, MAX_HOLD exits stacking). "
+        "It self-gates to 13:00-15:00 UTC and switches itself off in dead-chop, so a quiet nipc is the gate "
+        "working, not a reason to touch it. Do not ARM it if it is off — that is an operator decision. "
         "★ UNTRADEABLE-DAY RULE: if the UNTRADEABLE METER reads STAY-OUT (score>=65 — a big range but ~0 net "
         "roundtrip + the day's move given back + gates stopping across mechanisms), bench ALL gates and keep flat; "
         "do NOT hunt for a gate that works — a no-trade day is correct (chasing an untradeable chop cost -$900 on 07-31). "
         "Reversion stays through chop. DON'T THRASH — change a switch ONLY when evidence genuinely changed; "
         "most ticks are no-change.\n\n"
         f"CURRENT SWITCHES: {json.dumps(cur)}\n\n"
+        f"=== ACTIVE CARVE-OUTS (top of gate_switches.env — written by the session, the operator, or "
+        f"the open-hour watcher; these are INSTRUCTIONS TO YOU, honour their stated expiry) ===\n"
+        f"{switch_notes()}\n\n"
         f"=== UNTRADEABLE METER ===\n{untr_txt}\n\n"
         f"=== DESK VIEW ===\n{desk}\n=== RECENT TRADES ===\n{recent}\n=== RECENT ROUTER LOG ===\n{logtail}\n\n"
         "Output ONLY a JSON object, nothing else:\n"
