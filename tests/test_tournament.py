@@ -33,13 +33,16 @@ def test_grind_long_short_slots_shape():
     assert [s.side for s in specs] == ["LONG", "SHORT"]
 
 
-def test_tournament_slate_is_three_long_three_short_distinct():
+def test_tournament_slate_is_four_long_four_short_distinct():
+    # ★2026-08-01: + nipc_long / nipc_short (news-impulse pullback), so 4 a side, not 3.
     specs = tournament_slots()
     assert [s.tag for s in specs] == ["grind_long", "capitulation_long", "abs_veto_long",
-                                      "rgv_short", "exhaustion_short", "abs_veto_short"]
-    assert sum(s.side == "LONG" for s in specs) == 3
-    assert sum(s.side == "SHORT" for s in specs) == 3
-    assert {s.kind for s in specs} == {"reversal_grab", "grind", "thrust", "capitulation", "exhaustion"}
+                                      "rgv_short", "exhaustion_short", "abs_veto_short",
+                                      "nipc_long", "nipc_short"]
+    assert sum(s.side == "LONG" for s in specs) == 4
+    assert sum(s.side == "SHORT" for s in specs) == 4
+    assert {s.kind for s in specs} == {"reversal_grab", "grind", "thrust", "capitulation",
+                                       "exhaustion", "nipc"}
 
 
 def test_live_run_coerces_cfg_place_live():
@@ -74,7 +77,7 @@ class _FakeStrat:
     def __init__(self, intents):
         self._i = intents
 
-    def decide(self, f, price, bars, slotbook, net_flow, footprint):
+    def decide(self, f, price, bars, slotbook, net_flow, footprint, now_ms=None):
         return [dict(i) for i in self._i]
 
 
@@ -95,7 +98,9 @@ def test_step_er_gate_momentum_blocks_chop_allows_trend():
     assert [i["slot"] for i in step(strat, mb, tape, sb, now)] == ["grind_long"]  # big trend → kept
 
     mb2 = MinuteBars(60)
-    chop = [100 + (i % 2) for i in range(30)]            # ER ≈ 0 → below the ER floor
+    # ★2026-08-01: this now blocks on the ATR floor, not the ER floor (ER_FLOOR={} since 08-01) —
+    # a 1pt-amplitude chop tape has ATR≈1pt, under grind_long's 10pt floor.
+    chop = [100 + (i % 2) for i in range(30)]
     now2 = _feed(mb2, chop)
     tape2 = {"ts_ms": now2, "net_flow": 0.0, "last": float(chop[-1])}
     assert step(strat, mb2, tape2, sb, now2) == []       # chop → grind_long OPEN suppressed
@@ -112,19 +117,40 @@ def test_step_atr_gate_blocks_a_weak_trend():
     assert step(strat, mb, tape, sb, now) == []          # weak trend → ATR gate suppresses
 
 
-def test_step_er_gate_momentum_blocks_chop_keeps_close():
-    # ★2026-07-25: with both reversion ER ceilings dropped, the surviving ER gate is the momentum FLOOR
-    # (abs_veto_long ER≥0.20). step() suppresses its OPEN in chop (low ER) but always keeps the CLOSE.
+def test_step_floor_gate_blocks_OPEN_keeps_CLOSE_on_a_SCALEOUT_tag():
+    """★2026-08-01, REWRITTEN. Was 'the ER floor blocks abs_veto_long in chop' — all ER floors are
+    now deleted (ER_FLOOR={}), so that asserted a mechanism that no longer has any configuration.
+    The surviving live floor is the ATR one, and the thing that most needs a guard is the 08-01
+    `_base(slot)` fix: the floors are keyed on BASE names, every live tag carries an _A/_B suffix,
+    and for ~3 days the raw tag never matched so EVERY floor silently returned 'don't block'. This
+    asserts (a) the OPEN-blocked / CLOSE-kept invariant and (b) that a suffixed scale-out tag really
+    does reach its base gate's floor. Delete this and the floors are untested end-to-end again."""
+    from gazbot7.deciders import ATR_FLOOR, ER_FLOOR
+    assert ATR_FLOOR.get("grind_long") == 10.0 and not ER_FLOOR   # the config this test rides on
     _, mb, sb = _setup()
-    chop = [100 + (i % 2) for i in range(30)]            # low ER → below abs_veto_long floor 0.20
-    now = _feed(mb, chop)
+    weak = [100 + i for i in range(30)]                  # ER≈1.0 (no ER gate) but ~1pt bars → ATR≈1pt
+    now = _feed(mb, weak)
     strat = _FakeStrat([
-        {"action": "OPEN", "slot": "abs_veto_long", "side": "LONG"},    # blocked in chop (ER floor)
-        {"action": "CLOSE", "slot": "abs_veto_long", "reason": "STOP"},  # managed exit always kept
+        {"action": "OPEN", "slot": "grind_long_A", "side": "LONG"},     # suffixed tag → base's floor
+        {"action": "OPEN", "slot": "grind_long_B", "side": "LONG"},
+        {"action": "CLOSE", "slot": "grind_long_A", "reason": "STOP"},  # managed exit always kept
     ])
-    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(chop[-1])}
+    tape = {"ts_ms": now, "net_flow": 0.0, "last": float(weak[-1])}
     out = [(i["action"], i["slot"]) for i in step(strat, mb, tape, sb, now)]
-    assert out == [("CLOSE", "abs_veto_long")]
+    assert out == [("CLOSE", "grind_long_A")]
+    # a gate with NO floor is untouched by the same tape (abs_veto_short's ATR-16 was deleted 08-01)
+    strat2 = _FakeStrat([{"action": "OPEN", "slot": "abs_veto_short_A", "side": "SHORT"}])
+    assert [i["slot"] for i in step(strat2, mb, tape, sb, now)] == ["abs_veto_short_A"]
+
+
+def test_step_survives_an_intent_with_no_slot_key():
+    # ★2026-08-01 (audit FIX): _base(None) raised AttributeError, and the 08-01 floor fix feeds it
+    # i.get("slot") UNDEFAULTED — one malformed intent would have killed the whole decision loop.
+    _, mb, sb = _setup()
+    trend = [100 + i * 5 for i in range(30)]
+    now = _feed(mb, trend)
+    strat = _FakeStrat([{"action": "OPEN", "side": "LONG"}])   # no "slot" key
+    step(strat, mb, {"ts_ms": now, "net_flow": 0.0, "last": float(trend[-1])}, sb, now)
 
 
 def test_disabled_filter_drops_opens_keeps_closes():

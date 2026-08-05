@@ -11,6 +11,7 @@ adverse / absorption cuts. Clean-room: re-derived from the sweeps, not copied.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 
 # ── features ──────────────────────────────────────────────────────────────
@@ -41,12 +42,40 @@ class Features:
                            # (2026-07-25: deep down-legs, net30<−125pt ≈ −5·ATR, are falling knives → skip the long fade)
 
 
+_ATR_CONTIGUOUS_S = 90   # Bar.ts is SECONDS; 1-min bars are 60s apart, >90s = a session break between
+
+
 def _atr(bars: list[Bar], n: int = 14) -> float:
-    trs = [
-        max(bars[i].high - bars[i].low, abs(bars[i].high - bars[i - 1].close),
-            abs(bars[i].low - bars[i - 1].close))
-        for i in range(1, len(bars))
-    ]
+    """ATR-14, HALT-AWARE (★2026-08-03 fix).
+
+    The two gap terms (|high - prev_close|, |low - prev_close|) only mean anything when the two bars
+    are genuinely adjacent in time. MinuteBars is a deque by COUNT and a session halt does not flush
+    it, so the first bar after a reopen sits next to the last bar before the halt and the entire
+    weekend gap enters true range as one enormous bar.
+
+    Live cost, 2026-08-02 22:00 reopen: gap 283.5pt (Fri close 28,284 -> Sun open 28,567.5). ATR read
+    48.1pt where the halt-aware value is 29.1pt — 1.65x. The stop is 1.0xATR and every target is an
+    R-multiple, so that ONE number mis-sized everything at once: two abs_veto_long lots took 43-46pt
+    stops instead of ~29, and their 1.0R target was pushed to ~$96 so a +$68 move could never reach it.
+    Both went green and handed it all back, -$180.5. Halt-aware, Lot A's target sits at 29.1pt — inside
+    the 34pt it actually reached — so it banks instead of stopping.
+
+    Rare but sharp: scripts/atr_gap_audit.py finds 3 of 489 closed trades affected, ALL in the first
+    minutes after a SUNDAY reopen. The nightly 21:00-22:00 halt barely moves price so it inflates
+    nothing; the weekend one does. The window self-heals within ~14 bars as real minutes push the gap
+    out of the ATR window — which is why it stayed invisible for so long.
+
+    Fix: when two bars are not contiguous, keep the bar's OWN high-low range and drop the two
+    cross-halt terms. Byte-identical output whenever bars are contiguous — i.e. every other moment of
+    the week. Revert: always take the 3-way max."""
+    trs = []
+    for i in range(1, len(bars)):
+        hl = bars[i].high - bars[i].low
+        if (bars[i].ts - bars[i - 1].ts) <= _ATR_CONTIGUOUS_S:
+            trs.append(max(hl, abs(bars[i].high - bars[i - 1].close),
+                           abs(bars[i].low - bars[i - 1].close)))
+        else:
+            trs.append(hl)
     if not trs:
         return 0.0
     m = trs[-n:]
@@ -104,7 +133,8 @@ def compute_features(bars: list[Bar]) -> Features:
 #   exhaustion_short  CEIL 0.05 — tick+L2 duck edge is 0.0–0.05 (+$295). ⚠ fixed-exit-derived.
 # ⚠ tick coverage ~9 days (one summer regime) + 60-min hold cap — a LEAD; re-validate a 2nd regime.
 # Momentum → FLOOR (need trend); reversion → CEILING (need chop) or BAND (a specific ER window).
-ER_FLOOR = {"abs_veto_long": 0.25, "grind_long": 0.35}  # ★2026-07-30 (operator): momentum-long ER floors — grind_long 0.35, abs_veto_long 0.25. Grounded in the 07-30 rotation day: momentum longs bucketed by 30-min entry-ER were −$431 @18%W in the MID band 0.20-0.35 (rotation legs that look trendy but reverse) vs +$279 @40%W at ER≥0.35 → the floor excludes the mid-zone bleed. abs_veto gets a LOWER floor (0.25) because its 55s absorption-veto already filters fakes, so it can fire earlier on a REAL thrust — LIVE PROOF: abs_veto's +$251 break-win (A +77.5 TARGET / B +174 CHANDELIER) fired at sub-0.35 ER; a blanket 0.35 floor would have blocked it. ⚠ REVERSES the 07-25 grind rehab (dropped grind's floor: "runners & false-starts share ER 0.14, ATR is the lever") — that was a trend-week finding, this is a rotation-day one. N=1, NEEDS a multi-regime backtest before trusting. [prev: abs_veto_long 0.20, grind_long none].
+ER_FLOOR: dict[str, float] = {}  # ★2026-08-01 (operator, Saturday window): ALL ER floors DELETED. They were never in force — the dual-slot scale-out slate broke the lookup on 07-29 16:20 (see tournament.py:139), so no ER floor has blocked a single trade in production; both were committed ~18h AFTER that cutover. Re-derived on the blocked book (8d, tick-honest, one-position-per-slot): grind_long ER>=0.35 blocked +$2,923/173sig (strip-3 +$1,132, LODO +$10.03) and abs_veto_long ER>=0.25 blocked +$640/52sig (strip-3 +$111, LODO +$4.88) — i.e. both floors were blocking PROFITABLE populations. Confirms the standing "ER filters are FAKE" prior and REFUTES the 07-30 grind 0.35 rationale below, which was an n=1 rotation-day finding. [prev: {"abs_veto_long": 0.25, "grind_long": 0.35}]
+#   Superseded rationale, kept for the audit trail: ★2026-07-30 (operator): momentum-long ER floors — grind_long 0.35, abs_veto_long 0.25. Grounded in the 07-30 rotation day: momentum longs bucketed by 30-min entry-ER were −$431 @18%W in the MID band 0.20-0.35 (rotation legs that look trendy but reverse) vs +$279 @40%W at ER≥0.35 → the floor excludes the mid-zone bleed. abs_veto gets a LOWER floor (0.25) because its 55s absorption-veto already filters fakes, so it can fire earlier on a REAL thrust — LIVE PROOF: abs_veto's +$251 break-win (A +77.5 TARGET / B +174 CHANDELIER) fired at sub-0.35 ER; a blanket 0.35 floor would have blocked it. ⚠ REVERSES the 07-25 grind rehab (dropped grind's floor: "runners & false-starts share ER 0.14, ATR is the lever") — that was a trend-week finding, this is a rotation-day one. N=1, NEEDS a multi-regime backtest before trusting. [prev: abs_veto_long 0.20, grind_long none].
 # ★2026-07-28: an exhaustion_short ER floor 0.08 was tried+REVERTED same day — the 225-trade shadow reprice under the live exit showed the real bleed is DIRECTIONAL (counter-trend short-into-uptrend −$190/56tr), NOT low-ER (chop ≈breakeven). Fixed via a counter-regime ENTRY veto in slot_strategy instead (see veto_counter_regime).
 ER_CEIL: dict = {}  # ★2026-07-25: BOTH footprint-gate ER ceilings DROPPED — capitulation_long (0.10) AND exhaustion_short (0.05) traced to the SAME footprint_backtest_duck.py DuckDB float-division bug (ts/5000*5000 never buckets → garbage ER); both revived on the exit fix instead. No gate uses an ER ceiling now.
 # ★ 2026-07-24 (operator): ER band REMOVED for rgv_long/rgv_short — the 35s ABSORPTION-CONFIRM
@@ -170,7 +200,8 @@ def confirm_absorption(side: str, net_flow: float, price_change: float) -> bool:
 #                     the bleed, first crossing to breakeven at ≥20 (+$16 / 42tr). HARM-REDUCTION on a
 #                     RELEGATION candidate — it doesn't make grind +EV, it bleeds less.
 # ⚠ 9-day one-regime lead; bump/drop per Saturday.
-ATR_FLOOR = {"grind_long": 24.0, "capitulation_long": 10.0, "abs_veto_short": 16.0}  # ★2026-07-25 rehab: grind_long 20→24 (the real lever — isolates volatile/trending days, +$1,118); capitulation_long 10 (winner-keeper, rescues the bad week); abs_veto_short 16. thrust_short retired.
+ATR_FLOOR: dict[str, float] = {"grind_long": 10.0, "capitulation_long": 10.0}  # ★2026-08-01 (operator, Saturday window): grind_long 24 -> 10; abs_veto_short 16 DELETED. Re-derived on the blocked book (8d, tick-honest): grind ATR>=24 blocked +$982/151sig (strip-3 -$82) so 24 was blocking money — 9/10/11 is a genuine plateau and at 12 the blocked book flips positive, so 12 is one notch the WRONG side of a cliff and costs $941 vs 10. abs_veto_short ATR>=16 blocked +$137/28sig (strip-3 -$197, LODO -$11.02) = NOT PROVEN, deleted rather than tuned. capitulation_long 10 KEPT — the one floor that earns: blocked book -$459/22sig (strip-3 -$601, LODO -$26.62). "ATR floors are REAL" holds, but dollars peak at roughly HALF the old values. [prev: {"grind_long": 24.0, "capitulation_long": 10.0, "abs_veto_short": 16.0}]
+#   Superseded rationale, kept for the audit trail: ★2026-07-25 rehab: grind_long 20→24 (the real lever — isolates volatile/trending days, +$1,118); capitulation_long 10 (winner-keeper, rescues the bad week); abs_veto_short 16. thrust_short retired.
 
 
 def efficiency_ratio(bars: list[Bar], window: int = ER_WINDOW) -> float:
@@ -382,6 +413,301 @@ def gate_grind(f: Features, *, tape_net: float = 0.0, slope_min: float = 0.5,
     if slope <= -slope_min and -ext_hi <= f.ext_atr <= -ext_lo and tape_net <= -flow_min:
         return Entry(side="SHORT", gate="grind")
     return None
+
+
+# ── NIPC — news-impulse pullback continuation (2026-08-01, greenfield-lab survivor) ──────────
+# The one brand-new entry that came through the Friday M3 robustness battery alive (reports/
+# friday_v7/sections/movement3_greenfield.html, "Step 5 — THE SURVIVOR"). It is NOT a filtered
+# breakout: strip the pullback requirement and the same impulse detector / regime gate / exit /
+# tape collapses to −$2,143 @27.9% over 290 trades. The pullback-and-resume IS the edge — the
+# opposite trade at the opposite price.
+#
+# Seven rules, verbatim from the report's spec table (do not "improve" them without a re-run):
+#   1 IMPULSE  over the trailing 2 min (24 × 5s bars) leg = close[i] − close[i−24]; require
+#              |leg| >= 1.0 × ATR1m measured BEFORE the impulse (no self-reference — the ATR
+#              history is carried per-bar so the value read is the one as of the impulse origin).
+#              side = sign(leg); ext = impulse extreme, org = its origin, span >= 5 pt.
+#   2 PULLBACK walk forward <= 3 min tracking r = |ext − pullback| / span. r > 0.75 → ABANDON
+#              (structure broken — that was not a pullback). ARM at the first bar r >= 0.35.
+#   3 TRIGGER  entry = pullback extreme + 0.50 × the retrace distance (half-back), still inside
+#              the impulse. Live for 1 minute; fill on the first tick trading through. No fill →
+#              the setup expires, no trade.
+#   4 STOP     pullback extreme ∓ 4 pt. R = |entry − stop| (median 17.2 pt in the lab); R < 2 pt
+#              → reject. ★ R is carried to the desk AS ``entry_atr`` on the OPEN intent, so the
+#              native 1-ATR STP + exit_scalp reproduce the lab's stop/target with no new exit
+#              machinery (same trick footprint.py uses for the fixed 8/12 exhaustion exit).
+#   5 EXIT     Lot A 2.0R / Lot B 2.5R (PROVEN pair — fixed 2.5R on Lot B beats the trail by
+#              $1,285 in this window; do NOT swap Lot B to the chandelier). 20-min hard cap,
+#              flat by 15:30 UTC.
+#   6 RISK     one position at a time (both sides share the tracker), 2-min cooldown after exit.
+#   7 REGIME   OFF in dead-chop (ATR1m < 18 pt AND ER15 < 0.35) — the one perfectly stable regime
+#              finding (negative in all 25 scale-out configs and every top exit config).
+# Armed ONLY 13:00 <= t < 15:00 UTC; decisions on 5s bar closes, fills on ticks; no flow/book input.
+# ⚠ 12 days / one regime-fortnight. Promotion-ladder first live week = 1 lot.
+#
+# ★★ ACCEPTANCE FAILURE — READ BEFORE ARMING (2026-08-01). scripts/nipc_replay.py drives THIS
+# tracker over the lab's own 12 days of capture.db tape and does NOT reproduce the lab's P&L:
+#     lab  n=171  +$2,676  43.3% win  $15.6/tr  9/12 days green  median R 17.2pt
+#     here n=159    +$264  34.6% win   $1.7/tr  7/12 days green  median R 13.6pt
+# The ENTRY engine reproduces: the report's six published ablation trade-counts all land within
+# ~7% (FULL/RMIN=0.15/RMAX=1.5/RES=0/RMIN=0+RES=0 at 0.93x lab), the dead-chop share matches
+# (16% vs 17%), the tick-honest half matches n=83 vs 85. The divergence is entirely the
+# target-hit rate: 2.5R-before-1R-adverse happens 34.6% of the time here, not 43.3%. That was
+# verified twice — the sequential sim and an independent DuckDB tick race agree exactly (30/83).
+# It is NOT costs: zeroing the fee AND the slippage only reaches +$1,320 gross, against the
+# ~+$3,700 gross the lab's net implies. It is not the tie rule, the intrabar path, the geometry
+# (4 alternative readings of ext/org/extension all land in -$427..+$264) or the stop buffer.
+# So: this gate SHIPS BENCHED (data/gate_switches.env nipc_*=off). It is still comfortably above
+# the report's own null (a random entry in this window is a -$846 loser), but it is a ~$1.7/trade
+# construct on our replay, not a $15.6/trade one — nowhere near enough to arm on.
+NIPC_WIN_START_S = 13 * 3600      # 13:00 UTC — the news window opens
+NIPC_WIN_END_S = 15 * 3600        # 15:00 UTC — last impulse detection
+NIPC_FLAT_BY_S = 15 * 3600 + 1800  # 15:30 UTC — flat, unconditionally
+NIPC_BAR_S = 5                    # decision bar (5 seconds)
+NIPC_IMPULSE_BARS = 24            # 2 minutes
+NIPC_ATR_MULT = 1.0               # |leg| >= this × ATR1m (pre-impulse)
+NIPC_SPAN_MIN_PT = 5.0
+NIPC_PULLBACK_BARS = 36           # 3 minutes to produce the retrace
+NIPC_RMIN = 0.35                  # arm here
+NIPC_RMAX = 0.75                  # beyond here the impulse is broken → abandon
+NIPC_RES = 0.50                   # half-back resumption trigger
+NIPC_TRIGGER_BARS = 12            # the trigger is live for 1 minute
+NIPC_STOP_BUF_PT = 4.0
+NIPC_R_MIN_PT = 2.0
+NIPC_HOLD_CAP_S = 20 * 60
+NIPC_COOLDOWN_S = 120
+NIPC_DEAD_ATR_PT = 18.0
+NIPC_DEAD_ER15 = 0.35
+NIPC_ER15_BARS = 15               # ER over the trailing 15 one-minute closes
+
+
+def nipc_in_window(ts_ms: int) -> bool:
+    """True inside the 13:00–15:00 UTC news window (the only time NIPC arms)."""
+    sod = (ts_ms // 1000) % 86400
+    return NIPC_WIN_START_S <= sod < NIPC_WIN_END_S
+
+
+def nipc_past_flat_clock(ts_ms: int) -> bool:
+    """True at/after 15:30 UTC — any open NIPC position must be flat."""
+    return ((ts_ms // 1000) % 86400) >= NIPC_FLAT_BY_S
+
+
+def nipc_dead_chop(atr1m: float, er15: float) -> bool:
+    """Rule 7 — the ONE regime the published spec turns off in (both conditions, not either)."""
+    return atr1m < NIPC_DEAD_ATR_PT and er15 < NIPC_DEAD_ER15
+
+
+# ── ★★2026-08-05 REGIME FILTER — the fix the n>=40 review actually found ───────────────────────────
+# The n>=40 review came due at n=43 live: -$370.50, 26% win, -$8.62/trade. I first read the SHORT side's
+# 0-for-10 as a broken implementation. It was not — replaying the SAME tape went 0-for-8 on shorts too.
+# When the model and the desk agree, the EDGE is absent, not the code. Bucketing the lab window by
+# regime shows exactly where nipc's money is and is not:
+#
+#     in-between-building   n=27   +$303   +$11.2/tr   44% win   <- the money
+#     clean-trend           n=19   +$181    +$9.5/tr   42%       <- the money
+#     dead-chop             n=21     +$2    +$0.1/tr   38%       <- NEUTRAL, and the only one rule 7 cut
+#     violent-whipsaw       n=50    -$55    -$1.1/tr   28%       <- the drag, and the BIGGEST bucket
+#     normal-chop           n=11    -$34    -$3.1/tr   27%       <- the drag
+#
+# So the shipped filter removes the one bucket that costs nothing and leaves both losing ones in. On
+# 2026-08-05 that let nipc take 11 violent-whipsaw fires and 0 clean-trend, and rule 7 blocked 2 of 19.
+# Keeping only the two paying buckets is +$484 on n=46 against -$89 on n=61 — ~+$10.5/trade versus
+# +$3.1 blanket.
+#
+# ★ WHY THIS BELONGS HERE AND NOT IN THE ROUTER (operator asked): the router ticks every 5 MINUTES and
+# nipc's mean hold is 1.4 MINUTES — it cannot react inside a trade. And a router bench is session-level,
+# while these regimes INTERLEAVE (08-05 was 11 whipsaw + 6 in-between mixed through the afternoon), so
+# only a per-entry check can separate them. Both inputs are already handed to the detector.
+#
+# ⚠ IN-SAMPLE. This is regime attribution on the same window that produced the gate, n=46 in the good
+# buckets. It is a MECHANISM rather than a swept threshold, which is why it is trusted more than most —
+# but tomorrow is its first out-of-sample day. Revert: NIPC_REGIME_FILTER = False.
+NIPC_REGIME_FILTER = True
+NIPC_TREND_ER15 = 0.55            # >= this is clean-trend
+NIPC_BUILDING_ER15 = 0.35         # >= this is in-between-building
+NIPC_VIOLENT_ATR = 25.0           # >= this, below the ER floors, is violent-whipsaw
+
+
+def nipc_regime(atr1m: float, er15: float) -> str:
+    """The bucket, identical to scripts/nipc_replay.py's — one definition, two callers, no drift."""
+    if nipc_dead_chop(atr1m, er15):
+        return "dead-chop"
+    if er15 >= NIPC_TREND_ER15:
+        return "clean-trend"
+    if er15 >= NIPC_BUILDING_ER15:
+        return "in-between-building"
+    if atr1m >= NIPC_VIOLENT_ATR:
+        return "violent-whipsaw"
+    return "normal-chop"
+
+
+def nipc_bad_regime(atr1m: float, er15: float) -> bool:
+    """True when NIPC should NOT take a setup. Supersedes the dead-chop-only rule 7."""
+    if not NIPC_REGIME_FILTER:
+        return nipc_dead_chop(atr1m, er15)
+    return nipc_regime(atr1m, er15) in ("dead-chop", "violent-whipsaw", "normal-chop")
+
+
+@dataclass(slots=True)
+class NipcSetup:
+    """One impulse→pullback→trigger setup as it walks through the state machine."""
+    side: str            # LONG / SHORT — always WITH the impulse
+    ext: float           # impulse extreme
+    org: float           # impulse origin (close 2 min back)
+    span: float          # |ext − org|
+    detect_ms: int
+    atr1m: float         # the pre-impulse ATR1m the magnitude test used
+    er15: float
+    dead_chop: bool      # regime label at detection (rule 7)
+    pb_ext: float = 0.0  # deepest pullback so far
+    retrace: float = 0.0  # r at arm time
+    entry_level: float = 0.0
+    stop: float = 0.0
+    r_pt: float = 0.0    # |entry_level − stop| → carried as entry_atr
+    armed_ms: int = 0    # 0 = still walking the pullback; else the trigger is live
+    expires_ms: int = 0
+    bars_seen: int = 0
+
+
+class NipcTracker:
+    """The NIPC state machine (rules 1–3 + 6/7). Fed 5s bars (or a raw price stream it folds
+    into 5s bars itself) plus the 1-minute ATR/ER15 context; emits a NipcSetup the instant a
+    tick trades through a live half-back trigger. Stateful by necessity — the setup spans
+    minutes — but self-contained and pure of I/O, so the live desk and the replay harness
+    drive the SAME object (the anti-drift guarantee the rest of this module gives by purity).
+
+    ``apply_regime=False`` runs the blanket book (every regime) for measurement; LIVE keeps it
+    True so dead-chop never arms.
+    """
+
+    def __init__(self, *, apply_regime: bool = True) -> None:
+        self._bars: deque = deque(maxlen=NIPC_IMPULSE_BARS + 4)
+        self._atrs: deque = deque(maxlen=NIPC_IMPULSE_BARS + 4)
+        self._cur: dict | None = None
+        self._apply_regime = apply_regime
+        self.setup: NipcSetup | None = None
+        self.blocked_until_ms: int = 0     # rule 6 cooldown
+
+    # ── ingest ───────────────────────────────────────────────────────────────
+    def on_price(self, ts_ms: int, price: float, *, atr1m: float, er15: float,
+                 busy: bool = False) -> None:
+        """Fold a live tape print into the forming 5s bar; a completed bar advances the machine."""
+        b = ((ts_ms // 1000) // NIPC_BAR_S) * NIPC_BAR_S
+        cur = self._cur
+        if cur is None or b > cur["t"]:
+            if cur is not None:
+                self.on_bar(Bar(cur["t"], cur["o"], cur["h"], cur["l"], cur["c"], 0.0),
+                            atr1m=atr1m, er15=er15, busy=busy)
+            self._cur = {"t": b, "o": price, "h": price, "l": price, "c": price}
+        elif b == cur["t"]:
+            cur["h"] = max(cur["h"], price)
+            cur["l"] = min(cur["l"], price)
+            cur["c"] = price
+        # b < cur["t"]: out-of-order print — ignore (same discipline as MinuteBars.fold)
+
+    def on_bar(self, bar: Bar, *, atr1m: float, er15: float, busy: bool = False) -> None:
+        """One COMPLETED 5s bar. ``atr1m``/``er15`` are the 1-minute context as of this bar;
+        the ATR history is kept per-bar so rule 1 can read the pre-impulse value."""
+        self._bars.append(bar)
+        self._atrs.append(atr1m)
+        s = self.setup
+        if s is not None:
+            if s.armed_ms:                              # trigger live → only the 1-min expiry
+                if (bar.ts + NIPC_BAR_S) * 1000 >= s.expires_ms:
+                    self.setup = None
+                return
+            self._advance_pullback(bar)
+            return
+        if busy or bar.ts * 1000 < self.blocked_until_ms:   # rule 6: one at a time + cooldown
+            return
+        self._detect_impulse(bar, er15)
+
+    # ── rule 1 ───────────────────────────────────────────────────────────────
+    def _detect_impulse(self, bar: Bar, er15: float) -> None:
+        if len(self._bars) < NIPC_IMPULSE_BARS + 1 or not nipc_in_window(bar.ts * 1000):
+            return
+        org_bar = self._bars[-(NIPC_IMPULSE_BARS + 1)]
+        atr_pre = self._atrs[-(NIPC_IMPULSE_BARS + 1)]   # BEFORE the impulse — no self-reference
+        if atr_pre <= 0:
+            return
+        dead = nipc_bad_regime(atr_pre, er15)            # rule 7, widened to the losing buckets
+        if dead and self._apply_regime:
+            return
+        leg = bar.close - org_bar.close
+        if abs(leg) < NIPC_ATR_MULT * atr_pre:
+            return
+        side = "LONG" if leg > 0 else "SHORT"
+        window = list(self._bars)[-NIPC_IMPULSE_BARS:]
+        ext = max(b.high for b in window) if side == "LONG" else min(b.low for b in window)
+        span = abs(ext - org_bar.close)
+        if span < NIPC_SPAN_MIN_PT:
+            return
+        self.setup = NipcSetup(side=side, ext=ext, org=org_bar.close, span=span,
+                               detect_ms=bar.ts * 1000, atr1m=atr_pre, er15=er15,
+                               dead_chop=dead, pb_ext=ext)
+
+    # ── rule 2 ───────────────────────────────────────────────────────────────
+    def _advance_pullback(self, bar: Bar) -> None:
+        s = self.setup
+        assert s is not None
+        s.bars_seen += 1
+        if s.side == "LONG":
+            s.pb_ext = min(s.pb_ext, bar.low)
+            r = (s.ext - s.pb_ext) / s.span
+        else:
+            s.pb_ext = max(s.pb_ext, bar.high)
+            r = (s.pb_ext - s.ext) / s.span
+        if r > NIPC_RMAX:            # impulse broken — that was not a pullback
+            self.setup = None
+            return
+        if r >= NIPC_RMIN:
+            self._arm(bar, r)
+            return
+        if s.bars_seen >= NIPC_PULLBACK_BARS:   # no retrace inside 3 min → drop it
+            self.setup = None
+
+    # ── rules 3 + 4 ──────────────────────────────────────────────────────────
+    def _arm(self, bar: Bar, r: float) -> None:
+        s = self.setup
+        assert s is not None
+        s.retrace = r
+        dist = r * s.span
+        if s.side == "LONG":
+            s.entry_level = s.pb_ext + NIPC_RES * dist
+            s.stop = s.pb_ext - NIPC_STOP_BUF_PT
+            inside = s.entry_level <= s.ext
+        else:
+            s.entry_level = s.pb_ext - NIPC_RES * dist
+            s.stop = s.pb_ext + NIPC_STOP_BUF_PT
+            inside = s.entry_level >= s.ext
+        s.r_pt = abs(s.entry_level - s.stop)
+        if not inside or s.r_pt < NIPC_R_MIN_PT:
+            self.setup = None
+            return
+        # armed at the bar's CLOSE (bar.ts is the bucket START) — the trigger cannot be
+        # tested against prints that happened before the decision existed.
+        s.armed_ms = (bar.ts + NIPC_BAR_S) * 1000
+        s.expires_ms = s.armed_ms + NIPC_TRIGGER_BARS * NIPC_BAR_S * 1000
+
+    def trigger(self, ts_ms: int, price: float) -> NipcSetup | None:
+        """Rule 3's fill test — the first tick trading THROUGH the live half-back level.
+        Returns the setup (and consumes it) or None. Expiry is enforced here too, so a
+        quiet minute with no prints still retires the trigger."""
+        s = self.setup
+        if s is None or not s.armed_ms:
+            return None
+        if ts_ms >= s.expires_ms:
+            self.setup = None
+            return None
+        through = price >= s.entry_level if s.side == "LONG" else price <= s.entry_level
+        if not through:
+            return None
+        self.setup = None
+        return s
+
+    def note_exit(self, ts_ms: int) -> None:
+        """Rule 6 — start the 2-minute cooldown when the position closes."""
+        self.blocked_until_ms = ts_ms + NIPC_COOLDOWN_S * 1000
 
 
 def exit_fixed(pos: Position, price: float, *, stop_pt: float, target_pt: float) -> str | None:

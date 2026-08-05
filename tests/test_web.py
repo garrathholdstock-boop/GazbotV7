@@ -86,8 +86,9 @@ def test_tournament_full_6_roster_even_when_empty(tmp_path):
     open_store(store).close()
     d = tournament_json(store, _dir(tmp_path, {"position": None, "flat": True}), _NO_CAP)
     assert {r["gate"] for r in d["gates"]} == {"grind_long", "capitulation_long", "abs_veto_long",
-                                               "rgv_short", "exhaustion_short", "abs_veto_short"}
-    assert d["desk"]["roster_count"] == 6 and d["desk"]["flat"] is True
+                                               "rgv_short", "exhaustion_short", "abs_veto_short",
+                                               "nipc_long", "nipc_short"}   # ★2026-08-01: + nipc
+    assert d["desk"]["roster_count"] == 8 and d["desk"]["flat"] is True
     assert d["desk"]["safety"] == "green" and d["desk"]["live_count"] == 0
 
 
@@ -209,4 +210,4 @@ def test_promotion_maps_family_and_flags_candidates(tmp_path):
     assert by["thrust_cont"]["family"] == "thrust" and by["thrust_cont"]["candidate"] is True
     assert by["rg_short_x"]["family"] == "reversal_grab" and by["rg_short_x"]["candidate"] is False
     assert d["candidates"][0]["net"] >= d["candidates"][-1]["net"]           # ranked by net
-    assert {"grind", "thrust", "reversal_grab", "capitulation", "exhaustion"} == set(d["live_families"])
+    assert {"grind", "thrust", "reversal_grab", "capitulation", "exhaustion", "nipc"} == set(d["live_families"])

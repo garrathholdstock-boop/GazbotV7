@@ -23,7 +23,7 @@ def test_roster_promotion():
     tags = [s.tag for s in tournament_slots()]
     assert tags.count("abs_veto_long") == 1 and tags.count("abs_veto_short") == 1
     assert "rgv_long" not in tags and "thrust_short" not in tags and "exhaustion_short" in tags  # rgv_long swapped back OUT 07-25 for the rehabbed exhaustion
-    assert len(tags) == 6
+    assert len(tags) == 8   # ★2026-08-01: + nipc_long / nipc_short
     by = {s.tag: s for s in tournament_slots()}
     for t, side in (("abs_veto_long", "LONG"), ("abs_veto_short", "SHORT")):
         assert by[t].kind == "thrust" and by[t].side == side
@@ -34,9 +34,13 @@ def test_roster_promotion():
 def test_veto_constants():
     assert d.VETO_GATES == frozenset({"abs_veto_long", "abs_veto_short"})
     assert d.VETO_SECS == 55 and d.VETO_MAX_SECS == 75 and d.VETO_FLOW_MIN == 50.0
-    # per-side chop-floor (2026-07-25 sweep): LONG ER-floored, SHORT ATR-floored — NOT mirrored
-    assert d.ER_FLOOR.get("abs_veto_long") == 0.20 and "abs_veto_short" not in d.ER_FLOOR
-    assert d.ATR_FLOOR.get("abs_veto_short") == 16.0 and "abs_veto_long" not in d.ATR_FLOOR
+    # ★2026-08-01: the per-side chop-floor is GONE on BOTH sides — abs_veto_long's ER floor and
+    # abs_veto_short's ATR-16 floor were re-derived as blocking profitable populations
+    # (abs_veto_short: +$137/28sig blocked, strip-3 -$197, LODO -$11.02 = "not proven", deleted
+    # rather than tuned). abs_veto now runs entirely UNGATED on regime; the 55s absorption veto is
+    # its only entry filter. [was: ER_FLOOR abs_veto_long 0.20, ATR_FLOOR abs_veto_short 16.0]
+    assert "abs_veto_long" not in d.ER_FLOOR and "abs_veto_short" not in d.ER_FLOOR
+    assert "abs_veto_short" not in d.ATR_FLOOR and "abs_veto_long" not in d.ATR_FLOOR
     # momentum floor only — never fader ceiling / confirm path, and thrust_short is retired
     assert not (d.VETO_GATES & (set(d.ER_CEIL) | d.CONFIRM_GATES))
     assert "thrust_short" not in d.ER_FLOOR and "thrust_short" not in d.ATR_FLOOR

@@ -71,16 +71,10 @@ ATR_VIOLENT = 25.0
 ER_TREND = 0.55
 
 
-def bucket(atr1m: float, er15: float) -> str:
-    if nipc_dead_chop(atr1m, er15):
-        return "dead-chop"
-    if er15 >= ER_TREND:
-        return "clean-trend"
-    if er15 >= 0.35:
-        return "in-between-building"
-    if atr1m >= ATR_VIOLENT:
-        return "violent-whipsaw"
-    return "normal-chop"
+# ★2026-08-05 ONE DEFINITION. This bucketer was duplicated here and in deciders.py; the live filter now
+# depends on it, so a divergence between the two would mean the replay validating a filter the desk does
+# not run. Imported from the shipped decider instead.
+from gazbot7.deciders import nipc_regime as bucket   # noqa: E402
 
 
 # ── tape ──────────────────────────────────────────────────────────────────────────────

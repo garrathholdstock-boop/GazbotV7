@@ -122,20 +122,31 @@ def test_chandelier_params_cover_every_chandelier_variant():
     # chandelier variant were missing here it'd be silently scored at the 3.5 default.
     from gazbot7.shadow import chandelier_params, default_slate
     cp = chandelier_params()
-    assert cp["chand_k35"] == (3.5, 0.5, 0.75)  # = the live desk exit (control)
-    assert cp["chand_k25"] == (2.5, 0.5, 0.75)
-    assert cp["chand_k20"] == (2.0, 0.5, 0.75)
+    assert cp["chand_k35"] == (3.5, 0.5, 0.75)  # = the live desk exit (control) — PROTECTED, kept
+    # ★2026-08-02: chand_k25/k20 RETIRED. The trail A/B is answered (k35 -$1.79 vs k25 -$4.39 vs
+    # k20 -$4.39 per trade) and k25/k20 scored identically to the cent (J=0.97, r=0.94), so they were
+    # measuring the same thing twice. The control k35 stays; without it the abs_veto comparison dies.
+    from gazbot7.shadow import RETIRED
+    assert {"chand_k25", "chand_k20"} <= RETIRED
+    assert "chand_k25" not in cp and "chand_k20" not in cp
     assert cp["grind_fast"] == (3.5, 0.5, 0.75)  # existing ride variant unchanged
+    # the mechanism this test exists for: EVERY chandelier variant still on the slate is in the map,
+    # else the repricer would silently score it at the 3.5 default.
     assert set(cp) == {v.name for v in default_slate() if v.chandelier}
 
 
 def test_full_slate_with_chandelier_ab_instantiates_and_steps():
-    # the live slate (now incl. chand_k35/k25/k20) builds, all names are unique, and it
-    # steps on a flat tape without raising — the new variants don't break the sim.
-    from gazbot7.shadow import default_slate
+    # the live slate builds, all names are unique, and it steps on a flat tape without raising.
+    # ★2026-08-02: post-retirement the slate is 18 (was 28 — 11 slate names retired, cb_thrust and
+    # cb_thrust_dropped are booked by the breaker not the slate, and capit_live_mirror was added).
+    from gazbot7.shadow import RETIRED, default_slate
     slate = default_slate()
     names = [v.name for v in slate]
     assert len(names) == len(set(names))  # no duplicate strategy names
-    assert {"chand_k35", "chand_k25", "chand_k20"} <= set(names)
+    assert "chand_k35" in names                       # the control survives
+    assert not (RETIRED & set(names)), RETIRED & set(names)   # nothing retired is still running
+    assert "capit_live_mirror" in names               # live capitulation has a twin again
+    # a variant whose gate has no ShadowSim._entry branch would silently NEVER FIRE — guard it
+    assert {v.gate for v in slate} <= {"thrust", "reversal_grab", "capitulation", "grind"}
     store = open_store(":memory:")
     ShadowSim(store, slate).on_bars(_flat_at(100.0))  # no raise on a flat bar set

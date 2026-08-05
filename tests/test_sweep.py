@@ -103,10 +103,24 @@ def _fake_svc(active_set):
 
 def test_services_tournament_is_the_desk_core_strategy_inactive_ok(monkeypatch):
     # THE cutover fix: core/strategy intentionally inactive is NOT a fault when tournament runs
-    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-tournament", "gazbot7-shadow", "gazbot7-web"}
+    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-tournament", "gazbot7-shadow", "gazbot7-web",
+              "gazbot7-depth-capture"}
     monkeypatch.setattr(sweep, "_svc", _fake_svc(active))
     r = sweep.check_services()
     assert r["status"] == "OK" and "tournament" in r["detail"]
+
+
+def test_depth_capture_down_is_WARN_never_CRIT(monkeypatch):
+    """★2026-08-04 pins the SEVERITY of the new L2 capture, because getting this wrong cuts both ways.
+    The desk trades fine without depth (no gate reads it yet), so a dead capturer must never CRIT and
+    page as if the order path were down. But it must not be silent either — it ran three weeks in the
+    retired V5 tree where nothing swept it, and a silent death would have quietly stopped the 20-day
+    book history every L2 study depends on."""
+    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-tournament", "gazbot7-shadow", "gazbot7-web"}
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(active))   # depth-capture absent
+    r = sweep.check_services()
+    assert r["status"] == "WARN", "depth capture down must WARN, not CRIT (desk trades without it)"
+    assert "gazbot7-depth-capture" in r["detail"], "…but it must be NAMED, not silently tolerated"
 
 
 def test_services_crit_when_no_desk_at_all(monkeypatch):
@@ -117,7 +131,8 @@ def test_services_crit_when_no_desk_at_all(monkeypatch):
 
 def test_services_ok_on_reverted_legacy_desk(monkeypatch):
     # a revert: tournament down but core+strategy up → still a valid desk
-    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-core", "gazbot7-strategy", "gazbot7-shadow", "gazbot7-web"}
+    active = {"gazbot7-md", "alphabot-gateway", "gazbot7-core", "gazbot7-strategy", "gazbot7-shadow",
+              "gazbot7-web", "gazbot7-depth-capture"}
     monkeypatch.setattr(sweep, "_svc", _fake_svc(active))
     r = sweep.check_services()
     assert r["status"] == "OK" and "reverted" in r["detail"]

@@ -130,26 +130,49 @@ def test_exit_fixed():
     assert exit_fixed(lng, 112.0, stop_pt=8.0, target_pt=12.0) == "TARGET"
 
 
-def test_er_blocks_abs_veto_long_momentum_floor():
-    # abs_veto_long is ER-floored at 0.20 (2026-07-25 per-side chop-floor sweep). The short side is
-    # ATR-floored instead — an ER floor on the short craters its earning, so it is NOT mirrored.
-    assert er_blocks("abs_veto_long", ER_FLOOR["abs_veto_long"] - 0.05) is True   # chop → blocked
-    assert er_blocks("abs_veto_long", ER_FLOOR["abs_veto_long"] + 0.05) is False  # trend → allowed
-    assert "abs_veto_short" not in ER_FLOOR   # per-side: short is ATR-floored, not ER
+def test_er_floors_all_deleted():
+    # ★2026-08-01: EVERY ER floor was deleted (deciders.ER_FLOOR = {}). Re-derived on the blocked
+    # book, both surviving floors (grind_long 0.35, abs_veto_long 0.25) were blocking PROFITABLE
+    # populations. This asserts the INTENT — the desk applies no ER arming condition to any gate.
+    # [was: er_blocks("abs_veto_long", 0.15) is True]
+    assert ER_FLOOR == {} and ER_CEIL == {} and ER_BAND == {}
+    for gate in ("abs_veto_long", "abs_veto_short", "grind_long", "capitulation_long",
+                 "exhaustion_short", "rgv_short", "nipc_long", "nipc_short"):
+        for er in (0.0, 0.1, 0.25, 0.5, 1.0):
+            assert er_blocks(gate, er) is False
+
+
+def test_er_blocks_mechanism_still_works_when_a_floor_exists(monkeypatch):
+    # The CONFIG is empty but the MECHANISM must survive — a re-armed floor has to bite. Guards
+    # against a future "the floors don't work" regression hiding behind an empty dict.
+    monkeypatch.setitem(ER_FLOOR, "abs_veto_long", 0.25)
+    assert er_blocks("abs_veto_long", 0.20) is True     # below floor → blocked
+    assert er_blocks("abs_veto_long", 0.30) is False    # above floor → allowed
+    assert er_blocks("abs_veto_short", 0.20) is False   # unfloored gate unaffected
 
 
 # ── SHADOW momentum ER-hold spike-filter ──
-def test_er_hold_blocks_catches_single_bar_spike():
-    # abs_veto_long: ER floor 0.20, hold N=2 (the ER-hold shadow moved here in the 07-25 rehab when
-    # grind's ER floor was dropped). A chop tape with ONE final directional bar — the CURRENT bar's ER
-    # clears the floor but the PRIOR bar's ER (still chop) does not; the hold-filter catches the spike.
+def test_er_hold_shadow_is_inert_with_no_er_floors():
+    # ★2026-08-01 consequence, stated explicitly: er_hold_blocks delegates to er_blocks, so with
+    # ER_FLOOR={} the momentum ER-hold SHADOW can never fire. The measurement is dead until a floor
+    # comes back — do not read "0 shadow blocks" as "the spike filter found nothing".
+    spike = _closes([100 + (i % 2) for i in range(30)] + [130])
+    assert ER_HOLD.get("abs_veto_long") == 2          # still configured…
+    assert er_hold_blocks("abs_veto_long", spike) is False   # …but structurally inert
+
+
+def test_er_hold_blocks_catches_single_bar_spike(monkeypatch):
+    # MECHANISM (floor injected): a chop tape with ONE final directional bar — the CURRENT bar's ER
+    # clears the floor but the PRIOR bar's ER (still chop) does not; the hold-filter catches it.
+    monkeypatch.setitem(ER_FLOOR, "abs_veto_long", 0.20)
     spike = _closes([100 + (i % 2) for i in range(30)] + [130])
     assert er_blocks("abs_veto_long", efficiency_ratio(spike)) is False       # current bar clears the floor
     assert er_blocks("abs_veto_long", efficiency_ratio(spike[:-1])) is True   # prior bar still chop
     assert er_hold_blocks("abs_veto_long", spike) is True                     # hold-filter blocks the spike
 
 
-def test_er_hold_allows_sustained_trend():
+def test_er_hold_allows_sustained_trend(monkeypatch):
+    monkeypatch.setitem(ER_FLOOR, "abs_veto_long", 0.20)
     trend = _closes([100 + i for i in range(31)])   # straight line — every bar in-rule
     assert er_hold_blocks("abs_veto_long", trend) is False
 
@@ -163,11 +186,17 @@ def test_er_hold_only_momentum_gates():
 
 def test_atr_blocks_below_floor():
     from gazbot7.deciders import ATR_FLOOR, atr_blocks
+    # ★2026-08-01: grind_long 24 → 10, capitulation_long 10 KEPT, abs_veto_short 16 DELETED
+    # ("not proven" on the blocked book). "ATR floors are REAL" still holds — at half the old values.
+    assert ATR_FLOOR == {"grind_long": 10.0, "capitulation_long": 10.0}
     # a magnitude floor: grind_long blocked when the entry ATR (a trend too small to run) is below it
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] - 1) is True
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] + 1) is False
-    assert atr_blocks("abs_veto_short", ATR_FLOOR["abs_veto_short"] - 1) is True    # too small → blocked
-    assert atr_blocks("abs_veto_short", ATR_FLOOR["abs_veto_short"] + 1) is False   # enough range → allowed
+    assert atr_blocks("capitulation_long", 9.0) is True and atr_blocks("capitulation_long", 11.0) is False
+    # abs_veto_short is now UNGATED on magnitude — it takes a thrust at ANY ATR. Its only remaining
+    # violent-whipsaw protection is the router bench (prompt rule (b)), which is a judgement call.
+    assert "abs_veto_short" not in ATR_FLOOR
+    assert atr_blocks("abs_veto_short", 0.0) is False
     assert atr_blocks("exhaustion_short", 0.0) is False   # no ATR floor → never blocked here
 
 

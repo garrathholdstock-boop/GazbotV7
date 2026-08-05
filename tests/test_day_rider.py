@@ -126,3 +126,21 @@ def test_flat_clock_leaves_a_retry_window_before_the_halt():
     assert dr.HALT_UTC_MIN - dr.FLAT_UTC_MIN >= 15      # >=15 automatic retries at a 1-min cadence
     # and it must still be after the entry cutoff, or entries could never be managed to a close
     assert dr.FLAT_UTC_MIN > dr.ENTRY_CUTOFF_MIN
+
+
+def test_nipc_regime_buckets_and_filter():
+    # The live filter and scripts/nipc_replay.py MUST share one definition — the replay validates the
+    # filter, so a divergence would mean validating something the desk does not run.
+    from gazbot7.deciders import nipc_bad_regime, nipc_regime
+    assert nipc_regime(15, 0.20) == "dead-chop"
+    assert nipc_regime(15, 0.60) == "clean-trend"
+    assert nipc_regime(20, 0.40) == "in-between-building"
+    assert nipc_regime(30, 0.20) == "violent-whipsaw"
+    assert nipc_regime(20, 0.20) == "normal-chop"
+    # blocked: the three buckets that lose or contribute nothing
+    assert nipc_bad_regime(15, 0.20) is True      # dead-chop
+    assert nipc_bad_regime(30, 0.20) is True      # violent-whipsaw — the biggest drag
+    assert nipc_bad_regime(20, 0.20) is True      # normal-chop
+    # allowed: the two that pay
+    assert nipc_bad_regime(20, 0.40) is False     # in-between-building
+    assert nipc_bad_regime(15, 0.60) is False     # clean-trend
