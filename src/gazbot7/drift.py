@@ -36,7 +36,22 @@ import datetime as dt
 import sqlite3
 from dataclasses import dataclass, field
 
+# ★ THE ANCHOR IS THE US CASH OPEN, NOT THE CME/MIDNIGHT SESSION OPEN — and that is a measured choice,
+# not an oversight. Operator asked (2026-08-05): "shouldnt we be measuring from midnight comex open?"
+# Tested both. At 13:40, medians across 33 sessions:
+#     anchor 13:30 (cash)  ->  11 min of tape,  165pt range,   241pt path, efficiency 0.239, rt 0.439
+#     anchor 22:00 (CME)   -> 941 min of tape,  455pt range,  5921pt path, efficiency 0.048, rt 0.689
+# The CME anchor produced ZERO detections over 33 sessions and is not merely worse — it is structurally
+# INCOMPATIBLE with these thresholds: 15h40m of overnight oscillation makes the path ~25x longer, so
+# efficiency (net/path) collapses an order of magnitude below the 0.15 floor. Adopting that anchor means
+# re-deriving the entire strategy on new thresholds, not changing a constant.
+# The deeper reason it is right: this strategy trades the DECISION the US cash session makes. Overnight
+# tape is thin, and folding 15 hours of it in dilutes exactly the signal being measured.
 OPEN_UTC_MIN = 13 * 60 + 30      # 13:30 UTC US cash open — the session anchor
+# ⚠ 21:00 UTC IS THE HALT ITSELF, so it is the outer bound of "is the session live" — NOT a flatten
+# time. day_rider.FLAT_UTC_MIN is 20:40 UTC (22:40 Paris) precisely so a failed flatten still has 20
+# minute-ticks of retry before the market closes (operator, 2026-08-05: "flatten at 23 doesnt work.
+# market is closed"). Measured cost of the earlier flat: $149 of $13,257, with days-green 81% -> 84%.
 CLOSE_UTC_MIN = 21 * 60          # 21:00 UTC = 23:00 Paris = the CME halt. NEVER hold past it.
 MIN_BARS = 9                     # below this the metrics are noise (nothing fired 1-8 min in the sweep)
 ER_MIN = 0.15

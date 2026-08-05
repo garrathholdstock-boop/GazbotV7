@@ -116,3 +116,13 @@ def test_save_state_defaults_venue_ok_false(tmp_path, monkeypatch):
     monkeypatch.setattr(dr, "STATE", str(tmp_path / "st.json"))
     dr.save_state({"session": "2026-08-06"})
     assert dr.load_state()["venue_ok"] is False
+
+
+def test_flat_clock_leaves_a_retry_window_before_the_halt():
+    # ★ The original 21:00 flat WAS the CME halt — no market to fill into and no retry window, which
+    # is the one failure mode that breaks "never hold overnight". The flat clock must sit strictly
+    # before the halt, with enough minute-ticks left to retry a failed flatten.
+    assert dr.FLAT_UTC_MIN < dr.HALT_UTC_MIN
+    assert dr.HALT_UTC_MIN - dr.FLAT_UTC_MIN >= 15      # >=15 automatic retries at a 1-min cadence
+    # and it must still be after the entry cutoff, or entries could never be managed to a close
+    assert dr.FLAT_UTC_MIN > dr.ENTRY_CUTOFF_MIN

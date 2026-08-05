@@ -50,7 +50,7 @@ import logging
 import os
 
 from .config import RunConfig
-from .drift import CLOSE_UTC_MIN, OPEN_UTC_MIN, read as drift_read
+from .drift import OPEN_UTC_MIN, read as drift_read
 from .safety import safe_flatten_verdict
 
 log = logging.getLogger("day_rider")
@@ -67,6 +67,16 @@ LOTS = 2
 # tight enough that the strategy only ever trades the distribution it was validated on. Managing an
 # already-open position continues normally past this time; it gates ENTRY only.
 ENTRY_CUTOFF_MIN = 15 * 60
+# ★★ FLAT AT 20:40 UTC = 22:40 PARIS, NOT AT THE 21:00 HALT. Operator, 2026-08-05: "flatten at 23
+# doesnt work. market is closed. needs to be at 2240 so you have 20 minutes to troubleshoot and try
+# again if necessary." He is right and the original 21:00 was a real defect: 23:00 Paris IS the CME
+# daily halt, so a flatten fired then has no market to fill into AND no retry window — the one failure
+# mode that turns "never hold overnight" from a constraint into a hope.
+# Because the service ticks every minute, 20:40 gives ~20 automatic retries before the halt.
+# Measured cost of moving it 20 min earlier: $149 of $13,257 (1.1%), and days-green IMPROVES 81% -> 84%.
+# Moving it to 22:00 Paris instead would cost $2,309, so 20:40 is the right point on that curve.
+FLAT_UTC_MIN = 20 * 60 + 40
+HALT_UTC_MIN = 21 * 60             # the venue closes here; nothing can be done after it
 ARM_PT = 150.0                     # trail arms once this far ahead
 TRAIL_PT = 100.0
 VENUE_STOP_PT = 600.0              # last-resort only; see docstring note 2
@@ -196,17 +206,31 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         out["venue_ok"] = True          # we are genuinely talking to the broker this tick
 
         # ── 1. THE HARD FLAT. Runs before anything else, unconditionally. ────────────────
-        if mod >= CLOSE_UTC_MIN or mod < OPEN_UTC_MIN:
+        if mod >= FLAT_UTC_MIN or mod < OPEN_UTC_MIN:
             if abs(net) > 1e-9:
                 v = safe_flatten_verdict(net)
                 if v:
                     from ib_async import MarketOrder
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))
                     await asyncio.sleep(2.0)
-                    out["closed"] = True
-                    out["note"] = "21:00 hard flat — never overnight"
-                    if notify:
-                        notify(f"DAY RIDER flat at the 21:00 clock ({v[0]} {v[1]})", critical=True)
+                    # ★ VERIFY, then let the minute cadence retry. A market order that does not fill
+                    # is exactly why the flatten moved off the halt — silence here would carry the
+                    # position overnight, which the operator has ruled out absolutely.
+                    post = await _net_position(ib, cfg.symbol)
+                    if abs(post) < 1e-9:
+                        out["closed"] = True
+                        out["note"] = f"FLAT at the {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d} clock"
+                        if notify:
+                            notify(f"DAY RIDER flat at the {FLAT_UTC_MIN//60:02d}:"
+                                   f"{FLAT_UTC_MIN%60:02d} UTC clock ({v[0]} {v[1]})", critical=True)
+                    else:
+                        mins_left = HALT_UTC_MIN - mod
+                        out["note"] = (f"FLATTEN INCOMPLETE — still {post} after {v[0]} {v[1]}; "
+                                       f"retrying each minute, {mins_left} min before the halt")
+                        if notify:
+                            notify(f"⚠ DAY RIDER FLATTEN INCOMPLETE — venue still holds {post}. "
+                                   f"Retrying every minute; {mins_left} min until the CME halt.",
+                                   critical=True)
             else:
                 out["note"] = "outside 13:30-21:00 — flat, idle"
             save_state(out)
