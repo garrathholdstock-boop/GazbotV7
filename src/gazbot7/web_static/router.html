@@ -135,6 +135,25 @@
   </div>
   <p class="upd" id="upd">loading…</p>
 
+  <h2>Untradeable-day meter — the stay-out evidence</h2>
+  <div class="panel untr">
+    <div class="untr-head">
+      <span class="untr-title">STAY-OUT score</span>
+      <span class="untr-score" id="untrScore">—</span>
+      <span class="untr-verdict" id="untrVerdict">—</span>
+    </div>
+    <div class="meter"><div class="mlab">Round-trip<small>net move vs range — did the day go anywhere?</small></div><div class="mbar"><div class="mfill" id="mChop"></div></div><span class="mval" id="mChopV">—</span></div>
+    <div class="meter"><div class="mlab">Give-back<small>% of the day's biggest move handed back</small></div><div class="mbar"><div class="mfill" id="mGive"></div></div><span class="mval" id="mGiveV">—</span></div>
+    <div class="meter" id="mStopRow"><div class="mlab">Gate stops<small id="mStopSub">recent live trades that hit their stop</small></div><div class="mbar"><div class="mfill" id="mStop"></div></div><span class="mval" id="mStopV">—</span></div>
+    <div class="untr-detail" id="untrDetail">—</div>
+  </div>
+
+  <h2>Gate board — on / off + why</h2>
+  <div class="panel gates">
+    <table><thead><tr><th>Gate</th><th>State</th><th>Reason</th><th style="text-align:right">Live&nbsp;$</th></tr></thead>
+    <tbody id="gatebody"></tbody></table>
+  </div>
+
   <h2 id="holdh">Holdings — 2 slots max (Lot A scalp · Lot B chandelier)</h2>
   <div class="hold" id="hold"></div>
 
@@ -158,25 +177,6 @@
     <div class="explain">
       <b>Why "chop" when the dashboard shows ER 0.30–0.50?</b> Those are different clocks. The 30-min ER is high because each intraday <b>leg</b> is a clean directional half-hour push — but the legs <b>alternate</b> and cancel, so over the session price round-trips inside its band → day-ER stays near 0.03. That <em>is</em> chop: real short legs that net nowhere. It's why "clean trend hours" keep faking, and why momentum gates buy the top / sell the bottom of a leg right before it rotates. The router runs momentum only when the legs <b>sustain</b>, not when they alternate.
     </div>
-  </div>
-
-  <h2>Untradeable-day meter — the stay-out evidence</h2>
-  <div class="panel untr">
-    <div class="untr-head">
-      <span class="untr-title">STAY-OUT score</span>
-      <span class="untr-score" id="untrScore">—</span>
-      <span class="untr-verdict" id="untrVerdict">—</span>
-    </div>
-    <div class="meter"><div class="mlab">Round-trip<small>net move vs range — did the day go anywhere?</small></div><div class="mbar"><div class="mfill" id="mChop"></div></div><span class="mval" id="mChopV">—</span></div>
-    <div class="meter"><div class="mlab">Give-back<small>% of the day's biggest move handed back</small></div><div class="mbar"><div class="mfill" id="mGive"></div></div><span class="mval" id="mGiveV">—</span></div>
-    <div class="meter"><div class="mlab">Gate stops<small>recent live trades that hit their stop</small></div><div class="mbar"><div class="mfill" id="mStop"></div></div><span class="mval" id="mStopV">—</span></div>
-    <div class="untr-detail" id="untrDetail">—</div>
-  </div>
-
-  <h2>Gate board — on / off + why</h2>
-  <div class="panel gates">
-    <table><thead><tr><th>Gate</th><th>State</th><th>Reason</th><th style="text-align:right">Live&nbsp;$</th></tr></thead>
-    <tbody id="gatebody"></tbody></table>
   </div>
 
   <h2>Shadow cross-check — unbenched counterfactual (today)</h2>
@@ -233,7 +233,21 @@ async function tick(){
   };
   setMeter("mChop","mChopV",um.chop);
   setMeter("mGive","mGiveV",um.giveback);
+  // ★2026-08-05 the stops meter only votes on a real sample. When excluded, say SO on the page —
+  // a greyed bar with "not counted (n=4 < 10)" tells you the score is roundtrip+give-back only.
+  // Showing a plausible-looking 50 for "I don't know" is how a coin flip gets read as evidence.
   setMeter("mStop","mStopV",um.stops);
+  (function(){
+    const row=$("mStopRow"), sub=$("mStopSub"), n=(u.stop_n==null?0:u.stop_n), minn=(u.stops_min_n||10);
+    if(um.stops==null){
+      row.style.opacity=".45";
+      sub.textContent="not counted — n="+n+" < "+minn+"; score is round-trip + give-back only";
+      $("mStopV").textContent="n/a";
+    } else {
+      row.style.opacity="1";
+      sub.textContent="recent live trades that hit their stop (n="+n+")";
+    }
+  })();
   $("untrScore").textContent=u.score==null?"—":u.score;
   const uv=$("untrVerdict"); uv.textContent=u.verdict||"—";
   uv.className="untr-verdict "+(u.verdict==="STAY-OUT"?"out":(u.verdict==="CAUTION"?"caution":"ok"));

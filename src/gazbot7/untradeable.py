@@ -116,9 +116,23 @@ def compute(cap_path, store_path, day_start_ep, now_ep=None):
     gb = out["giveback"]
     chop = 50 if rt is None else round(max(0, min(1, 1 - rt)) * 100)
     give = 50 if gb is None else round(gb * 100)
-    stops = 50 if (out["stop_rate"] is None or out["stop_n"] < 3) else round(out["stop_rate"] * 100)
+    # ★2026-08-05 STOP-RATE NEEDS A REAL SAMPLE OR IT MUST NOT VOTE.
+    # The old floor was stop_n >= 3, which let 4 trades set 20% of the score — on 08-05 it read 50
+    # off n=4, a coin-flip carrying real weight. Worse, an absent reading defaulted to 50 and STILL
+    # voted, so "I don't know" was scored identically to "half the trades stopped". Below MIN_STOP_N
+    # the meter is now EXCLUDED and roundtrip/give-back are reweighted to 50/50 — the two the module's
+    # own validation calls the discriminators. n is surfaced so the dashboard can show what it rests on.
+    # Revert: stops = 50 if (...stop_n < 3) else ...; score = 0.40*chop + 0.40*give + 0.20*stops.
+    MIN_STOP_N = 10
+    have_stops = out["stop_rate"] is not None and out["stop_n"] >= MIN_STOP_N
+    stops = round(out["stop_rate"] * 100) if have_stops else None
     out["meters"] = {"chop": chop, "giveback": give, "stops": stops}
-    score = round(0.40 * chop + 0.40 * give + 0.20 * stops)
+    out["stops_counted"] = have_stops
+    out["stops_min_n"] = MIN_STOP_N
+    if have_stops:
+        score = round(0.40 * chop + 0.40 * give + 0.20 * stops)
+    else:
+        score = round(0.50 * chop + 0.50 * give)
     out["score"] = score
     out["verdict"] = "STAY-OUT" if score >= 65 else ("CAUTION" if score >= 45 else "TRADEABLE")
     rtxt = "n/a" if rt is None else f"{rt:.2f}"

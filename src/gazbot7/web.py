@@ -539,6 +539,13 @@ _ROUTER_META = {  # gate → (family, mechanism, side)
     "exhaustion_short": ("reversion", "reversal", "SHORT"),
     "abs_veto_short": ("momentum", "thrust", "SHORT"),
     "rgv_short": ("fade", "turnback", "SHORT"),
+    # ★2026-08-05 nipc was MISSING here since it shipped 08-01, so the board silently showed 6 of 8
+    # gates for four days. A dashboard that omits a gate is worse than one that shows it benched —
+    # you cannot notice the state of something you are never shown. Same failure as the truncated
+    # shadow block that hid a 9-of-9 green thrust family from the router.
+    # This map is the ONLY place gates are enumerated for the panel, so it must track the live roster.
+    "nipc_long": ("news", "impulse-pullback", "LONG"),
+    "nipc_short": ("news", "impulse-pullback", "SHORT"),
 }
 
 
@@ -546,9 +553,17 @@ def _router_reason(on, fam, side, is_chop, bias):
     """Derive WHY a gate is on/off from its mechanism + the live regime — so it stays true
     as the regime changes, rather than a hardcoded string that goes stale."""
     if on:
+        if fam == "news":
+            return "armed — news-impulse window"
         if fam in ("reversion", "fade"):
             return "armed — reversion fits a rotation"
         return "armed — aligned momentum"
+    # ★2026-08-05 nipc is not benched by REGIME — it is PINNED OFF in the router and held out of the
+    # 22:00 reactivation pending the live/replay divergence diagnosis. Showing it as "benched —
+    # momentum bleeds in the rotation" would imply the router might re-arm it on a regime change,
+    # which is exactly wrong and the sort of misleading label that gets acted on.
+    if fam == "news":
+        return "PINNED OFF — failed acceptance replay; held from the nightly re-arm"
     if side == "SHORT" and bias == "UP":
         return "benched — counter to the up-day"
     if side == "LONG" and bias == "DOWN":
@@ -864,7 +879,13 @@ def shadow_overview_json(shadow_path, date=None):
     day_start, day_end = _paris_day_bounds(date)
     wk_start = day_end - 7 * 86400
     # registered fleet (shown even if idle) = the variant slate + the circuit-breaker legs
-    fleet = [v.name for v in default_slate()] + list(CB_STRATEGIES)
+    # ★2026-08-04: + the CL- sims. They are driven by cl_sims.ClSims / scripts/cl_worker.py rather
+    # than default_slate(), so building the fleet from the slate alone made them INVISIBLE on the
+    # shadow board — they would not have appeared even once they started trading. Registered here so
+    # they show (at zero) from the outset, which also means "CL sim not trading" is visible rather
+    # than indistinguishable from "CL sim does not exist".
+    from .cl_sims import CL_GATES
+    fleet = [v.name for v in default_slate()] + list(CB_STRATEGIES) + list(CL_GATES)
     try:
         c = _conn(shadow_path)
         rows = c.execute(
@@ -927,6 +948,27 @@ def shadow_activity_json(shadow_path, limit=50):
     return {"trades": [{"exit_ts": r["exit_ts"], "strategy": r["strategy"], "symbol": r["symbol"],
                         "side": r["side"], "exit_reason": r["exit_reason"],
                         "pnl": round(r["real_pnl"], 2)} for r in rows]}
+
+
+def tradeability_json(cap_path):
+    """★2026-08-03 — the live 0-10 tape gauge (operator: "show me what we are currently sitting in").
+
+    A GUIDE, not a gate: nothing arms or benches off this. Rolling, not day-cumulative, because the
+    existing untradeable meter is cumulative and on 08-03 still read 37/TRADEABLE at 19:36 when ATR
+    had collapsed to 9pt. Validated against the shadow book (the honest counterfactual for what the
+    desk's mechanisms would have made): correlation +0.50 over 16 days, low-score days averaging
+    -$1,904 of shadow P&L against +$612 for high-score days. Two known misses, 07-30 and 07-31 — both
+    scored ~4.2 and lost >$3,000, so a good score is NOT permission to size up."""
+    try:
+        from .tradeability import live
+        r = live(cap_path)
+        return {"score": r.score, "label": r.label, "detail": r.detail,
+                "er30": r.er30, "atr": r.atr,
+                "components": {"efficiency": r.efficiency, "room": r.room,
+                               "persistence": r.persistence}}
+    except Exception as e:
+        # a gauge that silently shows a stale number is worse than one that admits it cannot see
+        return {"score": None, "label": "unavailable", "detail": str(e)}
 
 
 def reports_json(static_dir):
@@ -1230,6 +1272,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._send(open(os.path.join(_STATIC, "router.html"), "rb").read(), _CT[".html"])
                 elif path.startswith("/api/futures/router"):
                     self._json(router_json(store_path, cap_path, data_dir))
+                elif path.startswith("/api/tradeability"):
+                    self._json(tradeability_json(cap_path))
                 elif path.startswith("/api/reports"):
                     self._json(reports_json(_STATIC))
                 elif path.startswith("/api/cube/available-days"):
