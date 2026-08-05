@@ -132,6 +132,21 @@ tournament/shadow/strategy and pinned by `tests/test_md_symbol_filter.py`.
 carries, audit every CONSUMER, not just the producer. Note every `capture.db` reader was already safe,
 because SQL forces you to name the symbol; only the message bus left it optional.
 
+## ★★ SESSION-TIME POLICY (2026-08-05)
+
+**ASIA 00-07 UTC IS BENCHED PERMANENTLY** — `RunConfig.no_open_asia=True`, guard in
+`multislot_core._open()`, window in `session.py::in_asia_block`. Shadow n=1840: **−$3.17/trade**, the
+worst block on the desk. **NEW ENTRIES ONLY** — exits and every flatten path untouched. Revert:
+`no_open_asia=False`. The day-rider is unaffected (13:38-20:40 only).
+
+⚠ **"Don't day-trade MNQ until the US open" was TESTED AND REFUTED** — pre-open is −$1.75/trade vs the
+US session's −$1.93. **LONDON (07-13) is the desk's ONLY positive block** (+$0.70/tr, n=1516); a
+wait-for-the-US-open policy would bench the best window along with the worst.
+
+The one time finding that survived the full battery: **13:30-14:45 is where expectancy lives**
+(+$8.93/tr, n=562, strip-best-3 +$695, both halves positive, +3.27sd). The late session is NOT
+reliably bad — three days carry its whole loss — so **do not bench it**.
+
 ## Other repo conventions
 - V5 `alphabot2` desk is RETIRED — do NOT probe :8090/:8092/:8000 or `alphabot.db`.
 - Verify desk facts LIVE (curl/query), never recall (memory [[verify-desk-facts-never-guess]]).
