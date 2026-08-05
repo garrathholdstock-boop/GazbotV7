@@ -62,3 +62,11 @@ def test_venue_stop_is_wider_than_the_deepest_recovery():
     # last-resort insurance, NOT a trading stop: if it is ever tight enough to fire on a live trade
     # it will be killing winners (a 400pt stop cost $3,451 and worsened the worst day).
     assert dr.VENUE_STOP_PT > 511
+
+
+def test_entry_cutoff_covers_every_validated_detection():
+    # All 31 backtested detections landed 13:38-14:09. The cutoff must sit AFTER the latest of those
+    # (or the strategy would refuse trades it was validated on) and BEFORE the close (or it would take
+    # entries the backtest has no examples of, then hold them into the hard flat).
+    assert dr.ENTRY_CUTOFF_MIN > 14 * 60 + 9
+    assert dr.ENTRY_CUTOFF_MIN < 21 * 60

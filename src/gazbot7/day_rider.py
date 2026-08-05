@@ -60,6 +60,13 @@ GB = "/home/alphabot/gazbot7"
 STATE = f"{GB}/data/day_rider_state.json"
 SWITCH = f"{GB}/data/day_rider.env"
 LOTS = 2
+# ★ NO NEW ENTRY AFTER THIS. Across all 31 validated sessions the detector confirmed between 13:38 and
+# 14:09 — never later. The service ticks to 21:00, so without this guard it could enter at 17:00 on a
+# setup the backtest contains ZERO examples of, and then hold it with under four hours to the hard flat.
+# 15:00 sits ~50 min beyond the latest observed detection: wide enough that no tested case is excluded,
+# tight enough that the strategy only ever trades the distribution it was validated on. Managing an
+# already-open position continues normally past this time; it gates ENTRY only.
+ENTRY_CUTOFF_MIN = 15 * 60
 ARM_PT = 150.0                     # trail arms once this far ahead
 TRAIL_PT = 100.0
 VENUE_STOP_PT = 600.0              # last-resort only; see docstring note 2
@@ -192,6 +199,11 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             out["note"] = f"venue holds {net} but state says no entry — STANDING DOWN"
             if notify:
                 notify(f"DAY RIDER: unexplained venue position {net} — standing down", critical=True)
+            save_state(out)
+            return out
+        if mod >= ENTRY_CUTOFF_MIN:
+            out["note"] = (f"past the {ENTRY_CUTOFF_MIN//60:02d}:00 entry cutoff — no new entry "
+                           f"(all 31 validated detections were 13:38-14:09)")
             save_state(out)
             return out
         r = drift_read(cfg.capture_path, cfg.symbol, now)
