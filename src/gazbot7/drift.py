@@ -52,6 +52,7 @@ class DriftRead:
     range_pt: float = 0.0
     efficiency: float = 0.0
     roundtrip: float = 0.0
+    atr: float = 0.0                 # 14-minute true range — the unit the exit-ask trigger is in
     confirmed: bool = False
     price: float = 0.0
     open_px: float = 0.0
@@ -104,6 +105,12 @@ def compute(bars) -> DriftRead:
     r.ok = True
     r.efficiency = abs(net) / path
     r.roundtrip = abs(net) / rng
+    # 14-minute ATR over the most recent bars — used by the day-rider's exit-ask trigger, which is
+    # expressed in ATR so it scales with the day's own volatility instead of a fixed point count.
+    trs = [max(bars[i][1] - bars[i][2], abs(bars[i][1] - bars[i - 1][3]),
+               abs(bars[i][2] - bars[i - 1][3])) for i in range(1, len(bars))]
+    if trs:
+        r.atr = sum(trs[-14:]) / min(14, len(trs))
     r.direction = "UP" if net > 0 else ("DOWN" if net < 0 else "")
     # what each metric still needs, in its own units — actionable rather than opaque
     r.er_needed = max(0.0, ER_MIN - r.efficiency)

@@ -70,3 +70,40 @@ def test_entry_cutoff_covers_every_validated_detection():
     # entries the backtest has no examples of, then hold them into the hard flat).
     assert dr.ENTRY_CUTOFF_MIN > 14 * 60 + 9
     assert dr.ENTRY_CUTOFF_MIN < 21 * 60
+
+
+def test_exit_ask_only_when_ahead_and_reversed():
+    atr = 20.0
+    # never ahead => never ask. A trade that never worked has nothing to protect, and paging the
+    # operator about noise near the entry trains them to ignore the alert.
+    assert dr.should_ask_exit(1, 100.0, 100.0, 90.0, atr) is False
+    # ahead but only a small pullback => no ask
+    assert dr.should_ask_exit(1, 100.0, 300.0, 290.0, atr) is False
+    # ahead and reversed >= 2xATR off the peak => ask
+    assert dr.should_ask_exit(1, 100.0, 300.0, 300.0 - 2 * atr, atr) is True
+    # symmetric for shorts (10 of 18 directional days were DOWN)
+    assert dr.should_ask_exit(-1, 300.0, 100.0, 100.0 + 2 * atr, atr) is True
+    # unmeasurable ATR must never trigger — 'I cannot measure' is not 'it reversed'
+    assert dr.should_ask_exit(1, 100.0, 300.0, 200.0, 0.0) is False
+
+
+def test_approval_is_token_matched(tmp_path, monkeypatch):
+    # ★ Replay protection. Without token matching, a /sell typed at 20:00 sits on disk and flattens
+    # tomorrow's fresh position — approving a trade that did not exist when it was typed.
+    import json as _j
+    f = tmp_path / "ap.json"
+    monkeypatch.setattr(dr, "APPROVAL_FILE", str(f))
+    f.write_text(_j.dumps({"token": "2026-08-06:111", "decision": "sell"}))
+    assert dr.read_approval("2026-08-06:111") == "sell"
+    assert dr.read_approval("2026-08-07:999") is None      # different session => ignored
+    f.write_text("not json")
+    assert dr.read_approval("2026-08-06:111") is None      # unreadable => no decision, never a sell
+
+
+def test_bot_refuses_when_nothing_pending(tmp_path):
+    # A stray /sell must not be able to close a healthy position that is not asking to exit.
+    from gazbot7 import telegram_bot as tb
+    st = tmp_path / "st.json"
+    st.write_text('{"entered": true}')
+    msg = tb.day_rider_decision("sell", state_path=str(st), approval_path=str(tmp_path / "a.json"))
+    assert "Nothing pending" in msg

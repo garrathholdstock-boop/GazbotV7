@@ -35,11 +35,16 @@ _HEALTH = os.path.join(_DATA, "core_health.json")
 _DB = os.path.join(_DATA, "gazbot7.db")
 _OFF = ("off", "0", "no", "false", "disable", "disabled")
 
+_DR_STATE = os.path.join(_DATA, "day_rider_state.json")
+_DR_APPROVAL = os.path.join(_DATA, "day_rider_approval.json")
+
 _HELP = ("GAZBOT tournament — commands:\n"
          "/status — desk health + open slots\n"
          "/gates — each gate: on/off + today P&L\n"
          "/off <gate> — stop a gate's NEW entries today (open pos still exits)\n"
          "/on <gate> — re-enable a gate\n"
+         "/sell — approve the day-rider's PENDING exit (only when one is asking)\n"
+         "/hold — dismiss a pending day-rider exit, keep riding to 21:00\n"
          "/help — this")
 
 
@@ -165,6 +170,49 @@ def _today_pnl_by_gate(db_path=_DB) -> dict:
 
 
 # ── command dispatch (I/O: reads health/db, writes the switch file) ─────────────
+def day_rider_decision(cmd: str, *, state_path=_DR_STATE, approval_path=_DR_APPROVAL,
+                       now=None) -> str:
+    """/sell and /hold — record the operator's decision on a PENDING day-rider exit.
+
+    ★★ THIS BOT DOES NOT PLACE ORDERS, DELIBERATELY. It writes a decision file; the day-rider service
+    reads it and does the flattening through the order path that already carries every safety check
+    (safe_flatten_verdict, venue reconciliation, fail-closed). The module docstring's rule was that the
+    ONLY mutating command is per-gate on/off — this is the second, so its blast radius is kept at
+    "write one file" rather than "a phone can send a market order".
+
+    ★ TOKEN-MATCHED, so consent cannot be replayed. The approval records the pending request's OWN
+    token. Without that, a "/sell" typed at 20:00 could sit on disk and flatten a fresh position the
+    next morning — the operator would have approved a trade that did not exist yet.
+
+    ★ AND IT REFUSES WHEN NOTHING IS ASKING. A stray /sell must never be able to close a healthy
+    position that was not requesting an exit; the default in this whole mechanism is HOLD.
+    """
+    now = now or datetime.now(UTC)
+    try:
+        with open(state_path) as fh:
+            st = json.load(fh)
+    except Exception:
+        return "day-rider state unreadable — no pending exit to act on."
+    pend = st.get("pending_exit") or {}
+    token = pend.get("token")
+    if not token:
+        return ("Nothing pending. The day-rider is not asking to exit, so there is nothing to "
+                f"{'approve' if cmd == 'sell' else 'dismiss'}. (It holds to 21:00 by default.)")
+    try:
+        tmp = approval_path + ".tmp"
+        with open(tmp, "w") as fh:
+            json.dump({"token": token, "decision": "sell" if cmd == "sell" else "hold",
+                       "at": now.isoformat(timespec="seconds")}, fh, indent=1)
+        os.replace(tmp, approval_path)
+    except OSError as e:
+        return f"failed to record the decision: {e}"
+    if cmd == "sell":
+        return (f"✓ SELL approved for the pending exit ({pend.get('reason', 'candidate exit')}). "
+                f"The day-rider service will flatten on its next tick (<=60s).")
+    return (f"✓ HOLD — pending exit dismissed. Riding on; the 21:00 hard flat still applies. "
+            f"(Holding beat every reactive exit tested, so this is also the default.)")
+
+
 def handle(cmd: str, arg: str, *, switch_path=_SWITCH, health_path=_HEALTH, db_path=_DB) -> str:
     gates = roster()
     if cmd in ("start", "help", ""):
@@ -174,6 +222,8 @@ def handle(cmd: str, arg: str, *, switch_path=_SWITCH, health_path=_HEALTH, db_p
         return render_status(health, disabled_from(_read(switch_path)))
     if cmd == "gates":
         return render_gates(disabled_from(_read(switch_path)), _today_pnl_by_gate(db_path))
+    if cmd in ("sell", "hold"):
+        return day_rider_decision(cmd)
     if cmd in ("off", "on"):
         if not arg:
             return f"usage: /{cmd} <gate>  (gates: {', '.join(gates)})"

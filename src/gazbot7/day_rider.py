@@ -72,6 +72,21 @@ TRAIL_PT = 100.0
 VENUE_STOP_PT = 600.0              # last-resort only; see docstring note 2
 HEARTBEAT_STALE_S = 180
 
+# ── OPERATOR-APPROVED DISCRETIONARY EXIT ──────────────────────────────────────────────────────────
+# Operator: "you telegram me 2-3 times... 15 minutes apart" then "or maybe wait for my approval. and if
+# it doesnt come we hold until close."
+# ★ DEFAULT IS HOLD, AND THAT IS THE PROFIT-MAXIMISING DEFAULT, not merely the cautious one. Across 25
+# exit variants tested, holding to 21:00 beat every reactive rule — the best of them (a 2xATR reversal)
+# by $3,115, and the give-back family by ~$11,000. So on the days the operator does not reply, the
+# system does the thing the data says is right. An auto-SELL default would have been worse on both axes.
+# ★ THE TRIGGER IS DELIBERATELY THE LEAST-BAD PRICE RULE (2xATR against the peak). It is NOT armed
+# because it makes money — it does not. It exists so a genuine reversal reaches the OPERATOR rather than
+# being silently ignored or silently acted on. The rule asks; the human decides.
+APPROVAL_FILE = f"{GB}/data/day_rider_approval.json"
+EXIT_ASK_ATR_MULT = 2.0            # reversal from the peak, in ATR, that raises the question
+EXIT_ASK_INTERVAL_S = 15 * 60      # 15 minutes between pushes
+EXIT_ASK_MAX_PUSHES = 3            # then stop asking and keep holding — never escalate to a sell
+
 
 def enabled() -> bool:
     """Off unless explicitly switched on. A missing/unreadable file means OFF, never ON."""
@@ -103,6 +118,33 @@ def save_state(d: dict) -> None:
 
 def session_key(now: dt.datetime) -> str:
     return now.strftime("%Y-%m-%d")
+
+
+def read_approval(token: str) -> str | None:
+    """The operator's decision for THIS pending request, or None.
+
+    ★ TOKEN-MATCHED so consent cannot be replayed. A bare "sell" flag on disk would survive the day and
+    flatten tomorrow's fresh position — approving a trade that did not exist when they typed it."""
+    try:
+        with open(APPROVAL_FILE) as fh:
+            a = json.load(fh)
+        if a.get("token") != token:
+            return None
+        d = str(a.get("decision", "")).lower()
+        return d if d in ("sell", "hold") else None
+    except Exception:
+        return None
+
+
+def should_ask_exit(direction: int, entry: float, peak: float, price: float, atr: float) -> bool:
+    """Has price reversed far enough off the peak to be worth asking about? Pure/testable.
+    Only asks once the position is actually AHEAD — a trade that never worked has nothing to protect
+    and the operator should not be paged about ordinary noise near the entry."""
+    if atr <= 0:
+        return False
+    if direction * (peak - entry) < ARM_PT:
+        return False
+    return direction * (peak - price) >= EXIT_ASK_ATR_MULT * atr
 
 
 def trail_level(direction: int, entry: float, peak: float) -> float | None:
@@ -167,13 +209,70 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         if abs(net) > 1e-9 and st.get("entered"):
             d = 1 if net > 0 else -1
             entry = float(st.get("entry", 0.0))
-            px = drift_read(cfg.capture_path, cfg.symbol, now).price or entry
+            rr = drift_read(cfg.capture_path, cfg.symbol, now)
+            px = rr.price or entry
+            if rr.atr > 0:
+                out["entry_atr"] = round(rr.atr, 2)
             peak = float(st.get("peak", entry))
             peak = max(peak, px) if d > 0 else min(peak, px)
             out.update(entry=entry, peak=peak, direction=d, qty=abs(net))
             tl = trail_level(d, entry, peak)
             out["trail"] = tl
             out["ahead_pt"] = round(d * (px - entry), 1)
+
+            # ── OPERATOR-APPROVAL EXIT — ask up to 3x, 15 min apart, DEFAULT HOLD ──────────
+            atr_now = float(out.get("entry_atr", st.get("entry_atr", 0.0)) or 0.0)
+            pend = dict(st.get("pending_exit") or {})
+            if pend.get("token"):
+                dec = read_approval(pend["token"])
+                if dec == "sell":
+                    v = safe_flatten_verdict(net)
+                    if v:
+                        from ib_async import MarketOrder
+                        ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                        await asyncio.sleep(2.0)
+                        out["closed"] = True
+                        out["pending_exit"] = None
+                        out["note"] = "OPERATOR-APPROVED exit"
+                        if notify:
+                            notify(f"DAY RIDER flat on your approval @ ~{px:.2f} "
+                                   f"({d*(px-entry):+.0f}pt from entry)", critical=True)
+                        save_state(out)
+                        return out
+                elif dec == "hold":
+                    out["pending_exit"] = None
+                    out["note"] = "operator said HOLD — riding to 21:00"
+                else:
+                    n = int(pend.get("pushes", 0))
+                    last = float(pend.get("last_push_ts", 0.0))
+                    age = now.timestamp() - last
+                    if n < EXIT_ASK_MAX_PUSHES and age >= EXIT_ASK_INTERVAL_S:
+                        pend["pushes"] = n + 1
+                        pend["last_push_ts"] = now.timestamp()
+                        if notify:
+                            notify(f"DAY RIDER exit? ({pend['pushes']}/{EXIT_ASK_MAX_PUSHES}) "
+                                   f"{pend.get('reason','')} · now {px:.2f}, "
+                                   f"{d*(px-entry):+.0f}pt from entry, peak {peak:.2f}. "
+                                   f"/sell to exit · /hold to keep riding · "
+                                   f"NO REPLY = HOLD to the 21:00 flat", critical=True)
+                        out["pending_exit"] = pend
+                    else:
+                        # ★ EXHAUSTED = HOLD. It never escalates to a sell; silence means ride on.
+                        out["pending_exit"] = pend
+                        if n >= EXIT_ASK_MAX_PUSHES:
+                            out["note"] = "asked 3x, no reply — HOLDING to 21:00 (the default)"
+            elif should_ask_exit(d, entry, peak, px, atr_now):
+                pend = {"token": f"{out['session']}:{int(now.timestamp())}",
+                        "reason": (f"reversed {d*(peak-px):.0f}pt off the peak "
+                                   f"(>{EXIT_ASK_ATR_MULT:.0f}xATR)"),
+                        "pushes": 1, "last_push_ts": now.timestamp()}
+                out["pending_exit"] = pend
+                if notify:
+                    notify(f"DAY RIDER exit? (1/{EXIT_ASK_MAX_PUSHES}) {pend['reason']} · "
+                           f"now {px:.2f}, {d*(px-entry):+.0f}pt from entry, peak {peak:.2f}. "
+                           f"/sell to exit · /hold to keep riding · "
+                           f"NO REPLY = HOLD to the 21:00 flat", critical=True)
+
             if tl is not None and ((px <= tl) if d > 0 else (px >= tl)):
                 v = safe_flatten_verdict(net)
                 if v:
@@ -225,7 +324,8 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         stop_px = round(fill - d * VENUE_STOP_PT, 2)
         ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", LOTS, stop_px))
         out.update(entered=True, entry=fill, peak=fill, direction=d, qty=LOTS,
-                   venue_stop=stop_px, note=f"ENTERED {LOTS} lots {r.direction} @ {fill}")
+                   entry_atr=round(r.atr, 2), venue_stop=stop_px,
+                   note=f"ENTERED {LOTS} lots {r.direction} @ {fill}")
         if notify:
             notify(f"DAY RIDER ENTERED {LOTS} lots {r.direction} @ {fill:.2f} "
                    f"(eff {r.efficiency:.2f} rt {r.roundtrip:.2f}) · stop {stop_px} · flat 21:00",
