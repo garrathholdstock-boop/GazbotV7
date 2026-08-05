@@ -107,3 +107,12 @@ def test_bot_refuses_when_nothing_pending(tmp_path):
     st.write_text('{"entered": true}')
     msg = tb.day_rider_decision("sell", state_path=str(st), approval_path=str(tmp_path / "a.json"))
     assert "Nothing pending" in msg
+
+
+def test_save_state_defaults_venue_ok_false(tmp_path, monkeypatch):
+    # ★ The heartbeat is a claim that someone is managing the position. A caller that forgets to set
+    # venue_ok must default to NOT-managed, so the watchdog errs toward flattening rather than toward
+    # trusting a service that never reached the broker.
+    monkeypatch.setattr(dr, "STATE", str(tmp_path / "st.json"))
+    dr.save_state({"session": "2026-08-06"})
+    assert dr.load_state()["venue_ok"] is False

@@ -47,10 +47,18 @@ LOG = "/home/alphabot/gazbot7/data/day_rider_watchdog.log"
 
 
 def hb_age_s(now: dt.datetime) -> float | None:
-    """Seconds since the strategy last stamped its state. None = never/unreadable."""
+    """Seconds since the strategy last stamped its state, or None if it is NOT actually managing.
+
+    ★ A FRESH TIMESTAMP IS NOT ENOUGH. Found live: a clientId collision made the strategy's venue
+    connection fail; it correctly took no action and still wrote a fresh heartbeat, which this watchdog
+    would have read as "managed". So `venue_ok` must also be true — the strategy has to have actually
+    reached the broker on that tick. Anything else counts as unmanaged and gets flattened, because a
+    position nobody can see is the exact hazard this file exists for."""
     try:
         with open(STATE) as fh:
             st = json.load(fh)
+        if not st.get("venue_ok"):
+            return None
         return (now - dt.datetime.fromisoformat(st["heartbeat"])).total_seconds()
     except Exception:
         return None

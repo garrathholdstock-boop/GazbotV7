@@ -109,6 +109,12 @@ def load_state() -> dict:
 
 
 def save_state(d: dict) -> None:
+    """★ THE HEARTBEAT IS A CLAIM THAT SOMEONE IS MANAGING THE POSITION, so callers must set
+    `venue_ok` honestly. Discovered live: a clientId collision made the venue connection fail, step()
+    correctly took no action — and still stamped a fresh heartbeat. The watchdog reads that as "managed"
+    and stays quiet, so a service that cannot reach IBKR would look perfectly healthy while nothing was
+    actually managing 2 open lots. `venue_ok=False` is what the watchdog now treats as unmanaged."""
+    d.setdefault("venue_ok", False)
     d["heartbeat"] = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
     tmp = STATE + ".tmp"
     with open(tmp, "w") as fh:
@@ -187,6 +193,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
     try:
         ib, contract = await _venue(cfg)
         net = await _net_position(ib, cfg.symbol)
+        out["venue_ok"] = True          # we are genuinely talking to the broker this tick
 
         # ── 1. THE HARD FLAT. Runs before anything else, unconditionally. ────────────────
         if mod >= CLOSE_UTC_MIN or mod < OPEN_UTC_MIN:
@@ -333,7 +340,10 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         save_state(out)
         return out
     except Exception as e:                       # FAIL CLOSED — never trade on a broken read
-        out["note"] = f"ERROR (no action): {str(e)[:120]}"
+        out["venue_ok"] = False                  # -> the watchdog must treat any position as unmanaged
+        # ★ TimeoutError and friends stringify to '', which made the first live failure log a bare
+        # "ERROR (no action): " with no cause. Always record the exception TYPE.
+        out["note"] = f"ERROR (no action): {type(e).__name__}: {str(e)[:110]}"
         save_state(out)
         log.exception("day_rider step failed")
         return out
