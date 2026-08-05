@@ -13,12 +13,28 @@ because the day aggregate was dominated by the morning dead chop. The open hour 
 won or lost and it is exactly when the operator is most likely to be talking to me. So the watching
 must not depend on my attention.
 
-★★ ALERT-ONLY. IT MUST NEVER WRITE gate_switches.env.
-`gazbot7-router-tick.timer` already owns that file every 5 minutes. A second writer is the "two
-routers" hazard CLAUDE.md warns about explicitly — two processes racing on the same switches, each
-undoing the other. So this agent is READ-ONLY: it reads the tape and, if something needs changing,
-writes a line to ALERTS. The live session tails that file and is interrupted in-chat; the operator gets
-a Telegram push on anything critical. A human (or the session) then acts. One writer, many watchers.
+★★ 2026-08-05: IT MAY NOW ARM — AND ONLY ARM. Operator: "if a huge trend develops you arm gates
+immediately and let them run." It was alert-only until now because a second writer to
+gate_switches.env is the "two routers" hazard CLAUDE.md names. That hazard is REAL and is handled
+here by four constraints, not by hoping:
+
+  1. ASYMMETRIC AUTHORITY — this agent may flip =off to =on. It may NEVER write =off. Benching stays
+     the durable router's job alone. Two writers that can undo each other thrash; two writers that
+     can only push the same direction cannot. The worst case is a gate armed slightly early, which
+     is the cheap error (memory: wrongly-benched costs missed trades, wrongly-armed costs churn —
+     but on a CONFIRMED trend the operator has explicitly chosen the churn risk).
+  2. THE TRIGGER IS ARITHMETIC, NOT JUDGEMENT — the model's verdict cannot arm anything on its own.
+     A hard numeric break-trio (below) must pass in Python first. A prose model can be argued into
+     "this looks like a huge trend"; `er >= 0.35 and atr >= 18 and new session extreme` cannot drift.
+     The model can only VETO (its ALERT text is logged either way).
+  3. ONCE PER SESSION — one arming event per day, recorded in ARMSTATE. If the router benches what
+     this armed, that is the router's considered call on newer evidence and this agent does NOT
+     re-arm. That single rule is what prevents a minute-cadence tug-of-war.
+  4. ATOMIC + LOCKED — an exclusive lock file, read-modify-write, temp+rename. A torn
+     gate_switches.env would be far worse than a missed arming.
+
+It still alerts exactly as before; arming is in ADDITION to the alert, never instead of it, and every
+arming is written to router_trial_log.txt so it lands in the same audit trail the router uses.
 
 ★ DEDUPED. A minute-cadence watcher that re-alerts the same condition 60 times is worse than useless —
 it trains everyone to ignore it. Each alert is fingerprinted and only a CHANGED fingerprint fires. The
@@ -49,6 +65,23 @@ CLAUDE = "/root/.local/bin/claude"
 ALERTS = f"{GB}/data/open_hour_alerts.log"     # the session tails THIS -> in-chat interrupt
 RUNLOG = f"{GB}/data/open_hour_watch.log"      # heartbeat: every tick, so a dead watcher is visible
 STATE = f"{GB}/data/open_hour_state.json"      # last alert fingerprint (dedup)
+SWITCHES = f"{GB}/data/gate_switches.env"
+ARMSTATE = f"{GB}/data/open_hour_armed.json"  # one arming per session — the anti-thrash interlock
+LOCK = f"{GB}/data/gate_switches.lock"
+TRIALLOG = f"{GB}/data/router_trial_log.txt"
+
+# ── THE BREAK TRIO — the arithmetic that may arm a gate. All three, no exceptions. ────────────────
+# These are not new numbers. ER 0.35 is grind's own validated favourable-condition floor
+# ([[router-trial-day2-findings-0730]]); ATR 18 is the re-arm bar from the low-vol-grind lesson
+# ([[low-vol-grind-untradeable-stay-flat]]); 40pt of day bias is the router's own UP>=+40 threshold.
+# Reusing the desk's existing thresholds means this agent cannot invent a looser definition of
+# "trend" than the router already works to.
+TREND_ER = 0.35        # last-hour efficiency: sustained direction, not a delta blip
+TREND_ATR = 18.0       # vol EXPANSION — a trend on dead vol is untradeable
+TREND_BIAS = 40.0      # |day net| in points — a real directional day
+# aligned gates by direction. Momentum only: a fader armed into a confirmed trend is the 08-04
+# abs_veto_short mistake ("a counter-trend gate is armed against a clean run").
+ALIGNED = {"UP": ("grind_long", "abs_veto_long"), "DOWN": ("abs_veto_short",)}
 # ── WINDOWS + CADENCE ─────────────────────────────────────────────────────────────────────────────
 # ★2026-08-04 (operator: "do both") — extended past the open hour to cover the AFTERNOON FADE window,
 # because that is when the faders historically pay: exhaustion_short's 4-for-4 +$372 was afternoon
@@ -182,6 +215,96 @@ CONTEXT:
 """
 
 
+def parse_desk(desk: str) -> dict | None:
+    """Pull the numbers the trio needs out of desk_view's own output. Returns None if ANY field is
+    unreadable — an unparseable tape must never arm a gate (the router_watch precedent: emitting a
+    BREAK on UNMEASURABLE ATR read 'I cannot measure volatility' as 'volatility is fine')."""
+    import re
+    try:
+        b = re.search(r"DAY BIAS:\s+(UP|DOWN)\s+net\s+([+-]?\d+)pt.*?now\s+(\d+).*?H\s+(\d+)/L\s+(\d+)", desk)
+        h = re.search(r"LAST HR:\s+ER\s+([\d.]+).*?ATR\s+(\d+)pt", desk)
+        if not b or not h:
+            return None
+        return {"dir": b.group(1), "net": float(b.group(2)), "now": float(b.group(3)),
+                "hi": float(b.group(4)), "lo": float(b.group(5)),
+                "er": float(h.group(1)), "atr": float(h.group(2))}
+    except Exception:
+        return None
+
+
+def trend_break(d: dict) -> tuple[bool, str]:
+    """All three legs, plus price AT the session extreme in the bias direction. Returns (ok, why)."""
+    if d is None:
+        return False, "tape unreadable"
+    legs = []
+    er_ok = d["er"] >= TREND_ER
+    atr_ok = d["atr"] >= TREND_ATR
+    bias_ok = abs(d["net"]) >= TREND_BIAS and (d["net"] > 0) == (d["dir"] == "UP")
+    # the extreme must actually be TAKEN, not merely approached — a trend that has not made a new
+    # high is a rally inside a range, which is what the 0-of-3 ticks all afternoon were saying
+    ext_ok = (d["now"] >= d["hi"]) if d["dir"] == "UP" else (d["now"] <= d["lo"])
+    legs.append(f"ER {d['er']:.2f}{'>=' if er_ok else '<'}{TREND_ER}")
+    legs.append(f"ATR {d['atr']:.0f}{'>=' if atr_ok else '<'}{TREND_ATR:.0f}")
+    legs.append(f"bias {d['net']:+.0f}pt {d['dir']}")
+    legs.append(f"{'NEW EXTREME' if ext_ok else 'extreme intact'} ({d['now']:.0f} vs H{d['hi']:.0f}/L{d['lo']:.0f})")
+    return (er_ok and atr_ok and bias_ok and ext_ok), " · ".join(legs)
+
+
+def arm_gates(direction: str, why: str, now: dt.datetime) -> list[str]:
+    """Flip aligned gates =off -> =on. NEVER writes =off. Atomic, locked, once per session."""
+    try:
+        st = json.load(open(ARMSTATE))
+        if st.get("session") == now.strftime("%Y-%m-%d"):
+            return []                       # already armed today — the anti-thrash interlock
+    except Exception:
+        pass
+    fd = None
+    try:
+        fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)   # loses the race => skip, never wait
+    except FileExistsError:
+        return []
+    try:
+        src = open(SWITCHES).read()
+        changed = []
+        for g in ALIGNED.get(direction, ()):
+            if f"\n{g}=off" in src:
+                src = src.replace(f"\n{g}=off", f"\n{g}=on")
+                changed.append(g)
+        if not changed:
+            return []
+        hdr = (f"# ★★{now:%Y-%m-%dT%H:%M}Z OPEN-HOUR WATCHER ARMED {', '.join(changed)} on a CONFIRMED\n"
+               f"# break — {why}\n"
+               f"# Operator standing instruction 2026-08-05: \"if a huge trend develops you arm gates\n"
+               f"# immediately and let them run\". This is the aligned-momentum arming that did NOT happen\n"
+               f"# for 17 minutes on 08-04. ROUTER: this was a full break-trio pass, not a delta blip —\n"
+               f"# LET IT RUN unless the trend STRUCTURE breaks ([[us-open-dont-bench-trend-rider]]:\n"
+               f"# hold aligned momentum THROUGH open stop-outs). You retain full authority to bench;\n"
+               f"# this watcher will NOT re-arm today whatever you decide, so there is no tug-of-war.\n")
+        src = hdr + src
+        tmp = SWITCHES + ".tmp"
+        with open(tmp, "w") as fh:
+            fh.write(src)
+        os.replace(tmp, SWITCHES)           # atomic — a torn switches file beats a missed arming
+        json.dump({"session": now.strftime("%Y-%m-%d"), "gates": changed,
+                   "ts": now.isoformat(timespec="seconds"), "why": why}, open(ARMSTATE, "w"))
+        with open(TRIALLOG, "a") as fh:
+            fh.write(f"{now:%Y-%m-%dT%H:%MZ}  APPLIED {{{', '.join(g+': on' for g in changed)}}}  "
+                     f"[OPEN-HOUR WATCHER, automatic]\n  BREAK TRIO PASSED: {why}\n"
+                     f"  Arms only, never benches; one arming per session; router keeps bench authority.\n")
+        return changed
+    except Exception as ex:
+        with open(RUNLOG, "a") as fh:
+            fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} ARM FAILED (no change): {ex}\n")
+        return []
+    finally:
+        if fd is not None:
+            os.close(fd)
+            try:
+                os.unlink(LOCK)
+            except Exception:
+                pass
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
@@ -217,6 +340,29 @@ def main() -> int:
         with open(RUNLOG, "a") as fh:
             fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} SKIP verdict failed: {ex}\n")
         return 0
+
+    # ── ARM FIRST, on arithmetic, BEFORE the model's verdict is even consulted ──────────────────
+    # Deliberate ordering: the trio is the authority. If it passes we arm and tell the operator; the
+    # model's prose is logged alongside but cannot block it, and equally cannot cause it.
+    d = parse_desk(desk)
+    ok, trio = trend_break(d)
+    armed = arm_gates(d["dir"], trio, now) if (ok and d and not a.dry_run) else []
+    with open(RUNLOG, "a") as fh:
+        fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} [{phase}] TRIO {'PASS' if ok else 'fail'} {trio}"
+                 f"{' ARMED ' + ','.join(armed) if armed else ''}\n")
+    if armed:
+        line = (f"{now:%H:%M:%S}Z TAPE-WATCH/{phase} [ACT] AUTO-ARMED {', '.join(armed)} — "
+                f"confirmed break: {trio}")
+        with open(ALERTS, "a") as fh:
+            fh.write(line + "\n")
+        try:
+            subprocess.run([PY, "-c",
+                            "import sys; from gazbot7.notify import notify; notify(sys.argv[1], critical=True)",
+                            f"OPEN-HOUR AUTO-ARMED {', '.join(armed)} — {trio}"],
+                           cwd=GB, env={**os.environ, "PYTHONPATH": "src"}, timeout=30)
+        except Exception:
+            pass
+        print(line)
 
     act = str(v.get("action", "NONE")).upper()
     urg = str(v.get("urgency", "info")).lower()
