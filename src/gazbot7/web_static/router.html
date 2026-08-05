@@ -135,7 +135,9 @@
   </div>
   <p class="upd" id="upd">loading…</p>
 
-  <h2>Untradeable-day meter — the stay-out evidence</h2>
+  <h2>Where are we? — tradeability (0-10) vs stay-out evidence (0-100)</h2>
+  <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+    <div style="flex:2 1 420px;min-width:320px">
   <div class="panel untr">
     <div class="untr-head">
       <span class="untr-title">STAY-OUT score</span>
@@ -146,6 +148,19 @@
     <div class="meter"><div class="mlab">Give-back<small>% of the day's biggest move handed back</small></div><div class="mbar"><div class="mfill" id="mGive"></div></div><span class="mval" id="mGiveV">—</span></div>
     <div class="meter" id="mStopRow"><div class="mlab">Gate stops<small id="mStopSub">recent live trades that hit their stop</small></div><div class="mbar"><div class="mfill" id="mStop"></div></div><span class="mval" id="mStopV">—</span></div>
     <div class="untr-detail" id="untrDetail">—</div>
+  </div>
+    </div>
+    <div style="flex:1 1 220px;min-width:200px">
+  <div class="panel untr">
+    <div class="untr-head">
+      <span class="untr-title">Tradeability</span>
+      <span class="untr-score" id="tgScore" style="font-size:3em;line-height:1">—</span>
+      <span class="untr-verdict" id="tgLabel">—</span>
+    </div>
+    <div class="untr-detail" id="tgDetail">—</div>
+    <div class="untr-detail" id="tgDisagree" style="display:none;margin-top:6px"></div>
+  </div>
+    </div>
   </div>
 
   <h2>Gate board — on / off + why</h2>
@@ -226,6 +241,34 @@ async function tick(){
   $("rhi").textContent=r.range_hi?Math.round(r.range_hi)+" hi":"";
   if(r.range_pos!=null)$("mk").style.left=r.range_pos+"%";
   // untradeable-day meter
+  // ★2026-08-05 the 0-10 gauge the operator asked for on Saturday. The module and /api/tradeability
+  // existed since then but were rendered on NO page — built and never surfaced. Fetched separately so
+  // a failure here cannot blank the router panel.
+  try{
+    const t=await (await fetch("api/tradeability",{cache:"no-store"})).json();
+    const c=t.components||{};
+    $("tgScore").textContent = (t.score==null?"—":t.score.toFixed(1));
+    $("tgLabel").textContent = t.label||"—";
+    $("tgDetail").textContent = t.detail||"—";
+    // slim panel: components are folded into the detail line rather than three more bars, so the
+    // stay-out meter keeps the width. setMeter would throw on the removed nodes.
+    if(c.efficiency!=null){
+      $("tgDetail").textContent = (t.detail||"") +
+        "  ·  eff " + Math.round(c.efficiency*100) + " / room " + Math.round(c.room*100) +
+        " / persist " + Math.round(c.persistence*100);
+    }
+    // ★ SURFACE DISAGREEMENT rather than hide it. These two meters read the same tape and can point
+    // opposite ways (08-05: gauge 8.0 STRONG vs stay-out 83). Two numbers that quietly contradict are
+    // worse than one — say so on the page so the reader knows to look, not average them in their head.
+    const uu=(d.untradeable||{});
+    const dis=$("tgDisagree");
+    if(t.score!=null && uu.score!=null && ((t.score>=7 && uu.score>=65) || (t.score<=3 && uu.score<=45))){
+      dis.style.display="block";
+      dis.innerHTML="⚠ <b>These two meters disagree</b> — tradeability "+t.score.toFixed(1)+
+        " vs stay-out "+uu.score+" ("+(uu.verdict||"")+"). Same tape, opposite reads; neither is yet validated against the shadow book.";
+    } else { dis.style.display="none"; }
+  }catch(e){ $("tgScore").textContent="—"; $("tgLabel").textContent="unavailable"; }
+
   const u=d.untradeable||{}, um=u.meters||{};
   const setMeter=(fill,val,v)=>{
     const f=$(fill); if(f){f.style.width=(v==null?0:v)+"%"; f.style.background=v>=65?"var(--red)":(v>=45?"var(--amber)":"var(--grn)");}
