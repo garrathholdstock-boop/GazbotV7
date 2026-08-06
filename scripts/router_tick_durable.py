@@ -183,6 +183,30 @@ def main():
     except Exception as e:
         untr_txt = f"(unavailable: {e})"
 
+    # ★★2026-08-06 RUN STATE — the desk's PRIMARY regime discriminator, from the Mon->Thu review.
+    # Classifying every trade of that week (taken AND missed, the missed ones RACED target-vs-stop
+    # first-touch) by one variable explained essentially all of the P&L:
+    #     in-run aligned : TAKEN n=34 50% win +$10.34/tr | MISSED n=61 67% win +$2,141 (1 lot)
+    #     chop / no run  : TAKEN n=51 16% win -$28.43/tr | MISSED n=183 27% win -$1,517
+    # A $39/trade spread that dwarfs gate, side and time-of-day. The router was blind to it and sat
+    # flat through 18 of the week's 26 runs. Guarded exactly like the meter — never blocks the tick.
+    try:
+        import sys as _sys2
+        if f"{GB}/src" not in _sys2.path:
+            _sys2.path.insert(0, f"{GB}/src")
+        import duckdb as _dd
+        from gazbot7.runstate import _minute_bars as _mb
+        from gazbot7.runstate import compute as _rc
+        from gazbot7.runstate import render as _rr
+        _c = _dd.connect()
+        _c.execute(f"ATTACH '{GB}/data/capture.db' AS c (READ_ONLY)")
+        _c.execute("use c")
+        _since = int(datetime.now(timezone.utc).timestamp()) - 240 * 60
+        run_txt = _rr(_rc(_mb(_c, "MNQ", _since)))
+        _c.close()
+    except Exception as e:
+        run_txt = f"RUN STATE: (unavailable: {e}) — fall back to your own read of the tape"
+
     prompt = (
         "You are the GAZBOT V7 intelligent router making ONE 5-min bench/enable decision (PAPER, "
         "benching-only). Decide which of the 8 gates should be on/off on a HOLISTIC regime read "
@@ -276,7 +300,11 @@ def main():
         f"=== ACTIVE CARVE-OUTS (top of gate_switches.env — written by the session, the operator, or "
         f"the open-hour watcher; these are INSTRUCTIONS TO YOU, honour their stated expiry) ===\n"
         f"{switch_notes()}\n\n"
-        f"=== UNTRADEABLE METER ===\n{untr_txt}\n\n"
+        f"=== ★ RUN STATE — READ THIS FIRST, IT OUTRANKS THE METER ===\n{run_txt}\n\n"
+        f"=== UNTRADEABLE METER ===\n{untr_txt}\n"
+        f"  ⚠ The meter is a DAY aggregate and is diluted by earlier chop. On 08-06 it read 87/100 "
+        f"STAY-OUT while a +297pt run was underway and the desk sat flat through all of it. When RUN "
+        f"STATE and the meter disagree, the RUN STATE wins — judge the SEGMENT, not the day.\n\n"
         f"=== DESK VIEW ===\n{desk}\n=== RECENT TRADES ===\n{recent}\n=== RECENT ROUTER LOG ===\n{logtail}\n\n"
         "Output ONLY a JSON object, nothing else:\n"
         '{"changes": {"<gate>": "on"|"off"}, "reason": "<one tight line>", "notify": "<telegram text, or empty string if no change>"}\n'
