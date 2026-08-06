@@ -185,6 +185,43 @@ const META = {
   rg_long_20_flow25:{n:"Rev Grab ↑ · ext2.0 flow25", s:"G"},
   rg_long_fast:{n:"Rev Grab ↑ · fast-slope", s:"G"},
   rg_long_fast_v:{n:"Rev Grab ↑ · fast +vol", s:"G"},
+  // ★2026-08-05 — the 29 sims that had accumulated on the board with NO META entry and no
+  // _ID_ORDER slot. They rendered as "#?" inside a group literally named "?" (the `||"?"`
+  // family-tag fallbacks below), so a third of the fleet could not be referred to by number.
+  // Named + tagged + numbered; see the _ID_ORDER note for the numbering rule.
+  // these three had an _ID_ORDER slot already but no META, so they landed in "?" anyway.
+  chand_k35:{n:"Chandelier k3.5 (live-faithful)", s:"W"},
+  cb_thrust:{n:"Circuit-breaker · governed", s:"B"},
+  cb_thrust_dropped:{n:"Circuit-breaker · stood-down phantom", s:"B"},
+  thrust_short_raw:{n:"Thrust ↓ · raw", s:"S"},
+  thrust_short_absveto55:{n:"Thrust ↓ · abs-veto 55s", s:"S"},
+  capit_live_mirror:{n:"Capit · live mirror", s:"C"},
+  sw_grind_A_k10:{n:"Scale-out · grind A k1.0", s:"W"},
+  sw_grind_B_k10:{n:"Scale-out · grind B k1.0", s:"W"},
+  sw_absL_A_k10:{n:"Scale-out · absVeto↑ A k1.0", s:"W"},
+  sw_absL_B_k10:{n:"Scale-out · absVeto↑ B k1.0", s:"W"},
+  sw_absS_A_k10:{n:"Scale-out · absVeto↓ A k1.0", s:"W"},
+  sw_absS_B_k10:{n:"Scale-out · absVeto↓ B k1.0", s:"W"},
+  sw_grind_A_k20:{n:"Scale-out · grind A k2.0", s:"W"},
+  sw_grind_B_k20:{n:"Scale-out · grind B k2.0", s:"W"},
+  sw_absL_A_k20:{n:"Scale-out · absVeto↑ A k2.0", s:"W"},
+  sw_absL_B_k20:{n:"Scale-out · absVeto↑ B k2.0", s:"W"},
+  sw_absS_A_k20:{n:"Scale-out · absVeto↓ A k2.0", s:"W"},
+  sw_absS_B_k20:{n:"Scale-out · absVeto↓ B k2.0", s:"W"},
+  cx_grindA_live:{n:"Clip A/B · grind A — live", s:"X"},
+  cx_grindA_clip:{n:"Clip A/B · grind A — clipped", s:"X"},
+  cx_absLA_live:{n:"Clip A/B · absVeto↑ A — live", s:"X"},
+  cx_absLA_clip:{n:"Clip A/B · absVeto↑ A — clipped", s:"X"},
+  cx_absSB_live:{n:"Clip A/B · absVeto↓ B — live", s:"X"},
+  cx_absSB_clip:{n:"Clip A/B · absVeto↓ B — clipped", s:"X"},
+  "CL-grind_long":{n:"Claude-gated · grind ↑", s:"K"},
+  "CL-capitulation_long":{n:"Claude-gated · capitulation ↑", s:"K"},
+  "CL-abs_veto_long":{n:"Claude-gated · absVeto ↑", s:"K"},
+  "CL-abs_veto_short":{n:"Claude-gated · absVeto ↓", s:"K"},
+  "CL-exhaustion_short":{n:"Claude-gated · exhaustion ↓", s:"K"},
+  "CL-rgv_short":{n:"Claude-gated · rgv ↓", s:"K"},
+  "CL-nipc_long":{n:"Claude-gated · nipc ↑", s:"K"},
+  "CL-nipc_short":{n:"Claude-gated · nipc ↓", s:"K"},
 };
 // the V7 family legend — colour + one-line meaning per tag.
 const SRC = {
@@ -193,13 +230,22 @@ const SRC = {
   G:{c:"#b98bff", g:"Reversal grab (short)", t:"Reversal-grab short — fade an over-extended push on a fresh turn"},
   C:{c:"#f5b13d", g:"Capitulation fade", t:"Capitulation fade — fade a fast flush on a one-sided aggressor climax (L1/tape footprint)"},
   D:{c:"#37c9c9", g:"Grind (trend-follow)", t:"Grind — ride an established VWAP trend the burst gates miss, chandelier-exited"},
+  S:{c:"#ff7a7a", g:"Thrust short", t:"Thrust short — the down-side thrust book, raw vs absorption-veto filtered"},
+  W:{c:"#9bd45e", g:"Exit width A/B", t:"Exit width A/B — Lot A/B under a k1.0 vs k2.0 chandelier, plus the live-faithful k3.5 base"},
+  B:{c:"#8fa3b8", g:"Circuit breaker", t:"Circuit breaker — stands down the losing SIDE for the session; the phantom books what the stood-down side would have done"},
+  X:{c:"#e88ec4", g:"Quiet-tape clip A/B", t:"Quiet-tape clip A/B — same gate priced live vs with the ATR<22 clip applied"},
+  K:{c:"#c9a227", g:"Claude-gated", t:"Claude-gated — the mechanical gate fired, then a model verdict PASSed or VETOed that instance"},
 };
 const nameOf = s => (META[s] && META[s].n) || s;
 // Stable numeric identifier per sim (fixed META order) — so it can be referred to as "#12"
 // regardless of how the cards are sorted/grouped.
 // Frozen ID order — pins each sim's #N (matches shadow.default_slate()). Add NEW
 // sims at the END so a removed one leaves a GAP rather than renumbering the rest.
-const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","rg_long_fast","grind_fast","rg_long_fast_v","chand_k35","chand_k25","chand_k20","cb_thrust","cb_thrust_dropped"];
+// ★2026-08-05 — #29..#57 APPENDED (29 sims that rendered "#?"). Nothing above #28 moved, so every
+// number already used in the ledger/reports still points at the same sim. The 11 retired names in
+// #1..#28 stay as GAPS on purpose — that is the rule this list is built on.
+const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","rg_long_fast","grind_fast","rg_long_fast_v","chand_k35","chand_k25","chand_k20","cb_thrust","cb_thrust_dropped",
+  "thrust_short_raw","thrust_short_absveto55","capit_live_mirror","sw_grind_A_k10","sw_grind_B_k10","sw_absL_A_k10","sw_absL_B_k10","sw_absS_A_k10","sw_absS_B_k10","sw_grind_A_k20","sw_grind_B_k20","sw_absL_A_k20","sw_absL_B_k20","sw_absS_A_k20","sw_absS_B_k20","cx_grindA_live","cx_grindA_clip","cx_absLA_live","cx_absLA_clip","cx_absSB_live","cx_absSB_clip","CL-grind_long","CL-capitulation_long","CL-abs_veto_long","CL-abs_veto_short","CL-exhaustion_short","CL-rgv_short","CL-nipc_long","CL-nipc_short"];
 const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
 function srcBadge(strat){
   const s = META[strat] && META[strat].s;
