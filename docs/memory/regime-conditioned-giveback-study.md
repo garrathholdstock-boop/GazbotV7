@@ -1,0 +1,20 @@
+---
+name: regime-conditioned-giveback-study
+description: "PHASE 0 DONE 2026-06-22 (NEGATIVE) — regime-conditioning the ratchet give-back adds NOTHING over the best static width (every regime incl. trending wants the TIGHTEST 5% give-back on the 1m week); scope doc + scripts/regime_giveback_sim.py; null hypothesis NOT defeated"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 67c42436-f6c3-496d-ac98-2caeb1ac27ce
+---
+
+**PHASE 0 RESULT (2026-06-22, `scripts/regime_giveback_sim.py`, committed f2dafe17) — NEGATIVE:** ran the regime × 18-width sweep on the 1m 5-day week (445 covered trades; entry-regime mix trending=269, chop=123, shock=47, dead=6 — the classifier called 60% of it TRENDING despite a net −$1168 week). **Every regime — including trending — wants the TIGHTEST give-back (5%, grid floor):** trending best@5% −$483 vs @25% −$838 (Δ+$355); chop best@5% +$69 vs @25% −$79; shock/dead same shape. Regime-conditioned policy == best-flat (5%), **Δ vs best-flat = $0**. Conditioning adds NOTHING over one static width → the null hypothesis ("just tightening in disguise") is NOT defeated, and **"trend→wide" is FALSIFIED on this sample**. Caveats: 1m fires on bar LOWS → over-credits tight (5% = bank on any wick); one week; in-sample. To truly test needs the 5s feed + a WINNING trend period. Don't build Phase 1+ yet; flat 25% stays. Consistent with the month's "exit isn't the edge" theme.
+
+**RE-RUN SCHEDULED:** local atd job #9 fires **2026-07-15 22:00 UTC** → `scripts/regime_giveback_rerun.sh` (committed 004e18f1) re-runs the sweep over the trailing 14 days on 5s (primary) + 1m (reference), writing `~/study_output/regime_giveback_5s_rerun_<YYYYMMDD>.txt`. By mid-July the 5s lake is ~14 days deep (retention bound) → kills the 1m-wick artifact. **A future session should READ that report** and judge against the scope's success bar (beat best-flat AND show sane trend>chop ordering on the 5s read). Cloud /schedule can't reach the VPS DB, hence the local at job. Smoke-tested 06-22 (runs clean; 10 covered 5s trades today, thin as expected).
+
+**The thesis (original):** the give-back-width study ([[ratchet-giveback-width-study]]) showed static give-back tuning keeps losing/contradicting because optimal width is REGIME-dependent and we only had one (chop) week — tight won in chop exactly as theory predicts (stops help momentum, hurt mean-reversion: J.Banking&Finance 2017). So condition the give-back on regime: wide (~40–50%, let winners run) in trend, tight (~15–25%, bank fast) in chop, possibly DISABLE the trail in strong chop, neutral 25% anchor. Documented ~2:1 trend:chop width ratio (Adaptive ATR-ADX stop 3.5×/1.75×).
+
+**Key enabler:** `classify_session_regime(atr_pct,rvol,net_atr)→trending|chop|shock|dead` (`alphabot/shared/futures_regime.py:106`) is PURE and recomputable from `bar_history` → backtest regime-conditioning retroactively over full 1m history NOW (capture to fut_signal_funnel.session_regime only started 06-22, but we don't need it). trending=|net_atr|≥1.0.
+
+**Study design (in the doc):** big give-back "funnel size" sweep — 18 widths (5%→70%) × 4 regime buckets × 5 activation floors × TP-cap arm, on 1m (5-day) + 5s (thin). Engine = extend `scripts/ratchet_strength_sim.py` → `regime_giveback_sim.py` (causal, same firing model). **Success bar = must beat the BEST-FLAT static width, not just flat-25** (guards "regime-conditioning is just tightening in disguise"). Arming wiring is trivial — runner already passes giveback_frac into profit_ratchet_exit; compute regime per-cycle (already live) → map → pass in.
+
+**Reality:** MEASURE-FIRST framework that ACCRUES — one chop week means trend/shock/dead buckets are thin (the regimes we most want least sampled); 1m fires on bar lows so over-credits tight give-backs; 5s ~5 covered trades. Phase 1 = evidence + per-regime curves, NOT arm. Bar to arm is high (every static-exit variant this month failed to beat flat-25). Web research synthesized in doc §8 (TradeStation %-trailing, Dai et al., Leung-Zhang pair-with-target, ER/CHOP/ATR-ratio classifiers, overfit/lookback/vol-seasonality cautions). Aligns with [[strategy-layer-reframe]].

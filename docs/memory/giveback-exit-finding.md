@@ -1,0 +1,20 @@
+---
+name: giveback-exit-finding
+description: "2026-07-20 L2 study — deep losses are green-then-reverse; a dollar give-back (arm $50/gb $40) beats earlier-absorption + V5 ratchet2 for tail control. Scoped, not built."
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 9162c01b-c354-41a1-9fc3-162d48ae4678
+---
+
+2026-07-20 (operator: *"not happy taking the big losses when a trade goes wrong … we must know a trade is cooked before −$120–150"*). L2 study of V7 MNQ losers (`alphabot2/data/depth.db`, 10-level book, 251ms) + shadow forward-validation:
+
+- **Deep losers are GREEN-THEN-REVERSE, not cooked-early** (id53 +$85→−$150; id61 +$68→−$122). L2 book imbalance does NOT warn (id61 died with *positive* book support). So a *static* earlier absorption/adverse cut can't separate them from dips that recover (id57 −$60→won) — that is the "too early last week" failure.
+- **The separator is a dollar profit give-back ratchet:** `arm +$50 favorable / give-back $40 from peak`. Live sim: −$890→−$2 over 61 trades; forward-validated on the shadow board (170 trades, tick-repriced) +$471 vs actual, ALL from the went-green cohort.
+- **★ Operator constraint (load-bearing):** a give-back ONLY helps a trade that goes green first. Never-green straight-offside losses are **STOP territory**, a separate lever — the give-back leaves them untouched by construction. Not a blanket loss fix.
+- **V5 ratchet2 REJECTED** — nets similar (+$421) but **guts winners** (+$841 vs +$3,490 actual on the green cohort = −$2,649 scalped): it arms at $2.50 and banks 70% of tiny peaks → turns momentum/reversion into a scalper. This is the mis-tuned version of the same idea.
+- **★ Caveat:** the shadow board is **1-LOT** so it does NOT reproduce the −$120–150 depths (a **2-lot** phenomenon: rgv flat-2 / grind conviction-2). The 2-lot deep-loss rescue is proven only on the live sim → wire behind a **2-lot shadow variant** before arming.
+
+**★ RATCHET-DECLINE ANALYSIS (2026-07-25, operator "why do we barely use the ratchet now?"):** give-back was LIVE and the desk's BIGGEST +exit through 07-24 — **+$2,250 / 77 fires, 27% of exits (up to 54% on 07-23)**, beating TARGET & CHANDELIER. It "declined" ONLY because the 07-25 rehab turned it OFF on the gates that fired it (esp. rgv_long, its biggest user +$847/38%, removed). The decline is MOSTLY HEALTHY = [[exit-architecture-scar-tissue]] playing out: give-back only acts on green-then-reverse trades; ~80% of its grind value was SAVING bad entries → the rehab fixed the entries → less to save → clip-side dominates → EV goes −. BUT two real problems: **(1) the DOLLAR arm is a DESIGN FLAW — "qty roulette":** arms at $50/(2·qty) pt → qty=1=25pt (WIDE backstop, helps) vs qty=2=12.5pt (TIGHT, clips winners). Same exit, opposite behavior by size (rgv_short give-back +$66 at qty1 but −$453 at qty2). $80 risk-budget pins high-ATR gates to qty1 (wide/ok), qty2 reversion gates clip. **FIX = POINT-based (or ATR/target-scaled) arm, not dollar.** **(2) current ON/OFF MISALIGNED** (tracks anecdotes not per-gate EV): grind_long (DROPPED) was +$206 BETTER with the wide qty1 give-back; abs_veto_long/short (KEPT) −$68/−$114; rgv_short (KEPT) weakest keep (qty-fragile); exhaustion_short give-back now mechanically DEAD (12pt fixed target < $50 arm). **Read: the give-back belongs as a WIDE point-denominated backstop on MOMENTUM (grind), not the tight qty2 dollar version on reversion snap-backs.** A/B scripts scratchpad giveback_ab.py. Shadow board uses give-back ZERO times (live-only overlay → promotion research is give-back-blind). ⚠ in-sample/one-regime/small-n.
+
+**[SUPERSEDED — historical below]** ~2026-07-20: "V7 has no give-back today" — since BUILT + wired live (arm$50/gb$40, per-gate). grind = one ~3.5-ATR-wide chandelier; rgv = 2R target + 1-ATR stop, no trail. Scope: `gazbot7/docs/GIVEBACK_EXIT_SCOPE.md` (`exit_giveback` pure decider, reuses `pos.peak_favorable`, per-gate wiring, default OFF). Analysis scripts: session scratchpad `l2_triggers.py` / `shadow_fv.py`. Related: [[exit-architecture-scar-tissue]], [[ratchet-giveback-leak-and-robustness]], [[golive-two-gate-grind-rgv]].

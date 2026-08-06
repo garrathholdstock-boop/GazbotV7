@@ -1,0 +1,21 @@
+---
+name: shadow-sim-and-desk-resource-throttle
+description: 2026-07-06 — the shadow-sim CPU/RAM exhaustion fix — an app throttle + an alphabot.slice headroom envelope + resource monitoring in the FULL sweep
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: ed1c42ef-2406-4523-9fbd-a9a07df11ff2
+---
+
+**2026-07-06 incident:** the shadow-sim (36 strategies × 7 contracts, each a 1500-bar read + feature compute + 5s-mid replay) ran EVERY 5s strategy cycle → pinned CPU/RAM on the old 2-core box and **locked Garrath out for ~7-8h**. He upgraded to **4 cores / 8GB** and asked for "a throttle for the sim AND the whole desk so it stays under a reasonable cap so we always have headroom to operate," + resource monitoring in the 4-hourly sweeps.
+
+**SHIPPED + LIVE (commits `e6c1fd29` + `63b08d5d`, all 5 desk services restarted into the slice, desk flat at deploy):**
+- **Part A — app throttle:** `FUT_SHADOW_SIM_MIN_INTERVAL_S` (default 30s, config.py) rate-limits `ShadowSimEngine.run_once` ~6× (every-5s→every-30s). **Zero entry-fidelity loss** — the engine replays every 5s mid since its last look (bounded `_CATCHUP_S=180`) and opens at the first firing point; exits ride 1m bars. KEEP the interval ≤180. The **backfill (`scripts/shadow_backfill.py`) calls `_run` directly → BYPASSES the throttle**. +3 tests in test_shadow_sim.py.
+- **Part B — `alphabot.slice` (the box-wide guarantee):** `infra/systemd/alphabot.slice` caps the 5 python desk services (broker/market-data/strategy-daytrade/brain/dashboard) at **CPUQuota=300% + MemoryMax=5.5G** → **≥1 core + ≥2G always free** for ssh/claude/OS no matter what the sim does. Per-unit drop-ins `infra/systemd/dropins/<unit>.service.d/50-resources.conf`: CPUWeight prioritizes trading (broker/md/strategy=400) over brain(50)/dashboard(40); per-unit MemoryHigh (soft reclaim) + MemoryMax (hard), all sized ABOVE current RSS. **Gateway EXCLUDED** — it's a docker container under containerd, self-limited by java `-Xmx768m`. Deploy = `sudo cp` slice + drop-ins to /etc/systemd/system/ + daemon-reload + restart (mem limits apply on daemon-reload alone; Slice= needs a restart). REVERSIBLE: rm the drop-ins + slice + reload + restart.
+- **Part C — monitoring:** `scripts/resource_health.py` (reads **cgroup memory.stat `anon`** = real pressure, NOT cache-inflated MemoryCurrent — a DB-reading service looks "100% of cap" on reclaimable cache alone; that was the brain false-alarm on first cut). Prints a `RESOURCE_HEALTH: OK|WARN` line. WARN = service anon >85% of MemoryMax / slice >90% / MemAvailable <1G / swap >1G. Wired into **CLAUDE.md §8 FULL-sweep check 5c** + the 3 FULL crons.
+
+**LESSON:** cgroup `MemoryCurrent` counts reclaimable page cache → a heavy-reader (brain) fills to MemoryMax and reads 100% under NO real pressure (`oom_kill=0`). Judge OOM risk by **anon** (memory.stat), and set **MemoryHigh below MemoryMax** so the kernel reclaims cache gently instead of hitting the hard wall.
+
+**2026-07-09 — the SLICE protects the desk but NOT the out-of-slice maintenance jobs.** `alphabot-edge-drain` (`nightly_edge.py`, runs every ~3h) was **OOM-killed at ~3GB (07:49)** — uncapped + OUTSIDE `alphabot.slice`, so it triggered a **GLOBAL OOM** (kernel killed edge-drain this time; could pick a desk service next). The 8GB box is genuinely tight: slice cap 5.5G + a 3GB edge-drain > 8G. FIX (operator-approved, commit `a8783253`, LIVE): added **`MemoryMax=4G` + `MemoryHigh=3.5G`** to `infra/systemd/alphabot-edge-drain.service` (sudo cp + daemon-reload) — above its ~3GB set so it completes, but a runaway is now killed cleanly IN ITS OWN cgroup (`Result=oom-kill`) not globally. **TAKEAWAY: any out-of-slice job (edge-drain/edge-nightly/retention/backup) that can grow big needs its own MemoryMax, else it can global-OOM the desk.** The reprice persist (`passive_through_fill_backtest.py`, ~570MB/run every 2min) + heavy in-session backtests (pandas tick loads) add to the pressure — be memory-conscious with ad-hoc backtests on this box. Disk also climbing (72%, DB 5.9G bloat + journals → J11 needs vacuuming each sweep; durable = journald SystemMaxUse cap + DB VACUUM, both flag-and-wait).
+
+Related: [[backtest-on-5s-250ms-persist-all]], the shadow fleet in [[three-pass-adversarial-friday]].

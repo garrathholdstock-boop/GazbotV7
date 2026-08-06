@@ -1,0 +1,24 @@
+---
+name: golive-shadow-momentum-to-paper
+description: The go-live — shadow momentum sims → the live PAPER desk (entries + pure-chandelier exits + two-sided shorts). ★ACTIVATED 2026-07-12 (operator flipped early — asleep at the 22:00 UTC reopen). LIVE-trades MES/MNQ/MGC only; M2K/MYM/MCL/MBT observe-only; MET/MSL sidelined. Full plan docs/WEEKEND_GOLIVE_BUILD.md
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: d7443f59-d3b4-466f-b7e6-3903cacfd274
+---
+
+**★ ACTIVATED 2026-07-12 ~09:40 UTC (operator flipped EARLY — asleep at the 22:00 UTC midnight reopen, so flipped while the desk was flat + attended rather than firing unattended at midnight).** Flips done: `_ENTRY_GATES_BY_KEY` all → `thrust_cont` (MNQ +`orb_iso`) [commit 0a78379a]; `.env FUT_ENTRY_GATES=thrust_cont` + `FUT_PURE_ARCHETYPE_EXITS_LIVE=true` (.env is gitignored — flags live on box only). Restarted clean, desk flat. **First live momentum entries fire at the 22:00 UTC Globex reopen (unattended).** Safety net for the unattended first trades: native 1-ATR IBKR stop PRESERVED (initial_atr_mult=1.0 both flag states) + naked-position auto-flatten backstop armed (`BROKER_STOP_COVERAGE_FLATTEN_ON_NAKED=true`). Shorts were ALREADY armed (no flip needed) and the momentum gate shorts are UNCONSTRAINED two-sided (bypass short_requires_bear — see [[shorts-reenable-cluster]]).
+
+**★ WHAT ACTUALLY TRADES LIVE = MES / MNQ / MGC only (3 contracts).** The other active contracts M2K/MYM/MCL/MBT are OBSERVE-ONLY (`is_observe_only`→submit suppressed, `us_futures_daytrade.py:117`) — they evaluate the momentum gate + sit on the DTT board but place NO orders (the "prove-before-arm" state since 2026-06-12; operator 2026-07-12: KEEP them observing, arm later on evidence per [[promotion-ladder-sizing]]). **MET/MSL sidelined 2026-07-12** (removed from ACTIVE_CONTRACTS entirely [commit 6af5c4dd] — crypto micros, not in the thesis). REVERT the whole go-live: restore fade tuples + FUT_ENTRY_GATES + flag=false + restart. NB every strategy-daytrade restart logs a benign `asyncio _sighandler_noop`/"Bad file descriptor" traceback as the OLD PID catches SIGTERM — harmless shutdown noise, not a boot failure.
+
+2026-07-11 (operator directed, forensic): throw out the live fade gates (`vwap_dip`/`vwap_pullback`), replace with the **exact shadow momentum sims** as live gates (no old gate reused), **two-sided** (arm shorts), and **rip out the 9-mechanism exit spine → pure shadow archetypes**. It's a PAPER desk — this is the next rung of the ladder ([[promotion-ladder-sizing]]): backtest → shadow 1-2wk → **paper several weeks** → maybe real money far off. Operator will watch the real desk next week.
+
+**CODE SIDE COMPLETE + DORMANT (running desk byte-identical to before):**
+- **Entry:** `futures_entry.py::_gate_shadow_momentum` — new `thrust_cont`/`orb_iso` gate names call the exact shadow deciders (MNQ→tw_mnq_thrust_cont, MES→tw_mes_thrust_cont, M2K→tw_m2k_vst, else momentum_shadow; orb_iso→orb_shadow_isolated). `bars`+`sym` threaded through `decide_futures_entry`→`plan_entry`→driver. ★ NO DRIFT by construction: shadow_sim uses the SAME `compute_features`. PARITY TEST PASSED (540 MNQ windows, 0 mismatches). Converts live Bar objects→dict for the deciders.
+- **Exit:** `futures_stop_logic.py` — added TIGHTENING chandelier in `_profit_ratchet_fires`: `k=max(chandelier_min_k, start_k − tighten·peak_r)`, peak_r=peak_gain/entry_atr, reuses `profit_ratchet_atr_exit` (loss-floor holds — NEVER exits at a loss). New FuturesStopParams: `profit_ratchet_chandelier`(False)/`chandelier_start_k`(3.5)/`chandelier_min_k`(0.5)/`chandelier_tighten`(0.75). `us_futures_desk.py::stop_params_for` applies the flag override.
+- **Shadow variants (registered, 36 sims):** `tw_m2k_momo_loose_amp`, `tw_mgc_coil_break_long_amp`, `tw_mgc_momo_thrust_amp` (base+amplitude floor), `orb_shadow_isolated` (orb minus MCL/MYM, +$415 replay). Bespoke report filters NOT shipped (mostly FELL skeptic / some incoherent). Active at next shadow-daemon restart.
+- **Flag:** `config.py::FUT_PURE_ARCHETYPE_EXITS_LIVE`(False, dormant).
+
+**ACTIVATION = a JOINT Sunday-reopen flip (I do NOT flip unattended — the exit change is broker-order safety code):** (1) `_ENTRY_GATES_BY_KEY` all contracts → `("thrust_cont",)` (+orb_iso on MNQ) & `.env FUT_ENTRY_GATES=thrust_cont`; (2) `FUT_PURE_ARCHETYPE_EXITS_LIVE=true`; (3) opt `us_futures_daytrade` into `_LONG_SHORT_DISCIPLINES` (SELL-to-open built per [[shorts-reenable-cluster]]); (4) restart `alphabot-strategy-daytrade`, confirm every position carries a native IBKR stop. **SAFETY LINE: protective stop stays a real broker order — never a naked position.** Full checklist + OUT/IN: `docs/WEEKEND_GOLIVE_BUILD.md`.
+
+PENDING (operator deferred): **dashboard rehash** — reflect the new live momentum gates + REMOVE the shadow column (shadow "has its own desk now"). [[warn-before-dashboard-restart]].

@@ -1,0 +1,20 @@
+---
+name: continuation-entry-status
+description: trend-continuation futures entry — a retired shadow (never traded live); filter study findings for a possible revival
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 43122e6c-3e41-419a-882d-b53c02900156
+---
+
+**Status (as of 2026-06-15):** the trend-CONTINUATION entry (≥3 of last 4 5m bars up — captures sustained runs the ↓↓↑↑ burst is blind to) is **NOT live as an entry** but is now running again as a **FILTERED OBSERVE-ONLY SHADOW** (commit f11284bd). History: ran as an unfiltered shadow 06-11..06-12 (EUREX), retired 06-14 as a "bad experiment", then RE-ENABLED 06-15 with the study filters. The LIVE gate (`decide_futures_entry`) still enters ONLY on the momentum burst — `shadow_continuation()` is never consulted by it (verified: a pure up-run returns NO_ENTRY/no_momentum_burst), so it cannot place a trade.
+
+**Where it lives now:** `shadow_continuation(features, params)` in `strategy/futures_entry.py` (filters: `cont_trend_up_n_min=3`, `cont_rvol_min=1.3`, `cont_vwap_dist_min/max=0.0/0.5`, ATR reuses per-contract `atr_pct_min/max`). Computed in `futures_entry_driver.py`, threaded through BOTH funnel sinks (`eurex_daytrade.py` + `us_futures_daytrade.py` — so US/crypto are NOW captured, finally), written to `fut_signal_funnel.trend_up_n` / `trend_shadow_fired`. To evaluate: re-run `scripts/continuation_filter_study.py` after ~2–3 weeks of accrual.
+
+**Operator misconception to correct gently:** the operator believes continuation "was enabled last week and let in heaps of junk." It never traded — the junk they saw was the restart/reconcile churn (see [[orphan-stop-optimistic-cancel]] / [[futures-trade-multiplier-recording]]), not continuation entries.
+
+**Filter study findings** (`scripts/continuation_filter_study.py`, ~2 days/108 events — DIRECTIONAL, not bettable): the raw continuation forward-returns were NOT junk (win ~66%, avg +0.26%, PF 6.2 — comparable to the live burst, though horizon-confounded). The clearest junk filter is **VWAP over-extension**: entries near VWAP (vwap_dist −0.1..+0.25%) win 68–87%; entries >0.5% above VWAP decay to ~50% — i.e. don't chase the top. Secondary floors: **RVOL ≥ ~1.3** and **ATR ≥ 0.10**. Combo RVOL≥1.3 & VWAPd≤0.5 & ATR≥0.10 → win 89%, keeps ~17% of trades but ~37% of P&L.
+
+**Recommended path if reviving:** re-enable the SHADOW with these filters logged (and extend capture to US/crypto), gather 2–3 weeks across varied regimes, confirm out-of-sample, THEN wire live behind the arm flag with a Domain-A soak. Touches entries → flag-and-wait. Relates to the open sim tasks (sim-filter relevance / quantify edge).
+
+**⏰ DUE ~2026-07-06 — COMBINED RE-EVALUATION (set 2026-06-15).** THREE data experiments ripen together; run all and give Garrath a combined verdict: (1) **continuation shadow** — re-run `scripts/continuation_filter_study.py` on the fresh out-of-sample data; filtered edge holds → arm (operator-gated), else stays shadow/retires. (2) **bar timeframe** — re-run `python -m alphabot.intelligence.fut_regime_sweep` (now futures-only by default); does 3m/1m beat the live 5m on momentum-in-trend / reversion-in-chop, now that ~3 weeks of 1m/3m exist (was only ~15h on 06-15 — too thin)? (3) **ATR responsiveness** — the gate moved to Wilder-14 on 06-15 (was a simple mean over the full ~30-bar window that slept through the open). Sweep `atr_period ∈ {6,10,14,20}` × ATR floor to find the pair that WAKES the gate at high-vol opens [measure: atr-pass rate in the session's first hour] WITHOUT opening the junk gates [measure: win-rate/avg-return of the burst entries each pair admits, on bar_history, + the false-fire rate in chop]. `compute_features(atr_period=…)` already exposes the knob; extend a sweep harness over it. Goal: catch the open's first leg while keeping selectivity, then re-tune the 0.10/0.20 floor to the chosen period. ALL READ-ONLY. *(A session-only CronCreate was set but won't survive restarts — THIS note is the durable reminder.)* See [[regime-badge-vs-atr-gate]].

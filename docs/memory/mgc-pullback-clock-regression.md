@@ -1,0 +1,14 @@
+---
+name: mgc-pullback-clock-regression
+description: "2026-06-30 — MGC vwap_pullback soft spot (−$193/10d) is an EXIT bleed not entry; the 06-29 25-min flat-clock change coincides with it flipping +$53→−$246 (MEASURE, don't revert yet)"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 6a177229-b370-41db-bb71-2814d3a9582c
+---
+
+2026-06-30 investigation (operator: "investigate the MGC pullback soft spot + scope fixes"). MGC `vwap_pullback` net −$193 / 10d at **57% win** = NOT an entry problem: the ratchets bank **+$823** (RATCHET_1/PROFIT_RATCHET ~95% win), the entire bleed is **FLAT_CLOCK −$770** (20 cuts, 5% win) while the **$80 force-kill sat dormant** (0× fires). So the fix = the per-contract force-kill recalibration (see [[force-kill-dormant-and-resweep]] / scope `docs/FORCE_KILL_RECAL_AND_MGC_PULLBACK_SCOPE.md`), specifically **MGC $22/run3/0.3ATR** (Δ+$33/10d, ZERO winner-clip).
+
+**FIX A (per-contract force-kill) BUILT + MERGED to main 2026-06-30** (commit 37418d9c, merge f2a29e70, arming-checklist doc 50897458; NOT pushed). Adds `_FORCE_KILL_USD_BY_KEY` {mnq:25,mes:12,mgc:22} + retunes `_FORCE_KILL_FORCE_ATR_BY_KEY` 1.5→{mnq:0.3,mes:0.5,mgc:0.3} in us_futures_desk.py; new test_force_kill_usd_per_contract.py; 839 tests pass. **NOT ARMED — flag-and-wait.** ARMING = (1) optional `.env` line 269 `FUT_FORCE_KILL_RUN_N=4→3`; (2) `systemctl restart alphabot-strategy-daytrade` on a FLAT desk — the restart IS the arming event (ENABLED already true, SYMBOLS already MNQ,MGC,MES, so the code floors take effect on restart; the $80 .env line is now an inert fallback). VERIFY: `exit:DAYTRADE_FORCE_KILL` starts appearing (was 0×) + only fires underwater. ROLLBACK: revert merge + restart, or `.env FUT_FORCE_KILL_ENABLED=false`. Full checklist in the scope doc.
+
+**Regression signal — the 06-29 25-min clock change:** splitting MGC pullback at the operator's 2026-06-29 `mgc time_stop_minutes 10→25` change → pre-29 (5-min clock) **+$53 / 60% win**; post-29 (25-min) **−$246 / 46% win**. Lengthening the clock to "let gold mean-revert" coincides with MGC pullback going sharply negative — consistent with every prior exit study (tighter beats looser on chop; "let reds run" bleeds, see [[wobble-force-death-exit-study]], [[recovery-exit-study]]). **BUT confounded** (06-29 also flipped reversion-only §314) + **only 13 post-change trades**. ACTION = MEASURE-don't-revert: re-read at ≥30 MGC-pullback trades under the 25-min clock (≈next week) via the per-contract shadow panel; one-line revert (`time_stop_minutes` 25→~10) if it holds. The force-kill recalibration de-risks it meanwhile (cuts the violent runs-south within the 25-min window). The 25-min change came from a flat_clock_sweep on the OLD mixed-gate cohort with 1m-bar magnitude estimates the code comment itself flags "magnitude-approximate".

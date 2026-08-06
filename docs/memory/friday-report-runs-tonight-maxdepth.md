@@ -1,0 +1,21 @@
+---
+name: friday-report-runs-tonight-maxdepth
+description: "2026-07-24 — the V7 Friday report must run TONIGHT (~22:07 UTC, after the Fri close = whole week) via the max-depth workflow; session-only cron armed, recover manually if it dies"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 9162c01b-c354-41a1-9fc3-162d48ae4678
+---
+
+**★ 2026-07-31 — NOW DURABLE (systemd, no live session needed).** The Friday report fires from `gazbot7-friday-report.timer` (Fri 22:07 UTC) → `.service` → `scripts/friday_report_durable.py`, which pre-freezes the census then invokes headless `claude -p --allowedTools Bash Workflow Read Write Edit Agent Task` to run the max-depth workflow. The workflow now has a **Phase 7 PROOFREAD + Revision-2** (adversarial read as the operator → gap-fill his poke-questions → Rev2 → wake-up-standard final check + ping). Fail-safe: logged to `data/friday_durable.log` + Telegram-alerted. This RETIRES the old session-only report cron (the #1 fragility is gone). A session backstop cron still does the operator's PERSONAL read + recover-if-failed. Units in repo `ops/systemd/`.
+
+**2026-07-24 (Fri): the V7 weekly report runs TONIGHT via a MAX-DEPTH multi-agent workflow** (operator wants it "like a hedge-fund research team — many agents, whole completed week, completely thorough"). It MUST run after the Friday session closes (~22:00 UTC = the whole week is complete) — NOT earlier (a mid-week pre-bake was premature; operator corrected).
+
+- **Scope (locked):** `gazbot7/docs/FRIDAY_V7_REPORT_SCOPE.md` — MNQ-only, plain-English + tables, Part 1 live desk · Part 2 shadow+promotion (abs_veto_55s) · Part 2.5 musings (incl. direction-router architecture) · Part 3 big-runs deep-dive. ★ Greenfield DON'T-GIVE-UP loop: invent 5 gates on the full sat-out census → if all die, narrow to TOP-25 runs → still nothing, TOP-15; show every grave; report the size-threshold where an edge appears.
+- **Workflow:** `gazbot7/scripts/friday/friday_v7_maxdepth.workflow.js` (Census→Desks→BigRuns→Greenfield→Skeptic→Assemble; renders light HTML + PDF + Monday playbook into `src/gazbot7/web_static/`). Census tool = `scripts/run_census.py` (V7-native, verified). Assembly = `scripts/friday_v7_build.py` + alphabot2 `build_playbook.py`.
+- **Trigger:** a SESSION-ONLY one-shot cron (id `1c07d197`, 22:07 UTC 07-24) invokes the workflow. ⚠ session-only = dies if this Claude session ends. **RECOVER:** if the cron didn't fire, invoke the workflow manually after the Fri close — `Workflow({scriptPath: "scripts/friday/friday_v7_maxdepth.workflow.js"})` from cwd gazbot7. Everything's committed (gazbot7 `82f35ed`), so it's reproducible from a cold start.
+- Today's thin 3-agent pre-bake (`v7_big_runs_2026-07-24.*`) is a REFERENCE scaffold only — the workflow regenerates the real thorough version. Related: [[friday-report-full-pipeline-guarantee]], [[three-pass-adversarial-friday]], [[saturday-promotion-shortlist]].
+
+**★ RAN SUCCESSFULLY 2026-07-24 (run `wf_c2a85e73-79b`, 16 agents, ~82min, 11.5k words):** outputs `src/gazbot7/web_static/v7_big_runs_2026-07-24.{html,pdf}` + `monday_2026-07-24.html` (8 plays). Census: 66 runs / 43 sat out / $8,959 ceiling. Greenfield = honest NULL run-catcher; a Donchian breakout DETECTOR survived exploratory-only.
+
+**★★ CENSUS-TIMEOUT GOTCHA + FIX (learned the hard way — first launch FAILED):** the census agent has a `schema`, and its prompt had it RUN `run_census.py --days 7 --html` INSIDE the workflow. That census is a MULTI-MINUTE tick crunch (~370% CPU over a week of ticks); the agent correctly refused to fabricate/read-stale and waited, but ran out of turn → never called StructuredOutput → **the whole workflow aborts on agent 1** (`subagent completed without calling StructuredOutput`). FIX (now wired into the workflow): PRE-FREEZE the census OUT-OF-BAND — run `run_census.py --days 7 --html <sec>/movement1_census.html > <sec>/census_stdout.txt`, then `scripts/friday/parse_census_summary.py` → `<sec>/census_summary.json` (schema: runs/sat_out/ceiling/clusters/top25/top15); the census agent now just READS that JSON + confirms the HTML (instant, no crunch). **RULE: never let a workflow agent with a schema run a multi-minute command inline — pre-compute heavy artifacts, have the agent read them.**
