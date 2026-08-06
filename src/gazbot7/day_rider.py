@@ -51,7 +51,7 @@ import os
 
 from .config import RunConfig
 from .drift import OPEN_UTC_MIN, read as drift_read
-from .safety import safe_flatten_verdict
+from .safety import own_flatten_verdict, safe_flatten_verdict
 
 log = logging.getLogger("day_rider")
 
@@ -205,10 +205,45 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         net = await _net_position(ib, cfg.symbol)
         out["venue_ok"] = True          # we are genuinely talking to the broker this tick
 
-        # ── 1. THE HARD FLAT. Runs before anything else, unconditionally. ────────────────
+        # ── 1. THE HARD FLAT. Runs before anything else — but ONLY on a position WE OPENED. ──
+        # ★2026-08-06 INCIDENT — this branch used to flatten the ACCOUNT net without asking whose
+        # position it was, and `mod < OPEN_UTC_MIN` makes it true on EVERY tick before 13:30. The
+        # tournament shares account DUQ191770 and the same MNQ contract, so at 07:08:21 the day-rider
+        # sold the tournament's 2 lots 20 SECONDS after they opened, while its own state said
+        # entered=false — it flattened a position it had never taken.
+        # The damage was not the $27.50: the tournament does not receive executions from another
+        # clientId, so its book stayed +2 against a venue of 0 — a reconcile DRIFT that halted the
+        # desk for 11 minutes with its whole safety block skipped (multislot_core.py:610), and on
+        # restart it "exited" phantom longs into a real -1 short and booked two FICTITIOUS target
+        # wins. One unowned flatten cascaded into a halt, a naked short and a corrupted trade record.
+        # OWNERSHIP IS NOW THE GATE. A net we did not open belongs to another desk that has its own
+        # safety spine; the correct action is to ALARM, never to trade. Note this is the same class
+        # of bug as [[md-stream-multi-symbol-filter]] — a SHARED resource consumed without checking
+        # the tag that says which owner it belongs to.
+        owns_position = bool(out.get("entered")) and not bool(out.get("closed"))
         if mod >= FLAT_UTC_MIN or mod < OPEN_UTC_MIN:
-            if abs(net) > 1e-9:
-                v = safe_flatten_verdict(net)
+            if abs(net) > 1e-9 and not owns_position:
+                out["note"] = (f"venue holds {net:g} the day-rider did NOT open "
+                               f"(entered={out.get('entered')}) — left alone, not mine")
+                if notify:
+                    notify(f"DAY RIDER: venue holds {net:g} MNQ that is NOT mine "
+                           f"(entered={out.get('entered')}). Leaving it to its owner — the "
+                           f"tournament shares this account. NOT flattening.", critical=False)
+            elif abs(net) > 1e-9:
+                # Size the hard flat from OUR OWN book too (same shared-account reasoning as the
+                # exits below). The one deliberate exception in this file: if our own book is
+                # unusable — no direction or no qty — we FALL BACK to the venue-net verdict rather
+                # than declining to act, because "NEVER HOLD OVERNIGHT" is an absolute operator rule
+                # and a broken book is not a reason to carry a position through the halt. That
+                # fallback can over-flatten a shared account, so it pages.
+                v = own_flatten_verdict(int(st.get("direction") or 0), float(st.get("qty") or 0.0))
+                if v is None:
+                    v = safe_flatten_verdict(net)
+                    if v and notify:
+                        notify(f"⚠ DAY RIDER hard flat falling back to VENUE NET ({net:g}) — own book "
+                               f"has direction={st.get('direction')!r} qty={st.get('qty')!r}. This may "
+                               f"over-flatten a shared account, but overnight is ruled out. CHECK IBKR.",
+                               critical=True)
                 if v:
                     from ib_async import MarketOrder
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))
@@ -238,7 +273,16 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
 
         # ── 2. MANAGE an open position (restart-safe: peak comes from state) ─────────────
         if abs(net) > 1e-9 and st.get("entered"):
-            d = 1 if net > 0 else -1
+            # ★2026-08-06 — DIRECTION AND SIZE COME FROM OUR OWN BOOK, NEVER FROM THE ACCOUNT NET.
+            # This used to read `d = 1 if net > 0 else -1` and then store `qty=abs(net)`, i.e. it
+            # inferred its own position from a number that nets EVERY desk on DUQ191770. With the
+            # tournament short 3 against our long 2 the net is −1, so d inverted, `peak` tracked the
+            # wrong extreme, `trail_level` computed on the wrong side and the exit fired BUY —
+            # ADDING to the long while the state recorded "closed". Our own entry already persisted
+            # direction and qty (see the entry block); trust that, and keep the venue net only as an
+            # observation. Falls back to the net sign ONLY if state somehow lacks a direction.
+            d = int(st.get("direction") or 0) or (1 if net > 0 else -1)
+            own_qty = float(st.get("qty") or LOTS)
             entry = float(st.get("entry", 0.0))
             rr = drift_read(cfg.capture_path, cfg.symbol, now)
             px = rr.price or entry
@@ -246,7 +290,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 out["entry_atr"] = round(rr.atr, 2)
             peak = float(st.get("peak", entry))
             peak = max(peak, px) if d > 0 else min(peak, px)
-            out.update(entry=entry, peak=peak, direction=d, qty=abs(net))
+            # qty stays OURS; venue_net is recorded alongside as an observation, so a divergence
+            # between the two is visible in state instead of silently overwriting our position.
+            out.update(entry=entry, peak=peak, direction=d, qty=own_qty, venue_net=net)
             tl = trail_level(d, entry, peak)
             out["trail"] = tl
             out["ahead_pt"] = round(d * (px - entry), 1)
@@ -257,7 +303,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             if pend.get("token"):
                 dec = read_approval(pend["token"])
                 if dec == "sell":
-                    v = safe_flatten_verdict(net)
+                    v = own_flatten_verdict(d, own_qty)   # ours, not the shared account net
                     if v:
                         from ib_async import MarketOrder
                         ib.placeOrder(contract, MarketOrder(v[0], v[1]))
@@ -305,7 +351,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                            f"NO REPLY = HOLD to the 21:00 flat", critical=True)
 
             if tl is not None and ((px <= tl) if d > 0 else (px >= tl)):
-                v = safe_flatten_verdict(net)
+                v = own_flatten_verdict(d, own_qty)       # ours, not the shared account net
                 if v:
                     from ib_async import MarketOrder
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))

@@ -18,9 +18,13 @@ window_min = int(sys.argv[2]) if len(sys.argv) > 2 else 60
 c = sqlite3.connect("data/gazbot7.db")
 c.row_factory = sqlite3.Row
 
+# ★2026-08-06 `data_quality IS NULL` on BOTH queries — this file is the router's wall-of-STOP check,
+# so an EXCLUDED row here corrupts a live bench/arm decision, not just a report. See desk_view.py for
+# the 08-06 day-rider cross-desk flatten that booked two fictitious TARGET wins.
 rows = c.execute(
     "SELECT gate, side, pnl_usd, exit_reason, closed_at FROM trades "
-    "WHERE closed_at IS NOT NULL ORDER BY closed_at DESC LIMIT ?", (n_recent,)
+    "WHERE closed_at IS NOT NULL AND data_quality IS NULL "
+    "ORDER BY closed_at DESC LIMIT ?", (n_recent,)
 ).fetchall()
 
 print(f"RECENT {n_recent} CLOSED TRADES (newest first) — exit_reason wall of STOP = bleeding:")
@@ -34,7 +38,8 @@ cut = datetime.now(timezone.utc).timestamp() - window_min * 60
 tally = {}
 for r in c.execute(
     "SELECT gate, pnl_usd, exit_reason, closed_at FROM trades "
-    "WHERE closed_at IS NOT NULL ORDER BY closed_at DESC LIMIT 120"
+    "WHERE closed_at IS NOT NULL AND data_quality IS NULL "
+    "ORDER BY closed_at DESC LIMIT 120"
 ).fetchall():
     try:
         ts = datetime.fromisoformat(r["closed_at"]).timestamp()

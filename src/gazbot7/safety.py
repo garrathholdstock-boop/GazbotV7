@@ -185,6 +185,29 @@ def safe_flatten_verdict(venue_net: float) -> tuple[str, float] | None:
     return ("BUY" if venue_net < 0 else "SELL", abs(venue_net))
 
 
+def own_flatten_verdict(direction: int, qty: float) -> tuple[str, float] | None:
+    """The order that closes OUR OWN position, sized and signed from OUR OWN book.
+
+    ★2026-08-06 — the counterpart to ``safe_flatten_verdict``, for a SHARED account.
+    That function is correct when one desk owns the account: it reads IBKR truth, so it
+    cannot oversell or fire the wrong way on a stale book. But IBKR nets every desk into
+    ONE number, and gazbot7 now runs two on DUQ191770 (tournament + day-rider). A netted
+    venue therefore CANNOT tell you what YOU hold — the information is not there to read.
+    Sizing an exit from the net is then wrong in both directions: with the day-rider long
+    2 and the tournament short 1 the net is +1, so it under-closes and silently keeps a
+    lot; with the tournament short 3 the net is −1, so the direction INVERTS and the
+    "exit" BUYS, increasing the long while the strategy records itself flat.
+
+    So ownership has to come from the owner's own bookkeeping. This deliberately gives up
+    the anti-stale-book property of the venue-truth version; the compensating guard is
+    that the caller must only reach it while its own state says it holds a position, and
+    a missing/zero direction or qty returns None rather than guessing.
+    """
+    if not direction or abs(qty) < _EPS:
+        return None
+    return ("SELL" if direction > 0 else "BUY", abs(qty))
+
+
 def reconcile_verdict(tracked_side: str | None, tracked_qty: float, venue_net: float) -> str:
     """Single-symbol agreement between the desk's tracked position and IBKR truth:
 

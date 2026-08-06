@@ -102,6 +102,33 @@ async def run(dry: bool) -> int:
             log(f"ok position {net} managed (heartbeat {age:.0f}s)")
             return 0
         why = "no heartbeat ever" if age is None else f"heartbeat stale {age:.0f}s"
+        # ★2026-08-06 — OWNERSHIP GATE. This watchdog exists to rescue the DAY-RIDER's position when
+        # the strategy stops managing it. It does NOT exist to flatten the account. The tournament
+        # shares account DUQ191770 and the same MNQ contract, and on 2026-08-06 the strategy's own
+        # hard-flat sold 2 tournament lots it had never opened — cascading into an 11-minute drift
+        # halt, a transient naked short and two fictitious target wins in the trade record.
+        # This file had the identical blind spot and was passive only by luck: with day_rider=off the
+        # strategy still stamps a fresh heartbeat, so `age` stayed fresh. Stop that service and this
+        # watchdog would have flattened the tournament on its next 2-minute tick.
+        # A stale heartbeat means OUR position is unmanaged; it says nothing about someone else's.
+        # So require the state to claim the position before firing, and ALARM otherwise.
+        try:
+            with open(STATE) as fh:
+                _st = json.load(fh)
+        except Exception:
+            _st = {}
+        if not (_st.get("entered") and not _st.get("closed")):
+            log(f"ALARM position {net} unmanaged ({why}) but day-rider state says it is NOT ours "
+                f"(entered={_st.get('entered')}, closed={_st.get('closed')}) — NOT acting")
+            try:
+                from gazbot7.notify import notify
+                notify(f"⚠ DAY RIDER WATCHDOG: venue holds {net} MNQ and the day-rider is unmanaged "
+                       f"({why}), but that position is NOT the day-rider's. NOT flattening — it "
+                       f"belongs to another desk on this account. Check the tournament.",
+                       critical=True)
+            except Exception:
+                pass
+            return 0
         v = safe_flatten_verdict(net)     # fire ONLY what the venue holds, in its direction
         if v is None:
             log(f"ALARM position {net} unmanaged ({why}) but no safe verdict — NOT acting")
