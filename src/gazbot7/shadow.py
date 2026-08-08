@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from .deciders import (
     REVERSAL_SHORT_VARIANTS,
     Bar,
+    Entry,
     Features,
     Position,
     compute_features,
@@ -85,6 +86,22 @@ class ShadowVariant:
     clip_a_usd: float = 0.0
     clip_b_r: float = 0.0
     clip_b_floor_usd: float = 0.0
+    # ── ★2026-08-08 THE OPEN RIDER (gate="clock_rider") ──────────────────────────────────────
+    # The first shadow variant with NO SIGNAL. Every other one asks the deciders "is there a
+    # setup?"; this asks "what time is it?" and takes the direction the last quarter-hour moved.
+    # That is the whole thesis, not laziness: Movement 3's ignition table puts entry on a run's
+    # start minute at +$131.65/trade and fifteen minutes late at -$39.76, so anything waiting for
+    # confirmation is buying the back half. It has no gate to wait for.
+    #   DIRECTION  sign(close - close[-lookback]) — a RAW sign, no threshold. Tested 2026-08-08:
+    #              deadbands of 5/10/30pt are worse on both the fitted and the unseen legs.
+    #   TIME CAP   the shadow had no time-based exit before this; every other variant runs to a
+    #              stop, a target or a chandelier.
+    # All fields default to 0/off so no pre-existing variant changes behaviour.
+    rider_cadence_min: int = 0                   # fire every N min when flat (0 = not a rider)
+    rider_lookback_min: int = 15                 # direction = sign of the move over this window
+    rider_win_start_s: int = 13 * 3600           # 13:00 UTC
+    rider_win_end_s: int = 14 * 3600 + 45 * 60   # 14:45 UTC — the 08-08 right-edge cut
+    time_cap_s: float = 0.0                      # flat at market after this long (0 = no cap)
 
 
 def _eff_target_r(v: ShadowVariant, atr: float, vpp: float) -> float:
@@ -134,9 +151,35 @@ class ShadowSim:
         now_ms = now_ms if now_ms is not None else ts * 1000  # wall-clock for the entry delay
         cap = cap or {}
         for v in self._variants:
-            self._step(v, f, ts, tape_net, window_price_delta, in_rth, now_ms, cap)
+            self._step(v, f, ts, tape_net, window_price_delta, in_rth, now_ms, cap, bars)
 
-    def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool, cap: dict):
+    def _rider_entry(self, v: ShadowVariant, bars: list[Bar], ts: int):
+        """★2026-08-08 THE CLOCK GATE. No signal — the clock is the trigger.
+
+        Fires when ALL of: inside the UTC window, on a cadence boundary, and enough history to
+        measure the lookback. Direction is the raw sign of the lookback move; a dead-flat tape
+        (mom == 0) is SKIPPED rather than sent short. The reference harness sends it short via an
+        `else` branch, which is an accident of `1 if mom > 0 else -1` — it happened once in 129
+        trades, but shadowing an accident would make the shadow a worse mirror, not a better one.
+        """
+        sec = ts % 86400
+        if not (v.rider_win_start_s <= sec < v.rider_win_end_s):
+            return None
+        if (sec // 60) % max(v.rider_cadence_min, 1):
+            return None                      # not on a cadence boundary
+        lb = v.rider_lookback_min
+        if len(bars) < lb + 1:
+            return None                      # not enough history to measure the move
+        mom = bars[-1].close - bars[-1 - lb].close
+        if mom == 0:
+            return None
+        return Entry(side="LONG" if mom > 0 else "SHORT", gate="clock_rider",
+                     target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)
+
+    def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool, cap: dict,
+               bars: list[Bar] | None = None, ts: int = 0):
+        if v.gate == "clock_rider":
+            return self._rider_entry(v, bars or [], ts)
         if v.gate == "thrust":
             e = gate_thrust(f, **v.params)
         elif v.gate == "reversal_grab":
@@ -162,11 +205,11 @@ class ShadowSim:
     def _open_pos(self, v, entry, f, ts) -> None:
         self._open[v.name] = dict(side=entry.side, entry_price=f.price, entry_atr=f.atr, entry_ts=ts, peak=0.0)
 
-    def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms, cap):
+    def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms, cap, bars=None):
         op = self._open.get(v.name)
         if op is None:
             if v.confirm_s <= 0:  # immediate entry (the default / live control)
-                entry = self._entry(v, f, tape_net, in_rth, cap)
+                entry = self._entry(v, f, tape_net, in_rth, cap, bars, ts)
                 if entry is not None:
                     self._open_pos(v, entry, f, ts)
                 return
@@ -218,6 +261,11 @@ class ShadowSim:
                     and exit_absorption(pos, tape_net=tape_net, window_price_delta=wpd,
                                         flow_min=v.absorption_flow_min)):
                 reason = "ABSORPTION_CUT"
+        # ★2026-08-08 TIME CAP — added for the Open Rider, which is flat at market after 45 min.
+        # Checked LAST so a stop/target/chandelier that fired on the same bar still wins: the cap
+        # is a backstop, and booking a TIME exit where a STOP was hit would flatter the arm.
+        if reason is None and v.time_cap_s and (ts - op["entry_ts"]) >= v.time_cap_s:
+            reason = "TIME_CAP"
         if reason is not None:
             self._record(v, op, f.price, ts, reason)
             del self._open[v.name]
@@ -408,7 +456,48 @@ def default_slate() -> list[ShadowVariant]:
     ]
     slate += _stop_width_ab()
     slate += _clip_ab()
+    slate += _open_rider()
     return [v for v in slate if v.name not in RETIRED]
+
+
+def _open_rider() -> list[ShadowVariant]:
+    """★2026-08-08 THE OPEN RIDER — 2x2, cadence x stop width. BUILD #2, shadow only.
+
+    Not live, and not eligible to go live: 17 in-sample days earns SHADOW at most, and its own
+    skeptic panel voted 2-1 rather than 3-0. Promotion needs ALL FOUR of: +0.15R over 200 shadow
+    trades INCLUDING a genuinely non-trending open week, the 14:45 cut, a real 2xATR stop path
+    live, and position isolation from the day-rider.
+
+    ★ WHY 2x2 AND NOT ONE ARM. Both axes were re-swept on 2026-08-08 against the 17-day desk book
+    and the 5 unseen days, and on both the shipped spec is NOT the peak:
+
+      cadence   ALL 17d $/tr   5 UNSEEN $/tr        stop      ALL 17d $/tr   (n)
+        3 min     +37.09          +8.16             1.0xATR      +7.33       264   <- desk house style
+        5 min     +35.82         +22.01  (shipped)  2.0xATR     +35.82       129   <- shipped
+       10 min     +47.47         +46.88             3.0xATR     +76.51        84
+       20 min     +27.69         -18.60
+
+    Cadence 10 beats the shipped 5 on the unseen leg by better than 2:1, and stop width is
+    MONOTONE across everything tested. Neither is a reason to re-tune now — the report's own
+    finding is that this thing is fitted-looking and needs forward evidence, and picking the best
+    backtest cell is how you get a number that does not survive. Running all four forward is how
+    you find out which one was real, at zero extra risk because none of them place an order.
+
+    ★ 2R IS COUPLED TO THE STOP ON PURPOSE HERE (decouple_target stays False). The reference
+    harness computes `targ = entry + dir * (stop_k * atr) * rr`, so the target IS a multiple of
+    the stop distance. The 3.0x arms therefore run a WIDER target too, which is exactly what the
+    sweep above measured. This is the opposite of the stop-width A/B above, where decoupling was
+    essential — there the question was "is a wider stop better?"; here it is "is this whole
+    published cell better?".
+    """
+    common = dict(gate="clock_rider", params={}, target_r=2.0, time_cap_s=45 * 60,
+                  rider_lookback_min=15, adverse_cut_atr=99.0, absorption_flow_min=1e9)
+    return [
+        ShadowVariant("odr_c5_s20", rider_cadence_min=5, stop_atr_mult=2.0, **common),
+        ShadowVariant("odr_c5_s30", rider_cadence_min=5, stop_atr_mult=3.0, **common),
+        ShadowVariant("odr_c10_s20", rider_cadence_min=10, stop_atr_mult=2.0, **common),
+        ShadowVariant("odr_c10_s30", rider_cadence_min=10, stop_atr_mult=3.0, **common),
+    ]
 
 
 # ★★2026-08-04 CLIP A/B — operator: "do the shadow a/b" after disputing the backtest.

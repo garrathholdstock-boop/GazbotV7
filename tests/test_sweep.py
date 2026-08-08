@@ -213,8 +213,9 @@ def test_run_sweep_smoke_produces_all_sections(tmp_path):
     open_capture(cfg.capture_path).close()
     open_store(cfg.shadow_store_path).close()
     report = sweep.run_sweep(cfg, NOW)
+    # ★2026-08-08 + "config" (SATURDAY #7): uncommitted live-behaviour files are now a finding.
     assert set(report["sections"]) == {
         "services", "core", "capture", "execution", "position",
-        "killswitch", "recording", "shadow", "storage"}
+        "killswitch", "recording", "shadow", "storage", "config"}
     assert report["overall"] in ("OK", "WARN", "CRIT")
     assert report["preflight_ok"] is False  # no core_health.json in tmp_path

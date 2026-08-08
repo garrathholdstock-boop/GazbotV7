@@ -147,6 +147,20 @@ def test_full_slate_with_chandelier_ab_instantiates_and_steps():
     assert not (RETIRED & set(names)), RETIRED & set(names)   # nothing retired is still running
     assert "capit_live_mirror" in names               # live capitulation has a twin again
     # a variant whose gate has no ShadowSim._entry branch would silently NEVER FIRE — guard it
-    assert {v.gate for v in slate} <= {"thrust", "reversal_grab", "capitulation", "grind"}
+    # ★2026-08-08 + "clock_rider": the Open Rider, the first variant here with no signal at all.
+    assert {v.gate for v in slate} <= {"thrust", "reversal_grab", "capitulation", "grind",
+                                       "clock_rider"}
+    # ★2026-08-08 the four Open Rider arms (cadence x stop width, shadow only). Drop below 4 and
+    # an arm has been silently retired, at which point the 2x2 is no longer a comparison.
+    riders = [v for v in slate if v.gate == "clock_rider"]
+    assert len(riders) == 4, [v.name for v in riders]
+    assert {v.rider_cadence_min for v in riders} == {5, 10}
+    assert {v.stop_atr_mult for v in riders} == {2.0, 3.0}
+    # Every rider MUST carry a time cap. The sim has no other way out of a trade that neither
+    # stops nor targets, so an uncapped rider would sit open until the feed stopped.
+    assert all(v.time_cap_s == 45 * 60 for v in riders)
+    # And the window must be the 08-08 corrected right edge (14:45Z), not the original 15:00Z:
+    # 14:45-15:00 is -$446 across all days and -$453 on the unseen leg alone.
+    assert all(v.rider_win_end_s == 14 * 3600 + 45 * 60 for v in riders)
     store = open_store(":memory:")
     ShadowSim(store, slate).on_bars(_flat_at(100.0))  # no raise on a flat bar set

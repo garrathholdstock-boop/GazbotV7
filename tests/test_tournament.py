@@ -126,7 +126,10 @@ def test_step_floor_gate_blocks_OPEN_keeps_CLOSE_on_a_SCALEOUT_tag():
     asserts (a) the OPEN-blocked / CLOSE-kept invariant and (b) that a suffixed scale-out tag really
     does reach its base gate's floor. Delete this and the floors are untested end-to-end again."""
     from gazbot7.deciders import ATR_FLOOR, ER_FLOOR
-    assert ATR_FLOOR.get("grind_long") == 10.0 and not ER_FLOOR   # the config this test rides on
+    # ★2026-08-08: 10.0 → 22.0 (SATURDAY #2, grind-long-revert-atr22-ext30-0808). The test feeds
+    # ~1pt bars, i.e. far below EITHER floor, so the OPEN-blocked/CLOSE-kept assertion below is
+    # unaffected — this line only pins the config the test rides on.
+    assert ATR_FLOOR.get("grind_long") == 22.0 and not ER_FLOOR   # the config this test rides on
     _, mb, sb = _setup()
     weak = [100 + i for i in range(30)]                  # ER≈1.0 (no ER gate) but ~1pt bars → ATR≈1pt
     now = _feed(mb, weak)

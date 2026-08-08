@@ -186,9 +186,13 @@ def test_er_hold_only_momentum_gates():
 
 def test_atr_blocks_below_floor():
     from gazbot7.deciders import ATR_FLOOR, atr_blocks
-    # ★2026-08-01: grind_long 24 → 10, capitulation_long 10 KEPT, abs_veto_short 16 DELETED
-    # ("not proven" on the blocked book). "ATR floors are REAL" still holds — at half the old values.
-    assert ATR_FLOOR == {"grind_long": 10.0, "capitulation_long": 10.0}
+    # ★2026-08-08 (SATURDAY #2, grind-long-revert-atr22-ext30-0808): grind_long 10 → 22, a straight
+    # revert of the 08-01 change, on 21 sessions and two independent populations (REV2 · Q1 §10).
+    # The literal is NOT load-bearing (plateau 18-27) but the SHIPPED value is pinned deliberately:
+    # this is the end-to-end guard that a floor is wired at all, and a floor that silently stops
+    # matching is exactly the 07-29 bug it exists to catch.
+    #   Superseded, kept for the audit trail: ★2026-08-01 grind_long 24 → 10, abs_veto_short 16 DELETED.
+    assert ATR_FLOOR == {"grind_long": 22.0, "capitulation_long": 10.0}
     # a magnitude floor: grind_long blocked when the entry ATR (a trend too small to run) is below it
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] - 1) is True
     assert atr_blocks("grind_long", ATR_FLOOR["grind_long"] + 1) is False
