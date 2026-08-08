@@ -170,6 +170,39 @@ def us_terminal_json(cap_path, data_dir):
             "entry_gate": gate, "opened_at": s.get("opened_at"), "held_seconds": held_s,
             "protected": bool(prot_by_gate.get(gate, s).get("stop_coid")),
         })
+    # ★★2026-08-07 THE DAY RIDER IS A SECOND DESK AND WAS INVISIBLE HERE.
+    # This window is built from the TOURNAMENT's status.json, so a day-rider position — its own
+    # service, its own clientId 4, same account and same symbol — rendered nowhere at all. On 08-07
+    # it held SHORT 2 @ 29567.25, ~150pt offside, while every screen the operator had showed "flat".
+    # A live position with no surface is exactly how the 08-06 incident stayed invisible for hours.
+    # It reports under gate `day_rider`. Fail-soft: on any error the window renders the tournament
+    # rows exactly as before, so a bad state file can never blank the holdings panel.
+    try:
+        with open(os.path.join(data_dir, "day_rider_state.json")) as fh:
+            dr = json.load(fh)
+        if dr.get("entered") and not dr.get("closed"):
+            entry = float(dr.get("entry") or 0.0)
+            qty = abs(float(dr.get("qty") or 0.0))
+            direction = int(dr.get("direction") or 0)
+            if entry > 0 and qty > 0 and direction in (-1, 1):
+                last = last_px or entry
+                # the ARMED trail is the live protection; the 600pt venue stop is last-resort only
+                stop = dr.get("trail") or dr.get("venue_stop")
+                holdings.append({
+                    "label": "MNQ", "symbol": "MNQ",
+                    "side": "LONG" if direction > 0 else "SHORT", "qty": qty,
+                    "avg": entry, "stop": stop, "last": last, "multiplier": _VPP,
+                    "pnl_usd": round(direction * (last - entry) * _VPP * qty, 2),
+                    "pnl_pct": round(direction * (last - entry) / entry * 100, 3),
+                    "entry_gate": "day_rider",
+                    "opened_at": None, "held_seconds": None,
+                    # an UNARMED trail is not protection — say so honestly rather than let the
+                    # 600pt insurance stop render as if it were a working protective stop.
+                    "protected": bool(dr.get("trail")),
+                })
+    except Exception:
+        pass
+
     return {"holdings": holdings, "activity": [activity], "regime_groups": {},
             "margin_deployed_usd": None, "nlv_usd": None}
 
