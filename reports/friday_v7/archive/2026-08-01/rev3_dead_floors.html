@@ -1,0 +1,223 @@
+<!-- REV3 · DEAD FLOORS — PATCHES/EXTENDS: REV2·Q2 §3 (confirms the bug, corrects its magnitude 7,734→140 episodes, and DELIVERS the floor re-derivation Q2 deferred); SUPERSEDES the money figures in Part 1.5 §2 / rehab_grind_long.md / plays.json "grind-entry-ceiling-fix-0731" (their −$284 baseline is a floors-working counterfactual, not what the desk ran); GATES tonight's Saturday window with a ship ORDER. -->
+
+<h2><span class="n">REV3</span> The dead floors — confirmed, re-derived, and the order to ship them in tonight</h2>
+
+<p class="lead">Garrath — Q2 is <b>right</b>. Every ER and ATR floor on the desk has been a no-op since <b>2026-07-29 16:20:49 UTC</b>, and I confirmed it independently from source, from the journal, and from the commit dates. But Q2 overstated the size by a factor of 44, and it left the important half undone. Here is the important half. <b>Four of the five floors should never be switched back on.</b> The two ER floors the operator wrote on 07-30 are the two most expensive lines of config on the desk: over eight days of tick-honest replay, <code>grind_long</code>'s ER≥0.35 would have thrown away <b>+$2,923 of profit to keep +$83</b>, and <code>abs_veto_long</code>'s ER≥0.25 would have thrown away <b>+$640 to keep +$148</b>. Neither has ever run, which is the only reason the desk is up. <b>If you ship the wiring fix tonight and nothing else, you take the four floored gates from 382 signals / +$3,630 down to 103 signals / +$668 — a −$2,962 self-inflicted wound on eight days of tape, about −$370 a day.</b> The ship order below exists to make that impossible.</p>
+
+<div class="callout">
+  <div class="ct"><b>Honesty banner.</b> Every number is measured, none recalled. Sources: the <code>gazbot7-tournament</code> journal (274,106 lines, 07-20→08-01), <code>data/gazbot7.db</code>, <code>data/shadow.db</code>, and <code>data/capture.db</code> (10,080,959 MNQ ticks + 9,546,332 clean quotes). <b>Every exit is replayed on the 250ms stream, never on a bar.</b> The replay is a clone of the desk's own <code>src/gazbot7/repricer.py</code> and reproduces <code>shadow_real.real_pnl</code> to <b>$0.00 MAE on four of six gates</b> (details §2). <b>Every dollar below is a CEILING</b> — memory <code>[[shadow-sim-understates-losses]]</code> puts live losses at 1.1–3.1× modelled, so I carry a break-even loss multiplier on every recommendation and treat anything under ~1.5× as not really green. The tape is <b>8 days, one chop-dominated summer regime, MNQ-only, PAPER</b>. My replay is <b>always-armed</b> — it does not model router benching, which in the same window benched 465 signal episodes.</div>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>1 · The bug — CONFIRMED, with one correction to Q2</h3>
+
+<p><b>Mechanism, one sentence:</b> <code>tournament.step()</code> passes the raw slot tag to <code>er_blocks()</code> and <code>atr_blocks()</code>, but under the dual-slot scale-out slate every tag carries an <code>_A</code>/<code>_B</code> suffix while <code>ER_FLOOR</code>/<code>ATR_FLOOR</code> are keyed on base names — so the dictionary lookup never matches and every floor silently returns "don't block".</p>
+
+<p>The <code>_base()</code> helper that strips the suffix already exists at <code>tournament.py:86</code> and is correctly applied three times — to the bench switch (<code>:250</code>), the 55s absorption veto (<code>:303</code>) and the exhaustion confirm (<code>:345</code>). It was simply not applied to the two floors at <code>:139</code> and <code>:142</code>.</p>
+
+<table>
+<thead><tr><th>evidence</th><th>what it establishes</th></tr></thead>
+<tbody>
+<tr><td class="ln">source</td><td><code>tournament.py:139</code> <code>if er_blocks(slot, er):</code> · <code>:142</code> <code>if atr_blocks(slot, f.atr):</code> — raw <code>slot</code>. <code>deciders.py:107/173</code> key on base names. Working tree <b>clean</b> for all three decision-path files; editable install; the running process loaded exactly this code.</td></tr>
+<tr><td class="ln">cutover</td><td>Commit <code>5b0913b</code> "dual-slot scale-out slate" 07-29 16:18:50 → drop-in <code>/etc/systemd/system/gazbot7-tournament.service.d/scaleout.conf</code> written 16:20:00 → restart 16:20:49 → journal <code>tournament LIVE — slots=['grind_long_A','grind_long_B',…]</code> at <b>16:20:50</b>.</td></tr>
+<tr><td class="ln">journal</td><td>Last suppression line of any kind: <b>2026-07-29T13:29:04Z</b>. Since the cutover: <b>exactly zero</b> ER or ATR suppression lines in 2 days 18 hours, against a prior run-rate of 1,500–2,700 lines/day. Verified by exhaustive scan, not sampling.</td></tr>
+<tr><td class="ln">commit dates</td><td><b>Both ER floors were written AFTER the bug.</b> <code>grind_long</code> 0.35 = <code>aa59357</code>, 07-30 10:23:53. <code>abs_veto_long</code> 0.25 = <code>9767c67</code>, 07-30 10:57:10. Both ~18h after the cutover. The journal contains <b>zero</b> <code>ER gate: grind_long</code> lines in its entire 12-day history. <b>Neither floor has ever blocked a single trade in production.</b></td></tr>
+</tbody>
+</table>
+
+<p><b>The one correction.</b> Q2's headline "7,734 suppressions" is a raw log-line count, and the check re-fires every ~1s decision tick for as long as a signal stands. Collapsing consecutive same-gate lines ≤5s apart into episodes:</p>
+
+<table>
+<thead><tr><th>measure</th><th class="num">ER gate</th><th class="num">ATR gate</th><th class="num">combined</th></tr></thead>
+<tbody>
+<tr><td class="ln">raw log lines (Q2's basis)</td><td class="num">7,744</td><td class="num">9,080</td><td class="num">16,824</td></tr>
+<tr class="row-hl"><td class="ln">distinct blocked signal episodes</td><td class="num">140</td><td class="num">243</td><td class="num">383</td></tr>
+<tr><td class="ln">overstatement factor</td><td class="num">55×</td><td class="num">37×</td><td class="num">44×</td></tr>
+</tbody>
+</table>
+
+<p>So the honest sentence is: <b>the floors were blocking about 48 signal episodes a day across all gates, not thousands</b> — concentrated in <code>grind_long</code> ATR (191 episodes) and the two ER gates (40 each). That is material, but an order of magnitude smaller than the number that has been circulating. The bug is real; its scale was not.</p>
+
+<p><b>What else the same bug killed, and what it did not.</b> I audited every tag-keyed lookup in the decision path. The bug kills exactly three things: the ER floors, the ATR floors, and — collaterally — the <code>ER_HOLD</code> abs_veto_long spike-filter <b>shadow</b> study (<code>tournament.py:148</code>), which has been recording no data for three days. That last one is observe-only, so no P&amp;L impact, but it means that study is three days poorer than it looks. <b>Unaffected and working correctly:</b> router benching, the 55s absorption veto, the 5s exhaustion confirm, <code>veto_counter_regime</code>, <code>_BIG_RUN</code>, and <code>data/exit_overrides.json</code> — all key on <code>_base()</code> or on <code>spec.tag</code> consistently. <code>adaptive_exit</code> is off under scale-out <b>by design</b>, not by bug.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>2 · Method — and why you can trust the replay</h3>
+
+<p>1-minute bars rebuilt from the 5s capture (16,725 bars) using the desk's own <code>agg.MinuteBars</code> folding rule; features computed on the same trailing 60-bar window the live desk holds. Two independent checks that this reproduces the desk rather than approximating it:</p>
+
+<table>
+<thead><tr><th>check</th><th>result</th></tr></thead>
+<tbody>
+<tr><td class="ln">ATR at entry vs the desk's own recorded <code>entry_atr</code></td><td>correlation <b>1.0000</b>, median absolute difference <b>0.000 pt</b> across 1,632 shadow trades — an exact reproduction, not a fit.</td></tr>
+<tr><td class="ln">ATR quartiles of the tape</td><td>Q25 <b>11.04</b> / Q50 <b>14.43</b> / Q75 <b>19.27</b> pt — independently reproduces Q2's 11.0 / 14.4 / 19.2 from a separate code path.</td></tr>
+<tr><td class="ln">exit replay vs <code>shadow_real.real_pnl</code> (quote basis)</td><td>n=558, sign agreement <b>99.82%</b>, MAE <b>$0.80</b>; <b>$0.00 MAE on 4 of 6 gates</b>. This is a clone of <code>repricer.py</code>, including its two non-obvious rules: entry is the first quote <i>after the signal bar closes</i> (filling at the minute start is lookahead), and fills are at the far touch.</td></tr>
+<tr><td class="ln">tick basis vs quote basis</td><td>Quotes only cover 5 days; trade ticks cover 8. On the overlap: sign agreement <b>99.28%</b>, correlation <b>0.981</b>, and the tick basis is <b>more pessimistic in every single gate</b>. All headline numbers below are tick-basis (8 days) and cross-checked on the quote basis (5 days).</td></tr>
+</tbody>
+</table>
+
+<p>Populations are the <b>faithful shadow variants whose entry config is byte-identical to the live gate</b> — <code>abs_veto_55s</code> for both abs_veto sides, <code>grind_fast</code> for grind_long — replayed through the <b>live scale-out dual-slot exit</b> (Lot A fixed-R + Lot B per <code>exit_overrides.json</code>, or the built-in default). 644 signals, 8 days, 2026-07-23→07-31. Regime buckets keyed on ATR quartile + 30-min ER + 60-bar range-break, session split at 13:30 UTC.</p>
+
+<p class="ln"><b>One population caveat, stated up front:</b> <code>capitulation_long</code>'s only faithful proxy is <code>capit_loose</code>, which runs <code>require_flip=False</code> where the live gate runs <code>True</code>. It is a looser superset, so read that gate's rows as directional, not exact.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>3 · ★ The test, and the verdict on all five floors</h3>
+
+<p>The test is simple and it is the right one. Not trading costs nothing, so <b>a floor only earns its keep if the population it BLOCKS reliably loses money</b>. "Reliably" means three things at once: the blocked book is net negative, it is <i>still</i> negative after you strip its three biggest winners, and it is negative on the worst leave-one-day-out fold. A floor whose blocked book is <i>positive</i> is not a filter — it is a leak.</p>
+
+<table>
+<thead><tr><th>gate</th><th>floor</th><th>basis</th><th class="num">blocked n</th><th class="num">blocked net</th><th class="num">strip best-3</th><th class="num">LODO worst</th><th>verdict</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">grind_long</td><td>ER ≥ 0.35</td><td>tick</td><td class="num">173</td><td class="num">+$2,923</td><td class="num">+$1,132</td><td class="num">+$10.03</td><td><b>DELETE</b></td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>ER ≥ 0.35</td><td>quote</td><td class="num">150</td><td class="num">+$2,890</td><td class="num">+$1,152</td><td class="num">+$12.06</td><td><b>DELETE</b></td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>ATR ≥ 24</td><td>tick</td><td class="num">151</td><td class="num">+$982</td><td class="num">−$82</td><td class="num">+$2.92</td><td><b>REPLACE → 10</b></td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>ATR ≥ 24</td><td>quote</td><td class="num">130</td><td class="num">+$1,364</td><td class="num">+$209</td><td class="num">+$5.51</td><td><b>REPLACE → 10</b></td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_long</td><td>ER ≥ 0.25</td><td>tick</td><td class="num">52</td><td class="num">+$640</td><td class="num">+$111</td><td class="num">+$4.88</td><td><b>DELETE</b></td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_long</td><td>ER ≥ 0.25</td><td>quote</td><td class="num">44</td><td class="num">+$792</td><td class="num">+$260</td><td class="num">+$9.99</td><td><b>DELETE</b></td></tr>
+<tr><td class="ln">abs_veto_short</td><td>ATR ≥ 16</td><td>tick</td><td class="num">28</td><td class="num">+$137</td><td class="num">−$197</td><td class="num">−$11.02</td><td><b>NOT PROVEN</b></td></tr>
+<tr><td class="ln">abs_veto_short</td><td>ATR ≥ 16</td><td>quote</td><td class="num">23</td><td class="num">+$256</td><td class="num">−$101</td><td class="num">−$7.63</td><td><b>NOT PROVEN</b></td></tr>
+<tr class="row-hl"><td class="ln">capitulation_long</td><td>ATR ≥ 10</td><td>tick</td><td class="num">22</td><td class="num">−$459</td><td class="num">−$601</td><td class="num">−$26.62</td><td><b>KEEP</b></td></tr>
+<tr class="row-hl"><td class="ln">capitulation_long</td><td>ATR ≥ 10</td><td>quote</td><td class="num">18</td><td class="num">−$542</td><td class="num">−$674</td><td class="num">−$53.25</td><td><b>KEEP</b></td></tr>
+</tbody>
+</table>
+
+<p><b>One floor out of five passes.</b> Both bases agree on every verdict — no call in this table depends on which price stream you score it with.</p>
+
+<p><b>The standing priors, tested rather than inherited.</b> Memory says "ER filters are FAKE, ATR floors are REAL", and separately that abs_veto wants no ER floor while grind wanted 0.35.</p>
+<ul>
+<li><b>"ER filters are FAKE" — CONFIRMED, emphatically.</b> Both live ER floors block robustly profitable books on both price bases and all eight LODO folds. The <code>abs_veto_long</code> blocked book is positive on <i>every single one</i> of the 8 folds (+$4.88 to +$24.27 per signal).</li>
+<li><b>"abs_veto wants NO ER floor" — CONFIRMED, and now we know why.</b> Segmented, the entire blocked book is <b>NORMAL-CHOP: 40 signals, +$680</b>. The ER floor is precisely an anti-home filter — it fires exactly where Q2 showed abs_veto lives. It also makes the gate <i>less</i> robust: break-even loss multiplier falls from 1.27 to 1.13 with the floor on.</li>
+<li><b>"grind wanted 0.35" — REFUTED.</b> This is the most expensive single line of config on the desk. It keeps 8 signals worth +$83 and discards 173 worth +$2,923.</li>
+<li><b>"ATR floors are REAL" — HALF TRUE, and the half matters.</b> ATR floors do sharpen per-trade quality monotonically (grind's kept book goes $16.60 → $67 → $111 per signal as the floor climbs from 0 to 30). But <b>total dollars peak far lower than the live settings</b>. The floors are real; the <i>values</i> are roughly double where the money is.</li>
+</ul>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>4 · Per-gate detail — the number behind each verdict</h3>
+
+<h4>grind_long ATR: 24 → 10 (a genuine plateau at 9–11)</h4>
+<p>Swept fine, under the <code>ext_hi</code> 2.0 ceiling. The blocked book is the test:</p>
+<table>
+<thead><tr><th>ATR floor</th><th class="num">blocked n</th><th class="num">blocked net</th><th class="num">blk strip-3</th><th class="num">blk LODO</th><th class="num">kept n</th><th class="num">kept net</th><th class="num">kept $/sig</th></tr></thead>
+<tbody>
+<tr><td class="ln">8</td><td class="num">3</td><td class="num">−$13</td><td class="num">—</td><td class="num">—</td><td class="num">108</td><td class="num">+$2,944</td><td class="num">$27.26</td></tr>
+<tr><td class="ln">9</td><td class="num">9</td><td class="num">−$144</td><td class="num">−$222</td><td class="num">−$25.44</td><td class="num">102</td><td class="num">+$3,074</td><td class="num">$30.14</td></tr>
+<tr class="row-hl"><td class="ln"><b>10 ← re-derived</b></td><td class="num">11</td><td class="num">−$165</td><td class="num">−$293</td><td class="num">−$22.42</td><td class="num">100</td><td class="num">+$3,095</td><td class="num">$30.95</td></tr>
+<tr><td class="ln">11</td><td class="num">16</td><td class="num">−$3</td><td class="num">−$290</td><td class="num">−$16.95</td><td class="num">95</td><td class="num">+$2,934</td><td class="num">$30.88</td></tr>
+<tr class="row-bad"><td class="ln">12 ← the report's rec</td><td class="num">27</td><td class="num">+$776</td><td class="num">+$157</td><td class="num">+$14.80</td><td class="num">84</td><td class="num">+$2,154</td><td class="num">$25.64</td></tr>
+<tr class="row-bad"><td class="ln">24 ← LIVE as written</td><td class="num">91</td><td class="num">+$1,712</td><td class="num">+$742</td><td class="num">+$15.43</td><td class="num">20</td><td class="num">+$1,218</td><td class="num">$60.90</td></tr>
+</tbody>
+</table>
+<p>9, 10 and 11 all block a robustly negative book (negative net, negative strip-3, negative LODO) and sit within $161 of each other on kept net — a real plateau, not a spike. At 12 the blocked book <b>flips sharply positive</b> and stays positive all the way up. <b>The report's recommended 12 is one notch the wrong side of the cliff</b> and costs $941 versus 10. The plateau holds without the ceiling too (at ATR≥10, no ceiling: blocked 19 signals −$134, strip-3 −$376, LODO −$10.74), so this value does not depend on shipping the ceiling.</p>
+
+<h4>abs_veto_short ATR ≥ 16 — the one honest coin-flip</h4>
+<p>Blocked book is net <i>positive</i> (+$137 tick / +$256 quote) so it fails the stated test — but that positive is entirely tail-driven: strip its 3 best trades and it is −$197, and the worst LODO fold is −$11.02. The IS/OOS halves flip sign (+$417 then −$280). Meanwhile the floor <i>does</i> improve resilience: break-even multiplier 1.36 → 1.45, per-signal $15.07 → $22.02. <b>This floor is genuinely unproven in both directions.</b> Per the standing rule — a floor that cannot be shown to earn its keep is deleted, not tuned — I recommend deleting it, but it is the one line in this report where your own risk appetite legitimately overrides the evidence, and the cost of being wrong either way is about ±$150 over eight days. <span class="ln">Separately, a <b>lead, not a recommendation</b>: an ER≥0.10 floor on this gate blocks 14 signals worth −$183 (strip-3 −$605, LODO −$26.00) and lifts break-even to 1.54. That is a better filter than the ATR one — but it is a <i>new</i> filter and belongs in shadow first, not in tonight's window.</span></p>
+
+<h4>capitulation_long ATR ≥ 10 — KEEP the floor, but the floor is not the problem</h4>
+<p>The only floor that passes cleanly, on both bases and every robustness test. Keep it at 10. But be clear about what it is buying: the gate loses money at <i>every</i> floor value — −$1,202 with no floor, −$743 at ATR 10, −$540 at ATR 14, and it only stops losing when the floor is high enough that it stops trading. Break-even loss multiplier <b>0.41</b>. The floor is harm-reduction on a gate that needs a relegation conversation, not a tuning one; its live scale-out record agrees (5 signals, −$128.50). <span class="ln">Lead only, on the loose proxy population: an ER≥0.25 floor flips it to +$124 on n=13, break-even 1.48. Too thin and on the wrong population to act on tonight.</span></p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>5 · ★ The interaction that gates tonight — grind_long</h3>
+
+<p>Three questions, answered directly.</p>
+
+<p><b>(a) Was the grind replay applying the floors as config, or did it inherit the dead-floor reality?</b> <b>It applied them as config.</b> <code>scripts/rehab_grind_long.py:124</code> reads <code>if er &lt; er_floor or f.atr &lt; atr_floor: continue</code>, and line 234 hard-codes <code>[x for x in raw if x["er"] &gt;= 0.35 and x["atr"] &gt;= 24.0]</code>. The funnel re-runs as: 1,232 raw signals → 93 clear ER 0.35 → 171 clear ATR 24 → <b>25 clear both</b> → 11 realised trades. So the "11 fires −$284" baseline is a <b>simulation of a configuration that was not running</b>. <b>The honest before/after is +$1,552 → +$2,830, not −$284 → +$2,830.</b> Roughly 59% of the advertised delta is the removal of filters that were already de-facto removed. The report is internally aware of this — Q2 §3 even says Part 1.5 needs re-reading — but the numbers in <code>part1_5_rehab.html</code>, <code>rehab_grind_long.md</code> and the <code>money_gbp: 700</code> in <code>plays.json</code> were never corrected.</p>
+
+<p><b>(b) If the wiring fix ships, do grind's floors come back to life and silently undo the entry fix?</b> <b>Yes — catastrophically, and it would not be silent for long.</b></p>
+<table>
+<thead><tr><th>world</th><th class="num">n</th><th class="num">net</th><th class="num">$/sig</th><th class="num">win%</th><th class="num">strip-3</th><th class="num">LODO min</th><th class="num">@1.5× losses</th><th class="num">break-even ×</th></tr></thead>
+<tbody>
+<tr><td class="ln"><b>A.</b> dead floors, ext_hi 4.0 — <b>what the desk has actually been running</b></td><td class="num">181</td><td class="num">+$3,005</td><td class="num">$16.60</td><td class="num">34.3</td><td class="num">+$1,214</td><td class="num">+$11.11</td><td class="num">−$1,449</td><td class="num">1.34</td></tr>
+<tr class="row-bad"><td class="ln"><b>B.</b> floors ALIVE as written — <b>what D1 alone ships</b></td><td class="num">4</td><td class="num">+$360</td><td class="num">$90.00</td><td class="num">50.0</td><td class="num">−$145</td><td class="num">−$25.96</td><td class="num">+$218</td><td class="num">2.27</td></tr>
+<tr><td class="ln"><b>C.</b> ext_hi 2.0 ceiling only</td><td class="num">111</td><td class="num">+$2,930</td><td class="num">$26.40</td><td class="num">38.7</td><td class="num">+$1,161</td><td class="num">+$19.11</td><td class="num">+$358</td><td class="num">1.57</td></tr>
+<tr><td class="ln"><b>D.</b> the report's rec: no ER floor, ATR≥12, ext_hi 2.0</td><td class="num">84</td><td class="num">+$2,154</td><td class="num">$25.64</td><td class="num">36.9</td><td class="num">+$385</td><td class="num">+$14.36</td><td class="num">−$98</td><td class="num">1.48</td></tr>
+<tr class="row-hl"><td class="ln"><b>E.</b> re-derived: no ER floor, <b>ATR≥10</b>, ext_hi 2.0</td><td class="num">100</td><td class="num">+$3,095</td><td class="num">$30.95</td><td class="num">40.0</td><td class="num">+$1,326</td><td class="num">+$23.58</td><td class="num">+$669</td><td class="num">1.64</td></tr>
+</tbody>
+</table>
+<p>World B is the answer to (b): <b>181 signals collapse to 4, and +$3,005 becomes +$360.</b> On the quote basis it is 156 → 3. Ninety-eight percent of grind's fires disappear. That is not "the entry fix gets undone" — it is "the gate gets switched off by accident".</p>
+
+<p><b>The ceiling itself is real and it is the only genuinely new lever here.</b> I reproduced the report's headline independently: filtering to <code>ext_atr ≤ 2.0</code> gives <b>111 fires / +$2,930</b> against their 111 fires / +$2,830 — a 3.5% agreement from a completely separate code path, which is strong corroboration of both harnesses. The plateau across ext_hi 1.5 / 1.75 / 2.0 is broad ($2,646 / $2,931 / $2,930). And the honest argument for the ceiling is not the raw dollars — those barely move — it is <b>resilience</b>: at 1.5× losses the uncapped book is <b>−$1,449</b> while the capped book is <b>+$358</b>. The ceiling does not make more money; it makes the same money out of 39% fewer trades, which is what survives contact with real fills.</p>
+
+<p><b>Row E beats row D on every measure</b> — net (+$941), per-signal, win rate, strip-best-3 (+$1,326 vs +$385), worst LODO fold (+$23.58 vs +$14.36), the 1.5× stress test (+$669 vs −$98) and break-even multiplier (1.64 vs 1.48) — and on both IS and OOS halves. All 8 LODO folds of row E are positive, ranging $23.58 to $37.81 per signal. <b>Ship ATR 10, not 12.</b></p>
+
+<p><b>(c) The desk-wide cost of getting the order wrong.</b> Shipping D1 alone, across all four floored gates, on 8 days of tick-honest replay:</p>
+<table>
+<thead><tr><th>gate</th><th>floor as written</th><th class="num">today n / net</th><th class="num">after D1 n / net</th><th class="num">fires lost</th><th class="num">dollars lost</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">grind_long</td><td>ER≥0.35 <i>and</i> ATR≥24</td><td class="num">181 / +$3,005</td><td class="num">4 / +$360</td><td class="num">98%</td><td class="num">−$2,645</td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_long</td><td>ER≥0.25</td><td class="num">81 / +$787</td><td class="num">29 / +$148</td><td class="num">64%</td><td class="num">−$640</td></tr>
+<tr><td class="ln">abs_veto_short</td><td>ATR≥16</td><td class="num">69 / +$1,040</td><td class="num">41 / +$903</td><td class="num">41%</td><td class="num">−$137</td></tr>
+<tr class="row-hl"><td class="ln">capitulation_long</td><td>ATR≥10</td><td class="num">51 / −$1,202</td><td class="num">29 / −$743</td><td class="num">43%</td><td class="num">+$459</td></tr>
+<tr class="row-bad"><td class="ln"><b>DESK TOTAL</b></td><td>—</td><td class="num"><b>382 / +$3,630</b></td><td class="num"><b>103 / +$668</b></td><td class="num"><b>73%</b></td><td class="num"><b>−$2,962</b></td></tr>
+</tbody>
+</table>
+<p>About <b>−$370 a day</b>, and it would arrive as "the desk mysteriously stopped trading" rather than as a visible loss.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>6 · The ship order for tonight — concrete, ordered, revertible</h3>
+
+<div class="callout"><div class="ct"><b>The one rule that makes this safe.</b> Because the floors are currently dead, <b>changing the floor VALUES today is provably a no-op on the live desk.</b> That is the whole trick: land the correct values first while they cannot possibly do harm, then flip the wiring as a single, atomic, one-line arming moment. <b>Never ship the wiring fix before or without the values.</b> If you only remember one thing, remember that <code>tournament.py:139/142</code> is the master switch and it goes last.</div></div>
+
+<p><b>STEP 1 — land the re-derived floor values (no-op by construction).</b> <code>src/gazbot7/deciders.py</code>:</p>
+<pre>-ER_FLOOR = {"abs_veto_long": 0.25, "grind_long": 0.35}
++ER_FLOOR: dict = {}   # ★2026-08-01 REV3: both momentum-long ER floors DELETED. Re-derived on 8d
++                      # tick-honest replay: grind 0.35 blocked +$2,923 (strip-3 +$1,132, all 8 LODO
++                      # folds positive); abs_veto_long 0.25 blocked +$640, all of it NORMAL-CHOP,
++                      # the gate's home cell. Never ran live (committed after the 07-29 cutover).
+
+-ATR_FLOOR = {"grind_long": 24.0, "capitulation_long": 10.0, "abs_veto_short": 16.0}
++ATR_FLOOR = {"grind_long": 10.0, "capitulation_long": 10.0}   # ★2026-08-01 REV3: grind 24→10
++          # (plateau 9-11; at 12+ the blocked book flips positive). capitulation 10 KEPT — the only
++          # floor whose blocked book is robustly negative. abs_veto_short 16 DELETED — unproven.</pre>
+<p class="ln"><b>Verify:</b> restart, then confirm the journal <i>still</i> shows zero <code>ER gate:</code> / <code>ATR gate:</code> lines. If any appear, something else changed — stop. <b>Revert:</b> restore the two literals; no-op either way while Step 2 is unshipped.</p>
+
+<p><b>STEP 2 — the wiring fix. This is the arming moment.</b> <code>src/gazbot7/tournament.py</code>:</p>
+<pre>-            if er_blocks(slot, er):
++            if er_blocks(_base(slot), er):
+-            if atr_blocks(slot, f.atr):
++            if atr_blocks(_base(slot), f.atr):</pre>
+<p class="ln">Optionally also <code>:148/:154</code> <code>slot</code> → <code>_base(slot)</code> to revive the ER-hold <b>shadow</b> study (observe-only, no P&amp;L effect). <b>Verify within one session:</b> suppression lines reappear with <i>base</i> names; <code>grind_long</code> ATR blocks should run at roughly <b>10% of fires</b> and <code>capitulation_long</code> at <b>43%</b>; there should be <b>zero</b> <code>ER gate:</code> lines anywhere (both ER floors are now empty). Any <code>ER gate:</code> line means Step 1 did not take. <b>Revert:</b> one-line, <code>_base(slot)</code> → <code>slot</code>. <b>This single revert neutralises Steps 1 and 2 together</b> and returns the desk to exactly today's behaviour — it is the kill switch.</p>
+
+<p><b>STEP 3 — the grind ext_hi ceiling. Separate commit, separate restart, separate observation.</b> <code>src/gazbot7/slot_strategy.py:118</code>:</p>
+<pre>-                 params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
++                 params={"slope_min": 0.4, "fast_slope": True, "ext_hi": 2.0}, sizing="conviction", base_size=2,</pre>
+<p class="ln">This is the <b>only</b> change here that alters entry behaviour immediately and unconditionally — it is not gated by the wiring bug, so it has real effect the moment the service restarts. Expect roughly <b>39% fewer grind fires</b>. The mechanism already exists (<code>gate_grind(..., ext_hi=4.0)</code> at <code>deciders.py:370</code>, enforced at <code>:380</code>); only the value is being set. <b>Revert:</b> delete <code>"ext_hi": 2.0</code> from the dict → back to the 4.0 default. <b>Keep this out of the Step-2 commit</b> so that if grind misbehaves you can tell which change did it.</p>
+
+<p><b>STEP 4 — nothing else tonight.</b> The abs_veto_short ER≥0.10 lead and the capitulation_long ER≥0.25 lead are both interesting and both go to <b>shadow</b>, not to live. Neither is in the diff above.</p>
+
+<table>
+<thead><tr><th class="num">#</th><th>step</th><th>live effect at ship time</th><th>revert</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td class="ln">deciders.py floor values</td><td><b>none</b> — provably a no-op while the wiring is broken</td><td>restore two literals</td></tr>
+<tr class="row-hl"><td class="num">2</td><td class="ln">tournament.py <code>_base(slot)</code> ×2</td><td><b>arms everything</b>: grind blocks ~10% of fires, capitulation ~43%, abs_veto unaffected</td><td><b>one line — the kill switch for 1+2</b></td></tr>
+<tr><td class="num">3</td><td class="ln">slot_strategy.py <code>ext_hi: 2.0</code></td><td>immediate: ~39% fewer grind fires</td><td>delete one key</td></tr>
+<tr><td class="num">—</td><td class="ln">whole slate, if it all goes wrong</td><td>—</td><td><code>GAZBOT7_TOURNAMENT_SLATE=tournament</code></td></tr>
+</tbody>
+</table>
+<p>Router benching is untouched by all of this and remains reversible every 5 minutes.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>7 · The biggest risk, and what this does NOT prove</h3>
+
+<p><b>The biggest risk if you ship all three tonight is that grind_long is a high-count, low-margin book being asked to survive real fills.</b> Even the best config — row E — has a break-even loss multiplier of <b>1.64</b>, and memory <code>[[shadow-sim-understates-losses]]</code> puts live losses at <b>1.1–3.1× modelled</b>. That number sits inside the band. If live losses on this gate run at 1.7× rather than 1.5×, the entire +$3,095 is zero, and everything in §5 becomes an argument about noise. The ceiling helps (it is why row E survives 1.5× where row A does not) but it does not lift grind out of the band. Grind is being made <i>less bad and more robust</i>, not made good.</p>
+
+<p>Behind that, three more:</p>
+<ul>
+<li><b>My replay is always-armed; the live desk is not.</b> In the same window the router benched 465 grind/abs_veto signal episodes. The interaction between the router's benching and the new floors is <b>unmeasured</b> — the two filters could stack and starve the gate, or overlap and do nothing. Watch the combined block rate on the first session, not just the floor's.</li>
+<li><b>Eight days, one regime.</b> Chop-dominated, MNQ-only, PAPER. CLEAN-TREND is n=1 for grind at the ceiling — completely unscored. A wide <code>ext_atr</code> is exactly what a trend day pays for, and <code>ext_hi</code> 2.0 caps it. If Monday opens trending, Step 3 is the first thing to question.</li>
+<li><b>Two population caveats.</b> <code>capitulation_long</code>'s proxy runs <code>require_flip=False</code> against the live <code>True</code>, so its rows are directional only. And <code>abs_veto_short</code>'s ATR verdict is a coin-flip I have called by rule rather than by evidence — I would not defend it hard either way.</li>
+</ul>
+
+<p class="ln"><b>What would change my mind:</b> for grind, one clean trend week with <code>ext_atr</code> above 2.0 paying — that is the single scenario this tape cannot speak to. For the two ER deletions, nothing on this evidence; they are the most robust calls in the report, positive on both price bases and all eight folds.</p>
+</div>

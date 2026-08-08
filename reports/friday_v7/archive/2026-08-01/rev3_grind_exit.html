@@ -1,0 +1,254 @@
+<!-- REV3 — grind_long EXIT SWEEP. PATCHES: REV2 · Q1 ("What the desk made without your hands on it") — specifically its closing "Not swept, and it should be" admission that grind_long's 2.5/wide pair never went through the exit ladder. Also patches PART 2 · LAB (the exit-ladder table's grind rows) and REV2 · Q0 item M5 (grind_long -> {a_r 0.5, b 1.0}), which this section refutes. Extends REV2 · Q3 (the pre-registered freeze cell). Everything below is computed from data/gazbot7.db (venue truth), data/capture.db 250 ms ticks, alphabot2/data/ticks.db 250 ms ticks and alphabot2/data/alphabot.db bar_history. Read-only: no live config was touched. -->
+
+<h2><span class="n">REV3</span> grind_long's exit, swept properly — and what the cell should be</h2>
+
+<p class="mono"><strong>PATCH MARKER —</strong> this section <strong>closes the hole REV2 · Q1 flagged in itself</strong> ("grind_long's 2.5/wide pair was not put through this ladder &hellip; that sweep is the obvious next job and its absence is a hole in this section, not a silence"). It also <strong>patches PART 2 · LAB</strong>'s grind rows and <strong>refutes REV2 · Q0 item M5</strong> (<code>grind_long &rarr; {a_r 0.5, b 1.0}</code>), and it <strong>extends REV2 · Q3</strong> by grading its pre-registered freeze cell on tick data a fortnight early. Where this section and any of those disagree, this section is the correction.</p>
+
+<p class="lead">Garrath — the short version is that we were arguing about the wrong knob. I swept <strong>grind_long's exit across 130 configurations on 3,064 tick-repriced entries over 16 sessions</strong>, and <strong>not one exit setting makes the gate green</strong>. The loaded default (Lot&nbsp;A&nbsp;2.5R + Lot&nbsp;B wide lock-chandelier) loses <strong>&minus;$2,115</strong> over those 16 sessions; the single best cell on the board still loses <strong>&minus;$414</strong>. What the sweep <em>does</em> settle is the direction of travel, and it is the opposite of what the Friday report recommended: <strong>tighter is worse, not better.</strong> The M5 proposal (0.5R&nbsp;/&nbsp;1.0R) is <strong>&minus;$1,127 worse</strong> than what is loaded today and fails every robustness test I ran. My recommendation is the small, pre-registered move: <strong>write <code>{"grind_long": {"a_r": 3.0, "b": "wide"}}</code></strong> — Lot A from 2.5R to 3.0R, Lot B unchanged — worth <strong>+$617</strong> over the 16 sessions against the loaded baseline. And then stop tuning the exit, because the same data says the <em>arming</em> decision is worth three to five times as much.</p>
+
+<div class="callout"><div class="ct">The one-paragraph answer</div>
+<p><strong>Recommended cell: <code>{"grind_long": {"a_r": 3.0, "b": "wide"}}</code>. Baseline: the built-in BIG-RUN default it inherits today, Lot A 2.5R + Lot B wide lock-chandelier, which scores &minus;$2,115 over 16 tick-covered sessions (&minus;$1.72 per lot-fill, 26% win). The recommended cell scores &minus;$1,498 (&minus;$1.31 per lot-fill) — a delta of +$617, about +$39 a session at sim fill-density, nearer +$10 a session at the live desk's actual fill rate.</strong> It passes leave-one-day-out (worst-case diff still +$222), beats the default on 10 of 16 sessions, and sits on the correct side of the one finding that survives every test: <em>the 3.5R rung beats both of the loaded legs in both halves of the tape</em> (+$997 archive, +$705 capture). It <strong>fails</strong> the bootstrap bar (P(diff&gt;0)&nbsp;=&nbsp;0.82, not 0.95), <strong>fails</strong> strip-the-best-3-days (&minus;$130), and <strong>fails</strong> the out-of-sample sign test (archive half &minus;$76 against capture half +$693). So it is a sensible small move on a proven direction, not a proven number — which is exactly why I am recommending the cell REV2·Q3 already pre-registered for Monday rather than the cell with the prettiest statistics (3.5R/3.5R, +$1,702, passes everything except the plateau test, and it is a one-rung spike). <strong>The single biggest caveat: none of this makes grind_long profitable. It is red at every setting, before any slippage.</strong></p></div>
+
+<div class="card">
+<h3>Fact table 1 — what is actually loaded today (verified in code, not recalled)</h3>
+<p><code>data/exit_overrides.json</code> currently contains three keys — <code>exhaustion_short</code>, <code>abs_veto_long</code>, <code>abs_veto_short</code>. <strong><code>grind_long</code> is not one of them</strong>, so <code>scaleout_slots()</code> falls through to the built-in BIG-RUN branch. This is the config every number in this section is measured against.</p>
+<table>
+<thead><tr><th class="ln">Piece</th><th class="ln">What is loaded</th><th class="ln">Where in code</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">Lot A (<code>grind_long_A</code>)</td><td class="ln"><code>exit="scalp"</code>, <strong>target_r = 2.5</strong>, stop_atr_mult 1.0, <code>adaptive_exit=False</code>, give-back OFF, size 1</td><td class="ln"><code>slot_strategy.py:213-217</code></td></tr>
+<tr class="row-hl"><td class="ln">Lot B (<code>grind_long_B</code>)</td><td class="ln"><code>exit="chandelier_lock"</code>, <strong>start_k 3.5 &rarr; lock_k 0.5 once peak &ge; 6.0R</strong>, size 1</td><td class="ln"><code>slot_strategy.py:189-192</code> (<code>_lot_b(..., "wide")</code>)</td></tr>
+<tr><td class="ln">Why it gets that pair</td><td class="ln"><code>grind_long</code> is in <code>_BIG_RUN</code> &rarr; A@2.5R + B wide; a gate absent from the override file keeps its built-in default</td><td class="ln"><code>slot_strategy.py:149</code></td></tr>
+<tr><td class="ln">Loss side</td><td class="ln">native server-side stop at <strong>1.0 &times; entry ATR</strong>; hard <strong>120-minute MAX_HOLD</strong></td><td class="ln"><code>config.py:126</code>, <code>multislot_core.py:388</code></td></tr>
+<tr><td class="ln">Entry</td><td class="ln"><code>gate_grind(slope_min=0.4, fast_slope=True)</code>, LONG only, 60 one-minute bars of lookback</td><td class="ln"><code>slot_strategy.py:115-118</code></td></tr>
+<tr class="row-bad"><td class="ln">Entry floors (ER&nbsp;&ge;&nbsp;0.35, ATR&nbsp;&ge;&nbsp;24)</td><td class="ln"><strong>NOT APPLIED</strong> — see fact table 9. The filters are keyed on <code>grind_long</code>; the live slots are called <code>grind_long_A</code> / <code>grind_long_B</code></td><td class="ln"><code>tournament.py:139,142</code> vs <code>deciders.py:107,173</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Fact table 2 — how this was measured, and the one methodological change that mattered</h3>
+<p>Two simulators, same tape, same ticks. The difference between them is the whole reason the Friday lab and this section disagree.</p>
+<table>
+<thead><tr><th class="ln">Method</th><th class="ln">What it does</th><th class="num">signals</th><th class="ln">Verdict on it</th></tr></thead>
+<tbody>
+<tr><td class="ln"><strong>Paired</strong> (the Friday lab's method)</td><td class="ln">take every gate signal as an independent entry, reprice all exits on the same forward path, average</td><td class="num">902</td><td class="ln">good for <em>mechanism</em> questions (entry variance cancels) — but it <strong>stacks overlapping entries</strong>: on a real run the gate fires every few minutes and the sim buys all of them, so trend tape gets counted 10&ndash;20 times over. Its answer for the loaded default was <em>+$2,961</em> — a number the live desk has never seen.</td></tr>
+<tr class="row-hl"><td class="ln"><strong>Sequential</strong> (headline here)</td><td class="ln">each lot is a slot holding <strong>one</strong> position; it takes the next signal only once it is flat again — exactly what the live dual-slot desk does</td><td class="num">3,064</td><td class="ln">the honest <strong>policy</strong> test. Same default scores <strong>&minus;$2,115</strong>, which is the sign and the shape the live ledger shows. Every headline number below is sequential.</td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th class="ln">Tape / input</th><th class="ln">Detail</th><th class="num">size</th></tr></thead>
+<tbody>
+<tr><td class="ln">Signal tape (5s bars &rarr; 1-min)</td><td class="ln"><code>alphabot.db bar_history</code> MNQ 5s (06-19&rarr;07-15) stitched to <code>capture.db</code> 5s (07-15&rarr;07-31); seam verified one tick apart</td><td class="num">498,406 bars / 31 sessions</td></tr>
+<tr><td class="ln">grind_long signal-minutes</td><td class="ln">every minute the live gate config fires LONG (no artificial cooldown — the slot re-arm handles it)</td><td class="num">5,874</td></tr>
+<tr class="row-hl"><td class="ln"><strong>Exit repricing — 250 ms ticks only</strong></td><td class="ln"><code>ticks.db</code> 07-05 22:00&rarr;07-17 21:00 (15.3M MNQ ticks) + <code>capture.db</code> 07-23 22:00&rarr;07-31 21:00 (10.1M ticks). <strong>No bar-based exits anywhere in this section.</strong></td><td class="num"><strong>3,064 entries · 16 sessions</strong></td></tr>
+<tr class="row-bad"><td class="ln">Deliberately excluded</td><td class="ln">2,803 signal-minutes on 15 sessions (06-19&rarr;07-05, 07-18&rarr;07-23) that have <strong>5-second bars but no ticks</strong>. REV2·Q3's Track A back-extension would add them at tier-2; I refused them for the headline because 5s repricing biases in favour of wide stops, which is the thing under test.</td><td class="num">&mdash;</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Fact table 3 — does the model track reality? (the calibration nobody usually shows)</h3>
+<p>Before trusting a single sweep number: I took the <strong>60 real live <code>grind_long</code> fills</strong> that fall inside tick coverage, reconstructed each one's entry ATR, and ran the loaded exit against the ticks. If the model cannot reproduce trades the desk actually did, the sweep is fiction.</p>
+<table>
+<thead><tr><th class="ln">Check</th><th class="num">n</th><th class="ln">Real</th><th class="ln">Model</th><th class="ln">Read</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">Entry ATR reconstruction — my ATR vs the ATR implied by the real stop distance</td><td class="num">52</td><td class="ln">stop distance / my ATR</td><td class="ln">median ratio <strong>1.016</strong></td><td class="ln">the ATR I feed the sim is the ATR the desk used, within 1.6%</td></tr>
+<tr><td class="ln">Real STOP fills, dollars</td><td class="num">40</td><td class="ln">&minus;$2,001.6</td><td class="ln">&minus;$1,871.1</td><td class="ln">real stops fill <strong>7% worse</strong> than the model's exact-level fill</td></tr>
+<tr><td class="ln">Real TARGET fills, dollars</td><td class="num">9</td><td class="ln">+$1,137.0</td><td class="ln">+$862.9</td><td class="ln">model 24% conservative on targets</td></tr>
+<tr><td class="ln">Lot A exit mix</td><td class="num">33 live / 737 sim</td><td class="ln">67% stop, 27% target, median hold 3.5 min</td><td class="ln">72% stop, 28% target, median hold 4.8 min</td><td class="ln">matches</td></tr>
+<tr><td class="ln">Lot B exit mix</td><td class="num">19 live / 491 sim</td><td class="ln">68% stop, 16% chandelier, median hold 7.0 min</td><td class="ln">78% stop, 22% chandelier, median hold 6.0 min</td><td class="ln">matches</td></tr>
+<tr class="row-bad"><td class="ln">Fill density</td><td class="num">&mdash;</td><td class="ln">~20 lot-fills / armed session</td><td class="ln">77 lot-fills / session</td><td class="ln"><strong>the sim trades ~3.8&times; more often</strong> (the live gate spends much of the week router-benched). Rank configs on this; scale dollars down before quoting them as forecasts.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Fact table 4 — the exit ladder for ONE lot (16 sessions, sequential, 250 ms ticks)</h3>
+<p>This is the whole sweep in one table, because a pair cell is just the sum of two independent lots. <strong>Every row loses money.</strong> Read the <em>shape</em>, not the winner.</p>
+<table>
+<thead><tr><th class="ln">Lot exit</th><th class="num">fills</th><th class="num">net $</th><th class="num">$ / fill</th><th class="num">win %</th><th class="num">LODO worst</th><th class="ln">read</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">scalp 0.5R <em>(M5's Lot A)</em></td><td class="num">1,770</td><td class="num">&minus;1,915</td><td class="num">&minus;1.08</td><td class="num">67</td><td class="num">&minus;2,424</td><td class="ln">wins two trades in three and still bleeds — the fee and the unchanged 1R stop eat it</td></tr>
+<tr><td class="ln">scalp 0.75R</td><td class="num">1,430</td><td class="num">&minus;1,491</td><td class="num">&minus;1.04</td><td class="num">58</td><td class="num">&minus;2,077</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td class="ln">scalp 1.0R <em>(M5's Lot B)</em></td><td class="num">1,203</td><td class="num">&minus;1,328</td><td class="num">&minus;1.10</td><td class="num">51</td><td class="num">&minus;2,154</td><td class="ln">&nbsp;</td></tr>
+<tr><td class="ln">scalp 1.25R</td><td class="num">1,069</td><td class="num">&minus;1,397</td><td class="num">&minus;1.31</td><td class="num">45</td><td class="num">&minus;2,107</td><td class="ln">&nbsp;</td></tr>
+<tr><td class="ln">scalp 1.5R</td><td class="num">974</td><td class="num">&minus;1,000</td><td class="num">&minus;1.03</td><td class="num">40</td><td class="num">&minus;1,859</td><td class="ln">&nbsp;</td></tr>
+<tr><td class="ln">scalp 2.0R</td><td class="num">836</td><td class="num">&minus;1,390</td><td class="num">&minus;1.66</td><td class="num">33</td><td class="num">&minus;1,954</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-hl"><td class="ln"><strong>scalp 2.5R — LOADED Lot A</strong></td><td class="num">737</td><td class="num">&minus;1,178</td><td class="num">&minus;1.60</td><td class="num">28</td><td class="num">&minus;1,676</td><td class="ln">the baseline lot</td></tr>
+<tr><td class="ln">scalp 3.0R</td><td class="num">655</td><td class="num"><strong>&minus;560</strong></td><td class="num">&minus;0.86</td><td class="num">25</td><td class="num">&minus;1,188</td><td class="ln">the recommended Lot A</td></tr>
+<tr><td class="ln">scalp 3.5R</td><td class="num">607</td><td class="num"><strong>&minus;207</strong></td><td class="num">&minus;0.34</td><td class="num">23</td><td class="num">&minus;851</td><td class="ln">best on the board — but a <strong>spike</strong>, not a plateau (3.0R is $353 worse, 4.0R is $709 worse)</td></tr>
+<tr><td class="ln">scalp 4.0R</td><td class="num">563</td><td class="num">&minus;916</td><td class="num">&minus;1.63</td><td class="num">20</td><td class="num">&minus;1,578</td><td class="ln">&nbsp;</td></tr>
+<tr><td class="ln">scalp 5.0R</td><td class="num">510</td><td class="num">&minus;985</td><td class="num">&minus;1.93</td><td class="num">17</td><td class="num">&minus;1,577</td><td class="ln">&nbsp;</td></tr>
+<tr><td class="ln">scalp 6.0R</td><td class="num">460</td><td class="num">&minus;856</td><td class="num">&minus;1.86</td><td class="num">15</td><td class="num">&minus;1,631</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-hl"><td class="ln"><strong>WIDE lock-chandelier 3.5&rarr;0.5@6R — LOADED Lot B</strong></td><td class="num">491</td><td class="num">&minus;938</td><td class="num">&minus;1.91</td><td class="num">22</td><td class="num">&minus;1,520</td><td class="ln">mid-pack; no better than a plain 3.0R target, no worse than 6.0R</td></tr>
+<tr class="row-bad"><td class="ln">TIGHT chandelier k1.5</td><td class="num">1,169</td><td class="num">&minus;2,718</td><td class="num">&minus;2.33</td><td class="num">51</td><td class="num">&minus;3,337</td><td class="ln"><strong>worst exit on the board</strong></td></tr>
+<tr class="row-bad"><td class="ln">chandelier k2.5</td><td class="num">889</td><td class="num">&minus;2,066</td><td class="num">&minus;2.32</td><td class="num">40</td><td class="num">&minus;2,555</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td class="ln">chandelier k3.5 (plain, tightening)</td><td class="num">719</td><td class="num">&minus;1,977</td><td class="num">&minus;2.75</td><td class="num">31</td><td class="num">&minus;2,554</td><td class="ln">the tightening chandelier family is uniformly bad here</td></tr>
+</tbody>
+</table>
+<div class="callout"><div class="ct">The plateau test, stated plainly</div>
+<p>There is <strong>no plateau at the winner</strong>. 3.5R beats its neighbours by $353 and $709 on a 16-session sample where session-to-session swings are &plusmn;$1,000 — that is inside the noise, and the desk's own rule is that a spike is not a result. What <em>is</em> a plateau is the <strong>region</strong>: on the full tape every fixed target from 3.0R to 6.0R sits between &minus;$207 and &minus;$985, every target at 2.5R or tighter sits between &minus;$1,000 and &minus;$1,915, and all three tightening chandeliers sit below &minus;$1,900. <strong>The shape is proven; the point is not.</strong></p>
+<p><strong>And the shape is weaker than that sounds, so here is the half-split before anyone over-reads it.</strong> The wide-beats-tight ordering does <em>not</em> hold rung-by-rung inside each half: in the 10 archive sessions the least-bad single lot is actually 0.5R (&minus;$1,227, against &minus;$1,264 for 3.5R and &minus;$1,901 for the wide chandelier), and in the 6 capture sessions 1.5R (+$1,071) edges 3.5R (+$1,058). What survives the split is narrower and is the thing I am relying on: <strong>3.5R beats <em>both</em> of the currently-loaded legs — 2.5R and the wide chandelier — in the archive half and in the capture half.</strong> Everything wider than that (4R, 5R, 6R) is worse than 3.5R in both halves too. So "go a bit wider on Lot A, leave Lot B alone" is supported on both halves; "wide is always better than tight" is not, and I am not claiming it.</p>
+<table>
+<thead><tr><th class="ln">Lot exit</th><th class="num">archive half (10 sessions)</th><th class="num">capture half (6 sessions)</th><th class="num">full tape</th></tr></thead>
+<tbody>
+<tr><td class="ln">scalp 0.5R</td><td class="num">&minus;1,227</td><td class="num">&minus;687</td><td class="num">&minus;1,915</td></tr>
+<tr><td class="ln">scalp 1.5R</td><td class="num">&minus;2,071</td><td class="num">+1,071</td><td class="num">&minus;1,000</td></tr>
+<tr class="row-hl"><td class="ln"><strong>scalp 2.5R — loaded Lot A</strong></td><td class="num">&minus;1,624</td><td class="num">+446</td><td class="num">&minus;1,178</td></tr>
+<tr><td class="ln">scalp 3.0R — recommended Lot A</td><td class="num">&minus;1,700</td><td class="num">+1,140</td><td class="num">&minus;560</td></tr>
+<tr><td class="ln">scalp 3.5R</td><td class="num">&minus;1,264</td><td class="num">+1,058</td><td class="num">&minus;207</td></tr>
+<tr><td class="ln">scalp 6.0R</td><td class="num">&minus;1,677</td><td class="num">+821</td><td class="num">&minus;856</td></tr>
+<tr class="row-hl"><td class="ln"><strong>WIDE lock-chandelier — loaded Lot B</strong></td><td class="num">&minus;1,901</td><td class="num">+964</td><td class="num">&minus;938</td></tr>
+<tr class="row-bad"><td class="ln">TIGHT chandelier k1.5</td><td class="num">&minus;2,217</td><td class="num">&minus;501</td><td class="num">&minus;2,718</td></tr>
+</tbody>
+</table>
+<p class="mono">Note the honest wrinkle in the recommended cell: 3.0R is <em>worse</em> than the loaded 2.5R in the archive half (&minus;$1,700 vs &minus;$1,624) and much better in the capture half (+$1,140 vs +$446). That is precisely why its bootstrap comes out at 0.82 and not 0.95, and why I am calling +$617 a direction rather than a forecast.</p></div>
+</div>
+
+<div class="card">
+<h3>Fact table 5 — the candidate cells, with the robustness tests attached</h3>
+<p>Baseline for every "delta" column is the loaded default <code>A2.5R + WIDE</code> at &minus;$2,115. "strip top-3 days" removes the three best sessions <em>from the difference</em>; "LODO worst" is the worst leave-one-session-out difference; ARCH = the 10 archive sessions (07-06&rarr;07-17), CAP = the 6 capture sessions (07-24&rarr;07-31) — a clean time split, and the out-of-sample leg.</p>
+<table>
+<thead><tr><th class="ln">Cell</th><th class="num">fills</th><th class="num">net $</th><th class="num">delta vs loaded</th><th class="num">beats base on</th><th class="num">strip top-3 days</th><th class="num">LODO worst</th><th class="num">P(diff&gt;0)</th><th class="num">ARCH diff</th><th class="num">CAP diff</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><strong>A2.5 / B wide — LOADED TODAY</strong></td><td class="num">1,228</td><td class="num">&minus;2,115</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr class="row-hl"><td class="ln"><strong>A3.0 / B wide — RECOMMENDED</strong></td><td class="num">1,146</td><td class="num"><strong>&minus;1,498</strong></td><td class="num"><strong>+617</strong></td><td class="num">10 / 16</td><td class="num">&minus;130 <em>fail</em></td><td class="num">+222 <em>pass</em></td><td class="num">0.822 <em>fail</em></td><td class="num">&minus;76 <em>fail</em></td><td class="num">+693</td></tr>
+<tr><td class="ln">A3.5 / B 3.0</td><td class="num">1,262</td><td class="num">&minus;767</td><td class="num">+1,348</td><td class="num">11 / 16</td><td class="num">+9 <em>pass</em></td><td class="num">+619 <em>pass</em></td><td class="num">0.934 <em>fail</em></td><td class="num">+561</td><td class="num">+787</td></tr>
+<tr><td class="ln">A3.5 / B 3.5 <em>(best statistics on the board)</em></td><td class="num">1,214</td><td class="num"><strong>&minus;414</strong></td><td class="num">+1,702</td><td class="num">12 / 16</td><td class="num">+630 <em>pass</em></td><td class="num">+1,099 <em>pass</em></td><td class="num">0.988 <em>pass</em></td><td class="num">+997</td><td class="num">+705</td></tr>
+<tr><td class="ln">A3.5 / B wide</td><td class="num">1,098</td><td class="num">&minus;1,144</td><td class="num">+971</td><td class="num">12 / 16</td><td class="num">+202 <em>pass</em></td><td class="num">+648 <em>pass</em></td><td class="num">0.915 <em>fail</em></td><td class="num">+360</td><td class="num">+611</td></tr>
+<tr><td class="ln">A1.5 / B 2.5 <em>(the original ladder guess)</em></td><td class="num">1,711</td><td class="num">&minus;2,177</td><td class="num">&minus;62</td><td class="num">7 / 16</td><td class="num">&minus;985</td><td class="num">&minus;518</td><td class="num">0.465</td><td class="num">&minus;169</td><td class="num">+107</td></tr>
+<tr class="row-bad"><td class="ln"><strong>A0.5 / B1.0 — the M5 proposal</strong></td><td class="num">2,973</td><td class="num"><strong>&minus;3,242</strong></td><td class="num"><strong>&minus;1,127</strong></td><td class="num">8 / 16</td><td class="num">&minus;3,392 <em>fail</em></td><td class="num">&minus;2,036 <em>fail</em></td><td class="num">0.302 <em>fail</em></td><td class="num">+699</td><td class="num">&minus;1,826 <em>fail</em></td></tr>
+<tr class="row-bad"><td class="ln">A1.5 / B tight-chandelier</td><td class="num">2,143</td><td class="num">&minus;3,718</td><td class="num">&minus;1,603</td><td class="num">5 / 16</td><td class="num">&minus;3,238</td><td class="num">&minus;2,654</td><td class="num">0.176</td><td class="num">&minus;763</td><td class="num">&minus;840</td></tr>
+</tbody>
+</table>
+<p><strong>The per-fill trap.</strong> M5's 0.5/1.0 cell loses <em>less per fill</em> than the loaded default (&minus;$1.09 vs &minus;$1.72) and wins 67% of its Lot-A trades. It still loses $1,127 more in total, because it takes <strong>2,973 fills instead of 1,228</strong>. A tight exit re-arms the slot constantly; each re-arm is another 1R stop and another $1.50. Judge cells on total money, not on hit-rate or on $/trade.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 6 — segmented by regime (a blanket number would be a bug)</h3>
+<p>Regime is keyed at the entry minute on the 1-min ATR-14 level, the 30-bar efficiency ratio and a 30-minute up-range break — not the clock. Same definitions REV2·Q1 used, with clean-trend split by direction because this gate is long-only.</p>
+<table>
+<thead><tr><th class="ln">Regime at entry</th><th class="num">fills</th><th class="num">loaded A2.5/wide</th><th class="num">$/fill</th><th class="num">win %</th><th class="num">best cell in the bucket</th><th class="ln">policy read</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><strong>in-between / building</strong> (ER&nbsp;&ge;&nbsp;0.20, no range break)</td><td class="num">266</td><td class="num"><strong>&minus;3,142</strong></td><td class="num">&minus;11.81</td><td class="num">20</td><td class="num">A0.75/B6.0 &minus;1,864</td><td class="ln"><strong>the entire loss lives here, and no exit fixes it.</strong> 130 configs, best is still &minus;$1,864. This is the false-start bucket REV2·Q1 found in the live book (&minus;$571 there) — same finding, 5&times; the n.</td></tr>
+<tr class="row-bad"><td class="ln">clean up-trend (ER&nbsp;&ge;&nbsp;0.20, |net30|&nbsp;&ge;&nbsp;30pt, 30-min high broken)</td><td class="num">106</td><td class="num">&minus;1,185</td><td class="num">&minus;11.18</td><td class="num">22</td><td class="num">A1.5/B1.5 +210 <em>(246 fills)</em></td><td class="ln">thin — <strong>direction only.</strong> Uncomfortable direction, too: on confirmed breakouts the <em>tight</em> pair is least-bad. Do not act on n=106.</td></tr>
+<tr><td class="ln">normal chop (ATR 6&ndash;14, ER&nbsp;&lt;&nbsp;0.20)</td><td class="num">393</td><td class="num">+54</td><td class="num">+0.14</td><td class="num">27</td><td class="num">A3.0/B3.0 +304</td><td class="ln">scratch; wider helps slightly</td></tr>
+<tr class="row-hl"><td class="ln"><strong>violent whipsaw</strong> (ATR&nbsp;&ge;&nbsp;14, ER&nbsp;&lt;&nbsp;0.20)</td><td class="num">452</td><td class="num"><strong>+2,185</strong></td><td class="num">+4.84</td><td class="num">29</td><td class="num">A3.5/B3.5 +2,729</td><td class="ln"><strong>the only bucket that pays</strong>, on 10 green sessions of 16. Fast-slope impulses inside a wide, inefficient range. This flatly contradicts the standing prior that whipsaw is where the desk dies — for <em>this</em> gate it is the earner.</td></tr>
+<tr><td class="ln">dead chop (ATR&nbsp;&lt;&nbsp;6)</td><td class="num">11</td><td class="num">&minus;28</td><td class="num">&minus;2.56</td><td class="num">27</td><td class="num">&mdash;</td><td class="ln">n=11, no read — the ATR floors do their job</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Fact table 7 — segmented by entry ER (the sharpest cut in the whole section)</h3>
+<p>Same trades, sliced on the 30-minute efficiency ratio at entry — the exact variable the router arms grind on and the exact variable <code>deciders.ER_FLOOR</code> gates it on.</p>
+<table>
+<thead><tr><th class="ln">ER at entry</th><th class="num">fills</th><th class="num">loaded A2.5/wide</th><th class="num">A3.0/wide</th><th class="num">A3.5/B3.5</th><th class="num">M5 A0.5/B1.0</th><th class="ln">read</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><strong>ER &lt; 0.20</strong> (the "chop" the floor is designed to block)</td><td class="num">854</td><td class="num"><strong>+2,233</strong></td><td class="num"><strong>+2,645</strong></td><td class="num"><strong>+2,838</strong></td><td class="num">+445</td><td class="ln">every dollar grind_long makes is here. 12 of 16 sessions green at A3.0/wide, LODO worst +$1,308 — <em>but</em> strip the three best sessions and it is &minus;$587, so treat the size as a direction.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>ER 0.20 &ndash; 0.35</strong></td><td class="num">303</td><td class="num"><strong>&minus;3,314</strong></td><td class="num">&minus;3,453</td><td class="num">&minus;2,629</td><td class="num">&minus;2,792</td><td class="ln"><strong>the whole loss, in one band</strong>, at every exit setting. This is the "rotation legs that look trendy but reverse" band the 07-30 note identified — confirmed on 5&times; the sample.</td></tr>
+<tr class="row-bad"><td class="ln">ER 0.35 &ndash; 0.50 <em>(above the router's arming floor)</em></td><td class="num">65</td><td class="num">&minus;665</td><td class="num">&minus;354</td><td class="num">&minus;256</td><td class="num">&minus;697</td><td class="ln">also red, on thin n</td></tr>
+<tr class="row-bad"><td class="ln">ER &ge; 0.50 <em>(the BIG-TREND rung)</em></td><td class="num">6</td><td class="num">&minus;370</td><td class="num">&minus;336</td><td class="num">&minus;367</td><td class="num">&minus;197</td><td class="ln">n=6 — no read at all, but nothing here says the RIDE rung is being missed</td></tr>
+</tbody>
+</table>
+<div class="callout"><div class="ct">The awkward implication for the ER floor</div>
+<p>The 07-30 diagnosis was right — the <strong>0.20&ndash;0.35 band is the bleed</strong>. But the fix that was shipped is a <em>floor</em> at 0.35, and on this tape a floor at 0.35 would delete the only profitable population (ER&nbsp;&lt;&nbsp;0.20, +$2,233) while keeping a band that is red on 65 fills. <strong>A band-exclusion (skip 0.20&ndash;0.35) is what the data supports; a floor is not.</strong> Filtering the sim to ER&nbsp;&ge;&nbsp;0.35 leaves 71 fills worth &minus;$1,035; filtering to <em>both</em> designed floors (ER&nbsp;&ge;&nbsp;0.35 <strong>and</strong> ATR&nbsp;&ge;&nbsp;24) leaves <strong>15 fills in 16 sessions</strong>, worth &minus;$246 — the floors as written do not sharpen the gate, they silence it. Flagging, not actioning: that is an arming decision and it belongs to you and the router, not to <code>exit_overrides.json</code>.</p></div>
+</div>
+
+<div class="card">
+<h3>Fact table 8 — time of day, reported separately because it is a different axis</h3>
+<table>
+<thead><tr><th class="ln">Window (UTC, at entry)</th><th class="num">fills</th><th class="num">loaded A2.5/wide</th><th class="num">$/fill</th><th class="num">best cell</th><th class="ln">read</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">overnight / pre-open (&lt; 13:30)</td><td class="num">775</td><td class="num">&minus;1,492</td><td class="num">&minus;1.92</td><td class="num">A3.5/B6.0 &minus;478</td><td class="ln">63% of all fills, all of them red; wide is least-bad</td></tr>
+<tr><td class="ln">US open 13:30&ndash;15:00</td><td class="num">78</td><td class="num">&minus;57</td><td class="num">&minus;0.74</td><td class="num">A3.0/B3.0 +344</td><td class="ln">thin (n=78) — direction only</td></tr>
+<tr><td class="ln">US session 15:00&ndash;20:00</td><td class="num">255</td><td class="num">&minus;587</td><td class="num">&minus;2.30</td><td class="num">A0.5/B1.5 +770</td><td class="ln"><strong>the one window where tight wins</strong> — and it is the window the "big runners live in the US afternoon" prior claims for the ride exit. The prior is wrong here, exactly as REV2·Q1 found on the live book.</td></tr>
+<tr><td class="ln">late close-out (&ge; 20:00)</td><td class="num">120</td><td class="num">+21</td><td class="num">+0.18</td><td class="num">A3.5/wide +251</td><td class="ln">the only green window on the default, on 32% win — a fat-tail hour</td></tr>
+</tbody>
+</table>
+<p>The time-of-day axis and the regime axis <strong>disagree</strong>: regime says go wider, the US afternoon says go tighter. <code>exit_overrides.json</code> is a single static cell and cannot express either. That is an argument for the router eventually owning the exit axis the way it owns arming — not an argument for picking the tighter cell because one 255-fill window prefers it.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 9 — the thing I found on the way (and it is not small)</h3>
+<p>REV2·Q1 asked what the machine does with your hands off. Part of the answer is that <strong>grind_long's own entry filters are not running.</strong></p>
+<table>
+<thead><tr><th class="ln">Fact</th><th class="ln">Evidence</th></tr></thead>
+<tbody>
+<tr><td class="ln">The filters exist</td><td class="ln"><code>deciders.ER_FLOOR = {"grind_long": 0.35}</code> (added 07-30) and <code>ATR_FLOOR = {"grind_long": 24.0}</code> (07-25 rehab)</td></tr>
+<tr><td class="ln">They are applied by sub-slot tag</td><td class="ln"><code>tournament.py:139/142</code> call <code>er_blocks(slot)</code> / <code>atr_blocks(slot)</code> with the raw intent tag. Under the scale-out slate that tag is <code>grind_long_A</code> / <code>grind_long_B</code>. <code>_base()</code> is applied to the bench-list, the 55s veto and the exhaustion confirm — <strong>but not to these two</strong>.</td></tr>
+<tr class="row-bad"><td class="ln">Live proof</td><td class="ln">Of the <strong>40</strong> <code>grind_long_A/_B</code> fills booked <em>after</em> the ER floor went in on 07-30: <strong>31 had entry ER below 0.35</strong> and <strong>22 had entry ATR below 24</strong>; <strong>33 of 40 violated at least one floor.</strong> Lowest ER filled: 0.03. Lowest ATR filled: 11.2.</td></tr>
+<tr><td class="ln">Money direction</td><td class="ln">Ironically, in this sample the bypass <em>helped</em> — the sub-0.20-ER fills are the profitable population (fact table 7). Fix the bug and you must fix the thresholds in the same move, or you will delete the good half.</td></tr>
+</tbody>
+</table>
+<p class="mono">Not actioned here — this section is read-only on live config. It belongs on the Saturday card as a code fix plus a threshold decision, taken together.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 10 — the tail question, answered directly</h3>
+<p>The standing objection to any capped exit is that grind's live profit lives in the tail: <strong>CHANDELIER + MANUAL_CLAIM exits, 16 trades, +$1,566.</strong> A 3.5R cap has to be judged against that, not against an average.</p>
+<table>
+<thead><tr><th class="ln">Where the tail money actually is</th><th class="num">n</th><th class="num">$</th><th class="num">share</th></tr></thead>
+<tbody>
+<tr><td class="ln">Sim, WIDE lot — winning exits below 2R</td><td class="num">47</td><td class="num">+1,312</td><td class="num">10.4%</td></tr>
+<tr><td class="ln">Sim, WIDE lot — winning exits 2R to 3.5R</td><td class="num">7</td><td class="num">+561</td><td class="num">4.5%</td></tr>
+<tr class="row-hl"><td class="ln"><strong>Sim, WIDE lot — winning exits above 3.5R</strong></td><td class="num">52</td><td class="num">+10,678</td><td class="num"><strong>85.1%</strong> (81.4% above 5R alone)</td></tr>
+<tr><td class="ln">Live, the 16 tail trades — exits at or under 3.5R</td><td class="num">13</td><td class="num">+1,036</td><td class="num">66%</td></tr>
+<tr><td class="ln">Live, the 16 tail trades — exits above 3.5R</td><td class="num">3</td><td class="num">+530</td><td class="num">34%</td></tr>
+</tbody>
+</table>
+<p><strong>Both things are true and they point the same way.</strong> In the sim the tail is enormous — 85% of the wide lot's gross profit comes from exits beyond 3.5R, so capping there gives up something real. But the wide lot <em>as a whole</em> still nets &minus;$938, because it pays for that tail with give-back on every trade that peaks and reverses. And in the live book, two-thirds of the celebrated "tail" money came out at or under 3.5R anyway — a 3.5R target would have banked $1,036 of the $1,566 and given up $530. That is why the recommendation keeps <strong>Lot B on the wide chandelier</strong>: you keep an uncapped lot for the genuine runners and you take the certain money slightly later on Lot A. What the data forbids is capping <em>both</em> lots tight, which is precisely what M5 proposed.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 11 — reproducing (and refuting) the Part 2 · LAB cell</h3>
+<p>M5 came from the Friday lab: <code>grind_long &rarr; {a_r 0.5, b 1.0}</code>, off a MED-TREND cell of n=78 at +$10.3/trade and 59% win, with SCALP-CHOP n=542 agreeing. I re-ran it <strong>the lab's own way</strong> (paired, same-entry repricing) but with two corrections: <strong>250 ms ticks instead of 5-second bars</strong>, and <strong>grind_long only</strong> (the lab's cell pooled both directions; only the long side is armed).</p>
+<table>
+<thead><tr><th class="ln">Rung (lab's own definition)</th><th class="num">n</th><th class="num">A0.5/B1.0 $/signal</th><th class="num">win %</th><th class="num">A2.5+WIDE</th><th class="num">A3.0+WIDE</th><th class="num">WIDE&times;2</th><th class="ln">verdict on the lab's claim</th></tr></thead>
+<tbody>
+<tr><td class="ln">MED-TREND (ER 0.30&ndash;0.50)</td><td class="num">121</td><td class="num"><strong>&minus;5.19</strong></td><td class="num">46</td><td class="num">&minus;20.58</td><td class="num">&minus;18.85</td><td class="num">&minus;29.29</td><td class="ln"><strong>half-reproduced.</strong> The <em>relative</em> claim survives — tight does beat the 2.5/wide guess here. The <em>absolute</em> claim does not: +$10.3 at 59% win becomes &minus;$5.19 at 46% win once you price on ticks and drop the short side. You cannot build a live cell on a number that is negative.</td></tr>
+<tr class="row-bad"><td class="ln">SCALP-CHOP (ER &lt; 0.30)</td><td class="num">777</td><td class="num">&minus;0.84</td><td class="num">52</td><td class="num"><strong>+7.57</strong></td><td class="num"><strong>+9.57</strong></td><td class="num"><strong>+11.01</strong></td><td class="ln"><strong>refuted outright.</strong> The lab said this bucket also picks 0.5/1.0. On ticks it picks the widest thing available, by $12 a signal on 777 signals.</td></tr>
+<tr><td class="ln">BIG-TREND (ER &ge; 0.50)</td><td class="num">4</td><td class="num">&minus;97.51</td><td class="num">&mdash;</td><td class="num">&minus;108.68</td><td class="num">&minus;108.68</td><td class="num">&minus;108.68</td><td class="ln">n=4 on the long side — no read, as REV2·Q3 warned</td></tr>
+</tbody>
+</table>
+<p>And on the sequential (policy) sim, which is the one that counts, the SCALP-CHOP rung is <strong>&minus;$1,742 for 0.5/1.0, +$53 for the loaded default, +$1,242 for A3.5/B3.5</strong>. <strong>M5 should not be actioned.</strong> Two things caused the original result: 5-second repricing (which flatters tight exits, because a 5s bar cannot show you the tick that stopped you out first), and pooling grind_short into a cell used to set a long-only gate.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 12 — what each lever is actually worth (16 sessions, tick-repriced)</h3>
+<p>The point of the whole exercise: the exit knob is the small one.</p>
+<table>
+<thead><tr><th class="ln">Lever</th><th class="ln">Change</th><th class="num">net $</th><th class="num">delta</th><th class="ln">robustness</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">nothing</td><td class="ln">loaded default A2.5 / wide</td><td class="num">&minus;2,115</td><td class="num">&mdash;</td><td class="num">10 of 16 sessions green</td></tr>
+<tr><td class="ln"><strong>EXIT</strong></td><td class="ln">&rarr; A3.0 / wide <em>(recommended)</em></td><td class="num">&minus;1,498</td><td class="num">+617</td><td class="ln">direction proven, size not (see fact table 5)</td></tr>
+<tr><td class="ln"><strong>EXIT</strong></td><td class="ln">&rarr; A3.5 / B3.5 <em>(best stats, a spike)</em></td><td class="num">&minus;414</td><td class="num">+1,702</td><td class="ln">passes LODO, strip-3, bootstrap and both halves — fails plateau</td></tr>
+<tr class="row-bad"><td class="ln"><strong>EXIT</strong></td><td class="ln">&rarr; A0.5 / B1.0 <em>(M5)</em></td><td class="num">&minus;3,242</td><td class="num">&minus;1,127</td><td class="ln">fails everything</td></tr>
+<tr class="row-hl"><td class="ln"><strong>ARMING</strong></td><td class="ln">default exit, but never arm in "building"</td><td class="num"><strong>+1,027</strong></td><td class="num">+3,142</td><td class="ln">10/16 green, LODO worst &minus;$116, <strong>archive half &minus;$2,375 — fails the time split</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>ARMING</strong></td><td class="ln">default exit, only arm when entry ER &lt; 0.20</td><td class="num"><strong>+2,233</strong></td><td class="num">+4,348</td><td class="ln">9/16 green, LODO worst +$1,002, strip-top-3-days &minus;$935, <strong>archive half &minus;$1,150 — fails the time split</strong></td></tr>
+<tr><td class="ln"><strong>BOTH</strong></td><td class="ln">A3.0/wide + only arm at ER &lt; 0.20</td><td class="num">+2,645</td><td class="num">+4,760</td><td class="ln">12/16 green, LODO worst +$1,308 — same time-split failure</td></tr>
+</tbody>
+</table>
+<p><strong>Read the last three rows with discipline.</strong> The arming levers are worth 3&ndash;5&times; the exit lever in dollars, and every one of them is <strong>green only in the capture half and red in the archive half</strong>. The exit direction is the opposite: A3.5/B3.5 beats the default by +$997 in the archive half <em>and</em> +$705 in the capture half. So the finding I am willing to sign is the small one, and the big one goes on the watch list with a date on it.</p>
+</div>
+
+<div class="callout"><div class="ct">The verdict, in the order you should read it</div>
+<p><strong>1. Change the cell, but change it small.</strong> Write <code>{"grind_long": {"a_r": 3.0, "b": "wide"}}</code> — Lot A 2.5R&rarr;3.0R, Lot B untouched. Worth <strong>+$617 over 16 sessions against the loaded default's &minus;$2,115</strong>. This is also the exact cell REV2·Q3 pre-registered for Monday 2026-08-03 and pinned until the 08-21 grade date, so writing it costs nothing in test integrity and gains the pin. It is a move along a proven direction, not a proven number.</p>
+<p><strong>2. Do not action M5.</strong> <code>{a_r 0.5, b 1.0}</code> is &minus;$1,127 against the default, green on 5 sessions of 16, and fails leave-one-day-out, strip-the-best-3 and the bootstrap. The number that motivated it (+$10.3/tr, 59% win, n=78) does not survive being priced on ticks and restricted to the long side; it becomes &minus;$5.19/signal at 46% win. Delete the item.</p>
+<p><strong>3. The RIDE rung is not the question it was made out to be.</strong> On 16 tick-covered sessions the BIG-TREND cell for grind_long is n=6, and the wide lock-chandelier is mid-pack everywhere: &minus;$938 for the lot, no better than a plain 3.0R target. Keep it on Lot B because an uncapped lot is cheap insurance against the runner, not because it has been shown to earn.</p>
+<p><strong>4. The real money is in arming, and it is not proven yet.</strong> Keeping grind_long out of the ER 0.20&ndash;0.35 / "building" tape is worth +$3,100 to +$4,800 on the same 16 sessions — 5&times; the exit lever — but it is green in the capture half and red in the archive half, so it is a direction with a strong prior, not a measurement. It needs the 5-second back-extension (REV2·Q3 Track A) to be gradeable, and it belongs to the router, not to the exit file.</p>
+<p><strong>5. And the honest floor: grind_long is red at every exit setting on this tape.</strong> The best of 130 configurations still loses $414 over 16 sessions, before a penny of slippage. No exit cell rescues this gate. Choosing the cell is damage control while the arming question gets answered.</p>
+</div>
+
+<div class="card">
+<h3>Method &amp; limits — read before quoting any number above</h3>
+<ul>
+<li><strong>Every sweep number is a ceiling.</strong> Fills are at the exact stop/target/trail level with no slippage and $1.50 round-turn fees. Measured against the 40 real STOP fills in this gate's own live history, real stops filled <strong>7% worse</strong> than the model; the desk's standing finding is that live losses run <strong>1.1&ndash;3.1&times; modelled</strong>. Every dollar figure here is the best case, and the best case is negative.</li>
+<li><strong>Exits are priced on 250 ms ticks only.</strong> 15.3M archive ticks (07-05&rarr;07-17) plus 10.1M capture ticks (07-23&rarr;07-31). No exit anywhere in this section was decided on a bar. The 15 further sessions that have 5-second bars but no ticks were excluded from every number.</li>
+<li><strong>Sample.</strong> 5,874 grind_long signal-minutes on the 31-session tape; 3,064 of them on the 16 tick-covered sessions; 1,228 lot-fills for the baseline cell after the one-position-at-a-time slot logic. Regime buckets: whipsaw 452, normal-chop 393, building 266, clean up-trend 106, dead-chop 11. <strong>Anything under n&nbsp;&asymp;&nbsp;150 in this section is flagged inline and is a direction, not a measurement</strong> — that covers clean up-trend, US-open, ER&nbsp;&ge;&nbsp;0.35 and the whole BIG-TREND rung.</li>
+<li><strong>Density.</strong> The sim takes ~77 lot-fills a session; the live gate, with router benching, took ~20. Rank configs on these numbers; discount the dollars ~3.8&times; before treating them as a forecast.</li>
+<li><strong>Marked-to-market residue.</strong> 14% of entries neither stop, target nor trail inside the 120-minute MAX_HOLD and are marked at the last tick — the same entries in every config, so they do not tilt one config against another.</li>
+<li><strong>Not tested here.</strong> The give-back overlay (off for both lots under this slate), the adaptive_exit selector (also off under scale-out), and the 5-second back-extension to 06-22. All three are separate questions.</li>
+<li><strong>Read-only.</strong> No live file was modified — <code>gate_switches.env</code>, <code>exit_overrides.json</code> and every service are untouched. Writing the recommended cell requires an edit plus a tournament restart, and it is reversible by deleting the key.</li>
+</ul>
+</div>

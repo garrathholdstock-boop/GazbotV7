@@ -1,0 +1,199 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAZBOT V5 — Weekly Interrogation · Mon 22 → Fri 26 June 2026</title>
+<style>
+  :root{--paper:#faf8f3;--ink:#1a1f2b;--ink2:#5b6472;--navy:#0f2942;--gold:#b8860b;
+         --pos:#1a7f47;--neg:#c0392b;--line:#e7e1d4;--card:#ffffff;--zebra:#f7f4ec}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+        font:16px/1.65 "Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif}
+  .wrap{max-width:940px;margin:0 auto;padding:0 28px 80px}
+  .masthead{border-bottom:3px double var(--navy);padding:46px 0 26px;margin-bottom:8px}
+  .brand{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:700;font-family:Georgia,serif}
+  h1{font-size:38px;line-height:1.15;margin:10px 0 6px;color:var(--navy);font-weight:700;letter-spacing:-.5px}
+  .dates{font-size:15px;color:var(--ink2);font-style:italic}
+  .verdict{font-size:21px;line-height:1.45;color:var(--ink);margin:24px 0 8px;font-weight:600}
+  .verdict b{color:var(--neg)}
+  .safety{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 4px}
+  .badge{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-family:ui-sans-serif,system-ui,sans-serif}
+  .badge .bn{font-size:22px;font-weight:800;color:var(--navy)} .badge .bl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2)}
+  h2{font-size:25px;color:var(--navy);margin:54px 0 4px;padding-bottom:8px;border-bottom:2px solid var(--gold);font-weight:700}
+  h2 .n{color:var(--gold);font-size:16px;font-weight:700;margin-right:10px}
+  h3{font-size:19px;color:var(--navy);margin:30px 0 8px}
+  p,li{font-size:16.5px}
+  .lead{font-size:18px;color:#33404f}
+  .grid{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0}
+  .stat{flex:1 1 150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,41,66,.05);font-family:ui-sans-serif,system-ui,sans-serif}
+  .stat .sv{font-size:27px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
+  .stat.neg .sv{color:var(--neg)} .stat.pos .sv{color:var(--pos)}
+  .stat .sl{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--ink2);margin-top:4px}
+  .stat .ss{font-size:12.5px;color:var(--ink2);margin-top:5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:20px 0;box-shadow:0 1px 4px rgba(15,41,66,.05)}
+  .chartbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
+  svg.chart{width:100%;height:auto;display:block}
+  .ax{font:11px ui-sans-serif,system-ui,sans-serif;fill:var(--ink2)}
+  .dot-lbl{font:600 11.5px ui-sans-serif,system-ui,sans-serif}
+  .hb-lbl{font:600 13px ui-sans-serif,system-ui,sans-serif;fill:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px}
+  th{background:var(--navy);color:#fff;text-align:left;padding:9px 11px;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+  td{padding:8px 11px;border-bottom:1px solid var(--line)}
+  tr:nth-child(even) td{background:var(--zebra)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums} td.ln{font-weight:600;color:var(--navy)}
+  .row-hl td{background:#eafaf0 !important;font-weight:600}
+  .row-bad td{background:#fdf0ee !important}
+  .qa{border-left:4px solid var(--gold);padding:4px 0 4px 20px;margin:20px 0}
+  .qa .q{font-weight:700;color:var(--navy);font-size:17px}
+  .qa .a{margin-top:6px}
+  .qa .o{margin-top:8px;background:#f3f6f8;border-radius:8px;padding:10px 14px;font-size:15px;font-family:ui-sans-serif,system-ui,sans-serif}
+  .o b{color:var(--navy)}
+  .pill{display:inline-block;font:700 11px ui-sans-serif,system-ui,sans-serif;padding:2px 9px;border-radius:20px;letter-spacing:.5px}
+  .p-keep{background:#eafaf0;color:var(--pos)} .p-kill{background:#fdecea;color:var(--neg)} .p-tune{background:#fff5e0;color:#9a6b00}
+  .callout{background:#fff8e8;border:1px solid #f0dba8;border-left:4px solid var(--gold);border-radius:10px;padding:16px 20px;margin:22px 0}
+  .callout .ct{font-weight:700;color:#8a6500;font-family:ui-sans-serif,system-ui,sans-serif;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#f1ede3;padding:1px 6px;border-radius:4px}
+  .foot{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px;font-style:italic}
+  a{color:#0a5e8a}
+  @media print{body{background:#fff} .card,.chartbox,.stat{box-shadow:none}}
+</style></head><body><div class="wrap">
+
+<div class="masthead">
+  <div class="brand">GAZBOT V5 · Futures Desk</div>
+  <h1>Weekly Interrogation Report</h1>
+  <div class="dates">Mon 22 → Fri 26 June 2026 · paper desk · 3-pass interrogated (Analyst → HF-Manager → CEO)</div>
+  <div class="verdict">A losing week — <b>−$4,443</b> — but a clean diagnosis, and most of the bleed is already fixed. The desk's edge is intact; momentum is the tax.</div>
+  <div class="safety">
+    <div class="stat "><div class="sv">4+4</div><div class="sl">Recommendations</div><div class=ss>Monday / Backlog</div></div>
+    <div class="stat "><div class="sv">0 / 3 / 5</div><div class="sl">Confidence</div><div class=ss>🟢 / 🟡 / 🔴</div></div>
+    <div class="stat "><div class="sv">LOW</div><div class="sl">Overfit risk</div><div class=ss>#1 is a removal</div></div>
+    <div class="stat neg"><div class="sv">−$4,443</div><div class="sl">Week P&amp;L</div><div class=ss>canonical, net of fees</div></div>
+  </div>
+</div>
+
+<h2><span class="n">01</span>Executive Summary</h2>
+<p class="lead">The desk lost <b>$4,443</b> this week. Do not let any per-gate "+$1,684" figure fool you — that excludes reconstructed trades and is an artifact (see §07). The real number is −$4,443, and it has exactly three drivers, two of which are <b>already addressed</b>:</p>
+<ol>
+  <li><b>The benched-6 traded their final losing week (~−$2,600).</b> M2K/MCL/MBT/MYM/MET + DAX/M6E bled right up until they were benched on 06-26 (§304). <span class="pill p-keep">WON'T RECUR</span> — they're observe-only now. The bench was the single best decision of the week.</li>
+  <li><b>Momentum bled across the 3-contract desk: −$1,820 as-is, −$3,446 normalized</b> (stripping the MGC 11-lot oversize). MNQ −$2,411 was the worst. This is the #1 forward lever — and it's <b>not tunable</b> (see §05).</li>
+  <li><b>The emission gap was hyperactive — −$3,404 of REAL losers landed in reconstructed rows</b>, masking gate attribution. A recording-integrity problem (carried §274), worse this week purely from trade volume.</li>
+</ol>
+<div class="callout"><div class="ct">The one thing</div>If you do ONE thing Monday: <b>stop trading momentum entirely</b> (extend §301 to MGC). It's noise dressed as signal, it's the bulk of the controllable bleed, and removing a gate can't overfit. The desk's real edge — vwap_pullback + chop_capture — is healthy and stays.</div>
+
+<h2><span class="n">02</span>The Week in Numbers</h2>
+<div class="grid">
+  <div class="stat neg"><div class="sv">−$4,443</div><div class="sl">Net P&amp;L</div><div class=ss>net of $1.50/RT</div></div>
+  <div class="stat "><div class="sv">~1,595</div><div class="sl">Trades</div><div class=ss>across all contracts</div></div>
+  <div class="stat neg"><div class="sv">−$1,820</div><div class="sl">3-contract desk</div><div class=ss>−$3,446 normalized</div></div>
+  <div class="stat neg"><div class="sv">~−$2,600</div><div class="sl">Benched-6 (final wk)</div><div class=ss>won't recur</div></div>
+  <div class="stat "><div class="sv">~43%</div><div class="sl">Win rate</div><div class=ss>rolling</div></div>
+  <div class="stat "><div class="sv">0.79</div><div class="sl">Profit factor</div><div class=ss>below water</div></div>
+</div>
+<div class="chartbox"><h3 style="margin-top:0">Equity curve — cumulative P&amp;L</h3><svg viewBox="0 0 820 240" class="chart"><line x1="44" y1="52" x2="776" y2="52" stroke="#5b6472" stroke-width="1" stroke-dasharray="2 3"/><polyline fill="none" stroke="#0f2942" stroke-width="2.5" points="44.0,50.0 227.0,44.0 410.0,109.7 593.0,176.4 776.0,196.0"/><circle cx="44.0" cy="50.0" r="4" fill="#1a7f47"/><text x="44" y="40" text-anchor="middle" class="dot-lbl" fill="#1a7f47">$51</text><text x="44" y="226" text-anchor="middle" class="ax">Mon 22</text><circle cx="227.0" cy="44.0" r="4" fill="#1a7f47"/><text x="227" y="34" text-anchor="middle" class="dot-lbl" fill="#1a7f47">$235</text><text x="227" y="226" text-anchor="middle" class="ax">Tue 23</text><circle cx="410.0" cy="109.7" r="4" fill="#c0392b"/><text x="410" y="100" text-anchor="middle" class="dot-lbl" fill="#c0392b">$-1,786</text><text x="410" y="226" text-anchor="middle" class="ax">Wed 24</text><circle cx="593.0" cy="176.4" r="4" fill="#c0392b"/><text x="593" y="166" text-anchor="middle" class="dot-lbl" fill="#c0392b">$-3,839</text><text x="593" y="226" text-anchor="middle" class="ax">Thu 25</text><circle cx="776.0" cy="196.0" r="4" fill="#c0392b"/><text x="776" y="186" text-anchor="middle" class="dot-lbl" fill="#c0392b">$-4,443</text><text x="776" y="226" text-anchor="middle" class="ax">Fri 26</text></svg>
+<p style="font-size:14px;color:var(--ink2);margin:4px 0 0">Flat into Tuesday, then bled hard Wed–Fri. The cliff is Wednesday's −$2,021 and Thursday's −$2,053 — both momentum + benched-contract days.</p></div>
+<div class="chartbox"><h3 style="margin-top:0">Daily P&amp;L</h3><svg viewBox="0 0 820 240" class="chart"><line x1="44" y1="57" x2="776" y2="57" stroke="#5b6472" stroke-width="1"/><rect x="73.3" y="53.0" width="87.8" height="3.5" rx="3" fill="#1a7f47" opacity="0.88"/><text x="117" y="47" text-anchor="middle" class="dot-lbl" fill="#1a7f47">$51</text><text x="117" y="226" text-anchor="middle" class="ax">Mon 22</text><rect x="219.7" y="44.0" width="87.8" height="12.5" rx="3" fill="#1a7f47" opacity="0.88"/><text x="264" y="38" text-anchor="middle" class="dot-lbl" fill="#1a7f47">$184</text><text x="264" y="226" text-anchor="middle" class="ax">Tue 23</text><rect x="366.1" y="56.5" width="87.8" height="137.3" rx="3" fill="#c0392b" opacity="0.88"/><text x="410" y="208" text-anchor="middle" class="dot-lbl" fill="#c0392b">$-2,021</text><text x="410" y="226" text-anchor="middle" class="ax">Wed 24</text><rect x="512.5" y="56.5" width="87.8" height="139.5" rx="3" fill="#c0392b" opacity="0.88"/><text x="556" y="210" text-anchor="middle" class="dot-lbl" fill="#c0392b">$-2,053</text><text x="556" y="226" text-anchor="middle" class="ax">Thu 25</text><rect x="658.9" y="56.5" width="87.8" height="41.0" rx="3" fill="#c0392b" opacity="0.88"/><text x="703" y="112" text-anchor="middle" class="dot-lbl" fill="#c0392b">$-604</text><text x="703" y="226" text-anchor="middle" class="ax">Fri 26</text></svg></div>
+<h3>By contract (the 3 live contracts)</h3>
+<div class="chartbox"><svg viewBox="0 0 820 122" class="chart"><line x1="485.0" y1="6" x2="485.0" y2="116" stroke="#5b6472" stroke-width="1" stroke-dasharray="2 3"/><rect x="180.0" y="14" width="305.0" height="22" rx="3" fill="#c0392b" opacity="0.85"/><text x="168" y="31" text-anchor="end" class="hb-lbl">MNQ</text><text x="172" y="31" text-anchor="end" class="dot-lbl" fill="#c0392b">$-2,411</text><rect x="470.3" y="48" width="14.7" height="22" rx="3" fill="#c0392b" opacity="0.85"/><text x="168" y="65" text-anchor="end" class="hb-lbl">MES</text><text x="462" y="65" text-anchor="end" class="dot-lbl" fill="#c0392b">$-116</text><rect x="485.0" y="82" width="89.6" height="22" rx="3" fill="#1a7f47" opacity="0.85"/><text x="168" y="99" text-anchor="end" class="hb-lbl">MGC</text><text x="583" y="99" text-anchor="start" class="dot-lbl" fill="#1a7f47">$708</text></svg>
+<p style="font-size:14px;color:var(--ink2);margin:4px 0 0">MNQ carried the loss (−$2,411 — momentum + un-gated reconstructs). MGC's +$708 is the 11-lot oversize; normalize it and MGC is ~−$918.</p></div>
+
+<h2><span class="n">03</span>By Gate — where the money went (3-contract desk)</h2>
+<div class="chartbox"><svg viewBox="0 0 820 258" class="chart"><line x1="485.0" y1="6" x2="485.0" y2="252" stroke="#5b6472" stroke-width="1" stroke-dasharray="2 3"/><rect x="485.0" y="14" width="305.0" height="22" rx="3" fill="#1a7f47" opacity="0.85"/><text x="168" y="31" text-anchor="end" class="hb-lbl">vwap_pullback</text><text x="798" y="31" text-anchor="start" class="dot-lbl" fill="#1a7f47">$692 · 61% win</text><rect x="485.0" y="48" width="112.4" height="22" rx="3" fill="#1a7f47" opacity="0.85"/><text x="168" y="65" text-anchor="end" class="hb-lbl">chop_capture</text><text x="605" y="65" text-anchor="start" class="dot-lbl" fill="#1a7f47">$255 · 65% win</text><rect x="485.0" y="82" width="108.4" height="22" rx="3" fill="#1a7f47" opacity="0.85"/><text x="168" y="99" text-anchor="end" class="hb-lbl">vwap_dip</text><text x="601" y="99" text-anchor="start" class="dot-lbl" fill="#1a7f47">$246 · 88% win</text><rect x="485.0" y="116" width="19.0" height="22" rx="3" fill="#1a7f47" opacity="0.85"/><text x="168" y="133" text-anchor="end" class="hb-lbl">orb</text><text x="512" y="133" text-anchor="start" class="dot-lbl" fill="#1a7f47">$43 · 64% win</text><rect x="342.6" y="150" width="142.4" height="22" rx="3" fill="#c0392b" opacity="0.85"/><text x="168" y="167" text-anchor="end" class="hb-lbl">momentum_persistence</text><text x="335" y="167" text-anchor="end" class="dot-lbl" fill="#c0392b">$-323 · 40% win</text><rect x="286.2" y="184" width="198.8" height="22" rx="3" fill="#c0392b" opacity="0.85"/><text x="168" y="201" text-anchor="end" class="hb-lbl">momentum_continuation</text><text x="278" y="201" text-anchor="end" class="dot-lbl" fill="#c0392b">$-451 · 0% win</text><rect x="376.6" y="218" width="108.4" height="22" rx="3" fill="#c0392b" opacity="0.85"/><text x="168" y="235" text-anchor="end" class="hb-lbl">momentum</text><text x="369" y="235" text-anchor="end" class="dot-lbl" fill="#c0392b">$-246 · 53% win</text></svg></div>
+<p>The pattern is stark and consistent all week: <b>everything that made money is reversion or passive</b> (vwap_pullback +$692, chop_capture +$255, vwap_dip +$246), and <b>everything momentum touched, it lost</b> — including its sub-variants (continuation −$451 at 0% win, persistence −$323). You are paying momentum to lose so the reversion gates can win less.</p>
+
+<h2><span class="n">04</span>The 3-Pass Interrogation</h2>
+<p class="lead">This report wasn't written in one pass. It was drafted by the analyst, then interrogated by a (fictional, fresh-eyes) hedge-fund manager, then sharpened by the CEO. Here is what each pass actually asked — and what the data said back.</p>
+
+<h3>Pass 1 — The Analyst (the draft)</h3>
+<p>Assembled the week's trades, sliced by gate × contract × exit, banked the per-knob P&amp;L, and wrote the first-cut verdicts: momentum bleeding, pullback earning, the benched-6 dragging. Clean enough — but it had a hole the analyst didn't see.</p>
+
+<h3>Pass 2 — The Hedge-Fund Manager (fresh eyes, simulate the fixes)</h3>
+<div class="qa"><div class="q">Q: "Your per-gate slice sums to +$1,684. The header says −$4,443. Which is lying?"</div>
+<div class="a">Chased it down. Neither — the slice was <i>incomplete</i>. The emission gap dumped −$3,404 of real losing round-trips into <span class="mono">RECONSTRUCTED_BACKFILL</span> (24 non-zero, 38 carry a gate), which the per-gate convention excludes.</div>
+<div class="o">⟶ <b>Outcome:</b> the report now reports −$4,443 as the truth and includes the reconstructs in attribution. <b>The desk's own analytics were hiding a losing week.</b> (Became the Biggest Surprise.)</div></div>
+<div class="qa"><div class="q">Q: "Momentum is bleeding. Is it mis-tuned, or is it broken? Don't tell me — show me a simulation."</div>
+<div class="a">Ran two independent tests. (1) The entry forensic split 68 stamped momentum entries into winners vs losers and computed Cohen's d on every feature — <b>not one feature reached even 0.3</b>; the entries are statistically indistinguishable winners-from-losers. (2) The momentum study replayed 8 research-backed variants — momentum's "edge" was a sizing accident + a handful of runs.</div>
+<div class="o">⟶ <b>Outcome:</b> momentum has <b>no entry edge</b> — it is non-predictive, not mis-tuned. You cannot tune noise into profit. Prescription flipped from "tighten momentum" to "<b>remove momentum</b>."</div></div>
+<div class="qa"><div class="q">Q: "The pullback rvol filter — does it actually help, or is that hindsight?"</div>
+<div class="a">The forensic found pullback winners fire on lower rvol (median 0.19) than losers (0.27), Cohen's d −0.40 — a real separator. But the stamped sample is ~1.5 days (78 trades).</div>
+<div class="o">⟶ <b>Outcome:</b> tagged <span class="pill p-tune">🔴 LEAN</span> — directionally real, not armable yet. "Give it 5 more sessions before tightening <span class="mono">FUT_PB_MAX_RVOL</span>." (C2: a small-sample edge is a lean, not a number.)</div></div>
+<div class="qa"><div class="q">Q: "Is the per-contract ratchet overfit? It beat a global 0.75 in-sample but lost out-of-sample."</div>
+<div class="a">Ran the forward shadow A/B (every real entry since 06-23, live per-contract mults vs a global-0.75 shadow, full spine + fees).</div>
+<div class="o">⟶ <b>Outcome:</b> LIVE per-contract <b>+$1,060</b> vs SHADOW-0.75 <b>−$2,594</b> = <b>+$3,654 forward edge</b>, driven by MNQ's tight 0.25 mult. The overfit worry is <b>contradicted</b> by the forward sample. <span class="pill p-keep">KEEP per-contract</span>.</div></div>
+
+<h3>Pass 3 — The CEO (tighten, strategy altitude)</h3>
+<div class="qa"><div class="q">Q: "Is this desk even set up right?"</div>
+<div class="o">⟶ <b>Yes for reversion, no for momentum.</b> The desk is a competent mean-reversion / passive-capture desk (pullback + chop + dip all earn). It is not a momentum desk and never was — the 1m micro tape doesn't give momentum a clean edge net of fees.</div></div>
+<div class="qa"><div class="q">Q: "What is the ONE change that matters this week?"</div>
+<div class="o">⟶ <b>Stop trading momentum.</b> Not tune it, not gate it harder — stop. It's ~$1,820–$3,446 of the controllable bleed, it has no entry edge, and a removal cannot overfit. Everything else is second order.</div></div>
+<div class="qa"><div class="q">Q: "If we kill momentum, do we lose a real edge we'll regret?"</div>
+<div class="o">⟶ <b>No — and there's a safety net.</b> The momentum study's TREND_DONCH breakout is the replacement candidate; shadow it (observe-only, like IPB) so any genuine momentum runs are caught and measured before we'd ever re-arm. We give up nothing proven.</div></div>
+<div class="qa"><div class="q">Q: "What should we STOP doing entirely?"</div>
+<div class="o">⟶ Momentum (all forms), and the <span class="mono">FUT_MOM_CONTINUATION</span> override specifically — it bypasses the 1.5 net_atr ceiling and fires into extension (median momentum entry: net_atr <b>2.06</b>, the marquee disasters). It went <b>0-for-9 for −$459 on Friday alone.</b></div></div>
+
+<h2><span class="n">05</span>Deep Dive — Momentum: 8 variants tested</h2>
+<p>Operator's ask: don't give up on momentum without proving there's nothing there. So I replayed eight research-backed variants over the week's 1m bars (MNQ/MES/MGC), under the desk's live exit. <b>Direction-only</b> — the 1m replay diverges sign-level from reality, so these <i>rank</i> variants; they don't quote tradeable $. Full charts + per-variant cards: <a href="/static/momentum_study.html">/static/momentum_study.html</a>.</p>
+<table><thead><tr><th>Variant</th><th>MNQ</th><th>MES</th><th>MGC</th><th>Total</th><th>Win</th><th>Payoff</th><th>PF</th></tr></thead>
+<tbody><tr class="row-bad"><td class="ln">CURRENT (live)</td><td class="num">+232</td><td class="num">-687</td><td class="num">-1,191</td><td class="num" style="color:#c0392b;font-weight:700">-1,646</td><td class="num">51%</td><td class="num">0.90</td><td class="num">0.92</td></tr><tr class="row-bad"><td class="ln">TSMOM</td><td class="num">+467</td><td class="num">-918</td><td class="num">-1,235</td><td class="num" style="color:#c0392b;font-weight:700">-1,686</td><td class="num">50%</td><td class="num">0.95</td><td class="num">0.95</td></tr><tr><td class="ln">ORB</td><td class="num">+344</td><td class="num">-91</td><td class="num">-34</td><td class="num" style="color:#1a7f47;font-weight:700">+219</td><td class="num">54%</td><td class="num">1.02</td><td class="num">1.21</td></tr><tr><td class="ln">DONCHIAN</td><td class="num">+362</td><td class="num">-339</td><td class="num">+328</td><td class="num" style="color:#1a7f47;font-weight:700">+351</td><td class="num">52%</td><td class="num">0.94</td><td class="num">1.03</td></tr><tr><td class="ln">NOISE_BAND (Zarattini)</td><td class="num">+144</td><td class="num">+157</td><td class="num">-16</td><td class="num" style="color:#1a7f47;font-weight:700">+286</td><td class="num">56%</td><td class="num">1.00</td><td class="num">1.28</td></tr><tr class="row-hl"><td class="ln">TREND_DONCH</td><td class="num">+905</td><td class="num">-257</td><td class="num">+566</td><td class="num" style="color:#1a7f47;font-weight:700">+1,214</td><td class="num">52%</td><td class="num">1.05</td><td class="num">1.13</td></tr><tr><td class="ln">TREND_DONCH+TOD</td><td class="num">-17</td><td class="num">-4</td><td class="num">+326</td><td class="num" style="color:#1a7f47;font-weight:700">+306</td><td class="num">48%</td><td class="num">1.19</td><td class="num">1.09</td></tr><tr><td class="ln">VOL_BREAKOUT</td><td class="num">+947</td><td class="num">-249</td><td class="num">-771</td><td class="num" style="color:#c0392b;font-weight:700">-73</td><td class="num">53%</td><td class="num">0.90</td><td class="num">0.99</td></tr></tbody></table>
+<p><b>What it says:</b> the desk's CURRENT momentum gate (−$1,646) and fire-on-any-trend TSMOM (−$1,686) are the worst — they over-fire across the chop. The selective, trend-filtered, volume-confirmed breakouts win: <b>TREND_DONCH +$1,214</b> is the standout, with NOISE_BAND (Zarattini's #1 research rec, best PF 1.28) and ORB (PF 1.21) close behind. The lesson isn't "momentum is dead" — it's "<b>fire on the few real breakouts, in the trend, not on every net_atr tick.</b>"</p>
+<div class="card"><h3 style="margin-top:0">The exit is half the problem too</h3>
+<p>I also ran every variant under a Zarattini "momentum-proper" exit (1-ATR stop + VWAP-loss trail + EOD-flat, no flat-clock). Win rates collapsed to 9–25% but <b>payoff ratios jumped to 3–6×</b> — the convex low-win/high-payoff signature the literature says intraday momentum needs. They were net-negative <i>uncalibrated</i> on 5 days, but the <i>shape</i> was right. The desk's ratchet + flat-clock is a <b>mean-reversion exit</b> (bank small, cut to breakeven); bolted onto momentum it caps the winners while losers run — which is exactly why real MNQ momentum is 65% win but −$1,420.</p></div>
+<div class="callout"><div class="ct">Recommended shadow set</div><b>TREND_DONCH + NOISE_BAND + (TREND_DONCH+TOD or ORB)</b> — observe-only, funnel-stamped, no orders, IPB-style. A 2-week readout decides GO/NO-GO on real fills. Your call on the exact 3 (parked for your Saturday read).</div>
+
+<h2><span class="n">06</span>Deep Dive — VWAP Pullback: the edge</h2>
+<p class="lead">This is the desk's bread and butter, and it works. <b>+$692 this week on the 3 contracts</b> — MNQ +$584 (65% win), MES +$78 (51%), MGC +$30 (62%) — and it's the one gate where the entry features actually talk.</p>
+<table><thead><tr><th>Contract</th><th>Net</th><th>Trades</th><th>Win %</th><th>Read</th></tr></thead><tbody>
+<tr><td class="ln">MNQ</td><td class="num" style="color:var(--pos);font-weight:700">+$584</td><td class="num">86</td><td class="num">65%</td><td>the workhorse — clean, repeatable</td></tr>
+<tr><td class="ln">MES</td><td class="num" style="color:var(--pos)">+$78</td><td class="num">69</td><td class="num">51%</td><td>positive but thinner edge</td></tr>
+<tr><td class="ln">MGC</td><td class="num" style="color:var(--pos)">+$30</td><td class="num">47</td><td class="num">62%</td><td>marginal on gold — watch</td></tr>
+</tbody></table>
+<h3>Why it works — and the one lever to sharpen it</h3>
+<p>The entry forensic separated 78 stamped pullback entries into winners and losers and found a genuine signal: <b>winners fire on LOWER relative volume (median rvol 0.19) than losers (0.27)</b>, Cohen's d −0.40. The reading is intuitive — a pullback on <i>light</i> volume is healthy profit-taking within a live trend (winners also carry a slightly positive net_atr); a pullback on <i>heavy</i> volume is distribution or a falling knife (losers carry flat/negative net_atr). The losers cluster in one place: <b>dead tape</b> — e.g. a 20-minute MES "pullback" that fired at rvol 0.1, net_atr 0.0, sat doing nothing, and flat-clocked for −$158. There was never a move to pull back within.</p>
+<div class="callout"><div class="ct">The pullback prescription (🔴 lean)</div>Add an <b>rvol ceiling</b> (~0.5–0.7) and an <b>energy floor</b> (skip when net_atr ≈ 0 <i>and</i> rvol &lt; 0.5) to <span class="mono">FUT_PB_MAX_RVOL</span>. It protects the desk's real edge by refusing the dead-tape and chasing-extension entries. <b>But hold:</b> the stamp sample is ~1.5 days — give it 5 more sessions to confirm the threshold before arming hard. Don't fiddle the core impulse/tag geometry; production beats everything tested there.</div>
+
+<h2><span class="n">07</span>Biggest Surprise — the desk hid a losing week from itself</h2>
+<div class="card"><p>Slice the gates the naive way (excluding all reconcile/reconstruct rows) and you get <b style="color:var(--pos)">+$1,684</b>. The desk actually lost <b style="color:var(--neg)">−$4,443</b>. The −$6,100 swing is real losing round-trips that the emission gap routed into <span class="mono">RECONSTRUCTED_BACKFILL</span> — which the gate-attribution convention drops. A high-volume chop week stressed the OrderFilledV3 emission path, so a large share of real closes only landed via the gap-tolerant reconstruct.</p>
+<p><b>Why it matters:</b> closing the emission gap at the order-state-machine level is no longer just a completeness chore — it's a <b>P&amp;L-legibility</b> issue. Until it's closed, naive gate attribution will systematically under-count losses on busy days. (This report includes the reconstructs, so its numbers reconcile to the header.)</p></div>
+
+<h2><span class="n">08</span>The Interrogation Table — knob by knob</h2>
+<table><thead><tr><th>Lever</th><th>Verdict</th><th>This week</th><th>Suggested change</th><th>Conf.</th></tr></thead><tbody>
+<tr class="row-bad"><td class="ln">Momentum routing</td><td><span class="pill p-kill">KILL</span></td><td class="num">−$1,820 / −$3,446 norm</td><td>Drop momentum from MGC in <span class="mono">_ENTRY_GATES_BY_KEY</span> (off all 3)</td><td>🟡</td></tr>
+<tr class="row-bad"><td class="ln">Momentum continuation</td><td><span class="pill p-kill">KILL</span></td><td class="num">0/9, −$459 Fri</td><td><span class="mono">FUT_MOM_CONTINUATION_ENABLED=false</span></td><td>🟡</td></tr>
+<tr><td class="ln">MGC 2-contract cap</td><td><span class="pill p-tune">FIX</span></td><td class="num">11-lot bypass = +$1,626</td><td>Enforce the cap in the sizing path</td><td>🟡</td></tr>
+<tr><td class="ln">Pullback rvol (<span class="mono">FUT_PB_MAX_RVOL</span>)</td><td><span class="pill p-tune">TUNE</span></td><td class="num">+$692 (edge)</td><td>Add rvol ceiling + energy floor — <b>hold 5 sessions</b></td><td>🔴</td></tr>
+<tr><td class="ln">Force-killer</td><td><span class="pill p-keep">KEEP</span></td><td class="num">6 fires, all clean</td><td>Extend to MES; experiment f1.5–2.0</td><td>🟡</td></tr>
+<tr><td class="ln">Ratchet ATR mults (per-contract)</td><td><span class="pill p-keep">KEEP</span></td><td class="num">+$3,654 fwd edge</td><td>Leave it — forward sample confirms</td><td>🟡</td></tr>
+<tr><td class="ln">vwap_dip (MNQ)</td><td><span class="pill p-keep">DON'T TOUCH</span></td><td class="num">+$246, 92% win (13t)</td><td>Too thin to tune — leave alone</td><td>🔴</td></tr>
+</tbody></table>
+
+<h2><span class="n">09</span>Monday Morning &amp; Engineering Backlog</h2>
+<div class="grid"><div class="card" style="flex:1 1 380px">
+<h3 style="margin-top:0">§A — Monday Morning (armable, reversible)</h3>
+<ol>
+<li><b>Momentum OFF on all 3 contracts</b> — extend §301 to MGC. The leak with no entry edge. <span class="pill p-keep">do this</span></li>
+<li><b><span class="mono">FUT_MOM_CONTINUATION_ENABLED=false</span></b> — kill the ceiling-bypass.</li>
+<li><b>Fix the MGC 2-contract cap bypass</b> — risk control; it corrupts every MGC number until fixed.</li>
+<li><b>Hold</b> the pullback rvol-ceiling — 🔴 lean, wait ~5 sessions.</li>
+</ol></div>
+<div class="card" style="flex:1 1 380px">
+<h3 style="margin-top:0">§B — Engineering Backlog (needs a build)</h3>
+<ol>
+<li>Stand up the momentum-replacement <b>shadow</b> (TREND_DONCH + NOISE_BAND, observe-only).</li>
+<li><b>Close the OrderFilledV3 emission gap</b> — now a P&amp;L-legibility problem (−$3,404 masked).</li>
+<li>Validated <b>pullback-rvol sweep</b> once the entry stamp accrues 2+ weeks.</li>
+<li><b>Regime-detection accuracy harness</b> — quantify trend/chop call accuracy (next week's #1 gap).</li>
+<li>Phase-2 self-audit forecast loop (the keystone for 🟢 confidence).</li>
+</ol></div></div>
+
+<h2><span class="n">10</span>What I Did This Week (the work log)</h2>
+<ul>
+<li><b>Benched the desk to 3 contracts</b> (MNQ/MES/MGC) + rebuilt the futures terminal as a 3-contract cockpit.</li>
+<li><b>Built + armed the regime router</b> (Phase 0→3) — per-contract chop-vs-index engine selection with anti-flicker; now governs live submits (paper) with a CHOP-confirm watch alarm + a cockpit "what the desk is doing" label.</li>
+<li><b>Ran the momentum study</b> — web research (Zarattini/Gao/TSMOM) + 8-variant replay + charts. Conclusion: momentum has no clean edge; selective breakout is the direction.</li>
+<li><b>Ran the entry forensic</b> — per-gate winner/loser separation (Cohen's d), the 234 dead-entry / −$8,444 flat-clock bleed, 15 deal walk-throughs.</li>
+<li><b>Caught + quantified the MGC 11-lot oversize</b> (cap bypass) and the emission-gap P&amp;L masking.</li>
+<li><b>Added multi-select tick-box filters to /day</b>, made /reports links clickable, and built this report.</li>
+<li><b>Stood the maintenance + analysis loop</b> — 4-hourly health sweeps, nightly self-analysis, this weekly, ratchet-shadow A/B, IPB hourly shadow.</li>
+</ul>
+
+<div class="foot">
+GAZBOT V5 · paper desk · read-only forensic — <b>nothing was armed</b> (L-DAYREVIEW-DESCRIPTIVE: the report prescribes, the operator decides). Numbers are canonical, net of $1.50/RT, and reconcile to the dashboard header. Replay $ are direction-only (the 1m replay diverges from real fills); small-sample edges are tagged 🔴 lean, not quoted as verdicts. Phase-2/3 (opportunity-cost, regret, self-audit-grade) are scoped, not built. 3-pass interrogated (Analyst → HF-Manager → CEO). Reproduce: <span class="mono">scripts/entry_forensic.py</span> · <span class="mono">scripts/momentum_study.py</span> · <span class="mono">scripts/ratchet_shadow_compare.py</span>.
+</div>
+</div></body></html>

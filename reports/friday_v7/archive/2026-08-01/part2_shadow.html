@@ -1,0 +1,205 @@
+<h2><span class="n">PART 2</span> The Shadow Desk &amp; Promotion</h2>
+
+<p class="lead">This section was built from scratch on this week's numbers &mdash; no gate, candidate or verdict was inherited from last week's report. I ranked the whole shadow board on honest tick-repriced dollars (what a trade would really have made after slippage and fees, never the optimistic sim price), and let the promotion pick fall out of that ranking rather than deciding it in advance. Then I ran the full robustness battery on whatever came top, presented the two grind-exit shadow ledgers exactly as they stand tonight, and re-proved the exit ladder on the week's tick path per regime. Where the sample is thin I say so plainly &mdash; the shadow board <em>nominates</em>, the paper desk <em>judges</em>.</p>
+
+<div class="card">
+<div class="rev3ptr"><strong>&#9654; Read this section with REV3 open.</strong> Four things in here were overturned: abs_veto was never a promotion (it shipped 07-25), the &quot;+$326 over 47&quot; figure is wrong, the BIG-TREND cell is n=24 not n=5, and the &quot;exit is not the lever&quot; instruction is wrong for the live abs_veto_long cell. The corrections are marked inline in red where they bite, and the full working is in <a href="#part3">Part 3 &mdash; the Rev2/Rev3 corrections</a>. Nothing has been deleted: where a claim was overturned, the original is still printed next to what replaced it.</div><h3>The shadow board, ranked on honest money</h3><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; shadow runs 1 lot, the live scale-out runs 2 — never compare the raw dollars</div><p>Standing note for every shadow-vs-live comparison in this section: <strong>the shadow runs 1 lot; the live scale-out runs 2.</strong> No raw shadow-vs-live dollar comparison is valid without dividing the live number by <em>signals</em>, not lots. That single omission is what produced the $326-vs-$776 confusion below.</p></div>
+<p>Every strategy that runs observe-only alongside the live desk, sorted by real (tick-repriced) dollars. Two windows: all-time (the ~two-week summer archive, 07-16 to 07-31) and this week. The green rows are the ones actually making money on honest fills; the red block at the bottom is where the dead ideas live.</p>
+
+<table>
+<thead><tr><th class="ln">Strategy (all-time)</th><th class="num">N</th><th class="num">net $</th><th class="num">win%</th><th class="num">$/trade</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">abs_veto_55s <span class="tag">promotion pick</span></td><td class="num">238</td><td class="num">+2,668</td><td class="num">47</td><td class="num">+11.2</td></tr>
+<tr><td class="ln">grind_fast <span class="tag">variant of live grind_long</span></td><td class="num">732</td><td class="num">+2,052</td><td class="num">36</td><td class="num">+2.8</td></tr>
+<tr><td class="ln">abs_veto_50s <span class="tag">sibling</span></td><td class="num">259</td><td class="num">+1,968</td><td class="num">44</td><td class="num">+7.6</td></tr>
+<tr><td class="ln">thrust_cont</td><td class="num">276</td><td class="num">+711</td><td class="num">37</td><td class="num">+2.6</td></tr>
+<tr><td class="ln">abs_veto_60s <span class="tag">sibling</span></td><td class="num">80</td><td class="num">+425</td><td class="num">44</td><td class="num">+5.3</td></tr>
+<tr><td class="ln">thrust_aligned</td><td class="num">241</td><td class="num">+396</td><td class="num">37</td><td class="num">+1.6</td></tr>
+<tr><td class="ln">thrust_short_absveto55 <span class="tag">live-slot mirror</span></td><td class="num">53</td><td class="num">+318</td><td class="num">45</td><td class="num">+6.0</td></tr>
+<tr><td class="ln">rg_short_025_flow50</td><td class="num">23</td><td class="num">+245</td><td class="num">52</td><td class="num">+10.6</td></tr>
+<tr><td class="ln">rg_short_025_raw</td><td class="num">30</td><td class="num">+184</td><td class="num">47</td><td class="num">+6.1</td></tr>
+<tr><td class="ln">thrust_loose <span class="tag">un-vetoed base</span></td><td class="num">424</td><td class="num">+131</td><td class="num">36</td><td class="num">+0.3</td></tr>
+<tr class="row-bad"><td class="ln">thrust_short_raw</td><td class="num">94</td><td class="num">&minus;137</td><td class="num">33</td><td class="num">&minus;1.5</td></tr>
+<tr class="row-bad"><td class="ln">rg_long_20_t20 &middot; rg_long_fast &middot; rg_long_fast_v</td><td class="num">&mdash;</td><td class="num">&minus;546 / &minus;2,281 / &minus;1,438</td><td class="num">29&ndash;31</td><td class="num">&minus;7 to &minus;11</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_rev <span class="tag">fixed-target shadow</span></td><td class="num">321</td><td class="num">&minus;1,187</td><td class="num">37</td><td class="num">&minus;3.7</td></tr>
+<tr class="row-bad"><td class="ln">chand_k20 / k25 (raw chandelier)</td><td class="num">362 / 352</td><td class="num">&minus;1,588 / &minus;1,544</td><td class="num">43 / 41</td><td class="num">&minus;4.4</td></tr>
+<tr class="row-bad"><td class="ln">capit_loose <span class="tag">unfiltered fader</span></td><td class="num">238</td><td class="num">&minus;5,250</td><td class="num">17</td><td class="num">&minus;22.1</td></tr>
+</tbody>
+</table>
+
+<table>
+<thead><tr><th class="ln">Strategy (this week only)</th><th class="num">N</th><th class="num">net $</th><th class="num">win%</th><th class="num">$/trade</th></tr></thead>
+<tbody>
+<tr><td class="ln">grind_fast <span class="tag">variant of live gate</span></td><td class="num">240</td><td class="num">+2,088</td><td class="num">39</td><td class="num">+8.7</td></tr>
+<tr class="row-hl"><td class="ln">abs_veto_55s <span class="tag">promotion pick</span></td><td class="num">114</td><td class="num">+1,394</td><td class="num">49</td><td class="num">+12.2</td></tr>
+<tr><td class="ln">abs_veto_50s</td><td class="num">124</td><td class="num">+1,107</td><td class="num">46</td><td class="num">+8.9</td></tr>
+<tr><td class="ln">cb_thrust</td><td class="num">130</td><td class="num">+275</td><td class="num">35</td><td class="num">+2.1</td></tr>
+<tr class="row-bad"><td class="ln">capit_loose</td><td class="num">62</td><td class="num">&minus;1,455</td><td class="num">21</td><td class="num">&minus;23.5</td></tr>
+<tr class="row-bad"><td class="ln">rg_long_fast &middot; rg_long_20_t20</td><td class="num">99 / 14</td><td class="num">&minus;667 / &minus;520</td><td class="num">32 / 14</td><td class="num">&minus;6.7 / &minus;37</td></tr>
+<tr class="row-bad"><td class="ln">thrust_short_raw</td><td class="num">81</td><td class="num">&minus;463</td><td class="num">31</td><td class="num">&minus;5.7</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct">Who actually emerges. The single biggest honest earner on the board, both all-time and this week, is <strong>abs_veto_55s</strong>. The one above it this week (grind_fast) and the family's siblings (abs_veto_50s/60s) are all just research variants of gates the desk already runs &mdash; grind_fast is the uncapped-chandelier cousin of the live grind_long, the 50s/60s are the same veto with a shorter/longer confirm window. Among strategies that are <em>not yet on the live desk</em>, abs_veto_55s is #1 in both windows by a clear margin. It nominates itself. Two useful facts fall straight out of the family ordering: 55s &gt; 50s &gt; 60s in honest dollars, so the 55-second confirm is the sweet spot (not an arbitrary pick), and the raw un-vetoed thrust it is built on (thrust_loose) makes essentially nothing (+$131 over 424 trades, +$0.3 each) &mdash; so every dollar abs_veto earns is the <em>veto</em> doing the work, not the underlying thrust.</div></div>
+</div>
+
+<div class="card">
+<h3>The promotion battery &mdash; abs_veto_55s, run cold on this week's data</h3>
+<p>abs_veto_55s is thrust_loose plus a 55-second continuation confirm: it takes a raw thrust signal, waits 55 seconds, and only fires if the burst is still going &mdash; which throws away roughly 44% of the raw thrusts as fake-outs. Here is the full robustness read, not just the headline number.</p>
+
+<table>
+<thead><tr><th class="ln">Test</th><th class="ln">Result</th><th class="num">verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">Headline (all-time)</td><td class="ln">238 trades, <strong>+$2,668</strong>, 47% win, +$11.2/trade, worst day &minus;$148, max drawdown &minus;$441</td><td class="num"><span class="tag">strong</span></td></tr>
+<tr class="row-hl"><td class="ln">Spread across days</td><td class="ln"><strong>9 of 12 days green.</strong> Best +$761 (07-23), worst &minus;$148 (07-22). Not one lucky session.</td><td class="num"><span class="tag">broad</span></td></tr>
+<tr><td class="ln">Concentration check</td><td class="ln">Top 3 days (07-28 +$791, 07-23 +$676, 07-17 +$581) = $2,048 of the $2,668 (77%). Strip all three and the remaining nine days still net <strong>+$620</strong>.</td><td class="num"><span class="tag">survives strip-3</span></td></tr>
+<tr class="row-hl"><td class="ln">Regime split (chop vs trend, by entry ER)</td><td class="ln">Chop (ER&lt;0.18): 112 tr, <strong>+$872</strong>, +$7.8/tr. Trend (ER&ge;0.18): 126 tr, <strong>+$1,796</strong>, +$14.3/tr. Green in <em>both</em>, roughly twice as good in trend.</td><td class="num"><span class="tag">both regimes</span></td></tr>
+<tr class="row-hl"><td class="ln">Walk-forward (first half vs second)</td><td class="ln">First 119 trades +$1,250; second 119 trades +$1,418. Slightly <em>better</em> late &mdash; no decay.</td><td class="num"><span class="tag">stable</span></td></tr>
+<tr class="row-hl"><td class="ln">Head-to-head vs un-vetoed thrust_loose</td><td class="ln">abs_veto_55s +$2,668 vs thrust_loose +$131 on the same board. The veto's incremental edge is <strong>+$2,538</strong>.</td><td class="num"><span class="tag">the veto is the edge</span></td></tr>
+</tbody>
+</table>
+
+<p>And the operator's key point from last week held up when re-tested cold: <strong>it is a genuine two-sided gate and both sides earn their keep.</strong> <strong>Correction (applied 08-01):</strong> an earlier draft of this section said the live desk runs only the short side via <code>thrust_short</code> and that the long side was still on the table. That was a prior-week fragment and it is wrong. <code>data/gate_switches.env</code> has <code>abs_veto_long=on</code> AND <code>abs_veto_short=on</code> — abs_veto is <strong>already live two-sided</strong>, and there is no gate called <code>thrust_short</code> in the live tournament at all. So the promotion decision is not "should we add the long side"; it is already added. The open question is the <em>gap</em>: live <code>abs_veto_long</code> made <strong>+$59.5 over 59 lots (43 signals)</strong> this week <strong>&#9654; REV3: the folded-in correction printed <span class="was">+$326 over 47 trades</span>, which is wrong by $266.5 and contradicts Part 1's own card table in this same document. Straight from <code>data/gazbot7.db</code> it is +$59.5 / 59 lots; no window produces $326/47.</strong> while shadow <code>abs_veto_55s</code> LONG made <strong>+$776 over 66</strong>. Reconciling that — config drift between the live gate and the shadow spec (confirm window, ER floor, amp floor, exit Rs) — is the real Saturday job. <strong>&#9654; REV3: it is now done.</strong> Of the $609.5 gap, <strong>82% is entry</strong> &mdash; 26 long signals the router had benched, worth +$397 in shadow &mdash; plus $107 of window mismatch and $273.5 of <code>STOP_UNFILLED</code>. Net of fees and that stop bug the live exit design is about <strong>+$67 ahead</strong> of the shadow. <strong>The bench cost the money, not the exit.</strong></p>
+
+<table>
+<thead><tr><th class="ln">abs_veto_55s side</th><th class="num">N</th><th class="num">net $</th><th class="num">win%</th><th class="num">$/trade</th><th class="num">max DD</th><th class="ln">vs raw thrust</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">LONG (all-time)</td><td class="num">122</td><td class="num">+1,187</td><td class="num">47</td><td class="num">+9.73</td><td class="num">&minus;456</td><td class="ln">+$1,563 better</td></tr>
+<tr class="row-hl"><td class="ln">SHORT (all-time)</td><td class="num">116</td><td class="num">+1,482</td><td class="num">47</td><td class="num">+12.77</td><td class="num">&minus;331</td><td class="ln">+$974 better</td></tr>
+<tr><td class="ln">LONG (this week)</td><td class="num">66</td><td class="num">+776</td><td class="num">50</td><td class="num">+11.75</td><td class="num">&minus;310</td><td class="ln">&mdash;</td></tr>
+<tr><td class="ln">SHORT (this week)</td><td class="num">63</td><td class="num">+659</td><td class="num">44</td><td class="num">+10.46</td><td class="num">&minus;331</td><td class="ln">&mdash;</td></tr>
+</tbody>
+</table>
+
+<p>The short-only live-slot mirror A/B says the same thing in the live slot's own shape (short-only + chandelier): <strong>thrust_short_absveto55 made +$318 (53 tr, 45% win)</strong> against <strong>thrust_short_raw's &minus;$137 (94 tr, 33% win)</strong> &mdash; the veto turns the desk's live short thrust from a slow bleed into a real earner.</p>
+
+<div class="callout"><div class="ct"><strong>Verdict: ALREADY LIVE TWO-SIDED &mdash; RE-VALIDATED COLD. <span class="tag pill-null">no action</span></strong> <span class="was">Verdict: PROMOTE, and promote it TWO-SIDED.</span> <strong>&#9654; REV3: there is nothing to promote.</strong> <code>abs_veto_long</code> and <code>abs_veto_short</code> have both been armed since the 07-25 roster change &mdash; verified in <code>gate_switches.env</code> today. What the cold re-validation earns is confidence in a gate that is already running, plus exactly one config change: the long-side exit cell (below). Every robustness cut it can be put through &mdash; per-day spread, strip-the-best-3, chop-vs-trend, both walk-forward halves, head-to-head vs its own un-vetoed base &mdash; comes back positive, and both directions earn independently. Honest caveats: it is still only a ~two-week, single-summer-regime sample, and three good days carry most of the total (though it stays green with those three removed). The real out-of-sample test is the forward paper run &mdash; the shadow nominates, the paper desk decides. But of everything on the board, this is the one that has earned a live slot. <span class="was">…and clipping it to short-only leaves roughly half its proven money on the floor.</span> <strong>&#9654; REV3: nothing has clipped it to short-only. That sentence was written against a roster that changed a week before this report.</strong></div></div>
+</div>
+
+<div class="card">
+<h3>Relegation view &mdash; tune the SIDE, never bin a direction</h3>
+<p>The standing rule is that a gate runs both ways with its two sides tuned independently, so nothing here is a recommendation to retire a direction &mdash; it is a read on <em>which side of which gate needs what</em>, from this week's fresh per-side numbers. Every "bleed" below is a side-and-regime problem, not a broken gate.</p>
+
+<table>
+<thead><tr><th class="ln">Gate</th><th class="ln">This week, per side (honest $)</th><th class="ln">Diagnosis</th><th class="num">action</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">rgv</td><td class="ln">LONG bleeds hard (rg_long_fast &minus;$667, rg_long_20_t20 &minus;$520). SHORT holds up (rg_short_025_flow50 <strong>+$71</strong>, rg_short_025_raw +$28, rg_short_050 +$11).</td><td class="ln">Classic two-sided split &mdash; the sides want opposite treatment. Short has a stable tight-ext green zone; long has no filter that keeps it green, it's a <em>router</em> problem (don't fade into a proven up-move).</td><td class="num"><span class="tag">tune side: rgv SHORT tight-ext base; rgv LONG = router-only</span></td></tr>
+<tr class="row-bad"><td class="ln">capitulation</td><td class="ln">Unfiltered fader (capit_loose) &minus;$1,455 this week, &minus;$5,250 all-time, 17&ndash;21% win.</td><td class="ln">The loose, unfiltered form is the worst thing on the board. The deployed capitulation_long uses require_flip, which is the actual fix &mdash; the bleed is the <em>unfiltered</em> version, not the gate.</td><td class="num"><span class="tag">keep require_flip + router guard</span></td></tr>
+<tr class="row-bad"><td class="ln">thrust (short)</td><td class="ln">Raw short (thrust_short_raw) &minus;$463 this week, 31% win.</td><td class="ln">Not a direction to bin &mdash; the same short direction with the 55s veto (thrust_short_absveto55) is +$318. The fix is the entry veto, which is the promotion above.</td><td class="num"><span class="tag">fix = the abs_veto veto</span></td></tr>
+<tr><td class="ln">exhaustion (short)</td><td class="ln">Fixed-target shadow (exhaustion_rev) &minus;$302, but that shadow uses a fixed 12pt target it never trades to. LIVE exhaustion_short is the desk's <strong>steadiest</strong> fader <span class="was">cleanest fader</span> &mdash; though <strong>its live green is hand-claim dependent (&minus;$56 over 44 automated fires)</strong> (see the exit lab below).</td><td class="ln">Do not judge this gate by its fixed-target shadow &mdash; the live chandelier version rides the fade body. Judge it on live fills.</td><td class="num"><span class="tag">keep, judge live</span></td></tr>
+</tbody>
+</table>
+<div class="callout"><div class="ct">Nothing gets relegated. Every red line above is a side that needs a filter, a regime guard, or the router &mdash; not a direction to switch off. That is the whole point of the two-sided rule, and this week's per-side numbers back it: rgv's short side is quietly green while its long side bled, on the same gate, in the same days.</div></div>
+</div>
+
+<div class="card">
+<h3>Grind exit shadow &mdash; two-ratchet runner-clip watch</h3>
+<p>Background: grind_long deployed the pure-6.0 threshold-chandelier as its exit. A second "mop-up" ratchet was tested three ways and rejected every time, because the reverser money is tangled up with the runner-retrace zone it would clip. It stays dead but is <em>shadowed</em> to catch the one thing the flat summer archive can't produce: a real runner getting clipped on a genuine trend day, since the big rMFE&ge;4R runners carry the bulk of grind's edge.</p>
+
+<table>
+<thead><tr><th class="ln">Window 07-26 &rarr; 08-01</th><th class="num">value</th></tr></thead>
+<tbody>
+<tr><td class="ln">grind_long live fills in window</td><td class="num">4 (all on 07-27)</td></tr>
+<tr><td class="ln">Runners (rMFE &ge; 4R)</td><td class="num">1</td></tr>
+<tr class="row-hl"><td class="ln">RUNNER-CLIPS fired</td><td class="num">0</td></tr>
+<tr><td class="ln">Live pure-6.0 net</td><td class="num">&minus;$149</td></tr>
+<tr class="row-hl"><td class="ln">Shadow two-ratchet net</td><td class="num">&minus;$28 &nbsp;(+$122 vs live)</td></tr>
+</tbody>
+</table>
+
+<table>
+<thead><tr><th class="ln">Every trade in the window</th><th class="num">ATR</th><th class="num">rMFE</th><th class="num">live $</th><th class="num">shadow $</th><th class="ln">exit</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">07-27 16:05</td><td class="num">25.6</td><td class="num">0.14R</td><td class="num">&minus;52</td><td class="num">&minus;53</td><td class="ln">STOP</td></tr>
+<tr class="row-bad"><td class="ln">07-27 16:06</td><td class="num">25.0</td><td class="num">1.79R</td><td class="num">&minus;52</td><td class="num">&minus;52</td><td class="ln">STOP</td></tr>
+<tr class="row-bad"><td class="ln">07-27 16:28</td><td class="num">32.9</td><td class="num">0.14R</td><td class="num">&minus;68</td><td class="num">&minus;68</td><td class="ln">STOP</td></tr>
+<tr class="row-hl"><td class="ln">07-27 18:54 <span class="tag">the runner</span></td><td class="num">24.8</td><td class="num">4.2R</td><td class="num">+23</td><td class="num">+145</td><td class="ln">CHANDELIER</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct"><strong>Verdict: no clip fired, and far too thin to reopen the case. <span class="tag">stays dead, keep shadowing</span></strong> The honest facts: grind barely traded live this window (4 fills, all on one day 07-27), so this is a single-day, one-runner read, not the "genuine trend week" that would count as evidence. On the one runner it saw, the two-ratchet did <em>not</em> clip it &mdash; it actually rode it for <em>more</em> ($145 shadow vs $23 live, +$122). That is mildly interesting (the mop-up arm added to a runner rather than cutting it), but one runner is nothing to decide on. The finding that would kill it (a real clip) did not fire; the evidence that would revive it (a clean trend week with several untouched runners) hasn't arrived. It stays dead and shadowed until a real trend week gives it a proper test.</div></div>
+</div>
+
+<div class="card">
+<h3>Grind exit shadow &mdash; 2R-partial smoothness</h3>
+<p>The 2R-partial is the only exit lever that survived earlier scrutiny: Lot A banks a 2R scalp for certainty, Lot B rides the pure-6.0 chandelier for the tail. Because grind is base-size 2 it's free to run. It was framed as a <em>variance</em> lever (smoother equity for a small mean give-up), not a mean-raiser &mdash; so it's the operator's call, not a pass/fail.</p>
+
+<table>
+<thead><tr><th class="ln">Metric (07-26 &rarr; 08-01)</th><th class="num">Baseline (deployed 2-lot chandelier)</th><th class="num">2R-partial (shadow)</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">Net $</td><td class="num">&minus;278</td><td class="num">&minus;214 &nbsp;(+$64)</td></tr>
+<tr><td class="ln">Mean &Delta; per trade (partial &minus; base)</td><td class="num">&mdash;</td><td class="num">+$64.5 (all on the 1 runner)</td></tr>
+<tr><td class="ln">Daily std $</td><td class="num">0 (1 day)</td><td class="num">0 (1 day)</td></tr>
+<tr><td class="ln">Max drawdown $</td><td class="num">&minus;278</td><td class="num">&minus;214</td></tr>
+<tr><td class="ln">Worst day $</td><td class="num">&minus;278</td><td class="num">&minus;214</td></tr>
+<tr><td class="ln">Green-day % / green-week %</td><td class="num">0 / 0</td><td class="num">0 / 0</td></tr>
+</tbody>
+</table>
+
+<p>Where the +$64 came from, trade by trade: on the three losers the partial is identical to baseline (both stop out); the whole difference is the one runner, where banking Lot A at 2R (+$130.5) beat letting both lots ride the chandelier back down (+$66).</p>
+
+<div class="callout"><div class="ct"><strong>Verdict: no new evidence to make the call on. <span class="tag">operator's choice, unchanged</span></strong> The smoothness case is a claim about <em>daily variance and drawdown across many days</em> &mdash; and this window has one grind day and four trades, so daily std is zero and the whole variance thesis is untestable right now. What we can say: this week the partial edged the baseline by $64, entirely by scalping the single runner rather than riding it. That is the opposite of a mean give-up (this week it was a mean <em>gain</em>), purely because the lone runner topped out at 4.2R and the chandelier gave the tail back. One day proves nothing either way; the mean-vs-smoothness choice waits for a multi-day trend sample.</div></div>
+</div>
+
+<h2><span class="n">PART 2 &middot; LAB</span> The Regime-Flex Exit Lab</h2>
+<p class="lead">The desk's live control is now two files: gate_switches.env decides which gates are on, and exit_overrides.json decides the exit style per gate. This lab does two jobs &mdash; grade the live exhaustion_short fade-scalp trial on its actual fills, and re-prove the operator's regime-graded exit ladder by repricing every gate's real entries on the forward tick/5s path, segmented by regime rung, so the deployable exit_overrides policy is proven rather than guessed.</p>
+
+<div class="card">
+<h3>(a) The live exhaustion_short fade-scalp trial &mdash; on its actual fills</h3>
+<p>Deployed ~07:55 UTC on 07-31: Lot A banks at 0.5R, Lot B at 1.5R, replacing the prior A@2.5R + chandelier. Here is literally every leg it has filled since.</p>
+<table>
+<thead><tr><th class="ln">Time (UTC)</th><th class="ln">leg</th><th class="ln">exit</th><th class="num">$</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">07-31 13:52</td><td class="ln">A (0.5R)</td><td class="ln">TARGET</td><td class="num">+51.5</td></tr>
+<tr class="row-bad"><td class="ln">07-31 13:52</td><td class="ln">B (1.5R)</td><td class="ln">STOP</td><td class="num">&minus;123.5</td></tr>
+<tr class="row-bad"><td class="ln">07-31 18:41</td><td class="ln">A (0.5R)</td><td class="ln">STOP</td><td class="num">&minus;27.5</td></tr>
+</tbody>
+</table>
+<div class="callout"><div class="ct"><strong>Verdict: keep running &mdash; two signals is not a grade. <span class="tag">too thin to judge</span></strong> The trial has fired exactly two signals (three legs) for a net of &minus;$99.5. The one thing you can see: on the 13:52 signal the fast 0.5R Lot A banked (+$51.5) while the 1.5R Lot B rode past its cushion and stopped (&minus;$123.5) &mdash; i.e. the fade reversed after the quick scalp, which is exactly the case the "bank A early" logic is meant for, except Lot B still gave it back. The 18:41 signal stopped on the A leg. <span class="was">For honest comparison the prior era (07-27–07-31, A@2.5R + chandelier, 37 trades) netted +$365 with a healthy 11 targets / 10 chandeliers / 16 stops mix.</span> <strong>&#9654; REV3: the prior era was not the same machine, and that mislabel hides the whole causal story.</strong> Until Wed 07-29 19:10 UTC exhaustion ran a <strong>single slot on the regime-3 adaptive chandelier</strong>: 37 automated fills, +$365, PF 1.46, green on all 3 of its days. The scale-out slate that replaced it (A@2.5R + wide lock-chandelier) is <strong>&minus;$421 over 7 fills at 14% win</strong>. The gate did not break; its exit was swapped for a trend-riding one, and a fader does not get 2.5R in a whipsaw.<div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; the Rs can be graded even though the live trial cannot</div><p>A 64-entry 250&nbsp;ms sweep does grade them: the loaded <strong>0.5R Lot A is the worst scalp rung on the ladder</strong> (+$306); the plateau is 0.75–1.0R (+$510 / +$450); and Lot B's steadiest config by a distance is a <strong>k1.5 chandelier</strong> (+$502, the highest leave-one-day-out floor in the whole sweep at +$330, worst day −$25). That is the MONDAY&nbsp;#4 play.</p><p><strong>But the sweep's real message is that no exit is robustly green in violent whipsaw</strong>, where this gate took 28 of its 62 entries — the k1.5 chandelier is the <em>worst</em> config in that bucket at −$202. Keeping it benched there is worth more than any R.</p><p><strong>Method caveat added 08-01:</strong> this cell came from a per-signal sweep on overlapping entries — the same accounting that was just shown to swing grind's exit verdict by $5,076 (<a href='#p3grindexit'>Part 3.7</a>). Not refuted; re-run it under a sequential one-position-per-slot sim before trusting the size of the gain. Cheap to revert either way.</p></div></div></div>
+</div>
+
+<div class="card">
+<h3>(b) Proving the exit ladder &mdash; best exit per gate &times; regime rung</h3>
+<p>I repriced every gate's real entries on the forward 5-second path, segmented by the operator's four rungs (BIG-TREND = 30-min ER&ge;0.50, MED-TREND 0.30&ndash;0.50, SCALP-CHOP otherwise, STAY-OUT = violent ATR&ge;22), sweeping a full grid of Lot-A &times; Lot-B scalp-R combos plus wide/tight chandelier, and scored each config only on its home segment. The table is the <em>proven</em> best exit vs the ladder <em>guess</em>.</p>
+
+<table>
+<thead><tr><th class="ln">Gate family</th><th class="ln">rung (n)</th><th class="ln">ladder guess</th><th class="ln">proven best (mean $/tr)</th><th class="num">verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">grind (momentum)</td><td class="ln">MED-TREND (78)</td><td class="ln">1.5 / 2.5</td><td class="ln"><strong>scalp 0.5 / 1.0</strong> (+$10.3, 59% win)</td><td class="num"><span class="tag">guess wrong: go TIGHT</span></td></tr>
+<tr><td class="ln">grind (momentum)</td><td class="ln">SCALP-CHOP (542)</td><td class="ln">1 / 2</td><td class="ln">scalp 0.5 / 1.0 (&minus;$0.5, 53% win)</td><td class="num"><span class="tag">tight, ~flat</span></td></tr>
+<tr><td class="ln">grind (momentum)</td><td class="ln">BIG-TREND (<strong>24</strong> <span class="was">5</span>)</td><td class="ln">2.5 / wide-chandelier</td><td class="ln">wideChand &times;2 (+$12.0) &mdash; n=<strong>24</strong></td><td class="num"><span class="tag">DIRECTION SUPPORTED</span> (bootstrap P=0.95, plateau 2.5–3.5R, both time-halves agree) &middot; <span class="tag pill-null">MAGNITUDE UNPROVEN</span> (strip-3 takes +$62 to +$10)</td></tr>
+<tr><td class="ln">grind (momentum)</td><td class="ln">STAY-OUT (107)</td><td class="ln">flat</td><td class="ln">every exit loses (best &minus;$3.7)</td><td class="num"><span class="tag">stay flat, confirmed</span></td></tr>
+<tr class="row-hl"><td class="ln">exhaustion (fader)</td><td class="ln">SCALP-CHOP (216)</td><td class="ln">0.5 / 1.5</td><td class="ln"><strong>tightChand &times;2</strong> (+$2.2, 37% win)</td><td class="num"><span class="tag">tight chandelier &gt; scalp</span></td></tr>
+<tr class="row-hl"><td class="ln">exhaustion (fader)</td><td class="ln">MED-TREND (90)</td><td class="ln">0.5 / 1.5</td><td class="ln"><strong>scalp 1.5 / 2.5</strong> (+$3.8, 46% win)</td><td class="num"><span class="tag">wider than the guess</span></td></tr>
+<tr class="row-hl"><td class="ln">exhaustion (fader)</td><td class="ln">BIG-TREND (15)</td><td class="ln">tight-chandelier</td><td class="ln">tightChand &times;2 (+$26.7, 53% win)</td><td class="num"><span class="tag">holds (thin)</span></td></tr>
+<tr class="row-bad"><td class="ln">thrust / abs_veto raw</td><td class="ln">every rung (25&ndash;333)</td><td class="ln">1.5 / 2.5</td><td class="ln">bleeds in ALL: BIG &minus;$13, MED &minus;$36, CHOP &minus;$39, STAY &minus;$67</td><td class="num"><span class="tag">exit can't save it</span></td></tr>
+<tr class="row-bad"><td class="ln">rgv (fader)</td><td class="ln">0.5 / 1.5</td><td class="ln">every rung red (best &minus;$6.9 MED, &minus;$8.7 CHOP, &minus;$27 BIG)</td><td class="ln">&mdash;</td><td class="num"><span class="tag">exit can't save it</span></td></tr>
+<tr class="row-bad"><td class="ln">capitulation (fader)</td><td class="ln">0.5 / 1.5</td><td class="ln">MED &minus;$19, CHOP &minus;$20; only tiny BIG (n=8) green</td><td class="ln">&mdash;</td><td class="num"><span class="tag">exit can't save it</span></td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct"><strong>What survived, in plain English.</strong> Two gates respond to the exit and three do not.
+<br>&bull; <strong>grind wants a TIGHT scalp, not the ladder's wider guess</strong> &mdash; in medium trend, 0.5/1.0 made +$10.3/trade at a 59% hit-rate; the guessed 1.5/2.5 was one of the worst cells. Grind banks fast or gives it back.
+<br>&bull; <strong>exhaustion is the one clean fader</strong> &mdash; a tight chandelier in chop (+$2.2) and in big trend (+$26.7 on 15), and a slightly <em>wider</em> 1.5/2.5 scalp in medium trend (+$3.8), not the 0.5/1.5 guess.
+<br>&bull; <strong>the RAW, UN-VETOED versions of thrust, rgv and capitulation bleed in every regime no matter what exit you put on them.</strong> That is the headline finding: for <em>those</em> three, the exit is not the lever <strong>&#9654; REV3: note the population. This row is the raw un-vetoed thrust, and the report then applies the conclusion by name to <code>abs_veto</code>, which is a different, filtered book. That sample-switch inside one sentence is what produced the wrong instruction below.</strong> &mdash; the lever is the entry (the abs_veto veto is literally the proof of that: same thrust signal, filtered entry, turns &minus;$137 into +$318) and which gates you run at all via gate_switches.env.</div></div>
+
+<div class="callout"><div class="ct"><strong>&#9733; CRITICAL caveat &mdash; BIG-TREND is still not properly tested.</strong> The two-week V7 tape was chop-dominated, so the BIG-TREND rung is tiny in every family (grind <strong>n=24</strong> <span class="was">n=5</span>, exhaustion/rgv n=15, capitulation n=8; thrust the only semi-real one at n=25 and it bled). The "RIDE" rung &mdash; grind 2.5&ndash;3.5R + wide lock-chandelier on a monster up-day &mdash; is <strong>DIRECTION SUPPORTED, MAGNITUDE UNPROVEN</strong> <span class="was">effectively UNPROVEN (grind's BIG cell is 5 trades)</span>. <strong>&#9654; REV3: the cell is n=24, not 5. Five is the count of live grind_fast shadow entries in an ER&ge;0.50 minute; the ladder verdict was computed on a 24-entry tick-tape replay. The caveat quotes the live number inside a caveat about the replay number.</strong> <span class="was">I did not manufacture a BIG-TREND sample from the retired V5 archive: it is a different desk, contract era and gate set, and repricing V7 gate entries on it would be a fabricated comparison, not an honest one&hellip; grind's BIG-TREND exit is a guess wearing an n=5 hat.</span><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; that refusal was false, and this lab had already used the archive</div><p><strong>Eleven of the 24 BIG-TREND entries already come from that pre-capture MNQ archive</strong> (<code>ticks.db</code>, 07-05&rarr;07-15). The lab tape starts 07-05, not 07-15. And the "different contract era" objection dies on the seam: last archive tick 29,623.00 at 15:35:29.973, first capture bar opens 29,622.75 at 15:35:30, r=0.9998 across 2,925 overlapping minutes. Same instrument, same front month. A report that invents a principled refusal for tape it silently consumed is worse off than one that never mentioned it.</p><p><strong>What is genuinely missing is n, not honesty.</strong> The pre-registered grade needs 39 paired entries (from a paired sd of $247 on a $79.4 diff) and we have 24. Grade date Friday 2026-08-21, hard backstop 09-11.</p><p><strong>And this rung is LIVE today, not an unturned stone.</strong> <code>data/exit_overrides.json</code> keys only <code>exhaustion_short</code>, <code>abs_veto_long</code> and <code>abs_veto_short</code>. <code>grind_long</code> has no entry, so it inherits the built-in <code>_BIG_RUN</code> default, which <em>is</em> Lot A @ 2.5R + Lot B wide lock-chandelier. It is not a stone left unturned; it is an unhedged live position.</p></div></div></div>
+
+<div class="card">
+<h3>The deployable exit_overrides policy (what this proves out to)</h3>
+<p>Reading the survivors straight into the per-regime policy &mdash; only the cells with real n and a real edge become overrides; the rest default or are handled by turning the gate off:</p>
+<table>
+<thead><tr><th class="ln">Gate</th><th class="ln">BIG-TREND</th><th class="ln">MED-TREND</th><th class="ln">SCALP-CHOP</th><th class="ln">STAY-OUT</th></tr></thead>
+<tbody>
+<tr><td class="ln">grind_long</td><td class="ln">wide-chandelier &mdash; <strong>LIVE TODAY by default</strong>, n=24, under pre-registered test to 2026-08-21 <span class="was">(unproven, n=5)</span></td><td class="ln"><span class="was">scalp 0.5 / 1.0</span> <strong>&#9654; WITHDRAWN</strong></td><td class="ln"><span class="was">scalp 0.5 / 1.0</span> <strong>&#9654; WITHDRAWN</strong></td><td class="ln">FLAT (gate off)</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&#9654; REV3 &mdash; grind_long, the honest answer</strong></td><td class="ln" colspan="4">Swept properly: <strong>130 configurations on 3,064 tick-repriced entries over 16 sessions, under a <em>sequential</em> one-position-per-slot sim</strong> (the paired same-entry method this lab used stacks overlapping entries and scored the loaded default at +$2,961; sequential scores the same config −$2,115 — a $5,076 swing from methodology alone). <strong>The {0.5, 1.0} cell above is WITHDRAWN</strong>: it is −$1,127 <em>worse</em> than what is loaded today and fails leave-one-day-out, strip-best-3, the bootstrap and the out-of-sample sign test. <strong>Not one exit setting makes this gate green</strong> — the best of 130 still loses $414. If you want the marginal move it is <code>{"a_r": 3.0, "b": "wide"}</code>, +$617 over 16 sessions ≈ +$10/session at the live fill rate, and it is damage control, not an edge. The real lever is arming, and it is 3–5&times; bigger. Full sweep: <a href="#p3grindexit">Part 3.7</a>.</td></tr>
+<tr class="row-hl"><td class="ln">grind_long &mdash; MED-TREND, n=326</td><td class="ln" colspan="4">The biggest evidenced exit gap on the desk and it needs no new tape: the live A2.5+WIDE default makes <strong>+$8.49/trade against TIGHT&times;2's +$17.60</strong> — a $9.11 &times; 326 gap. Better evidenced than the BIG-TREND question this section spends four hundred words on.</td></tr>
+<tr><td class="ln">exhaustion_short</td><td class="ln">tight-chandelier</td><td class="ln">scalp 1.5 / 2.5</td><td class="ln">tight-chandelier</td><td class="ln">FLAT (gate off)</td></tr>
+<tr><td class="ln">thrust / abs_veto</td><td class="ln" colspan="4"><span class="was">exit is not the lever — keep the abs_veto entry veto; manage via gate on/off, not exit style</span><br><strong>&#9654; REV3:</strong> the raw un-vetoed <em>thrust</em> cannot be rescued by an exit &mdash; but the LIVE <strong>abs_veto_long</strong> cell can, and it is the worst cell on the board. A tick-honest sweep of 81 long signals ranks the loaded <strong>A1.5/B2.5 last of eleven</strong> (+$13.6/sig, LODO-min +$4.7) against <strong>A1.0/B1.5</strong> (+$22.7, LODO-min +$16.8), on a broad plateau (0.75/1.5, 1.0/1.5, 1.0/2.0 all within $4). A second, independent sweep on 42 automated entries reached the same answer from different data. Worth ~+$390/week at the live rate of 43 long signals. <strong>Change <code>exit_overrides.json &rarr; abs_veto_long: {a_r 1.0, b 1.5}</code>. Leave <code>abs_veto_short</code> at 1.5/2.5</strong> &mdash; on that side the R choice is genuinely noise (+$15 to +$18 at every cell). No exit rescues abs_veto_short in violent whipsaw (−$20 to −$33 at every R from 0.5 to 6.0); only not trading it does.</td></tr>
+<tr><td class="ln">rgv / capitulation</td><td class="ln" colspan="4">exit is not the lever &mdash; per-side filter + router; leave exit at default</td></tr>
+</tbody>
+</table>
+<p>Note the live exit_overrides.json currently sets exhaustion_short to 0.5/1.5 and abs_veto to 1.5/2.5. This lab says exhaustion_short should be regime-graded (tight-chandelier in chop, 1.5/2.5 in med) rather than a flat 0.5/1.5, and that <span class="was">abs_veto's dollars come from its entry veto, not its exit R's</span> <strong>&#9654; REV3: most of abs_veto's edge is the entry veto &mdash; but the long side's R's are still the worst cell swept (see the policy row above)</strong> &mdash; a candidate tweak for the operator, on a two-week in-sample read, to confirm forward.</p>
+</div>
+
+<p class="lead">Bottom line for the week: one thing earned a promotion (abs_veto_55s, two-sided), the two grind-exit shadows produced nothing decisive because grind barely traded (single-day, one-runner), the live exhaustion fade-scalp is two signals old and ungradeable, and the exit lab's cleanest result is a warning as much as a recipe &mdash; grind and exhaustion respond to a tighter, regime-graded exit, but thrust/rgv/capitulation prove that for them the exit is a red herring and the real lever is the entry filter and which gates you let trade. And the honest gap that stays open is BIG-TREND: the desk still has not seen a clean trend week to prove the RIDE rung.</p>

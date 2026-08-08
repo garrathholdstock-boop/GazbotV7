@@ -1,0 +1,32 @@
+[
+ {
+  "from": "2026-08-03T07:00",
+  "to": "2026-08-03T21:00",
+  "title": "Monday 08-03",
+  "subtitle": "07:00–21:00 UTC · 30 closed lots, 8 green · −$280.00 · tape +336pt net on a 652pt range"
+ },
+ {
+  "from": "2026-08-04T07:00",
+  "to": "2026-08-04T21:00",
+  "title": "Tuesday 08-04",
+  "subtitle": "07:00–21:00 UTC · 16 closed lots, 10 green · +$330.50 · tape +749pt net on a 949pt range"
+ },
+ {
+  "from": "2026-08-05T07:00",
+  "to": "2026-08-05T21:00",
+  "title": "Wednesday 08-05",
+  "subtitle": "07:00–21:00 UTC · 27 closed lots, 4 green · −$746.50 · tape −378pt net on a 542pt range"
+ },
+ {
+  "from": "2026-08-06T07:00",
+  "to": "2026-08-06T21:00",
+  "title": "Thursday 08-06",
+  "subtitle": "07:00–21:00 UTC · 12 closed lots, 3 green · −$233.00 · tape −17pt net on a 445pt range"
+ },
+ {
+  "from": "2026-08-07T07:00",
+  "to": "2026-08-07T21:00",
+  "title": "Friday 08-07",
+  "subtitle": "07:00–21:00 UTC · 21 closed lots, 12 green · +$299.00 · tape +289pt net on a 336pt range"
+ }
+]

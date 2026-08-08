@@ -1,0 +1,128 @@
+<h2><span class="n">M2</span> Could our own gates have caught the runs we sat out?</h2>
+
+<p class="lead">Garrath, this one nearly fooled me &mdash; so let me walk you through it honestly, because the honesty <em>is</em> the finding. I took the <strong>53 runs we sat out</strong> this week (the frozen census &mdash; <strong>$14,519</strong> of hindsight money left on the table) and fired all six of our live gates at them mechanically, <em>ungated</em> (no ER floor, no ATR floor, no absorption-confirm &mdash; the most generous version), in each run's own direction, anywhere in the <strong>10 minutes before</strong> it lit up. Then I priced every exit honestly on this week's own trade ticks. The headline looked <em>good</em>: <strong>21 fires, +$582, and it survives stripping the best three trades</strong> &mdash; nothing like last week's clean fluke. One gate, <strong>rgv_short, went four-for-four for +$478</strong>. But it is a mirage, and I can prove it in one number: <strong>fed only the 53 runs we already know happened, rgv_short makes +$478; fed the whole week's tape, the exact same gate makes +$1.80 a trade.</strong> The lab was quietly handing each fader only its winners. This is an <strong>honest null</strong> &mdash; just a subtler, better-disguised one than last week's.</p>
+
+<div class="callout"><div class="ct">What survived the skeptic &mdash; the one number that ends the argument</div>
+<p>Nothing survived as a tradeable edge, and I will not dress the +$582 up as one. The durable fact is a <strong>base-rate</strong>: our turnback fader <strong>rgv_short throws 151 signals in a week</strong>, and only <strong>6 of them (4%) are followed by a real run</strong> in its direction &mdash; while <strong>13% go straight against it</strong>. The idle-gate lab only ever showed it the ~4 signals that preceded a sat-out down-run, so of course they printed 2R. That is <strong>survivorship</strong>, not skill: cherry-pick any early-entry fade's winners after the fact and it looks brilliant. Feed it the whole tape and it is a coin-flip that bleeds on costs. On top of that, the <strong>four biggest sat-out runs this week (+298, &minus;276, &minus;251, &minus;248 &mdash; $2,146 of ceiling between them) drew ZERO fire from any gate.</strong> The money on the table belongs to triggers we do not own, which is Movement 3's job. Arming the gates we have is still a dead end &mdash; here is the proof, in full.</p></div>
+
+<div class="card">
+  <h3>The scoreboard &mdash; all six gates, fired ungated at the 53 sat-out runs</h3>
+  <p>In-direction only: the three long gates can only catch the <strong>32 up-runs</strong>, the three short gates only the <strong>21 down-runs</strong> &mdash; so "eligible" is how many sat-out runs each gate could physically have caught. One position per fire, first trigger in the 10-minute pre-run window wins, exits repriced tick-by-tick on this week's tape (grind and thrust ride the chandelier plus the native 1-ATR stop; the faders take a 2R scalp or the 1-ATR stop). Honest money, the same week the runs happened. Green = it made money over its handful of fires, red = it lost.</p>
+  <table>
+    <tr><th>Gate</th><th>Eligible</th><th>Fires</th><th>Honest $</th><th>$/fire</th><th>Win%</th><th>Exits</th></tr>
+    <tr class="row-hl"><td>rgv_short</td><td class="num">21</td><td class="num">4</td><td class="num">+$478.0</td><td class="num">+$119.5</td><td class="num">100%</td><td class="ln">4 target</td></tr>
+    <tr class="row-hl"><td>rgv_long</td><td class="num">32</td><td class="num">6</td><td class="num">+$278.0</td><td class="num">+$46.3</td><td class="num">67%</td><td class="ln">4 target &middot; 2 stop</td></tr>
+    <tr class="row-hl"><td>grind_long</td><td class="num">32</td><td class="num">7</td><td class="num">+$52.0</td><td class="num">+$7.4</td><td class="num">43%</td><td class="ln">3 chandelier &middot; 4 stop</td></tr>
+    <tr class="row-bad"><td>thrust_short</td><td class="num">21</td><td class="num">4</td><td class="num">&minus;$225.5</td><td class="num">&minus;$56.4</td><td class="num">0%</td><td class="ln">4 stop</td></tr>
+    <tr><td>capitulation_long</td><td class="num">32</td><td class="num">0</td><td class="num">$0</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="ln">never fired</td></tr>
+    <tr><td>exhaustion_short</td><td class="num">21</td><td class="num">0</td><td class="num">$0</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="ln">never fired</td></tr>
+    <tr class="row-hl"><td><strong>ALL SIX</strong></td><td class="num"><strong>53</strong></td><td class="num"><strong>21</strong></td><td class="num"><strong>+$582.5</strong></td><td class="num"><strong>+$27.7</strong></td><td class="num"><strong>52%</strong></td><td class="ln">20 distinct runs</td></tr>
+  </table>
+  <p>All of the "profit" is in the two turnback faders (rgv_short +$478, rgv_long +$278 = <strong>+$756 between them</strong>). The two momentum gates net <strong>&minus;$174</strong> (thrust_short stopped out all four times), and the two footprint gates <strong>never fired at all</strong>. On its face rgv_short looks like the best thing in this whole report. It is the most dangerous line in it &mdash; and the next table is why.</p>
+</div>
+
+<div class="card">
+  <h3>The survivorship killer &mdash; fed the winners vs fed the whole week</h3>
+  <p>This is the test that matters. The lab only shows a gate the 53 ignitions we <em>already know</em> turned into runs &mdash; that is picking the answers before the exam. So I ran each gate a second way: fired it <strong>ungated across the entire week's tape</strong>, every time it triggered, repriced on the same ticks. The gap between the two columns is the size of the lie.</p>
+  <table>
+    <tr><th>Gate</th><th>At the known runs<br>(fires &middot; net &middot; $/fire &middot; win)</th><th>Fed the WHOLE week<br>(trades &middot; net &middot; $/trade &middot; win)</th><th>Verdict</th></tr>
+    <tr class="row-bad"><td>rgv_short</td><td class="num">4 &middot; +$478 &middot; +$119.5 &middot; 100%</td><td class="num">134 &middot; +$243 &middot; +$1.8 &middot; 34%</td><td><span class="tag">SURVIVORSHIP</span></td></tr>
+    <tr class="row-bad"><td>rgv_long</td><td class="num">6 &middot; +$278 &middot; +$46.3 &middot; 67%</td><td class="num">120 &middot; +$45 &middot; +$0.4 &middot; 36%</td><td><span class="tag">SURVIVORSHIP</span></td></tr>
+    <tr class="row-bad"><td>thrust_short</td><td class="num">4 &middot; &minus;$225.5 &middot; &minus;$56.4 &middot; 0%</td><td class="num">113 &middot; &minus;$552 &middot; &minus;$4.9 &middot; 35%</td><td><span class="tag">REAL LOSER</span></td></tr>
+    <tr><td>grind_long</td><td class="num">7 &middot; +$52 &middot; +$7.4 &middot; 43%</td><td class="num">239 &middot; +$747 &middot; +$3.1 &middot; 38%</td><td><span class="tag">RIDES TRENDS, NOT IGNITIONS</span></td></tr>
+  </table>
+  <p>Read the rgv_short row slowly: the +$478 that made it look like a star is <strong>4 cherry-picked winners out of 134 fires</strong> &mdash; the other 130 fires that week netted about <strong>&minus;$235</strong>, and the gate's true worth is <strong>+$1.80 a trade, a 34% win-rate, a hair above breakeven</strong>. rgv_long is the same story at $0.40 a trade. thrust_short is honestly consistent: it loses at the runs (&minus;$225) and loses all week (&minus;$552). grind_long is the one green full-week number, but look at <em>where</em> it earns &mdash; only +$52 at the ignitions themselves (a coin-flip), because grind does not catch a run starting, it rides a trend already running; its +$747 is a trend-week story that belongs in the rehab section, not here.</p>
+</div>
+
+<div class="card">
+  <h3>The base-rate &mdash; how rare a "run" is under a fader's signal</h3>
+  <p>Here is the survivorship point stated as plainly as I can. For each gate I counted <strong>every ungated signal it fired all week</strong>, then asked how many were actually followed by a 90-point-plus move in its own direction within 15 minutes &mdash; a real run &mdash; versus how many went straight against it.</p>
+  <table>
+    <tr><th>Gate</th><th>Signals / week</th><th>Followed by a real run (&ge;90pt)</th><th>&ge;150pt run</th><th>Went &ge;40pt adverse</th></tr>
+    <tr class="row-bad"><td>rgv_short</td><td class="num">151</td><td class="num">6 (4%)</td><td class="num">2</td><td class="num">19 (13%)</td></tr>
+    <tr class="row-bad"><td>rgv_long</td><td class="num">130</td><td class="num">9 (7%)</td><td class="num">1</td><td class="num">25 (19%)</td></tr>
+    <tr class="row-bad"><td>thrust_short</td><td class="num">118</td><td class="num">6 (5%)</td><td class="num">3</td><td class="num">25 (21%)</td></tr>
+  </table>
+  <p>Four to seven percent. That is how often one of our triggers is standing in front of a real run when it fires &mdash; and it goes hard <em>against</em> the gate two to five times more often than it precedes a run. The lab handed each fader only that thin 4&ndash;7% slice and called it a gate. It is not. It is a gate that fires a hundred-and-fifty times to be right six.</p>
+</div>
+
+<div class="card">
+  <h3>The other two skeptic cuts &mdash; strip-the-best and the R-target sweep</h3>
+  <p>Even before the survivorship test, two standard robustness checks flag the +$582 as fragile. First, strip out the biggest winners: the edge halves at three and <strong>flips negative at five</strong>. Second &mdash; the operator's rule that no R-target is a truth &mdash; I re-priced all ten fader fires at every scalp target from 0.5R to 3.0R. A real edge shows a <em>plateau</em> (a best R with a roll-off either side). This just climbs forever.</p>
+  <table>
+    <tr><th>Strip test (all 21 fires)</th><th>Trades</th><th>Net $</th><th></th><th>R-sweep (10 fader fires)</th><th>Net $</th><th>Win%</th></tr>
+    <tr class="row-hl"><td>Keep all</td><td class="num">21</td><td class="num">+$582.5</td><td class="ln">&nbsp;</td><td>0.5R</td><td class="num">+$175</td><td class="num">90%</td></tr>
+    <tr><td>Strip best 3</td><td class="num">18</td><td class="num">+$183.0</td><td class="ln">&nbsp;</td><td>1.0R</td><td class="num">+$414</td><td class="num">90%</td></tr>
+    <tr class="row-bad"><td>Strip best 5</td><td class="num">16</td><td class="num">&minus;$43.0</td><td class="ln">&nbsp;</td><td>1.5R</td><td class="num">+$540</td><td class="num">80%</td></tr>
+    <tr><td>&nbsp;</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td class="ln">&nbsp;</td><td>2.0R</td><td class="num">+$756</td><td class="num">80%</td></tr>
+    <tr><td>&nbsp;</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td class="ln">&nbsp;</td><td>2.5R</td><td class="num">+$973</td><td class="num">80%</td></tr>
+    <tr><td>&nbsp;</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td class="ln">&nbsp;</td><td>3.0R</td><td class="num">+$1,189</td><td class="num">80%</td></tr>
+  </table>
+  <p>The R-sweep <em>never rolls over</em> &mdash; wider is always better, right out to 3R. That is not "2R is the wrong target," it is the survivorship effect showing through the numbers: because every fire we measured was in front of a run that <em>kept going</em>, any bigger target banks more. It is the runs being real, not the fade being good. With n=10 and no plateau, there is no R to trust here.</p>
+</div>
+
+<div class="card">
+  <h3>The control that proves it is a <em>seeing</em> problem, not an <em>exit</em> problem</h3>
+  <p>To be fair to the exits, I ran a blind control: ignore every gate, just enter <strong>in the run's direction at the moment of ignition</strong> and ride the chandelier. That is cheating &mdash; it uses hindsight to know the direction &mdash; but it isolates the question "if we simply showed up pointed the right way, does the exit keep the money?"</p>
+  <table>
+    <tr><th>Blind in-direction entry at ignition (all 53 runs)</th><th>Runs</th><th>Net $</th><th>$/run</th><th>Win%</th></tr>
+    <tr class="row-hl"><td>Keep all</td><td class="num">53</td><td class="num">+$4,076</td><td class="num">+$76.9</td><td class="num">75%</td></tr>
+    <tr class="row-hl"><td>Strip best 3</td><td class="num">50</td><td class="num">+$3,405</td><td class="num">+$68.1</td><td class="num">&mdash;</td></tr>
+    <tr class="row-hl"><td>Strip best 5</td><td class="num">48</td><td class="num">+$2,998</td><td class="num">+$62.5</td><td class="num">&mdash;</td></tr>
+  </table>
+  <p>Show up pointed the right way and the runs pay <strong>+$4,076 at 75% win, and it barely dents when you strip the best five</strong> &mdash; because the money is real and directional, spread across dozens of runs, not two flukes. So the exits are fine and the money is genuinely there. The entire problem is <strong>knowing, in real time and without hindsight, which way and when</strong> &mdash; and that is exactly what our gates fail at: they only <em>see</em> 20 of the 53, and the versions that do fire early (the faders) fire everywhere and bleed. The exit is not the bottleneck. Vision is.</p>
+</div>
+
+<div class="card">
+  <h3>Where the money actually was &mdash; the 12 biggest runs we sat out</h3>
+  <p>The $14,519 is concentrated in the monsters, so the only question that counts is whether arming our gates caught the <em>big</em> ones. Here are the twelve largest sat-out runs (worth $4,700 of ceiling) and exactly what our gates did on each.</p>
+  <table>
+    <tr><th>Run (UTC)</th><th>Dir</th><th>Move</th><th>$ ceiling</th><th>What our gates did</th><th>Honest $</th></tr>
+    <tr class="row-bad"><td class="ln">07-29 18:34</td><td>UP</td><td class="num">+298</td><td class="num">$596</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-29 19:49</td><td>DN</td><td class="num">&minus;276</td><td class="num">$552</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-31 13:58</td><td>DN</td><td class="num">&minus;251</td><td class="num">$502</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-29 19:32</td><td>DN</td><td class="num">&minus;248</td><td class="num">$496</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-hl"><td class="ln">07-28 23:27</td><td>UP</td><td class="num">+205</td><td class="num">$410</td><td>grind_long rode it &mdash; chandelier</td><td class="num">+$120.5</td></tr>
+    <tr class="row-hl"><td class="ln">07-30 14:41</td><td>DN</td><td class="num">&minus;196</td><td class="num">$392</td><td>rgv_short faded the top &mdash; 2R target</td><td class="num">+$110.5</td></tr>
+    <tr class="row-bad"><td class="ln">07-31 14:16</td><td>UP</td><td class="num">+193</td><td class="num">$386</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-29 17:47</td><td>UP</td><td class="num">+191</td><td class="num">$382</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-bad"><td class="ln">07-29 20:56</td><td>UP</td><td class="num">+182</td><td class="num">$364</td><td>no gate fired</td><td class="num">$0</td></tr>
+    <tr class="row-hl"><td class="ln">07-31 15:14</td><td>DN</td><td class="num">&minus;161</td><td class="num">$322</td><td>rgv_short +$149 caught it, thrust_short &minus;$71 fought it</td><td class="num">+$78.0</td></tr>
+    <tr class="row-hl"><td class="ln">07-31 13:19</td><td>UP</td><td class="num">+153</td><td class="num">$306</td><td>grind_long rode it &mdash; chandelier</td><td class="num">+$39.5</td></tr>
+    <tr class="row-bad"><td class="ln">07-29 16:15</td><td>UP</td><td class="num">+148</td><td class="num">$297</td><td>rgv_long faded it &mdash; stopped</td><td class="num">&minus;$52.5</td></tr>
+  </table>
+  <p>Of the twelve biggest runs we missed, our gates fired on five and made money on four (+$348 combined, one fader stopped for &minus;$53) &mdash; but the <strong>four absolute monsters, worth $2,146 of ceiling, all drew a complete blank</strong>. Not a fought trade, not a stopped trade &mdash; nothing. When the move is genuinely huge, our triggers are asleep. The gates catch the mid-sized runs when a fade happens to line up, and no-show the feasts. That is the null in one sentence.</p>
+</div>
+
+<div class="card">
+  <h3>The segment split &mdash; is there a regime where arming pays?</h3>
+  <p>The operator's rule is never to blanket one number across all the tape, so I split the 21 fires by time-of-day and by cause-cluster. If there is a corner where arming these gates genuinely works, it should light up here. It does not &mdash; the fires are thin and scattered in every bucket, and the "green" is the same survivorship winners re-sorted.</p>
+  <table>
+    <tr><th>Segment</th><th>Runs</th><th>Fires</th><th>Net $</th><th>Win%</th><th>Read</th></tr>
+    <tr><td>US session (13:30&ndash;20:00 UTC)</td><td class="num">&mdash;</td><td class="num">13</td><td class="num">+$322.0</td><td class="num">46%</td><td class="ln">below-even win-rate; two fader wins carry it</td></tr>
+    <tr><td>Overnight / pre-open</td><td class="num">&mdash;</td><td class="num">8</td><td class="num">+$260.5</td><td class="num">62%</td><td class="ln">thinner tape, same fader survivorship</td></tr>
+    <tr><td>OPEN/NEWS</td><td class="num">11</td><td class="num">4</td><td class="num">+$200.5</td><td class="num">75%</td><td class="ln">4 fires on 11 runs &mdash; still mostly no-show</td></tr>
+    <tr><td>FLOW-LED</td><td class="num">16</td><td class="num">6</td><td class="num">+$135.5</td><td class="num">50%</td><td class="ln">the continuation runs &mdash; gates half-blind</td></tr>
+    <tr><td>VACUUM</td><td class="num">13</td><td class="num">8</td><td class="num">+$102.0</td><td class="num">38%</td><td class="ln">most fires, worst win-rate &mdash; fades into snapbacks</td></tr>
+    <tr><td>UNCLASS</td><td class="num">12</td><td class="num">3</td><td class="num">+$144.5</td><td class="num">67%</td><td class="ln">3 fires on 12 runs</td></tr>
+    <tr><td>VOL-EXPANSION</td><td class="num">1</td><td class="num">0</td><td class="num">$0</td><td class="num">&mdash;</td><td class="ln">never fired</td></tr>
+  </table>
+  <p>No segment rescues it. The best-looking bucket, OPEN/NEWS at 75%, is four fires on eleven runs &mdash; the other seven news-runs drew nothing. VACUUM (snapback / stop-run) draws the most fires and the worst win-rate, exactly as you'd expect: our faders reach for the retrace and the vacuum keeps going. There is no regime here that says "arm these on this kind of day." The pattern in every bucket is the same &mdash; a few survivorship winners and a lot of no-shows.</p>
+</div>
+
+<div class="card">
+  <h3>Why each gate misses &mdash; the mechanism, gate by gate</h3>
+  <p>None of this is bad luck; each miss is baked into what the gate is built to look for. This is the useful part &mdash; it tells us the trigger we are <em>missing</em>.</p>
+  <table>
+    <tr><th>Gate</th><th>Fires</th><th>Why it can't reliably catch these runs</th></tr>
+    <tr><td>rgv_short / rgv_long</td><td class="num">4 / 6</td><td>The turnback faders need price already stretched 2+ ATR past VWAP and rolling back. When a run happens to launch off exactly that setup, the fader gets in early at the top/bottom and rides 2R &mdash; which is why they "win" here. But that setup fires <strong>130&ndash;150 times a week</strong> and only <strong>4&ndash;7% of those precede a run</strong>; the rest chop or reverse. You cannot harvest the winners without taking all 150 fires, and the full basket is breakeven. This is the survivorship trap in one line.</td></tr>
+    <tr><td>thrust_short</td><td class="num">4 / 21</td><td>Wants a five-bar (five-minute) momentum burst with a volume surge. These ignitions fire in one or two bars &mdash; by the time five bars confirm, the move is spent, so it arms <em>late</em> and buys the exhaustion. All four fires stopped out (&minus;$225), and it loses all week too (&minus;$552). A structurally late trigger on fast moves.</td></tr>
+    <tr><td>grind_long</td><td class="num">7 / 32</td><td>Needs an <em>established</em> up-trend &mdash; VWAP sloping up with price riding above it. It arms once a trend is already running, so at the ignition itself it is a coin-flip (+$52, 43%). It earns its full-week +$747 by riding trends that are already underway, not by catching a run <em>start</em> &mdash; a different job from this section's.</td></tr>
+    <tr><td>capitulation_long</td><td class="num">0 / 32</td><td>Fades a one-sided aggressor <em>climax</em> &mdash; one side running 3&times; its baseline AND 70%+ of flow, price already flushing that way. The up-runs we sat out do not start from a sell-flush blow-off; they ignite from quiet or flow-led setups. The trigger never trips. (Also L2-blind before 07-27 21:33 &mdash; a data gap on top of the logic gap.)</td></tr>
+    <tr><td>exhaustion_short</td><td class="num">0 / 21</td><td>Needs heavy buying absorbed into a resting ask wall <em>without</em> price moving. Our down-runs are flow-led drives where the aggression <em>does</em> move price &mdash; so the "absorbed, price stuck" precondition fails and it never fires. Same early-week L2 blindness caveat applies.</td></tr>
+  </table>
+</div>
+
+<div class="callout"><div class="ct">Verdict</div>
+<p><span class="tag">HONEST NULL</span> <span class="tag">DON'T ARM</span> Firing all six live gates at the money we left on the table produces a headline +$582 that <strong>dissolves the moment you stop cheating</strong>: the two faders that carry it are worth +$1.80 and +$0.40 a trade fed the real tape, their signals precede a run only 4&ndash;7% of the time, the strip-5 test flips the whole thing negative, the R-sweep has no plateau, and the four biggest runs of the week drew zero fire. The blind control proves the money and the exits are both fine &mdash; the gap is purely that we cannot <em>see</em> these runs coming in real time. Do not arm anything off this section. The sat-out money belongs to <em>triggers we don't own yet</em>, and hunting those is Movement 3.</p>
+<p><strong>Be honest about the caveats:</strong> this is one week, in-sample, with tiny counts at the runs (21 fires; the faders just 10). The two footprint gates were L2-blind on the 07-27 daytime runs, so their zero is partly a data gap, not only a logic one. And I'll flag the one genuinely interesting thread, because it would be dishonest to bury it: the turnback-fade <em>mechanism</em> is the only thing we own that shows up <em>early</em> on these runs at all &mdash; if we ever find a way to fire it only in that 4&ndash;7% slice (a regime read that separates "stretched-and-turning into a real run" from "stretched-and-turning into more chop"), it becomes the entry we're missing. That separation is the stone left unturned, and it is a Movement-3 hunt, not a knob on the gate we have.</p></div>

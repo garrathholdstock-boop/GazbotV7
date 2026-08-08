@@ -1,0 +1,192 @@
+<h2><span class="n">2.6</span> Router Operation Review — the desk's #1 lever, on the stand</h2>
+<div class="rev3ptr"><strong>&#9654; Read this section with REV3 open.</strong> The headline &minus;$1,216 is double-counted, the &quot;yes, as a defence&quot; verdict splits in two once the halves are scored separately, and &sect;4/&sect;8 lean on a grind floor that has never executed. There is also a live finding that outranks the whole section: <strong>all six gates are pinned ON right now, so the durable router cannot bench anything at all.</strong> The corrections are marked inline in red where they bite, and the full working is in <a href="#part3">Part 3 &mdash; the Rev2/Rev3 corrections</a>. Nothing has been deleted: where a claim was overturned, the original is still printed next to what replaced it.</div>
+
+<p class="lead">Garrath — you asked for the works: what the router did all week, what paid, what erred, whether the thresholds and the new untradeable-meter need tuning, and whether the whole machine is earning its keep. Here it is, money-first. <b>Lead with what survived:</b> (1) the new untradeable-day meter is the standout — it scored the two green days lowest (13, 23) and Friday's −$905 bloodbath highest (86), a near-perfect line-up with the day's actual P&amp;L; (2) the <b>durable</b> 5-min router held its nerve — across its two live days it made just <b>2</b> autonomous switch-changes (both graded GOOD) and correctly sat frozen through all of Friday's untradeable chop, <b>zero real blocked-loss leakage</b>; (3) the desk finished the week <b>+$625 as booked &mdash; but &minus;$598 with your hands off</b> (194 automated fills, 35.1% win, PF 0.91; $1,223 of the headline came from twelve trades you closed yourself &mdash; see Part 1). What still bites: the router keeps <b>over-benching aligned momentum in a trend</b> (the recurring BAD-call), and Friday's damage came almost entirely from the operator-directed <b>enable-all-at-the-open</b>, not from the routine ticks. One robustness-gated Saturday knob survives the anti-overfit filter (fader-bench ER floor 0.20&rarr;0.15); everything else is hold-and-re-validate.</p>
+
+<div class="callout">
+  <div class="ct">Honesty banner up front: this is <b>one week, ~5 trading days, one summer RANGE regime</b>, and the threshold sweep is in-sample on thin, partly-already-gated realised trades. Every backtest below is segmented (fader-set vs full-set, per-regime leak buckets) — no blanket cross-tape number is presented as truth. Treat single-week $ as directional, not proven. Re-validate after a real TREND week before deploying anything.</div>
+</div>
+
+<!-- ============================ SECTION 1 ============================ -->
+<div class="card">
+<h3>1 · The week's decisions &amp; scoreboard</h3>
+<p>Every ~5 min the router reads the desk and either changes a gate switch or logs "no change". A healthy router is <b>mostly no-change</b> — the thrash check. Here is the week, tick-by-tick condensed, with the live realised P&amp;L each day actually printed:</p>
+
+<table>
+<thead><tr><th>Paris day</th><th class="num">ticks</th><th class="num">switch changes</th><th class="num">thrash %</th><th>what the router did</th><th class="num">live P&amp;L</th></tr></thead>
+<tbody>
+<tr><td class="ln">Mon 07-27</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td>pre-durable / session-only; reversion book</td><td class="num">−$226</td></tr>
+<tr><td class="ln">Tue 07-28</td><td class="num">5</td><td class="num">1</td><td class="num">20%</td><td>benched shorts under a young UP bias</td><td class="num">−$54</td></tr>
+<tr class="row-hl"><td class="ln">Wed 07-29</td><td class="num">78</td><td class="num">9</td><td class="num">12%</td><td>first green day; scale-out live; held longs</td><td class="num">+$638</td></tr>
+<tr class="row-bad"><td class="ln">Thu 07-30</td><td class="num">241</td><td class="num">35</td><td class="num">14.5%</td><td>BEST-EVER day but <b>thrashy</b> — grind toggled ~8&times;, one premature flip</td><td class="num">+$1,172</td></tr>
+<tr class="row-hl"><td class="ln">Fri 07-31</td><td class="num">289</td><td class="num">13</td><td class="num">4.5%</td><td>durable era; <b>0 routine changes</b> — all 13 were operator/session overrides; held flat</td><td class="num">−$905</td></tr>
+</tbody>
+</table>
+<p><b>Read:</b> the thrash dropped hard once the durable tick took over routine ticking — 07-30 (hand-managed) churned the switches 35 times in a day; 07-31 (durable) made <b>zero</b> autonomous routine changes and let the operator drive the exceptions. The ledger scoreboard stands at <b>GOOD 17 · BAD 2 · CHURN 4 · NEUTRAL 2</b> — the two BAD calls and all four CHURN calls are the same two lessons repeating (premature-arm on a delta-blip; benching the aligned trend-rider on open-noise). More on those next.</p>
+</div>
+
+<!-- ============================ SECTION 2 ============================ -->
+<div class="card">
+<h3>2 · What works vs what doesn't</h3>
+<p>Walking the graded ledger, the pattern is clean: the router <b>saves money defensively</b> (benching faders/counter-trend on chop and roll-over days, shadow-confirmed) and <b>errs offensively</b> (benching aligned momentum too eagerly, or arming it too eagerly on a blip). Money attached where measurable:</p>
+
+<table>
+<thead><tr><th>Call</th><th>Grade</th><th class="num">$ impact</th><th>counterfactual / proof</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">07-30 14:51 bench both momentum longs on ER-collapse regime flip</td><td><span class="tag">✅ GOOD</span></td><td class="num">≈ +$400 saved</td><td>unbenched momentum shadows lost −$398 over that window (thrust_aligned −202, cont −118, loose −78)</td></tr>
+<tr class="row-hl"><td class="ln">07-31 defensive trim &rarr; fully-flat through the ATR-52/62 open violence</td><td><span class="tag">✅ GOOD</span></td><td class="num">≈ +$500 saved</td><td>every benched gate's shadow bled (grind_fast −153, thrust_loose −153, exhaustion_rev −99, abs_veto −80)</td></tr>
+<tr class="row-hl"><td class="ln">07-30 14:57 arm short-side fade book for the roll-over chop</td><td><span class="tag">✅ GOOD (regime read)</span> <span class="tag pill-dontarm">⚠ the $ credit is manual</span></td><td class="num">+$372 hand-claimed / <strong>&minus;$51 automated</strong></td><td>exhaustion_short went 4/4 live fading the roll-over — <strong>but all four were MANUAL_CLAIM exits.</strong> Repriced on 250&nbsp;ms tape under the exit config actually loaded, the machine books &minus;$51.2 on the same four entries. The regime call was right; the money was your hand.</td></tr>
+<tr class="row-hl"><td class="ln">07-31 held flat through the low-vol overnight grind-up (+141pt)</td><td><span class="tag">✅ GOOD</span></td><td class="num">churn avoided</td><td>all 8 earlier gate-fires stopped — a low-vol grind is untradeable, flat was right</td></tr>
+<tr class="row-bad"><td class="ln">07-30 15:49 FLIP to longs on a delta-blip in ER-0.01 chop</td><td><span class="tag">❌ BAD</span></td><td class="num">process-loss</td><td>faded in 2 min; salvaged to ~+$55 by operator Claims but the read was wrong &rarr; banked the "ER-climb not delta-blip" rule</td></tr>
+<tr class="row-bad"><td class="ln">07-30 13:36 bench grind on the open flush (aligned trend intact)</td><td><span class="tag">❌ BAD</span></td><td class="num">≈ −$430 missed</td><td>operator overrode; grind then rode to new highs +$234/+$197 &rarr; banked "don't bench the trend-rider at the open"</td></tr>
+<tr class="row-bad"><td class="ln">07-30 grind toggled ~8&times; through the morning</td><td><span class="tag">⚠ CHURN</span></td><td class="num">≈ $0 (thrashy)</td><td><span class="was">grind's 0.35 ER floor + abs_veto's veto meant most premature arms never fired — process error, not $ error</span> <strong>&#9654; REV3: grind's 0.35 floor has never executed (<a href='#p3floors'>Part 3.6</a>), so it cannot have absorbed those arms. Only abs_veto's 55s veto was actually running. This CHURN is graded $0 on the strength of a filter that was not there.</strong></td></tr>
+<tr class="row-bad"><td class="ln">07-31 afternoon abs_veto re-enables into the choppy recovery (&times;2)</td><td><span class="tag">⚠ CHURN</span></td><td class="num">≈ −$245</td><td>even the veto-protected, scalp-exit abs_veto churns a choppy recovery — the 55s veto is a microstructure filter, not a regime filter</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct"><b>The one durable truth from the whole ledger:</b> the router's cheap error is a wrongly-benched gate (missed trades); its expensive error is a wrongly-armed one (real churn). Every ❌/⚠ this week was an <b>arming</b> mistake or a <b>bench-the-trend</b> mistake — never a "left a bleeder armed" mistake. The defense works; the offense over-manages.</div></div>
+</div>
+
+<!-- ============================ SECTION 3 ============================ -->
+<div class="card">
+<h3>3 · Net router value — blocked-losses saved vs winners missed</h3>
+<p>Rolling up every <span class="ln">router_nightly</span> file (the router's own scored counterfactual: what each benched gate's shadow would have done in its benched window), by regime:</p>
+
+<table>
+<thead><tr><th>Day</th><th>dominant regime</th><th class="num">saved</th><th class="num">missed</th><th class="num">net value</th><th class="num">real leakage</th></tr></thead>
+<tbody>
+<tr><td class="ln">07-27</td><td>CHOP 74%</td><td class="num">$0</td><td class="num">$81</td><td class="num">−$81</td><td class="num">−$456</td></tr>
+<tr><td class="ln">07-28</td><td>CHOP 63%</td><td class="num">$506</td><td class="num">$567</td><td class="num">−$61</td><td class="num">−$398</td></tr>
+<tr class="row-bad"><td class="ln">07-29</td><td>CHOP 52% / TREND 48%</td><td class="num">$2,263</td><td class="num">$3,980</td><td class="num">−$1,717</td><td class="num">−$229</td></tr>
+<tr class="row-hl"><td class="ln">07-30</td><td>CHOP 72%</td><td class="num">$5,656</td><td class="num">$4,848</td><td class="num">+$807</td><td class="num">$0</td></tr>
+<tr><td class="ln">07-31</td><td>CHOP 65%</td><td class="num">$7,363</td><td class="num">$7,527</td><td class="num">−$164</td><td class="num">$0</td></tr>
+<tr class="row-hl"><td class="ln"><b>WEEK</b></td><td>—</td><td class="num"><b>$15,788</b></td><td class="num"><b>$17,003</b></td><td class="num"><b>&minus;$440 to &minus;$646</b> <span class="was">−$1,216</span><br><span style="font-size:.85em">A/B merged; −$1,216 as originally double-counted. <strong>Do not quote this number</strong> — it flips sign on which single day you drop.</span></td><td class="num"><b>&minus;$1,083 week</b><br><span style="font-size:.85em">(−$456 / −$398 / −$229 Mon–Wed, <b>$0 on both durable days</b>)</span></td></tr>
+</tbody>
+</table>
+
+<span class="was"><b>Honest reading (this number is noisier than it looks):</b> the raw net is −$1,216, but two things inflate the "missed" column — the dual A/B slots double-count one signal…</span><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; &minus;$1,216 counts every suppressed signal twice, and the blended number supports no verdict at all</div><p><strong>The double-count is real and the report named it and then left it in the total anyway.</strong> The dual-slot A and B legs are byte-identical in the nightly's own JSON because <code>reprice_scalp()</code> ignores the slot suffix. Merge them and the week is <strong>353–355 signals, ~$8,700 saved, ~$9,200 missed, net &minus;$440 to &minus;$646</strong> (two independent re-derivations, $206 apart on $9.4k of gross). That recovers about $661 of pure bookkeeping.</p><p><strong>There is a second double-count nobody caught until this weekend.</strong> <code>router_nightly.py</code> de-dupes suppressions at 120 seconds and then prices every survivor as a complete round trip — even when the same gate is still notionally in the previous one. A real gate holds one position at a time. Enforcing that halves the blocked book again. <strong>Until both fixes land, every "router value" number in this report carries roughly 2&times; counting inflation.</strong></p><p><strong>Do not quote the blended figure at all.</strong> It flips sign on leave-one-day-out (&minus;$804 dropping 07-30, +$230 dropping 07-29), which means it supports no verdict in either direction. Score the halves separately — that is the &sect;8 verdict, corrected.</p></div><p><b>What the "missed" column is actually made of:</b> the giant figures on 07-29 (−$1,717 value) are dominated by <b>grind_long shadow winning during brief benched windows on a trend day</b>. That is the exact recurring error surfacing quantitatively: <b>the leak is over-benching aligned momentum in a trend</b>, and it is opportunity-cost (winners not taken), <b>not</b> realised bleed. The proof: on both durable days (30/31) real leakage was <b>$0</b> — the router let no live loser through. So:</p>
+<ul>
+<li><b>Not-bleeding job: PASS.</b> Zero real blocked-loss leakage on the days the durable router actually ran; +$807 of genuine defense on 07-30.</li>
+<li><b>Catching-winners job: LEAKY.</b> It benches momentum too readily during trends (07-29's −$1,717 "value", 07-30's ❌ open-flush bench). The leak is concentrated in <b>momentum gates during TREND_UP windows</b> — the exact segment the "don't bench the trend-rider" rule exists to protect.</li>
+</ul>
+<p class="lead" style="margin-top:8px">For context, the exit-width <b>selector</b> (a separate machine) captured only <b>$1,995 of a possible $7,614 (26%)</b> this week, leaving $5,619 regret — worst on 07-30 (chose tight, missed the wide runners: −$2,748 regret). That is a bigger leak than the router and belongs in the selector's own review, flagged here so it isn't mistaken for router value.</p>
+</div>
+
+<!-- ============================ SECTION 4 ============================ -->
+<div class="card">
+<h3>4 · Threshold tuning — the sweep</h3><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; every ER and ATR floor on this desk has been switched off since 2026-07-29</div><p><strong>Nothing below that leans on a live ER or ATR floor is describing the desk you own.</strong> <code>tournament.step()</code> hands the sub-slot tag (<code>grind_long_A</code>) to <code>er_blocks()</code>/<code>atr_blocks()</code>, but <code>ER_FLOOR</code>/<code>ATR_FLOOR</code> are keyed on base names, so the lookup never matches and every floor silently answers "don't block". Dead since the dual-slot cutover at <strong>2026-07-29 16:20:49 UTC</strong>; last suppression line 07-29T13:29:04Z, zero since. Five gates affected. The <code>_base()</code> helper that fixes it already exists at <code>tournament.py:86</code> and is applied correctly three times elsewhere &mdash; just not at lines 139 and 142.</p><p><strong>Size it honestly:</strong> the circulating "7,734 suppressions" is a raw log-line count and the check re-fires every ~1s tick. De-duplicated it is <strong>383 blocked signal episodes over 8 days</strong> (140 ER + 243 ATR) &mdash; about 48 a day, not thousands. Real, but 44&times; smaller than advertised.</p><p><strong>And it changes the conclusion, not just the footnote.</strong> Grind did not fire 52 of 56 times below its floor because "ER filters are fake on this tape" &mdash; a claim about the market. It fired because <em>there was no floor</em> &mdash; a claim about our code. Those point at completely different fixes. Both ER floors were even committed ~18 hours <em>after</em> the bug, so neither has ever blocked a single trade in production. Full working, per-gate verdicts and the mandatory ship order: <a href="#p3floors">Part 3.6</a>.</p></div>
+<p>Ran <span class="ln">router_study.py --days 40</span>: the ER-trend &times; net-min threshold grid plus the timing sweep (step/hold/window/fast_exit), on <b>both</b> the live-managed fader set and the full historical fader set. Router Δ vs the no-router baseline (shipped timing), higher = better:</p>
+
+<table>
+<thead><tr><th>ER floor \ NET min</th><th class="num">20</th><th class="num">30 *shipped</th><th class="num">40</th><th class="num">50</th><th class="num">60</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">ER 0.15 (looser trend def)</td><td class="num">+461 / +1300</td><td class="num">+492 / +1307</td><td class="num">+428 / +1294</td><td class="num">+316 / +1120</td><td class="num">+158 / +858</td></tr>
+<tr><td class="ln">ER 0.20 *current</td><td class="num">+224 / +1044</td><td class="num"><b>+176 / +995</b></td><td class="num">+152 / +976</td><td class="num">+152 / +1014</td><td class="num">+152 / +816</td></tr>
+<tr><td class="ln">ER 0.25</td><td class="num">+152 / +787</td><td class="num">+152 / +787</td><td class="num">+152 / +806</td><td class="num">+152 / +806</td><td class="num">+152 / +744</td></tr>
+<tr><td class="ln">ER 0.30</td><td class="num">+152 / +334</td><td class="num">+152 / +334</td><td class="num">+152 / +334</td><td class="num">+152 / +334</td><td class="num">+152 / +428</td></tr>
+</tbody>
+</table>
+<p style="font-size:0.9em"><i>(each cell = live-managed set Δ / full historical set Δ, in $)</i></p>
+
+<p><b>What both sets agree on (the robust signal):</b> the <b>ER 0.15 row beats the ER 0.20 row in every single NET column, on both universes.</b> Loosening the router's <b>trend-detection floor</b> from 0.20&rarr;0.15 lets it call "trend" sooner and therefore bench counter-trend faders more — and in this fader-heavy, counter-trend-loss-dominated sample that is worth roughly <b>+$300 (live set) / +$300 (full set)</b> over shipped. That is the one change that survives the two-sets-must-agree filter.</p>
+
+<div class="callout"><div class="ct"><b>Anti-overfit discipline — what I am NOT recommending, and why:</b><br>
+• The grid's <b>joint-best</b> (ER0.15 / NET20 / window45 / step5 / hold3) scores +$692 live / +$984 full but sits on the <b>loosest grid edge</b> on three axes at once, helps only 4–6 of the sample days, and <b>step=5m</b> would triple the tick-rate = a thrash-machine on a live desk. Rejected as overfit.<br>
+• <b>NET-min stays at 30.</b> On the live set ER0.15 actually scores <i>higher</i> at NET30 (+492) than NET20 (+461); on the full set they tie (+1307 vs +1300). No reason to loosen it.<br>
+• <b>Timing stays shipped</b> (window 30m, step 15m, hold 2, fast_exit off). The timing gains are grid-edge and thin-n.<br>
+• The <b>grind 0.35 ER ARM floor</b> is a <i>different</i> threshold (momentum-arming, not fader-benching) and is validated separately (+$728 over 10d — <em>against what alternative? the counterfactual was never stated</em>) — leave it. <strong>&#9654; REV3: and see the dead-floors correction above &mdash; that threshold has not run since 07-29 16:20, so nothing in this week's tape tests it. Re-derived on 8 days of tick-honest replay it is the most expensive line of config on the desk: it keeps 8 signals worth +$83 and discards 173 worth +$2,923. The Saturday play deletes it.</strong> <b>Day-bias &plusmn;40</b> — no evidence to move it. Leave it.</div></div>
+</div>
+
+<!-- ============================ SECTION 5 ============================ -->
+<div class="card">
+<h3>5 · The untradeable-day meter review (new 07-31)</h3>
+<p>The new <span class="ln">untradeable.py</span> meter blends three tells into a 0–100 STAY-OUT score (&ge;65 = stay out). I computed it for every Paris day this week and put it next to what the day <b>actually</b> paid. This is the headline survivor of the whole review:</p>
+
+<table>
+<thead><tr><th>Day</th><th class="num">score</th><th>verdict</th><th class="num">roundtrip mtr</th><th class="num">giveback mtr</th><th class="num">stops mtr</th><th class="num">ATR</th><th class="num">actual P&amp;L</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">13</td><td><span class="tag">TRADEABLE</span></td><td class="num">4</td><td class="num">4</td><td class="num">47</td><td class="num">8.4</td><td class="num">+$1,172</td></tr>
+<tr class="row-hl"><td class="ln">07-29</td><td class="num">23</td><td><span class="tag">TRADEABLE</span></td><td class="num">25</td><td class="num">5</td><td class="num">53</td><td class="num">14.1</td><td class="num">+$638</td></tr>
+<tr><td class="ln">07-27</td><td class="num">47</td><td><span class="tag">CAUTION</span></td><td class="num">48</td><td class="num">40</td><td class="num">60</td><td class="num">5.6</td><td class="num">−$226</td></tr>
+<tr><td class="ln">07-28</td><td class="num">56</td><td><span class="tag">CAUTION</span></td><td class="num">62</td><td class="num">62</td><td class="num">33</td><td class="num">6.9</td><td class="num">−$54</td></tr>
+<tr class="row-bad"><td class="ln">07-31</td><td class="num">86</td><td><span class="tag">STAY-OUT</span></td><td class="num">90</td><td class="num">84</td><td class="num">80</td><td class="num">11.7</td><td class="num">−$905</td></tr>
+</tbody>
+</table>
+
+<p><b>The meter lines up perfectly on the only five days it has seen.</b> <span class="was">The meter is validated.</span> <strong>&#9654; REV3: that is a promising start on <strong>n=5</strong>, not a validation. Re-score it weekly and do not let it size anything until it has a month.</strong> Sort by score and you sort by P&amp;L almost perfectly: the two lowest scores (13, 23) are the two green days; the highest (86) is the −$905 disaster. There is a clean gap between the worst tradeable day (23) and the best caution day (47) — the classifier separates. It flagged Friday <b>correctly and early</b> (it read 74&rarr;96 STAY-OUT live through the afternoon).</p>
+
+<p><b>Which of the 3 meters actually discriminated — being honest:</b></p>
+<table>
+<thead><tr><th>Meter</th><th>green days (29/30)</th><th>red day (31)</th><th>verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">ROUNDTRIP (|net|/range)</td><td class="num">25 / 4 (low)</td><td class="num">90 (high)</td><td><span class="tag">DISCRIMINATES</span></td></tr>
+<tr class="row-hl"><td class="ln">GIVE-BACK (excursion handed back)</td><td class="num">5 / 4 (low)</td><td class="num">84 (high)</td><td><span class="tag">DISCRIMINATES</span></td></tr>
+<tr><td class="ln">STOP-RATE</td><td class="num">53 / 47</td><td class="num">80</td><td><span class="tag">WEAK</span> — best day (30) had a higher stop meter than a losing day (28)</td></tr>
+<tr class="row-bad"><td class="ln">ATR / chop-time% / shadow-net</td><td class="num">14.1 / 8.4</td><td class="num">11.7</td><td><span class="tag">DOES NOT</span> — best day had lower ATR than the disaster</td></tr>
+</tbody>
+</table>
+<p><b>Roundtrip + give-back carry the whole meter; stops is weak supporting context; ATR is noise</b> — exactly as the design note claimed. The 40/40/20 blend is right to lean on the two that work. <b>The 65 cutoff wants no change</b> — it caught the −$905 with room to spare and produced zero false STAY-OUTs on green days. One refinement worth a look: both CAUTION days (47, 56) still lost money, so CAUTION isn't costless — consider making CAUTION an <b>action</b> (faders-off / veto-gates-only / half-size) rather than just a label. n=2, so propose-and-validate, don't hard-wire.</p>
+</div>
+
+<!-- ============================ SECTION 6 ============================ -->
+<div class="card">
+<h3>6 · Bench-decision review — grading the week's actual benches</h3>
+<p>The Friday US-open sequence is the teaching case. Operator said "enable all gates, US OPEN" and left; the open printed a real up-thrust (ER 0.68, break 28713) that then <b>fully reversed</b> (−172pt roundtrip). Here is exactly how the six gates behaved, live:</p>
+
+<table>
+<thead><tr><th>Gate armed at the open</th><th>type</th><th class="num">open P&amp;L</th><th>lesson</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">abs_veto (55s-veto protected)</td><td>VETO-gate</td><td class="num">+$146</td><td>caught the thrust, banked both legs, held disciplined</td></tr>
+<tr class="row-bad"><td class="ln">grind (no veto)</td><td>CHURNER</td><td class="num">−$370</td><td>bought the rollover top, 4 stops in 90s</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_short (off-regime)</td><td>FADER</td><td class="num">−$72</td><td>fired in ATR-62 violence — a 0.5R scalp can't cover a 62pt stop</td></tr>
+</tbody>
+</table>
+<div class="callout"><div class="ct"><b>Banked lesson [[us-open-arm-veto-gates-not-churners]]:</b> at a violent open, arm the <b>veto-protected</b> gates (abs_veto) and keep the <b>churners</b> (grind) and <b>off-regime faders</b> benched. Enable-all guarantees the wrong-side gates churn the reversal before anyone can bench them. The defensive trim that followed (grind&rarr;capit/rgv&rarr;exhaustion&rarr;fully-flat) was <b>shadow-vindicated</b>: every benched gate's shadow bled through the ATR-52/62 chop.</div></div>
+
+<p><b>The individual bench grades:</b></p>
+<ul>
+<li><b>grind benches</b> — right when the trend <i>structure</i> breaks (07-31 open reversal, 07-30 14:51 ER-collapse: both GOOD); wrong when the trend is intact and it's just open-noise (07-30 13:36: BAD). The distinction is roundtrip + ER-collapse, and the meter now measures exactly that.</li>
+<li><b>abs_veto scalp-then-bench</b> — the fire-and-stop exception to its veto protection worked (07-30 22:10 bench after it stopped both legs = GOOD). But re-enabling it into a <b>choppy recovery</b> (07-31 pm, ×2, −$245) was CHURN: the 55s veto is a microstructure filter, so a chop micro-thrust passes it. Rule holds: don't re-arm even abs_veto until a genuinely clean trend (ER≥0.35 <i>sustained</i>).</li>
+<li><b>the exhaustion_short live trial</b> — deployed the 0.5R/1.5R fade-scalp; it fired <b>once, off-regime</b>, in the open violence (net −$72, as predicted for high ATR). The core thesis (fader-scalp in <i>normal</i> chop, ATR 11–18) is <b>still untested</b> — one off-regime fire is not a verdict. Keep it pinned and running into more low/mid-ATR roll-over afternoons before judging.</li>
+<li><b>the fully-flat "stay-out" calls</b> — the best calls of Friday. Once the day was read untradeable, going flat banked <b>zero further bleed</b>; the meter held 74–96 STAY-OUT the whole time confirming it. Stay-out is a real, earned decision, not a cop-out.</li>
+</ul>
+</div>
+
+<!-- ============================ SECTION 7 ============================ -->
+<div class="card">
+<h3>7 · Durable router &amp; architecture — is polling the right mechanism?</h3>
+<p><b>Did the durable 5-min systemd tick manage correctly?</b> Yes. It is <span class="tag">active / enabled</span>, fires on schedule, and across its two live days it made <b>2</b> autonomous switch-changes (07-30 22:10 bench abs_veto after fire+stop, 22:15 bench the 3 shorts + grind under a fresh UP bias — <b>both graded GOOD</b>) and then correctly logged "changed: none" through the entire Friday untradeable day. <b>No thrash, no naked positions, no double-writes, zero real leakage.</b> The robustness fix works: the desk was never unmanaged.</p>
+
+<p><b>Is polling the best mechanism, though?</b> Here is the honest cost of the 5-min poll. The router only acts on the tick boundary, so when a regime flips mid-window, up to 5 minutes of churn can print before the switch changes. The clearest single instance this week: on the Friday open, grind bought the reversal and lost <b>−$370 over ~4 minutes</b> before it was benched. A per-gate <b>in-code regime-guard</b> (an entry-time veto that blocks a counter-regime fill in milliseconds, no polling) would have stopped most of that at the source.</p>
+
+<table>
+<thead><tr><th>Mechanism</th><th>reaction lag</th><th class="num">addressable leak this week</th><th>trade-off</th></tr></thead>
+<tbody>
+<tr><td class="ln">5-min poll (current durable)</td><td>up to 5 min</td><td class="num">baseline</td><td>simple, fail-safe, survives session exit; laggy on fast flips</td></tr>
+<tr><td class="ln">event-watcher (in-chat, current)</td><td>~seconds</td><td class="num">partial</td><td>already cuts lag on breaks/bleed — but dies with the session</td></tr>
+<tr class="row-hl"><td class="ln">in-code per-gate regime-guard (proposed)</td><td>&lt;1 sec, at entry</td><td class="num">up to −$956 / −$1,933</td><td>catches the counter-trend NEAR-MISS bucket the poll+coarse-threshold lets through</td></tr>
+</tbody>
+</table>
+<p><b>Where that leak number comes from (regime-segmented, per the discipline):</b> the study's trade classification buckets the fader trades by regime-context. The <b>"counter-trend near-miss"</b> bucket — trades that entered against a detectable regime and lost — is <b>n=15 / −$956 (live set)</b> and <b>n=32 / −$1,933 (full set)</b>. That is the leak a millisecond in-code guard could address that a 5-min poll structurally cannot. <b>Recommendation:</b> keep the poll as the fail-safe floor, but scope an in-code counter-regime entry-veto on the momentum gates as the next build — it attacks the exact segment (counter-trend fills in a live trend) where polling loses. Flagged as a build, not a Saturday switch.</p>
+</div>
+
+<!-- ============================ SECTION 8 ============================ -->
+<div class="card">
+<h3>8 · Verdict &amp; Saturday recommendations</h3>
+<p class="lead"><b>Split verdict &mdash; and the two halves point opposite ways.</b> <span class="was">Is the router earning its keep? Yes — as a defense.</span> <strong>The defence earns its keep on exactly one cut, and it is the one that survives everything: benching the FADERS is +$810 (n=25, non-overlap) and comes out identical under every independent regime tag anyone could throw at it.</strong> Benching into CHOP is <em>not</em> in that class &mdash; it scores +$612 under the router's own tag, +$187 under ADX(14) and &minus;$382 under a 60-minute regression tag, i.e. it only holds if you accept the router's own definition of chop. And the offence does not earn its keep: the "stop benching momentum in TREND_UP, +$1,615/week" finding was independently re-derived this weekend and is <strong>WITHDRAWN</strong> (<a href='#p3trendup'>Part 3.5</a>). Zero real blocked-loss leakage on the days it ran durably, +$807 of shadow-confirmed defence on 07-30, and a durable tick that held flat through the worst day of the week without a session driving it — those all stand. The desk finished <b>+$625 as booked, &minus;$598 with your hands off (see Part 1)</b> through a week that contained a −$905 day. <strong>&#9654; And the finding that outranks this entire section: as of 08-01 all six gates are PINNED in <code>router_tick_durable.py</code>, so the apply step's change set is permanently empty and the durable tick has benched nothing for 36 hours. The proven half of the machine is switched off. That is MONDAY play #1.</strong> The weakness is offensive: it over-benches aligned momentum in trends (opportunity-cost, not bleed) and the exit-selector left $5.6k of regret on the table (separate machine, separate review).</p>
+
+<table>
+<thead><tr><th>#</th><th>Saturday action</th><th>evidence</th><th>gate</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">1</td><td class="ln"><b>Lower the fader-bench ER-trend floor 0.20&rarr;0.15</b> (NOT grind's 0.35 arm floor)</td><td>ER0.15 row beats ER0.20 in <b>every</b> NET column on <b>both</b> universes (+~$300 each)</td><td><span class="tag">DEPLOY</span> re-validate after a trend week</td></tr>
+<tr><td class="num">2</td><td class="ln">Keep NET-min at 30, keep shipped timing (window30/step15/hold2)</td><td>joint-best is 3-axis grid-edge + step5 = thrash; NET30 ties/beats NET20 at ER0.15</td><td><span class="tag">HOLD</span></td></tr>
+<tr><td class="num">3</td><td class="ln">Keep the untradeable meter's 65 STAY-OUT cutoff and 40/40/20 blend</td><td>caught −$905 (score 86), zero false positives; roundtrip+giveback carry it, stops/ATR don't</td><td><span class="tag">HOLD</span></td></tr>
+<tr><td class="num">4</td><td class="ln">Make CAUTION (45–64) an <b>action</b>: faders-off / veto-gates-only</td><td>both CAUTION days (47, 56) lost money — CAUTION isn't costless</td><td><span class="tag">TRIAL</span> n=2, validate first</td></tr>
+<tr><td class="num">5</td><td class="ln">Codify: at a violent open, arm VETO-gates only, hold churners/off-regime faders</td><td>07-31 open: abs_veto +$146 vs grind −$370 vs exhaustion −$72</td><td><span class="tag">RULE</span> banked</td></tr>
+<tr><td class="num">6</td><td class="ln">Stop hand-toggling grind tick-to-tick; arm once on ER≥0.35 sustained, bench only on structure-break</td><td>07-30 ~8&times; toggle CHURN <span class="was">; grind self-gates via its 0.35 floor</span> <strong>&#9654; REV3: clause deleted &mdash; grind does not self-gate. That floor has never executed (<a href='#p3floors'>Part 3.6</a>).</strong></td><td><span class="tag">RULE</span> banked</td></tr>
+<tr><td class="num">7</td><td class="ln">Scope an in-code per-gate counter-regime entry-veto (momentum gates)</td><td>counter-trend near-miss leak −$956/−$1,933 the 5-min poll can't reach</td><td><span class="tag">BUILD</span> next</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct"><b>Backtest discipline honored, and its limits stated plainly:</b> every sweep here is segmented (fader-set vs full-set; per-regime leak buckets; per-day meter vs P&amp;L) — no blanket cross-tape number is offered as truth. But this is <b>one week, one summer range regime, in-sample, thin realised n, partly already gated</b>. The one deploy (action 1) is the only change both universes agree on across the whole grid; everything else is HOLD or TRIAL. The regime&rarr;exit R-target cheat-sheet (faders 0.5/1.5, momentum 1.5/2.5, trend 2.5/wide) remains an <b>unproven operator prior</b> — the exhaustion 0.5R/1.5R trial has fired exactly once, off-regime, so those Rs are NOT yet proven and should be swept per-regime once a trend week supplies the n. Re-run this whole review after the next real trend day before trusting any single-week dollar figure.</div></div>
+</div>

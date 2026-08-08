@@ -1,0 +1,219 @@
+<h2><span class="n">Rev 2 · Q1</span> What the desk made without your hands on it</h2>
+
+<p class="mono"><strong>PATCH MARKER —</strong> this section <strong>patches and extends PART 1 (“The Live Desk”)</strong>: it restates Part 1’s headline number, its six-gate card table, its exit-mix table and its “the tail is the edge” claim on <strong>automated fills only</strong> (MANUAL_CLAIM excluded), and it re-runs Part 1’s <span class="tag">SURVIVOR — steadiest</span> verdict on exhaustion_short against that same automated-only tape. It also extends <strong>Part 2.6 (Router review)</strong> with the regime split of the automated book. Everything below is computed from <span class="mono">data/gazbot7.db</span> (venue truth) and <span class="mono">data/capture.db</span> 250 ms ticks. Where Part 1 and this section disagree, <strong>this section is the correction.</strong></p>
+
+<p class="lead">Garrath — you asked the right question, and the answer is not comfortable. <strong>Hands off, the desk lost $598 this week.</strong> The +$625 headline in Part 1 is real money on a real ledger, but $1,223 of it came from twelve trades <em>you</em> closed by hand with the Claim-profit button. Strip those twelve and what the machine did on its own is <strong>194 fills, −$598, 35.1% win, −$3.08 a trade, profit factor 0.91</strong>. Part 1 led with a survivor; on automated fills that survivor is not green. But it is not the disaster it first looks either — and the reason it broke is a <em>config change you made on Wednesday evening</em>, not a regime. Below: the honest split, the tick-by-tick counterfactual of what the robot would have done with those twelve trades if you had sat on your hands, the re-run survivor verdict, and the re-nomination.</p>
+
+<div class="callout"><div class="ct">The one-paragraph answer</div>
+<p><strong>Automated-only: −$598 over 194 fills (35.1% win, PF 0.91).</strong> The twelve hand-claims were +$1,223 at 12-for-12. Repriced on 250 ms ticks under the exit config that was actually loaded at the time, those same twelve entries — the entries <em>were</em> automated; only the exits were yours — would have banked <strong>+$360.5</strong>, five of the twelve stopping out. So a fully hands-off week is <strong>−$237.5</strong>, not +$625, and <strong>your hands were worth +$862.5</strong>. The nominated survivor, exhaustion_short, is <strong>−$56.0 on 44 automated fills</strong> — flat, not green. Its “+$372.5 four-in-a-row” on Thursday was four hand-claims, and three of those four were sitting on positions the tape later ran <strong>49 to 98 points through the stop</strong>. <span class="mono">SURVIVOR — steadiest</span> does not survive as a money claim. It <em>does</em> survive as a mechanism claim, but only on the exit it was running until Wednesday 19:10 UTC.</p></div>
+
+<div class="card">
+<h3>Fact table 1 — the week, with your hands taken off</h3>
+<p>Week defined exactly as Part 1 defines it (07-26 through 07-31; totals reconcile to Part 1’s +$625 / 206 trades to the cent). “Automated” = every fill whose <span class="mono">exit_reason</span> is not <span class="mono">MANUAL_CLAIM</span>.</p>
+<table>
+<thead><tr><th>Book</th><th class="num">N</th><th class="num">Net $</th><th class="num">Win %</th><th class="num">$ / trade</th><th class="num">Median $</th><th class="num">PF</th></tr></thead>
+<tbody>
+<tr><td class="ln">Week as reported (Part 1)</td><td class="num">206</td><td class="num">+625.0</td><td class="num">38.8</td><td class="num">+3.03</td><td class="num">−31.75</td><td class="num">1.10</td></tr>
+<tr class="row-bad"><td class="ln"><strong>AUTOMATED ONLY</strong></td><td class="num"><strong>194</strong></td><td class="num"><strong>−598.0</strong></td><td class="num"><strong>35.1</strong></td><td class="num"><strong>−3.08</strong></td><td class="num">−35.50</td><td class="num"><strong>0.91</strong></td></tr>
+<tr class="row-hl"><td class="ln">MANUAL_CLAIM (your hands)</td><td class="num">12</td><td class="num">+1,223.0</td><td class="num">100.0</td><td class="num">+101.92</td><td class="num">+101.75</td><td class="num">∞</td></tr>
+<tr class="row-bad"><td class="ln">Automated, excluding Wednesday 07-29</td><td class="num">162</td><td class="num">−1,947.0</td><td class="num">34.0</td><td class="num">−12.02</td><td class="num">−35.50</td><td class="num">0.64</td></tr>
+</tbody>
+</table>
+<p>That last row matters as much as the first: <strong>the automated book has exactly one good day in it.</strong> Take out Wednesday’s +$1,349 and the machine is −$1,947 across five sessions at a profit factor of 0.64. The week is not “+$625 with a wobble”; it is one clean trend day, your hands on Thursday and Friday, and bleed everywhere else.</p>
+<table>
+<thead><tr><th>Session (UTC close-date)</th><th class="num">Auto N</th><th class="num">Auto net $</th><th class="num">Hand N</th><th class="num">Hand net $</th><th class="num">Reported net $</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">Sun 07-26</td><td class="num">3</td><td class="num">−71.5</td><td class="num">0</td><td class="num">—</td><td class="num">−71.5</td></tr>
+<tr class="row-bad"><td class="ln">Mon 07-27</td><td class="num">37</td><td class="num">−155.0</td><td class="num">0</td><td class="num">—</td><td class="num">−155.0</td></tr>
+<tr class="row-bad"><td class="ln">Tue 07-28</td><td class="num">25</td><td class="num">−22.0</td><td class="num">0</td><td class="num">—</td><td class="num">−22.0</td></tr>
+<tr class="row-hl"><td class="ln">Wed 07-29</td><td class="num">32</td><td class="num">+1,349.0</td><td class="num">0</td><td class="num">—</td><td class="num">+1,349.0</td></tr>
+<tr class="row-bad"><td class="ln">Thu 07-30 <span class="tag">“best day ever”</span></td><td class="num">73</td><td class="num">−884.5</td><td class="num">9</td><td class="num">+978.0</td><td class="num">+93.5</td></tr>
+<tr class="row-bad"><td class="ln">Fri 07-31</td><td class="num">24</td><td class="num">−814.0</td><td class="num">3</td><td class="num">+245.0</td><td class="num">−569.0</td></tr>
+</tbody>
+</table>
+<p><strong>Thursday is the headline casualty.</strong> Part 1 calls 07-30 the best day the desk has ever booked. On automated fills Thursday is the <em>worst</em> day of the week: <strong>73 fills, −$884.5, 26% win</strong>. You turned it green by hand, nine times, nine winners.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 2 — the six-gate card table, automated only</h3>
+<p>This is Part 1’s card table with the hand-claims removed. Every row reconciles: Part 1 net = automated net + hand net.</p>
+<table>
+<thead><tr><th>Gate</th><th class="num">Part 1 net</th><th class="num">Auto N</th><th class="num">Auto net $</th><th class="num">Auto win %</th><th class="num">Auto $/tr</th><th class="num">Auto PF</th><th class="num">Hand $</th><th>Revised verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">abs_veto_short</td><td class="num">+358.5</td><td class="num">26</td><td class="num">+358.5</td><td class="num">42.3</td><td class="num">+13.8</td><td class="num">1.53</td><td class="num">0.0</td><td><span class="tag">ONLY AUTOMATED-GREEN GATE</span> — but 52% of it is one trade</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_short</td><td class="num">+316.5</td><td class="num">44</td><td class="num">−56.0</td><td class="num">50.0</td><td class="num">−1.3</td><td class="num">0.96</td><td class="num">+372.5</td><td><span class="tag">FLAT, NOT GREEN</span> — see verdict re-run</td></tr>
+<tr class="row-bad"><td class="ln">capitulation_long</td><td class="num">−139.0</td><td class="num">14</td><td class="num">−139.0</td><td class="num">28.6</td><td class="num">−9.9</td><td class="num">0.65</td><td class="num">0.0</td><td>unchanged → REHAB</td></tr>
+<tr class="row-bad"><td class="ln">rgv_short</td><td class="num">−154.5</td><td class="num">3</td><td class="num">−154.5</td><td class="num">0.0</td><td class="num">−51.5</td><td class="num">0.00</td><td class="num">0.0</td><td>unchanged → router-benched</td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_long</td><td class="num">+59.5</td><td class="num">56</td><td class="num">−185.5</td><td class="num">32.1</td><td class="num">−3.3</td><td class="num">0.90</td><td class="num">+245.0</td><td><span class="tag">FLIPS TO RED</span> — “scratch” was hand-made</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td class="num">+184.0</td><td class="num">51</td><td class="num">−421.5</td><td class="num">25.5</td><td class="num">−8.3</td><td class="num">0.80</td><td class="num">+605.5</td><td><span class="tag">FLIPS TO RED</span> — worst gate on the desk</td></tr>
+</tbody>
+</table>
+<p>Two of Part 1’s six gates change sign. <strong>grind_long’s entire +$184 was your hands and then some</strong> — automated it is the biggest loser on the book at −$421.5 and it wins one trade in four. <strong>abs_veto_long’s “scratch” was hand-made too</strong>. Only <strong>abs_veto_short</strong> is green with nobody touching it, and it took zero hand-claims all week — that number is clean.</p>
+
+<h3>The Lot-A / Lot-B claim (“the tail is the edge”) — half of it was your hands</h3>
+<p>Part 1 concludes the chandelier tail lot carries the money. Automated, that is true for <strong>abs_veto</strong> and false for <strong>grind</strong>.</p>
+<table>
+<thead><tr><th>Gate</th><th class="num">Part 1 “tail” (Lot B)</th><th class="num">Auto Lot B</th><th class="num">Part 1 “scalp” (Lot A)</th><th class="num">Auto Lot A</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">grind_long</td><td class="num">+302.0 (19)</td><td class="num">−151.0 (16)</td><td class="num">+31.0 (33)</td><td class="num">−121.5 (31)</td><td><strong>FALSIFIED</strong> — both lots red automated</td></tr>
+<tr><td class="ln">abs_veto_long</td><td class="num">+321.5 (19)</td><td class="num">+131.5 (17)</td><td class="num">+4.5 (28)</td><td class="num">−50.5 (27)</td><td>holds, but ⅔ smaller</td></tr>
+<tr class="row-hl"><td class="ln">abs_veto_short</td><td class="num">+379.5 (4)</td><td class="num">+379.5 (4)</td><td class="num">+52.0 (5)</td><td class="num">+52.0 (5)</td><td>holds — untouched by hand</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_short</td><td class="num">−37.5 (5)</td><td class="num">−264.0 (3)</td><td class="num">−11.0 (6)</td><td class="num">−157.0 (4)</td><td>both scale-out lots badly red</td></tr>
+</tbody>
+</table>
+
+<h3>Exit mix, automated only</h3>
+<table>
+<thead><tr><th>Exit</th><th class="num">N</th><th class="num">Net $</th><th class="num">$/trade</th><th>Note</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">CHANDELIER</td><td class="num">32</td><td class="num">+3,065.0</td><td class="num">+95.8</td><td>96.9% of them green — the tail is still the profit engine</td></tr>
+<tr class="row-hl"><td class="ln">TARGET</td><td class="num">33</td><td class="num">+2,647.5</td><td class="num">+80.2</td><td>fixed-R hit</td></tr>
+<tr><td class="ln">GIVEBACK</td><td class="num">4</td><td class="num">+82.0</td><td class="num">+20.5</td><td>—</td></tr>
+<tr class="row-bad"><td class="ln">STOP</td><td class="num">119</td><td class="num">−6,119.0</td><td class="num">−51.4</td><td><strong>61% of every automated fill is a stop-out</strong></td></tr>
+<tr class="row-bad"><td class="ln">STOP_UNFILLED</td><td class="num">6</td><td class="num">−273.5</td><td class="num">−45.6</td><td>the resting-stop failure path (Part 1.5)</td></tr>
+</tbody>
+</table>
+<p>The automated book wins $5,794 gross and loses $6,392 gross. It is not broken — it is <strong>one bad stop-rate away from break-even</strong>. That is the actionable frame, and it is why the exit config below matters more than any gate roster change.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 3 — the tick-honest counterfactual: what the robot would have done with your twelve</h3>
+<p>This is the fairest reading of your question, because <strong>the entries were automated</strong> — a gate fired, the desk opened the slot, the stop was armed. Only the <em>exit</em> was yours. So: replay the 250 ms tape from each real entry, run each sub-slot’s own exit stack (native 1.0×ATR stop, then its configured profit exit), and see where the machine would have got out. The config in force at the time is the built-in scale-out default (<strong>Lot A = 2.5R scalp, Lot B = wide lock-chandelier 3.5→0.5 at 6R</strong>) — your per-gate <span class="mono">exit_overrides.json</span> was not written until Fri 07-31 17:29 UTC, so it governed none of these.</p>
+<table>
+<thead><tr><th>#</th><th>Slot</th><th class="num">Entry ATR</th><th class="num">You banked</th><th>Robot’s exit</th><th class="num">Robot’s $</th><th>What the tape did after you claimed</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="num">424</td><td class="ln">grind_long_A</td><td class="num">28.2</td><td class="num">+41.5</td><td>STOP @ 4.2 min</td><td class="num">−57.9</td><td>grazed the stop by 0.57 pt <span class="tag">FRAGILE</span></td></tr>
+<tr class="row-bad"><td class="num">429</td><td class="ln">grind_long_B</td><td class="num">28.2</td><td class="num">+156.5</td><td>STOP @ 4.1 min</td><td class="num">−57.9</td><td>grazed the stop by 0.82 pt <span class="tag">FRAGILE</span></td></tr>
+<tr><td class="num">439</td><td class="ln">grind_long_B</td><td class="num">46.4</td><td class="num">+243.5</td><td>CHANDELIER @ 69 min</td><td class="num">+160.0</td><td>ran further, gave back more than you did</td></tr>
+<tr class="row-bad"><td class="num">443</td><td class="ln">exhaustion_short_B</td><td class="num">36.5</td><td class="num">+117.0</td><td>STOP @ 58 min</td><td class="num">−74.4</td><td>tape ran <strong>86 pt against</strong> — 49.5 pt <em>through</em> the stop</td></tr>
+<tr class="row-hl"><td class="num">444</td><td class="ln">exhaustion_short_A</td><td class="num">36.5</td><td class="num">+107.5</td><td>TARGET 2.5R @ 9.1 min</td><td class="num">+180.8</td><td>hit 2.5R <em>before</em> the reversal — you left $73 on the table here</td></tr>
+<tr class="row-bad"><td class="num">445</td><td class="ln">exhaustion_short_B</td><td class="num">38.7</td><td class="num">+109.5</td><td>STOP @ 23 min</td><td class="num">−78.8</td><td>tape ran <strong>136 pt against</strong> — 97.6 pt through</td></tr>
+<tr class="row-bad"><td class="num">446</td><td class="ln">exhaustion_short_A</td><td class="num">38.7</td><td class="num">+38.5</td><td>STOP @ 23 min</td><td class="num">−78.8</td><td>same reversal, 97.3 pt through</td></tr>
+<tr><td class="num">451</td><td class="ln">grind_long_B</td><td class="num">25.2</td><td class="num">+53.0</td><td>CHANDELIER @ 48 min</td><td class="num">+64.5</td><td>robot slightly better</td></tr>
+<tr><td class="num">452</td><td class="ln">grind_long_A</td><td class="num">25.2</td><td class="num">+111.0</td><td>TARGET 2.5R @ 11.8 min</td><td class="num">+124.6</td><td>robot slightly better</td></tr>
+<tr class="row-bad"><td class="num">466</td><td class="ln">abs_veto_long_B</td><td class="num">22.2</td><td class="num">+94.0</td><td>CHANDELIER @ 5.8 min</td><td class="num">+27.0</td><td>you banked $67 more</td></tr>
+<tr><td class="num">481</td><td class="ln">abs_veto_long_B</td><td class="num">16.2</td><td class="num">+96.0</td><td>CHANDELIER @ 25 min</td><td class="num">+77.0</td><td>near-tie</td></tr>
+<tr><td class="num">482</td><td class="ln">abs_veto_long_A</td><td class="num">15.2</td><td class="num">+55.0</td><td>TARGET 2.5R @ 11.6 min</td><td class="num">+74.4</td><td>robot better</td></tr>
+<tr class="row-hl"><td class="num">—</td><td class="ln"><strong>TOTAL</strong></td><td class="num">—</td><td class="num"><strong>+1,223.0</strong></td><td><strong>5 stops / 4 targets / 3 chandeliers</strong></td><td class="num"><strong>+360.5</strong></td><td><strong>your hands added +$862.5</strong></td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>Scenario</th><th class="num">Those 12 trades</th><th class="num">Week net</th><th>Reading</th></tr></thead>
+<tbody>
+<tr><td class="ln">As it happened (your hands)</td><td class="num">+1,223.0</td><td class="num">+625.0</td><td>the reported number</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Fully hands-off, config as loaded</strong></td><td class="num">+360.5</td><td class="num"><strong>−237.5</strong></td><td><strong>the honest answer to your question</strong></td></tr>
+<tr><td class="ln">Hands-off, but with Friday’s <span class="mono">exit_overrides.json</span></td><td class="num">+761.2</td><td class="num">+163.2</td><td>one config file was worth ~$400 on twelve trades</td></tr>
+</tbody>
+</table>
+<p><strong>Caveat, stated plainly:</strong> two of the five counterfactual stops (#424, #429) are sub-one-point grazes — 0.57 and 0.82 pt through — and a resting stop that thin is genuinely a coin-flip on fill. Treat ±$116 of the +$360.5 as noise. The three <em>exhaustion</em> stops are not close: the tape ran 49 to 98 points beyond the stop. And note the direction of the remaining error — the reprice fills at the exact stop level with no slippage, and our own live-vs-model work says real stops fill 1.1–3.1× worse. So <strong>+$862.5 is a floor on what your hands were worth, not a ceiling.</strong></p>
+</div>
+
+<div class="card">
+<h3>Fact table 4 — re-running the <span class="tag">SURVIVOR — steadiest</span> verdict on automated fills</h3>
+<p>Part 1 nominated exhaustion_short: “green on 4 of 5 sessions, 54% of trades won, +$316 for the week, the steadiest earner on the desk.” Here is that claim, automated only. The critical fact Part 1 misses is that <strong>exhaustion_short ran two completely different exit stacks this week</strong>: until Wed 07-29 19:10 UTC it was a single slot on the regime-3 adaptive chandelier; from that moment it was two scale-out sub-slots on Lot A 2.5R + Lot B wide lock-chandelier, with <span class="mono">adaptive_exit</span> switched <strong>off</strong>.</p>
+<table>
+<thead><tr><th>Slice</th><th class="num">N</th><th class="num">Net $</th><th class="num">Win %</th><th class="num">$/tr</th><th class="num">PF</th><th class="num">Green days</th><th class="num">σ per trade</th></tr></thead>
+<tbody>
+<tr><td class="ln">Part 1’s claim (incl. hand-claims)</td><td class="num">48</td><td class="num">+316.5</td><td class="num">54</td><td class="num">+6.6</td><td class="num">—</td><td class="num">4 / 5</td><td class="num">—</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Automated only, whole week</strong></td><td class="num"><strong>44</strong></td><td class="num"><strong>−56.0</strong></td><td class="num"><strong>50.0</strong></td><td class="num"><strong>−1.3</strong></td><td class="num"><strong>0.96</strong></td><td class="num"><strong>3 / 5</strong></td><td class="num">79.7</td></tr>
+<tr class="row-hl"><td class="ln">…of which: single-slot, adaptive chandelier (to Wed 19:10)</td><td class="num">37</td><td class="num">+365.0</td><td class="num">56.8</td><td class="num">+9.9</td><td class="num">1.46</td><td class="num">3 / 3</td><td class="num">78.9</td></tr>
+<tr class="row-bad"><td class="ln">…of which: scale-out A@2.5R + B wide-lock (from Wed 19:10)</td><td class="num">7</td><td class="num">−421.0</td><td class="num">14.3</td><td class="num">−60.1</td><td class="num">0.11</td><td class="num">0 / 3</td><td class="num">53.8</td></tr>
+</tbody>
+</table>
+<p><strong>Verdict: the money claim fails, the mechanism claim survives — conditionally.</strong> As a gate, exhaustion_short made <strong>−$56 automated</strong>. It is still the <em>steadiest</em> thing on the desk by every dispersion measure — 50% win, a median trade of essentially zero (+$0.8), PF 0.96, green on 3 of 5 sessions, and the smallest leave-one-day-out damage of any gate that traded in size (−$151, against −$618 for abs_veto_long and −$731 for grind_long) — but “steadiest” now means <strong>flattest</strong>, not <strong>best earner</strong>. Part 1’s offensive evidence for it, the +$372.5 four-in-a-row on Thursday afternoon, was <strong>four hand-claims, zero automated fills</strong>, and under the exit config actually loaded that sequence would have been <strong>−$51.2</strong>. That is the single most load-bearing correction in this section.</p>
+<p><strong>What actually killed it was a config change, not the tape.</strong> The pre-Wednesday configuration was non-negative in <em>all three</em> regime buckets it traded — clean-trend +$436.5 (11 fills, PF 3.66), in-between-building −$84.5 (13, 61.5% win), violent-whipsaw +$13.0 (13, PF 1.04). That is genuine regime robustness, on small n. The scale-out configuration then lost −$321.5 on four fills in violent-whipsaw alone, at 0% win. A fader was put on a 2.5R target and a wide trend-riding trail; faders do not get 2.5R in a whipsaw. Your hands on Thursday were, in effect, <strong>manually re-implementing the tight exit the slate had just removed</strong> — and your Friday 17:29 <span class="mono">exit_overrides.json</span> (exhaustion 0.5 / 1.5) was you noticing the same thing and automating it.</p>
+<p><strong>Honesty on concentration:</strong> the +$365 pre-Wednesday slice is not evenly earned — its best single trade is 28% of gross profit and stripping its top three leaves −$285 over 34 fills. It is a real but thin edge, and it is in-sample.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 5 — the regime split of the automated book (never blanket)</h3>
+<p>Regime keyed on the 1-minute ATR-14 level, the 30-bar efficiency ratio and a 30-minute range-break at the entry bar — not the clock. Time-of-day reported separately, because it is a different axis.</p>
+<table>
+<thead><tr><th>Regime at entry</th><th class="num">N</th><th class="num">Net $</th><th class="num">Win %</th><th class="num">$/tr</th><th class="num">PF</th><th>Read</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">clean-trend (ER≥0.20, |net|≥30 pt, range-break)</td><td class="num">64</td><td class="num">+1,273.5</td><td class="num">40.6</td><td class="num">+19.9</td><td class="num">1.67</td><td>the only bucket that pays</td></tr>
+<tr class="row-bad"><td class="ln">in-between / building (ER≥0.20, no break)</td><td class="num">40</td><td class="num">−571.0</td><td class="num">35.0</td><td class="num">−14.3</td><td class="num">0.54</td><td>the false-start bucket</td></tr>
+<tr class="row-bad"><td class="ln">normal-chop</td><td class="num">9</td><td class="num">−19.0</td><td class="num">22.2</td><td class="num">−2.1</td><td class="num">0.91</td><td>n too small to read</td></tr>
+<tr class="row-bad"><td class="ln">violent-whipsaw (ATR≥14, ER&lt;0.20)</td><td class="num">81</td><td class="num">−1,281.5</td><td class="num">32.1</td><td class="num">−15.8</td><td class="num">0.58</td><td><strong>42% of all fills, the whole loss</strong></td></tr>
+<tr><td class="ln">dead-chop (ATR&lt;6)</td><td class="num">0</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td>ATR floors are doing their job</td></tr>
+</tbody>
+</table>
+<p>Read that as a policy statement, not a score: <strong>automated, the desk is +$1,274 when the tape has a real break and −$1,872 when it doesn’t</strong>, and it takes 42% of its trades in the single worst bucket. But apply the same discipline to that headline — <strong>clean-trend excluding Wednesday is 53 fills, −$427.5, PF 0.76.</strong> Clean-trend is not a licence to print; Wednesday is.</p>
+<table>
+<thead><tr><th>Time of day (UTC, entry)</th><th class="num">N</th><th class="num">Net $</th><th class="num">Win %</th><th class="num">$/tr</th><th class="num">PF</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">overnight / pre-open (&lt;13:30)</td><td class="num">70</td><td class="num">−197.5</td><td class="num">34.3</td><td class="num">−2.8</td><td class="num">0.90</td></tr>
+<tr class="row-bad"><td class="ln">US open 13:30–15:00</td><td class="num">48</td><td class="num">−137.0</td><td class="num">43.8</td><td class="num">−2.9</td><td class="num">0.92</td></tr>
+<tr class="row-bad"><td class="ln">US session 15:00–20:00</td><td class="num">42</td><td class="num">−422.0</td><td class="num">33.3</td><td class="num">−10.0</td><td class="num">0.72</td></tr>
+<tr class="row-hl"><td class="ln">post-20:00 close-out window</td><td class="num">34</td><td class="num">+158.5</td><td class="num">26.5</td><td class="num">+4.7</td><td class="num">1.14</td></tr>
+</tbody>
+</table>
+<p>Worth flagging against the standing prior: the “big 4R/6R runners live in the US session” assumption does <strong>not</strong> hold for this week’s automated book — the US afternoon is the worst window on the desk (−$422, PF 0.72) and the only green window is the late close-out hour, on 26.5% win and a fat tail. One week, small n, but it contradicts the prior and should not be quietly averaged away.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 6 — sweeping the exit Rs (they were guesses; here is what the tape says)</h3>
+<p>Every entry the exhaustion gate produced (64 events, 07-21 → 07-31, all automated entries plus the four whose exits you claimed) replayed on 250 ms ticks against eleven exit configs, one tick pass per entry so all configs see identical tape. Stop is always the native 1.0×ATR; hold capped at 120 min / session-flat. Robustness columns are the point: <strong>LODO-worst</strong> = net after deleting the single worst-case day, <strong>strip-3</strong> = net after deleting the three best trades.</p>
+<table>
+<thead><tr><th>Exit config</th><th class="num">N</th><th class="num">Net $</th><th class="num">Win %</th><th class="num">LODO worst</th><th class="num">Strip top-3</th><th class="num">Green days</th><th>Robustness read</th></tr></thead>
+<tbody>
+<tr><td class="ln">Lot-A scalp 0.5R <span class="tag">YOUR GUESS</span></td><td class="num">64</td><td class="num">+305.7</td><td class="num">54.7</td><td class="num">+59.3</td><td class="num">+151.4</td><td class="num">4 / 9</td><td>weakest scalp rung</td></tr>
+<tr class="row-hl"><td class="ln">Lot-A scalp 0.75R</td><td class="num">64</td><td class="num">+510.1</td><td class="num">50.0</td><td class="num">+238.8</td><td class="num">+276.4</td><td class="num">5 / 9</td><td><strong>plateau top for Lot A</strong></td></tr>
+<tr><td class="ln">Lot-A scalp 1.0R</td><td class="num">64</td><td class="num">+449.7</td><td class="num">45.3</td><td class="num">+204.1</td><td class="num">+170.2</td><td class="num">5 / 9</td><td>on the plateau</td></tr>
+<tr><td class="ln">scalp 1.5R <span class="tag">YOUR GUESS (Lot B)</span></td><td class="num">64</td><td class="num">+545.9</td><td class="num">37.5</td><td class="num">+220.7</td><td class="num">+143.7</td><td class="num">4 / 9</td><td>fine net, worse steadiness</td></tr>
+<tr><td class="ln">scalp 2.0R</td><td class="num">64</td><td class="num">+986.2</td><td class="num">34.4</td><td class="num">+259.9</td><td class="num">+448.4</td><td class="num">4 / 9</td><td>tail-dependent</td></tr>
+<tr><td class="ln">scalp 2.5R <span class="tag">CONFIG IN FORCE</span></td><td class="num">64</td><td class="num">+1,289.4</td><td class="num">31.2</td><td class="num">+162.0</td><td class="num">+616.0</td><td class="num">4 / 9</td><td>52% of net is 3 trades</td></tr>
+<tr><td class="ln">scalp 3.0R</td><td class="num">64</td><td class="num">+1,673.7</td><td class="num">29.7</td><td class="num">+425.8</td><td class="num">+864.8</td><td class="num">4 / 9</td><td>monotone ⇒ no plateau ⇒ suspect</td></tr>
+<tr class="row-hl"><td class="ln"><strong>Lot-B tight chandelier k1.5</strong></td><td class="num">64</td><td class="num">+502.2</td><td class="num">48.4</td><td class="num"><strong>+330.1</strong></td><td class="num">−44.8</td><td class="num"><strong>5 / 9</strong></td><td><strong>highest LODO floor; worst day only −$25</strong></td></tr>
+<tr><td class="ln">Lot-B wide chandelier k3.5</td><td class="num">64</td><td class="num">+1,282.5</td><td class="num">32.8</td><td class="num">+361.5</td><td class="num">+396.4</td><td class="num">4 / 9</td><td>fat-tail bet</td></tr>
+<tr class="row-bad"><td class="ln">Lot-B lock-chandelier 3.5→0.5@6R <span class="tag">CONFIG IN FORCE</span></td><td class="num">64</td><td class="num">+2,648.4</td><td class="num">25.0</td><td class="num">+321.6</td><td class="num">+1,010.9</td><td class="num">3 / 9</td><td><strong>ARTIFACT</strong> — 88% of net (+$2,327) is Mon 07-27 alone; 25% win; only 3 green days</td></tr>
+<tr class="row-bad"><td class="ln">fixed 8 pt / 12 pt (the old design)</td><td class="num">64</td><td class="num">−48.0</td><td class="num">31.2</td><td class="num">−113.0</td><td class="num">−115.5</td><td class="num">3 / 9</td><td>dead — do not revive</td></tr>
+</tbody>
+</table>
+<p><strong>Proven vs guessed, stated straight.</strong> Your fader prior was <em>0.5 / 1.5</em>. The tape says the <em>tightness instinct is right and the specific numbers are not</em>: 0.5R is the <strong>worst</strong> scalp rung on the ladder (+$306, 4 of 9 green days), and 0.75–1.0R is a genuine two-rung plateau (+$510 / +$450, both 5 of 9 green, both with a LODO floor above +$200). On Lot B, the fixed 1.5R scalp and the k1.5 chandelier post near-identical net (+$546 vs +$502) but the chandelier is far steadier — <strong>the highest leave-one-day-out floor in the whole sweep (+$330), five green days, and its three red days are −$21, −$1.50 and −$25</strong>. The lock-chandelier that was actually loaded posts the biggest number on the board and it is a one-day artifact: <strong>+$2,327 of its +$2,648 is Monday 07-27</strong>, it wins one trade in four, and it is green on only 3 of 9 days. <strong>Do not read that +$2,648 as an edge.</strong></p>
+<p><strong>Now the regime split of the same sweep</strong> — because a single ladder across all tape is exactly the bug the discipline forbids. Automated entries only (n=62).</p>
+<table>
+<thead><tr><th>Regime</th><th class="num">n</th><th>Best config (net $)</th><th>Runner-up</th><th>What loses</th><th>Policy</th></tr></thead>
+<tbody>
+<tr><td class="ln">clean-trend</td><td class="num">11</td><td>lock-chandelier +839.0</td><td>2.5R +407.6 · wide k3.5 +546.4</td><td>k1.5 tight −50.4 · 0.5R −70.2</td><td><strong>ride it</strong> — wide/lock, never tight</td></tr>
+<tr><td class="ln">in-between / building</td><td class="num">15</td><td>lock +1,948.9 <em>(artifact-inflated)</em></td><td><strong>k1.5 tight +673.7 @ 80% win</strong> · 0.75R +561.0 @ 80%</td><td>0.25R +216.2 (leaves money)</td><td><strong>tight + 0.75R</strong>, the honest pick</td></tr>
+<tr><td class="ln">normal-chop</td><td class="num">8</td><td>lock +93.3 @ 12.5% win</td><td>everything ≈ 0</td><td>0.5–1.5R all red</td><td><strong>n too small — don’t tune on it</strong></td></tr>
+<tr class="row-bad"><td class="ln">violent-whipsaw</td><td class="num">28</td><td>wide k3.5 +149.7 · 2.0R +144.9</td><td>0.5R −12.3 (least bad tight)</td><td>k1.5 tight −202.4 · 1.0R −203.3 · 1.25R −242.9</td><td><strong>DON’T TRADE IT</strong> — no config is robustly green</td></tr>
+</tbody>
+</table>
+<p>That fourth row is the important one and it cuts against the tight-exit story: in violent whipsaw, <em>tightening does not save the fader</em> — the k1.5 chandelier is the single worst config in that bucket (−$202). This is the bucket the gate took 28 of its 62 entries in. The lever is not the exit, it is <strong>not being armed</strong>. That matches the standing ledger lesson (07-31: violent post-thrust chop → go fully flat) and it is the recommendation.</p>
+<p><strong>The momentum prior fares worse.</strong> Sweeping abs_veto_long’s 42 automated entries the same way: the plateau is at <strong>0.75–1.0R (+$292 / +$532, 54.8% win)</strong> and it collapses at exactly the numbers you guessed — 1.5R +$26, 2.0R −$42, 2.5R +$75 — with the lock-chandelier at −$16 overall and <strong>−$415 in clean-trend</strong>. The <em>1.5 / 2.5</em> momentum prior is <strong>falsified for abs_veto_long on this tape</strong>; it is holding a thrust far too long. For abs_veto_short the prior survives: the plateau is 1.25–2.0R (+$178 / +$202 / +$188) and <strong>1.5R is the only config in that sweep with a positive leave-one-day-out floor (+$45.4, 3 of 4 green days)</strong>. Same family, opposite sides, opposite answers — which is itself the argument for per-side sweeps over roster-wide priors.</p>
+</div>
+
+<div class="card">
+<h3>The re-nomination</h3>
+<p>Part 1 needs a survivor that stands up with nobody touching it. Here is the ranked answer, with the honesty attached.</p>
+<table>
+<thead><tr><th>Rank</th><th>Nomination</th><th class="num">Automated evidence</th><th>Why it survives</th><th>What would break it</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">1</td><td class="ln">exhaustion_short <strong>on the tight/adaptive exit</strong>, armed outside violent-whipsaw — a <em>policy</em>, not a gate</td><td class="num">+$365 / 37 fills / 56.8% win / PF 1.46 / 3 of 3 green days, all automated, zero hand-claims. Sweep: k1.5 chandelier +$502, LODO floor +$330, 5 of 9 green days, worst day −$25.</td><td>The only thing on the desk that was non-negative in <em>every</em> regime bucket it traded, and the only sweep config whose leave-one-day-out floor stays comfortably positive. It is also the only nomination whose green does not depend on Wednesday.</td><td>Its top trade is 28% of gross profit; strip the top three and it is −$285. n=37. In-sample. And it needs the whipsaw veto — armed in whipsaw it loses at any R.</td></tr>
+<tr><td class="num">2</td><td class="ln">abs_veto_short, armed <strong>only in clean-trend</strong>, Lot A/B ≈1.5R</td><td class="num">+$358.5 / 26 fills / 42.3% / PF 1.53 automated with no hand-claims at all. Clean-trend slice: +$640.5 / 11 fills / 54.5% / PF 3.38. Violent-whipsaw slice: −$282 / 15 fills.</td><td>The only gate that is automated-green on the raw ledger, and the split is textbook: it pays on the break and bleeds on the chop. 1.5R is the one positive-LODO rung in its sweep.</td><td><strong>52% of its week net is one trade</strong> (+$536, Wed). Drop Wednesday and it is −$153. n=11 in its home regime. This is a nomination to <em>watch</em>, not to size.</td></tr>
+<tr class="row-bad"><td class="num">—</td><td class="ln">grind_long</td><td class="num">−$421.5 / 51 / 25.5% / PF 0.80 / 1 of 4 green days</td><td>nothing survives — its Part 1 green was entirely hand-claims</td><td>—</td></tr>
+<tr class="row-bad"><td class="num">—</td><td class="ln">abs_veto_long</td><td class="num">−$185.5 / 56 / 32.1% / PF 0.90 / 1 of 6 green days</td><td>nothing survives; and its exit R is falsified above</td><td>—</td></tr>
+<tr class="row-bad"><td class="num">—</td><td class="ln">capitulation_long · rgv_short</td><td class="num">−$139 / 14 · −$154.5 / 3</td><td>unchanged from Part 1 — rehab and bench respectively</td><td>—</td></tr>
+</tbody>
+</table>
+<p><strong>So the corrected lead for Part 1 reads:</strong> <em>“Hands off, the desk lost $598 this week. Nothing on the roster is robustly green. The closest thing to a survivor is exhaustion_short — but only in the configuration it was running until Wednesday evening, and only when it is kept out of violent whipsaw; the Thursday sequence Part 1 celebrates was hand-made, and under the exit config the desk was actually running it would have lost money.”</em></p>
+</div>
+
+<div class="card">
+<h3>Three things to actually do</h3>
+<ol>
+<li><strong>Put exhaustion_short back on a tight exit and stop feeding it whipsaw.</strong> The Friday override (0.5 / 1.5) was the right instinct at the wrong numbers — the sweep says <strong>Lot A 0.75R, Lot B k1.5 chandelier</strong>, and it says the exit cannot rescue a violent-whipsaw entry at all, so the router bench matters more than the R. This is the single highest-value change in this section: it is worth roughly +$420 on the twelve claimed trades alone, and it converts the hand-claim habit into a mechanical rule.</li>
+<li><strong>Re-sweep abs_veto_long’s exit before next week.</strong> Its loaded 1.5/2.5 config sits on the falsified side of a clear plateau; 0.75–1.0R is +$532 against +$26 on this tape, on 42 entries. This is the cheapest red-to-green candidate on the desk.</li>
+<li><strong>Instrument the claim button.</strong> Twelve hand-claims at 12-for-12 is not luck, it is a signal the machine is missing — and right now it is invisible in every P&amp;L we report. Every MANUAL_CLAIM should be auto-repriced against what its slot’s exit would have done and logged as a delta, so “Garrath’s hands are worth $X/week and here is the pattern they exploit” becomes a standing number instead of a Friday archaeology dig.</li>
+</ol>
+</div>
+
+<div class="callout"><div class="ct">Method &amp; limits — read before quoting any number above</div>
+<p><strong>Venue truth vs model.</strong> Every figure in fact tables 1, 2, 4 and 5 is straight from <span class="mono">data/gazbot7.db</span> trades — real fills, fees included, nothing modelled. Fact tables 3 and 6 are <em>reprices</em> on 250 ms ticks from <span class="mono">data/capture.db</span> with $1.50 round-turn fees, fills assumed at the exact stop/target level and no slippage. Our own execution work says live stops fill 1.1–3.1× worse than modelled, so <strong>every reprice number is a ceiling</strong>; use them to rank configs against each other, never as a P&amp;L promise.</p>
+<p><strong>Sample size.</strong> 194 automated fills over six sessions. Regime buckets: violent-whipsaw 81, clean-trend 64, in-between 40, normal-chop 9, dead-chop 0. The sweeps use 64 (exhaustion), 42 (abs_veto_long) and 22 (abs_veto_short) entry events over nine, six and four days. Anything below n≈15 in this section is flagged inline and should be treated as a direction, not a measurement.</p>
+<p><strong>Known modelling weakness.</strong> 17 of the 64 exhaustion replays never hit a stop, target or trail inside the 120-minute / session-flat cap and are marked at the last tick — the same 17 entries in every config, so they do not tilt one config against another, but they do mean roughly a quarter of the sweep is marked-to-market rather than exited. Separately, an entry that hits its target <em>before</em> the tape later runs through its stop is scored as a win (correctly — the order of events is respected), which is why trade #444 in fact table 3 shows a target despite the tape eventually running 85 pt against it.</p>
+<p><strong>Not swept, and it should be.</strong> grind_long’s <em>2.5 / wide</em> pair was not put through this ladder — it is the largest automated loser on the desk (−$421.5) and it has the two graze-sensitive counterfactuals in fact table 3. That sweep is the obvious next job and its absence is a hole in this section, not a silence.</p>
+<p><strong>Reconciliation.</strong> Week bounds and totals match Part 1 exactly (206 fills, +$625.0); the day-by-day rows here use the UTC close-date rather than Part 1’s Paris session boundary, which moves trades between days but not the week total or any gate total.</p>
+</div>

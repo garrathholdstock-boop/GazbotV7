@@ -1,0 +1,140 @@
+<h2><span class="n">FIX 1</span> abs_veto_long &mdash; resolving HOLD #1 against Part&nbsp;2 &sect;4, &sect;5 and &sect;9</h2>
+
+<p class="lead"><strong>PATCHES:</strong> the 50-play card, <strong>HOLD #1</strong> (<code>hold-absveto-long-0808</code>) &middot; <strong>Part 2 &sect;4</strong> (promotion verdict) &middot; <strong>Part 2 &sect;5</strong> (relegation table row) &middot; <strong>Part 2 &sect;9</strong> (per-rung exit deliverable, <code>abs_veto_long</code> row) &middot; <strong>EXTENDS Part 2 &sect;11</strong> (disposition table, two new rows).</p>
+
+<p>Garrath &mdash; you caught a real one. The report told you three different things about the same gate in the same document: the card said <em>touch nothing</em>, &sect;4 and &sect;5 said <em>add a US-session guard and widen the exit</em>, and &sect;9 put a specific exit change in the deliverable table. Then neither change appeared on the card. I went back to the fills and re-derived both recommendations properly. <strong>The card's ACTION was right and the two recommendations were wrong</strong> &mdash; but not for the reason the card gave, and both had been published without the robustness tests &sect;9 claimed for them.</p>
+
+<div class="callout"><div class="ct">THE RESOLUTION IN FIVE LINES</div>
+<p><strong>1.</strong> <strong>The session guard is REFUTED as specified.</strong> The &minus;$258.50 overnight figure is 12 lots in one week. Over the full live history the non-US book is <strong>+$0.59 a lot</strong>, not a loser &mdash; because the all-time overnight loss sits almost entirely in <strong>ASIA 00&ndash;07 UTC, which the desk already blocks at config level</strong>. A US-only guard would bench LONDON, which is <em>positive</em> for this gate and is the desk's only positive block.<br>
+<strong>2.</strong> <strong>The exit widening is REFUTED as stated.</strong> Re-derived with the tests &sect;9 promised: the SCALP-CHOP edge is <strong>98% from 2 of 9 days</strong> and goes <strong>negative on strip-best-3</strong>; the MED-TREND "sign flip" is <strong>one day</strong> (08-04). The deployed ladder already ranks <strong>15th of 70</strong> &mdash; top quintile. It is not a broken exit.<br>
+<strong>3.</strong> <strong>One narrower lead SURVIVES and is new:</strong> in the <em>US session only</em>, in SCALP-CHOP, the deployed ladder ranks <strong>51st of 70</strong> and <code>tightChand&nbsp;x2</code> is the single cell in this whole analysis that passes mean, leave-one-out AND strip-3 together (+$37.99 / +$16.70 / +$8.40). <strong>n=13 &mdash; a SHADOW, not a deployment.</strong><br>
+<strong>4.</strong> <strong>Two instrument defects.</strong> The script behind &sect;9 <em>computes no leave-one-out and no strip-3 at all</em> &mdash; those JSON fields are <code>null</code> &mdash; yet &sect;9's preamble claims every cell "survived leave-one-day-out". And &sect;9's <code>abs_veto_long</code> row silently mixes two different populations in one row.<br>
+<strong>5.</strong> <strong>Net effect on the card: HOLD #1 stays, one clause changes.</strong> No config change to <code>abs_veto_long</code> this week. But "do not touch its exit" over-claims &mdash; it becomes "no change this week; two leads parked/shadowed with named revival tests".</p></div>
+
+<h3>A &mdash; THE CONTRADICTION, STATED EXACTLY</h3>
+
+<table>
+<tr><th>where</th><th>what it said</th><th>implied action</th></tr>
+<tr><td class="ln">50-play card, <strong>HOLD #1</strong></td><td class="ln">"No change. Do not add a filter, do not add an ER floor, <strong>do not touch its exit</strong>."</td><td>do nothing</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;4</strong> (promotion verdict)</td><td class="ln">"<strong>abs_veto_long gets a session guard (US only)</strong>" &mdash; on &minus;$258.50 overnight vs +$824.50 US</td><td>add an arming filter</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;5</strong> (relegation row)</td><td class="ln">tag: "<strong>KEEP + session guard + widen the exit</strong>" &mdash; "it banked 1.0R/1.5R on moves that ran 7&ndash;12R"</td><td>filter AND exit change</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;9</strong> (deliverable)</td><td class="ln">"<strong>CHANGE &rarr; scalp 1.5/6.0 or tight chandelier &times;2</strong> &mdash; +$11.70 / +$10.80 per entry vs +$5.40 deployed. MEDIUM (n=35)"</td><td>edit <code>exit_overrides.json</code></td></tr>
+<tr class="row-bad"><td class="ln"><strong>Part 2 &sect;11</strong> (disposition)</td><td class="ln">Carried one row only &mdash; "abs_veto LONG side &hellip; SHADOW". <strong>The exit change had no disposition row at all.</strong></td><td>&mdash;</td></tr>
+</table>
+
+<p>Two published recommendations, neither on the card, one with no disposition anywhere. Below, both are re-derived from the fills and given a verdict.</p>
+
+<div class="card"><h3>Method &mdash; so you can check it</h3>
+<p>Source: <code>data/gazbot7.db</code> <code>trades</code>, <code>gate LIKE 'abs_veto_long%'</code>, <code>data_quality IS NULL</code>, 93 closed lots 2026-07-26&rarr;08-07. <strong>Fee verified at the row level: $1.50/round-trip and <code>pnl_usd</code> is already net of it</strong> (checked against <code>(exit&minus;entry)&times;$2&times;qty</code> on four rows). Entries are lots collapsed to the minute &mdash; that reproduces the card's "16 entries / 32 lots / +$566.00 / 62%" and its leave-one-out quartet exactly, so my grouping matches the card's. Exit repricing re-runs <code>scripts/live_entry_exit_reprice.py</code>'s grid (70 policies, 5s bars, same-bar stop-first, 1-ATR stop, 60-min horizon, <code>VPP, FEE = 2.0, 1.5</code>) with leave-one-day-out and strip-best-3 <em>added</em>, which the original does not compute.</p></div>
+
+<h3>B &mdash; LEAD 1: THE US-SESSION GUARD &rarr; REFUTED AS SPECIFIED</h3>
+
+<p><strong>B1. The headline number does not survive leaving the week.</strong> &sect;4 and &sect;5 generalise from one week. Widen the window and the overnight bucket changes sign:</p>
+
+<table>
+<tr><th>window</th><th class="num">ON lots</th><th class="num">ON net $</th><th class="num">ON $/lot</th><th class="num">US lots</th><th class="num">US net $</th><th class="num">US $/lot</th><th>read</th></tr>
+<tr class="row-hl"><td class="ln">this week 08-03&rarr;08-07 <em>(what &sect;4/&sect;5 quote)</em></td><td class="num">12</td><td class="num">&minus;258.50</td><td class="num">&minus;21.54</td><td class="num">20</td><td class="num">+824.50</td><td class="num">+41.23</td><td class="ln">looks decisive</td></tr>
+<tr><td class="ln">multi-slot era 07-29&rarr;08-07 <em>(the deployed config)</em></td><td class="num">45</td><td class="num">+122.50</td><td class="num">+2.72</td><td class="num">36</td><td class="num">+589.00</td><td class="num">+16.36</td><td class="ln"><strong>overnight is POSITIVE</strong></td></tr>
+<tr><td class="ln">all live history 07-26&rarr;08-07</td><td class="num">53</td><td class="num">&minus;152.00</td><td class="num">&minus;2.87</td><td class="num">40</td><td class="num">+597.00</td><td class="num">+14.93</td><td class="ln">mildly negative</td></tr>
+</table>
+
+<p>The <em>direction</em> is stable &mdash; US beats non-US in all three windows. The <em>magnitude</em> is not: &minus;$21.54 a lot becomes +$2.72 a lot on the very config that is deployed today. And the gap is not statistically distinguishable from zero: <strong>US &minus; ON = +$17.79/lot, se $14.01, t = +1.27</strong>.</p>
+
+<p><strong>B2. And this is the one that kills it &mdash; "overnight" is not one thing.</strong> Decomposing the non-US book by session block:</p>
+
+<table>
+<tr><th>block (UTC)</th><th class="num">lots</th><th class="num">net $</th><th class="num">$/lot</th><th>status</th></tr>
+<tr class="row-bad"><td class="ln"><strong>ASIA 00&ndash;07</strong></td><td class="num">14</td><td class="num">&minus;175.00</td><td class="num">&minus;12.50</td><td class="ln"><strong>ALREADY BLOCKED</strong> &mdash; <code>no_open_asia=True</code> since 08-05. All 14 lots are 07-27/07-28/07-30. <strong>Cannot recur.</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>LONDON 07&ndash;13:30</strong></td><td class="num">21</td><td class="num"><strong>+123.00</strong></td><td class="num"><strong>+5.86</strong></td><td class="ln">POSITIVE. A US-only guard benches this.</td></tr>
+<tr class="row-hl"><td class="ln">US 13:30&ndash;21</td><td class="num">40</td><td class="num">+597.00</td><td class="num">+14.93</td><td class="ln">the good block, undisputed</td></tr>
+<tr><td class="ln">EVENING 21&ndash;24</td><td class="num">18</td><td class="num">&minus;100.00</td><td class="num">&minus;5.56</td><td class="ln">mildly negative, 6 days &mdash; the only real residue</td></tr>
+<tr class="row-hl"><td class="ln"><strong>&rArr; NON-US, excluding the already-blocked Asia window</strong></td><td class="num"><strong>39</strong></td><td class="num"><strong>+23.00</strong></td><td class="num"><strong>+0.59</strong></td><td class="ln"><strong>a scratch, not a loser.</strong> This is the population a guard would actually remove.</td></tr>
+</table>
+
+<p><strong>Read that bottom row against &sect;4's &minus;$258.50.</strong> The all-time non-US loss the guard was reasoning from is concentrated in ASIA, and the desk stopped opening in Asia on 08-05. What a US-only guard would remove <em>from here forward</em> is a book running at <strong>+$0.59 a lot</strong> &mdash; of which the biggest piece, LONDON, is <strong>positive</strong>. That is the same trap as the "don't trade until the US open" idea that was already tested and refuted at desk level: <strong>LONDON is the desk's only positive block</strong>, and this gate is positive there too. This week's LONDON reading (&minus;$186.50 on 10 lots) is a sign-flip on tiny n &mdash; the 11 LONDON lots before this week made <strong>+$309.50</strong>.</p>
+
+<p><strong>B3. Robustness and the n that would settle it.</strong></p>
+
+<table>
+<tr><th>bucket (all live)</th><th class="num">lots</th><th class="num">net $</th><th class="num">strip-best-3</th><th class="num">worst LOO</th><th class="num">green days</th></tr>
+<tr><td class="ln">NON-US (ON)</td><td class="num">53</td><td class="num">&minus;152.00</td><td class="num">&minus;825.00</td><td class="num">&minus;485.00 <em>(drop 07-29)</em></td><td class="num">2/9</td></tr>
+<tr><td class="ln">US</td><td class="num">40</td><td class="num">+597.00</td><td class="num">+300.50</td><td class="num">+93.00 <em>(drop 08-04)</em></td><td class="num">5/6</td></tr>
+</table>
+
+<p>The US side is genuinely robust; the non-US side is dispersed rather than reliably bad (sd $78.02 a lot vs $57.09). <strong>To separate a $17.79/lot gap from zero at 80% power you need ~302 lots per arm.</strong> There are 53 and 40. At this week's fill rate (32 lots) that is roughly four to five months &mdash; so this will not be settled by waiting on live P&amp;L, and it should not be deployed on the strength of 12 lots.</p>
+
+<div class="card"><h3>Sensitivity to the 08-06 shared-account incident &mdash; it does not change the verdict</h3>
+<p>Trades <strong>567/568</strong> (<code>abs_veto_long_A/B</code>, entered 07:08:01, booked <code>TARGET</code> +$56.00 at 07:17:22 / 07:19:03) sit inside the documented 08-06 cascade: the day-rider flattened that position at <strong>07:08:21</strong> at 29536.75, booked separately as rows 569/570 <code>CROSS_DESK_FLATTEN</code> &minus;$95.50. The gate's real outcome on that entry was about <strong>&minus;$30.50</strong>, not +$56.00 &mdash; an $86.50 overstatement, and it lands in the LONDON bucket. Repricing it: this week's non-US goes &minus;$258.50 &rarr; <strong>&minus;$345.00</strong>; the multi-slot-era non-US stays <strong>positive</strong> (+$122.50 &rarr; +$36.00); non-US-excluding-Asia goes +$0.59 &rarr; <strong>&minus;$1.63 a lot</strong> &mdash; still a scratch, not the &minus;$21.54 the guard was priced on. <strong>The correction makes the week look worse and the conclusion unchanged</strong>, which is why the verdict does not rest on it. (I checked and discarded a second signal here: rows 567/568 carry no exec ids, but neither do 501 of 599 closed trades, so that is not evidence of anything.)</p></div>
+
+<h3>C &mdash; LEAD 2: THE EXIT WIDENING &rarr; REFUTED AS STATED, ONE NARROWER LEAD SURVIVES</h3>
+
+<p>&sect;9's preamble says each cell "won its (gate &times; rung) segment <strong>and then survived leave-one-day-out</strong>". For <code>abs_veto_long</code> that is not true &mdash; no leave-one-out was ever run (see D1). Here it is, run:</p>
+
+<table>
+<tr><th>rung</th><th>policy</th><th class="num">$/entry</th><th class="num">rank</th><th class="num">worst LOO</th><th class="num">strip-3</th><th>verdict</th></tr>
+<tr><td class="ln" rowspan="3"><strong>SCALP-CHOP</strong><br>n=35, 9 days</td><td class="ln"><code>scalp 1.0/1.5</code> <strong>&larr; DEPLOYED</strong></td><td class="num">+5.36</td><td class="num">15/70</td><td class="num">&minus;0.89</td><td class="num">&minus;3.02</td><td class="ln"><strong>top quintile already</strong></td></tr>
+<tr><td class="ln"><code>scalp 1.5/6.0</code> <em>(&sect;9's pick)</em></td><td class="num">+11.66</td><td class="num">1/70</td><td class="num">+5.12</td><td class="num"><strong>&minus;4.53</strong></td><td class="ln">fails strip-3</td></tr>
+<tr><td class="ln"><code>tightChand x2</code> <em>(&sect;9's pick)</em></td><td class="num">+10.75</td><td class="num">3/70</td><td class="num">+1.54</td><td class="num"><strong>&minus;2.14</strong></td><td class="ln">fails strip-3</td></tr>
+<tr><td class="ln" rowspan="2"><strong>MED-TREND</strong><br>n=12, 6 days</td><td class="ln"><code>scalp 1.0/1.5</code> <strong>&larr; DEPLOYED</strong></td><td class="num">&minus;4.68</td><td class="num">14/70</td><td class="num">&minus;18.73</td><td class="num">&minus;30.81</td><td class="ln">&mdash;</td></tr>
+<tr class="row-bad"><td class="ln"><code>tightChand x2</code> <em>(&sect;9's "sign flip")</em></td><td class="num">+5.23</td><td class="num">1/70</td><td class="num"><strong>&minus;23.39</strong></td><td class="num"><strong>&minus;43.80</strong></td><td class="ln"><strong>one day &mdash; REFUTED</strong></td></tr>
+</table>
+
+<p><strong>Three independent things kill it.</strong></p>
+<p><strong>(i) Concentration.</strong> The SCALP-CHOP edge is +$6.30/entry &times; 35 = <strong>+$220.50 total</strong>. Per day it is: 07-30 <strong>+$80</strong>, 08-07 <strong>+$136</strong>, and the other seven days sum to <strong>+$5</strong>. <strong>98% of the edge is 2 of 9 days.</strong><br>
+<strong>(ii) Strip-3.</strong> Remove the three best entries and <em>every</em> candidate goes negative &mdash; challengers <em>and</em> the deployed ladder. The whole cell is carried by three fills.<br>
+<strong>(iii) The MED-TREND sign flip is a single day.</strong> Total edge +$118.90; 08-04 alone contributes <strong>+$156</strong>. Without 08-04 the "improvement" is negative. Worst-LOO &minus;$23.39, strip-3 &minus;$43.80.</p>
+
+<p>Add the shape of the winner: <code>scalp 1.5/6.0</code> sits on the <strong>edge of the grid</strong> (B_RS tops out at 6.0), with <code>scalp 3.0/6.0</code> second &mdash; both at B=6.0. That is a boundary solution, the classic overfit signature. And only <strong>14 of 70</strong> policies beat what is deployed. A ladder in the top quintile of its own grid is not the thing costing this gate money.</p>
+
+<p><strong>C2. The interaction &mdash; and the one lead that survives.</strong> The two recommendations were never independent. Splitting the same repricing by session shows &sect;9's all-session cell is a blend of two populations that want opposite things:</p>
+
+<table>
+<tr><th>population</th><th class="num">n</th><th class="num">deployed $/entry</th><th class="num">deployed rank</th><th class="num">policies beating it</th><th class="num">best of 70</th><th>what it means</th></tr>
+<tr class="row-hl"><td class="ln"><strong>US session, SCALP-CHOP</strong> (5 days)</td><td class="num">13</td><td class="num">+18.13</td><td class="num"><strong>51/70</strong></td><td class="num"><strong>50/70</strong></td><td class="num">+38.60</td><td class="ln"><strong>here the exit really is too tight</strong></td></tr>
+<tr class="row-bad"><td class="ln"><strong>non-US, SCALP-CHOP</strong> (7 days)</td><td class="num">22</td><td class="num">&minus;2.19</td><td class="num">6/70</td><td class="num">5/70</td><td class="num"><strong>+0.33</strong></td><td class="ln"><strong>no exit saves it &mdash; best of 70 is a scratch</strong></td></tr>
+</table>
+
+<p>That bottom row is the better-powered version of the session argument: on 22 non-US entries across 7 days, <strong>the best of 70 exit policies earns $0.33 an entry</strong>. Nothing downstream rescues that book &mdash; the same diagnosis &sect;5 correctly reached for <code>abs_veto_short</code>. But it argues for <em>arming discipline</em> (which the router already does daily), not for a hard-coded US-only guard that also deletes a positive LONDON book.</p>
+
+<p><strong>And the one genuinely surviving cell:</strong></p>
+
+<table>
+<tr><th>cell</th><th class="num">n</th><th class="num">$/entry</th><th class="num">rank</th><th class="num">worst LOO</th><th class="num">strip-3</th><th>verdict</th></tr>
+<tr class="row-hl"><td class="ln"><code>tightChand x2</code> &mdash; <strong>US session, SCALP-CHOP only</strong></td><td class="num">13</td><td class="num">+37.99</td><td class="num">2/70</td><td class="num"><strong>+16.70</strong></td><td class="num"><strong>+8.40</strong></td><td class="ln"><strong>passes all three cuts &mdash; the only cell here that does</strong></td></tr>
+<tr><td class="ln"><code>scalp 3.0/6.0</code> &mdash; same cell</td><td class="num">13</td><td class="num">+38.60</td><td class="num">1/70</td><td class="num">+18.68</td><td class="num">&minus;11.51</td><td class="ln">higher mean, fails strip-3</td></tr>
+</table>
+
+<p>This is <strong>not</strong> the recommendation &sect;9 made &mdash; it is narrower (US-only, chop-only) and it prefers the chandelier over the 6.0R target. At n=13 it is a <strong>SHADOW</strong>. It is also the first thing I have seen that makes the "banked 1.0R/1.5R on moves that ran 7&ndash;12R" observation in &sect;5 into something testable rather than an anecdote.</p>
+
+<h3>D &mdash; TWO INSTRUMENT DEFECTS FOUND WHILE DOING THIS</h3>
+
+<table>
+<tr><th>#</th><th>defect</th><th>evidence</th><th>blast radius</th></tr>
+<tr class="row-bad"><td class="num">D1</td><td class="ln"><strong><code>scripts/live_entry_exit_reprice.py</code> computes no leave-one-out and no strip-3 &mdash; at all.</strong> &sect;9's preamble states every cell "survived leave-one-day-out".</td><td class="ln">172 lines, no LOO/strip-3 code. In <code>scratchpad/live_entry_reprice.json</code> the fields <code>loo_worst</code>, <code>strip3</code> and <code>days</code> are <strong><code>null</code> on every cell</strong>. Its per-entry <code>best</code> column is a <em>per-entry oracle</em> (mean $62.91 vs the cell winner's $11.66), so it cannot stand in for one either.</td><td class="ln"><strong>Every live-entry cell in &sect;9</strong> &mdash; not just <code>abs_veto_long</code>. Every "CHANGE&rarr;" row sourced from this file has an unearned robustness claim.</td></tr>
+<tr class="row-bad"><td class="num">D2</td><td class="ln"><strong>&sect;9's <code>abs_veto_long</code> row mixes two populations across its four columns</strong> without saying so.</td><td class="ln">SCALP-CHOP/MED-TREND/BIG-TREND (n=35/12/3) come from <code>live_entry_reprice.json</code> &mdash; <strong>live fills, 70 policies</strong>. The STAY-OUT cell ("best of 53 is &minus;$40.80") comes from <code>exit_ladder_v2.json</code> &mdash; the <strong>ungated shadow book, n=47, 53 policies</strong>. The <em>53 vs 70</em> policy count is the tell.</td><td class="ln">The row reads as one study. A reader comparing its STAY-OUT cell to its SCALP-CHOP cell is comparing live fills to shadow fills.</td></tr>
+<tr><td class="num">D3</td><td class="ln">Trades <strong>567/568</strong> are booked as <code>TARGET</code> wins against a position the day-rider had already flattened, and are <strong>not</strong> <code>data_quality</code>-flagged.</td><td class="ln">Entered 07:08:01; flatten at 07:08:21 booked separately (569/570, &minus;$95.50); "exits" stamped 07:17:22 / 07:19:03. Only rows 538/539 carry an <code>EXCLUDE:</code> tag in the whole table.</td><td class="ln">+$86.50 of overstated P&amp;L reaching every report number <em>and</em> the router's decision inputs. Small, but it is exactly the class the 08-06 fix was meant to close.</td></tr>
+</table>
+
+<h3>E &mdash; THE EDITS THAT REMOVE THE CONTRADICTION</h3>
+
+<table>
+<tr><th>file / section</th><th>action</th><th>replacement text</th></tr>
+<tr><td class="ln"><strong>plays.json</strong> &mdash; <code>hold-absveto-long-0808</code>, <code>play</code> field</td><td><span class="tag">EDIT ONE CLAUSE</span></td><td class="ln">"<strong>No config change this week.</strong> Do not add an ER floor &mdash; the long twin's ER profile is the mirror of the short's. Two leads that earlier drafts proposed are <strong>not</strong> being deployed and are dispositioned in Part 2 &sect;11: a US-only session guard (<strong>REFUTED</strong> &mdash; it would bench a positive LONDON book) and a wider Lot B (<strong>REFUTED as stated</strong>; a narrower US-chop-only <code>tightChand x2</code> variant is <strong>SHADOW</strong> at n=13)."</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;4</strong>, promotion verdict paragraph</td><td><span class="tag">DELETE</span></td><td class="ln">Delete "<em>abs_veto_long gets a session guard (US only)</em>". Replace with: "<strong>abs_veto_long changes nothing</strong> &mdash; its apparent overnight problem is an ASIA problem, and Asia is already blocked (see FIX 1 &sect;B2)."</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;5</strong>, <code>abs_veto_long</code> row</td><td><span class="tag">RETAG</span></td><td class="ln">Tag becomes "<strong>KEEP AS DEPLOYED</strong>". Notes column becomes: "Not a problem. The &minus;$258.50 non-US figure is 12 lots; excluding the already-blocked Asia window the non-US book is <strong>+$0.59/lot all-time</strong>. The 7&ndash;12R give-up is real but only measurable in the US session (FIX 1 &sect;C2)."</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;9</strong>, <code>abs_veto_long</code> row + preamble</td><td><span class="tag">DOWNGRADE</span></td><td class="ln">SCALP-CHOP cell: "<strong>NO CHANGE</strong> &mdash; deployed ranks 15/70; challengers fail strip-3 and 98% of the edge is 2 of 9 days. <span class="tag">THIN</span>". MED-TREND cell: "<strong>REFUTED</strong> &mdash; the sign flip is one day (08-04). <span class="tag">THIN</span>". Preamble: strike "and then survived leave-one-day-out" for all live-entry cells, or run the test (D1).</td></tr>
+<tr><td class="ln"><strong>Part 2 &sect;11</strong>, disposition table</td><td><span class="tag">ADD 2 ROWS</span></td><td class="ln">Section F below, drop-in. Also amend the existing "abs_veto LONG side &mdash; decaying, needs a session guard" row: its title asserts the conclusion this patch refutes.</td></tr>
+</table>
+
+<h3>F &mdash; DISPOSITION ROWS (drop into Part 2 &sect;11)</h3>
+
+<table>
+<tr><th>lead</th><th>verdict</th><th>the number that decided it</th><th>revival condition / the test that killed it</th></tr>
+<tr class="row-bad"><td class="ln"><strong>abs_veto_long US-only session guard</strong></td><td><span class="tag">REFUTED as specified</span></td><td class="ln">Excluding the already-blocked ASIA window, the non-US book is <strong>+$23.00 on 39 lots = +$0.59/lot</strong>, of which LONDON is <strong>+$123.00 / +$5.86 a lot &mdash; positive</strong>. The &minus;$258.50 that justified it is 12 lots in one week; the same bucket is <strong>+$122.50</strong> over the multi-slot era. US&minus;ON = +$17.79/lot, <strong>t=+1.27</strong>.</td><td class="ln"><strong>Killed by:</strong> session-block decomposition &mdash; the all-time non-US loss is concentrated in ASIA 00&ndash;07, which <code>no_open_asia=True</code> has blocked since 08-05, so a US-only guard removes a <em>positive</em> LONDON book instead. <strong>Revive only as the narrow EVENING form</strong> (bench 21&ndash;24 UTC: &minus;$5.56/lot, 18 lots, 6 days) once that block reaches <strong>n&ge;60 lots</strong> and is still negative on strip-3 and worst-LOO. Settling the broad US-vs-rest claim on live P&amp;L needs <strong>~302 lots per arm</strong> (80% power) against 53/40 today &mdash; so run it as a shadow arm, never as a deployment.</td></tr>
+<tr><td class="ln"><strong>abs_veto_long exit widening</strong> (&sect;9: <code>scalp 1.5/6.0</code> / <code>tightChand x2</code>, all sessions)</td><td><span class="tag">REFUTED as stated</span></td><td class="ln">SCALP-CHOP n=35: deployed <strong>+$5.36, rank 15/70</strong>; challengers +$11.66 / +$10.80 but <strong>strip-3 &minus;$4.53 / &minus;$2.14</strong>, and <strong>98% of the edge (+$216 of +$220.50) is 2 of 9 days</strong>. MED-TREND n=12: the sign flip is <strong>08-04 alone</strong> (+$156 of a +$118.90 total edge), worst-LOO &minus;$23.39.</td><td class="ln"><strong>Killed by:</strong> leave-one-day-out + strip-best-3 + per-day edge concentration &mdash; <em>none of which the producing script computes</em> (D1). Also a boundary solution: the winner sits on the grid edge (B=6.0). <strong>Not revivable in this form</strong>; superseded by the row below.</td></tr>
+<tr class="row-hl"><td class="ln"><strong>NEW &mdash; <code>tightChand x2</code> for abs_veto_long, US session &times; SCALP-CHOP only</strong></td><td><span class="tag">SHADOW</span></td><td class="ln">n=13 over 5 days: <strong>+$37.99/entry vs +$18.13 deployed</strong>, rank 2/70, <strong>worst-LOO +$16.70, strip-3 +$8.40</strong> &mdash; the only cell in this analysis passing all three cuts. In the same rung the deployed ladder ranks <strong>51/70</strong> with <strong>50 of 70</strong> policies beating it.</td><td class="ln">Thin n is a shadow, never a kill. <strong>Promote to a paired live A/B</strong> when the cell reaches <strong>n&ge;30 US-session SCALP-CHOP live entries</strong> with rank still top-10, worst-LOO positive <em>and</em> strip-3 positive. Run it as an <code>exit_overrides.json</code> shadow arm on the same feed &mdash; do not edit the deployed ladder off a backtest.</td></tr>
+<tr><td class="ln"><strong>&sect;9's "survived leave-one-day-out" claim</strong> (all live-entry cells)</td><td><span class="tag">INSTRUMENT DEFECT</span></td><td class="ln"><code>loo_worst</code>, <code>strip3</code>, <code>days</code> are <code>null</code> on every cell of <code>live_entry_reprice.json</code>; the producing script contains no such computation.</td><td class="ln"><strong>Fix:</strong> port the LOO/strip-3 block from <code>exit_ladder_lab_v2.py</code> into <code>live_entry_exit_reprice.py</code> and re-run every &sect;9 live-entry cell before any of them is quoted again. Until then <strong>no &sect;9 "CHANGE&rarr;" row is deployment-grade.</strong></td></tr>
+</table>
+
+<div class="callout"><div class="ct">WHAT THIS COSTS YOU IF I AM WRONG</div>
+<p>Nothing is being changed, so the only risk is <em>inaction</em>. If the session guard was right, the cost of not deploying it is the non-US book's forward run rate &mdash; <strong>+$0.59 a lot on the tradeable (post-Asia) population</strong>, i.e. approximately zero. If the exit widening was right, the cost is the SCALP-CHOP edge <em>outside</em> its two carrying days &mdash; <strong>+$5 total across seven days</strong>. Both are rounding errors, which is the strongest argument for leaving the gate alone: <strong>the two changes the report argued about were worth almost nothing even if true</strong>, while the one cell that survives every cut (US &times; chop, n=13) is worth ~$20 an entry and is not yet measurable. That is where the next look should go.</p></div>

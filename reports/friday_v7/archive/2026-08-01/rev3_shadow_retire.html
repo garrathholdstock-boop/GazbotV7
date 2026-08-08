@@ -1,0 +1,321 @@
+<h2><span class="n">Rev 3 · Shadow board</span> Fifteen sims to retire — and the five that look retirable but are load-bearing</h2>
+
+<p class="mono"><strong>PATCH MARKER —</strong> this section <strong>patches and extends PART 2 (“The Shadow Desk”)</strong>: it replaces Part 2’s ranked shadow board with a tick-honest census of all 31 declared sims (n, net, $/trade, win %, profit factor, days green, regime coverage, age), and adds the <strong>retirement decision</strong> Part 2 does not make. It also <strong>corrects Part 2’s implicit “sort by net, cut the bottom” framing</strong> — four of the six worst sims on the board must be kept, and one of them (<span class="mono">capit_loose</span>) is the only independent read on a gate the operator re-cut LIVE this morning. Everything below is computed from <span class="mono">data/shadow.db</span> → <span class="mono">shadow_real.real_pnl</span> (the 250 ms tick-repriced number, fee $1.50/RT), cross-checked against <span class="mono">data/gazbot7.db</span> venue truth and <span class="mono">data/capture.db</span> quotes. Sample: <strong>5,305 sim round-trips, 2026-07-16 → 2026-07-31, 12 Paris trading days.</strong> Nothing here has been actioned — the patch is at the bottom for your approval. <span class="tag">READ-ONLY</span></p>
+
+<p class="lead">Garrath — the shadow board is <strong>−$7,505.5</strong> all-in on honest ticks. Fifteen sims account for <strong>−$8,122.0</strong> of that. Retire those fifteen and the remaining sixteen are <strong>+$616.5</strong>. That is the whole argument in one line: the board is not losing money, thirty-three percent of the board is losing money and the rest is being dragged under by it. But I did not get to that list by sorting on P&amp;L — if you do that you delete <span class="mono">thrust_loose</span>, and <span class="mono">thrust_loose</span> is the number that justifies two of your six live gates. Below: the full ranked board, the fifteen with the number that convicts each one, the five I am explicitly refusing to cut, and one thing I found on the way that you need to look at before Monday.</p>
+
+<div class="callout"><div class="ct">The one-paragraph answer</div>
+<p><strong>Cut these fifteen: capit_tight, capit_mid, capit_ride, chand_k20, chand_k25, rg_long_fast, rg_long_20_t15, rg_long_20_t20, rg_long_20_flow25, thrust_fast, rg_short_050, rg_short_025_flow25_t15, rg_short_025_flow50_rth, cb_thrust, cb_thrust_dropped.</strong> Combined: 1,751 trades, <strong>−$8,122</strong>, 146 trades a day, 33% of everything the repricer has to score. Thirteen are closed A/B rungs or answered experiments; one has never fired at all in sixteen days; the last two are a prototype falsified by its own control arm. <strong>Do NOT cut: thrust_loose (+$130 — it is the un-vetoed control worth exactly the +$2,537.5 that justifies abs_veto_long/short), capit_loose (−$5,250, the worst thing on the board — it is the exact shadow twin of the capitulation_long gate you re-cut this morning), chand_k35, thrust_short_raw, exhaustion_rev, rg_long_fast_v.</strong> And the thing you need to see: <strong>capit_loose is red in every session, including overnight.</strong> Your rederivation said the new capitulation_long config was “overnight-only +$422 @ 81% win”. On 102 tick-honest overnight fires of the identical entry it is <strong>−$1,971.5 at 14.7% win</strong>. Something in that rederivation does not reconcile, and it is armed live right now.</p></div>
+
+<div class="card">
+<h3>Fact table 1 — the full board, ranked, tick-honest</h3>
+<p>Scored on <span class="mono">shadow_real.real_pnl</span> only — the 250 ms repricer number, entry at the far touch after the signal bar closes, stop and target replayed on tick mids, each chandelier variant replayed on <em>its own</em> trail, fee $1.50 per round trip. The bar-price <span class="mono">ceiling_pnl</span> column is never scored on and is not shown. “PF” = gross wins ÷ gross losses. “Green” = Paris days with a positive net. “Age” = days since first fire.</p>
+<table>
+<thead><tr><th>#</th><th>Sim</th><th class="num">N</th><th class="num">Net $</th><th class="num">$/tr</th><th class="num">Win %</th><th class="num">PF</th><th class="num">Green / active days</th><th>Regime green in</th><th class="num">First seen</th><th class="num">Age</th><th>Call</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">1</td><td class="ln">abs_veto_55s</td><td class="num">238</td><td class="num"><strong>+2,668.0</strong></td><td class="num">+11.21</td><td class="num">47.1</td><td class="num">1.54</td><td class="num">9 / 12</td><td>DOWN·hiV, FLAT, UP·hiV, UP·loV</td><td class="num">07-16</td><td class="num">16d</td><td>KEEP — live twin (abs_veto_long/short)</td></tr>
+<tr class="row-hl"><td class="num">2</td><td class="ln">grind_fast</td><td class="num">732</td><td class="num"><strong>+2,051.5</strong></td><td class="num">+2.80</td><td class="num">35.5</td><td class="num">1.12</td><td class="num">7 / 12</td><td>DOWN·hiV, FLAT</td><td class="num">07-16</td><td class="num">16d</td><td>KEEP — only grind shadow; control for today’s ext_hi</td></tr>
+<tr class="row-hl"><td class="num">3</td><td class="ln">abs_veto_50s</td><td class="num">259</td><td class="num">+1,967.5</td><td class="num">+7.60</td><td class="num">43.6</td><td class="num">1.35</td><td class="num">8 / 12</td><td>DOWN·hiV, UP·hiV, UP·loV</td><td class="num">07-16</td><td class="num">16d</td><td>KEEP — lower flank of the duration sweep</td></tr>
+<tr><td class="num">4</td><td class="ln">thrust_cont</td><td class="num">276</td><td class="num">+710.5</td><td class="num">+2.57</td><td class="num">36.6</td><td class="num">1.11</td><td class="num">7 / 12</td><td>DOWN·hiV, FLAT, UP·loV</td><td class="num">07-16</td><td class="num">16d</td><td>KEEP — best thrust threshold arm</td></tr>
+<tr><td class="num">5</td><td class="ln">abs_veto_60s</td><td class="num">80</td><td class="num">+424.5</td><td class="num">+5.31</td><td class="num">43.8</td><td class="num">1.24</td><td class="num">8 / 11</td><td>DOWN·hiV, FLAT, UP·hiV, UP·loV</td><td class="num">07-17</td><td class="num">15d</td><td><span class="tag">PROTECTED</span> upper flank — proves 55s is a peak</td></tr>
+<tr><td class="num">6</td><td class="ln">thrust_aligned</td><td class="num">241</td><td class="num">+396.0</td><td class="num">+1.64</td><td class="num">36.9</td><td class="num">1.07</td><td class="num">6 / 12</td><td>DOWN·hiV, FLAT, UP·hiV</td><td class="num">07-16</td><td class="num">16d</td><td>KEEP — high-ER leg of thrust_router_backtest</td></tr>
+<tr><td class="num">7</td><td class="ln">thrust_short_absveto55</td><td class="num">53</td><td class="num">+318.0</td><td class="num">+6.00</td><td class="num">45.3</td><td class="num">1.28</td><td class="num">3 / 5</td><td>DOWN·hiV</td><td class="num">07-27</td><td class="num">5d</td><td>KEEP — short-side veto arm (young)</td></tr>
+<tr><td class="num">8</td><td class="ln">rg_short_025_flow50</td><td class="num">23</td><td class="num">+244.5</td><td class="num">+10.63</td><td class="num">52.2</td><td class="num">1.67</td><td class="num">4 / 8</td><td>DOWN·hiV, FLAT, UP·loV</td><td class="num">07-20</td><td class="num">12d</td><td>KEEP — best rung of the flow ladder</td></tr>
+<tr><td class="num">9</td><td class="ln">rg_short_025_raw</td><td class="num">30</td><td class="num">+184.0</td><td class="num">+6.13</td><td class="num">46.7</td><td class="num">1.35</td><td class="num">4 / 10</td><td>DOWN·hiV, FLAT</td><td class="num">07-17</td><td class="num">15d</td><td><span class="tag">PROTECTED</span> no-filter control for the flow ladder</td></tr>
+<tr class="row-hl"><td class="num">10</td><td class="ln"><strong>thrust_loose</strong></td><td class="num">424</td><td class="num">+130.5</td><td class="num">+0.31</td><td class="num">35.6</td><td class="num">1.01</td><td class="num">4 / 12</td><td>DOWN·hiV, UP·loV</td><td class="num">07-16</td><td class="num">16d</td><td><span class="tag">★ SACRED</span> the un-vetoed control — see Fact table 3</td></tr>
+<tr><td class="num">11</td><td class="ln">rg_short_025_flow25</td><td class="num">27</td><td class="num">+103.5</td><td class="num">+3.83</td><td class="num">44.4</td><td class="num">1.20</td><td class="num">4 / 9</td><td>DOWN·hiV, FLAT, UP·loV</td><td class="num">07-20</td><td class="num">12d</td><td>KEEP — middle rung of the flow ladder</td></tr>
+<tr class="row-bad"><td class="num">12</td><td class="ln">rg_short_025_flow50_rth</td><td class="num">7</td><td class="num">+99.5</td><td class="num">+14.21</td><td class="num">42.9</td><td class="num">1.67</td><td class="num">3 / 6</td><td>FLAT, UP·loV</td><td class="num">07-20</td><td class="num">12d</td><td><strong>RETIRE 13</strong> — 1.2 fires/day, never decidable</td></tr>
+<tr class="row-bad"><td class="num">13</td><td class="ln">cb_thrust_dropped</td><td class="num">67</td><td class="num">+16.5</td><td class="num">+0.25</td><td class="num">31.3</td><td class="num">1.01</td><td class="num">6 / 9</td><td>FLAT, UP·hiV, UP·loV</td><td class="num">07-20</td><td class="num">12d</td><td><strong>RETIRE 15</strong> — phantom arm, goes with cb_thrust</td></tr>
+<tr class="row-bad"><td class="num">14</td><td class="ln">rg_short_050</td><td class="num">21</td><td class="num">−15.5</td><td class="num">−0.74</td><td class="num">42.9</td><td class="num">0.96</td><td class="num">3 / 9</td><td>DOWN·hiV, DOWN·loV</td><td class="num">07-20</td><td class="num">12d</td><td><strong>RETIRE 11</strong> — dominated rung</td></tr>
+<tr class="row-bad"><td class="num">15</td><td class="ln">rg_short_025_flow25_t15</td><td class="num">27</td><td class="num">−26.0</td><td class="num">−0.96</td><td class="num">44.4</td><td class="num">0.95</td><td class="num">3 / 9</td><td>DOWN·hiV, FLAT</td><td class="num">07-20</td><td class="num">12d</td><td><strong>RETIRE 12</strong> — target A/B answered</td></tr>
+<tr class="row-bad"><td class="num">16</td><td class="ln">capit_mid</td><td class="num">13</td><td class="num">−89.5</td><td class="num">−6.88</td><td class="num">38.5</td><td class="num">0.57</td><td class="num">2 / 6</td><td>DOWN·hiV</td><td class="num">07-17</td><td class="num">15d</td><td><strong>RETIRE 3</strong> — tests the config the roster dropped today</td></tr>
+<tr class="row-bad"><td class="num">17</td><td class="ln">capit_ride</td><td class="num">12</td><td class="num">−126.0</td><td class="num">−10.50</td><td class="num">16.7</td><td class="num">0.52</td><td class="num">2 / 6</td><td>—</td><td class="num">07-17</td><td class="num">15d</td><td><strong>RETIRE 2</strong> — “does capit ride?” answered: no</td></tr>
+<tr><td class="num">18</td><td class="ln"><strong>thrust_short_raw</strong></td><td class="num">94</td><td class="num">−136.5</td><td class="num">−1.45</td><td class="num">33.0</td><td class="num">0.94</td><td class="num">4 / 6</td><td>—</td><td class="num">07-24</td><td class="num">8d</td><td><span class="tag">★ SACRED</span> no-confirm control for the short-side veto</td></tr>
+<tr class="row-bad"><td class="num">19</td><td class="ln">rg_long_20_flow25</td><td class="num">49</td><td class="num">−287.5</td><td class="num">−5.87</td><td class="num">38.8</td><td class="num">0.76</td><td class="num">6 / 12</td><td>UP·loV (1 day)</td><td class="num">07-16</td><td class="num">16d</td><td><strong>RETIRE 9</strong> — arm 3 of the long-mirror experiment</td></tr>
+<tr class="row-bad"><td class="num">20</td><td class="ln">rg_long_20_t15</td><td class="num">53</td><td class="num">−427.5</td><td class="num">−8.07</td><td class="num">35.8</td><td class="num">0.68</td><td class="num">6 / 12</td><td>UP·loV (1 day)</td><td class="num">07-16</td><td class="num">16d</td><td><strong>RETIRE 8</strong> — arm 2</td></tr>
+<tr class="row-bad"><td class="num">21</td><td class="ln">thrust_fast</td><td class="num">181</td><td class="num">−430.5</td><td class="num">−2.38</td><td class="num">32.6</td><td class="num">0.91</td><td class="num">6 / 12</td><td>UP·loV (1 day)</td><td class="num">07-16</td><td class="num">16d</td><td><strong>RETIRE 10</strong> — worst of four thrust arms</td></tr>
+<tr class="row-bad"><td class="num">22</td><td class="ln">rg_long_20_t20</td><td class="num">50</td><td class="num">−545.5</td><td class="num">−10.91</td><td class="num">30.0</td><td class="num">0.62</td><td class="num">5 / 12</td><td>UP·loV (1 day)</td><td class="num">07-16</td><td class="num">16d</td><td><strong>RETIRE 7</strong> — arm 1 (the “2R control”)</td></tr>
+<tr><td class="num">23</td><td class="ln"><strong>chand_k35</strong></td><td class="num">319</td><td class="num">−571.5</td><td class="num">−1.79</td><td class="num">32.9</td><td class="num">0.93</td><td class="num">5 / 11</td><td>UP·hiV</td><td class="num">07-17</td><td class="num">15d</td><td><span class="tag">★ SACRED</span> faithful live-trail control</td></tr>
+<tr class="row-bad"><td class="num">24</td><td class="ln">cb_thrust</td><td class="num">258</td><td class="num">−878.0</td><td class="num">−3.40</td><td class="num">32.2</td><td class="num">0.86</td><td class="num">3 / 10</td><td>UP·hiV</td><td class="num">07-20</td><td class="num">12d</td><td><strong>RETIRE 14</strong> — falsified by its own control</td></tr>
+<tr><td class="num">25</td><td class="ln"><strong>exhaustion_rev</strong></td><td class="num">321</td><td class="num">−1,186.5</td><td class="num">−3.70</td><td class="num">37.1</td><td class="num">0.70</td><td class="num">2 / 10</td><td>UP·hiV, UP·loV</td><td class="num">07-20</td><td class="num">12d</td><td><span class="tag">★ SACRED</span> entry substrate for LIVE exhaustion_short</td></tr>
+<tr><td class="num">26</td><td class="ln"><strong>rg_long_fast_v</strong></td><td class="num">199</td><td class="num">−1,437.5</td><td class="num">−7.22</td><td class="num">30.7</td><td class="num">0.77</td><td class="num">3 / 12</td><td>UP·loV (1 day)</td><td class="num">07-16</td><td class="num">16d</td><td><span class="tag">PROTECTED</span> sole surviving long-reversion probe</td></tr>
+<tr class="row-bad"><td class="num">27</td><td class="ln">chand_k25</td><td class="num">352</td><td class="num">−1,544.0</td><td class="num">−4.39</td><td class="num">40.9</td><td class="num">0.81</td><td class="num">2 / 11</td><td>—</td><td class="num">07-17</td><td class="num">15d</td><td><strong>RETIRE 5</strong> — trail A/B answered</td></tr>
+<tr class="row-bad"><td class="num">28</td><td class="ln">chand_k20</td><td class="num">362</td><td class="num">−1,587.5</td><td class="num">−4.39</td><td class="num">42.5</td><td class="num">0.80</td><td class="num">2 / 11</td><td>—</td><td class="num">07-17</td><td class="num">15d</td><td><strong>RETIRE 4</strong> — duplicate of k25 (J=0.97, r=0.94)</td></tr>
+<tr class="row-bad"><td class="num">29</td><td class="ln">rg_long_fast</td><td class="num">299</td><td class="num">−2,280.5</td><td class="num">−7.63</td><td class="num">29.1</td><td class="num">0.72</td><td class="num">3 / 12</td><td>UP·loV (1 day)</td><td class="num">07-16</td><td class="num">16d</td><td><strong>RETIRE 6</strong> — unfiltered arm; floor doesn’t rescue it</td></tr>
+<tr class="row-bad"><td class="num">30</td><td class="ln"><strong>capit_loose</strong></td><td class="num">238</td><td class="num"><strong>−5,250.0</strong></td><td class="num">−22.06</td><td class="num">16.8</td><td class="num">0.17</td><td class="num"><strong>0 / 11</strong></td><td>nothing, anywhere</td><td class="num">07-17</td><td class="num">15d</td><td><span class="tag">★ SACRED</span> LIVE TWIN — escalate, don’t delete</td></tr>
+<tr class="row-bad"><td class="num">31</td><td class="ln">capit_tight</td><td class="num"><strong>0</strong></td><td class="num">0.0</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">0 / 0</td><td>—</td><td class="num">never</td><td class="num">16d</td><td><strong>RETIRE 1</strong> — has never fired</td></tr>
+</tbody>
+</table>
+<p class="mono">Board total 5,305 trades / −$7,505.5 · retire set 1,751 / −$8,122.0 · <strong>retained 3,554 / +$616.5</strong>.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 2 — the fifteen, each with the number that convicts it and the trap it was checked against</h3>
+<p>The five traps: <strong>(1)</strong> is it a control or a paired arm? <strong>(2)</strong> shadow understates losses 1.1–3.1× — which way does that push? <strong>(3)</strong> is it the only thing green in a regime the live desk cannot cover? <strong>(4)</strong> is the n thin (unproven ≠ disproven)? <strong>(5)</strong> is it a near-duplicate of a variant that stays?</p>
+<table>
+<thead><tr><th>#</th><th>Sim</th><th class="num">N</th><th class="num">Net $</th><th>The number that convicts it</th><th>Traps checked</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="num">1</td><td class="ln">capit_tight</td><td class="num">0</td><td class="num">0.0</td><td><strong>Zero fires in 16 days.</strong> climax≥8.0 + dom≥0.85 + require_flip has never once been satisfied on MNQ. It costs a gate evaluation on every tape message and returns literally no information.</td><td>(4) not thin-n — <em>no</em> n. (3) covers no regime because it covers no minutes. Free cut.</td></tr>
+<tr class="row-bad"><td class="num">2</td><td class="ln">capit_ride</td><td class="num">12</td><td class="num">−126.0</td><td>Asks “should the capit fade RIDE instead of banking 1R?” Answer: <strong>ride −$10.50/tr vs 1R −$6.88/tr on the same 12 entries</strong> (100% entry overlap with capit_mid). And you moved the live gate to 1.0R this morning — the question is now closed by the roster too.</td><td>(1) not a control — it’s the treatment arm and the treatment lost. (5) 100% dup of capit_mid’s entries. (4) n=12 is thin, so I convict it on <em>redundancy + roster obsolescence</em>, not P&amp;L.</td></tr>
+<tr class="row-bad"><td class="num">3</td><td class="ln">capit_mid</td><td class="num">13</td><td class="num">−89.5</td><td>Tests climax 4.0 / dom 0.75 / <span class="mono">require_flip=True</span> — <strong>precisely the configuration the live gate abandoned this morning</strong> when you flipped require_flip to False and loosened to 2.5/0.6. 92% of its entries are also capit_ride’s; 77% sit inside capit_loose.</td><td>(1) not a control. (5) heavy dup. (4) thin n acknowledged — convicted on obsolescence, not money.</td></tr>
+<tr class="row-bad"><td class="num">4</td><td class="ln">chand_k20</td><td class="num">362</td><td class="num">−1,587.5</td><td><strong>−$4.39/trade — identical to chand_k25 to the cent.</strong> Jaccard 0.97 on entries, daily-P&amp;L r=0.94. Two rungs returning one answer; one of them is pure duplication.</td><td>(5) textbook near-duplicate. (2) understatement makes it worse, not better. (3) green in no regime bucket.</td></tr>
+<tr class="row-bad"><td class="num">5</td><td class="ln">chand_k25</td><td class="num">−</td><td class="num">−1,544.0</td><td>The trail A/B is <strong>answered and monotone</strong>: k35 −$1.79/tr · k25 −$4.39/tr · k20 −$4.39/tr on the same thrust entry. Tightening the give-back costs ~$1,000 over 11 days. The live desk no longer runs a plain chandelier anyway — it runs the regime-3 adaptive exit and the dual-slot scale-out, so this A/B is doubly closed.</td><td>(1) checked — <strong>chand_k35 is the control and it STAYS.</strong> Cutting the two losing rungs closes the experiment without destroying the reference.</td></tr>
+<tr class="row-bad"><td class="num">6</td><td class="ln">rg_long_fast</td><td class="num">299</td><td class="num">−2,280.5</td><td><strong>−$7.63/trade over 299 fires and 12 days, 3 days green.</strong> Its paired question — “does the ATR≥13 floor rescue it?” — is answered: the floor removes 103 trades worth −$8.62/tr and keeps 196 worth −$7.10/tr. The floor barely discriminates. Both arms are red; keep the cheaper one.</td><td>(1) it is the un-floored arm of a pair — but the paired question is <em>answered</em>, and <strong>rg_long_fast_v survives as the reference.</strong> (5) 98% of _v’s entries sit inside it.</td></tr>
+<tr class="row-bad"><td class="num">7</td><td class="ln">rg_long_20_t20</td><td class="num">50</td><td class="num">−545.5</td><td colspan="1" rowspan="3">The three-arm LONG reversal-mirror experiment (winner / 2R control / flow cut). <strong>All three arms red on all 12 days: n=152, −$1,260.5 combined.</strong> Arms correlate r=0.86–0.99 and share 85–92% of entries. The experiment asked “is the ext 2.0 / turn 0.25 long mirror viable?” — the answer is no, on every arm, at every target, with and without the flow filter.</td><td rowspan="3">(1) all three arms retire <em>together</em> — I am closing an experiment, not orphaning a control. (3) they are green only in UP·loV, which is <strong>one day (07-21) and 3–4 trades each</strong> — noise, not coverage. (4) n=152 across 12 days is not thin.</td></tr>
+<tr class="row-bad"><td class="num">8</td><td class="ln">rg_long_20_t15</td><td class="num">53</td><td class="num">−427.5</td></tr>
+<tr class="row-bad"><td class="num">9</td><td class="ln">rg_long_20_flow25</td><td class="num">49</td><td class="num">−287.5</td></tr>
+<tr class="row-bad"><td class="num">10</td><td class="ln">thrust_fast</td><td class="num">181</td><td class="num">−430.5</td><td>The four thrust arms after 12 days: <strong>cont +$710.5 · aligned +$396.0 · loose +$130.5 · fast −$430.5.</strong> The “fire off the 2-bar impulse instead of the lagging 5-bar” idea is the only one of the four that loses money, at PF 0.91 on n=181. Entering earlier is not the fix.</td><td>(4) n=181 over 12 days — <strong>proven bad, not unproven.</strong> (1) not a control (thrust_loose is). (5) distinct idea, so this is a genuine idea-retirement, not a de-dup.</td></tr>
+<tr class="row-bad"><td class="num">11</td><td class="ln">rg_short_050</td><td class="num">21</td><td class="num">−15.5</td><td>The odd rung of a five-rung sweep. <strong>86% of its entries also fire rg_short_025_flow25, which makes +$103.5 on them while 050 makes −$15.5.</strong> The winner of the sweep is unambiguous (flow50, +$10.63/tr, 52% win, PF 1.67).</td><td>(3) <strong>flagged honestly:</strong> it is the only green sim in the DOWN·loV bucket (+$38) — but that bucket is <em>one day and one trade</em>. That is not regime coverage, and I will not keep a rung on a single trade. (5) dominated near-duplicate.</td></tr>
+<tr class="row-bad"><td class="num">12</td><td class="ln">rg_short_025_flow25_t15</td><td class="num">27</td><td class="num">−26.0</td><td><strong>The cleanest cut on the board.</strong> Its 27 entries are 100% identical to rg_short_025_flow25’s — only the target differs. Same entries, 1.5R = −$26.0, 2.0R = +$103.5, same 44.4% win. The target A/B is settled with zero information loss.</td><td>(5) perfect duplicate entry stream. (1) the pair’s <em>other</em> arm survives, so the comparison is preserved in the archive. (4) n is small but the comparison is paired, which removes the sampling problem.</td></tr>
+<tr class="row-bad"><td class="num">13</td><td class="ln">rg_short_025_flow50_rth</td><td class="num">7</td><td class="num">+99.5</td><td><strong>7 fires in 12 days — 1.17 a day.</strong> At that rate it needs roughly two years to reach a decidable n. All 7 entries are a subset of rg_short_025_flow50’s. It is green, and I am still cutting it: this is a <em>measurability</em> retirement, not a P&amp;L one.</td><td>(4) the thin-n rule cuts both ways — you cannot retire on thin n <em>as evidence of badness</em>, but you also cannot keep a slot that will never produce evidence. (5) 100% subset. <strong>This is the softest of the fifteen — drop it from the patch if you disagree.</strong></td></tr>
+<tr class="row-bad"><td class="num">14</td><td class="ln">cb_thrust</td><td class="num">258</td><td class="num">−878.0</td><td colspan="1" rowspan="2"><strong>The session direction breaker is falsified by its own validation arm.</strong> Window-matched from cb’s first day: governed cb_thrust <strong>−$878.0</strong> vs its ungoverned base chand_k35 <strong>−$470.5</strong> over the same 10 days — the governor made it $407.5 <em>worse</em>. And the phantom book of the sides it stood down is <strong>+$16.5</strong>: it vetoed the sides that were about to make money. Separately, it is superseded — you now run a real direction router (the durable 5-min tick) that does this job at desk level.</td><td rowspan="2">(1) <strong>this is the case where cutting one arm would be vandalism and cutting both is correct.</strong> cb_thrust_dropped exists only to validate cb_thrust; with cb_thrust gone it validates nothing. Retire the experiment whole. (2) understatement pushes the governed arm further red. (3) cb_thrust_dropped is green in three buckets but never uniquely.</td></tr>
+<tr class="row-bad"><td class="num">15</td><td class="ln">cb_thrust_dropped</td><td class="num">67</td><td class="num">+16.5</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Fact table 3 — the protected list: what looks retirable on P&amp;L and absolutely is not</h3>
+<p>Six sims. Sort the board by net and four of these are in the bottom six. Cut any of them and you break something that is currently justifying live capital.</p>
+<table>
+<thead><tr><th>Sim</th><th class="num">Net $</th><th>Why it looks retirable</th><th>Why it stays</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><strong>thrust_loose</strong></td><td class="num">+130.5</td><td>424 trades over 16 days for $0.31 a trade, PF 1.01, green on only 4 of 12 days. On a “what earns its slot” screen it is dead weight.</td><td><strong>It is the un-vetoed control, and it is worth exactly the number that justifies two live gates.</strong> abs_veto_55s +$2,668.0 − thrust_loose +$130.5 = <strong>+$2,537.5</strong> — that is the “+$2,538 incremental edge of the 55s veto” the abs_veto_long / abs_veto_short promotion rests on. It is also the base entry for chand_k35, the reference for thrust_cont / thrust_aligned / thrust_fast, and the high-ER leg in <span class="mono">thrust_router_backtest.py</span>. Three shipped scripts hard-code it as BASE (<span class="mono">abs_veto_robustness.py</span>, <span class="mono">abs_veto_explain.py</span>, <span class="mono">abs_veto_sides.py</span>). Deleting it does not make the desk worse — it makes the desk <em>unable to know</em> whether two live gates are real.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>capit_loose</strong></td><td class="num">−5,250.0</td><td>The single worst sim on the board by a factor of two. −$22.06 a trade, 16.8% win, PF 0.17, <strong>zero green days out of eleven</strong>. Any mechanical rule cuts this first.</td><td><strong>It is the exact shadow twin of the capitulation_long gate you re-cut this morning.</strong> Live params as of today: <span class="mono">climax_min 2.5 / dom_min 0.6 / require_flip False / target 1.0R</span>. capit_loose: <span class="mono">climax_min 2.5 / dom_min 0.60 / require_flip False / target_r 1.0</span>. Same decider, same numbers. It is the only unrouted, un-scaled, 24-hour read you have on a gate that is armed with real (paper) size right now. See the escalation below.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>chand_k35</strong></td><td class="num">−571.5</td><td>Red, 5 of 11 days green, and its A/B partners k20/k25 are being retired — so why keep the third rung?</td><td>Because it is the <em>control</em>, not a rung: the faithful replay of the live 3.5 trail. It is also the ungoverned base I used to falsify cb_thrust, and after k20/k25 go it is the only pure “thrust entry + live trail” reference left. It is the next candidate if you ever need a 16th cut — but not in the same pass that removes its two comparators.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>thrust_short_raw</strong></td><td class="num">−136.5</td><td>Red, only 6 active days, −$1.45 a trade.</td><td>It is the matched no-confirm control for thrust_short_absveto55 (+$318.0), which mirrors the live abs_veto_short slot. The short-side veto’s claimed edge is <strong>+$454.5</strong> — and that number exists only while this control runs. Same structural role as thrust_loose, one side down.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>exhaustion_rev</strong></td><td class="num">−1,186.5</td><td>−$3.70 a trade, 2 green days in 10, PF 0.70. Fourth-worst on the board.</td><td>It is the <strong>entry population for the live exhaustion_short gate’s entire research pipeline</strong> — seven shipped scripts read <span class="mono">strategy='exhaustion_rev'</span> as their substrate (<span class="mono">exhaustion_delay_rehab</span>, <span class="mono">exhaustion_delay_robust</span>, <span class="mono">exhaustion_scaleout_analysis</span>, <span class="mono">exhaustion_sides_study</span>, <span class="mono">peak_distribution</span>, <span class="mono">shadow_er_adaptive</span>, <span class="mono">exhaustion_trial_grade</span>). Live exhaustion_short is <strong>+$271.0 on 58 venue-truth trades</strong> while its shadow is −$1,186.5 — the standing rule is judge that gate LIVE, not on this sim. It is also the only footprint/microstructure sim on the board and the only sim green in both UP buckets. Kill it and you blind the tuning loop on a live gate.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>rg_long_fast_v</strong></td><td class="num">−1,437.5</td><td>−$7.22 a trade, 3 green days in 12. On money alone it belongs in the fifteen.</td><td><strong>Sole-mechanism retention.</strong> After the four cuts above, this is the only long-reversion arm left anywhere on the board. Long reversion is comprehensively red right now (5 arms, 650 trades, −$4,978), but the board’s job is regime coverage — you need one probe that lights up if chop-reversion turns on. Keep the vol-floored one: it fires 16.6/day vs rg_long_fast’s 24.9/day, so the probe costs 33% less. <em>Not a keep on merit — a keep on coverage.</em></td></tr>
+</tbody>
+</table>
+<p><strong>One more, protected on a technicality worth stating:</strong> <span class="mono">abs_veto_60s</span> (+$424.5, n=80, $5.31/tr) is the weakest of the three veto rungs and looks like an easy de-dup. It is not — it is the <em>upper flank</em>. The duration sweep reads 50s $7.60 → 55s $11.21 → 60s $5.31, which is what establishes 55s as a <strong>peak</strong> rather than a floor. Remove the 60s arm and the live choice of 55s becomes unfalsifiable in the “longer would be better” direction. It also only shares 14% of its entries with 55s, so it is not redundant in the way k20/k25 are.</p>
+</div>
+
+<div class="card">
+<h3>★ Escalation — capit_loose contradicts this morning’s capitulation_long change</h3>
+<p>This fell out of the protection check and it should not wait for Monday. Today’s Saturday roster note reverses the 07-25 prior (“require_flip IS the edge”) on the strength of <em>“11 tr +$24 @45% → 32 tr +$434 @78%; overnight-only +$422 @81%”</em>. The shadow board has been running that exact entry, unrouted, since 07-17.</p>
+<table>
+<thead><tr><th>capit_loose, by session (UTC entry hour)</th><th class="num">N</th><th class="num">Net $</th><th class="num">$/trade</th><th class="num">Win %</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">OVERNIGHT (21–06z) <span class="tag">the claimed good window</span></td><td class="num">102</td><td class="num">−1,971.5</td><td class="num">−19.33</td><td class="num"><strong>14.7</strong></td></tr>
+<tr class="row-bad"><td class="ln">EU (07–12z)</td><td class="num">76</td><td class="num">−1,473.0</td><td class="num">−19.38</td><td class="num">18.4</td></tr>
+<tr class="row-bad"><td class="ln">US (13–20z)</td><td class="num">60</td><td class="num">−1,805.5</td><td class="num">−30.09</td><td class="num">18.3</td></tr>
+<tr class="row-bad"><td class="ln">LONG side</td><td class="num">116</td><td class="num">−2,339.0</td><td class="num">−20.16</td><td class="num">—</td></tr>
+<tr class="row-bad"><td class="ln">SHORT side</td><td class="num">122</td><td class="num">−2,911.0</td><td class="num">−23.86</td><td class="num">—</td></tr>
+</tbody>
+</table>
+<p>There is <strong>no green window</strong>. The claimed “overnight +$422 at 81% win” is, on 102 tick-honest overnight fires of the identical decider, <strong>−$1,971.5 at 14.7% win</strong>. Some of the gap is legitimately explainable — the live slot is routed (US-session and down-trend benches), scaled to base_size 1, split into Lot A/Lot B, and runs the regime-3 adaptive exit rather than a flat 1R — and the live venue-truth book for capitulation_long is only −$122 across 24 fills, nowhere near this bad. But a 96-point swing in win rate on the same entry signal is not an exit-config difference; that is an <em>entry population</em> difference, and it means one of the two measurements is counting different fires. <strong>Recommendation: keep capit_loose running (it is the instrument), and before Monday’s open re-run the rederivation against <span class="mono">shadow_trades WHERE strategy='capit_loose'</span> to find which population the +$422 came from.</strong> If it cannot be reconciled, bench capitulation_long until it can. This is exactly the failure mode the board exists to catch, and it would have been deleted by a P&amp;L sort.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 4 — regime coverage, checked before cutting</h3>
+<p>Paris days classified by directional bias (net &gt; +40pt UP / &lt; −40pt DOWN / else FLAT) × volatility (mean 1-min bar range ≥ 15pt = hiV). The sample is badly unbalanced — <strong>eight of twelve days were DOWN·hiV</strong> — which is itself worth knowing: nothing on this board has been tested in a sustained low-vol uptrend.</p>
+<table>
+<thead><tr><th>Regime</th><th class="num">Days</th><th class="num">Sims firing</th><th class="num">Sims green</th><th>Anything green ONLY here?</th></tr></thead>
+<tbody>
+<tr><td class="ln">DOWN · hiV</td><td class="num">8</td><td class="num">30</td><td class="num">14</td><td>No — deep coverage (abs_veto ×3, grind_fast, thrust_cont/aligned/loose, rg_short ×5)</td></tr>
+<tr class="row-bad"><td class="ln">DOWN · loV</td><td class="num">1</td><td class="num">27</td><td class="num"><strong>1</strong></td><td>rg_short_050 (+$38) — but that is <strong>a single trade on a single day</strong>. Not coverage. This regime is a genuine hole and no retirement creates it.</td></tr>
+<tr><td class="ln">FLAT · hiV</td><td class="num">1</td><td class="num">26</td><td class="num">11</td><td>No — rg_short ladder + abs_veto 55/60 + grind_fast all green</td></tr>
+<tr><td class="ln">UP · hiV</td><td class="num">1</td><td class="num">26</td><td class="num">8</td><td>No — but note two of the eight are the cb pair and one is exhaustion_rev (protected)</td></tr>
+<tr><td class="ln">UP · loV</td><td class="num">1</td><td class="num">28</td><td class="num">16</td><td>No — 16 of 28 sims green on one easy day; the rg_long_20 arms’ only green appears here, on 3–4 trades each</td></tr>
+</tbody>
+</table>
+<p><strong>Verdict: no retirement removes sole coverage of any regime.</strong> The two candidates that came closest — rg_short_050 in DOWN·loV and the rg_long_20 arms in UP·loV — are green on one-day, single-digit-n samples, which is the same “thin n is not evidence” standard applied in the other direction. The one real coverage hole (DOWN·loV) exists today and is unaffected by this patch.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 5 — the cost model, audited</h3>
+<p>You asked me to check this because a fee error inverted a verdict today. <strong>The shadow board itself is clean.</strong></p>
+<table>
+<thead><tr><th>Path</th><th>Fee used</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td class="ln"><span class="mono">config.RunConfig.fee_rt</span></td><td class="num">$1.50</td><td>Correct — venue truth</td></tr>
+<tr><td class="ln"><span class="mono">repricer.reprice()</span> → <span class="mono">shadow_real.real_pnl</span></td><td class="num">$1.50</td><td><strong>Correct.</strong> Applied once per round trip to every one of the 5,305 sims, whatever module recorded them (slate, cb breaker, footprint) — the repricer is the single scoring path.</td></tr>
+<tr><td class="ln"><span class="mono">gazbot7.db trades.fees_usd</span></td><td class="num">$1.50</td><td>All 487 closed live trades, exactly. Shadow and live are like-for-like.</td></tr>
+<tr class="row-bad"><td class="ln"><span class="mono">scripts/afc_book_during_break.py</span>, <span class="mono">afc_run_footprint.py</span>, <span class="mono">afc_rvol_amp.py</span>, <span class="mono">afc_veto_sweep.py</span>, <span class="mono">full_opennews.py</span></td><td class="num"><strong>$5.00</strong></td><td><strong>WRONG — flagging it.</strong> Five research scripts still carry the legacy <span class="mono">FEE, VPP = 5.0, 2.0</span> header. That is 3.3× the real cost. This is the identical bug that made the NIPC acceptance replay “fail” at +$264 before the corrected re-run put it at +$820. A fixed per-trade cost is a regressive tax on thin-edge high-frequency ideas, so <em>any verdict these five produced on a high-fire-rate footprint idea is suspect and should be re-run.</em> None of them feed the numbers in this section.</td></tr>
+</tbody>
+</table>
+<p><strong>Direction-of-bias note.</strong> Live losses run 1.1–3.1× modelled, so every shadow number here is optimistic on the downside. That <em>strengthens</em> every retirement in this section — the fifteen are worse than −$8,122, not better. It also means the two green sims I am cutting (rg_short_025_flow50_rth +$99.5, cb_thrust_dropped +$16.5) are more likely live-negative than live-positive, and that <strong>thrust_loose at PF 1.01 and cb_thrust_dropped at PF 1.01 are both effectively coin-flips before slippage</strong>. Mildly-green is not a reason to keep anything; thrust_loose is kept for its control role, not its $130.</p>
+</div>
+
+<div class="card">
+<h3>Fact table 6 — what cutting fifteen actually frees</h3>
+<p>Measured live on the box, not estimated. The honest headline: <strong>the CPU saving is small; the memory saving is the one that matters</strong>, because the shadow desk alone is 91% of the V7 slice’s RAM and sitting at 62% of the throttle threshold.</p>
+<table>
+<thead><tr><th>Resource</th><th class="num">Now</th><th>What the cut removes</th></tr></thead>
+<tbody>
+<tr><td class="ln"><span class="mono">gazbot7-shadow</span> CPU</td><td class="num">10,745 s over 3d 09h uptime = <strong>3.7% of one core</strong> (1.8% of the slice’s 200% CPUQuota)</td><td>Slate variants 28 → 15 (−46% of the per-tape gate-evaluation work) plus the breaker’s two legs. Expect roughly <strong>1.3–1.7% of one core back</strong> — real but not the point.</td></tr>
+<tr class="row-hl"><td class="ln"><span class="mono">gazbot7-shadow</span> memory</td><td class="num"><strong>618.2 MB</strong> current / 631.0 MB peak</td><td>Against <span class="mono">gazbot7.slice</span> <strong>MemoryHigh=1G, MemoryMax=1500M</strong>. Siblings: md 8.2 MB, tournament 28.6 MB, web 19.8 MB — <strong>the shadow desk is ~91% of the whole V7 desk’s RAM and 62% of the reclaim threshold on its own.</strong> This is the number that has caused pressure before.</td></tr>
+<tr><td class="ln">Repricer window reads</td><td class="num">5,305 trades scored</td><td>Cut set = <strong>1,751 trades (33.0%), 322.8 position-hours.</strong> The repricer materialises every captured quote in <span class="mono">[entry+60s, exit+60s+120s]</span> into a Python list of <span class="mono">Quote</span> tuples for the whole window. At the measured MNQ quote rate (34.2 rows/s in RTH, ~22 rows/s 24h average from 9.55 M rows on 5-day retention) the cut set is <strong>~1.48 M window-seconds ≈ 33 M quote rows</strong> over the 13-day sample — call it <strong>2.5 M rows/day of SQLite reads off a 5.7 GB file that stop happening</strong>. A single 22-minute grind_fast trade holds ~45,000 of those tuples in a list at once; that list is the memory shape.</td></tr>
+<tr><td class="ln">Shadow trade volume</td><td class="num">~442 sim trades/day</td><td><strong>−146/day (−33%)</strong>, and shadow.db grows a third slower.</td></tr>
+</tbody>
+</table>
+<p><strong>Separate cheap fix, spotted while measuring — not part of this patch.</strong> <span class="mono">reprice_pending()</span> runs every 30 s and, each pass, does <span class="mono">SELECT * FROM shadow_trades ORDER BY id</span> (all 5,305 rows) <em>and</em> builds a <span class="mono">done</span> set from every row of <span class="mono">shadow_real</span>. That is ~10,600 rows materialised 2,880 times a day, and it grows without bound as the board ages — it will be 30,000 rows a pass by October whether or not you cut anything. Cutting the fifteen reduces it by a third today; an anti-join or a high-water-mark on <span class="mono">trade_id</span> would fix it permanently in about four lines. Worth a separate ticket.</p>
+<p><strong>Honest caveat:</strong> I cannot split the 618 MB into “slate variants” vs “quote windows” vs “sqlite page cache” without restarting the service, which is out of scope for a read-only pass. The defensible claim is the workload reduction (−46% variants, −33% trades and repricer reads), not a precise megabyte figure.</p>
+</div>
+
+<div class="card">
+<h3>What the freed capacity should buy — one gap worth naming</h3>
+<p><strong>NIPC has no shadow arm.</strong> You armed <span class="mono">nipc_long</span> and <span class="mono">nipc_short</span> live this morning with an explicit kill criterion at n≥40 signals or Friday 08-07. There is nothing on the shadow board running the NIPC decider, so when that review lands you will have only the live book — no independent, unrouted, un-scaled read to check it against, and no un-filtered control to measure its self-gating (13:00–15:00 UTC window, the ATR1m&lt;18 &amp; ER15&lt;0.35 dead-chop cut) against. That is the same instrument capit_loose is providing for capitulation_long, and the same one thrust_loose provides for abs_veto. Two slots of the fifteen freed here would cover it: a <span class="mono">nipc_raw</span> (no time window, no chop cut — the un-gated control) and a <span class="mono">nipc_live</span> mirror. <strong>Recommend adding both in the same Saturday window, so the 08-07 review has a control to lean on.</strong> The board would still be net −13 slots.</p>
+</div>
+
+<div class="card">
+<h3>The patch — <span class="mono">src/gazbot7/shadow.py</span>, for your approval</h3>
+<p>Thirteen removals from <span class="mono">default_slate()</span> plus one removal in <span class="mono">run()</span> for the breaker pair. <strong>Nothing under <span class="mono">src/gazbot7/</span> or <span class="mono">data/</span> has been touched</strong> — an exits study is running concurrently. <span class="mono">deciders.py</span> is deliberately left alone: <span class="mono">tests/test_deciders.py</span> asserts <span class="mono">len(REVERSAL_SHORT_VARIANTS) == 5</span> and <span class="mono">runner.py</span> reads the same dict, so the two reversal-short retirements are filtered in <span class="mono">shadow.py</span> instead. <span class="mono">chandelier_params()</span> needs no change — it derives itself from the slate. Apply, then <span class="mono">systemctl restart gazbot7-shadow</span> (safe: it touches no account and places no orders; in-flight sim positions are simply dropped).</p>
+<pre class="mono">--- a/src/gazbot7/shadow.py
++++ b/src/gazbot7/shadow.py
+@@ def default_slate() -&gt; list[ShadowVariant]:
+         ShadowVariant("thrust_aligned", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True}),
+-        # 2026-07-16 — FAST trigger: fire off the 2-bar impulse (not the lagging 5-bar)
+-        # + alignment, no veto. Tests "jump in near the START" of a move instead of
+-        # arriving at the bottom 5-6 min late. Alignment keeps it from chop-firing.
+-        ShadowVariant("thrust_fast", "thrust", {"thr": 1.5, "amp_floor": 0.0004, "slope_align": True, "fast": True}),
++        # ★2026-08-01 RETIRED thrust_fast (Saturday roster window). The 2-bar-impulse
++        # trigger is the ONLY losing arm of the four: cont +$710.5 / aligned +$396.0 /
++        # loose +$130.5 / fast −$430.5 (n=181, 12 days, −$2.38/tr, PF 0.91, tick-honest).
++        # Question answered — entering earlier is not the fix. Revert: restore this line.
+     ]
+@@
+     slate += [
+         ShadowVariant("chand_k35", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                       chandelier=True, chand_start_k=3.5),  # = the LIVE desk exit (control)
+-        ShadowVariant("chand_k25", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+-                      chandelier=True, chand_start_k=2.5),
+-        ShadowVariant("chand_k20", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+-                      chandelier=True, chand_start_k=2.0),
++        # ★2026-08-01 RETIRED chand_k25 + chand_k20 — the trail A/B is ANSWERED and
++        # monotone: k35 −$1.79/tr · k25 −$4.39/tr · k20 −$4.39/tr on the same thrust
++        # entry. k20/k25 are near-identical to each other (Jaccard 0.97 on entries,
++        # daily r=0.94) — two rungs, one answer. Doubly closed: the live desk runs the
++        # regime-3 adaptive exit + dual-slot scale-out, not a plain chandelier.
++        # chand_k35 STAYS: it is the faithful live-trail CONTROL, not a rung.
++        # Revert: restore the two removed variants.
+     ]
+@@
+     slate += [
+-        ShadowVariant("capit_tight", "capitulation",
+-                      {"climax_min": 8.0, "dom_min": 0.85, "require_flip": True}, target_r=1.0),
+-        ShadowVariant("capit_mid", "capitulation",
+-                      {"climax_min": 4.0, "dom_min": 0.75, "require_flip": True}, target_r=1.0),
++        # ★2026-08-01 RETIRED capit_tight — ZERO fires in 16 days; climax&gt;=8.0 + dom&gt;=0.85
++        # + require_flip has never once been satisfied on MNQ. Costs a gate eval per tape
++        # message and returns no information.
++        # ★2026-08-01 RETIRED capit_mid — tests climax 4.0 / dom 0.75 / require_flip=True,
++        # which is exactly the config the LIVE capitulation_long slot abandoned today
++        # (now 2.5 / 0.6 / no-flip / 1.0R = capit_loose). n=13, −$89.5; 92% of its entries
++        # are also capit_ride's. Retired for obsolescence + duplication, NOT on 13 trades.
+         ShadowVariant("capit_loose", "capitulation",
+                       {"climax_min": 2.5, "dom_min": 0.60, "require_flip": False}, target_r=1.0),
+-        # capit that RIDES with the chandelier instead of the 1R scalp — to capture a
+-        # flush→reclaim→grind continuation (today's 13:55 +200pt run started as a flush).
+-        ShadowVariant("capit_ride", "capitulation",
+-                      {"climax_min": 4.0, "dom_min": 0.75, "require_flip": True}, chandelier=True),
++        # ★★ capit_loose is now the EXACT shadow twin of the LIVE capitulation_long gate
++        # (same climax/dom/flip/1.0R). DO NOT RETIRE despite being the board's worst line
++        # (−$5,250, 0 of 11 days green, PF 0.17) — it is the only unrouted 24h read on a
++        # gate that is armed. It also CONTRADICTS today's rederivation: red in every
++        # session, overnight −$19.33/tr @ 14.7% win on n=102 vs the claimed +$422 @ 81%.
++        # ★2026-08-01 RETIRED capit_ride — "should the capit fade RIDE instead of banking
++        # 1R?" answered: ride −$10.50/tr vs 1R −$6.88/tr on the SAME 12 entries (100%
++        # overlap with capit_mid), and the live gate moved to 1.0R today.
+     ]
+@@
+     slate += [
+-        ShadowVariant("rg_long_fast", "reversal_grab",
+-                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.15, "fast_slope": True, "fast_turn": True},
+-                      chandelier=True),
++        # ★2026-08-01 RETIRED rg_long_fast — the un-floored arm. n=299 / 12 days /
++        # −$2,280.5 / −$7.63 per trade / 3 days green / PF 0.72, the worst-volume loser
++        # on the board. Its paired question is answered: the atr&gt;=13 floor removes 103
++        # trades at −$8.62/tr and keeps 196 at −$7.10/tr — the floor barely discriminates,
++        # it does NOT rescue the mechanism. rg_long_fast_v below is kept as the SOLE
++        # long-reversion probe (coverage, not merit) and fires 33% less often.
+         ShadowVariant("grind_fast", "grind", {"slope_min": 0.4, "fast_slope": True}, chandelier=True),
+@@
+     slate += [
+         ShadowVariant("thrust_short_raw", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                       side="SHORT", chandelier=True),
+         ShadowVariant("thrust_short_absveto55", "thrust", {"thr": 1.5, "amp_floor": 0.0004},
+                       side="SHORT", chandelier=True, confirm_s=55),
+     ]
+-    slate += [ShadowVariant(name, "reversal_grab", params)
+-              for name, params in REVERSAL_SHORT_VARIANTS.items()]
++    # ★2026-08-01 — two rungs of the reversal-short sweep retired. Filtered HERE, not in
++    # deciders.REVERSAL_SHORT_VARIANTS, because tests/test_deciders.py asserts len == 5
++    # and runner.py reads the same dict.
++    #   rg_short_050            n=21, −$15.5 — dominated rung: 86% of its entries also
++    #                           fire rg_short_025_flow25, which makes +$103.5 on them.
++    #                           (Checked: it is the only green sim in the DOWN/loV bucket
++    #                           at +$38 — but that bucket is ONE day and ONE trade.)
++    #   rg_short_025_flow50_rth n=7 in 12 days = 1.17 fires/day; it cannot reach a
++    #                           decidable n this decade. 100% of its entries sit inside
++    #                           rg_short_025_flow50. A MEASURABILITY cut, not a P&amp;L one
++    #                           (it is +$99.5). Softest of the fifteen — drop if disputed.
++    # KEPT: rg_short_025_raw (the no-filter CONTROL for the flow ladder), _flow25, _flow50.
++    _RETIRED_RG_SHORT = {"rg_short_050", "rg_short_025_flow50_rth"}
++    slate += [ShadowVariant(name, "reversal_grab", params)
++              for name, params in REVERSAL_SHORT_VARIANTS.items()
++              if name not in _RETIRED_RG_SHORT]
+-    # target A/B (2026-07-16): the best-firing reversal_grab at a 1.5R take-profit vs
+-    # the 2.0R default above. A 7-trade tick replay weakly favoured 1.5R (banks a
+-    # marginal winner that reverses before 1.7-2.0R) — too thin to act on, so let it
+-    # earn a real read in shadow. Identical entry to rg_short_025_flow25; only target differs.
+-    slate.append(ShadowVariant("rg_short_025_flow25_t15", "reversal_grab",
+-                               dict(REVERSAL_SHORT_VARIANTS["rg_short_025_flow25"]), target_r=1.5))
+-    # LONG reversal mirror (2026-07-16) — fade a stretch BELOW VWAP turning up. The
+-    # thresholds are from a tick grid-search, NOT a copy of the shorts: the long side
+-    # needs a looser extension (ext 2.0 not 2.5) + a looser turn (0.25) + a 1.5R
+-    # target (best in-sample; 2.0/2.5 barely fired and lost). A tight spread to
+-    # forward-test: the winner, a 2R-target control, and a net-BUY-flow cut.
+-    slate += [
+-        ShadowVariant("rg_long_20_t15", "reversal_grab",
+-                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25}, target_r=1.5),
+-        ShadowVariant("rg_long_20_t20", "reversal_grab",
+-                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25}, target_r=2.0),
+-        ShadowVariant("rg_long_20_flow25", "reversal_grab",
+-                      {"side": "LONG", "ext_min": 2.0, "turn_atr": 0.25, "flow_min": 25}, target_r=1.5),
+-    ]
++    # ★2026-08-01 RETIRED rg_short_025_flow25_t15 — the target A/B is settled with ZERO
++    # information loss: its 27 entries are 100% IDENTICAL to rg_short_025_flow25's (same
++    # 44.4% win), and 1.5R makes −$26.0 where 2.0R makes +$103.5. Paired test, so the
++    # small n does not bite.
++    # ★2026-08-01 RETIRED the whole 3-arm LONG reversal-mirror experiment
++    # (rg_long_20_t15 / _t20 / _flow25). ALL THREE red on ALL 12 days: n=152 combined,
++    # −$1,260.5 (−$8.07 / −$10.91 / −$5.87 per trade, PF 0.68 / 0.62 / 0.76). Arms
++    # correlate r=0.86-0.99 and share 85-92% of entries. The experiment asked "is the
++    # ext 2.0 / turn 0.25 long mirror viable?" — answered NO at every target, with and
++    # without the flow filter. Retiring all three arms TOGETHER closes the experiment
++    # rather than orphaning a control. (Checked: their only green regime bucket is
++    # UP/loV = one day, 3-4 trades each — noise, not coverage.)
+     return slate
+@@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
+-    from .cb import SessionDirectionBreaker
+     from .capture import capitulation_tape, open_capture
+@@
+-    # the per-side direction circuit breaker (prototype) rides the same feed alongside
+-    # the variant slate, booking cb_thrust (governed) + cb_thrust_dropped (phantom).
+-    breaker = SessionDirectionBreaker(store, symbol=cfg.symbol,
+-                                      value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
++    # ★2026-08-01 RETIRED the SessionDirectionBreaker prototype (cb_thrust +
++    # cb_thrust_dropped). FALSIFIED BY ITS OWN VALIDATION ARM: window-matched from cb's
++    # first day, governed cb_thrust −$878.0 vs its ungoverned base chand_k35 −$470.5 over
++    # the same 10 days — the governor cost $407.5 — while the phantom book of the sides it
++    # stood down is +$16.5, i.e. it vetoed the sides that were about to earn. Also
++    # SUPERSEDED: the durable 5-min router now does direction governance at desk level.
++    # Both arms retire together (retiring one would orphan the other). cb.py is left in
++    # the tree; revert = restore these two statements and the breaker.on_bars call below.
+@@
+                     if len(bars) &gt;= 6:
+                         capft = capitulation_tape(cap, cfg.symbol, now_ms) if now_ms else {}
+                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
+                                     window_price_delta=body.get("win_price_delta", 0.0),
+                                     in_rth=body.get("in_rth", True), now_ms=now_ms, cap=capft)
+-                        breaker.on_bars(bars, tape_net=body.get("net_flow", 0.0),
+-                                        window_price_delta=body.get("win_price_delta", 0.0),
+-                                        in_rth=body.get("in_rth", True), now_ms=now_ms)
+                     if now_ms:</pre>
+<p class="mono"><strong>Net effect:</strong> slate 28 → 15 variants; declared sims 31 → 16. <span class="mono">exhaustion_rev</span> (FootprintShadow) is untouched. Historic rows for the retired names stay in <span class="mono">shadow.db</span> — every comparison in this section stays reproducible after the cut.</p>
+</div>
+
+<div class="callout"><div class="ct">If you only do three things</div>
+<p><strong>1.</strong> Reconcile the capitulation_long rederivation against <span class="mono">capit_loose</span> before Monday’s open — the twin says −$1,971.5 at 14.7% win in the window you were told was +$422 at 81%, and the gate is armed. <strong>2.</strong> Apply the patch: −15 sims, −$8,122 of drag, board flips to +$616.5, −33% repricer load off a 5.7 GB file. <strong>3.</strong> Spend two of the freed slots on a NIPC shadow pair before the 08-07 kill-criterion review, so that review has a control.</p></div>

@@ -1,0 +1,150 @@
+<h2><span class="n">1.5</span> Live-Desk Rehabilitation — never bench a gate at face value</h2>
+
+<p class="lead">Garrath — this is the section you care about most, so here is the deal up front. Nothing on this desk gets binned because it had a red week. Every red gate and every leaky exit got walked through the full six steps — <strong>what looked broken, what would the loss have been if the plumbing worked, is it the base / the exit / the signal, what fixes were tried (and the winners-kept test each one had to pass), does it survive stripping the best days and dropping any single day, and finally a verdict</strong>. This week five targets went through the wash. <strong>Three came out fixed, one is a chop-only specialist, one goes back to the bench to earn its keep in shadow, and nothing earned a retirement.</strong> Then — because the honest failures are the whole point — every dead end from this week's attempts is laid out in the graveyard at the bottom. We earn your trust by showing you the graves, not by hiding them.</p>
+
+<div class="callout"><div class="ct">The one rule behind everything below</div>
+A fix that "wins" only by throwing away the big tail winners is a <strong>fake win</strong> and gets rejected on sight. Every survivor here had to keep the winners <em>and</em> cut the bleed. Every number is from a real tick-honest replay ($2/pt, $1.50 a round-turn per contract) on this week's tape plus, wherever possible, a second different regime — never a made-up figure, never a blanket cross-tape average (that averages the days a gate should be on with the days it should be off, and lies).</div>
+
+<div class="card">
+<div class="rev3ptr"><strong>&#9654; Read this section with REV3 open.</strong> The grind_long rehab's headline &pound;-figure was measured against a baseline that was never running. The honest before/after is <strong>+$1,552 &rarr; +$2,830</strong>, and the ATR floor should be <strong>10, not 12</strong>. The corrections are marked inline in red where they bite, and the full working is in <a href="#part3">Part 3 &mdash; the Rev2/Rev3 corrections</a>. Nothing has been deleted: where a claim was overturned, the original is still printed next to what replaced it.</div><h3>The scoreboard — read this first</h3>
+<table>
+<thead><tr><th>Target</th><th>What was wrong</th><th class="num">Live / before</th><th class="num">After the fix</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">STOP_UNFILLED (the resting-stop exit)</td><td>Stops that never triggered → late flatten a few points past the stop</td><td class="num">26 unfilled</td><td class="num">0 unfilled, 103 clean stops</td><td><span class="tag">FIXED — DEPLOYED</span></td></tr>
+<tr class="row-hl"><td class="ln">grind_long (the gate)</td><td>Two floors were configured against it (neither was executing); it bought stretched tops</td><td class="num">+$1,552 <span class="was">−$284</span></td><td class="num">+$2,830</td><td><span class="tag">FIXED</span></td></tr>
+<tr class="row-hl"><td class="ln">chandelier runner give-back (the exit)</td><td>One wide lock sprayed across all regimes; banked only 47% of peak</td><td class="num">+$2,932</td><td class="num">+$3,580</td><td><span class="tag">REGIME-DEPENDENT</span></td></tr>
+<tr class="row-hl"><td class="ln">capitulation_long (the gate)</td><td>Waiting for a delta-flip starved it; 2.0R gave the bounce back</td><td class="num">−$139</td><td class="num">+$434</td><td><span class="tag">FIXED (chop-only)</span></td></tr>
+<tr class="row-bad"><td class="ln">rgv_short (the gate)</td><td>No robust edge in any regime it can trade + far too few fires</td><td class="num">−$142</td><td class="num">unproven</td><td><span class="tag">SHADOW</span></td></tr>
+</tbody>
+</table>
+<p>All "after" figures are tick-honest replays on the same tape as the "before". No target was truly retired this week — the closest, rgv_short, is <em>unproven</em>, not <em>disproven</em>, and goes to the bench to gather evidence rather than to the grave.</p>
+</div>
+
+<h3 style="margin-top:1.6em">★ What got rehabilitated — the survivors</h3>
+
+<div class="card">
+<h3>1. STOP_UNFILLED — FIXED and already live (the strongest win of the week)</h3>
+<p>This was flagged as "the single worst exit-mechanism bleed of the week" — four stops that never filled, −$195. Two things turned out to be true, and both matter.</p>
+<p><strong>First, most of the headline is mislabelled.</strong> A stop that fires late is still mostly a normal stop-loss the losing entry earned anyway. Of the −$195, only <strong>−$53 is the actual defect</strong> (the extra few points lost while the trigger sat there); the other <strong>−$142 is ordinary stop-loss</strong> the entries would have taken with a perfect stop. Across the whole archive it's the same shape — only 24% of the bleed was ever the bug.</p>
+<table>
+<thead><tr><th>Window</th><th class="num">STOP_UNFILLED</th><th class="num">clean STOP</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">before the fix (≤ 07-28 08:34)</td><td class="num">26</td><td class="num">—</td></tr>
+<tr class="row-hl"><td class="ln">at / after the fix</td><td class="num">0</td><td class="num">103</td></tr>
+</tbody>
+</table>
+<p><strong>Second, it is already fixed and verified in production.</strong> The winning change (<code>d0218c6</code>, live 07-28 08:34) checks every tick (~2s) and market-flattens <em>at</em> the stop, so stops no longer depend on the broker's trigger firing at all. The last unfilled stop in the entire book was 32 minutes <em>before</em> that deploy. On real ticks the 2s path actually beats a "perfect" stop by ~$15 (fast bounces come back inside 2s). Two earlier attempts (concrete-Future stops, fillable StopLimit) helped but did <em>not</em> kill it — shown honestly in the graveyard. <strong>No action needed; do not revert.</strong></p>
+</div>
+
+<div class="card">
+<h3>2. grind_long — FIXED at the entry, and it holds in a second regime</h3>
+<p>Your exact symptom — "it buys resistance and session-highs and churns the chop" — is real and now explained. The bleed is <strong>100% the entry signal, not the exit</strong>. Every dollar of profit lives in the exit tail; every dollar of loss lives in stopped entries:</p>
+<table>
+<thead><tr><th>Why the raw number lies</th><th class="num">n</th><th class="num">$</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">STOP (the entries get stopped — the bleed is here)</td><td class="num">53</td><td class="num">−2,718</td></tr>
+<tr class="row-hl"><td class="ln">TARGET (Lot-A scalps)</td><td class="num">9</td><td class="num">+1,137</td></tr>
+<tr class="row-hl"><td class="ln">CHANDELIER + MANUAL_CLAIM (Lot-B tail)</td><td class="num">16</td><td class="num">+1,567</td></tr>
+</tbody>
+</table>
+<div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; every ER and ATR floor on this desk has been switched off since 2026-07-29</div><p><strong>Nothing below that leans on a live ER or ATR floor is describing the desk you own.</strong> <code>tournament.step()</code> hands the sub-slot tag (<code>grind_long_A</code>) to <code>er_blocks()</code>/<code>atr_blocks()</code>, but <code>ER_FLOOR</code>/<code>ATR_FLOOR</code> are keyed on base names, so the lookup never matches and every floor silently answers "don't block". Dead since the dual-slot cutover at <strong>2026-07-29 16:20:49 UTC</strong>; last suppression line 07-29T13:29:04Z, zero since. Five gates affected. The <code>_base()</code> helper that fixes it already exists at <code>tournament.py:86</code> and is applied correctly three times elsewhere &mdash; just not at lines 139 and 142.</p><p><strong>Size it honestly:</strong> the circulating "7,734 suppressions" is a raw log-line count and the check re-fires every ~1s tick. De-duplicated it is <strong>383 blocked signal episodes over 8 days</strong> (140 ER + 243 ATR) &mdash; about 48 a day, not thousands. Real, but 44&times; smaller than advertised.</p><p><strong>And it changes the conclusion, not just the footnote.</strong> Grind did not fire 52 of 56 times below its floor because "ER filters are fake on this tape" &mdash; a claim about the market. It fired because <em>there was no floor</em> &mdash; a claim about our code. Those point at completely different fixes. Both ER floors were even committed ~18 hours <em>after</em> the bug, so neither has ever blocked a single trade in production. Full working, per-gate verdicts and the mandatory ship order: <a href="#p3floors">Part 3.6</a>.</p></div><p>Two floors are <em>configured</em> against this gate — and <strong>neither has executed since 07-29</strong>, so they cannot have destroyed anything this week; as written they are backwards and too tight, which is exactly why they must not be re-wired at their current values. The <strong>ER ≥ 0.35 floor is backwards</strong> — a fast-slope gate catches a trend at birth, when the 30-min ER still reads the prior chop, so 26 of the 30 big tail-winners enter at <em>low</em> ER. The <strong>ATR ≥ 24 floor is far too tight</strong> for this regime. Swap both for a single "don't buy when already stretched" ceiling (<code>ext_atr ≤ 2.0</code>) and the gate flips right over:</p>
+<table>
+<thead><tr><th>Config (tick-honest, same tape)</th><th class="num">n</th><th class="num">net</th><th class="num">$/trade</th><th class="num">win%</th><th class="num">strip top-3</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">LIVE <em>as written</em> (ER≥.35 &amp; ATR≥24) — a config that was never actually running</td><td class="num">11</td><td class="num">−$284</td><td class="num">−$26</td><td class="num">18%</td><td class="num">−$1,161</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&#9654; REV3 — LIVE <em>as actually running</em></strong> (floors dead since 07-29, ext_atr uncapped)</td><td class="num">181</td><td class="num"><strong>+$1,552</strong></td><td class="num">+$8.6</td><td class="num">34%</td><td class="num">—</td></tr>
+<tr class="row-hl"><td class="ln">RECOMMENDED (drop ER floor, ATR 24→<span class="was">12</span> <strong>10</strong>, ext_atr ≤ 2.0)</td><td class="num">111</td><td class="num">+$2,830</td><td class="num">+$25</td><td class="num">34%</td><td class="num">+$1,172</td></tr>
+</tbody><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; read the n before you read the delta, and use ATR 10</div><p><strong>This is not the same eleven trades made profitable.</strong> The recommended config trades ten times as often — it is a different, ten-times-larger book (−$26/trade vs +$25/trade). And the "before" row is a counterfactual: the rehab replay <em>applied</em> the floors as config (<code>rehab_grind_long.py:124</code>, <code>:234</code>) while the live desk has had them switched off since 07-29. Measured against what was really running, the honest before/after is <strong>+$1,552 &rarr; +$2,830</strong>, not −$284 &rarr; +$2,830 — about 59% of the advertised delta is the removal of filters that were already de-facto removed.</p><p><strong>Ship ATR 10, not 12.</strong> Re-derived fine on 8 days of tick-honest replay: 9/10/11 is a genuine plateau where the blocked book is robustly negative; at 12 the blocked book flips positive and stays positive all the way up. Twelve is one notch the wrong side of the cliff and costs $941 against 10. On every measure — net, per-signal, win%, strip-best-3, worst leave-one-day-out and both out-of-sample halves — ATR 10 + ext_atr 2.0 beats ATR 12 + ext_atr 2.0.</p><p><strong>And the money is not bankable.</strong> Grind is a high-count, low-margin book: the best config breaks even at a 1.64&times; loss multiplier and the desk's standing finding is that live losses run 1.1–3.1&times; modelled. That break-even sits <em>inside</em> the band. The ceiling buys resilience (at 1.5&times; losses: capped +$358 vs uncapped −$1,449), not dollars. Grind is being made less bad, not good — which is why the play card for this now carries &pound;0, not &pound;700.</p></div>
+</table>
+<p>It survives stripping the best trades, survives dropping any single day (no day carries it), and — the clincher — it <strong>holds in a genuinely different regime</strong>: on the V5 summer-chop archive the same fix turns −$1,135 into +$172. That is the multi-regime proof the 07-30 ER-floor note explicitly asked for, and it points the opposite way to that floor. The exit (Lot-A 2.5R + Lot-B wide lock-chandelier) is proven and stays untouched. <strong>Honest caveat:</strong> this is a positive-skew tail gate — the top ~10 trades carry it — so treat the <em>policy</em> as the edge, not any single number.</p>
+</div>
+
+<div class="card">
+<h3>3. chandelier runner give-back — FIXED per regime</h3>
+<p>This is the desk's biggest gross winner (+$4,774 on the CHANDELIER exit) but it <strong>leaks the tail</strong> — across all managed-profit exits the desk banks only <strong>47% of peak</strong>, leaving ~$8,088 on the table. Your symptom trade reproduces exactly: 07-27 grind runner, peak 4.20R / $208, banked +$23 — gave back $185.</p>
+<p>The cause is one knob used everywhere: the firm lock at <code>lock_r=6.0</code>. But the typical MNQ runner peaks at ~4.5R — <em>below</em> 6.0 — so on most runs the lock never engages and the position rides the wide trail all the way back down. The fix is to make the lock regime-aware:</p>
+<table>
+<thead><tr><th>Regime (entry 30m ER)</th><th class="num">incumbent wide, IS→OOS /sig</th><th>proven fix</th><th>action</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">TREND (ER≥0.50)</td><td class="num">+52.2 → +46.9</td><td>keep <code>lock_r=6.0</code></td><td>keep the wide lock — it's the edge</td></tr>
+<tr class="row-bad"><td class="ln">BUILD (0.30–0.50)</td><td class="num">+12.7 → −9.5 (overfit)</td><td><code>lock_r=3.0</code> (+4.6 OOS)</td><td>lower the lock</td></tr>
+<tr class="row-bad"><td class="ln">CHOP (ER&lt;0.30)</td><td class="num">+4.1 → −1.2</td><td>none robust</td><td>router benches</td></tr>
+</tbody>
+</table>
+<p>On the actually-taken live trades this regime policy reconstructs <strong>+$3,580 vs the incumbent's +$2,932 (+22%)</strong> — the entire gain in chop/build, trend left completely alone. It drops <em>zero</em> entries; it just banks the tail earlier off-trend while keeping every trend monster on the wide trail. The machinery to deliver it already exists — it just isn't wired into the one regime-blind path (the dual-slot Lot-B "wide" tail on grind_long). <strong>Caveat:</strong> the trend leg is thin (n=4 live), so re-measure after the next clean-trend week; the build fix is the sturdier leg (robust 4/4 weeks + out-of-sample).</p>
+</div>
+
+<div class="card">
+<h3>4. capitulation_long — FIXED, but it's a chop-only specialist</h3>
+<p>Live it shows −$139 this week. Tick-honest and single-lot, the current config is already roughly breakeven (+$24) — the extra loss is <strong>execution, not signal</strong>: the dual-slot A/B split doubled every chop stop (−$201 on just 4 signals), plus some low-vol-grind fires the router should have benched. But there is a real config fix underneath, and it <strong>reverses one of our own priors</strong> — the 07-25 rehab installed <code>require_flip=True</code> as "the edge". Tick-honest data says otherwise:</p>
+<table>
+<thead><tr><th>Config</th><th class="num">n</th><th class="num">net</th><th class="num">win%</th><th class="num">strip best-3</th><th class="num">worst day-drop</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">require_flip=True, 2.0R (current live)</td><td class="num">11</td><td class="num">+$24</td><td class="num">45%</td><td class="num">—</td><td class="num">—</td></tr>
+<tr class="row-hl"><td class="ln">require_flip=False, 1.0R (recommended)</td><td class="num">32</td><td class="num">+$434</td><td class="num">78%</td><td class="num">+$327</td><td class="num">+$220</td></tr>
+</tbody>
+</table>
+<p>Waiting for the delta to flip enters late and skips the bounces. Fading the flush itself and banking a fast 1R (78% of bounces reach 1R; only ~40% reach 2R) is the least data-starved, most robust config in the whole study — every single-day-drop stays strongly green. Restrict it to overnight (fade small flushes when the tape is quiet, bench the US cash session where a fader gets run over) and it's +$422 at 81% win. <strong>The hard caveat:</strong> the tick tape is one chop week — there is no trend week in it to exercise the fader's predicted trend-day bleed. So ship the config, keep the router's down-trend and US benches (they are load-bearing, not optional), and confirm the benched side in shadow.</p>
+</div>
+
+<div class="card">
+<h3>5. rgv_short — back to the bench, honestly</h3><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; this verdict and the live desk disagree right now</div><p><strong>Live-state check, 08-01:</strong> <code>rgv_short=on</code> in <code>data/gate_switches.env</code> &mdash; verified in the file today. Every section of this report verdicts it SHADOW and Part 1 says the router "correctly kept it in the dugout", but it is armed. Bench it or change the verdict; do not leave both standing. This is the MONDAY&nbsp;#3 play.</p></div>
+<p>This one did <em>not</em> get fixed, and the honest verdict is SHADOW, not retirement. On the clean tick tape it fires only <strong>11 times in the whole week</strong> and is net-negative at every exit setting (1.5R −$32, 2.0R −$142, 2.5R −$253, chandelier −$190). It fails every robustness cut — strip the single best day and it's −$242; the whole book leans on one +$80 single fire. Even firing <em>with</em> the down-trend it bleeds (aligned-DOWN −$138).</p>
+<table>
+<thead><tr><th>Robustness cut</th><th class="num">result</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">strip best-1 day</td><td class="num">−$242</td></tr>
+<tr class="row-bad"><td class="ln">strip best-3 days</td><td class="num">−$402</td></tr>
+<tr class="row-bad"><td class="ln">drop 07-28 (the +$80 day)</td><td class="num">−$223</td></tr>
+</tbody>
+</table>
+<p>The base config is fine, the exit is only a minor aggravator, and flow filters make it <em>worse</em> — it is a regime/data-starvation problem, not a broken config. Retiring 11 fires would be as unjustified as arming them. <strong>Keep it benched in the live tournament, run the base variant in shadow to gather cross-regime evidence, and re-look Saturday when the count grows.</strong></p>
+</div>
+
+<h3 style="margin-top:1.6em">The two live grind-exit shadow watches — the honest trying, running now</h3>
+
+<div class="card">
+<h3>Runner-CLIP watch + 2R-partial smoothness watch</h3>
+<p>Two shadow ledgers are running live alongside the desk to test give-back fixes on real fills before anything gets wired in. Both are thin — 4 trades since 07-26, all clustered on 07-27, the same grind cluster as the symptom trade — so read these as an early signal, not a verdict.</p>
+<p><strong>Two-ratchet runner-clip watch</strong> (<code>two_ratchet_shadow.json</code>): shadows clipping a runner as it ratchets. Over the 4 trades, live booked −$149 vs the shadow's −$27.5. The entire gap is the one 4.2R runner — live banked +$23, the shadow's rule banked +$144.5 on the same ride. It hasn't taken a clip yet (0 clips), so this is one data point, but it's the same $185 give-back story the chandelier rehab found.</p>
+<p><strong>2R-partial smoothness watch</strong> (<code>partial_shadow.json</code>): shadows taking a partial at 2R to smooth the curve. Baseline −$278 vs partial −$213.5, a +$64.5 improvement — <em>all</em> of it, again, on the single 4.2R runner (the three stops were untouched, delta $0).</p>
+<table>
+<thead><tr><th>Shadow watch</th><th class="num">n</th><th class="num">live / baseline</th><th class="num">shadow variant</th><th class="num">improvement</th><th>where it came from</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">two-ratchet runner-clip</td><td class="num">4</td><td class="num">−$149.0</td><td class="num">−$27.5</td><td class="num">+$121.5</td><td>all on the one 4.2R runner</td></tr>
+<tr class="row-hl"><td class="ln">2R-partial smoothness</td><td class="num">4</td><td class="num">−$278.0</td><td class="num">−$213.5</td><td class="num">+$64.5</td><td>all on the one 4.2R runner</td></tr>
+</tbody>
+</table>
+<p>Both watches point the same way as the chandelier rehab — the leak is the runner give-back, and both fixes only <em>touch</em> the runner (they do nothing to the stops, which is correct). But four trades on one day is nowhere near enough to wire anything in. <strong>Keep both in shadow; re-read once a real trend week lands and the count grows.</strong></p>
+</div>
+
+<h3 style="margin-top:1.6em">★ The graveyard — every dead end from this week's attempts</h3>
+
+<div class="callout"><div class="ct">Why this is here</div>
+The failures are the point. A rehab that only reports its wins is hiding the fake wins. Everything below was tried this week, scored honestly, and rejected — most of them because they raised the headline number by quietly throwing away the winners, which is exactly the trap we refuse to fall into.</div>
+
+<div class="card">
+<h3>Graves from this week's rehabs</h3>
+<table>
+<thead><tr><th>Target</th><th>What was tried</th><th>Why it died</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">grind_long</td><td>Every ER floor (0.15 → 0.45)</td><td>Backwards — drops the low-ER tail-runs; ER≥0.20 = −$1,593</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>Range-break-only filter</td><td>Breakouts fail; the edge is the ride, not the poke (−$366)</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>Strong-slope ≥ 0.7</td><td>Strong slope = late entry (−$1,540)</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>ATR ≥ 20 / 24 concentrators</td><td>High net only by binning genuine tail-winners — a fake win</td></tr>
+<tr class="row-bad"><td class="ln">capitulation_long</td><td>require_flip=True (our own 07-25 prior)</td><td>Falsified tick-honest — starves the gate, skips the bounces</td></tr>
+<tr class="row-bad"><td class="ln">capitulation_long</td><td>The "+$492, n68" looser-climax book</td><td>Biggest headline, but fires into 07-29 dead chop for −$222 — don't stack filters on one week</td></tr>
+<tr class="row-bad"><td class="ln">capitulation_long</td><td>Widen exit past 1R / raise ATR floor</td><td>1.5R falls off a cliff; the winners live in the low-ATR overnight band</td></tr>
+<tr class="row-bad"><td class="ln">rgv_short</td><td>The "+$304 cross-tape" and "+$663 aligned-DOWN" edges</td><td>Both artifacts of re-firing while a position was open — the blanket bug; collapse to −$142 single-position</td></tr>
+<tr class="row-bad"><td class="ln">rgv_short</td><td>Flow-confirm, turn_atr 0.5, 1.5R target, ext_min 2.0</td><td>All NULL — filtering does not earn the gate; base is already the best</td></tr>
+<tr class="row-bad"><td class="ln">chandelier exit</td><td>Give-back overlay on the wide trail (+gb1.0/1.5)</td><td>Won the in-sample cell, then failed out-of-sample and strangled the trend riders — a cell-fit fake</td></tr>
+<tr class="row-bad"><td class="ln">chandelier exit</td><td>Blanket lock_r=3.0 / fixed-2.5R everywhere</td><td>Robust off-trend but a grave on trend (caps the monster runners)</td></tr>
+<tr class="row-bad"><td class="ln">chandelier exit</td><td>Fix thrust/absveto chop bleed with an exit</td><td>No exit rescues a chop-momentum bleed — that's the router's job</td></tr>
+<tr class="row-bad"><td class="ln">STOP_UNFILLED</td><td>"Bench abs_veto overnight" (where 3 of 4 lived)</td><td>Textbook fake win — drops +$1,003 of winners to save ~$50 of defect</td></tr>
+<tr class="row-bad"><td class="ln">STOP_UNFILLED</td><td>Trust the broker's native trigger; concrete-Future stop; StopLimit</td><td>Honest partials — each helped (18%→11%) but none killed it; only the per-tick guard did</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout"><div class="ct">The honest small print</div>
+The tick tape is roughly one summer week (plus a second archive regime where we could reach for one). It is a chop-heavy tape with no violent US-open week and, for the faders, no clean trend week to exercise their predicted trend-day bleed. So: grind_long's fix is cross-regime proven and safe to ship; the chandelier and capitulation fixes are strongly proven <em>in regime</em> but lean on thin trend-side evidence and stay paired with router benches; rgv_short and both shadow watches are simply too thin to conclude and go to the bench / shadow to earn it. Nothing here is a cross-regime law — the ones that ship (grind entry ceiling, STOP_UNFILLED guard) are the ones that survived a second regime or are already running clean in production.</div>

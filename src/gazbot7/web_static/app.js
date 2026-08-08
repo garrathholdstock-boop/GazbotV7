@@ -471,6 +471,11 @@
     const g = t.gates || [];
     $("tourn-rows").innerHTML = g.length ? g.map((r, i) => {
       const dot = r.live ? `<span class="live-dot" title="live now"></span>` : "";
+      // armed (taking new entries) vs benched (off in gate_switches.env). This is the
+      // "what gates are live" the operator couldn't read off the dashboard before.
+      const status = r.enabled === false
+        ? `<span class="gpill off" title="benched — takes no new entries">BENCHED</span>`
+        : `<span class="gpill on" title="armed — taking new entries">ON</span>`;
       const clk = r.n ? "clickable" : "";       // only gates with trades have a drill
       // week-to-date winner/loser expectancy (operator's low-win-rate/big-winner lens):
       // avg winner $, avg loser $ (both shown as plain magnitudes), and their delta.
@@ -478,9 +483,9 @@
       const wkT = r.wk_n
         ? `week-to-date: ${r.wk_wins}W / ${r.wk_losses}L · expectancy ${money(r.wk_exp, 1)}/trade`
         : "no trades this week";
-      return `<tr class="${r.relegate ? "releg " : ""}${clk}" data-key="${esc(r.gate)}|${r.side}">
+      return `<tr class="${r.enabled === false ? "benched " : ""}${r.relegate ? "releg " : ""}${clk}" data-key="${esc(r.gate)}|${r.side}">
         <td>${r.relegate ? "🔻" : (i + 1)}</td>
-        <td>${dot}${esc(gateAbbr(r.gate))}</td>
+        <td>${dot}${esc(gateAbbr(r.gate))} ${status}</td>
         <td class="${r.side === "SHORT" ? "red" : "grn"}">${r.side[0]}</td>
         <td class="${r.live ? cls(r.open_unreal) : "mut"}">${r.live ? money(r.open_unreal, 0) : "·"}</td>
         <td class="${r.n ? cls(r.realized) : "mut"}">${r.n ? money(r.realized, 0) : "·"}</td>
@@ -499,7 +504,7 @@
 
     const d = t.desk || {};
     $("tourn-meta").textContent =
-      `${d.live_count}/${d.roster_count} live · today ${money(d.realized_today, 0)} · open ${money(d.open_unreal, 0)}`;
+      `${d.enabled_count}/${d.roster_count} armed · ${d.live_count} live · today ${money(d.realized_today, 0)} · open ${money(d.open_unreal, 0)}`;
   }
 
   function renderPromotion() {

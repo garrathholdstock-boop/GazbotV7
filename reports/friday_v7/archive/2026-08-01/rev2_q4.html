@@ -1,0 +1,224 @@
+<!-- REV2 · Q4 — PATCHES/EXTENDS: Part 2.6 §3 ("Net router value — blocked-losses saved vs winners missed", the −$1,216 table) and Part 2.5 §3 ("Nightly-rollup week-in-review — Router week-review", the same −$1,216 table). It CORRECTS the verdict in Part 2.6 §8 ("Is the router earning its keep? Yes") and Part 2.5's "two things pull the other way, hard" paragraph — both of which assert a defence that neither section ever sized. It also flags a THIRD error neither section caught: the leakage column. -->
+
+<h2><span class="n">REV2 · Q4</span> The router's own estimator says it cost −$1,216 this week. Does it earn its keep or not?</h2>
+
+<p class="lead">Garrath — you caught a real one. Part 2.5 and Part 2.6 both print <b>net router value −$1,216</b> and both conclude <b>"earning its keep"</b>, and the defence in between ("those winners never ran; shadow overstates winners") is <b>asserted and never sized</b>. That is a verdict that does not follow its own numbers, and you were right to poke it. So I sized it. Two things are wrong with the −$1,216: <b>(1) 60% of it is the dual-slot A/B double-count</b> the report admits to but never removes — stripping it takes the week to <b>−$440</b>; <b>(2) the estimator prices zero slippage on a book of 353 modelled round trips</b>, and because the router blocks winners <i>and</i> losers, any execution drag at all moves the number up — <b>breakeven is $1.25 per round trip, or 2.5 MNQ ticks</b>. The standing memory's own <i>floor</i> (live losses ≥1.1× modelled) implies ~8 ticks, which puts the week at <b>+$940</b>.</p>
+
+<p class="lead">But the honest answer is not "so it <i>is</i> earning its keep." It is that <b>the blended number is the wrong statistic</b>, because its two halves have opposite signs and each half is individually robust. <b>Benching in CHOP earns +$1,088. Benching in TREND_UP costs −$1,380.</b> The first is positive before any haircut and survives every leave-one-day-out fold; the second needs a <b>52% winner haircut</b> to break even, which is outside any defensible band. Net-net the machine is a coin flip; the <i>policy</i> inside it is half-proven and half-broken. One number, stated band, below.</p>
+
+<div class="callout">
+  <div class="ct"><b>Honesty banner.</b> Every figure below is re-derived from source, not lifted from the nightly JSONs: 37,160 <code>SUPPRESSED-OPEN</code> lines from the <code>gazbot7-tournament</code> journal for Paris 07-27…07-31, repriced tick-honest against <code>capture.db</code> with the <i>same</i> estimator the nightly uses (<code>exit_scalp</code> 2R target / 1-ATR stop, VPP $2.00, fee $1.50/RT), and regime-tagged by replaying <code>direction_router.replay_marks</code> at each signal. <b>My re-derivation of the published method reproduces it to $115 on $16.8k of gross (0.7%)</b> — see the reconciliation row — so the corrections below are corrections, not a different model. Limits stated plainly: <b>n=353 blocked signals, 5 days, one summer chop-dominated week, MNQ-only, PAPER.</b> Every blocked trade <b>never ran</b> — "missed" is a modelled ceiling throughout. The CLEAN-TREND (n=38), DEAD-CHOP (n=3) and US_OPEN30 (n=6) buckets are <b>reported but not scored</b>. And the regime tags come from the router's <i>own</i> replay, so this is a self-consistent audit ("given what the router believed, did the bench pay?"), not an independent regime oracle.</div>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>1 · Reconciliation — am I even looking at the same number?</h3>
+
+<p>Before correcting anything, reproduce it. Same journal, same repricer, same 120-second signal dedup, A/B slots counted separately exactly as <code>router_nightly.py</code> counts them:</p>
+
+<table>
+<thead><tr><th>Source</th><th class="num">blocked signals</th><th class="num">saved</th><th class="num">missed</th><th class="num">net router value</th></tr></thead>
+<tbody>
+<tr><td class="ln">Published — Part 2.5 §3 &amp; Part 2.6 §3</td><td class="num">—</td><td class="num">$15,788</td><td class="num">$17,003</td><td class="num">−$1,216</td></tr>
+<tr><td class="ln">My re-derivation, <b>identical method</b></td><td class="num">652</td><td class="num">$15,730</td><td class="num">$16,832</td><td class="num">−$1,101</td></tr>
+<tr><td class="ln">delta</td><td class="num">—</td><td class="num">−$58</td><td class="num">−$171</td><td class="num">$115</td></tr>
+</tbody>
+</table>
+<p><b>Read:</b> $115 on $16.8k of gross = <b>0.7%</b>, and it is drift in the right direction — <code>capture.db</code> has backfilled ticks since the nightlies ran, so a handful of signals now reprice with more tape. <b>The published number is real and I can reproduce it.</b> Everything below is a correction to it, not a competing estimate.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>2 · Error 1 — the dual-slot A/B double-count (worth $661, i.e. 60% of the deficit)</h3>
+
+<p>Part 2.6 says the A/B slots "double-count one signal" and then leaves them in the total. They do double-count, and the proof is that the two legs are <b>byte-identical</b> in the nightly's own output. From <code>data/router_nightly/2026-07-31.json</code>:</p>
+
+<table>
+<thead><tr><th>gate</th><th class="num">n</th><th class="num">won</th><th class="num">won_pnl</th><th class="num">lost</th><th class="num">lost_pnl</th></tr></thead>
+<tbody>
+<tr><td class="ln mono">grind_long_A</td><td class="num">116</td><td class="num">46</td><td class="num">$2,633.5</td><td class="num">70</td><td class="num">−$2,228.5</td></tr>
+<tr><td class="ln mono">grind_long_B</td><td class="num">116</td><td class="num">46</td><td class="num">$2,633.5</td><td class="num">70</td><td class="num">−$2,228.5</td></tr>
+</tbody>
+</table>
+
+<p><b>Why they are identical, mechanically:</b> <code>router_nightly.reprice_scalp()</code> applies <code>exit_scalp(target_r=2.0, stop_atr_mult=1.0)</code> to <i>every</i> blocked signal <b>regardless of slot suffix</b>. It does not model Lot B's chandelier at all. So the estimator takes one suppressed signal, reprices it twice under the same exit, and books both copies into saved <i>and</i> missed. The fix is to merge the raw journal events per <b>base</b> gate <i>before</i> the 120-second dedup, so one suppressed signal counts once:</p>
+
+<table>
+<thead><tr><th>Week 07-27…07-31</th><th class="num">signals</th><th class="num">saved</th><th class="num">missed</th><th class="num">net</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">A/B counted separately (as published)</td><td class="num">652</td><td class="num">$15,730</td><td class="num">$16,832</td><td class="num">−$1,101</td></tr>
+<tr class="row-hl"><td class="ln"><b>A/B merged — one signal, counted once</b></td><td class="num"><b>353</b></td><td class="num"><b>$8,644</b></td><td class="num"><b>$9,084</b></td><td class="num"><b>−$440</b></td></tr>
+<tr><td class="ln">duplicate share stripped</td><td class="num">−46%</td><td class="num">−45%</td><td class="num">−46%</td><td class="num"><b>$661 recovered</b></td></tr>
+</tbody>
+</table>
+
+<p><b>Read:</b> <b>~46% of both columns was a duplicate</b>, and because the columns are near-equal the duplication does not cancel — it scales the <i>gap</i> too. Stripping it accounts for <b>$661 of the $1,216</b>, i.e. <b>60% of the deficit was a bookkeeping artifact</b>. The A/B pairs appear from 07-29, the day the scale-out slate went live — the same slate REV2·Q1/Q2 found silently voided the ER/ATR floors. Same root cause, second symptom. <b>Residual known bias I am not fixing:</b> even the merged number still prices Lot B under Lot A's 2R scalp exit. Direction of that error is unknown and it is <i>not</i> claimed as support for the router.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>3 · Error 2 — the estimator prices zero slippage, and the router blocks both sides</h3>
+
+<p>The repricer enters at the signal's <b>touch</b> price and exits at the first tick that crosses 2R or the 1-ATR stop. Fees are modelled ($1.50/RT); <b>slippage is modelled at exactly zero on both legs</b>. Real fills are worse than the touch on entry <i>and</i> exit — this is the standing memory <span class="ln">[[shadow-sim-understates-losses]]</span> (live losses 1.1–3.1× modelled) and <span class="ln">[[execution-cost-autopsy-stage1]]</span> (measured stop-slippage ≈$1,200 leak).</p>
+
+<p><b>The key mechanical point the report never makes:</b> the router blocked <b>221 would-be losers and 132 would-be winners</b> (mean modelled loss $39.12, mean modelled win $68.82). A per-round-trip execution drag δ therefore <i>deepens</i> the losses it saved you from <i>and</i> <i>shrinks</i> the winners it cost you. Both move the same way. So:</p>
+
+<p class="mono" style="text-align:center;margin:10px 0"><b>net(δ) = −$440 + δ × 353</b> &nbsp;&nbsp;→&nbsp;&nbsp; breakeven at <b>δ = $1.25 / round trip = 2.5 MNQ ticks</b></p>
+
+<p>One MNQ tick = 0.25 index points = $0.50 at the desk's $2.00/pt. So the entire −$1,216 headline rests on the claim that a blocked round trip suffers <b>less than three ticks</b> of total slippage across entry, target and stop. Here is the ladder, in physical units, with the loss-multiplier each drag implies against the modelled mean loss of $39.12:</p>
+
+<table>
+<thead><tr><th class="num">MNQ ticks / RT</th><th class="num">δ ($/RT)</th><th class="num">implied loss mult.</th><th class="num">net router value</th><th>note</th></tr></thead>
+<tbody>
+<tr><td class="num">0</td><td class="num">$0.00</td><td class="num">1.00×</td><td class="num">−$440</td><td>the estimator's own assumption</td></tr>
+<tr><td class="num">2</td><td class="num">$1.00</td><td class="num">1.03×</td><td class="num">−$86</td><td></td></tr>
+<tr class="row-hl"><td class="num"><b>2.5</b></td><td class="num"><b>$1.25</b></td><td class="num"><b>1.03×</b></td><td class="num"><b>$0</b></td><td><b>breakeven</b></td></tr>
+<tr><td class="num">4</td><td class="num">$2.00</td><td class="num">1.05×</td><td class="num">+$266</td><td></td></tr>
+<tr class="row-hl"><td class="num"><b>7.8</b></td><td class="num"><b>$3.91</b></td><td class="num"><b>1.10×</b></td><td class="num"><b>+$940</b></td><td><b>the memory band's FLOOR</b></td></tr>
+<tr><td class="num">16</td><td class="num">$8.00</td><td class="num">1.20×</td><td class="num">+$2,384</td><td></td></tr>
+<tr class="row-bad"><td class="num">164</td><td class="num">$82.15</td><td class="num">3.10×</td><td class="num">+$28,600</td><td><b>REJECTED</b> — see below</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct"><b>I am explicitly rejecting the top of my own memory band.</b> <span class="ln">[[shadow-sim-understates-losses]]</span> says 1.1–3.1×, but that band was measured on <i>realised</i> trades with real holding profiles. Applied as a linear per-RT drag to 353 <i>modelled</i> signals it produces +$28.6k, which is obvious nonsense and would be exactly the kind of unsized hand-wave this section exists to kill. <b>I use the FLOOR of the band and nothing above it.</b> If the defence only works at the top of a band, it is not a defence.</div></div>
+
+<p><b>The haircut form of the same question</b> — winners discounted by h, saved column held fixed (the most conservative framing, it takes from one side only):</p>
+
+<table>
+<thead><tr><th>winner haircut h</th><th class="num">0%</th><th class="num">4.8%</th><th class="num">10%</th><th class="num">15%</th><th class="num">20%</th><th class="num">30%</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">net (A/B stripped)</td><td class="num">−$440</td><td class="num"><b>$0</b></td><td class="num">+$469</td><td class="num">+$923</td><td class="num">+$1,377</td><td class="num">+$2,286</td></tr>
+<tr><td class="ln">net (as published, A/B in)</td><td class="num">−$1,216</td><td class="num">−$401</td><td class="num">+$484</td><td class="num">+$1,334</td><td class="num">+$2,185</td><td class="num">+$3,885</td></tr>
+</tbody>
+</table>
+<p><b>→ Direct answer to the question you asked:</b> with the double-count stripped, <b>−$1,216 flips positive at a 4.8% winner haircut</b>. On the published numbers as printed, it flips at <b>7.1%</b>. Both are low bars — but "low bar" is a directional argument again, which is why the number alone is not the verdict. Section 4 is.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>4 · The verdict the blend was hiding — segment it and the two halves disagree</h3>
+
+<p>Per the backtest discipline: never score a blended cross-tape number. Splitting the 353 de-duplicated blocked signals by <b>regime at signal</b> (the router's own replay) is where the whole question resolves:</p>
+
+<table>
+<thead><tr><th>regime @ signal</th><th class="num">n</th><th class="num">saved</th><th class="num">missed</th><th class="num">net</th><th class="num">haircut to flip</th><th>verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">CHOP</td><td class="num">245</td><td class="num">$6,174</td><td class="num">$5,087</td><td class="num"><b>+$1,088</b></td><td class="num">none needed</td><td><span class="tag">✅ EARNS ITS KEEP</span> positive at h=0</td></tr>
+<tr><td class="ln">TREND_DOWN</td><td class="num">44</td><td class="num">$1,216</td><td class="num">$1,364</td><td class="num">−$148</td><td class="num">10.8%</td><td>marginal, low n</td></tr>
+<tr class="row-bad"><td class="ln">TREND_UP</td><td class="num">64</td><td class="num">$1,253</td><td class="num">$2,633</td><td class="num"><b>−$1,380</b></td><td class="num"><b>52.4%</b></td><td><span class="tag">❌ DOES NOT</span> outside any band</td></tr>
+<tr class="row-hl"><td class="ln"><b>blend</b></td><td class="num"><b>353</b></td><td class="num"><b>$8,644</b></td><td class="num"><b>$9,084</b></td><td class="num"><b>−$440</b></td><td class="num">4.8%</td><td>the number that hid both</td></tr>
+</tbody>
+</table>
+
+<p><b>The whole deficit is one segment.</b> Benching in CHOP — the router's core defensive job — is worth <b>+$1,088 before any haircut at all</b>, no execution-drag assumption required. Benching during TREND_UP costs <b>−$1,380</b> and would need the shadow to be overstating winners by <b>52%</b> to break even, which is far outside anything the memory band supports. That is <span class="ln">[[us-open-dont-bench-trend-rider]]</span> and the two ❌ BAD ledger calls, finally with a price tag on them.</p>
+
+<p><b>Same story by mechanism and by gate:</b></p>
+
+<table>
+<thead><tr><th>cut</th><th class="num">n</th><th class="num">saved</th><th class="num">missed</th><th class="num">net</th><th class="num">flip haircut</th><th>verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">FADER benches (rgv / exhaustion / capitulation)</td><td class="num">29</td><td class="num">$1,214</td><td class="num">$601</td><td class="num"><b>+$613</b></td><td class="num">none needed</td><td><span class="tag">✅ PROVEN</span></td></tr>
+<tr class="row-bad"><td class="ln">MOMENTUM benches (grind / abs_veto)</td><td class="num">324</td><td class="num">$7,430</td><td class="num">$8,482</td><td class="num"><b>−$1,053</b></td><td class="num">12.4%</td><td><span class="tag">MARGINAL</span> needs 1.08× drag</td></tr>
+<tr><td class="ln" colspan="7" style="padding-top:10px"><b>per gate</b></td></tr>
+<tr class="row-hl"><td class="ln mono">abs_veto_short</td><td class="num">50</td><td class="num">$1,681</td><td class="num">$592</td><td class="num">+$1,089</td><td class="num">none</td><td>41 of 50 blocked would have lost</td></tr>
+<tr class="row-hl"><td class="ln mono">exhaustion_short</td><td class="num">12</td><td class="num">$632</td><td class="num">$0</td><td class="num">+$632</td><td class="num">none</td><td><b>12 of 12</b> blocked would have lost</td></tr>
+<tr><td class="ln mono">capitulation_long</td><td class="num">5</td><td class="num">$113</td><td class="num">$81</td><td class="num">+$33</td><td class="num">none</td><td>n too small to score</td></tr>
+<tr><td class="ln mono">rgv_short</td><td class="num">12</td><td class="num">$468</td><td class="num">$520</td><td class="num">−$52</td><td class="num">10.0%</td><td>noise</td></tr>
+<tr class="row-bad"><td class="ln mono">abs_veto_long</td><td class="num">64</td><td class="num">$1,318</td><td class="num">$2,013</td><td class="num">−$695</td><td class="num">34.5%</td><td>over-benched</td></tr>
+<tr class="row-bad"><td class="ln mono">grind_long</td><td class="num">210</td><td class="num">$4,430</td><td class="num">$5,877</td><td class="num"><b>−$1,447</b></td><td class="num">24.6%</td><td><b>the single biggest leak</b></td></tr>
+</tbody>
+</table>
+
+<p><b>And by ATR/ER regime bucket × mechanism</b> — this is where the fader defence earns its reputation and the momentum benching loses it:</p>
+
+<table>
+<thead><tr><th>bucket (ATR + ER keyed)</th><th class="num">n</th><th class="num">FADER net</th><th class="num">MOMENTUM net</th><th class="num">total</th></tr></thead>
+<tbody>
+<tr><td class="ln">building (ER 0.20–0.35)</td><td class="num">117</td><td class="num">+$166</td><td class="num">+$338</td><td class="num">+$504</td></tr>
+<tr><td class="ln">normal-chop (ATR 8–18, ER&lt;0.20)</td><td class="num">130</td><td class="num">+$63</td><td class="num">−$488</td><td class="num">−$425</td></tr>
+<tr class="row-hl"><td class="ln">violent-whipsaw (ATR≥18, ER&lt;0.20)</td><td class="num">65</td><td class="num"><b>+$408</b></td><td class="num"><b>−$869</b></td><td class="num">−$461</td></tr>
+<tr><td class="ln">clean-trend (ER≥0.35) <i>— not scored, n low</i></td><td class="num">38</td><td class="num">−$24</td><td class="num">+$6</td><td class="num">−$18</td></tr>
+<tr><td class="ln">dead-chop (ATR&lt;8) <i>— not scored, n=3</i></td><td class="num">3</td><td class="num">—</td><td class="num">−$40</td><td class="num">−$40</td></tr>
+</tbody>
+</table>
+<p><b>Read the violent-whipsaw row.</b> That is Friday. Benching the <b>faders</b> into ATR-52/62 violence was worth <b>+$408</b>; benching the <b>momentum</b> gates in the same tape cost <b>−$869</b>. Part 2.6 §6 called the Friday defensive trim "shadow-vindicated" — half right. The fader half was vindicated; the momentum half was the most expensive segment of the week.</p>
+
+<p><b>By session</b> (US open = 13:30 UTC): OVERNIGHT_EU n=216, <b>−$93</b>. US_SESSION n=131, <b>−$97</b>. <b>US_OPEN30</b> (13:00–13:30 UTC) n=6, <b>−$249 — and 5 of the 6 blocked signals would have won.</b> n=6 so it is <b>reported, not scored</b>, but it is the sharpest single illustration of the banked rule: benching across the open is where the router pays the most per decision.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>5 · Robustness — which of these two conclusions actually survives?</h3>
+
+<p>The discipline demands leave-one-day-out and strip-the-best-trades on every claim. Here both, run on the blend and on the same book with the TREND_UP benches removed:</p>
+
+<table>
+<thead><tr><th>test</th><th class="num">blended net</th><th class="num">net, TREND_UP benches removed</th></tr></thead>
+<tbody>
+<tr><td class="ln">all 5 days</td><td class="num">−$440</td><td class="num">+$940</td></tr>
+<tr><td class="ln">LOO — drop 07-27</td><td class="num">−$358</td><td class="num">+$1,021</td></tr>
+<tr><td class="ln">LOO — drop 07-28</td><td class="num">−$342</td><td class="num">+$958</td></tr>
+<tr class="row-bad"><td class="ln">LOO — drop 07-29</td><td class="num"><b>+$230</b></td><td class="num">+$640</td></tr>
+<tr class="row-bad"><td class="ln">LOO — drop 07-30</td><td class="num"><b>−$804</b></td><td class="num">+$608</td></tr>
+<tr><td class="ln">LOO — drop 07-31</td><td class="num">−$484</td><td class="num">+$533</td></tr>
+<tr><td class="ln">strip top &amp; bottom 3 trades</td><td class="num">−$226</td><td class="num">+$753</td></tr>
+<tr><td class="ln">strip top &amp; bottom 5 trades</td><td class="num">−$72</td><td class="num">+$591</td></tr>
+<tr><td class="ln">strip top &amp; bottom 10 trades</td><td class="num">+$268</td><td class="num">+$1,008</td></tr>
+<tr class="row-hl"><td class="ln"><b>verdict</b></td><td class="num"><b>SIGN FLIPS</b> (−$804…+$268)<br>not robust — do not quote it</td><td class="num"><b>POSITIVE IN ALL 9 FOLDS</b> (+$533…+$1,021)<br>robust</td></tr>
+</tbody>
+</table>
+
+<p><b>This is the finding.</b> The blended router-value number <b>changes sign depending on which single day you drop</b> — it has no statistical standing in either direction, and neither Part 2.5's "−$1,216, over-benched" nor Part 2.6's "yes, earning its keep" is supportable from it. What <i>is</i> robust is the split: remove the TREND_UP benches and the week is positive in every leave-one-day-out fold and every trade-stripping fold, <b>at zero haircut, with no execution-drag assumption whatsoever</b>.</p>
+
+<p><b>Sized policy fix</b> (all at h=0, no drag assumed):</p>
+<table>
+<thead><tr><th>policy</th><th class="num">signals</th><th class="num">week net</th><th class="num">Δ vs as-run</th></tr></thead>
+<tbody>
+<tr><td class="ln">as run</td><td class="num">353</td><td class="num">−$440</td><td class="num">—</td></tr>
+<tr class="row-hl"><td class="ln">stop benching <b>momentum</b> in TREND_UP (56 signals)</td><td class="num">297</td><td class="num"><b>+$1,175</b></td><td class="num"><b>+$1,615</b></td></tr>
+<tr><td class="ln">stop benching <b>anything</b> in TREND_UP (64 signals)</td><td class="num">289</td><td class="num">+$940</td><td class="num">+$1,380</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>6 · Error 3 — the leakage column, which neither section reconciled</h3>
+
+<p>Part 2.5 prints week leakage <b>−$1,083</b>. Part 2.6 prints <b>"$0 (durable days)"</b> on the same row of the same table. Both are true in their own frame (−$456/−$398/−$229 on 27/28/29, $0 on 30/31), but the report never says so, and a reader comparing the two sections sees a contradiction. Worse, sitting in the same table as saved/missed it invites being netted in. <b>It must not be.</b></p>
+
+<ul>
+<li><b>Leakage is the only realised-money number in that whole table.</b> saved and missed are modelled counterfactuals on trades that never ran; leakage is real losers that really fired. Do not present them side by side without saying which is which.</li>
+<li><b>Leakage is not a router cost line.</b> It counts managed-gate losers that fired while the gate was ON. The no-router baseline has those <i>same</i> losers. Subtracting it from router value would triple-count the router's failures — a third bookkeeping error on top of the two above.</li>
+<li>What it <i>is</i>: an under-benching diagnostic. And it points the <b>opposite</b> way to the over-benching story both sections lead with — the week's realised evidence says the router was too loose early (−$1,083 through Tuesday) and got tighter, not that it was uniformly trigger-happy.</li>
+</ul>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>7 · One number, with a band</h3>
+
+<p class="lead">You asked for a number instead of a directional argument. Here it is.</p>
+
+<table>
+<thead><tr><th>Router net value · Paris 07-27…07-31 · A/B-stripped · tick-honest</th><th class="num">value</th></tr></thead>
+<tbody>
+<tr><td class="ln">point estimate, zero execution drag (the estimator's own assumption)</td><td class="num">−$440</td></tr>
+<tr><td class="ln">point estimate, memory-floor drag (1.1× losses ⇒ $3.91/RT ≈ 7.8 ticks)</td><td class="num">+$940</td></tr>
+<tr class="row-hl"><td class="ln"><b>★ STATED VALUE — midpoint with band</b></td><td class="num"><b>+$250 &nbsp;[ −$440 , +$940 ]</b></td></tr>
+<tr><td class="ln">for comparison — the figure Parts 2.5 &amp; 2.6 published</td><td class="num">−$1,216</td></tr>
+<tr><td class="ln">for comparison — the desk's actual realised P&amp;L, same week</td><td class="num">+$625</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="ct">
+<b>The verdict, stated properly:</b><br><br>
+<b>1. −$1,216 is wrong.</b> $661 of it is the dual-slot A/B double-count; the rest sits on a zero-slippage assumption that breaks at 2.5 MNQ ticks per round trip. Corrected, the week is <b>+$250, band −$440 to +$940</b>.<br><br>
+<b>2. "Earning its keep" was also wrong — as stated.</b> Not because the sign is negative, but because the blended number <b>flips sign on leave-one-day-out</b> (−$804 to +$230). It cannot support a verdict in either direction. Part 2.6 §8's "Yes" and Part 2.5's "two things pull the other way, hard" were both reasoning from a statistic with no standing. <b>On aggregate P&amp;L this week the router is indistinguishable from zero.</b><br><br>
+<b>3. The real answer is a split verdict, and both halves ARE robust:</b><br>
+&nbsp;&nbsp;• <b>Defence — benching faders and benching into CHOP: EARNS ITS KEEP. +$1,088 (CHOP) / +$613 (faders), positive before any haircut, robust to every fold.</b><br>
+&nbsp;&nbsp;• <b>Offence — benching momentum in TREND_UP: DOES NOT. −$1,380, needing a 52% winner haircut to break even.</b><br><br>
+<b>4. So the honest answer to "does it earn its keep" is: half of it does, decisively, and the other half is eating the proceeds.</b> Fixing the one segment is worth <b>+$1,615/week</b> at zero haircut and is positive in all nine robustness folds — which makes "stop benching aligned momentum in a confirmed TREND_UP" the highest-value, best-evidenced change in this entire report, and it needs no new build: it is the rule already banked as <span class="ln">[[us-open-dont-bench-trend-rider]]</span>, simply not being enforced.<br><br>
+<b>5. Caveat that must travel with the number:</b> one week, n=353 modelled signals, chop-dominated summer tape, MNQ-only, PAPER, and the regime tags are the router's own. The <b>segment split</b> is the robust finding; the <b>±$690 band</b> on the headline is honest width, not false precision. Re-run after a genuine trend week before sizing anything off the TREND_UP figure.
+</div></div>
+</div>

@@ -1,0 +1,233 @@
+<!-- REV2 · Q2 — PATCHES/EXTENDS: Part 2 (Shadow desk — the "promote abs_veto_55s two-sided" recommendation), Part 2.6 (Router Review — the bench/arm calls on abs_veto), Part 1.5 (Rehab — the live abs_veto config table), and it CORRECTS row M6 of REV2·Q0 ("change nothing on abs_veto, leave the 1.5/2.5 cells alone"). -->
+
+<h2><span class="n">REV2 · Q2</span> Is <code>abs_veto_long</code> already live — and if it is, what exactly am I promoting?</h2>
+
+<p class="lead">Garrath — you are right and Part 2 is wrong. <b>abs_veto is live on both sides and has been since 2026-07-25</b> (<code>slot_strategy.tournament_slots()</code>, commit <code>eb57f64</code>); <code>abs_veto_long</code> is armed in <code>gate_switches.env</code> right now and traded <b>59 lots across 43 signals for +$59.5</b> this week. There is <b>no slot to promote</b>. What is actually on the table is a <b>four-line config diff on a gate that is already running</b> — and the diff is not the one Part 2 proposed. Chasing your +$59.5-vs-+$776 question turned up three things: (1) the two numbers are measured over <b>different windows</b>, so the real gap is <b>$609.5</b>, not $717; (2) <b>82% of that gap is entry, not exit</b> — the live desk only ever saw 43 of the shadow's 69 long signals, because the router had the gate benched for 26 of them; and (3) while checking why the ER floor did not block anything, I found that <b>the dual-slot scale-out slate silently killed every ER and ATR floor on the desk on 2026-07-29</b>. Both this report and the router have spent the week reasoning about filters that are not running.</p>
+
+<div class="callout">
+  <div class="ct"><b>Honesty banner.</b> Every number below is from the live <code>gazbot7.db</code> trade ledger, the tick-repriced <code>shadow_real.real_pnl</code>, the <code>gazbot7-tournament</code> journal, and 10.08M captured MNQ ticks — nothing is recalled. Windows are stated on every row. The tape is <b>one summer week, chop-dominated, MNQ-only, PAPER</b>: the CLEAN-TREND bucket is n=6 long / n=5 short and is <b>reported but not scored</b>. The shadow runs <b>1 lot</b>, the live desk runs <b>2</b> — no raw dollar comparison between them is valid without that adjustment, and I make it explicit everywhere below.</div>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>1 · The premise — both numbers are real, but they are not the same measurement</h3>
+
+<p>The +$776 is the shadow's <b>Mon-to-Fri calendar week</b>. The +$59.5 is the live gate's <b>whole life this week</b>, which starts at the Sunday 22:00 UTC reopen. The shadow lost $106.5 on that Sunday night; crediting it with a session the live desk actually traded inflates the gap by $107.</p>
+
+<table>
+<thead><tr><th>window</th><th>engine</th><th class="num">signals</th><th class="num">lots</th><th class="num">net</th><th>note</th></tr></thead>
+<tbody>
+<tr><td class="ln">Mon 07-27 → Fri 07-31</td><td>shadow <code>abs_veto_55s</code> LONG</td><td class="num">66</td><td class="num">66</td><td class="num">+$775.5</td><td class="ln">the "+$776" in the question</td></tr>
+<tr><td class="ln">Mon 07-27 → Fri 07-31</td><td>LIVE <code>abs_veto_long</code></td><td class="num">40</td><td class="num">56</td><td class="num">+$131.0</td><td class="ln">the like-for-like live number for that window</td></tr>
+<tr class="row-hl"><td class="ln"><b>Sun 07-26 22:00 → Fri 07-31</b></td><td>shadow <code>abs_veto_55s</code> LONG</td><td class="num">69</td><td class="num">69</td><td class="num">+$669.0</td><td class="ln"><b>the honest comparison window</b> (live gate's first fire → last)</td></tr>
+<tr class="row-hl"><td class="ln"><b>Sun 07-26 22:00 → Fri 07-31</b></td><td>LIVE <code>abs_veto_long</code></td><td class="num">43</td><td class="num">59</td><td class="num">+$59.5</td><td class="ln"><b>the "+$59.5" in the question</b></td></tr>
+<tr><td class="ln">Sun 07-26 22:00 → Fri 07-31</td><td>shadow <code>abs_veto_55s</code> SHORT</td><td class="num">63</td><td class="num">63</td><td class="num">+$659.0</td><td class="ln">the short side, same window</td></tr>
+<tr><td class="ln">Sun 07-26 22:00 → Fri 07-31</td><td>LIVE <code>abs_veto_short</code></td><td class="num">22</td><td class="num">26</td><td class="num">+$358.5</td><td class="ln">live SHORT beat shadow <i>per signal</i>: +$16.3 vs +$10.5</td></tr>
+</tbody>
+</table>
+
+<p><b>And the trade counts are not near-identical.</b> 59 live "trades" are 59 <b>lots</b> — under the dual-slot scale-out every signal opens <b>two</b> sub-slots (<code>_A</code> and <code>_B</code>). Collapse them and the live desk took <b>43 signals against the shadow's 69</b>: it saw <b>62%</b> of the opportunity set, at <b>2× the size</b> on each one it did take. That single line reframes the whole question — it is not "the same trades earned less", it is "a different, smaller, double-sized trade set".</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>2 · The config diff — live <code>abs_veto_long</code>/<code>_short</code> vs shadow <code>abs_veto_55s</code></h3>
+
+<p>The <b>entry is byte-identical</b>. Everything that differs is arming, sizing, exit and execution.</p>
+
+<table>
+<thead><tr><th>axis</th><th>LIVE (as of 2026-08-01)</th><th>SHADOW <code>abs_veto_55s</code></th><th>same?</th></tr></thead>
+<tbody>
+<tr><td class="ln">entry gate</td><td class="ln"><code>gate_thrust(thr=1.5, amp_floor=0.0004)</code></td><td class="ln"><code>gate_thrust(thr=1.5, amp_floor=0.0004)</code></td><td><b>IDENTICAL</b></td></tr>
+<tr><td class="ln">amp_floor</td><td class="ln">0.0004</td><td class="ln">0.0004</td><td><b>IDENTICAL</b></td></tr>
+<tr><td class="ln">absorption veto</td><td class="ln">55s wait, re-test thrust still fires + <code>exit_absorption(flow_min=50)</code>; <b>abandons a signal older than 75s</b></td><td class="ln"><code>confirm_s=55</code>, same re-test, <code>absorption_flow_min=50</code>; <b>no abandon clock</b></td><td>same mechanism, live has one extra guard</td></tr>
+<tr class="row-bad"><td class="ln">ER floor</td><td class="ln"><code>ER_FLOOR["abs_veto_long"]=0.25</code> — <b>NOT IN FORCE</b> (see §3)</td><td class="ln">none</td><td><b>identical in fact, different on paper</b></td></tr>
+<tr class="row-bad"><td class="ln">ATR floor</td><td class="ln"><code>ATR_FLOOR["abs_veto_short"]=16.0</code> — <b>NOT IN FORCE</b> (see §3)</td><td class="ln">none</td><td><b>identical in fact, different on paper</b></td></tr>
+<tr class="row-hl"><td class="ln">size per signal</td><td class="ln"><b>2 lots</b> — Lot A + Lot B, <code>base_size=1</code> each</td><td class="ln"><b>1 lot</b> (<code>qty=1.0</code>)</td><td><b>DIFFERENT — 2×</b></td></tr>
+<tr class="row-hl"><td class="ln">Lot A exit</td><td class="ln">scalp <b>1.5R</b>, stop 1.0×ATR, give-back off, <code>adaptive_exit=False</code> (<code>exit_overrides.json</code>, set 07-31 17:37)</td><td class="ln">— (single lot)</td><td><b>DIFFERENT</b></td></tr>
+<tr class="row-hl"><td class="ln">Lot B exit</td><td class="ln">scalp <b>2.5R</b>, stop 1.0×ATR — <i>before 07-31 17:37 this was the "wide" lock-chandelier (start_k 3.5 → lock_k 0.5 past 6.0R)</i></td><td class="ln">single lot at <b>target_r 2.0</b>, stop 1.0×ATR</td><td><b>DIFFERENT — and it changed mid-week</b></td></tr>
+<tr><td class="ln">catastrophe cut</td><td class="ln"><code>exit_absorption</code> backstop, min loss $60</td><td class="ln"><code>adverse_cut_atr=1.5</code> + absorption cut (2 fires, −$158 this week)</td><td>different backstop</td></tr>
+<tr><td class="ln">regime-3 exit selector</td><td class="ln"><b>OFF</b> under scale-out (<code>adaptive_exit=False</code> on both sub-slots); was ON in the pre-07-29 single-slot era</td><td class="ln">n/a</td><td>live-only, and it silently switched off</td></tr>
+<tr class="row-bad"><td class="ln">stop execution</td><td class="ln">resting broker stop — <b><code>STOP_UNFILLED</code> path is live</b>: 4 long lots −$167.5, 2 short lots −$106.0 this week</td><td class="ln">modelled stop, always fills</td><td><b>DIFFERENT — live-only leak of $273.5</b></td></tr>
+<tr class="row-hl"><td class="ln">arming</td><td class="ln">router benches it — <b>26 long / 25 short signals blocked</b> this week</td><td class="ln">never benched, fires every signal</td><td><b>DIFFERENT — the biggest term</b></td></tr>
+<tr><td class="ln">fees</td><td class="ln">$1.50/RT × <b>2 lots</b> = $3.00 per signal ($88.5 on the long book)</td><td class="ln">$1.50/RT × 1 lot, already inside <code>real_pnl</code></td><td>DIFFERENT</td></tr>
+<tr><td class="ln">P&amp;L basis</td><td class="ln">venue truth, PAPER fills</td><td class="ln">tick-repriced <code>shadow_real.real_pnl</code></td><td>comparable</td></tr>
+<tr><td class="ln">median hold</td><td class="ln"><b>4.1 min</b> (n=85 lots)</td><td class="ln"><b>8.0 min</b> (n=132)</td><td>live exits ~2× faster</td></tr>
+</tbody>
+</table>
+
+<p><b>The live veto is doing almost all its work on the short side.</b> From the tournament journal, 07-26 → 07-31: <code>abs_veto_long</code> raised 63 thrusts and <b>opened 59, skipped 4 as stale, vetoed 0 as absorbed</b>. <code>abs_veto_short</code> raised 80 and <b>opened 30, skipped 28 as stale, vetoed 22 as absorbed</b>. So the "absorption veto" is a short-side filter in practice; on the long side it is a 55s delay and nothing more. That is worth knowing before anyone calls the veto the reason abs_veto works.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>3 · ★ The thing I did not go looking for: every ER and ATR floor on the desk has been dead since 07-29</h3>
+
+<p><code>tournament.step()</code> gates each intent with <code>er_blocks(slot, er)</code> and <code>atr_blocks(slot, f.atr)</code> — passing the <b>slot tag</b>. Under the dual-slot scale-out slate the tags are <code>abs_veto_long_A</code>, <code>abs_veto_long_B</code>, <code>grind_long_A</code>… but <code>ER_FLOOR</code> and <code>ATR_FLOOR</code> are keyed on the <b>base</b> names. The lookup never matches. The same function has a <code>_base()</code> helper and it <i>is</i> applied to the bench switch (line 250), the 55s veto (line 303) and the exhaustion confirm (line 345) — but <b>not</b> to the two floors.</p>
+
+<table>
+<thead><tr><th>evidence</th><th>what it shows</th></tr></thead>
+<tbody>
+<tr><td class="ln"><b>code</b></td><td class="ln"><code>tournament.py:139/142</code> — <code>er_blocks(slot, er)</code> / <code>atr_blocks(slot, f.atr)</code> with the sub-slot tag; <code>deciders.ER_FLOOR</code> / <code>ATR_FLOOR</code> keyed on base names.</td></tr>
+<tr class="row-hl"><td class="ln"><b>journal</b></td><td class="ln"><b>7,734</b> <code>ER gate:</code> / <code>ATR gate:</code> suppression lines between 07-26 and the very last one at <b>2026-07-29 13:29:04</b>. The scale-out sub-slots first appear in the journal at <b>2026-07-29 16:24</b>. <b>Zero suppressions since.</b></td></tr>
+<tr class="row-hl"><td class="ln"><b>trades</b></td><td class="ln"><code>abs_veto_long_A</code> opened at 30-min ER <b>0.013</b> (07-30 10:09, +$77.5 TARGET), <b>0.035</b> (07-30 05:48), <b>0.049</b> (07-30 12:32) — all far below the 0.25 floor that is supposedly gating it.</td></tr>
+</tbody>
+</table>
+
+<p><b>Which floors are affected:</b> <code>abs_veto_long</code> ER 0.25, <code>grind_long</code> ER 0.35 <i>and</i> ATR 24, <code>abs_veto_short</code> ATR 16, <code>capitulation_long</code> ATR 10. All of them, since 07-29 16:24. Note the date on the abs_veto floor: commit <code>9767c67</code>, <b>2026-07-30</b> — it was written the day <i>after</i> the slate change disabled it, so <b>it has never once run live</b>.</p>
+
+<div class="callout">
+  <div class="ct"><b>This corrupts two conclusions elsewhere in this report.</b> Part 2.6 quotes the router's own 07-30 11:08 tick — <i>"grind re-armed but its 0.35 floor auto-gates it, so low-risk"</i> — and the 11:13 post-mortem <i>"fired at ER≥0.35 (floor passed)"</i>. Neither is true; grind had no floor, and the 11:13 loss is not evidence about the floor's quality. Any Part 1.5 / Part 2.6 line that reasons from a live ER or ATR floor after 07-29 16:24 needs re-reading with the filter removed.</div>
+</div>
+
+<p><b>Do NOT rush to wire it up.</b> The counterfactual on abs_veto_long's 31 scale-out-era signals is honest but tail-dominated:</p>
+<table>
+<thead><tr><th>population</th><th class="num">signals</th><th class="num">net</th><th class="num">median</th><th class="num">strip best-1</th><th class="num">strip best-2</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">would have been <b>BLOCKED</b> by a working ER≥0.25</td><td class="num">24</td><td class="num">+$494.5</td><td class="num">−$42.8</td><td class="num">+$18.0</td><td class="num">−$233.5</td></tr>
+<tr class="row-bad"><td class="ln">would have been <b>KEPT</b> (ER ≥ 0.25)</td><td class="num">7</td><td class="num">−$168.5</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+</tbody>
+</table>
+<p class="ln"><i>Read it straight: the floor would have blocked the week's two biggest winners (+$476.5 and +$251.5) and kept a −$168.5 book — but the blocked population's <b>median is −$42.8</b> and its edge vanishes after stripping one trade. So there is <b>no live evidence for the floor and none robustly against it</b>. It is simply <b>untested</b>, and the honest position is: fix the wiring so the desk stops lying about itself, then decide the floor's value on its own evidence — do not let a silent bug make the decision.</i></p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>4 · The reconciliation — same signals? same fills? where did the $609.5 go?</h3>
+
+<p>Method: match every shadow <code>abs_veto_55s</code> fire to a live signal within ±180s. For every shadow fire the live desk did <b>not</b> take, look for a <code>SUPPRESSED-OPEN … (disabled by switch)</code> line in the tournament journal at that moment — that is ground truth that the gate fired and the router's bench blocked it. Anything left over is a live gate that never raised the signal at all.</p>
+
+<table>
+<thead><tr><th>LONG — shadow +$669.0 (69 fires) → live +$59.5 (43 signals / 59 lots)</th><th class="num">fires</th><th class="num">shadow $</th><th class="num">live $</th><th class="num">effect</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><b>ENTRY — router had the gate BENCHED.</b> Journal shows the thrust fired and the switch blocked it.</td><td class="num">26</td><td class="num">+$397.0</td><td class="num">$0</td><td class="num">−$397.0</td></tr>
+<tr class="row-bad"><td class="ln"><b>ENTRY — live gate never raised the signal.</b> Service restarts (<b>23</b> in this window, <b>6</b> of them <code>code=dumped</code> crashes), the 10s stale-tape / 30s stale-bar freshness gates, and the veto's "thrust gone/stale" skip.</td><td class="num">18</td><td class="num">+$102.5</td><td class="num">$0</td><td class="num">−$102.5</td></tr>
+<tr class="row-hl"><td class="ln"><b>EXIT + SLOT SPLIT + EXECUTION — the ~25 SHARED signals.</b> Shadow: 25 lots @2.0R = +$169.5. Live: 38 lots (A@1.5R + B) = +$49.0. Live had <b>1.5× the size and still made $120 less</b>.</td><td class="num">25</td><td class="num">+$169.5</td><td class="num">+$49.0</td><td class="num">−$120.5</td></tr>
+<tr><td class="ln"><b>CREDIT — live-only signals</b> the shadow never fired</td><td class="num">—</td><td class="num">$0</td><td class="num">+$10.5</td><td class="num">+$10.5</td></tr>
+<tr class="row-hl"><td class="ln"><b>TOTAL</b></td><td class="num">69</td><td class="num">+$669.0</td><td class="num">+$59.5</td><td class="num">−$609.5</td></tr>
+</tbody>
+</table>
+
+<p><b>Answer to the question as asked: 82% entry, 20% exit/slot, and the exit term is smaller than it looks.</b> Of the −$120.5 on the shared signals, roughly <b>$20 is pure fee</b> (38 live lots at $1.50 vs 25 shadow lots) and <b>$167.5 is the <code>STOP_UNFILLED</code> execution path</b> (four pre-scale-out lots on 07-26/27/28 where the resting stop did not trigger — a bug with a fix on a branch, memory <code>[[stop-unfilled-contfuture-root-cause]]</code>, still not deployed). Strip fees and the stop bug and the <b>exit-design</b> term is roughly <b>+$67 in live's favour</b>. <b>The dual-slot exit is not what cost you the money. The bench did.</b></p>
+
+<table>
+<thead><tr><th>SHORT — shadow +$659.0 (63 fires) → live +$358.5 (22 signals / 26 lots)</th><th class="num">fires</th><th class="num">shadow $</th><th class="num">live $</th><th class="num">effect</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><b>ENTRY — router BENCHED.</b> Those signals <i>lost</i> money in shadow — the bench <b>saved</b> $157.</td><td class="num">25</td><td class="num">−$157.0</td><td class="num">$0</td><td class="num">+$157.0</td></tr>
+<tr class="row-bad"><td class="ln"><b>ENTRY — live gate never raised it.</b> The short side's veto skipped 28 as stale and vetoed 22 as absorbed; the shadow's veto has no 75s abandon clock.</td><td class="num">19</td><td class="num">+$620.0</td><td class="num">$0</td><td class="num">−$620.0</td></tr>
+<tr><td class="ln">ENTRY — live slot already in a position</td><td class="num">1</td><td class="num">−$41.0</td><td class="num">$0</td><td class="num">+$41.0</td></tr>
+<tr class="row-hl"><td class="ln"><b>SHARED signals — live WON the exit.</b> Shadow 18 lots @2.0R = +$237.0; live 21 lots = +$422.5, carried by one A+B pair on 07-29 (+$232 TARGET / +$536 wide chandelier).</td><td class="num">18</td><td class="num">+$237.0</td><td class="num">+$422.5</td><td class="num">+$185.5</td></tr>
+<tr><td class="ln">live-only signals</td><td class="num">—</td><td class="num">$0</td><td class="num">−$64.0</td><td class="num">−$64.0</td></tr>
+<tr class="row-hl"><td class="ln"><b>TOTAL</b></td><td class="num">63</td><td class="num">+$659.0</td><td class="num">+$358.5</td><td class="num">−$300.5</td></tr>
+</tbody>
+</table>
+
+<p><b>The two sides tell opposite stories, and that is the finding.</b> The router's long-side benching <b>cost $397</b>; its short-side benching <b>saved $157</b>. Same gate, same veto, same week — the bench was right on one side and wrong on the other. Which one it got right is determined entirely by regime, so here is the regime split of exactly the signals it blocked:</p>
+
+<table>
+<thead><tr><th>regime at the blocked fire</th><th class="num">LONG blocked</th><th class="num">shadow $ forgone</th><th class="num">SHORT blocked</th><th class="num">shadow $ forgone</th><th>verdict on the bench</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><b>NORMAL-CHOP</b> (mid ATR, ER&lt;0.25)</td><td class="num">13</td><td class="num">+$384.0</td><td class="num">12</td><td class="num">+$185.0</td><td class="ln"><b>WRONG on both sides</b> — the single biggest error of the week</td></tr>
+<tr class="row-bad"><td class="ln">BUILDING (ER 0.25–0.45)</td><td class="num">10</td><td class="num">+$70.5</td><td class="num">7</td><td class="num">−$35.0</td><td class="ln">wrong long, right short, both small</td></tr>
+<tr><td class="ln">CLEAN-TREND (ER ≥ 0.45)</td><td class="num">2</td><td class="num">+$17.0</td><td class="num">2</td><td class="num">−$71.5</td><td class="ln">n too small to score</td></tr>
+<tr class="row-hl"><td class="ln"><b>VIOLENT-WHIPSAW</b> (ATR ≥ Q75 19.2, ER&lt;0.25)</td><td class="num">1</td><td class="num">−$74.5</td><td class="num">4</td><td class="num">−$235.5</td><td class="ln"><b>RIGHT — the bench saved $310 here</b></td></tr>
+</tbody>
+</table>
+<p class="ln"><i>Regime keyed on ATR level + 30-min ER + 60-bar range-break over 16,695 one-minute bars rebuilt from the 5s capture (ATR quartiles Q25 11.0 / Q50 14.4 / Q75 19.2 pt), not on the clock. Session split reported below.</i></p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>5 · Regime × session — where abs_veto actually earns, both engines side by side</h3>
+
+<p>Live is per <b>lot</b> (so the dual-slot days count twice); shadow is per <b>fire</b>. Read the shapes, not the raw dollars.</p>
+
+<table>
+<thead><tr><th>LONG · regime × session</th><th class="num">live lots</th><th class="num">live net</th><th class="num">live win%</th><th class="num">shadow n</th><th class="num">shadow net</th><th class="num">shadow win%</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><b>NORMAL-CHOP · overnight/pre-open</b></td><td class="num">14</td><td class="num">+$383.5</td><td class="num">50%</td><td class="num">24</td><td class="num">+$525.0</td><td class="num">58%</td></tr>
+<tr><td class="ln">NORMAL-CHOP · US cash (≥13:30 UTC)</td><td class="num">8</td><td class="num">+$2.5</td><td class="num">38%</td><td class="num">8</td><td class="num">+$0.5</td><td class="num">38%</td></tr>
+<tr><td class="ln">VIOLENT-WHIPSAW · US cash</td><td class="num">13</td><td class="num">+$1.5</td><td class="num">23%</td><td class="num">10</td><td class="num">+$146.0</td><td class="num">50%</td></tr>
+<tr><td class="ln">VIOLENT-WHIPSAW · overnight</td><td class="num">6</td><td class="num">−$50.0</td><td class="num">33%</td><td class="num">4</td><td class="num">−$37.5</td><td class="num">25%</td></tr>
+<tr class="row-bad"><td class="ln">BUILDING · overnight</td><td class="num">5</td><td class="num">−$199.0</td><td class="num">0%</td><td class="num">12</td><td class="num">+$36.5</td><td class="num">42%</td></tr>
+<tr><td class="ln">BUILDING · US cash</td><td class="num">5</td><td class="num">+$17.0</td><td class="num">60%</td><td class="num">5</td><td class="num">+$61.0</td><td class="num">60%</td></tr>
+<tr><td class="ln">CLEAN-TREND · US cash <i>(n too small — not scored)</i></td><td class="num">8</td><td class="num">−$96.0</td><td class="num">38%</td><td class="num">6</td><td class="num">−$62.5</td><td class="num">33%</td></tr>
+</tbody>
+</table>
+
+<table>
+<thead><tr><th>SHORT · regime × session</th><th class="num">live lots</th><th class="num">live net</th><th class="num">shadow n</th><th class="num">shadow net</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">NORMAL-CHOP · overnight</td><td class="num">5</td><td class="num">−$21.5</td><td class="num">20</td><td class="num">+$351.5</td></tr>
+<tr><td class="ln">BUILDING · overnight</td><td class="num">4</td><td class="num">−$146.5</td><td class="num">12</td><td class="num">+$204.5</td></tr>
+<tr><td class="ln">BUILDING · US cash</td><td class="num">2</td><td class="num">+$110.5</td><td class="num">9</td><td class="num">+$172.5</td></tr>
+<tr class="row-bad"><td class="ln"><b>VIOLENT-WHIPSAW · US cash</b></td><td class="num">4</td><td class="num">−$202.5</td><td class="num">7</td><td class="num">−$125.0</td></tr>
+<tr class="row-bad"><td class="ln"><b>VIOLENT-WHIPSAW · overnight</b></td><td class="num">1</td><td class="num">−$54.5</td><td class="num">4</td><td class="num">−$60.5</td></tr>
+<tr><td class="ln">CLEAN-TREND · US cash <i>(n=3/3 — not scored)</i></td><td class="num">3</td><td class="num">+$791.0</td><td class="num">3</td><td class="num">+$101.0</td></tr>
+</tbody>
+</table>
+
+<p><b>The shape is consistent across both engines and both sides: abs_veto is an OVERNIGHT NORMAL-CHOP gate.</b> That is the opposite of how the router treated it — the durable tick's standing rule is "confirmed chop → bench all momentum", and abs_veto is filed as momentum. It is the single rule that cost the most this week. The one place both engines agree it should be off is <b>VIOLENT-WHIPSAW on the short side</b>: live −$257 across 5 lots, shadow −$185.5 across 11 fires.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>6 · The 1.5/2.5 exit cells — swept, not assumed</h3>
+
+<p>The Lot-A/Lot-B Rs in <code>exit_overrides.json</code> are an operator prior, so I swept them tick-honest. Method: 150 <code>abs_veto_55s</code> entries inside the 250ms tick coverage (10,080,959 MNQ ticks, 2026-07-23 22:00 → 07-31 21:00), each replayed forward from the fill — a lot banks +R×ATR if the favourable level prints first, stops at −1.0×ATR if the adverse level prints first, else marks out at the 90-min cap (no shadow trade reached it; max hold was 62 min). <b>Replay validated against the shadow repricer: 98.7% sign agreement, MAE $2.70 per trade at the shadow's own 2.0R setting</b> — so the sweep is measuring the exit, not my simulator.</p>
+
+<table>
+<thead><tr><th>LONG — $ per SIGNAL (Lot A + Lot B combined, 1 lot each)</th><th class="num">BUILDING n=21</th><th class="num">CLEAN-TREND n=6*</th><th class="num">NORMAL-CHOP n=40</th><th class="num">VIOLENT n=14</th><th class="num">ALL n=81</th><th class="num">LODO min</th><th class="num">strip best-3</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><b>A 1.0 / B 1.5</b> — the robust plateau</td><td class="num">+15.6</td><td class="num">−3.3</td><td class="num">+29.3</td><td class="num">+25.9</td><td class="num"><b>+22.7</b></td><td class="num"><b>+16.8</b></td><td class="num"><b>+19.0</b></td></tr>
+<tr><td class="ln">A 1.0 / B 2.0</td><td class="num">+14.1</td><td class="num">−16.7</td><td class="num">+29.8</td><td class="num">+27.8</td><td class="num">+22.0</td><td class="num">+14.8</td><td class="num">+17.3</td></tr>
+<tr><td class="ln">A 0.75 / B 1.5</td><td class="num">+9.7</td><td class="num">+4.5</td><td class="num">+25.1</td><td class="num">+22.6</td><td class="num">+19.1</td><td class="num">+13.9</td><td class="num">+15.7</td></tr>
+<tr><td class="ln">A 1.5 / B 4.0</td><td class="num">+4.8</td><td class="num">+19.5</td><td class="num">+32.1</td><td class="num">+22.8</td><td class="num">+22.5</td><td class="num">+12.5</td><td class="num">+13.2</td></tr>
+<tr><td class="ln">A 1.0 / B 2.5</td><td class="num">+5.2</td><td class="num">−10.2</td><td class="num">+22.2</td><td class="num">+26.0</td><td class="num">+16.0</td><td class="num">+9.0</td><td class="num">+10.3</td></tr>
+<tr><td class="ln">A 2.0 / B 3.0</td><td class="num">+2.1</td><td class="num">−6.8</td><td class="num">+26.1</td><td class="num">+22.7</td><td class="num">+16.9</td><td class="num">+7.2</td><td class="num">+8.3</td></tr>
+<tr class="row-bad"><td class="ln"><b>A 1.5 / B 2.5 ← LIVE TODAY</b></td><td class="num">−0.8</td><td class="num">+0.2</td><td class="num">+23.4</td><td class="num">+12.9</td><td class="num"><b>+13.6</b></td><td class="num"><b>+4.7</b></td><td class="num"><b>+6.8</b></td></tr>
+<tr class="row-bad"><td class="ln">A 2.5 / B 6.0</td><td class="num">−20.8</td><td class="num">−13.6</td><td class="num">+33.6</td><td class="num">+21.8</td><td class="num">+14.0</td><td class="num">+4.0</td><td class="num">+0.2</td></tr>
+</tbody>
+</table>
+<p class="ln"><i>* CLEAN-TREND n=6 — shown for completeness, <b>not scored</b>. LODO = leave-one-day-out over 8 days; every cell is positive on 8/8 folds, so LODO separates them by <b>margin</b>, not sign. "strip best-3" removes the three largest winners.</i></p>
+
+<table>
+<thead><tr><th>SHORT — $ per SIGNAL</th><th class="num">BUILDING n=21</th><th class="num">CLEAN-TREND n=5*</th><th class="num">NORMAL-CHOP n=32</th><th class="num">VIOLENT n=11</th><th class="num">ALL n=69</th><th class="num">LODO min</th><th class="num">strip best-3</th></tr></thead>
+<tbody>
+<tr><td class="ln">A 2.5 / B 4.0</td><td class="num">+19.3</td><td class="num">+66.8</td><td class="num">+23.5</td><td class="num">−19.9</td><td class="num">+18.4</td><td class="num">+4.9</td><td class="num">−1.8</td></tr>
+<tr><td class="ln">A 1.0 / B 2.5</td><td class="num">+30.9</td><td class="num">+53.5</td><td class="num">+17.5</td><td class="num">−29.4</td><td class="num">+16.7</td><td class="num">+9.9</td><td class="num">+4.1</td></tr>
+<tr class="row-hl"><td class="ln"><b>A 1.5 / B 2.5 ← LIVE TODAY</b></td><td class="num">+24.8</td><td class="num">+41.3</td><td class="num">+23.4</td><td class="num">−30.8</td><td class="num">+16.5</td><td class="num">+10.5</td><td class="num">+1.9</td></tr>
+<tr><td class="ln">A 0.75 / B 1.5</td><td class="num">+23.7</td><td class="num">+46.3</td><td class="num">+21.3</td><td class="num">−33.0</td><td class="num">+15.2</td><td class="num">+9.4</td><td class="num"><b>+7.3</b></td></tr>
+</tbody>
+</table>
+
+<p><b>Verdict on the guess.</b> On the <b>LONG</b> side the live cell A1.5/B2.5 is the <b>worst of the eleven cells swept, on every measure</b>: +$13.6/signal vs +$22.7 for A1.0/B1.5, LODO-min +$4.7 vs +$16.8, strip-best-3 +$6.8 vs +$19.0. The plateau is broad and sits at <b>A≈1.0, B 1.5–2.0</b> — a genuine parameter plateau, not a spike (0.75/1.5, 1.0/1.5 and 1.0/2.0 are all within $4 of each other). On the <b>SHORT</b> side every cell lands between +$15 and +$18 per signal and the LODO/strip ordering flips between them — <b>the R choice is noise on the short side, so leave it alone</b>. What is <i>not</i> noise on the short side is the VIOLENT-WHIPSAW column: <b>−$20 to −$33 per signal at every single cell and every single R from 0.5 to 6.0</b>. No exit tuning rescues that segment; only not trading it does.</p>
+
+<p><b>And the engine underneath is real.</b> The 55s veto against its no-veto control on the same tape: <code>abs_veto_55s</code> <b>+$2,668 on 238 fires (+$11.2/trade)</b> vs <code>thrust_loose</code> <b>+$130.5 on 424 fires (+$0.3/trade)</b> — and this week specifically, +$1,328 vs −$235.5. Nobody should read this section as "abs_veto is broken". The gate is the best thing on the board. Its <b>arming policy</b> is what leaked.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>7 · The promotion, restated as a config diff on a running gate</h3>
+
+<p>There is no new slot, no roster change, and nothing that needs a Saturday tournament window except D1. Here is the whole of it.</p>
+
+<table>
+<thead><tr><th>#</th><th>the actual change</th><th class="num">the number behind it</th><th>file / owner</th><th>revert</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">D0</td><td class="ln"><b>Delete the recommendation.</b> "Promote abs_veto_55s two-sided" is not an action — it shipped 2026-07-25. Part 2 re-validated a live gate cold and mislabelled it. <code>abs_veto_long</code>=on and <code>abs_veto_short</code>=on in <code>gate_switches.env</code> right now.</td><td class="num">7 days live · 85 lots · 65 signals · +$418 combined this week</td><td>— report fix</td><td>—</td></tr>
+<tr class="row-bad"><td class="num">D1</td><td class="ln"><b>Fix the dead floors.</b> Pass <code>_base(slot)</code> to <code>er_blocks</code>/<code>atr_blocks</code> in <code>tournament.step()</code> — <i>or</i> delete <code>ER_FLOOR</code>/<code>ATR_FLOOR</code> outright. Do <b>not</b> ship the wiring fix and the floor values together: wire it, then re-derive each floor on tape that was actually filtered.</td><td class="num">7,734 suppressions before 07-29 13:29 · <b>0</b> after · 5 gates affected</td><td><code>tournament.py:139/142</code> · SATURDAY (today) — it changes entry maths</td><td class="ln">one-line revert; currently a no-op either way</td></tr>
+<tr class="row-hl"><td class="num">D2</td><td class="ln"><b>Change one cell:</b> <code>exit_overrides.json</code> → <code>abs_veto_long: {a_r 1.0, b 1.5}</code>. <b>Leave <code>abs_veto_short</code> at 1.5/2.5.</b> This is the change that REV2·Q0 row M6 told you not to make — M6 is superseded by the sweep.</td><td class="num">n=81 signals · +$22.7/sig vs +$13.6 · LODO-min +$16.8 vs +$4.7 · strip-best-3 +$19.0 vs +$6.8 · plateau not spike</td><td><code>data/exit_overrides.json</code> + tournament restart · OPERATOR</td><td class="ln">delete the key → built-in default</td></tr>
+<tr class="row-hl"><td class="num">D3</td><td class="ln"><b>Router rule — bench <code>abs_veto_short</code> in violent whipsaw</b> (ATR ≥ 19pt <i>and</i> 30-min ER &lt; 0.25). The router did this by accident 4 times this week; make it deliberate.</td><td class="num">n=11 shadow fires −$185.5 · live 5 lots −$257 · negative at all 11 exit cells and every R 0.5→6.0</td><td><code>gate_switches.env</code> · ROUTER, per tick</td><td class="ln">reversible every 5 min</td></tr>
+<tr class="row-bad"><td class="num">D4</td><td class="ln"><b>Router rule — STOP benching <code>abs_veto_long</code> in overnight NORMAL-CHOP.</b> The standing "confirmed chop → bench all momentum" rule files abs_veto as momentum; on the evidence it is an overnight chop gate. Bench it on <b>violence</b>, not on <b>chop</b>.</td><td class="num">13 blocked fires worth <b>+$384</b> · live+shadow both green in that cell (+$383.5 / +$525) · total long-bench cost <b>−$397</b></td><td>router framework · ROUTER</td><td class="ln">reversible every 5 min</td></tr>
+<tr><td class="num">D5</td><td class="ln"><b>Deploy the <code>STOP_UNFILLED</code> fix</b> (concrete front-month stops, memory <code>[[stop-unfilled-contfuture-root-cause]]</code>, commit <code>99e3c11</code>, still on a branch). It is a pure execution leak with no shadow analogue.</td><td class="num">6 abs_veto lots this week · <b>−$273.5</b> · ~$168 of it sits inside the long-side "exit" gap</td><td>BUILD → live-verify</td><td class="ln">branch revert</td></tr>
+<tr><td class="num">D6</td><td class="ln"><b>Never compare a shadow dollar to a live dollar again without the ×2.</b> The shadow runs 1 lot; the live scale-out runs 2. Every "shadow made $X" line in Part 2 needs a per-signal denominator.</td><td class="num">59 live lots = 43 signals · 26 live lots = 22 signals</td><td>— report convention</td><td>—</td></tr>
+</tbody>
+</table>
+
+<p><b>The one-sentence answer.</b> <code>abs_veto_long</code> is live, it has been live for a week, and the +$59.5-vs-+$776 gap is not an exit problem or a slot-split problem — it is <b>$500 of signals the router never let it take, $107 of window mismatch, $273 of a stop that did not fill, and one exit cell (long-side 1.5/2.5) that the tick sweep ranks dead last of eleven</b>. There is nothing to promote; there is a bench rule to invert, one JSON cell to change, and a filter-wiring bug to own.</p>
+</div>
+
+<div class="callout">
+  <div class="ct"><b>What this does NOT prove.</b> One week, MNQ-only, PAPER, chop-dominated: the CLEAN-TREND buckets (n=6 long / n=5 short) are unscored, so <b>D2 and D4 are untested on a trend week</b> — a wide Lot B is exactly what a trend week would reward, and A1.0/B1.5 caps it. The R sweep spans 8 trading days of tick coverage (07-23 22:00 onward) and every cell is positive on 8/8 LODO folds, which means the folds separate cells by margin only — treat the ordering as a lead, not a law. The ER-floor counterfactual (§3) is <b>tail-dominated at n=24</b> and is deliberately not used to argue the floor's value in either direction. And the whole live side of this reconciliation ran under a slate whose ER/ATR filters were silently off, so <b>every live abs_veto number in this report is an unfiltered number</b>.</div>
+</div>

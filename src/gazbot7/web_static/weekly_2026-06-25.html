@@ -1,0 +1,195 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAZBOT V5 — Weekly Desk Report · 2026-06-22→2026-06-25</title>
+<style>
+:root{--bg:#0c0f14;--bg2:#141922;--card:#161c26;--line:#222b38;--ink:#e7edf5;--mut:#8a99ad;--mut2:#5f6e82;
+--pos:#34d399;--neg:#f87171;--bad:#ef4444;--warn:#fbbf24;--accent:#60a5fa;--gold:#fbbf24;}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0a0d12,#0c0f14);color:var(--ink);
+font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:28px 18px 80px}
+header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:26px}
+h1{font-size:25px;margin:0 0 4px;letter-spacing:-.3px}
+h1 .v5{color:var(--gold)}
+.sub{color:var(--mut);font-size:13.5px}
+.banner{margin-top:18px;padding:15px 17px;border-radius:12px;background:linear-gradient(90deg,#1a2536,#161c26);
+border:1px solid var(--line);font-size:15.5px}
+.banner b{color:var(--accent)}
+h2{font-size:19px;margin:38px 0 14px;letter-spacing:-.2px;border-left:3px solid var(--accent);padding-left:11px}
+h3{font-size:15px;color:var(--mut);margin:22px 0 8px;text-transform:uppercase;letter-spacing:.6px}
+p{margin:10px 0}
+.hero{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin:16px 0 6px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+.stat .k{font-size:11.5px;color:var(--mut2);text-transform:uppercase;letter-spacing:.5px}
+.stat .v{font-size:22px;font-weight:680;margin-top:3px;letter-spacing:-.5px}
+.stat .s{font-size:12px;color:var(--mut);margin-top:2px}
+.v.pos{color:var(--pos)} .v.neg{color:var(--neg)} .v.gold{color:var(--gold)} .v.accent{color:var(--accent)}
+.chart{width:100%;height:auto;background:var(--bg2);border:1px solid var(--line);border-radius:11px;margin:12px 0}
+.grid{stroke:#1c2430;stroke-width:1} .zero{stroke:#3a4658;stroke-width:1.2;stroke-dasharray:3 3}
+.line-raw{fill:none;stroke:var(--neg);stroke-width:2;opacity:.85}
+.line-clean{fill:none;stroke:var(--pos);stroke-width:2.6}
+.dot-raw{fill:var(--neg)} .dot-clean{fill:var(--pos)}
+.ytick,.xtick{fill:var(--mut2);font-size:11px} .lbl-raw{fill:var(--neg);font-size:11.5px;font-weight:600}
+.lbl-clean{fill:var(--pos);font-size:11.5px;font-weight:600}
+.bsym{fill:var(--ink);font-size:12.5px;font-weight:600} .bval{fill:var(--mut);font-size:11.5px}
+.bar-pos{fill:var(--pos)} .bar-neg{fill:var(--warn);opacity:.85} .bar-bad{fill:var(--neg);opacity:.9}
+.callout{background:#171f2b;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:9px;padding:13px 15px;margin:14px 0}
+.callout.warn{border-left-color:var(--neg)}
+.callout b{color:var(--gold)} .callout.warn b{color:var(--neg)}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut2);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+td.r{text-align:right;font-variant-numeric:tabular-nums} td.strong{font-weight:680}
+tr.pos td.strong{color:var(--pos)} tr.warn td.strong{color:var(--warn)} tr.neg td.strong{color:var(--neg)}
+.muted{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px 18px;margin:15px 0;border-top:3px solid var(--line)}
+.card.tier-star{border-top-color:var(--gold)} .card.tier-good{border-top-color:var(--pos)}
+.card.tier-flat{border-top-color:var(--accent)} .card.tier-bad{border-top-color:var(--warn)}
+.card.tier-broken{border-top-color:var(--bad)}
+.card-h{display:flex;align-items:baseline;gap:10px}
+.card-h .sym{font-size:19px;font-weight:720;letter-spacing:-.3px}
+.card-h .nm{color:var(--mut);font-size:13px}
+.verdict{font-size:14.5px;font-weight:600;margin:7px 0 4px;color:var(--ink)}
+.card.tier-star .verdict{color:var(--gold)} .card.tier-good .verdict{color:var(--pos)}
+.card.tier-broken .verdict{color:var(--neg)} .card.tier-bad .verdict{color:var(--warn)}
+.card p{font-size:13.7px;color:#cdd7e3}
+code{background:#0e131b;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px;color:var(--accent)}
+table.rx{font-size:12.7px;margin-top:11px} table.rx td.cur{color:var(--mut)} table.rx td.prop{color:var(--pos);font-weight:600}
+table.rx td.why{color:var(--mut)}
+.conf{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.c-conf{background:#0c2e22;color:var(--pos)} .c-lean{background:#2e2a0c;color:var(--gold)} .c-data{background:#26222e;color:#b794f6}
+.matrix td.prop{color:var(--pos);font-weight:600}
+footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--line);color:var(--mut2);font-size:12px}
+footer b{color:var(--mut)}
+@media(max-width:560px){.hero{grid-template-columns:repeat(2,1fr)}.wrap{padding:18px 13px 60px}h1{font-size:21px}
+table.rx{font-size:11.8px} th,td{padding:6px 6px}}
+</style></head><body><div class="wrap">
+
+<header>
+  <h1>GAZBOT <span class="v5">V5</span> — Weekly Desk Report</h1>
+  <div class="sub">Week-to-date · <b>Mon 22 → Thu 25 Jun 2026</b> (Friday 26th still to trade) · 100% futures · paper · generated 2026-06-25T16:20:00Z</div>
+  <div class="banner">
+    <b>The week in one line:</b> the desk is a <b>working ratchet engine bolted to a flat-clock that bleeds</b>.
+    On clean, attributable trades it made <b>+$715 net</b> — but <b>−$9,245</b> of flat-clock
+    dumps and $1,611k of §274 reconcile noise drag the recorded number to −$1,002.
+    Momentum loses everywhere except <b>gold</b>; reversion is the edge on every index micro.
+    The fix is the one you already sensed: <b>tune entries and the flat-clock per contract</b>.
+  </div>
+</header>
+
+<h2>1 · The week</h2>
+<div class="hero">
+  <div class="stat"><div class="k">Clean net (decision edge)</div><div class="v pos">+$715</div><div class="s">ex §274 artifacts · 1,234 tr</div></div>
+  <div class="stat"><div class="k">Recorded net (dashboard)</div><div class="v neg">−$1,002</div><div class="s">1,304 tr · incl artifacts</div></div>
+  <div class="stat"><div class="k">Net of fees @ $1.50/RT</div><div class="v accent">applied</div><div class="s">fees_usd stamped $0 — corrected</div></div>
+  <div class="stat"><div class="k">Flat-clock bleed</div><div class="v neg">−$9,245</div><div class="s">490 trades · ~0% win</div></div>
+  <div class="stat"><div class="k">Ratchet family banked</div><div class="v pos">+$12,815</div><div class="s">the desk's actual edge</div></div>
+  <div class="stat"><div class="k">Momentum vs reversion</div><div class="v gold">−$455 / +$245</div><div class="s">net, desk-wide</div></div>
+</div>
+
+<h3>Cumulative equity — recorded vs clean</h3>
+<svg viewBox="0 0 720 300" class="chart" role="img" aria-label="cumulative equity curve">
+      <line x1="56" y1="236.9" x2="702" y2="236.9" class="grid"/><text x="48" y="240.9" class="ytick" text-anchor="end">-1,000</text><line x1="56" y1="201.5" x2="702" y2="201.5" class="grid"/><text x="48" y="205.5" class="ytick" text-anchor="end">-500</text><line x1="56" y1="166.0" x2="702" y2="166.0" class="grid"/><text x="48" y="170.0" class="ytick" text-anchor="end">+0</text><line x1="56" y1="130.6" x2="702" y2="130.6" class="grid"/><text x="48" y="134.6" class="ytick" text-anchor="end">+500</text><line x1="56" y1="95.1" x2="702" y2="95.1" class="grid"/><text x="48" y="99.1" class="ytick" text-anchor="end">+1,000</text><line x1="56" y1="59.7" x2="702" y2="59.7" class="grid"/><text x="48" y="63.7" class="ytick" text-anchor="end">+1,500</text><line x1="56" y1="24.2" x2="702" y2="24.2" class="grid"/><text x="48" y="28.2" class="ytick" text-anchor="end">+2,000</text>
+      <line x1="56" y1="166.0" x2="702" y2="166.0" class="zero"/>
+      <path d="M56.0 63.3 L271.3 46.8 L486.7 193.2 L702.0 237.2" class="line-raw"/>
+      <path d="M56.0 162.4 L271.3 147.3 L486.7 96.2 L702.0 115.4" class="line-clean"/>
+      <circle cx="56.0" cy="63.3" r="3.5" class="dot-raw"/><circle cx="271.3" cy="46.8" r="3.5" class="dot-raw"/><circle cx="486.7" cy="193.2" r="3.5" class="dot-raw"/><circle cx="702.0" cy="237.2" r="3.5" class="dot-raw"/><circle cx="56.0" cy="162.4" r="3.5" class="dot-clean"/><circle cx="271.3" cy="147.3" r="3.5" class="dot-clean"/><circle cx="486.7" cy="96.2" r="3.5" class="dot-clean"/><circle cx="702.0" cy="115.4" r="3.5" class="dot-clean"/>
+      <text x="56.0" y="286" class="xtick" text-anchor="middle">Mon</text><text x="271.3" y="286" class="xtick" text-anchor="middle">Tue</text><text x="486.7" y="286" class="xtick" text-anchor="middle">Wed</text><text x="702.0" y="286" class="xtick" text-anchor="middle">Thu</text>
+      <text x="702.0" y="227.2" class="lbl-raw" text-anchor="end">raw -1,003</text>
+      <text x="702.0" y="105.4" class="lbl-clean" text-anchor="end">clean +713</text>
+    </svg>
+<div class="callout warn"><b>Your daily numbers can't be trusted yet (§274).</b> The reconcile/backfill artifacts don't just shift the total —
+they whipsaw the <i>days</i>. <b>Monday looked like +$1,448; it was really +$50. Wednesday looked like a −$2,064 disaster; it was really +$720.</b>
+The green line (clean) is the real story — a steady climb to +$985, then a Thursday give-back. The red line is reconcile fiction.
+Closing the OrderFilledV3 emission gap is now a <b>trust-what-you-see</b> priority, not a nuisance.</div>
+
+<div class="callout"><b>Win rate ≠ profit.</b> MNQ won <b>69.2%</b> of trades and (before cleaning) read as the biggest loser — many tiny wins, a few fat-tail losses.
+MYM won 47% yet posted a +$626 headline (a phantom). Judge contracts on net-of-fees $ and the win/loss-size ratio, never the win rate alone.</div>
+
+<h2>2 · The contracts at a glance</h2>
+<p class="muted">Clean net-of-fees P&amp;L (§274 artifacts stripped). Gold trends and trades momentum; the index micros mean-revert.</p>
+<svg viewBox="0 0 720 354" class="chart" role="img" aria-label="per-contract net P&amp;L">
+      <line x1="188.6" y1="10" x2="188.6" y2="348" class="zero"/>
+      <text x="56" y="33.0" class="bsym" text-anchor="end">MGC</text><rect x="188.6" y="19.0" width="461.4" height="18" rx="3" class="bar-pos"/><text x="656.0" y="33.0" class="bval" text-anchor="start">+2,196</text><text x="56" y="63.0" class="bsym" text-anchor="end">MNQ</text><rect x="188.6" y="49.0" width="135.8" height="18" rx="3" class="bar-pos"/><text x="330.4" y="63.0" class="bval" text-anchor="start">+646</text><text x="56" y="93.0" class="bsym" text-anchor="end">ESTX50</text><rect x="187.4" y="79.0" width="1.2" height="18" rx="3" class="bar-neg"/><text x="181.4" y="93.0" class="bval" text-anchor="end">-6</text><text x="56" y="123.0" class="bsym" text-anchor="end">MET</text><rect x="180.6" y="109.0" width="8.0" height="18" rx="3" class="bar-neg"/><text x="174.6" y="123.0" class="bval" text-anchor="end">-38</text><text x="56" y="153.0" class="bsym" text-anchor="end">M6E</text><rect x="179.8" y="139.0" width="8.8" height="18" rx="3" class="bar-neg"/><text x="173.8" y="153.0" class="bval" text-anchor="end">-42</text><text x="56" y="183.0" class="bsym" text-anchor="end">DAX</text><rect x="179.2" y="169.0" width="9.4" height="18" rx="3" class="bar-neg"/><text x="173.2" y="183.0" class="bval" text-anchor="end">-45</text><text x="56" y="213.0" class="bsym" text-anchor="end">MES</text><rect x="164.8" y="199.0" width="23.8" height="18" rx="3" class="bar-neg"/><text x="158.8" y="213.0" class="bval" text-anchor="end">-113</text><text x="56" y="243.0" class="bsym" text-anchor="end">MYM</text><rect x="111.6" y="229.0" width="77.0" height="18" rx="3" class="bar-bad"/><text x="105.6" y="243.0" class="bval" text-anchor="end">-366</text><text x="56" y="273.0" class="bsym" text-anchor="end">M2K</text><rect x="95.8" y="259.0" width="92.8" height="18" rx="3" class="bar-bad"/><text x="89.8" y="273.0" class="bval" text-anchor="end">-442</text><text x="56" y="303.0" class="bsym" text-anchor="end">MBT</text><rect x="87.3" y="289.0" width="101.3" height="18" rx="3" class="bar-bad"/><text x="81.3" y="303.0" class="bval" text-anchor="end">-482</text><text x="56" y="333.0" class="bsym" text-anchor="end">MCL</text><rect x="64.0" y="319.0" width="124.6" height="18" rx="3" class="bar-bad"/><text x="58.0" y="333.0" class="bval" text-anchor="end">-593</text>
+    </svg>
+<table><thead><tr><th>Contract</th><th></th><th>Trades</th><th>Win</th><th class="r">Headline</th><th class="r">Clean net</th></tr></thead>
+<tbody><tr class='pos'><td>MGC</td><td class='muted'>Micro Gold</td><td>167</td><td>58%</td><td class='r'>+1,945</td><td class='r strong'>+2,196</td></tr><tr class='pos'><td>MNQ</td><td class='muted'>Micro Nasdaq</td><td>228</td><td>69%</td><td class='r'>-1,504</td><td class='r strong'>+646</td></tr><tr class='warn'><td>ESTX50</td><td class='muted'>Euro Stoxx 50 (eurex)</td><td>1</td><td>0%</td><td class='r'>-4</td><td class='r strong'>-6</td></tr><tr class='warn'><td>MET</td><td class='muted'>Micro Ether</td><td>22</td><td>4%</td><td class='r'>-5</td><td class='r strong'>-38</td></tr><tr class='warn'><td>M6E</td><td class='muted'>Micro EUR/USD</td><td>13</td><td>12%</td><td class='r'>-38</td><td class='r strong'>-42</td></tr><tr class='warn'><td>DAX</td><td class='muted'>Micro DAX (eurex)</td><td>15</td><td>60%</td><td class='r'>-22</td><td class='r strong'>-45</td></tr><tr class='warn'><td>MES</td><td class='muted'>Micro S&amp;P 500</td><td>168</td><td>53%</td><td class='r'>+780</td><td class='r strong'>-113</td></tr><tr class='neg'><td>MYM</td><td class='muted'>Micro Dow</td><td>185</td><td>47%</td><td class='r'>+626</td><td class='r strong'>-366</td></tr><tr class='neg'><td>M2K</td><td class='muted'>Micro Russell</td><td>187</td><td>50%</td><td class='r'>-58</td><td class='r strong'>-442</td></tr><tr class='neg'><td>MBT</td><td class='muted'>Micro Bitcoin</td><td>70</td><td>23%</td><td class='r'>-409</td><td class='r strong'>-482</td></tr><tr class='neg'><td>MCL</td><td class='muted'>Micro Crude</td><td>178</td><td>43%</td><td class='r'>-355</td><td class='r strong'>-593</td></tr></tbody></table>
+<p class="muted" style="font-size:12.5px">"Headline" = raw recorded gross (what the dashboard shows). "Clean net" = §274 artifacts removed, fees @ $1.50/RT applied — the real decision edge.</p>
+
+<h2>3 · Per-contract dossiers</h2>
+<div class="card tier-star">
+          <div class="card-h"><span class="sym">MGC</span><span class="nm">Micro Gold</span></div>
+          <div class="verdict">★ The week's engine — clean +$2,196 net</div>
+          <p><b>What worked:</b> Momentum is gold's edge — <b>+$2,042 net on the momentum gate</b> (132 trades), banked by the profit-ratchet (+$4,269 across 96 ratchet exits, 87–100% win). Longs out-earn shorts per-trade despite shorts being 2:1 of the count. Edge spans the clock; the single richest hour is the 13:00 UTC US-open gold impulse.</p><p><b>What didn't / bled:</b> One cancer — the 5-min flat-clock: <b>−$1,965 net over 55 trades at 1.8% win</b>, a uniform ~$34 drip punching out positions that never developed. Tiny secondary leak: the <code>momentum_persistence</code> variant (−$337, 33% win).</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Flat-clock <code>time_stop</code></td><td class='cur'>5 min</td><td class='prop'>8–10 min</td><td class='why'>Removes the −$1,965 #1 bleed; hands marginal trades back to the ratchet</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Ratchet ATR mult</td><td class='cur'>0.75</td><td class='prop'>KEEP 0.75</td><td class='why'>The +$4,269 engine, 87–100% win — don't touch</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Force-killer force_atr</td><td class='cur'>1.5 (armed 06-25)</td><td class='prop'>watch</td><td class='why'>Fresh this week — must not collide with the 87%-win ratchet exits</td><td><span class="conf c-data">DATA-STARVED</span></td></tr><tr><td>Sizing</td><td class='cur'>1→2 contracts (06-25)</td><td class='prop'>fix flat-clock first</td><td class='why'>2× doubles the −$1,965 leak too — fix the clock before trusting it</td><td><span class="conf c-data">DATA-STARVED</span></td></tr><tr><td><code>momentum_persistence</code> gate</td><td class='cur'>on</td><td class='prop'>demote/kill</td><td class='why'>−$337, 33% win</td><td><span class="conf c-lean">LEANING</span></td></tr></tbody></table>
+        </div>
+<div class="card tier-good">
+          <div class="card-h"><span class="sym">MNQ</span><span class="nm">Micro Nasdaq</span></div>
+          <div class="verdict">▲ Winner-in-disguise — clean +$646 net (dashboard says −$1,504)</div>
+          <p><b>What worked:</b> The −$1,504 headline is 90% §274 reconcile scar tissue (−$2,543). Strip it and MNQ is <b>+$646 net at 69.2% win</b>. Edge = the 0.25 bank-fast ratchet (+$4,232 across 164 exits, 92–95% win) + reversion (vwap_pullback +$639, vwap_dip +$246).</p><p><b>What didn't / bled:</b> The momentum gate is the parasite — <b>−$815 net on 133 trades</b> — and the flat-clock dumps its underwater momentum entries for −$2,485. Avg win +$28 vs avg loss −$50: the 69% win rate barely survives the 1.8× loss-size asymmetry. The force-killer fired once (−$65, momentum short, 1.4 min) — directionally right, too thin to judge.</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Momentum gate on MNQ</td><td class='cur'>on</td><td class='prop'>OFF (keep reversion)</td><td class='why'>momentum −$815 net / 133 tr; reversion +$995</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Flat-clock for momentum</td><td class='cur'>5 min all gates</td><td class='prop'>exempt momentum / 2–3 min</td><td class='why'>5-min bucket −$2,485, of which −$2,187 momentum</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Force-killer force_atr</td><td class='cur'>1.0</td><td class='prop'>consider 0.75</td><td class='why'>Stops on −$261/−$213 momentum losers out-ran f1.0</td><td><span class="conf c-data">DATA-STARVED</span></td></tr><tr><td>Ratchet ATR mult</td><td class='cur'>0.25</td><td class='prop'>KEEP 0.25</td><td class='why'>Bank-fast working — 94% win across 164 exits</td><td><span class="conf c-conf">CONFIRMED</span></td></tr></tbody></table>
+        </div>
+<div class="card tier-flat">
+          <div class="card-h"><span class="sym">MES</span><span class="nm">Micro S&amp;P 500</span></div>
+          <div class="verdict">≈ Break-even mirage — clean −$113 net (dashboard says +$780)</div>
+          <p><b>What worked:</b> The +$780 headline was a single 3,734-minute <code>RECONCILED_QTY_DRIFT</code> phantom (+$673) — and that ghost is also why the avg hold looked like 27.6 min (real hold is 6.2 min, same as MNQ). The ratchet is the real engine (+$1,730, 94% win); vwap_pullback longs are the only positive gate (+$197).</p><p><b>What didn't / bled:</b> Flat-clock −$1,580 (74 trades, 2.7% win) erases the entire ratchet edge; the momentum gate is dead weight (−$467 net, 95 trades, both sides negative). MES shorts are structurally unprofitable (−$137 net).</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Flat-clock <code>time_stop</code></td><td class='cur'>5 min</td><td class='prop'>12–15 min</td><td class='why'>flat-clock −$1,580; the 5–10 min kill-zone bucket lost −$844</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Momentum gate on MES</td><td class='cur'>on</td><td class='prop'>demote/drop</td><td class='why'>−$467 net / 95 tr, both sides negative</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Favor vwap_pullback longs</td><td class='cur'>flat</td><td class='prop'>bias to it</td><td class='why'>only +gate; pullback-long +$215 net</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Ratchet ATR mult</td><td class='cur'>1.0</td><td class='prop'>KEEP 1.0</td><td class='why'>94% win, winners run; no over-trim signal</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Force-killer</td><td class='cur'>off</td><td class='prop'>HOLD off</td><td class='why'>Clock already over-cuts; no big-MAE bleeders to kill</td><td><span class="conf c-data">DATA-STARVED</span></td></tr></tbody></table>
+        </div>
+<div class="card tier-bad">
+          <div class="card-h"><span class="sym">MYM</span><span class="nm">Micro Dow</span></div>
+          <div class="verdict">▼ Entry-edge loser — clean −$366 net (the +$626 headline is a +$725 phantom)</div>
+          <p><b>What worked:</b> Only the wide 1.5 ratchet (+$839 across 87 exits) and the short book (~flat). When MYM is allowed to run — 30 min+ holds — it's green. The loss_killer_sim retirement flag is vindicated: PF 0.91, avg win $9.85 < avg loss $10.06 (the wrong asymmetry).</p><p><b>What didn't / bled:</b> Longs are the entire loss (−$339 net); flat-clock −$814 nets the ratchet straight back out. chop &amp; null regimes are pure bleed. This is a no-edge entry book, not a tail problem — a force-killer won't help.</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Long entries</td><td class='cur'>on</td><td class='prop'>suppress/tighten</td><td class='why'>Longs −$339 net = the entire real loss; shorts ~flat</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Ratchet ATR mult</td><td class='cur'>1.5</td><td class='prop'>KEEP 1.5</td><td class='why'>the only earner (+$839); long-hold buckets all green</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Flat-clock <code>time_stop</code></td><td class='cur'>5 min</td><td class='prop'>8–10 min</td><td class='why'>flat-clock −$814; 2–6 min bucket −$618 vs 6–15 min +$230</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>momentum / vwap_pullback gates</td><td class='cur'>on</td><td class='prop'>demote / cut</td><td class='why'>momentum net −$31; vwap_pullback net −$156</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Verdict</td><td class='cur'>—</td><td class='prop'>REWORK ENTRIES, don't retire / no force-killer</td><td class='why'>salvageable engine if fed shorts-in-trend with room past the clock</td><td><span class="conf c-lean">LEANING</span></td></tr></tbody></table>
+        </div>
+<div class="card tier-bad">
+          <div class="card-h"><span class="sym">M2K</span><span class="nm">Micro Russell</span></div>
+          <div class="verdict">▼ Fee-churning coin-flip — clean −$442 net, the frequency casualty</div>
+          <p><b>What worked:</b> Exactly one gate survives fees — <b>vwap_pullback (+$33 net, 57% win)</b>, positive on both sides. The ratchet machinery is fine (+$895). The problem is upstream — the entries.</p><p><b>What didn't / bled:</b> Momentum −$407 net (108 trades, 44% win), losing both sides. Flat-clock guillotined 87 trades for −$872 (1 winner). 50% win × 196 trades = a −$294 fee tax that tips flat gross into −$442 net. Worst at the US-open hour.</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Gate whitelist on M2K</td><td class='cur'>momentum+dip+pullback</td><td class='prop'>vwap_pullback ONLY</td><td class='why'>pullback-only counterfactual ≈ +$33 net, ~135 fewer trades/wk</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Momentum gate on M2K</td><td class='cur'>on</td><td class='prop'>KILL</td><td class='why'>−$407 net = 92% of the hole</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Trade frequency</td><td class='cur'>196/wk</td><td class='prop'>trade far less</td><td class='why'>PF 0.85; the per-contract tune here is 'reversion only, less often'</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Retire the contract?</td><td class='cur'>—</td><td class='prop'>NO — retire the momentum gate, not M2K</td><td class='why'>it has a live fee-surviving reversion edge</td><td><span class="conf c-conf">CONFIRMED</span></td></tr></tbody></table>
+        </div>
+<div class="card tier-bad">
+          <div class="card-h"><span class="sym">MCL</span><span class="nm">Micro Crude</span></div>
+          <div class="verdict">▼ High-vol bleeder — clean −$593 net, one cause</div>
+          <p><b>What worked:</b> The ratchet, when crude is allowed to run (+$549 across 69 exits, 96% win) — winners give back ~0.01%, so the 1.5% trail + 0.5 ratchet are correctly sized for crude vol.</p><p><b>What didn't / bled:</b> One line — <b>flat-clock −$772 over 76 trades, ZERO winners</b> — more than the entire net loss. On the desk's highest-vol contract, 5 minutes is noise; positions never reach the trail. chop regime is a disaster (−$147, 4/25 win). PF 0.64; 178 round-trips is far too many.</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Flat-clock <code>time_stop</code> on MCL</td><td class='cur'>5 min</td><td class='prop'>20–30 min / disable</td><td class='why'>flat-clock −$772, 0 wins; the single lever that flips MCL to ~break-even</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Block chop-regime entries</td><td class='cur'>on</td><td class='prop'>veto</td><td class='why'>chop −$147 / 25 tr; chop_capture 0/1</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>Trade frequency</td><td class='cur'>178/wk</td><td class='prop'>cut ≥50% (MCL-specific entry threshold)</td><td class='why'>PF 0.64, fee drag −$267 to −$342</td><td><span class="conf c-lean">LEANING</span></td></tr><tr><td>Native trail / ratchet</td><td class='cur'>1.5% / 0.5</td><td class='prop'>KEEP</td><td class='why'>exits are fine once the clock is fixed</td><td><span class="conf c-conf">CONFIRMED</span></td></tr></tbody></table>
+        </div>
+<div class="card tier-broken">
+          <div class="card-h"><span class="sym">MBT</span><span class="nm">Micro Bitcoin</span></div>
+          <div class="verdict">✖ Broken entry signal — clean −$482 net, 22.9% win</div>
+          <p><b>What worked:</b> Almost nothing. The ratchet family (+$122 net) only rescues the rare good entry — and only 12 of 70 trades survived past 5.5 min (those 12 made +$106).</p><p><b>What didn't / bled:</b> Symmetric long/short loss (−$190 / −$188) = the desk is throwing darts. 83% of trades died inside the 5-min flat-clock for −$483. Root cause: the rvol/energy/density signals read the <b>thin IBKR micro contract, blind to the global BTC tape</b> (Friday entry_net_atr avg −0.52 — entering with negative momentum room). You cannot tune exits on a wrong-way entry.</p>
+          <table class='rx'><thead><tr><th>Lever</th><th>Now</th><th>Proposed</th><th>Why</th><th>Confidence</th></tr></thead><tbody><tr><td>Discipline enablement</td><td class='cur'>live</td><td class='prop'>PULL to observe-only</td><td class='why'>22.9% win, PF 0.29, every gate a gross loser — stops a −$482/wk structural bleed</td><td><span class="conf c-conf">CONFIRMED</span></td></tr><tr><td>The real fix</td><td class='cur'>blind micro feed</td><td class='prop'>build a liquid-reference (global-BTC) signal</td><td class='why'>symmetric loss + 83% flat-clock death = anti-signal entries; the only fix</td><td><span class="conf c-conf">CONFIRMED (root) / not built</span></td></tr><tr><td>Exits</td><td class='cur'>flat-clock 5 min</td><td class='prop'>DO NOT widen</td><td class='why'>the clock is correctly euthanising bad entries — the fault is upstream</td><td><span class="conf c-lean">LEANING</span></td></tr></tbody></table>
+        </div>
+
+<div class="card">
+  <div class="card-h"><span class="sym">Minors</span><span class="nm">MET · M6E · DAX · ESTX50 — eurex effectively idle</span></div>
+  <p><b>MET</b> (Micro Ether, 4.5% win, ~−$38): the same disease as MBT — the crypto micros are blind to the global tape. Observe-only candidate.
+  <b>M6E</b> (Micro EUR/USD, −$42, 13 tr): low-volume, poor win — not earning its slot.
+  <b>DAX</b> (eurex, 15 tr): same fingerprint as the US book — flat-clock −$111 vs ratchet +$77.
+  <b>ESTX50</b>: 1 trade, dead. The eurex desk barely traded this week — worth a deliberate "keep or mothball" decision.</p>
+</div>
+
+<h2>4 · The architecture — tune everything per contract</h2>
+<p>This week proves the thesis: <b>one global config is leaving money on the table on every contract</b>. The data points at four per-contract dials.</p>
+<table class="matrix"><thead><tr><th>Contract</th><th class="prop">Entry gates</th><th>Flat-clock</th><th>Ratchet mult</th><th>Force-killer</th></tr></thead><tbody>
+<tr><td><b>MGC</b></td><td class="prop">momentum ✓</td><td>5→8–10</td><td>0.75 keep</td><td>1.5 (watch)</td></tr>
+<tr><td><b>MNQ</b></td><td class="prop">reversion only</td><td>exempt momentum</td><td>0.25 keep</td><td>1.0→0.75?</td></tr>
+<tr><td><b>MES</b></td><td class="prop">reversion only</td><td>5→12–15</td><td>1.0 keep</td><td>hold off</td></tr>
+<tr><td><b>MYM</b></td><td class="prop">shorts + rework</td><td>5→8–10</td><td>1.5 keep</td><td>no</td></tr>
+<tr><td><b>M2K</b></td><td class="prop">vwap_pullback ONLY</td><td>after gate-cut</td><td>1.5</td><td>no</td></tr>
+<tr><td><b>MCL</b></td><td class="prop">reversion + fewer</td><td>5→20–30</td><td>0.5 keep</td><td>no</td></tr>
+<tr><td><b>MBT / MET</b></td><td class="prop">observe-only</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody></table>
+<p><b>1 · Per-contract entry-gate routing.</b> Momentum is net-positive on <b>exactly one contract — gold</b> (+$2,042). On MNQ/MES/M2K it's a net loser and reversion (<code>vwap_pullback</code>/<code>vwap_dip</code>) is the winner. Route gates per contract: gold runs momentum, the index micros run reversion-only. Desk-wide this alone reverses the −$455 momentum drag.</p>
+<p><b>2 · Per-contract flat-clock.</b> The universal 5-min RED drift-exit is the single biggest wound on the desk (−$9,245) and it's a blunt instrument — it pre-empts trades before they reach the ratchet that is the actual edge. Crude needs 20–30 min (5 min is noise at its vol); MES 12–15; gold/Dow 8–10; MNQ should exempt momentum entries. This is the highest-leverage change available.</p>
+<p><b>3 · Per-contract ratchet mult.</b> Already implemented (the <code>_RATCHET_ATR_MULT_BY_KEY</code> map) and <b>working — keep every current value</b>. The ratchet banks at 87–96% win on every contract; it is not the problem anywhere.</p>
+<p><b>4 · Per-contract force-killer.</b> Armed on MNQ (consider tightening 1.0→0.75) and MGC (@1.5, fresh — watch it doesn't clip the 87%-win ratchet). MES wants a loose gate if any; the rest don't need it. <b>Never add a force-killer on top of a flat-clock that is already over-cutting</b> — fix the clock first.</p>
+
+<h2>5 · The one infra fix that gates all of this</h2>
+<div class="callout warn"><b>Close the §274 OrderFilledV3 emission gap.</b> It is no longer a back-office nuisance — it flipped MNQ from a real +$646 to a dashboard −$1,504, turned a +$673 phantom into MES's entire headline, and whipsawed the daily curve beyond recognition. Until it's closed, the ledger projector (venue truth) is the only trustworthy P&amp;L, and every per-contract tuning decision above should be validated against the projector, not the <code>trades</code> table.</div>
+
+<footer>
+<b>Descriptive only.</b> This report surfaces options; it arms nothing (lock L-DAYREVIEW-DESCRIPTIVE). Every prescription is for you + the courtroom to confirm before any change goes live.<br><br>
+<b>Data caveats.</b> Window Mon 22 → Thu 25 Jun 2026 (Friday 26th still to trade). <code>fees_usd</code> is stamped $0 in the DB, so net-of-fees is computed at the verified $1.50/round-trip micro convention (§295; MCL's true ~$1.92 makes it slightly worse). "Clean" figures exclude §274 reconcile artifacts (<code>RECONCILED_QTY_DRIFT</code>, <code>RECONSTRUCTED_BACKFILL</code>, <code>RECONSTRUCTED_FROM_LEDGER</code>, <code>RECONCILED_PHANTOM</code>). <code>entry_net_atr</code> / <code>entry_features</code> only began populating 2026-06-25, so any net_atr-band or feature read is Friday-only and thin — flagged in-line and never generalized. Per-contract dossiers built by 7 parallel forensic passes over the trades ledger.<br><br>
+GAZBOT V5 · Claudio · 2026-06-25T16:20:00Z
+</footer>
+</div></body></html>

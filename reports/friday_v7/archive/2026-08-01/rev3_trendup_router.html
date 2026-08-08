@@ -1,0 +1,290 @@
+<!-- REV3 · TREND_UP ROUTER — PATCHES/SUPERSEDES: REV2 · Q4 §4 ("the verdict the blend was hiding"), §5 (the robustness table) and §7.4 (the "+$1,615/week, highest-value best-evidenced change in this entire report" claim). It CONFIRMS Q4 §1-§3 (the reconciliation, the A/B double-count, the zero-slippage point) and CONFIRMS Q4's fader half. It DOES NOT confirm the TREND_UP policy fix: the +$1,615 reduces to +$767 on the most favourable framing and to +$158 (n=4) on a framework-consistent one, and it inverts under two of three independent regime oracles. Recommendation: DO NOT SHIP as an arming rule; stage it. Also patches Q4 §4's "+$1,088 CHOP, robust" — the CHOP half is tag-fragile too; only the FADER cut survives independently. -->
+
+<h2><span class="n">REV3 · TREND_UP</span> Q4 says arming momentum in TREND_UP is worth +$1,615/week. I tried to kill it. It mostly died.</h2>
+
+<p class="lead">Garrath — Q4 called this "the highest-value, best-evidenced change in this entire report." I re-derived it from source, independently, and tried to break it. <b>The arithmetic is right and I reproduce it: +$1,644 on my numbers vs Q4's +$1,615.</b> But three things it did not test take it apart. <b>(1)</b> The estimator books every deduped signal as a full trade even when the same gate is already in one — the <i>temporal</i> twin of the A/B double-count Q4 itself caught. Fixing it: <b>+$1,799 → +$767</b>. <b>(2)</b> The TREND_UP label is the carrier, and it does not survive independence: under a textbook ADX(14) tag the segment is worth <b>+$574 and is statistically indistinguishable from a random subset of the same book (p=0.56)</b>; under a 60-min regression tag it is <b>−$276 and significantly WORSE than random (z=−2.56)</b>. <b>(3)</b> The money is not trend money. <b>52% of it comes from two grind_long episodes on 07-29 — a day MNQ fell 702 points at day-ER 0.72</b>, i.e. momentum longs buying bounces in the week's cleanest DOWN trend, which the desk's own day-bias rule says to bench. The one genuinely clean UP day of the week (07-30, +1,126pt, day-ER 0.93) contributes <b>$349 of $1,799</b>.</p>
+
+<p class="lead"><b>The number: REDUCED from +$1,615 to a best-case +$767/week, and to +$158 on n=4 signals once the rule is written so it cannot buy dips in a downtrend. REFUTED as a "trend" finding.</b> Recommendation: <b>do not ship it as an arming rule.</b> It points the expensive direction on a tape that contains no confirmed trend to test it on — by my own operational definition, a confirmed trend was live for <b>3.3% of the week, 22 episodes, median 6 minutes each</b>. There is nothing here to ride. What I do recommend, and what is worth more than the whole debate, is in §7: <b>all six gates are currently PINNED ON, so the durable router cannot bench anything at all</b> — the proven half of the machine is switched off right now.</p>
+
+<div class="callout">
+  <div class="ct"><b>Honesty banner.</b> Independent re-derivation, not a re-read of Q4. Source = the same 37,160 <code>SUPPRESSED-OPEN</code> lines from the <code>gazbot7-tournament</code> journal, Paris 07-27…07-31, parsed fresh; every reprice on <b>capture.db 250ms ticks</b> (8,448,165 ticks loaded), never 1-min bars; DuckDB + pandas throughout. ATR and the 2R/1-ATR exit match <code>router_nightly.reprice_scalp()</code> exactly so the numbers are comparable. <b>Every blocked trade never ran</b> — every dollar below is a modelled CEILING, and live losses run 1.1–3.1× modelled <span class="mono">[[shadow-sim-understates-losses]]</span>. n=355 merged signals, 5 days, one chop-dominated summer week, MNQ-only, PAPER. Where I disagree with Q4 I show both numbers. Working files: <code>/tmp/…/rev3/derive.py</code>, <code>analyse{,2,…,7}.py</code>. <b>Read-only: nothing was applied.</b></div>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>1 · Reconciliation — I get the same book Q4 got</h3>
+
+<p>Same journal, same 120s dedup, same repricer. Two counting conventions: A/B slots separate (as <code>router_nightly.py</code> publishes) and A/B merged before dedup (Q4's fix, which is correct).</p>
+
+<table>
+<thead><tr><th>Source</th><th class="num">signals</th><th class="num">saved</th><th class="num">missed</th><th class="num">net router value</th></tr></thead>
+<tbody>
+<tr><td class="ln">Published — Part 2.5 §3 &amp; Part 2.6 §3</td><td class="num">—</td><td class="num">$15,788</td><td class="num">$17,003</td><td class="num">−$1,216</td></tr>
+<tr><td class="ln">Q4 re-derivation, A/B separate</td><td class="num">652</td><td class="num">$15,730</td><td class="num">$16,832</td><td class="num">−$1,101</td></tr>
+<tr><td class="ln"><b>REV3 (mine), A/B separate</b></td><td class="num">656</td><td class="num">$16,066</td><td class="num">$17,428</td><td class="num">−$1,362</td></tr>
+<tr><td class="ln">Q4, A/B merged</td><td class="num">353</td><td class="num">$8,644</td><td class="num">$9,084</td><td class="num">−$440</td></tr>
+<tr class="row-hl"><td class="ln"><b>REV3 (mine), A/B merged</b></td><td class="num"><b>355</b></td><td class="num"><b>$8,804</b></td><td class="num"><b>$9,450</b></td><td class="num"><b>−$646</b></td></tr>
+</tbody>
+</table>
+
+<p><b>Read:</b> three signals apart on 355 and $206 apart on $9.4k of gross (2.2%). <b>Q4's A/B double-count finding is CONFIRMED</b> — merging the slots removes 46% of both columns. Q4's zero-slippage point (§3) is CONFIRMED and I do not re-litigate it. The segment split reproduces too:</p>
+
+<table>
+<thead><tr><th>regime @ signal (router replay)</th><th class="num">n</th><th class="num">router value — Q4</th><th class="num">router value — REV3</th><th class="num">win%</th><th class="num">$/signal</th></tr></thead>
+<tbody>
+<tr><td class="ln">CHOP</td><td class="num">239</td><td class="num">+$1,088</td><td class="num">+$812</td><td class="num">33.1%</td><td class="num">−$3.4</td></tr>
+<tr><td class="ln">TREND_DOWN</td><td class="num">44</td><td class="num">−$148</td><td class="num">−$154</td><td class="num">40.9%</td><td class="num">+$3.5</td></tr>
+<tr class="row-bad"><td class="ln">TREND_UP</td><td class="num">72</td><td class="num">−$1,380</td><td class="num">−$1,304</td><td class="num">50.0%</td><td class="num">+$18.1</td></tr>
+<tr class="row-hl"><td class="ln"><b>TREND_UP ∩ MOMENTUM — the claim</b></td><td class="num"><b>62</b></td><td class="num"><b>+$1,615</b></td><td class="num"><b>+$1,644</b></td><td class="num"><b>56.5%</b></td><td class="num"><b>+$26.5</b></td></tr>
+</tbody>
+</table>
+
+<p><b>So the claim is arithmetically real.</b> Everything from here is about whether it means what Q4 says it means.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>2 · Kill shot #1 — the estimator books trades a real gate could never have taken</h3>
+
+<p>Q4 stripped the A/B duplicate. It left the <b>temporal</b> duplicate. <code>router_nightly.py</code> dedups suppressions at 120 seconds and then prices every survivor as a <i>complete round trip</i> — even when the previous signal on that same gate is still notionally open. Median modelled hold is minutes to tens of minutes; the dedup window is two. A real gate holds one position at a time.</p>
+
+<p>Correction: walk each gate's signals in time order, and skip any that arrives before the previous one has exited (using that trade's own tick-derived exit time).</p>
+
+<table>
+<thead><tr><th>book (aligned momentum LONG, router TREND_UP)</th><th class="num">n</th><th class="num">net</th><th class="num">win%</th><th class="num">$/trade</th><th class="num">LOO worst fold</th><th class="num">strip best 3</th><th class="num">strip best 5</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">as Q4 counts it — every deduped signal is a trade</td><td class="num">56</td><td class="num">+$1,799</td><td class="num">61%</td><td class="num">+$32.1</td><td class="num">—</td><td class="num">+$1,304</td><td class="num">+$978</td></tr>
+<tr class="row-hl"><td class="ln"><b>one open position per gate (non-overlap)</b></td><td class="num"><b>32</b></td><td class="num"><b>+$767</b></td><td class="num">56%</td><td class="num">+$24.0</td><td class="num">+$276</td><td class="num"><b>+$276</b></td><td class="num"><b>+$85</b></td></tr>
+<tr><td class="ln">and including the counter-side (all momentum, as Q4 words it)</td><td class="num">38</td><td class="num">+$612</td><td class="num">50%</td><td class="num">+$16.1</td><td class="num">+$121</td><td class="num">+$122</td><td class="num">−$70</td></tr>
+</tbody>
+</table>
+
+<p><b>Read: −57% from a bookkeeping fix of exactly the species Q4 itself found.</b> And Q4's own wording — "stop benching <i>momentum</i> in TREND_UP" — includes <code>abs_veto_short</code>, i.e. arming a SHORT gate inside an up-trend. That sub-slice is <b>n=6, −$154, 17% win.</b> Counter-side momentum in a trend loses money and should never have been in the number. Aligned-only is the only defensible version.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>3 · Kill shot #2 — the finding lives or dies on <i>whose</i> definition of TREND_UP</h3>
+
+<p>Q4 flags the circularity in its own honesty banner and then scores against the router's tag anyway. So I tagged the same 355 signals four more ways, none of which touches <code>direction_router</code>, and ran a placebo: <b>if the TREND_UP label carries no information, a random same-size subset of the aligned momentum book should do as well.</b> 20,000 draws.</p>
+
+<table>
+<thead><tr><th>regime oracle for TREND_UP</th><th class="num">% of week</th><th class="num">n</th><th class="num">net (raw)</th><th class="num">win%</th><th class="num">$/sig</th><th class="num">vs random</th><th class="num">p</th><th>verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><b>router replay</b> — ER30≥0.20, net≥30, HOLD 2 marks</td><td class="num">18%</td><td class="num">56</td><td class="num">+$1,799</td><td class="num">61%</td><td class="num">+$32.1</td><td class="num">z=+3.60</td><td class="num">0.000</td><td>the claim</td></tr>
+<tr><td class="ln"><b>ADX(14)</b> on 5-min bars ≥20, +DI&gt;−DI (textbook)</td><td class="num">30%</td><td class="num">112</td><td class="num">+$780</td><td class="num">38%</td><td class="num">+$7.0</td><td class="num">z=−0.16</td><td class="num">0.561</td><td>❌ no information</td></tr>
+<tr class="row-bad"><td class="ln"><b>OLS 60-min</b> R²≥0.35 &amp; net≥+30pt</td><td class="num">29%</td><td class="num">106</td><td class="num">−$365</td><td class="num">32%</td><td class="num">−$3.4</td><td class="num">z=−2.56</td><td class="num">0.996</td><td>❌ WORSE than random</td></tr>
+<tr><td class="ln"><b>OLS 30-min</b> — same horizon as the router, structure not ER</td><td class="num">—</td><td class="num">126</td><td class="num">+$70</td><td class="num">36%</td><td class="num">+$0.6</td><td class="num">—</td><td class="num">—</td><td>❌ no edge</td></tr>
+<tr><td class="ln">OLS 30-min <b>+ 30-min sustain</b></td><td class="num">~0%</td><td class="num">3</td><td class="num">−$151</td><td class="num">0%</td><td class="num">−$50.2</td><td class="num">—</td><td class="num">—</td><td>❌ fires 3× all week</td></tr>
+<tr><td class="ln"><b>strict</b> — ER60≥0.35 &amp; net≥60pt, 30-min sustain</td><td class="num">0%</td><td class="num">0</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td>❌ <b>never occurred</b></td></tr>
+</tbody>
+</table>
+
+<p><b>Read this row by row.</b> The router's own ER-based tag picks a subset worth $32/signal against a random-subset mean of $7.6/signal — a real, significant selection (z=+3.60). <b>No other formulation reproduces it.</b> The obvious defence is "the others use a longer horizon" — so I built one at the <i>same</i> 30-minute horizon with the <i>same</i> ±30pt threshold, swapping Kaufman ER for regression R². It finds <b>$0.6/signal</b>. The discriminator is not the horizon. It is the specific <code>ER_TREND=0.20 / NET_MIN=30 / HOLD=2</code> triple — and those three knobs were tuned on 07-20…07-26, the week immediately before this one.</p>
+
+<p>The comparison that should end the argument: under the two independent tags, <b>the TREND_UP bucket is not even the best bucket.</b></p>
+
+<table>
+<thead><tr><th>aligned momentum-LONG blocked book, $/signal by regime</th><th class="num">CHOP</th><th class="num">TREND_DOWN</th><th class="num">TREND_UP</th></tr></thead>
+<tbody>
+<tr><td class="ln">router tag</td><td class="num">+$1.5</td><td class="num">+$0.1</td><td class="num"><b>+$32.1</b></td></tr>
+<tr><td class="ln">ADX(14)</td><td class="num"><b>+$7.7</b></td><td class="num">+$10.1</td><td class="num">+$7.0</td></tr>
+<tr class="row-bad"><td class="ln">OLS 60-min</td><td class="num"><b>+$14.6</b></td><td class="num">+$13.7</td><td class="num">−$3.4</td></tr>
+</tbody>
+</table>
+
+<p>Under both independent oracles the <b>CHOP</b> bucket is where the blocked momentum longs would have made money — which is not a case for arming momentum in trends, it is a case that <i>this estimator likes momentum longs everywhere this week</i>: the whole aligned momentum-LONG blocked book is <b>+$2,078 across all 274 signals in all regimes</b>. A finding that says "you should never have benched a momentum long anywhere, all week" is not a TREND_UP finding. It is a statement about the estimator's optimism and about a week that closed 217 points lower but bounced hard.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>4 · Kill shot #3 — it is not trend money. It is bounce money on the biggest DOWN day.</h3>
+
+<table>
+<thead><tr><th>Paris day</th><th class="num">n</th><th class="num">net</th><th class="num">win%</th><th class="num">$/sig</th><th class="num">day move</th><th class="num">day ER</th><th>what the day actually was</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">07-29</td><td class="num">17</td><td class="num"><b>+$990</b></td><td class="num">65%</td><td class="num">+$58.2</td><td class="num">−702pt</td><td class="num">0.72</td><td>the week's cleanest <b>DOWN</b> trend</td></tr>
+<tr><td class="ln">07-30</td><td class="num">14</td><td class="num">+$349</td><td class="num">64%</td><td class="num">+$24.9</td><td class="num">+1,126pt</td><td class="num">0.93</td><td><b>the only clean UP day</b></td></tr>
+<tr><td class="ln">07-31</td><td class="num">25</td><td class="num">+$460</td><td class="num">56%</td><td class="num">+$18.4</td><td class="num">−33pt</td><td class="num">0.05</td><td>violent round-trip chop (ATR 52–62)</td></tr>
+<tr><td class="ln">07-27, 07-28</td><td class="num">0</td><td class="num">$0</td><td class="num">—</td><td class="num">—</td><td class="num">−291 / −251pt</td><td class="num">0.35 / 0.40</td><td>no TREND_UP signals at all</td></tr>
+</tbody>
+</table>
+
+<p><b>The one clean up-trend day of the week — the exact tape <span class="mono">[[us-open-dont-bench-trend-rider]]</span> was written for — contributes $349 of $1,799 (19%).</b> The two biggest episodes are both <code>grind_long</code> on 07-29:</p>
+
+<table>
+<thead><tr><th>episode</th><th class="num">signals</th><th class="num">net</th><th>window (UTC)</th><th>price</th><th>day context</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln mono">grind_long#2@07-29</td><td class="num">5</td><td class="num">+$570</td><td>18:40 → 18:49</td><td>27868 → 28025</td><td>day 27962 → 27260 (−702pt)</td></tr>
+<tr class="row-bad"><td class="ln mono">grind_long#1@07-29</td><td class="num">4</td><td class="num">+$371</td><td>16:52 → 16:58</td><td>27552 → 27579</td><td>same day, price 400pt below the open</td></tr>
+<tr><td class="ln mono">grind_long#10@07-31</td><td class="num">4</td><td class="num">+$353</td><td>16:26 → 16:56</td><td>28312 → 28376</td><td>day-ER 0.05, ATR-52 whipsaw</td></tr>
+<tr><td class="ln mono">grind_long#3@07-30</td><td class="num">5</td><td class="num">+$253</td><td>09:04 → 09:12</td><td>27484 → 27514</td><td>the clean up day — the only "correct" one</td></tr>
+</tbody>
+</table>
+
+<p><b>Those top two are +$941 = 52% of the entire claim, and both are momentum longs bought into bounces while MNQ was 400–700 points below its open on the week's cleanest down day.</b> The framework's own rule is <code>day-bias DOWN≤−40 → bench longs</code>. 34% of the claimed money ($614 over 10 signals) was earned with the day-bias at or below −40. To bank Q4's +$1,615 the router would have to override the day-bias rule — which Q4 never says and nobody has asked for.</p>
+
+<p>Two more concentration cuts, same direction:</p>
+<ul>
+<li><b>Episodes, not signals.</b> 56 signals collapse to <b>21 episodes</b> (same gate, gaps &lt;30 min). Top-1 episode = <b>35%</b> of the total; top-3 = <b>79%</b>. Strip the best three episodes and $1,799 becomes <b>+$350</b>. Effective n is ~20, not 56.</li>
+<li><b>ER at the moment of firing.</b> The money sits in the <i>lowest</i> ER bucket: <b>ER30 ≤ 0.20 → n=32, +$1,351 (75% of the claim)</b>; ER30 ≥ 0.35 → n=9, <b>+$6</b>. Because <code>replay_marks</code> carries HOLD=2 hysteresis on a 15-min grid, a "TREND_UP" label at signal time can be up to half an hour stale. <b>57% of the claimed signals fired while the tape was, on its own instantaneous read, chop.</b> That is <span class="mono">[[rearm-momentum-needs-er-climb-not-delta-blip]]</span> with a price tag on the wrong side of the ledger.</li>
+</ul>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>5 · What I could NOT kill — the estimator itself, and the fader half</h3>
+
+<p>Two adversarial tests came back in Q4's favour and I report them straight.</p>
+
+<p><b>(a) The estimator is not systematically optimistic.</b> Direct calibration against the same week's realised trades:</p>
+
+<table>
+<thead><tr><th>momentum gates, 07-27…07-31</th><th class="num">n</th><th class="num">net</th><th class="num">win%</th><th class="num">$/trade</th></tr></thead>
+<tbody>
+<tr><td class="ln">REALISED (actually ran, real exits, real fills)</td><td class="num">141</td><td class="num">+$602</td><td class="num">35%</td><td class="num">+$4.3</td></tr>
+<tr><td class="ln">MODELLED (blocked, 2R/1-ATR on 250ms ticks)</td><td class="num">326</td><td class="num">+$1,284</td><td class="num">39%</td><td class="num">+$3.9</td></tr>
+</tbody>
+</table>
+
+<p>Modelled is <b>$0.3/trade WORSE</b> than realised. So the reduction in §2–§4 is not a slippage argument and I am not making one. Consistent with that, the drag maths runs Q4's way: arming means <i>taking</i> these trades, so net = Σpnl − δ·n, and on the router tag the aligned book breaks even only at <b>δ=$24/RT ≈ 48 MNQ ticks</b>. Slippage does not kill this. The tag and the overlap do.</p>
+
+<p><b>(b) Exit choice is not the artefact.</b> Repriced on the same ticks under six exits — the finding is stable in <i>shape</i>, which means the 2R/1-ATR estimator is not flattering it:</p>
+
+<table>
+<thead><tr><th>exit variant (router tag, aligned LONG, n=56)</th><th class="num">net</th><th class="num">win%</th><th class="num">$/trade</th></tr></thead>
+<tbody>
+<tr><td class="ln">2R / 1-ATR — the estimator</td><td class="num">+$1,799</td><td class="num">61%</td><td class="num">+$32.1</td></tr>
+<tr><td class="ln">1R / 1-ATR scalp</td><td class="num">+$1,064</td><td class="num">73%</td><td class="num">+$19.0</td></tr>
+<tr><td class="ln">3R / 1-ATR</td><td class="num">+$2,238</td><td class="num">52%</td><td class="num">+$40.0</td></tr>
+<tr><td class="ln">2R / 1.5-ATR wider stop</td><td class="num">+$2,468</td><td class="num">75%</td><td class="num">+$44.1</td></tr>
+<tr><td class="ln">chandelier 3.5→0.5k / 1-ATR stop</td><td class="num">+$2,496</td><td class="num">61%</td><td class="num">+$44.6</td></tr>
+</tbody>
+</table>
+
+<p><b>(c) And a correction that runs AGAINST Q4's other half.</b> Q4 states the defence as "+$1,088 in CHOP, robust to every fold." The CHOP claim is tag-dependent in exactly the same way the TREND_UP claim is:</p>
+
+<table>
+<thead><tr><th>defensive cut</th><th class="num">router tag</th><th class="num">ADX tag</th><th class="num">OLS-60 tag</th><th>verdict</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">bench into CHOP — router value, non-overlap</td><td class="num">+$612</td><td class="num">+$187</td><td class="num">−$382</td><td>tag-FRAGILE, same flaw</td></tr>
+<tr class="row-hl"><td class="ln"><b>bench the FADERS — router value, non-overlap</b></td><td class="num" colspan="3"><b>+$810 (n=25) — a mechanism cut, identical under every tag</b></td><td><b>✅ the one robust claim</b></td></tr>
+</tbody>
+</table>
+
+<p><b>So the surviving half of Q4 is narrower than Q4 says.</b> "Benching faders earns its keep" holds under any definition of anything — <code>exhaustion_short</code> alone: 12 of 12 blocked signals would have lost, +$648. "Benching into CHOP earns its keep" only holds if you accept the router's own definition of chop.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>6 · Sized ladder — what any version of this rule is actually worth</h3>
+
+<p>Every row is "arm ALIGNED long momentum when &lt;condition&gt;", non-overlap, at h=0 with no drag assumed, on this one week. LOO = worst leave-one-Paris-day-out fold. δ<sub>be</sub> = per-round-trip slippage that zeroes it.</p>
+
+<table>
+<thead><tr><th>candidate rule</th><th class="num">n</th><th class="num">week net</th><th class="num">win%</th><th class="num">$/trade</th><th class="num">LOO worst</th><th class="num">strip best 3</th><th class="num">strip best 5</th><th class="num">δ<sub>be</sub></th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><b>Q4 as written</b> — router TREND_UP, ALL momentum</td><td class="num">38</td><td class="num">+$612</td><td class="num">50%</td><td class="num">+$16.1</td><td class="num">+$121</td><td class="num">+$122</td><td class="num"><b>−$70</b></td><td class="num">$16.1</td></tr>
+<tr><td class="ln">aligned-only — router TREND_UP + LONG</td><td class="num">32</td><td class="num"><b>+$767</b></td><td class="num">56%</td><td class="num">+$24.0</td><td class="num">+$276</td><td class="num">+$276</td><td class="num">+$85</td><td class="num">$24.0</td></tr>
+<tr><td class="ln">+ day-bias UP (price ≥ day open +40) — <i>framework-consistent</i></td><td class="num">23</td><td class="num">+$422</td><td class="num">57%</td><td class="num">+$18.4</td><td class="num">+$230</td><td class="num">+$91</td><td class="num"><b>−$34</b></td><td class="num">$18.4</td></tr>
+<tr><td class="ln">+ day-bias UP + ADX(14) confirm</td><td class="num">17</td><td class="num">+$446</td><td class="num">59%</td><td class="num">+$26.2</td><td class="num">+$253</td><td class="num">+$88</td><td class="num"><b>−$36</b></td><td class="num">$26.2</td></tr>
+<tr class="row-bad"><td class="ln">+ day-bias UP + ER30≥0.35 (the grind floor the desk already uses)</td><td class="num"><b>4</b></td><td class="num">+$158</td><td class="num">50%</td><td class="num">+$39.5</td><td class="num"><b>−$34</b></td><td class="num">−$58</td><td class="num">$0</td><td class="num">$39.5</td></tr>
+<tr class="row-bad"><td class="ln">+ day-bias UP + ADX + ER30≥0.30 + ATR30≥14</td><td class="num"><b>4</b></td><td class="num">+$158</td><td class="num">50%</td><td class="num">+$39.5</td><td class="num"><b>−$34</b></td><td class="num">−$58</td><td class="num">$0</td><td class="num">$39.5</td></tr>
+<tr><td class="ln">US session only (13:30–20:00z) + day-bias UP</td><td class="num">4</td><td class="num">+$162</td><td class="num">50%</td><td class="num">+$40.6</td><td class="num">−$2</td><td class="num">−$50</td><td class="num">$0</td><td class="num">$40.6</td></tr>
+</tbody>
+</table>
+
+<p><b>Read the shape, not any single row.</b> Every step that makes the rule <i>more</i> consistent with the desk's existing framework makes it <i>smaller</i>, and every version fails at least one robustness cut. The loosest version (Q4's own wording) is the one that dies fastest under strip-best-5. The tightest versions are n=4 for the entire week.</p>
+
+<p>Q4 says the fix is "already banked as <span class="mono">[[us-open-dont-bench-trend-rider]]</span>, simply not being enforced." That is not what the banked rule says. The banked rule is narrow: <i>on a cleanly-trending day, hold the aligned trend-rider through open stop-outs; bench only if trend STRUCTURE breaks.</i> It is a rule about not panicking on flushes. Q4's version is a rule about arming momentum for 18% of the clock on a 30-min ER≥0.20 read. Those are different rules, and the ledger already grades the boundary between them: 07-30 13:36 (❌ BAD, benched the rider on open noise in a clean trend) versus 07-31 13:40 (✅ GOOD, benched grind after the thrust fully reversed). <b>The banked rule is being enforced correctly. Q4 is proposing a new and much wider one.</b></p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>7 · The asymmetry, honestly — and the thing that actually matters this week</h3>
+
+<p>The standing rule is that wrongly-benched is cheap (missed trades) and wrongly-armed is expensive (real churn losses), so when unsure, sit benched one more tick. <b>This change points the expensive way.</b> Everything about the evidence says respect the asymmetry:</p>
+
+<table>
+<thead><tr><th>what the asymmetry test asks</th><th>answer from this week's tape</th></tr></thead>
+<tbody>
+<tr><td class="ln">Is the effect robust to how you define the condition?</td><td>❌ No — significant under one tag, null under a second, negative under a third.</td></tr>
+<tr><td class="ln">Is it robust to leave-one-day-out?</td><td>❌ Not on the framework-consistent versions (LOO −$34); marginally yes only on the loosest.</td></tr>
+<tr><td class="ln">Is it robust to stripping the best few?</td><td>❌ Strip 3 episodes: $1,799 → $350. Strip best 5 signals: Q4's own wording → −$70.</td></tr>
+<tr><td class="ln">Is the tape representative of the condition being armed for?</td><td>❌ No. A confirmed trend was live <b>3.3% of the week</b> — 22 episodes, median <b>6 minutes</b>. There was nothing to ride.</td></tr>
+<tr><td class="ln">Does the wrongly-armed failure mode already have a body count?</td><td>❌ Yes. Ledger 07-31: enable-all at the open → grind bought the roll-over <b>−$370</b>; two afternoon re-arms into a "calm" ER-0.24–0.30 recovery churned <b>−$245</b>. Both would be <i>more</i> likely under Q4's rule, because 57% of its signals fire at ER30 ≤ 0.20.</td></tr>
+<tr><td class="ln">What is the upside if it is right?</td><td>+$400–$770/week modelled ceiling, on a book whose realised comparator did $4.3/trade.</td></tr>
+</tbody>
+</table>
+
+<p><b>Verdict: STAGE IT, do not ship it.</b> A change that arms a churner in more conditions, justified by a segment that inverts when you change the definition of the segment, on a week with no confirmed trend in it, is precisely the trade the asymmetry rule exists to refuse. The cost of waiting is a modelled few hundred dollars a week that may not exist; the cost of being wrong is measured, repeatedly, in the ledger.</p>
+
+<p><b>★ And the operational finding that is worth more than this entire debate.</b> As of right now:</p>
+
+<table>
+<thead><tr><th>live state, 2026-08-01</th><th>value</th><th>consequence</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><code>PINNED</code> in <code>scripts/router_tick_durable.py</code></td><td class="mono">frozenset({all 6 gates})</td><td><b>the durable tick cannot bench ANY gate</b></td></tr>
+<tr class="row-bad"><td class="ln"><code>data/gate_switches.env</code></td><td class="mono">all 6 = on</td><td>desk fully armed in every regime</td></tr>
+<tr><td class="ln">comment in the file</td><td colspan="2" class="mono">"★US-OPEN OVERRIDE 2026-07-31 … Revert to frozenset({"exhaustion_short"}) once the open settles."</td></tr>
+</tbody>
+</table>
+
+<p>The open settled two days ago. <b>The proven half of the router — the fader bench, +$810/week, the only claim in Q4 that survives every test I could throw at it — is currently switched off</b>, and so is the CHOP bench. Q4's recommendation is to arm momentum in more conditions; the desk is already in the maximally-armed state, by accident. Before any argument about arming <i>more</i>, the pin should come off so the machine can do the part it demonstrably earns. That is a one-line revert, it points the CHEAP direction, and it needs no new evidence.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>8 · The staged path — how to earn this finding instead of assuming it</h3>
+
+<ol>
+<li><b>Un-pin first (today).</b> <code>PINNED = frozenset({"exhaustion_short"})</code> — restore the fade-scalp trial's protection only, and let the durable tick resume benching. Reinstates the +$810 fader defence. No new build, no new risk, cheap direction.</li>
+<li><b>Instrument, do not arm.</b> Add nothing to the prompt. Instead extend <code>router_nightly.py</code> so it (a) merges A/B before dedup, (b) enforces one-open-position-per-gate, and (c) tags each blocked signal with ADX <i>and</i> the router replay. Every night thereafter produces the honest version of this table for free. Until that lands, every "router value" number in the Friday report carries a ~2× counting inflation.</li>
+<li><b>Wait for the tape.</b> The whole question is unanswerable on a week containing 224 minutes of confirmed trend. Re-run this exact ladder after a week with a real trend day — the deciding test is whether the ADX-confirmed and router-only versions converge. If they do, the effect is real and worth arming. If they keep disagreeing, the router's ER triple is overfit and should be retuned, not obeyed.</li>
+<li><b>If the operator wants something in force now,</b> the only asymmetry-safe change is a TIGHTENING, and it is written out below. It does not arm anything new. It (i) defines "confirmed trend" operationally so no future tick can re-arm on a 30-minute-stale label, (ii) forbids arming the counter-side momentum gate inside a confirmed trend (measured: −$154, 17% win), and (iii) restates the banked open rule in its narrow, correct form. It is PREPARED, NOT APPLIED.</li>
+</ol>
+
+<div class="callout">
+  <div class="ct"><b>PREPARED, NOT APPLIED — conservative patch to <code>scripts/router_tick_durable.py</code>.</b> This is <b>not</b> Q4's change. Q4's change is declined. This one is a tightening: it can only cause a gate to be benched in situations where it might previously have been armed, plus one narrow hold-through-flushes clause that already exists as a banked rule. The chop/fader benching wording is untouched by construction — the insert sits after it and says so explicitly.</div>
+</div>
+
+<p><b>Insert point</b> — immediately after the existing sentence ending <code>"...(not a delta-blip). "</code> and before <code>"abs_veto_long is veto-protected..."</code>, inside the <code>prompt = (</code> literal:</p>
+
+<pre class="mono">        "★ CONFIRMED-TREND TEST — apply this whenever you would hold or re-arm an ALIGNED momentum gate. "
+        "It does NOT loosen the chop/fader benching above (that is the proven half; leave it exactly as is). "
+        "A trend counts as CONFIRMED only if ALL FOUR are true on THIS tick's desk-view read, never on a "
+        "reading from an earlier tick: (1) 30-min ER >= 0.35; (2) 30-min net move >= 60 MNQ points in the "
+        "trend direction; (3) ATR >= 14; (4) the same read held on the previous tick too (~10 min). "
+        "If any one of the four fails it is NOT a confirmed trend — it is chop, and momentum stays benched, "
+        "however directional the last 30 minutes looked. In a CONFIRMED trend: hold the ALIGNED momentum "
+        "gate through stop-outs (an open flush is noise — bench it only if the trend STRUCTURE breaks: the "
+        "leg fully round-trips, or ER falls back under 0.20), and BENCH the counter-side momentum gate. "
+        "Never arm a momentum gate against the day-bias. "
+</pre>
+
+<p><b>Exact revert:</b> delete the seven inserted string-literal lines. Nothing else in the file changes — no constant, no default, no <code>PINNED</code> edit, no behaviour outside the prompt text. The wrapper is fail-safe either way (any parse failure ⇒ no switch change).</p>
+
+<p><b>What it would have done this week, measured, not asserted — and this cuts against my own patch, so read it.</b> The four-part test was true for <b>3.3% of the 1-min clock</b> (1.8% UP, 1.4% DOWN), across 22 episodes of median 6 minutes. As a permission filter it clears <b>26 of the 274 aligned-long signal-instants (9%)</b>, worth <b>−$28 raw / +$86 non-overlap</b>, win 42%, <b>and even that flips negative on two of four leave-one-day-out folds (−$25, −$60) and on strip-best-3 (−$260).</b> The counter-side clause codifies what already happened rather than changing it: those 6 <code>abs_veto_short</code> signals were benched, worth <b>+$154 saved</b> — the clause's job is to stop a future tick arming them, which is exactly what Q4's wording would have done.</p>
+
+<p>So: <b>the tightened rule earns approximately nothing this week either.</b> That is the point, and I would rather say it than sell it. Its value is not money, it is <i>determinism</i> — right now "confirmed TREND_UP" is whatever a headless Claude decides at 03:00 UTC with no operator watching, and 57% of the signals Q4 wants armed fire at ER30 ≤ 0.20. The patch makes the phrase mean one thing. Sell it as a guardrail, size it at $0, and expect the argument about arming to be settled by a future trend week, not by this one.</p>
+</div>
+
+<!-- ======================================================================= -->
+<div class="card">
+<h3>9 · Bottom line</h3>
+
+<table>
+<thead><tr><th>claim</th><th class="num">Q4</th><th class="num">REV3</th><th>status</th></tr></thead>
+<tbody>
+<tr><td class="ln">Published −$1,216 is wrong; A/B double-count is $661 of it</td><td class="num">✔</td><td class="num">✔</td><td>✅ <b>CONFIRMED</b></td></tr>
+<tr><td class="ln">Zero-slippage assumption inflates the deficit</td><td class="num">✔</td><td class="num">✔</td><td>✅ CONFIRMED (and calibration says the estimator is fair, so it cuts both ways)</td></tr>
+<tr><td class="ln">Blended router value has no statistical standing</td><td class="num">✔</td><td class="num">✔</td><td>✅ CONFIRMED — do not quote it</td></tr>
+<tr><td class="ln">Benching the FADERS earns its keep</td><td class="num">+$613</td><td class="num">+$810</td><td>✅ <b>CONFIRMED and strengthened</b> — the one tag-independent claim</td></tr>
+<tr><td class="ln">Benching into CHOP earns its keep, robust to every fold</td><td class="num">+$1,088</td><td class="num">+$612 / +$187 / −$382</td><td>⚠ <b>DOWNGRADED</b> — tag-fragile, same flaw as the TREND_UP half</td></tr>
+<tr class="row-bad"><td class="ln"><b>Stop benching momentum in TREND_UP = +$1,615/week, robust in all 9 folds</b></td><td class="num">+$1,615</td><td class="num">+$767 → +$158</td><td>❌ <b>REDUCED, and REFUTED as a trend finding</b></td></tr>
+<tr><td class="ln">"Highest-value, best-evidenced change in the report; needs no new build"</td><td class="num">✔</td><td class="num">✘</td><td>❌ <b>DECLINED</b> — stage it; un-pin the router instead</td></tr>
+</tbody>
+</table>
+
+<p class="lead"><b>One paragraph for the plane.</b> Q4 found two real bookkeeping errors and one real segment split, and it deserves credit for all three. But it stopped one correction short: the same estimator that double-counts A and B also double-counts a gate against itself in time, and fixing that halves the headline finding. What is left is significant only under the router's own thirty-minute ER definition of a trend, is null under a textbook ADX and negative under a regression fit at the same horizon, and is half-funded by two clusters of momentum longs bought into bounces on the week's biggest down day. The rule it asks for is not the rule the desk banked. <b>Keep the defence, keep the ledger's asymmetry, take the pin off so the router can defend again, and re-run this the first week the tape gives us a real trend.</b></p>
+</div>

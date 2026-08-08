@@ -1,0 +1,188 @@
+<h2><span class="n">2.5</span> Mid-week musings — the leads, tested hard</h2>
+
+<p class="lead">This is the laboratory bench for everything that came up in the desk chat this week. Nothing gets to walk in as a "finding" — every mid-week idea is re-run on the week's own data and given a plain verdict. This week the tape handed us the perfect natural experiment: two clean-ish trending sessions (Paris-29 <b>+$638</b>, Paris-30 <b>+$1,172</b>) followed by a violent chop-reversal that cost <b>−$905</b> on Paris-31. That −$905 day is where most of the lessons live.</p>
+
+<div class="callout">
+  <div class="ct"><b>Lead with what survived.</b> Three things came out of the week clean:</div>
+  <div class="ct">1. <b>GRIND should not run naked.</b> On the trend day it was the desk's top earner at <b>+$703.5</b>; on the chop reversal it bought the top for <b>−$370.5</b>. The fix that the data actually supports is <b>an in-code continuation-veto</b> (mirroring abs_veto's), NOT the current ER-0.35 floor (which was porous all week) and NOT a "trend-days-only" calendar rule.</div>
+  <div class="ct">2. <b>The router's reaction-lag is NOT this week's problem.</b> Measured, the reducible actuation-lag cost was about <b>$0–$246</b> for the whole week, and it is detection-limited (the damage and the flip happen in the same 60–180 seconds). That dollar figure is too small to justify building a separate fast-bench service.</div>
+  <div class="ct">3. <b>The exit selector earned its keep</b> — adapting the exit width beat both fixed exits by ~<b>$1,289</b> across the week.</div>
+</div>
+
+<!-- ============================================================= -->
+<div class="card">
+<h3>1 · The direction-router's architecture — is the polling switch-file the best shape?</h3>
+
+<p class="lead">The objective, stated plainly: <b>stop a gate from trading against a proven trend, reactively, without over-clipping the chop days the faders actually earn on.</b> We built that as a 5-min durable tick (a headless-Claude judgment) that writes a switch file. It works — the desk went green twice this week under it. But the report's job is to ask whether a more elegant mechanism would do the same job with fewer moving parts and less lag.</p>
+
+<p>What the polling-plus-switch-file shape actually cost us this week, from the live log:</p>
+<table>
+<thead><tr><th>Live cost</th><th class="num">This week's evidence</th><th>Reducible?</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>Whipsaw / thrash</td><td class="num">grind toggled ON↔OFF ~8× on Paris-30 alone; abs_veto L+S toggled ~5× on Paris-31</td><td class="ln">Partly — an in-code veto removes the toggling</td></tr>
+<tr><td>Reaction lag (poll + judgment)</td><td class="num">≈ $0–$246 (measured below)</td><td class="ln">Yes, but tiny</td></tr>
+<tr><td>Detection lag (flip looks like a whipsaw until confirmed)</td><td class="num">the bulk of the −$1,460 raw reaction-window losses</td><td class="ln">No — irreducible (run-catcher NULL)</td></tr>
+<tr><td>Sticky-exit / partial-bar replay artifacts</td><td class="num">no material $ this week</td><td class="ln">n/a</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <div class="ct"><b>★ Reaction-lag mandate — the dollar number.</b> For every bench event this week I measured what the still-armed gate lost in the window between the regime turning and the switch actually flipping (bench timestamps from <code>router_trial_log.txt</code>, trades from the ledger).</div>
+</div>
+
+<table>
+<thead><tr><th>Window measured</th><th class="num">Net taken by benched gates</th><th>Reading</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>Full 15-min reaction window (loss legs only)</td><td class="num">−$1,460.5</td><td class="ln">Gross damage — but mostly detection-limited</td></tr>
+<tr><td>Full 15-min reaction window (net)</td><td class="num">−$409.0</td><td class="ln">Winners in the window partly offset</td></tr>
+<tr class="row-hl"><td>5-min poll-cadence window (net)</td><td class="num">+$11.0</td><td class="ln">What a <b>faster poll</b> could have caught ≈ $0</td></tr>
+<tr class="row-hl"><td>Re-entries after a first confirming stop (net)</td><td class="num">+$325.0</td><td class="ln">A stop-trigger fast-bench would <b>lose money</b> — most re-entries were good</td></tr>
+</tbody>
+</table>
+
+<p>Break the re-entry slice open, because it is the crux. Across the week, when a gate re-entered <i>after</i> a first stop inside a bench window, it made <b>+$227.5 / +$180 / +$164</b> in three trend cases and lost only <b>−$101.5 (grind, Paris-30 13:36)</b> and <b>−$145 (grind, Paris-31 13:42)</b> in the two reversal cases. So the genuinely reducible actuation-lag loss for the whole week is <b>≈ −$246.5</b> — and a mechanical "bench-after-a-stop" trigger built to harvest it would also have forfeited <b>+$571</b> of legitimate trend re-entries. That is a net-negative trade.</p>
+
+<p>The clearest single case makes the point: on Paris-31 grind bought the rollover top and took four stops for <b>−$284</b>; all four fills opened within 30 seconds at 13:38 and were stopped <i>before</i> the 13:42 bench could ever apply. No poll and no judgment loop, however fast, saves those — the flip and the loss were simultaneous. That is detection lag, and the run-catcher NULL <code>[[run-catcher-null-all-microstructure]]</code> already proved the flip is not front-runnable. So we do <b>not</b> propose predicting it.</p>
+
+<p><b>What else — the alternatives, backtested against the polling router:</b></p>
+<table>
+<thead><tr><th>Mechanism</th><th class="num">What the week's data says</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>(a) Per-gate in-code direction/continuation guard (per-tick, no poll, no file)</td><td class="num">router_study puts the "counter-trend NEAR-MISS LEAK" a per-tick guard would catch at <b>−$956</b> (live-managed set) / <b>−$1,933</b> (full fader set) — the real prize</td><td class="ln"><span class="tag">BUILD (start with grind)</span></td></tr>
+<tr><td>(b) Event-driven fast-bench service (router_watch.py gets narrow defensive authority)</td><td class="num">the lag it recovers is the $0–$246 above, detection-limited; a new service for that is not worth the moving part this week</td><td class="ln"><span class="tag">DEFER</span></td></tr>
+<tr><td>(c) Continuous in-tournament regime gating (no service, no file at all)</td><td class="num">the clean end-state; equivalent to (a) generalised across all gates</td><td class="ln"><span class="tag">DIRECTION OF TRAVEL</span></td></tr>
+<tr><td>(d) Just tune the timer granularity</td><td class="num">5-min window nets +$11 — finer polling buys nothing</td><td class="ln"><span class="tag">NO</span></td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <div class="ct"><b>Architecture verdict.</b> Keep the deliberate 5-min LLM loop for <b>ARMING</b> — that is the expensive, subtle judgment (is this a real break with ER climbing and vol expanding, or a delta-blip?) and it is doing that job well. Migrate the <b>DEFENSIVE</b> side <b>in-code, per-gate</b>, beginning with grind's continuation-veto. That captures the counter-trend leak the poll structurally can't, removes the thrash, and needs no new service. Do <b>not</b> build a separate event-driven fast-bench on this week's evidence — the lag it recovers ($0–$246, detection-limited) doesn't pay for a new moving part, and the mechanical version loses money on the re-entries. The dollar figure gates the build, and it says: no.</div>
+</div>
+</div>
+
+<!-- ============================================================= -->
+<div class="card">
+<h3>2 · The GRIND lead (operator-flagged, Paris-31): should grind run only on a confirmed trend?</h3><div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; every ER and ATR floor on this desk has been switched off since 2026-07-29</div><p><strong>Nothing below that leans on a live ER or ATR floor is describing the desk you own.</strong> <code>tournament.step()</code> hands the sub-slot tag (<code>grind_long_A</code>) to <code>er_blocks()</code>/<code>atr_blocks()</code>, but <code>ER_FLOOR</code>/<code>ATR_FLOOR</code> are keyed on base names, so the lookup never matches and every floor silently answers "don't block". Dead since the dual-slot cutover at <strong>2026-07-29 16:20:49 UTC</strong>; last suppression line 07-29T13:29:04Z, zero since. Five gates affected. The <code>_base()</code> helper that fixes it already exists at <code>tournament.py:86</code> and is applied correctly three times elsewhere &mdash; just not at lines 139 and 142.</p><p><strong>Size it honestly:</strong> the circulating "7,734 suppressions" is a raw log-line count and the check re-fires every ~1s tick. De-duplicated it is <strong>383 blocked signal episodes over 8 days</strong> (140 ER + 243 ATR) &mdash; about 48 a day, not thousands. Real, but 44&times; smaller than advertised.</p><p><strong>And it changes the conclusion, not just the footnote.</strong> Grind did not fire 52 of 56 times below its floor because "ER filters are fake on this tape" &mdash; a claim about the market. It fired because <em>there was no floor</em> &mdash; a claim about our code. Those point at completely different fixes. Both ER floors were even committed ~18 hours <em>after</em> the bug, so neither has ever blocked a single trade in production. Full working, per-gate verdicts and the mandatory ship order: <a href="#p3floors">Part 3.6</a>.</p></div>
+
+<p class="lead">This was the week's headline lead. Grind's live/managed record splits perfectly by regime — and the split is exactly why the question matters. (These are the <b>live managed</b> grind_long numbers, not the misleading grind_fast shadow, which fires all day including chop and showed red on the very day live grind made its money.)</p>
+
+<table>
+<thead><tr><th>Paris day</th><th>Regime</th><th class="num">Grind fires</th><th class="num">Grind net</th><th>What happened</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>07-27</td><td>Chop (74% chop)</td><td class="num">4</td><td class="num">−$149.0</td><td class="ln">Churned a quiet range</td></tr>
+<tr><td>07-28</td><td>Chop</td><td class="num">0</td><td class="num">$0</td><td class="ln">Correctly benched</td></tr>
+<tr><td>07-29</td><td>Down/reversal</td><td class="num">0</td><td class="num">$0</td><td class="ln">Benched (fired into Paris-30)</td></tr>
+<tr class="row-hl"><td>07-30</td><td>Trend up (US legs)</td><td class="num">46</td><td class="num">+$703.5</td><td class="ln"><b>Top earner</b> — rode the up-legs</td></tr>
+<tr class="row-bad"><td>07-31</td><td>Chop reversal</td><td class="num">6</td><td class="num">−$370.5</td><td class="ln">Bought the top, four stops, no veto</td></tr>
+</tbody>
+</table>
+
+<p>So the trend-day upside is real and large, and the churn is real and large. The operator asked which of three mechanisms best captures the +$703.5 while killing the chop bleed. I reconstructed the efficiency-ratio (ER) at the entry of <b>every</b> grind fire this week (30-min window on 5-second bars from capture.db) to test them head to head.</p>
+
+<p><b>Mechanism (c) — the current ER-0.35 floor — FAILED.</b> If the floor were really holding grind to genuine-trend conditions, grind would not fire in chop. It fired constantly in chop:</p>
+<table>
+<thead><tr><th>Reconstructed entry-ER bucket</th><th class="num">Fires</th><th class="num">Net</th><th class="num">Wins</th><th class="num">$/fire</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>ER &lt; 0.35 (should be blocked by a 0.35 floor)</td><td class="num">52</td><td class="num">−$174.5</td><td class="num">16</td><td class="num">−$3.4</td></tr>
+<tr class="row-hl"><td>ER ≥ 0.35</td><td class="num">4</td><td class="num">+$358.5</td><td class="num">2</td><td class="num">+$89.6</td></tr>
+</tbody>
+</table>
+<p>Grind fired <b>52 of 56</b> times below 0.35 on this measure — including all of the chop churn and both chop-day bleeds. Whatever ER the live gate is computing, it is not the trend-efficiency the floor claims to guard, and it did nothing to stop −$149, −$370.5, or the intraday chop churn on the trend day. <span class="was"><b>ER filters are fake here</b> (consistent with the standing memory).</span> <strong>&#9654; REV3: this is the wrong conclusion from the right observation.</strong> Grind fired below its floor 52 of 56 times because <em>the floor was not running</em> — a bug in our code, not a fact about the market. (The standing memory does survive on its own evidence: re-derived on 8 days of tick-honest replay, grind's ER≥0.35 would have thrown away +$2,923 of profit to keep +$83, so the floor is still a leak. But that is a separate proof, and it says <strong>delete the floor</strong>, not "ER is meaningless".) The one genuinely high-ER fire (ER 0.46, the Paris-30 barnstormer, +$445 across its two lots) shows the floor <i>would</i> be a fine confirmer if it actually gated — but as deployed it does not.</p>
+
+<p><b>Mechanism (a) — trend-days-only — clean but unusable in real time.</b> By calendar it separates beautifully (+$703.5 trend vs −$519.5 across the two chop days). But "trend day" is only knowable in hindsight, and even Paris-30 was <b>72% chop</b> by the classifier — grind churned those chop hours and made everything in the ~18% trend windows plus the one barnstormer. A day-level switch is too coarse; the decision has to be intraday.</p>
+
+<p><b>Mechanism (b) — grind gets its own in-code continuation-veto — the winner.</b> The cleanest evidence is the head-to-head on the exact Paris-31 reversal that cost grind −$370.5:</p>
+<table>
+<thead><tr><th>Gate, Paris-31 reversal</th><th class="num">Fires</th><th class="num">Wins</th><th class="num">Net</th><th>Difference</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>abs_veto_long (has a 55s continuation-veto)</td><td class="num">10</td><td class="num">5</td><td class="num">+$166.0</td><td class="ln">The veto stood it down through the fake, banked the real move</td></tr>
+<tr class="row-bad"><td>grind_long (no veto)</td><td class="num">6</td><td class="num">0</td><td class="num">−$370.5</td><td class="ln">Bought every rollover tick, no confirmation gate</td></tr>
+</tbody>
+</table>
+<p>Same day, same reversal, same direction — the <b>only</b> structural difference is that abs_veto re-requires the burst to persist for ~55 seconds before it commits, and grind doesn't. That single feature is worth a <b>+$536 swing</b> between the two gates on one day. A per-tick continuation-confirm on grind would also have skipped the intraday chop churn on Paris-30 (it only fires on a persisting thrust) while keeping the trend-leg winners, which the reconstruction confirms were genuine thrusts (ATR-5 of 99–156pt on the two biggest wins).</p>
+
+<div class="callout">
+  <div class="ct"><b>Grind verdict.</b> Yes — grind should effectively be OFF unless a move is confirmed, but the mechanism is <b>(b) an in-code continuation-veto</b>, not the ER-0.35 floor (porous, disproven this week) and not a calendar trend-day rule (too coarse). Build grind a 55s-style persistence check like abs_veto's: it is regime-agnostic (works any day, per-tick, no polling lag), it removes the router thrash, and it is validated by abs_veto out-earning grind by +$536 on the one reversal that mattered. This is the same in-code guard the architecture section landed on — one build fixes both.</div>
+</div>
+</div>
+
+<!-- ============================================================= -->
+<div class="card">
+<h3>3 · Nightly-rollup week-in-review — was the router optimal, and did the selector adapt?</h3>
+
+<p class="lead">Folding all five <code>router_nightly</code> and <code>selector_nightly</code> files into one week view. Both are <b>tick-honest estimates</b> — the trades the router blocked and the exits the selector didn't choose never actually ran, so treat "missed winners" as an upper bound (shadow overstates winners).</p>
+
+<h3 style="margin-top:1.2em">Router week-review</h3>
+<table>
+<thead><tr><th>Day</th><th class="num">Chop %</th><th class="num">Saved (losses avoided)</th><th class="num">Missed (winners blocked)</th><th class="num">Net router value</th><th class="num">Leakage (losers while ON)</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>07-27</td><td class="num">73.9</td><td class="num">$0</td><td class="num">$81</td><td class="num">−$81</td><td class="num">−$456 (9)</td></tr>
+<tr class="row-bad"><td>07-28</td><td class="num">62.9</td><td class="num">$506</td><td class="num">$567</td><td class="num">−$61</td><td class="num">−$398 (7)</td></tr>
+<tr class="row-bad"><td>07-29</td><td class="num">51.5</td><td class="num">$2,263</td><td class="num">$3,980</td><td class="num">−$1,717</td><td class="num">−$229 (6)</td></tr>
+<tr class="row-hl"><td>07-30</td><td class="num">72.2</td><td class="num">$5,656</td><td class="num">$4,848</td><td class="num">+$807</td><td class="num">$0</td></tr>
+<tr class="row-bad"><td>07-31</td><td class="num">64.9</td><td class="num">$7,363</td><td class="num">$7,527</td><td class="num">−$164</td><td class="num">$0</td></tr>
+<tr class="row-hl"><td><b>Week</b></td><td class="num">—</td><td class="num"><b>$15,788</b></td><td class="num"><b>$17,003</b></td><td class="num"><b>&minus;$440 to &minus;$646</b> <span class="was">−$1,216</span><br><span style="font-size:.85em">A/B merged; −$1,216 as originally double-counted. <strong>Do not quote this number.</strong></span></td><td class="num"><b>&minus;$1,083 week</b><br><span style="font-size:.85em">(−$456 / −$398 / −$229 Mon–Wed, <b>$0 on both durable days</b>)</span></td></tr>
+</tbody>
+</table>
+
+<div class="rev3"><div class="ct">&#9733; REV3 correction &mdash; 2026-08-01 &mdash; the same &minus;$1,216 correction as Part 2.6 &sect;3 &mdash; and do not net these columns</div><p>The A and B legs of every dual slot are byte-identical in the nightly's own output because the repricer ignores the slot suffix, so <strong>every suppressed signal is counted twice</strong>. Merged, the week is 353&ndash;355 signals and net <strong>&minus;$440 to &minus;$646</strong>. A second double-count sits underneath it: the nightly de-dupes at 120 seconds and then prices every survivor as a full round trip even while the same gate is still in the previous one. Until both land, every &ldquo;router value&rdquo; number carries roughly 2&times; counting inflation. And the blended figure flips sign on which single day you drop (&minus;$804 dropping 07-30, +$230 dropping 07-29) &mdash; it supports no verdict at all. Score the halves separately: the <strong>fader bench is +$810 (n=25) and survives every independent regime tag</strong>; benching into chop does not (+$612 / +$187 / &minus;$382 across three tags). Working: <a href='#p3trendup'>Part 3.5</a>.</p><p><strong>Do not net the columns.</strong> Leakage is the only realised-money column in this table; saved and missed are modelled counterfactuals on trades that never ran.</p></div><p><span class="was">Read honestly, the estimator says the router over-benched this week — it blocked more shadow-winners than losers-saved (net −$1,216), positive only on the clean trend day.</span> But two things pull the other way, hard: (1) those blocked winners <b>never ran</b>, and shadow overstates winners, so "missed" is a ceiling, not a bill; (2) the <b>live desk actually went green twice</b> (Paris-29 +$638, Paris-30 +$1,172), so where it counted the benching was net-right. The genuinely good news is <b>leakage</b> — the managed gates' losers that fired while switched ON — fell from −$456/−$398/−$229 early week to <b>$0 on both of the last two days</b>. The router stopped leaking; the open question it flags is over-benching (missing winners), which is exactly what the in-code arming judgment is for.</p>
+
+<h3 style="margin-top:1.2em">Selector week-review (adaptive exit width)</h3>
+<table>
+<thead><tr><th>Day</th><th class="num">n</th><th class="num">Optimal-pick</th><th class="num">Selector</th><th class="num">Always-scalp</th><th class="num">Always-wide</th><th class="num">Best-of-3</th><th class="num">Regret</th></tr></thead>
+<tbody>
+<tr><td>07-27</td><td class="num">39</td><td class="num">54%</td><td class="num">+$991</td><td class="num">+$320</td><td class="num">+$1,023</td><td class="num">+$2,334</td><td class="num">$1,342</td></tr>
+<tr class="row-hl"><td>07-28</td><td class="num">23</td><td class="num">57%</td><td class="num">+$634</td><td class="num">+$151</td><td class="num">+$36</td><td class="num">+$1,122</td><td class="num">$488</td></tr>
+<tr><td>07-29</td><td class="num">16</td><td class="num">63%</td><td class="num">+$1,134</td><td class="num">+$634</td><td class="num">+$1,290</td><td class="num">+$1,662</td><td class="num">$528</td></tr>
+<tr class="row-bad"><td>07-30</td><td class="num">90</td><td class="num">54%</td><td class="num">−$316</td><td class="num">+$354</td><td class="num">−$862</td><td class="num">+$2,431</td><td class="num">$2,748</td></tr>
+<tr class="row-hl"><td>07-31</td><td class="num">31</td><td class="num">81%</td><td class="num">−$448</td><td class="num">−$753</td><td class="num">−$846</td><td class="num">+$65</td><td class="num">$513</td></tr>
+<tr class="row-hl"><td><b>Week</b></td><td class="num"><b>199</b></td><td class="num"><b>59%</b></td><td class="num"><b>+$1,995</b></td><td class="num"><b>+$706</b></td><td class="num"><b>+$641</b></td><td class="num"><b>+$7,614</b></td><td class="num"><b>$5,619</b></td></tr>
+</tbody>
+</table>
+
+<p><b>Adapting won.</b> The selector's +$1,995 beat always-scalp (+$706) and always-wide (+$641) — about <b>+$1,289 over the better fixed exit</b> across the week, and it was the least-bad choice on the two red days. The systematic wrong-pick pattern is the flagged one, confirmed: <b>wide-in-violence whipsaws</b> — always-wide lost −$862 on the choppy-trending Paris-30 and −$846 on the violent Paris-31. The selector correctly leaned tighter on Paris-31 (12 tight vs 16 wide) and still only lost −$448 on a day that gave almost nothing away (best-of-3 was just +$65). Its worst regret was the trend day (07-30, $2,748 left on the table vs a perfect picker) — on a huge day it under-committed to wide on the runners. Again: these are estimates; the non-chosen exit legs never ran.</p>
+</div>
+
+<!-- ============================================================= -->
+<div class="card">
+<h3>4 · Standing weekly router optimisation — pull the thresholds and timings apart</h3>
+
+<p class="lead"><code>router_study.py --days 40</code>, run on both the live-managed fader set and the full historical fader set. Is it blocking enough losers, what does the threshold/timing grid say, and what's the honest deploy call?</p>
+
+<table>
+<thead><tr><th>Universe</th><th class="num">Baseline (no router)</th><th class="num">Router NOW</th><th class="num">Δ</th><th class="num">Blocked</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>Live-managed {capitulation_long, rgv_short}</td><td class="num">−$302</td><td class="num">−$126</td><td class="num">+$176</td><td class="num">4 (−$216 losers / +$40 winners)</td></tr>
+<tr class="row-hl"><td>Full fader set (+rgv_long, +exhaustion_short)</td><td class="num">−$722</td><td class="num">+$272</td><td class="num">+$995</td><td class="num">39 (−$1,476 losers / +$480 winners)</td></tr>
+</tbody>
+</table>
+
+<p><b>Is it blocking enough losers?</b> The classification says no — there's a real leak of counter-trend near-misses the current trigger is too strict to catch:</p>
+<table>
+<thead><tr><th>Class (full fader set, shipped config)</th><th class="num">n</th><th class="num">$</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>Allowed winner (correctly left ON)</td><td class="num">71</td><td class="num">+$4,020</td></tr>
+<tr><td>Blocked (router caught it)</td><td class="num">39</td><td class="num">−$995</td></tr>
+<tr class="row-bad"><td>LEAK: counter-trend near-miss (trigger too strict)</td><td class="num">32</td><td class="num">−$1,933</td></tr>
+<tr class="row-bad"><td>Chop loss (router can't help)</td><td class="num">19</td><td class="num">−$1,156</td></tr>
+<tr class="row-bad"><td>Trend-following loss (a gate/exit problem, not the router's)</td><td class="num">12</td><td class="num">−$658</td></tr>
+</tbody>
+</table>
+
+<p>That −$1,933 near-miss leak is the same money the in-code per-tick guard from sections 1 and 2 would recover — the poll is structurally a beat behind it. The threshold sweep points the same way on <b>both</b> sets: loosening ER from 0.20 to <b>0.15</b> improves the router (live-managed +$492, full +$1,307 at ER0.15 / net30), and the gradient is monotone toward the looser ER at these steps.</p>
+
+<table>
+<thead><tr><th>Config</th><th class="num">Live-managed Δ</th><th class="num">Full-set Δ</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Shipped: ER≥0.20, net≥30, win30 step15 hold2</td><td class="num">+$176</td><td class="num">+$995</td><td class="ln">current</td></tr>
+<tr class="row-hl"><td>Moderate: ER≥0.15, net≥30 (shipped timing)</td><td class="num">+$492</td><td class="num">+$1,307</td><td class="ln">both sets agree — the safe loosening</td></tr>
+<tr class="row-bad"><td>Joint-best of 900: ER≥0.15 net≥20 win45 step5 hold3</td><td class="num">+$692</td><td class="num">+$984</td><td class="ln">sits on the grid EDGE (ER floor) — curve-fit tell</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+  <div class="ct"><b>Deploy recommendation.</b> Take the <b>moderate</b> loosening — <b>ER≥0.15, net≥30, shipped timing</b> — not the joint-best. The joint-best lands on the bottom edge of the swept ER range (0.15) with the tightest step and net floor, which is the classic grid-edge overfit tell; the moderate cell earns +$492 / +$1,307 with both universes agreeing and no exotic timing. It's a <b>Saturday</b> change (tournament-changes-Saturday-only), and it must be <b>re-validated after a genuine trend week</b> — these 40 days are one summer range regime, thin, and partly already hand/router-gated, so read every number here as an illustrative lower bound.</div>
+</div>
+
+<p style="font-size:0.9em;opacity:0.8">Backtest-discipline note: every number above is segmented by regime (chop / trend / reversal) and by Paris-day rather than sprayed as one blanket cross-tape average, per the standing rule — a single blanket number with no regime split would bury exactly the grind edge this section found. The full per-regime Lot-A/Lot-B R-target sweep (the exit cheat-sheet) lives in the gate &amp; exit rehabilitation section, where the exit shadows run; here the selector week-review is the exit-adaptation evidence.</p>
+</div>

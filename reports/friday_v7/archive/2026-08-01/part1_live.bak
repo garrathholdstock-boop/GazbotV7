@@ -1,0 +1,168 @@
+<h2><span class="n">Part 1</span> The Live Desk — the week the router earned its keep</h2>
+
+<p class="lead">Garrath — the 6-gate paper tournament made <strong>+$625</strong> across <strong>206 trades</strong> this week (Mon 27th through Fri 31st, on the Paris session-day boundary the desk keeps its books on). That headline hides a wild ride: <strong>one best-ever day (+$1,172 on Thursday)</strong>, one clean two-way trend day (+$638 Wednesday), a near-scratch Tuesday, and two red days that bookended the week — a choppy Monday (−$227) and an ugly, whippy Friday (−$905). The money came from exactly two places: the gates that <em>ride</em> a real move (grind and abs_veto on the trend legs) and the gate that <em>fades</em> a tired one (exhaustion_short). Everything else either scratched or bled, and the router spent the week benching the bleeders. Below is the whole thing, every number computed off the tournament trades, honest about the fact that it is one week of in-sample paper.</p>
+
+<div class="callout"><div class="ct"><strong>Read this first — what SURVIVED the week.</strong> If you strip away the noise, one gate stood up on almost every kind of day: <strong>exhaustion_short was green on 4 of the 5 sessions</strong> (+$14, +$90, +$95, +$217, and only −$100 on Friday's violence), 54% of its trades won, +$316 for the week. It is the steadiest earner on the desk. The flashier numbers — grind's +$704 Thursday, abs_veto_short's +$570 Wednesday — are real but they are <em>day-type bets</em>: they printed on the one or two days the tape actually trended and gave money back the rest of the time. Lead with the steady one; treat the big ones as conditional.</div></div>
+
+<div class="card">
+<h3>The week, day by day</h3>
+<p>Every day scored on the desk's own Paris session boundary, so these match the numbers in your ledger (Thursday's +$1,172 is the best single day the desk has ever booked). The "character" column is the router's live regime read, not a number I invented — it's what actually drove the bench/arm calls.</p>
+<table>
+<thead><tr><th>Session day</th><th class="num">Net $</th><th class="num">Trades</th><th>What the tape did</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">Mon 07-27</td><td class="num">−226.5</td><td class="num">40</td><td>Choppy down-drift; a Sunday-reopen "all gates on" churned the wrong-side gates before the router could bench them (≈−$275 of self-inflicted reopen churn).</td></tr>
+<tr><td class="ln">Tue 07-28</td><td class="num">−54.0</td><td class="num">23</td><td>Quiet, low-vol chop. Near-scratch — the shorts (abs_veto +$68, exhaustion +$90) roughly paid for the longs' churn.</td></tr>
+<tr class="row-hl"><td class="ln">Wed 07-29</td><td class="num">+638.5</td><td class="num">17</td><td>The clean trend day — a strong down-leg then a strong up-leg, and the desk caught BOTH sides. Only 17 trades: when it's real, you don't need many.</td></tr>
+<tr class="row-hl"><td class="ln">Thu 07-30</td><td class="num">+1,172.0</td><td class="num">91</td><td>Best day ever. An up-bias that topped out and spent the whole US session whipping in a 1,205-point range. 91 trades — the router fought this one all day (more below).</td></tr>
+<tr class="row-bad"><td class="ln">Fri 07-31</td><td class="num">−905.0</td><td class="num">35</td><td>Worst day. A US-open up-thrust that fully reversed into an ER-0.01 chop; an "enable all at the open" call handed the churners the reversal.</td></tr>
+<tr><td class="ln"><strong>Week</strong></td><td class="num"><strong>+625.0</strong></td><td class="num"><strong>206</strong></td><td>39% of trades won (80 of 206). Two green days paid for three red/scratch ones.</td></tr>
+</tbody>
+</table>
+<p>The shape of that week is the whole story: the desk does not need to win most days, it needs to be <em>on the right gates</em> on the two days that trend and <em>out of the way</em> on the days that don't. Thursday and Wednesday together made +$1,811; the other three days gave −$1,186 of it back. Net +$625.</p>
+</div>
+
+<div class="card">
+<h3>The six gates — the card table</h3>
+<p>This is the tournament roster this week: two "ride it" momentum gates (grind_long, abs_veto's long and short sides), two faders (exhaustion_short, capitulation_long) and the router-managed rgv_short. Each gate runs two sub-slots on one signal — a Lot-A scalp and a Lot-B chandelier tail — but here they're totalled to the whole gate. Net, count, win-rate, the average winner and average loser, and the single best and worst trade it took all week.</p>
+<table>
+<thead><tr><th>Gate</th><th class="num">Net $</th><th class="num">N</th><th class="num">Win%</th><th class="num">Avg win</th><th class="num">Avg loss</th><th class="num">Best</th><th class="num">Worst</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">abs_veto_short</td><td class="num">+358.5</td><td class="num">26</td><td class="num">42</td><td class="num">+94</td><td class="num">−45</td><td class="num">+536</td><td class="num">−77</td><td><span class="tag">DOWN-LEG CATCHER</span></td></tr>
+<tr class="row-hl"><td class="ln">exhaustion_short</td><td class="num">+316.5</td><td class="num">48</td><td class="num">54</td><td class="num">+61</td><td class="num">−58</td><td class="num">+324</td><td class="num">−123</td><td><span class="tag">SURVIVOR — steadiest</span></td></tr>
+<tr class="row-hl"><td class="ln">grind_long</td><td class="num">+184.0</td><td class="num">56</td><td class="num">32</td><td class="num">+125</td><td class="num">−54</td><td class="num">+305</td><td class="num">−235</td><td><span class="tag">TREND-DAY ONLY</span></td></tr>
+<tr><td class="ln">abs_veto_long</td><td class="num">+59.5</td><td class="num">59</td><td class="num">36</td><td class="num">+91</td><td class="num">−48</td><td class="num">+342</td><td class="num">−85</td><td><span class="tag">SCRATCH / veto-protected</span></td></tr>
+<tr class="row-bad"><td class="ln">capitulation_long</td><td class="num">−139.0</td><td class="num">14</td><td class="num">29</td><td class="num">+64</td><td class="num">−40</td><td class="num">+105</td><td class="num">−147</td><td><span class="tag">→ REHAB (Part 1.5)</span></td></tr>
+<tr class="row-bad"><td class="ln">rgv_short</td><td class="num">−154.5</td><td class="num">3</td><td class="num">0</td><td class="num">—</td><td class="num">−52</td><td class="num">−47</td><td class="num">−54</td><td><span class="tag">ROUTER-MANAGED</span></td></tr>
+</tbody>
+</table>
+<p>Two things jump out. First, <strong>grind is a low-win, big-winner machine</strong> — it only won 32% of its trades but its average winner (+$125) is more than double its average loser (−$54); it loses small a lot and wins big occasionally, which is exactly what a trend-rider should look like. Second, <strong>rgv_short barely fired at all</strong> (3 trades) — the router had it benched for almost the whole week because it kept trying to short an up-biased tape, and the 3 that slipped through all stopped. That's not a broken gate, that's the router correctly keeping it in the dugout.</p>
+</div>
+
+<div class="card">
+<h3>Where the money actually came from — the exit mix</h3>
+<p>This is the most honest picture of the week. The stops are enormous in aggregate — the desk paid over six thousand dollars in stop-outs — but that's the <em>price of admission</em>: you take a lot of small stops to be present for the few big tails. The green all comes from three exits: the chandelier tails, the fixed targets, and the trades you claimed by hand.</p>
+<table>
+<thead><tr><th>Exit reason</th><th class="num">Count</th><th class="num">Net $</th><th>What it is</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">CHANDELIER</td><td class="num">32</td><td class="num">+3,065.0</td><td>The trailing-tail exit — the big runners. The single biggest profit bucket.</td></tr>
+<tr class="row-hl"><td class="ln">TARGET</td><td class="num">33</td><td class="num">+2,647.5</td><td>Fixed profit target hit.</td></tr>
+<tr class="row-hl"><td class="ln">MANUAL_CLAIM</td><td class="num">12</td><td class="num">+1,223.0</td><td>You claimed the profit by hand (a lot of the exhaustion fades).</td></tr>
+<tr><td class="ln">GIVEBACK</td><td class="num">4</td><td class="num">+82.0</td><td>Give-back trail banked a small green.</td></tr>
+<tr class="row-bad"><td class="ln">STOP</td><td class="num">119</td><td class="num">−6,119.0</td><td>Normal stop-outs — the cost of being present.</td></tr>
+<tr class="row-bad"><td class="ln">STOP_UNFILLED</td><td class="num">6</td><td class="num">−273.5</td><td>The software-stop failures, caught by the guard (see below).</td></tr>
+</tbody>
+</table>
+<p>The lesson baked in here: <strong>the tail is the edge.</strong> When you split each gate into its scalp lot (Lot A) and its chandelier tail lot (Lot B), the tail carries nearly all the money — grind's tail made +$302 while its scalp made +$31; abs_veto_long's tail +$322 vs its scalp +$5; abs_veto_short's tail +$380 vs +$52. The scalp lots roughly break even and lock in certainty; the tail lots are where the week was won.</p>
+</div>
+
+<div class="card">
+<h3>Did a gate's P&amp;L depend on trend vs chop? (the gate × day grid)</h3>
+<p>Yes — dramatically for the momentum gates, much less for the fader. This grid is net $ (trade count) per gate per session day. Read the columns: Wednesday and Thursday were the trend/whip days, and that's where grind and abs_veto made everything. Monday, Tuesday and Friday were chop, and the momentum gates gave money back on every one of them.</p>
+<table>
+<thead><tr><th>Gate</th><th class="num">Mon 27</th><th class="num">Tue 28</th><th class="num">Wed 29</th><th class="num">Thu 30</th><th class="num">Fri 31</th></tr></thead>
+<tbody>
+<tr><td class="ln">exhaustion_short</td><td class="num">+14 (23)</td><td class="num">+90 (10)</td><td class="num">+95 (6)</td><td class="num">+217 (6)</td><td class="num">−100 (3)</td></tr>
+<tr><td class="ln">abs_veto_short</td><td class="num">−6 (4)</td><td class="num">+68 (6)</td><td class="num">+571 (10)</td><td class="num">—</td><td class="num">−274 (6)</td></tr>
+<tr><td class="ln">grind_long</td><td class="num">−149 (4)</td><td class="num">—</td><td class="num">—</td><td class="num">+704 (46)</td><td class="num">−371 (6)</td></tr>
+<tr><td class="ln">abs_veto_long</td><td class="num">−118 (7)</td><td class="num">−122 (4)</td><td class="num">−27 (1)</td><td class="num">+242 (35)</td><td class="num">+84 (12)</td></tr>
+<tr><td class="ln">capitulation_long</td><td class="num">+80 (1)</td><td class="num">−90 (3)</td><td class="num">—</td><td class="num">+10 (4)</td><td class="num">−138 (6)</td></tr>
+<tr><td class="ln">rgv_short</td><td class="num">−48 (1)</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">−107 (2)</td></tr>
+</tbody>
+</table>
+<p>Look at grind's row: it is essentially a bet on Thursday. It made +$704 there on 46 trades and lost on the two other days it fired at all. That is not a flaw — it's what the 0.35 ER floor is <em>for</em>, keeping it dormant unless the day really trends — but it does mean grind's +$184 for the week is one great day minus two poor ones, not a broad edge. Compare exhaustion's row: green four days out of five, never a monster but never a disaster until Friday's open. That row is why exhaustion is the survivor.</p>
+</div>
+
+<h2><span class="n">Case 1</span> Thursday — the best day ever, and the router in the ring</h2>
+
+<p class="lead">Thursday (+$1,172) is the week's headline and its best case study, because it was <em>not</em> a clean trend — it was an up-biased tape that topped out around lunchtime and then whipped violently for hours, and the desk still booked its best day ever by staying on the right gates through a dozen regime flips. This is the day to study when you want to know what the router is actually for.</p>
+
+<div class="card">
+<h3>How Thursday was won</h3>
+<p>The morning trended up and grind rode it — grind_long made <strong>+$307 across 37 trades</strong> on the day (32 of them UTC-Thursday), catching the up-legs with its chandelier tail. Then around 13:50 UTC the buy-climax printed (aggressor delta peaked, then buy intensity collapsed to a third), the tape rolled over, and the router flipped the whole book: benched the momentum longs and armed the short-side reversion faders. The result was the cleanest offensive sequence of the week — <strong>exhaustion_short banked four fade-claims in a row for +$372.5</strong> (+$117, +$107.5, +$109.5, +$38.5) fading the roll-over. It then gave −$155 back on two later fires when the chop tried to resume up, netting +$217 on the day — but that four-in-a-row is the exhaustion edge on full display: judge this gate on its live fades, not its fixed-target shadow.</p>
+<table>
+<thead><tr><th>Thursday's engine</th><th class="num">Net $</th><th class="num">N</th><th>Note</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">grind_long (up-legs)</td><td class="num">+704</td><td class="num">46</td><td>Rode the morning trend + the afternoon resumptions with the chandelier tail.</td></tr>
+<tr class="row-hl"><td class="ln">abs_veto_long</td><td class="num">+242</td><td class="num">35</td><td>The veto-protected long — caught the confirmed breaks, sat out the fakes.</td></tr>
+<tr class="row-hl"><td class="ln">exhaustion_short (roll-over fade)</td><td class="num">+217</td><td class="num">6</td><td>The 4-claim run +$372.5 fading the top, minus 2 late stops.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout"><div class="ct"><strong>The two calls that went wrong on Thursday — and why they're worth more than the wins.</strong> The router made two genuinely bad calls this day, both caught and both banked into the desk's rulebook. (1) At <strong>13:36 it benched grind on the US-open flush</strong> — the day gave back a chunk in 90 seconds and the router read grind as churning. You overrode it ("liven grind back up"), grind then rode to new highs and booked +$234/+$197 targets. Lesson banked: <em>don't bench the aligned trend-rider on open stop-outs when the day is cleanly trending — the open is structurally violent, that's noise, only bench if the trend structure actually breaks.</em> (2) At <strong>15:49 it flipped to longs on a delta-blip in ER-0.01 dead chop</strong> — a four-bucket buyer build and a +45-point poke of the range top. It faded in two minutes. You caught it ("why is grind buying into chop"). Lesson banked: <em>re-arm momentum only on a real break with ER actually climbing and vol expanding, never on a delta blip alone.</em> Neither mistake cost real money (both got salvaged to roughly +$55), but the process errors are the ones that write the rules.</div></div>
+
+<div class="card">
+<h3>The one call that clearly saved money</h3>
+<p>At 14:51, when ER collapsed from 0.40 to 0.07 over two ticks and price rolled off the highs, the router <strong>proactively benched both momentum longs while the desk was flat</strong> — not reacting to stops, reading the regime flip ahead of them. Over the window that followed, the momentum shadows that would have kept firing lost about <strong>−$400</strong> (thrust_aligned −$202, thrust_cont −$118, thrust_loose −$78). The desk sat flat and protected instead. That single defensive read is the clearest example of the router paying for itself: it's cheap to be wrongly benched (you miss a few trades), expensive to be wrongly armed (you churn), and this call landed on the right side of that asymmetry.</p>
+</div>
+
+<h2><span class="n">Case 2</span> Wednesday — the clean two-way trend, both sides caught</h2>
+
+<p class="lead">Wednesday (+$638 on just 17 trades) is the "when it's real, take it and go home" day. The tape ran a strong down-leg and then a strong up-leg, and — unusually — the desk caught both directions cleanly.</p>
+
+<div class="card">
+<h3>abs_veto_short's day</h3>
+<p>The star was <strong>abs_veto_short: 10 trades, +$570.5</strong>, riding the down-leg. It only won 4 of those 10 — but one of them was a <strong>+$536 chandelier runner</strong>, the single best trade of the entire week, and that one tail dwarfed the small stops around it. This is the abs_veto shape in one trade: the 55-second continuation-veto keeps it out of the fake thrusts, and when it does catch a real one, the chandelier lets it run. Then late in the session the tape turned and trended up cleanly; the router benched the shorts (correctly — you don't short a strong up-move) and let the longs ride. Both legs, both green, 17 trades total. That's the ideal day and it's worth remembering it looks nothing like Thursday's 91-trade brawl.</p>
+</div>
+
+<h2><span class="n">Case 3</span> Friday — the enable-all-at-open bleed</h2>
+
+<p class="lead">Friday (−$905) is the honest graveyard of the week and the sharpest single lesson in it. The US open printed a real up-thrust (ER 0.68, a clean break to 28713) and the book was set to "all six gates on" for the open. The thrust then fully reversed — a −172-point round-trip, ER collapsing from 0.50 to 0.12 into ATR-62 violence — and the wrong gates were holding the bag.</p>
+
+<div class="card">
+<h3>The open, gate by gate (13:30–14:30 UTC)</h3>
+<table>
+<thead><tr><th>Gate at the open</th><th class="num">Net $</th><th class="num">Stops</th><th>What happened</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">abs_veto_long (veto-protected)</td><td class="num">+146.5</td><td class="num">—</td><td>Caught the real thrust, banked it, then its veto kept it OUT of the reversal.</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_short (off-regime)</td><td class="num">−72.0</td><td class="num">1</td><td>Fired the new 0.5R/1.5R scalp trial into ATR-62 — a scalp can't cover a 62-point stop.</td></tr>
+<tr class="row-bad"><td class="ln">grind_long (no veto)</td><td class="num">−284.0</td><td class="num">4</td><td>Bought the rollover top, walled — four stops in ninety seconds.</td></tr>
+</tbody>
+</table>
+<p>The contrast is the whole lesson, and it's now a banked rule: <strong>at a violent open, arm the veto-gates, not the churners.</strong> abs_veto's 55-second confirmation made it +$146 by only taking the thrust that <em>continued</em>; grind, with no such filter, chased the reversal and lost −$284. The rest of the day was a choppy recovery (ER 0.24–0.30 — elevated but not clean), and two attempts to re-arm abs_veto into it churned ≈−$245 more before you called it and went fully flat by 19:08. Going flat was the right end-state: the live shadows confirmed every benched gate would have kept bleeding through the ATR-52/62 chop. Some days the winning move is no move.</p>
+</div>
+
+<div class="callout"><div class="ct"><strong>One Friday lead for the shadow desk (Part 2):</strong> the only configuration that made money on Friday's waterfall was <em>rg_long_fast</em> at <strong>+$249</strong>, fading the oversold flush and buying the capitulation dips — while our live long-fader, capitulation_long, bled. That's a flag that the right flush-catcher might be rg_long_fast, not capitulation. Chased down properly in the shadow section.</div></div>
+
+<div class="card">
+<h3>The STOP_UNFILLED self-heals</h3>
+<p>Six trades this week exited on STOP_UNFILLED — the known issue where IBKR won't fire a resting stop's trigger on the continuous contract. Every one of them was an abs_veto trade, and here's the important part: <strong>the stop-breach guard caught all six and bounded each loss to roughly one ATR.</strong> None ran naked, none turned into a drift-halt. That's the self-heal working as designed.</p>
+<table>
+<thead><tr><th>Session day</th><th class="ln">Gate</th><th>Side</th><th class="num">Loss $</th></tr></thead>
+<tbody>
+<tr><td class="ln">Mon 07-27</td><td class="ln">abs_veto_short</td><td>SHORT</td><td class="num">−61.5</td></tr>
+<tr><td class="ln">Mon 07-27</td><td class="ln">abs_veto_long</td><td>LONG</td><td class="num">−51.0</td></tr>
+<tr><td class="ln">Mon 07-27</td><td class="ln">abs_veto_long</td><td>LONG</td><td class="num">−43.0</td></tr>
+<tr><td class="ln">Mon 07-27</td><td class="ln">abs_veto_long</td><td>LONG</td><td class="num">−35.5</td></tr>
+<tr><td class="ln">Tue 07-28</td><td class="ln">abs_veto_long</td><td>LONG</td><td class="num">−38.0</td></tr>
+<tr><td class="ln">Tue 07-28</td><td class="ln">abs_veto_short</td><td>SHORT</td><td class="num">−44.5</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Total</strong></td><td class="ln"></td><td></td><td class="num"><strong>−273.5</strong></td></tr>
+</tbody>
+</table>
+<p>So the software failure cost about −$274 this week, all of it bounded and none of it catastrophic. The proper fix — resting stops on the concrete front-month contract instead of the continuous one — is written and sitting on a branch but is <em>not deployed</em>, so this guard is still doing the work. Worth deploying and live-verifying; until then the guard is the safety net and it held six times out of six.</p>
+</div>
+
+<h2><span class="n">The router</span> The direction-router trial — how it behaved</h2>
+
+<p class="lead">This was the week the Claude-run router stopped being a session experiment and became durable infrastructure — a headless systemd tick went live Friday that manages the desk even with no chat session running. Across the week the router changed the gate switches <strong>31 times</strong>. It is benching-only, fully reversible, and paper — it can only block new entries, never force a trade — so its worst case is a missed opportunity, not a loss.</p>
+
+<div class="card">
+<h3>The router's own scorecard</h3>
+<p>Every switch change gets graded in the bad-call ledger once the outcome is known. The running tally sits at <strong>17 GOOD · 2 BAD · 4 CHURN · 2 NEUTRAL</strong>. The honest read: most calls helped or cost nothing, the two outright bad calls both happened on Thursday and both were caught within minutes and turned into permanent rules, and the "churn" entries are process-thrash (net roughly zero in dollars) rather than money errors.</p>
+<table>
+<thead><tr><th>Grade</th><th class="num">Count</th><th>Meaning &amp; the notable ones</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">✅ GOOD</td><td class="num">17</td><td>Calls that helped or avoided loss — incl. the Thu 14:51 regime-flip bench (≈−$400 churn avoided) and arming the chop-book that produced exhaustion's +$372.5 run.</td></tr>
+<tr class="row-bad"><td class="ln">❌ BAD</td><td class="num">2</td><td>Both on Thu: benching the trend-rider on the open flush, and the premature delta-blip flip to longs. Both banked as rules.</td></tr>
+<tr><td class="ln">⚠ CHURN</td><td class="num">4</td><td>Over-toggling grind ~8× on Thursday morning; the Sunday-reopen "all six on"; two Friday re-enables into a choppy recovery. Thrashy, ≈$0 net.</td></tr>
+<tr><td class="ln">◻ NEUTRAL</td><td class="num">2</td><td>Veto-protected arms that never fired = zero cost, correct mechanism choice.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>What the router got right, in plain terms</h3>
+<p>Strip out the drama and the router did its core job well: it kept the counter-trend faders benched almost the entire week (rgv_short fired only 3 times all week and abs_veto_short was correctly held out of the Friday chop after Wednesday's win), and it read the two big regime flips — Thursday's roll-over and Friday's reversal — closely enough to sit flat through the worst churn. Both green days (Wed +$638, Thu +$1,172) happened <em>under</em> the router. Its recurring weakness is the same one all week and in the ledger: <strong>over-toggling grind tick-to-tick</strong> and re-arming momentum a beat too early on elevated-but-not-clean chop. The fix is discipline, not code — arm grind once on a genuinely strong trend, leave it, and wait for ER to actually climb before believing a break.</p>
+</div>
+
+<div class="callout"><div class="ct"><strong>Honest caveats — read before you trust any of this.</strong> This is <strong>one week of in-sample paper trading</strong>, and a lopsided one: two-thirds of the week's +$625 net came from a single best-ever day, and a big chunk of the green (+$1,223 across 12 trades) was booked by your own manual claims, not by the exits firing on their own — so the automated system alone did less than the headline. The per-gate reads are built on thin counts (rgv_short fired 3 times; exhaustion's new scalp trial only 11), so treat "abs_veto_short is a down-leg catcher" as a one-week observation, not a proven edge — it rests heavily on a single +$536 runner. The router's scorecard is self-graded. And capitulation_long (−$139) and the new exhaustion 0.5R/1.5R scalp trial (−$48.5, fired off-regime into Friday's violence) both go into Part 1.5's rehab bench rather than getting a face-value bench here — the honest "how could this work" comes next.</div></div>

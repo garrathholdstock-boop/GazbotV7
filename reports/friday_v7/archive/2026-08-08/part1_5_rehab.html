@@ -1,0 +1,665 @@
+<style>
+/* Part 1.5 verdict pills — the rest of the classes come from the report shell */
+.tag.pill-fixed{background:#e6f6ec;border-color:#1a7f47;color:#125c33}
+.tag.pill-regime{background:#e8f1fb;border-color:#2f6fb0;color:#1d4a78}
+.tag.pill-park{background:#f2f2ef;border-color:#a8a396;color:#5a5548}
+.tag.pill-retire{background:#efe9e6;border-color:#8a6d5f;color:#5d443a}
+.tag.pill-refuted{background:#fbe3e0;border-color:#c0392b;color:#8a1c10}
+.tag.pill-live{background:#1a7f47;border-color:#125c33;color:#fff}
+.rehabnote{font-size:.92em;color:#5a6472;margin:.4em 0 0}
+h4.rh{margin:1.25em 0 .35em;font-size:1.0em;letter-spacing:.03em;color:#0f2942;text-transform:uppercase}
+</style>
+
+<h2><span class="n">P1.5</span> LIVE-DESK REHABILITATION &mdash; never bench a gate at face value</h2>
+
+<p class="lead">Gaz, this is the section where nothing gets binned because it had a bad week. Six things went on the stand: the four gates that bled (<code>grind_long</code>, <code>abs_veto_short</code>, <code>exhaustion_short</code>, <code>nipc_short</code>) and the two exit mechanisms everyone has been complaining about (<code>MAX_HOLD</code>, and the whole <code>chandelier</code>/<code>give-back</code> managed-profit path). For each one the question was not &ldquo;is it working&rdquo; &mdash; obviously not, the desk booked <strong>&minus;$1,028 raw / &minus;$772.50 after the data-quality exclusions</strong> this week. The question was <strong>&ldquo;HOW can it work, and if it can&rsquo;t, can I prove it can&rsquo;t?&rdquo;</strong></p>
+
+<p class="lead"><strong>Four of the six came back rehabilitated and are going live on Saturday.</strong> One is a two-number config revert worth more than everything else combined. One is an arming policy that has been strangling a gate whose signal is the strongest thing on the desk. One is a two-year-old exit we replaced with a worse one. One is an exit mechanism nobody has been grading fairly &mdash; it was being blamed for damage caused by a broken stop. The other two are honest failures with dates and conditions attached, not shrugs.</p>
+
+<p class="lead">And a warning up front, because it is the thread running through all six: <strong>on three separate gates this week the &ldquo;obvious&rdquo; fix was a fake win</strong> &mdash; a filter that made the number look better by deleting the trades that actually pay. Every table below carries a <em>winners-kept</em> column, and every fix that failed that test is named and rejected in Section&nbsp;4, not quietly dropped.</p>
+
+<div class="callout"><div class="ct">THE ONE-PARAGRAPH VERSION</div>
+<p><strong>Rehabilitated and shipping:</strong> <code>grind_long</code>&rsquo;s ATR floor goes 10&rarr;22 and its extension ceiling 2.0&rarr;3.0 &mdash; both reverting a 2026-08-01 change &mdash; turning <strong>+$1,930 on 744 legs into +$5,893 on 155 legs</strong> over eleven tick-honest sessions, and this week specifically <strong>&minus;$288 &rarr; +$2,178</strong>. <code>abs_veto_short</code> stops being a 22-minute discretionary window and goes <strong>armed by default</strong>; it was armed 3.3% of the week, and in the other 96.7% the identically-configured twin made <strong>+$1,064.50</strong>. <code>exhaustion_short</code>&rsquo;s exit goes back to the fixed 8pt/12pt/120s it had on 07-25 &mdash; worth <strong>+$604 over six days on identical entries</strong>. The <code>chandelier</code> width gets regime-keyed &mdash; worth <strong>+$3,049 over 20 sessions, positive in 20 of 20 leave-one-day-out folds</strong>. <code>MAX_HOLD</code> keeps its 120 minutes (every attempt to shorten it is a fake win) but gets a ceiling that survives a dead loop, worth <strong>+$461.50</strong> on the archive. <strong>The honest failures:</strong> <code>exhaustion_short</code> is <em>sub-friction by about two dollars a lot</em> and PARKED with a concrete revival condition; <code>nipc_short</code> is direction-beta wearing a state machine and goes to SHADOW; <code>GIVEBACK</code> is TRULY-RETIRED; and roughly thirty ideas tried this week are REFUTED with the test that killed them written next to each one.</p></div>
+
+<hr class="frag-sep">
+
+<h3 id="p15-lead">1 &middot; THE LEAD &mdash; what got rehabilitated, and what it is worth</h3>
+
+<p>Money first. These are measured on <strong>different windows with different tapes</strong>, so I have put the window next to each one and <strong>I am deliberately not adding them up</strong> &mdash; a single total would be a lie. Read each row on its own terms.</p>
+
+<table>
+<thead><tr><th>What changed</th><th>Verdict</th><th class="num">Worth</th><th>Over what window</th><th>Why I believe it</th></tr></thead>
+<tbody>
+<tr class="row-hl">
+  <td class="ln"><code>grind_long</code>: ATR floor <strong>10 &rarr; 22</strong>, ext ceiling <strong>2.0 &rarr; 3.0</strong></td>
+  <td><span class="tag pill-fixed">FIXED</span></td>
+  <td class="num"><strong>+$3,964</strong></td>
+  <td>11 tick-honest sessions (07-24&hellip;08-07). This week alone: <strong>&minus;$288 &rarr; +$2,178</strong></td>
+  <td>Keeps <strong>19 of 19</strong> target winners. Positive in all four ISO weeks (live config is negative in two). Survives deleting its five best trades (+$3,593). 10 of 11 sessions green.</td>
+</tr>
+<tr class="row-hl">
+  <td class="ln"><code>abs_veto_short</code>: <strong>armed by default</strong>, one new entry veto, two bad bench rules deleted</td>
+  <td><span class="tag pill-fixed">FIXED</span></td>
+  <td class="num"><strong>+$1,064.50</strong></td>
+  <td>the 96.7% of this week it was benched, measured on the exact-config twin</td>
+  <td>The signal is <strong>+$2,290.50 over 159 fires / 17 days / 4-of-4 weeks green / positive in all five regimes</strong>. 53 of 54 filters tested LOSE to just letting it fire.</td>
+</tr>
+<tr class="row-hl">
+  <td class="ln"><code>chandelier</code>: regime-key the <strong>width</strong> (ER30&ge;0.25 &amp; ATR&ge;22 &rarr; Lot B 6R)</td>
+  <td><span class="tag pill-regime">REGIME-DEPENDENT</span></td>
+  <td class="num"><strong>+$3,049</strong></td>
+  <td>20 sessions (07-15&hellip;08-07). This week: <strong>&minus;$1,073 &rarr; &minus;$643</strong></td>
+  <td><strong>20 of 20</strong> leave-one-day-out folds positive, minimum +$1,604. Better in all four ISO weeks. Delta survives 2pt of slippage.</td>
+</tr>
+<tr class="row-hl">
+  <td class="ln"><code>exhaustion_short</code>: exit back to <strong>fixed 8pt / 12pt / 120s</strong></td>
+  <td><span class="tag pill-fixed">FIXED</span></td>
+  <td class="num"><strong>+$604</strong></td>
+  <td>6 dense-book days, <em>identical entries</em>, mean of 10 polling phases</td>
+  <td>All six fixed-point exit cells beat the current ATR-scaled one. The move is a fixed number of points; an ATR-scaled stop on a 40pt-ATR open is risking 40 to make 31.</td>
+</tr>
+<tr class="row-hl">
+  <td class="ln"><code>MAX_HOLD</code>: keep 120 min, but <strong>enforce the ceiling at the venue</strong></td>
+  <td><span class="tag pill-fixed">FIXED</span></td>
+  <td class="num"><strong>+$461.50</strong></td>
+  <td>the whole archive (2 trades). <strong>$0 this week</strong> &mdash; nothing bound</td>
+  <td>The cap fired <strong>159 minutes late</strong> once and <strong>never at all</strong> once. Trade id54 was <strong>+$225.50 at the 120-minute mark</strong> and closed at &minus;$141.00.</td>
+</tr>
+<tr class="row-hl">
+  <td class="ln"><code>nipc_long</code> + <code>nipc_short</code>: add the missing <strong><code>lo</code> clip block</strong></td>
+  <td><span class="tag pill-fixed">FIXED</span> <span class="tag pill-shadow">gate stays off</span></td>
+  <td class="num"><strong>+$268</strong></td>
+  <td>the live week, out-of-sample, on the reference book (&minus;$359 &rarr; &minus;$91)</td>
+  <td>Keeps <strong>22 of 22</strong> winners. Helps the LONG leg <em>more</em> (+$463&rarr;+$668, win rate 43.3%&rarr;50.9%). Copied verbatim from mature gates &mdash; not fitted.</td>
+</tr>
+<tr class="row-hl">
+  <td class="ln"><strong>Desk-wide:</strong> stop-limit 20pt buffer &rarr; phantom fills</td>
+  <td><span class="tag pill-live">SHIP</span></td>
+  <td class="num"><strong>+$69.50</strong></td>
+  <td>this week, 2 lots &mdash; recurs every violent open</td>
+  <td>Found independently by two rehabs. Two stops filled at their <em>limit</em>, 20pt through their own trigger, at prices the tape never printed.</td>
+</tr>
+</tbody></table>
+
+<p class="rehabnote"><strong>What that does NOT mean.</strong> None of these makes the desk profitable on its own. The best exit policy I could prove takes the archive from &minus;$2,932 to <strong>break-even (+$117)</strong>, not to profit. The <code>grind_long</code> fix is the only one of the seven that is a genuine money-maker rather than a bleed-stopper, and even that one <strong>does not save 08-05</strong> &mdash; in the exact window the desk traded it still loses &minus;$178.</p>
+
+<hr class="frag-sep">
+
+<h3 id="p15-stories">2 &middot; THE SIX STORIES</h3>
+
+<!-- ═══════════════════════════ GRIND_LONG ═══════════════════════════ -->
+<div class="card">
+<h3><code>grind_long</code> &mdash; 1 win in 6, &minus;$172.00 &nbsp;<span class="tag pill-fixed">FIXED</span></h3>
+
+<h4 class="rh">The symptom</h4>
+<p>Six legs, one winner, five stops, <strong>&minus;$172.00</strong>. <code>grind_long_B</code> went 0-for-3. Benched by hand at the Paris reopen on 08-07.</p>
+
+<h4 class="rh">Malfunction normalization &mdash; there are none, and that is the point</h4>
+<p>All six legs audited tick-by-tick against <code>capture.db</code>. <strong>No <code>STOP_UNFILLED</code>, no naked rides, no orphan entries, no cross-desk leakage.</strong> Every fill printed on the tape inside &plusmn;1.5 seconds. Longest hold 150 seconds. <strong>The venue&rsquo;s &minus;$172.00 is the strategy&rsquo;s &minus;$172.00.</strong> This is the rare week where the software behaved and the strategy simply lost.</p>
+<p><strong>But there IS a malfunction and it is a governance one.</strong> The entire week&rsquo;s sample is an <strong>11-minute hand-armed window</strong> at the US open on the one day of five the gate loses money. The signal came off the 13:32 bar, which closed at 13:33:00 with price at <strong>29956.50</strong>. The desk did not fill until 13:33:24 at <strong>29999.75</strong> &mdash; a <strong>43.25-point chase</strong> into a window whose whole range was 109.75pt. Taking the identical signal at the legal first decision tick banks <strong>+$41.50 and +$73.50</strong>; live, 24 seconds later, both lots took &minus;$44.00.</p>
+<p><strong>That single pair is a $203 swing caused purely by when the switch got flipped &mdash; 118% of the week&rsquo;s whole reported loss.</strong> I have not normalized it away (a chase you paid for is real money), but it belongs on the arming ledger, not on the gate&rsquo;s card.</p>
+
+<h4 class="rh">Root cause &mdash; BASE, not exit, not signal</h4>
+<p>The whole gate in one table. This is <em>when a runner exists at all</em>:</p>
+<table>
+<thead><tr><th>entry ATR band</th><th class="num">n</th><th class="num">net $</th><th class="num">mean R/trade</th><th class="num">% reaching 2R</th><th class="num">% reaching 4R</th><th class="num">% reaching 6R</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">0&ndash;14</td><td class="num">289</td><td class="num">&minus;36.5</td><td class="num">&minus;0.010</td><td class="num">20%</td><td class="num"><strong>0%</strong></td><td class="num">0%</td></tr>
+<tr class="row-bad"><td class="ln">14&ndash;18</td><td class="num">221</td><td class="num">&minus;1,428.9</td><td class="num">&minus;0.204</td><td class="num">4%</td><td class="num"><strong>0%</strong></td><td class="num">0%</td></tr>
+<tr class="row-bad"><td class="ln">18&ndash;22</td><td class="num">114</td><td class="num">+308.8</td><td class="num">+0.058</td><td class="num">1%</td><td class="num"><strong>0%</strong></td><td class="num">0%</td></tr>
+<tr><td class="ln">22&ndash;24</td><td class="num">24</td><td class="num">&minus;328.8</td><td class="num">&minus;0.284</td><td class="num">33%</td><td class="num">4%</td><td class="num">0%</td></tr>
+<tr><td class="ln">24&ndash;32</td><td class="num">53</td><td class="num">+272.3</td><td class="num">+0.126</td><td class="num">36%</td><td class="num">15%</td><td class="num">4%</td></tr>
+<tr class="row-hl"><td class="ln">32+</td><td class="num">43</td><td class="num"><strong>+3,143.1</strong></td><td class="num"><strong>+0.903</strong></td><td class="num">47%</td><td class="num"><strong>16%</strong></td><td class="num"><strong>14%</strong></td></tr>
+</tbody></table>
+<p><strong>Below an entry ATR of about 22, not one trade in 624 reached 4R. Above 24, one in six does.</strong> <code>grind_long</code>&rsquo;s edge is a &gt;4R runner on Lot B, and a runner is a <em>tape phenomenon</em>, not an exit phenomenon &mdash; it needs enough volatility that four risk units of room actually exist inside the next hour. Below ~22pt that room does not exist, so 624 trades pay full friction for a payoff that cannot happen. It survives risk-normalisation too: mean R per trade is roughly zero below ATR 22 and <strong>+0.90 at ATR 32+</strong>. It is not &ldquo;bigger ATR, bigger dollars, same edge&rdquo; &mdash; the edge itself is different.</p>
+<p><strong>And it is definitely not the exit.</strong> I ran <strong>seven</strong> different exit configurations against the sub-ATR-18 population, where 73% of the trades and all of the bleed live. <strong>All seven lose.</strong> The best of them still bleeds $0.88 a trade over 414 trades. You cannot exit your way out of an entry with no runner in it.</p>
+
+<h4 class="rh">The fixes tried &mdash; and the keep-the-winners test</h4>
+<p>Nineteen legs cleared +$150. They are <strong>284% of the book&rsquo;s net</strong> &mdash; take them out and the live config is &minus;$3,549. <strong>Every single one has entry ATR &ge; 24.6.</strong> Eighteen of nineteen are &ge; 27.5. And thirteen of nineteen fired at ER30 <em>below</em> 0.15.</p>
+<table>
+<thead><tr><th>filter</th><th class="num">n</th><th class="num">net</th><th class="num">$/leg</th><th class="num">strip-best-3</th><th class="num">days green</th><th class="num">winners kept</th></tr></thead>
+<tbody>
+<tr><td class="ln">LIVE (ATR&ge;10, ext&le;2.0)</td><td class="num">744</td><td class="num">+$1,929.9</td><td class="num">+$2.59</td><td class="num">+$472</td><td class="num">6/11</td><td class="num">19/19</td></tr>
+<tr class="row-bad"><td class="ln">ER floor 0.20 &mdash; <em>the fake win</em></td><td class="num">132</td><td class="num"><strong>&minus;$1,637</strong></td><td class="num">&minus;$12.40</td><td class="num">&minus;$2,298</td><td class="num">2/11</td><td class="num"><strong>2/19</strong></td></tr>
+<tr class="row-bad"><td class="ln">ER floor 0.35 (the one deleted 08-01)</td><td class="num">24</td><td class="num">+$38.5</td><td class="num">+$1.60</td><td class="num">&minus;$623</td><td class="num">2/4</td><td class="num"><strong>2/19</strong></td></tr>
+<tr class="row-bad"><td class="ln">ER15 floor 0.25</td><td class="num">364</td><td class="num">&minus;$942</td><td class="num">&minus;$2.59</td><td class="num">&minus;$1,937</td><td class="num">4/11</td><td class="num">8/19</td></tr>
+<tr class="row-bad"><td class="ln">box &ge; 0.85 (&ldquo;buy the break&rdquo;)</td><td class="num">338</td><td class="num">&minus;$515</td><td class="num">&minus;$1.52</td><td class="num">&minus;$1,724</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr class="row-hl"><td class="ln">ATR &ge; 18</td><td class="num">234</td><td class="num">+$3,395</td><td class="num">+$14.51</td><td class="num">+$1,938</td><td class="num">8/11</td><td class="num"><strong>19/19</strong></td></tr>
+<tr class="row-hl"><td class="ln">ATR &ge; 20</td><td class="num">163</td><td class="num">+$3,522</td><td class="num">+$21.61</td><td class="num">+$2,064</td><td class="num"><strong>9/11</strong></td><td class="num"><strong>19/19</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>ATR &ge; 22 (recommended)</strong></td><td class="num">120</td><td class="num">+$3,087</td><td class="num">+$25.72</td><td class="num">+$1,629</td><td class="num">6/11</td><td class="num"><strong>19/19</strong></td></tr>
+<tr class="row-hl"><td class="ln">ATR &ge; 24 (the pre-08-01 floor)</td><td class="num">96</td><td class="num">+$3,415</td><td class="num">+$35.58</td><td class="num">+$1,958</td><td class="num">&mdash;</td><td class="num"><strong>19/19</strong></td></tr>
+<tr><td class="ln">ATR &ge; 32</td><td class="num">43</td><td class="num">+$3,143</td><td class="num">+$73.09</td><td class="num">+$1,686</td><td class="num">7/11</td><td class="num">17/19</td></tr>
+</tbody></table>
+<p><strong>An ATR floor is the only filter in the whole battery that cuts 87% of the trades and keeps 19 of 19 winners.</strong> That is what a real filter looks like: it removes population that had no path to the payoff and touches nothing that did. The ER floor is the textbook fake &mdash; it cuts the trade count by 82% and gets there by binbagging <strong>17 of the 19 winners</strong>, keeping the two <em>smallest</em>.</p>
+
+<div class="callout"><div class="ct">★ THE FAKE WIN, NAMED &mdash; AND WHY THE &ldquo;OBVIOUS&rdquo; INVERSION IS ALSO REJECTED</div>
+<p>Somebody will notice that an ER <em>ceiling</em> at 0.20 looks great in-sample (+$3,567, 17/19 winners kept) and propose that instead. Don&rsquo;t. <strong>The ER filter&rsquo;s sign flips between the two halves of the tape:</strong> in-sample the ceiling wins by $4,500; out-of-sample the <em>floor</em> wins by $2,600 (ER&ge;0.20 = +$1,640 on 61 legs vs ER&lt;0.20 = &minus;$973 on 321). That is not a parameter with a robust optimum, it is a coin. <strong>ER is not a usable discriminator for this gate in either direction</strong>, and this is the second independent re-derivation to say so. The 08-01 deletion stands permanently &mdash; but the reason is not &ldquo;the floor blocked profitable trades&rdquo;, it is &ldquo;ER has no stable sign here at all&rdquo;.</p></div>
+
+<h4 class="rh">Robustness</h4>
+<table>
+<thead><tr><th>test</th><th class="num">LIVE config</th><th class="num">PROPOSED config</th></tr></thead>
+<tbody>
+<tr><td class="ln">11 tick-honest sessions</td><td class="num">+$1,930 / 744 legs</td><td class="num"><strong>+$5,893 / 155 legs</strong></td></tr>
+<tr><td class="ln">$ per leg</td><td class="num">+$2.59</td><td class="num"><strong>+$38.02</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>after deleting its 5 best trades</strong></td><td class="num"><strong>&minus;$347</strong></td><td class="num"><strong>+$3,593</strong></td></tr>
+<tr><td class="ln">leave-one-day-out (worst fold)</td><td class="num">+$949</td><td class="num">+$4,656</td></tr>
+<tr><td class="ln">sessions green</td><td class="num">6 of 11</td><td class="num"><strong>10 of 11</strong></td></tr>
+<tr><td class="ln">all four ISO weeks</td><td class="num">2 negative</td><td class="num"><strong>4 positive</strong></td></tr>
+<tr><td class="ln">out-of-sample (10 bar-replay days)</td><td class="num">+$667 / 382</td><td class="num">+$796 / 92</td></tr>
+<tr><td class="ln">runners captured (MFE &ge; 4R)</td><td class="num">16</td><td class="num"><strong>21</strong></td></tr>
+<tr class="row-hl"><td class="ln">placebo null, 300 random-entry draws</td><td class="num">88th pct &mdash; <strong>does not clear</strong></td><td class="num"><strong>100th pct</strong></td></tr>
+<tr><td class="ln">quadruple fees ($6/RT) + 3pt stop slip</td><td class="num">&mdash;</td><td class="num">+$4,626 (strip-3 +$3,182)</td></tr>
+</tbody></table>
+<p>It is a <strong>plateau, not a spike</strong> &mdash; everything in the block ATR 18&ndash;24 &times; ext 2.5&ndash;6.0 is in-sample &ge; $3,400 with strip-3 &ge; $1,900, and the out-of-sample grid puts its own best in the same neighbourhood. <strong>The live cell sits in the worst corner of both grids.</strong> The exact number is deliberately not load-bearing: 20/24 and 2.5/4.0 all work.</p>
+<p><strong>The other finding, which I did not go looking for.</strong> Score the <em>fixed</em> gate against the router&rsquo;s actual arming schedule this week: <strong>&minus;$210.60 in the ~45 minutes it was armed, +$2,388.10 in the four days it was benched.</strong> The router benched it on all four days the fixed gate would have earned and armed it for the eleven minutes on the day it lost. That is not slightly off &mdash; it is <strong>anti-correlated</strong>, because the router arms on ER climbing and the gate&rsquo;s money is at ATR &ge; 22 with ER <em>below</em> 0.25. Those are close to opposite conditions. I am <strong>not</strong> asking you to change the router this week; that is its own job.</p>
+
+<h4 class="rh">Verdict</h4>
+<p><span class="tag pill-fixed">FIXED</span> Two numbers, both reverting a 2026-08-01 decision: <code>ATR_FLOOR["grind_long"] = 22.0</code> (was 10.0) and <code>ext_hi = 3.0</code> (was 2.0). <strong>Do not touch anything else</strong> &mdash; the exit, the chandelier, the lock (<code>lock_r 6.0</code> has the best strip-3 in its own sweep), the 1.0&times;ATR stop, Lot A&rsquo;s 2.5R, <code>fast_slope=True</code> and <code>slope_min 0.4</code> all survive their own sweeps. <strong>A fifth of the trades, three times the money, and it stops being a churner.</strong></p>
+<p class="rehabnote"><strong>Honest limits:</strong> 155 legs is 78 signals across 11 sessions and the runners that carry it are 21 events. Three-and-a-half weeks, one instrument, summer tape. The out-of-sample leg is bar-replayed and runs ~17% optimistic. And there is one hole I cannot explain: <strong><code>grind_long</code> is 0-for-14 in its own namesake regime</strong> (ER30 &ge; 0.45, all stops, three episodes). n=14 cannot settle it and I am not pretending otherwise.</p>
+</div>
+
+<!-- ═══════════════════════════ ABS_VETO_SHORT ═══════════════════════════ -->
+<div class="card">
+<h3><code>abs_veto_short</code> &mdash; 11 closes, 11 losers, &minus;$814.50 &nbsp;<span class="tag pill-fixed">FIXED</span></h3>
+
+<h4 class="rh">The symptom</h4>
+<p>The week&rsquo;s worst bleeder. Eleven closes, zero winners, <strong>&minus;$814.50</strong> across four sessions.</p>
+
+<h4 class="rh">Malfunction normalization &mdash; 36% of the loss is not the strategy</h4>
+<table>
+<thead><tr><th>step</th><th class="num">closes</th><th class="num">net</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">RAW as booked</td><td class="num">11</td><td class="num"><strong>&minus;$814.50</strong></td></tr>
+<tr><td class="ln">less the MD-stream ATR corruption (08-04 22:02) &mdash; struck, <em>no valid signal existed</em></td><td class="num">2</td><td class="num">+$255.50</td></tr>
+<tr><td class="ln">less the phantom LONG opened by an orphaned market close on a gate called <em>short</em></td><td class="num">1</td><td class="num">+$35.50</td></tr>
+<tr class="row-hl"><td class="ln"><strong>TRUE STRATEGY BOOK</strong></td><td class="num"><strong>8</strong></td><td class="num"><strong>&minus;$523.50</strong></td></tr>
+</tbody></table>
+<p>Eight closes is <strong>four signals &times; two lots</strong>. On 08-04, gold joined the capture stream and got folded into the MNQ bar deque &mdash; ATR read <strong>1,848</strong> against a true <strong>15.11</strong>, a factor of 122, and the &ldquo;five-bar thrust&rdquo; the gate saw was a 26,500-point drop from MNQ to gold. It was not a down-thrust, it was a symbol change. The whole shadow desk was up that night and <strong>not one</strong> abs-veto variant fired at 22:02. All eleven rows re-derived from prices: <strong>0 of 11 need restating</strong> &mdash; the money is real, it just is not all <em>strategy</em> money.</p>
+
+<h4 class="rh">Root cause &mdash; not the base, not the exit, not the signal</h4>
+<p><strong>The signal is the strongest thing on the desk.</strong> Tick-repriced over 17 trading days:</p>
+<table>
+<thead><tr><th>test</th><th>result</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">all 17 days</td><td><strong>159 fires, +$2,290.50, 48.4% win, +$14.40/trade</strong></td></tr>
+<tr><td class="ln">strip best 1 / 3 / 5</td><td>+$2,100 / +$1,780 / +$1,485</td></tr>
+<tr><td class="ln">per ISO week</td><td>wk29 +$326 &middot; wk30 +$497 &middot; wk31 +$659 &middot; wk32 <strong>+$809</strong> &mdash; rising, all green</td></tr>
+<tr><td class="ln">out-of-sample (fit wk29&ndash;31, test wk32)</td><td>+$1,481 &rarr; <strong>+$809</strong></td></tr>
+<tr><td class="ln">per regime</td><td>positive in <strong>all five</strong></td></tr>
+</tbody></table>
+<p><strong>And the brief&rsquo;s suggested fix was a null before I computed a single number.</strong> &ldquo;Give it the k10 stop width its best shadow uses&rdquo; &mdash; it already has it. I read the live slate build rather than assuming: live Lot A is 1.5R on a 1.0&times;ATR stop, Lot B is 2.5R on a 1.0&times;ATR stop, plus the quiet clip. That is <code>sw_absS_A_k10</code> and <code>sw_absS_B_k10</code> exactly. The best shadow in the family is not running a different exit &mdash; it is running the <em>same</em> exit at <em>different moments</em>. (And the width is right anyway: on 28 shared entries the live k1.0 pair beats k2.0 by <strong>$292.50</strong>.)</p>
+<p><strong>So the leak is the leash.</strong> The gate was armed for <strong>224 minutes out of 6,780 &mdash; 3.3% of the week</strong> &mdash; in ten windows averaging 22 minutes, the shortest of them three minutes. In the other 96.7% the same signal on the same exit made <strong>+$1,064.50</strong>.</p>
+
+<h4 class="rh">The headline test the brief asked for &mdash; and it came back the other way</h4>
+<table>
+<thead><tr><th>exact-config twin, week 08-03&rarr;08-07</th><th class="num">n</th><th class="num">net</th><th class="num">win%</th><th class="num">$/trade</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><strong>ARMED</strong> (gate could trade)</td><td class="num">6</td><td class="num"><strong>+$289.50</strong></td><td class="num">66.7%</td><td class="num"><strong>+$48.20</strong></td></tr>
+<tr><td class="ln"><strong>BENCHED</strong> (gate stood down)</td><td class="num">54</td><td class="num">+$1,064.50</td><td class="num">57.4%</td><td class="num">+$19.70</td></tr>
+<tr><td class="ln">whole week, unrouted</td><td class="num">60</td><td class="num">+$1,354.00</td><td class="num">58.3%</td><td class="num">+$22.60</td></tr>
+</tbody></table>
+<p>I was told the arming policy was selecting the gate&rsquo;s losing minutes. <strong>It is not true.</strong> The armed minutes were, if anything, the <em>best</em> minutes of the week &mdash; four times better per trade than the benched ones, and every armed window that produced a signal was green. n is small (6 twin fires), so the honest claim is the negative one: <strong>there is no evidence the arming policy picked losing minutes.</strong> The money leaked because the leash was 3.3% long and four consecutive stopped signals &mdash; roughly a 1-in-14 run on a gate with a +$14.40 expectancy &mdash; <em>was</em> the whole week.</p>
+<p>Two more things fell out of the arming ledger. <strong>&minus;$529.50 of the &minus;$814.50 was booked in windows the router did not choose.</strong> The 08-04 pair came from the Paris-midnight <code>reactivate_gates</code> cron re-arming every off gate at 22:00 UTC on zero tape (&ldquo;insufficient bars, range 0pt, day P&amp;L flat&rdquo; &mdash; the router&rsquo;s own words that night); the corrupt thrust fired <strong>two minutes later</strong> and ran unsupervised for 45 minutes. The 08-05 pair came from an operator DO-NOT-BENCH carve-out that explicitly removed the router&rsquo;s bench authority; the router watched the gate bleed, said so in its logs, and could not act.</p>
+
+<h4 class="rh">54 filters tested. 53 of them lose money.</h4>
+<p>The 15 biggest winners carry <strong>+$1,664 of the +$2,290.50 (73%)</strong>, so winner-retention is the column that decides.</p>
+<table>
+<thead><tr><th>policy</th><th class="num">keep n</th><th class="num">keep $</th><th class="num">$/tr</th><th class="num">cut $ (money thrown away)</th><th class="num">top-15 kept</th><th class="num">strip-3</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><strong>BASELINE &mdash; just let it fire</strong></td><td class="num">159</td><td class="num"><strong>+$2,290.50</strong></td><td class="num">+$14.40</td><td class="num">&mdash;</td><td class="num"><strong>15/15</strong></td><td class="num">+$1,780</td></tr>
+<tr class="row-bad"><td class="ln">stacked router rules (what was live)</td><td class="num">67</td><td class="num">+$881</td><td class="num">+$13.10</td><td class="num"><strong>+$1,409.50</strong></td><td class="num">8/15</td><td class="num">+$373</td></tr>
+<tr class="row-bad"><td class="ln">router &ldquo;arm trio&rdquo; (extreme + ER rising + vol up)</td><td class="num">31</td><td class="num">+$618</td><td class="num">+$19.90</td><td class="num"><strong>+$1,672.50</strong></td><td class="num">4/15</td><td class="num">+$286</td></tr>
+<tr class="row-bad"><td class="ln">ER30 &ge; 0.30 &mdash; <em>best $/trade in the sweep</em></td><td class="num">51</td><td class="num">+$1,140.50</td><td class="num"><strong>+$22.40</strong></td><td class="num">+$1,150</td><td class="num">7/15</td><td class="num">+$633</td></tr>
+<tr class="row-bad"><td class="ln">dwell: ER30&ge;0.30 in &ge;3 of 5 min</td><td class="num">27</td><td class="num">+$937</td><td class="num"><strong>+$34.70</strong></td><td class="num">+$1,353.50</td><td class="num"><strong>4/15</strong></td><td class="num">+$503</td></tr>
+<tr class="row-bad"><td class="ln">ATR ceiling &lt; 19pt (&ldquo;bench the violent tape&rdquo;)</td><td class="num">120</td><td class="num">+$1,254</td><td class="num">+$10.40</td><td class="num">+$1,036.50</td><td class="num"><strong>0/15</strong></td><td class="num">+$1,037</td></tr>
+<tr><td class="ln">ATR floor &ge; 15pt</td><td class="num">82</td><td class="num">+$1,829</td><td class="num">+$22.30</td><td class="num">+$462</td><td class="num">15/15</td><td class="num">+$1,319</td></tr>
+<tr class="row-hl"><td class="ln"><strong>★ drop BUILDING &times; US-SESSION</strong></td><td class="num">151</td><td class="num"><strong>+$2,497.50</strong></td><td class="num">+$16.50</td><td class="num"><strong>&minus;$207</strong></td><td class="num"><strong>15/15</strong></td><td class="num">+$1,987</td></tr>
+</tbody></table>
+<p><strong>The single best policy is no policy.</strong> The baseline is beaten exactly once, by a rule that removes <strong>eight fires in seventeen days</strong> and damages not one winner. Every dwell and ER rung wins on $/trade by amputating the winners &mdash; D3 hits the best per-trade number in the entire sweep ($34.70) by keeping <strong>4 of 15</strong> winners. And the most instructive failure is the ATR <em>ceiling</em>: benching above 19pt ATR keeps <strong>zero</strong> of the fifteen biggest winners. The gate&rsquo;s whole edge lives in high-ATR tape.</p>
+<p><strong>The bench rule that is actively backwards.</strong> The router benches this gate whenever ATR &ge; 19 AND ER30 &lt; 0.25 &mdash; the &ldquo;violent-whipsaw&rdquo; cell. Measured over 17 days and split by the clock: in the <strong>US session that cell is +$37.00 a trade, 58% win, n=12, and holds 6 of the 15 biggest winners in the book</strong>. Overnight it is &minus;$3.20 on n=6. The rule is right overnight, wrong in the session, and applied without reference to the time of day.</p>
+
+<h4 class="rh">Robustness</h4>
+<table>
+<thead><tr><th>test</th><th class="num">baseline (continuous)</th><th class="num">recommended</th><th class="num">the policy that was LIVE</th></tr></thead>
+<tbody>
+<tr><td class="ln">n / net</td><td class="num">159 / +$2,290.50</td><td class="num">151 / <strong>+$2,497.50</strong></td><td class="num">67 / +$881</td></tr>
+<tr><td class="ln">strip best 5</td><td class="num">+$1,485</td><td class="num">+$1,692</td><td class="num">+$195</td></tr>
+<tr><td class="ln">worst leave-one-day-out</td><td class="num">+$1,889</td><td class="num">+$2,096</td><td class="num">+$333</td></tr>
+<tr class="row-hl"><td class="ln"><strong>out-of-sample (wk29&ndash;31 &rarr; wk32)</strong></td><td class="num">&rarr; +$809</td><td class="num">&rarr; <strong>+$913.50</strong></td><td class="num">&rarr; <strong>&minus;$22.50</strong></td></tr>
+<tr><td class="ln">top-15 winners kept</td><td class="num">15/15</td><td class="num"><strong>15/15</strong></td><td class="num">8/15</td></tr>
+</tbody></table>
+<p>The recommended policy dominates the baseline on every line, and both dominate the policy that was actually live &mdash; <strong>which is the only one of the three that is negative out of sample.</strong></p>
+
+<h4 class="rh">Verdict</h4>
+<p><span class="tag pill-fixed">FIXED</span> Signal: no change. Exit: no change. <strong>The arming policy is the change.</strong> Arm it by default; add one per-entry veto (skip when ER30 is between 0.15 and 0.30 <em>and</em> it is 13:30&ndash;20:00 UTC); delete the US-session violent-whipsaw bench; delete &ldquo;bench on a stop-out pair&rdquo; (on 08-07 the 13:31 bench after the first stop-out pair was followed by <strong>+$311.50</strong> to the twin in the next 60 minutes); and fix the 22:00 auto re-arm so it cannot arm anything on &ldquo;insufficient bars, range 0pt&rdquo;.</p>
+<p class="rehabnote"><strong>What I am NOT claiming.</strong> I have <em>not</em> proven a longer leash would have made money <em>this week</em> &mdash; the four signals it took would still have lost about &minus;$256 at a neutral entry draw. The claim is about the 54 fires it was benched for. The BUILDING&times;US veto rests on <strong>n=8</strong>; it cross-validates across nine independent exits and costs almost nothing, but it is not a heavyweight finding. And the 61-second live entry lag is measured and real (median 61s over 78 matched entries, ~$6.87/lot on average with a &plusmn;$21 band) but its cause in code is not proven.</p>
+</div>
+
+<!-- ═══════════════════════════ CHANDELIER / GIVEBACK ═══════════════════════════ -->
+<div class="card">
+<h3><code>chandelier</code> / <code>give-back</code> &mdash; the managed-profit exit path went silent &nbsp;<span class="tag pill-regime">REGIME-DEPENDENT</span> <span class="tag pill-retire">TRULY-RETIRE (give-back)</span></h3>
+
+<h4 class="rh">The symptom</h4>
+<p>From 07-10 to 07-30 these two exits booked <strong>145 fires for +$7,156</strong>. Across 08-03&ndash;08-07 the whole book produced <strong>one</strong> chandelier exit (+$50) out of 110 closes. GIVEBACK last fired <strong>2026-07-27</strong>. The week was binary: 71 STOP / &minus;$2,600.50 with zero winning stops, 34 TARGET / +$1,794.</p>
+
+<h4 class="rh">Malfunction normalization</h4>
+<p><strong>New and previously unreported: a 122&times; ATR poisoning that removed the stop AND both targets.</strong> The 08-04 22:02 pair &mdash; the largest single loss of the week &mdash; has never been attributed. The protective stops were armed <strong>1,848.25 points</strong> above the entries because the desk read ATR = 1848.25 against a true 14.73. The desk restarted at 22:07 with the filter in place, but <code>reconstruct()</code> re-adopted the two open slots <em>with the poisoned ATR persisted</em>. So for the next 115 minutes the stop was effectively naked, Lot A&rsquo;s target sat 2,772pt away, Lot B&rsquo;s 4,621pt away, and <code>atr_split 22</code> compared 1848 &lt; 22 and said no. <strong>The position had no exit of any kind.</strong> The tape breached the <em>correct</em> stop level three minutes after entry &mdash; 117 minutes before the flatten. Normalized swing <strong>+$192.50</strong>.</p>
+<p>And honesty runs both ways: <strong>one stop-guard miss went the desk&rsquo;s way and I normalized it adversely.</strong> Trade 582 printed <em>through</em> its stop 12 times, to 4.14pt below it, in the 08:30 ET release burst; the 1Hz cadence missed it, the desk held, and banked +$108.50. Restated to the stop it should have taken: <strong>&minus;$131.20</strong>. Net corrected week: <strong>&minus;$801.70</strong>.</p>
+
+<h4 class="rh">Root cause &mdash; the machinery is not below a threshold, it is switched off</h4>
+<p>The scope&rsquo;s hypothesis was &ldquo;the arm threshold is never being reached&rdquo;. It is not a threshold problem. <strong>On 93% of this week&rsquo;s positions the chandelier is not in the code path at all, and the give-back cannot execute under any tape.</strong></p>
+<table>
+<thead><tr><th>every Lot-B position routes to&hellip;</th><th class="num">this week (58)</th><th class="num">archive (495)</th></tr></thead>
+<tbody>
+<tr><td class="ln">quiet-tape clip (<code>atr_split 22</code>)</td><td class="num">24 (41%)</td><td class="num">179 (36%)</td></tr>
+<tr><td class="ln">fixed 2.5R scalp</td><td class="num">28 (48%)</td><td class="num">32</td></tr>
+<tr><td class="ln">fixed 1.5R scalp</td><td class="num">2</td><td class="num">15</td></tr>
+<tr><td class="ln">chandelier &ldquo;tight&rdquo; k1.5</td><td class="num">2</td><td class="num">237</td></tr>
+<tr><td class="ln">chandelier-lock &ldquo;wide&rdquo;</td><td class="num">2</td><td class="num">32</td></tr>
+<tr class="row-bad"><td class="ln"><strong>any chandelier at all</strong></td><td class="num"><strong>4 of 58 (7%)</strong></td><td class="num">269 of 495 (54%)</td></tr>
+</tbody></table>
+<p>Four eligible positions, one fired. The quiet-tape clip runs <em>first</em> and returns unconditionally &mdash; any gate with <code>atr_split</code> set and ATR below 22 has no chandelier, no give-back, no adaptive selector, whatever its rung says. <strong>And <code>atr_split = 22</code> keys on the wrong variable:</strong> of the entries with ER30 &ge; 0.30, 66% get clipped &mdash; and of the entries with ER30 &lt; 0.30, <em>also 66%</em>. The clip&rsquo;s selector is statistically independent of the regime it exists to protect against. Give-back, meanwhile, was killed twice over: the 07-27 adaptive-exit roster deploy guards it out, and the 07-29 scale-out slate hard-sets <code>giveback_enabled=False</code> on all 16 sub-slots. <strong>16 startups &times; 16 slots: <code>giveback_enabled</code> is false on 256 of 256 resolved specs.</strong> Its silence is the design, not a symptom.</p>
+
+<h4 class="rh">The fix that was proposed &mdash; and why it FAILED on its own terms</h4>
+<p>The rehab request was &ldquo;restore the pre-08-01 managed-profit shape&rdquo;. I ran it:</p>
+<table>
+<thead><tr><th>this week&rsquo;s 110 lots, repriced on real prints</th><th class="num">booked</th><th class="num">deployed replay</th><th class="num">pre-08-01 managed profit</th><th class="num">regime-keyed fix</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">the 34 TARGET lots</td><td class="num">+$1,794.0</td><td class="num">+$1,527.5</td><td class="num"><strong>+$1,472.0</strong></td><td class="num">+$1,720.6</td></tr>
+<tr><td class="ln">the 71 STOP lots</td><td class="num">&minus;$2,600.5</td><td class="num">&minus;$2,510.6</td><td class="num">&minus;$2,260.0</td><td class="num">&minus;$2,403.2</td></tr>
+<tr><td class="ln">all 110</td><td class="num">&minus;$932.5</td><td class="num">&minus;$848.6</td><td class="num">&minus;$387.7</td><td class="num">&minus;$402.3</td></tr>
+</tbody></table>
+<p><strong>Handing this week&rsquo;s 34 winners to the old management makes them worth $322 LESS, not more.</strong> The whole gain of the managed-profit arm comes from the <em>stop</em> side (the trail cuts some losers before 1R) and from the 08-04 normalization &mdash; <strong>not</strong> from captured runners. Why: 18 of the 34 winners do eventually reach 6R, but <strong>19 of those 34 round-trip all the way back to the 1R stop</strong> before the two-hour cap, and on a 10&ndash;16pt R the trail sits far enough away that it waits through the entire retrace. Slot-honest over the whole archive, restoring it is <strong>&minus;$3,433 vs the deployed &minus;$2,932, losing in 20 of 20 leave-one-day-out folds</strong>.</p>
+
+<h4 class="rh">What the desk actually forfeited &mdash; the WIDTH, in one regime</h4>
+<p>Single-lot net by regime cell, over the archive. Read the last column:</p>
+<table>
+<thead><tr><th>Lot-B exit</th><th class="num">ER&lt;.30 / ATR&lt;22 (n=213)</th><th class="num">ER&lt;.30 / ATR&ge;22 (n=108)</th><th class="num">ER&ge;.30 / ATR&lt;22 (n=114)</th><th class="num">ER&ge;.30 / ATR&ge;22 (n=60)</th></tr></thead>
+<tbody>
+<tr><td class="ln">clip $40 (deployed Lot A shape)</td><td class="num"><strong>&minus;$164</strong> (2nd/28)</td><td class="num">&minus;$695</td><td class="num"><strong>+$40</strong> (1st)</td><td class="num">&minus;$345 <strong>(26th)</strong></td></tr>
+<tr><td class="ln">clip 1.75R/$60 (deployed Lot B shape)</td><td class="num">&minus;$238</td><td class="num">&minus;$1,995 (27th)</td><td class="num">&minus;$65</td><td class="num">+$676</td></tr>
+<tr><td class="ln">fixed 4.0R</td><td class="num">&minus;$699</td><td class="num">&minus;$1,119</td><td class="num">&minus;$680</td><td class="num">+$2,113</td></tr>
+<tr class="row-hl"><td class="ln"><strong>fixed 6.0R</strong></td><td class="num">&minus;$761</td><td class="num"><strong>&minus;$318</strong> (1st)</td><td class="num">&minus;$631</td><td class="num"><strong>+$2,517</strong></td></tr>
+<tr><td class="ln">chandelier-lock &ldquo;wide&rdquo;</td><td class="num">&minus;$1,379 (28th)</td><td class="num">&minus;$1,246</td><td class="num">&minus;$622</td><td class="num">+$1,768</td></tr>
+<tr class="row-bad"><td class="ln">give-back 50/40</td><td class="num">&minus;$1,013</td><td class="num">&minus;$1,490</td><td class="num">&minus;$1,059</td><td class="num">&minus;$41 (24th)</td></tr>
+</tbody></table>
+<p><strong>The entire managed-profit edge of the desk lives in ONE cell &mdash; high ER and high ATR, 12% of signals.</strong> There the deployed $40 clip ranks 26th of 28 and a wide rung ranks 1st: a $3,055 swing on 60 entries. In the other three cells the wide trail is 28th, 8th and 14th while the deployed clip is 2nd, 3rd and 1st. <strong>The deployed config is not wrong about clipping &mdash; it is wrong about <em>when</em>.</strong> And note which shape wins: holding the regime gate and Lot A constant, a <strong>fixed 6R rung recovers +$3,049; the lock-chandelier recovers +$2,144; the tight chandelier +$761; give-back +$581.</strong> What we forfeited on 08-01 was the <em>width</em>, not the <em>trail</em>.</p>
+
+<h4 class="rh">Robustness &mdash; including the test that FAILED</h4>
+<table>
+<thead><tr><th>test</th><th class="num">deployed</th><th class="num">recommended</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">full archive, 20 sessions</td><td class="num">&minus;$2,932</td><td class="num"><strong>+$117</strong> (+$3,049)</td></tr>
+<tr class="row-hl"><td class="ln">leave-one-day-out, 20 folds</td><td class="num">&mdash;</td><td class="num"><strong>20/20 positive</strong>, min +$1,604</td></tr>
+<tr><td class="ln">per ISO week W29/30/31/32</td><td class="num">&minus;910 / &minus;2,632 / +1,683 / &minus;1,073</td><td class="num">&minus;840 / &minus;2,587 / +4,187 / &minus;643 &mdash; better in <strong>4/4</strong></td></tr>
+<tr><td class="ln">out-of-sample (fit 07-15&hellip;07-31 &rarr; test this week)</td><td class="num">&minus;$1,073</td><td class="num">&minus;$643 &mdash; still negative</td></tr>
+<tr><td class="ln">strip top 1 / 3 / 8 / 20 lots</td><td class="num">&mdash;</td><td class="num">+2,781 / +2,374 / +1,546 / <strong>+305</strong></td></tr>
+<tr class="row-bad"><td class="ln"><strong>parameter plateau test</strong></td><td class="num">&mdash;</td><td class="num"><strong>FAILED</strong> &mdash; only 4 of 35 threshold cells are positive</td></tr>
+</tbody></table>
+<div class="callout"><div class="ct">⚠ READ THIS BEFORE YOU SIZE IT</div>
+<p>Inside the trend-capable cell, <strong>6 of 16 sessions are green and 2026-07-27 alone is +$1,452 of the +$1,768</strong>. Attributed by gate, <code>exhaustion_short</code> contributes +$3,515 of which 07-27 is +$3,280, and <code>rgv_short</code> +$1,030 of which 07-23 is +$1,374. <strong>Two days carry it.</strong> Strip-the-best inside the cell survives to top-5 (+$323) and <strong>inverts at top-8 (&minus;$422)</strong> &mdash; the cell&rsquo;s edge rests on 5&ndash;7 trades out of 60. The <em>direction</em> is robust (the whole parameter neighbourhood averages ~+$2,000 better than deployed); the <em>knob</em> is not.</p></div>
+
+<h4 class="rh">Verdict</h4>
+<p><span class="tag pill-retire">TRULY-RETIRE</span> <strong><code>GIVEBACK</code>.</strong> Dominated in every regime, in all 42 sweep cells, in 0/20 folds. It earned +$2,332 in July because it was the <em>only</em> profit exit on trail-less single-lot gates &mdash; and <strong>61% of that came from gates that no longer exist</strong> (<code>rgv_long</code> alone was 30 fires / +$847). Under the scale-out slate every gate already has a fixed-R Lot A floor doing that job. Stop treating its silence as a symptom.</p>
+<p><span class="tag pill-regime">REGIME-DEPENDENT</span> <strong>the WIDTH ships</strong> as a config-only edit (<code>atr_split</code> 22&rarr;24, every non-NIPC <code>b</code>&rarr;6.0 and <code>a_r</code>&rarr;3.0; NIPC keeps its own proven 2.0/2.5 pair). <span class="tag pill-shadow">SHADOW</span> <strong>the trail machinery itself</strong> &mdash; keep <code>exit_chandelier_lock</code> in the code (it is runner-up in the home cell and it is uncapped, which a fixed rung is not) but do not re-arm it on the strength of this report.</p>
+<p class="rehabnote"><strong>And the honest bottom line on cause:</strong> against a 200-trial random-side null the deployed desk sits at the <strong>67th percentile</strong> and the fixed desk at the <strong>88th</strong>. Neither clears 95. The exit explains about $3,000 over 20 sessions and is worth fixing; <strong>the signal explains the other $3,000 and nothing in this rehab fixes it.</strong></p>
+</div>
+
+<!-- ═══════════════════════════ MAX_HOLD ═══════════════════════════ -->
+<div class="card">
+<h3><code>MAX_HOLD</code> &mdash; &ldquo;the desk&rsquo;s worst per-trade exit&rdquo;, &minus;$255.50 on 2 fires &nbsp;<span class="tag pill-fixed">FIXED</span></h3>
+
+<h4 class="rh">The symptom &mdash; measured on rows the desk has already thrown away</h4>
+<p>Both of this week&rsquo;s MAX_HOLD fires carry <code>data_quality = EXCLUDE:md_stream_atr_corruption_20260804</code>. <code>pnl.py</code> filters them at source. <strong>The desk&rsquo;s own canonical P&amp;L books MAX_HOLD this week at zero fires and $0.00.</strong> The &minus;$255.50 comes from reading the raw <code>trades</code> table without the exclusion clause. Worth saying before anything else, because it means the headline &ldquo;worst mechanism on the desk&rdquo; is computed on two rows the desk formally does not count.</p>
+
+<h4 class="rh">Malfunction normalization &mdash; and this IS the whole finding</h4>
+<p>Widening the window: MAX_HOLD has fired <strong>4 times all-time for &minus;$642.50</strong>. Two are from the archive and nobody had looked at them. Four fires, four losers, no winners ever. Reconstructed on the 5s tape:</p>
+<table>
+<thead><tr><th>#</th><th>gate</th><th class="num">hold</th><th class="num">booked</th><th class="num">MFE</th><th>a working 1.0&times;ATR stop fills&hellip;</th><th class="num">malfunction cost</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">id114</td><td>rgv_short 07-21</td><td class="num">120.1m</td><td class="num">&minus;$171.00</td><td class="num"><strong>&minus;6.5pt</strong></td><td><strong>0.9 min in</strong> &rarr; &minus;$42.11</td><td class="num">&minus;$128.89</td></tr>
+<tr class="row-bad"><td class="ln">id171</td><td>grind_long 07-22</td><td class="num"><strong>278.9m</strong></td><td class="num">&minus;$216.00</td><td class="num">+13.5pt</td><td><strong>5.1 min in</strong> &rarr; &minus;$26.43</td><td class="num">&minus;$189.57</td></tr>
+<tr class="row-bad"><td class="ln">id538</td><td>abs_veto_short_A 08-04</td><td class="num">120.0m</td><td class="num">&minus;$124.50</td><td class="num">+14.3pt</td><td><strong>3.0 min in</strong> &rarr; &minus;$30.00</td><td class="num">&minus;$94.50</td></tr>
+<tr class="row-bad"><td class="ln">id539</td><td>abs_veto_short_B 08-04</td><td class="num">120.0m</td><td class="num">&minus;$131.00</td><td class="num">+10.8pt</td><td><strong>3.0 min in</strong> &rarr; &minus;$30.00</td><td class="num">&minus;$101.00</td></tr>
+<tr class="row-hl"><td class="ln"><strong>total</strong></td><td></td><td class="num"></td><td class="num"><strong>&minus;$642.50</strong></td><td class="num"></td><td><strong>should have cost &minus;$128.54</strong></td><td class="num"><strong>&minus;$513.96</strong></td></tr>
+</tbody></table>
+<p>Read the MFE column: the best any of these ever looked was +14.25 points, and one was <strong>never favourable by a single tick</strong>. These are not positions that went good and then bad and the clock caught them late &mdash; they were wrong from the opening print and the machine did not close them. Read the stop column: <strong>0.9 / 5.1 / 3.0 / 3.0 minutes.</strong> The two-hour clock is 24&times; to 133&times; later than the exit that should have happened.</p>
+<p><strong>Eighty percent of the MAX_HOLD book &mdash; $513.96 &mdash; is a stop that did not work, not a clock that held too long.</strong> Grading MAX_HOLD on this damage is grading the fire alarm for the fire.</p>
+
+<h4 class="rh">The brief&rsquo;s main angle is a FAKE WIN, and I am rejecting it</h4>
+<p>&ldquo;Shorten the cap.&rdquo; The blanket sweep looks fantastic. Decomposed, it is not:</p>
+<table>
+<thead><tr><th class="num">cap</th><th class="num">saved on LOSERS</th><th class="num">lost on WINNERS</th><th class="num">NET</th><th class="num">top-20 winners intact</th><th class="num">top-20 pool after</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">5m</td><td class="num">+$4,976</td><td class="num"><strong>&minus;$4,382</strong></td><td class="num">+$594</td><td class="num"><strong>4/20</strong></td><td class="num"><strong>$1,864</strong></td></tr>
+<tr class="row-bad"><td class="ln">10m</td><td class="num">+$2,534</td><td class="num">&minus;$2,356</td><td class="num">+$178</td><td class="num">7/20</td><td class="num">$2,658</td></tr>
+<tr class="row-bad"><td class="ln">15m</td><td class="num">+$1,908</td><td class="num">&minus;$1,154</td><td class="num">+$754</td><td class="num">12/20</td><td class="num">$3,556</td></tr>
+<tr><td class="ln">30m</td><td class="num">+$955</td><td class="num">&minus;$296</td><td class="num">+$660</td><td class="num">13/20</td><td class="num">$3,841</td></tr>
+<tr><td class="ln">60m</td><td class="num">+$271</td><td class="num">&minus;$126</td><td class="num">+$146</td><td class="num">18/20</td><td class="num">$4,168</td></tr>
+<tr class="row-hl"><td class="ln">90m</td><td class="num">+$490</td><td class="num"><strong>$0</strong></td><td class="num">+$490</td><td class="num"><strong>20/20</strong></td><td class="num"><strong>$4,356</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>120m (live)</strong></td><td class="num">+$460</td><td class="num"><strong>$0</strong></td><td class="num">+$460</td><td class="num"><strong>20/20</strong></td><td class="num"><strong>$4,356</strong></td></tr>
+</tbody></table>
+<p>A 5-minute cap &ldquo;makes&rdquo; $594 by destroying <strong>57% of the desk&rsquo;s best trades</strong>. The runner audit says the same thing from the other side: at 15 minutes it clips <strong>24 of the 51 runners</strong>, including <code>abs_veto_short_B</code> 07-29 ($536&rarr;$294) and <code>grind_long_B</code> 07-29 ($305&rarr;$148.50). <strong>A cap short enough to have caught the four malfunctions would have cost more than the malfunctions did.</strong> Ironically, the 120-minute number you guessed is the <em>only</em> setting in the entire sweep that takes money purely from losers and nothing at all from winners &mdash; 20/20 top winners intact across 601 live and 7,473 shadow trades.</p>
+
+<h4 class="rh">The real defect &mdash; the cap is not enforced</h4>
+<table>
+<thead><tr><th>id</th><th>gate</th><th class="num">hold</th><th>fired</th><th class="num">booked</th><th class="num">P&amp;L at the 120m mark</th><th class="num">cost of lateness</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">id171</td><td>grind_long</td><td class="num">278.9m</td><td>MAX_HOLD at 278.9m &mdash; <strong>158.9 min late</strong></td><td class="num">&minus;$216.00</td><td class="num">&minus;$121.00</td><td class="num">&minus;$95.00</td></tr>
+<tr class="row-bad"><td class="ln">id54</td><td>thrust</td><td class="num">277.1m</td><td><strong>never</strong> (exited on ABSORPTION_CUT)</td><td class="num">&minus;$141.00</td><td class="num"><strong>+$225.50</strong></td><td class="num"><strong>&minus;$366.50</strong></td></tr>
+<tr class="row-hl"><td class="ln"></td><td></td><td class="num"></td><td></td><td class="num"></td><td class="num"></td><td class="num"><strong>&minus;$461.50</strong></td></tr>
+</tbody></table>
+<p><strong>id54 is the sharpest single fact in this rehab.</strong> It was a <em>winner</em> at the cap &mdash; up $225.50 at the 120-minute mark &mdash; and was allowed to run another 157 minutes and come back as a &minus;$141.00 loser, because nothing enforced the ceiling. The cap is only alive while the 5-second audit loop is alive. This is a liveness dependency, not a parameter choice.</p>
+
+<h4 class="rh">Robustness &mdash; and the deflater</h4>
+<p>Enforcing the cap is worth <strong>+$460, and that advantage is exactly constant across strip-1, strip-3, strip-5 and strip-10.</strong> That is not luck, it is structural: the gain comes entirely from truncating losses, so stripping the best trades cannot erode it. Its whole effect lands in the <strong>overnight</strong> bucket &mdash; the cap has never once bound a trade in the US session or pre-open.</p>
+<p><strong>The honest deflater.</strong> I ran a placebo: keep the same three bound trades but exit at a <em>random</em> moment in each trade&rsquo;s life. Random timing matched or beat the real cap in <strong>161 of 400 draws</strong>. <strong>The 120-minute cap has no timing skill whatsoever.</strong> Its +$460 is not &ldquo;120 minutes was the right moment&rdquo; &mdash; it is &ldquo;literally any exit would have been better than what actually happened&rdquo;. Which is the same finding as everything above, said a third way. And out of sample the cap is <strong>completely inert &mdash; zero trades bound</strong> in the test week. That is not a failure; it is the correct behaviour of insurance in a week where nothing broke. But it means <strong>there is no out-of-sample evidence for any cap length, because there were no out-of-sample events.</strong></p>
+
+<h4 class="rh">Verdict</h4>
+<p><span class="tag pill-fixed">FIXED</span> <strong>Do not change the length.</strong> Ship the enforcement: (1) arm the ceiling <em>at the venue</em>, not just in the loop, so it survives a dead process; (2) make a stale audit loop loud &mdash; if any slot is open past 0.9&times; the cap and the auditor has not completed a cycle, notify immediately; (3) book any fire more than 5 minutes past the ceiling as <code>MAX_HOLD_LATE</code>, not <code>MAX_HOLD</code>, because right now a 278.9-minute hold and a 120.1-minute hold carry the same label &mdash; which is exactly why nobody noticed.</p>
+<p class="rehabnote"><strong>Two escalations this rehab produced by accident, and they are probably worth more than the rehab.</strong> (1) The tape-consistency screen struck <strong>166 of 7,639 shadow rows across 14 separate days</strong>, not just 08-04 &mdash; the MD contamination is a recurring condition in the shadow book and nothing flags it there. (2) <strong>44.0% of shadow trades ran more than 0.25&times;ATR past their own stop</strong> (median 0.56&times;, max 32.32&times;) on a book that is 99% 1.0&times;ATR stops. <strong>Every shadow study that rewards cutting early is inflated by that leak.</strong></p>
+</div>
+
+<!-- ═══════════════════════════ EXHAUSTION_SHORT ═══════════════════════════ -->
+<div class="card">
+<h3><code>exhaustion_short</code> &mdash; 2 wins in 6, &minus;$162.00, and the most mis-benched gate of the week &nbsp;<span class="tag pill-park">PARKED</span> <span class="tag pill-fixed">exit FIXED</span></h3>
+
+<h4 class="rh">The symptom, and the operator&rsquo;s real complaint</h4>
+<p>&minus;$162.00 on six lots, with <code>exhaustion_short_B</code> at &minus;$98.50. But the real complaint was the arming: router 8 off / 5 on, with an explicit 08-07 13:24Z carve-out saying a <em>momentum</em> direction rule was being applied to a <em>fader</em>. Reconstructed from the switch log, <strong>the gate was armed 10.0 hours out of 120 &mdash; 8.3% of the week</strong>. Your read of the facts is completely correct.</p>
+
+<h4 class="rh">Malfunction normalization</h4>
+<p><strong>A phantom fill.</strong> Trade 587 was closed at a price MNQ never traded. Both lots entered at 29715.00 with stops at <code>auxPrice=29733.25, lmtPrice=29753.25</code>; both triggered in the <em>same microsecond</em>. One filled at 29737.75 (4.50pt through the trigger). The other filled at <strong>29753.25 &mdash; exactly the limit, 20.00pt through</strong>. The highest trade printed in the window was 29743.00 and the deepest offer across all five levels was 29743.25. <strong>The fill is 10.25 points above the highest print.</strong> That is the paper simulator filling a stop-limit at its limit when the sim book ran out. Restated to its twin&rsquo;s fill: <strong>&minus;$47.00, swing +$31.00.</strong> The other 54 stop fills have a median slippage of 0.00pt, so this is a fat tail, not a distribution &mdash; and it happened twice this week (also <code>abs_veto_short_B</code> on 08-06, +$38.50), both within four minutes of the cash open.</p>
+<p><strong>A signal that passed every filter and silently never became an order.</strong> On 08-07 at 14:19:36 the journal logs both lots confirmed and &ldquo;&rarr; OPEN&rdquo;, and then <em>nothing</em>. No order, no signals row, no error, no warning. <code>MultiSlotCore._open</code> has three silent <code>return</code> paths and none of them logs. Priced honestly the bug <strong>made us money</strong> (the pair would have stopped for &minus;$174.14) and I have not credited that back &mdash; you cannot bank a loss you avoided by accident. But <strong>the desk cannot tell you why an approved entry never became an order</strong>, and one log line fixes it.</p>
+<p><strong>And the gate&rsquo;s famous best day is not what the ledger says.</strong> The badcall ledger records 07-30 as &ldquo;4/4 +$372.50&rdquo;. It was <strong>4-for-6</strong> &mdash; twenty-two minutes after the last winner the same gate took another pair and both stopped, making the honest total <strong>+$217.00</strong>. And every exit that day was <code>MANUAL_CLAIM</code> &mdash; your hand, not the gate&rsquo;s. Priced on the tick archive, <strong>the gate&rsquo;s own machinery on the same six entries makes +$65.10</strong>. Seventy percent of its best-ever day was you on the exit button.</p>
+
+<h4 class="rh">The bench question, measured window by window</h4>
+<table>
+<thead><tr><th>policy</th><th class="num">lots/phase</th><th class="num">net</th><th class="num">$/lot</th><th class="num">phases green</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">as actually armed (10 h)</td><td class="num">11.2</td><td class="num">&minus;$474</td><td class="num">&minus;$42.34</td><td class="num">0/10</td></tr>
+<tr class="row-bad"><td class="ln">always armed (all 120 h)</td><td class="num">61.5</td><td class="num">&minus;$614</td><td class="num">&minus;$9.98</td><td class="num">1/10</td></tr>
+</tbody></table>
+<div class="callout"><div class="ct">THE PREMISE OF THE REHAB IS REFUTED</div>
+<p>Totalling only the trades that fall inside each benched interval: <strong>benching <code>exhaustion_short</code> this week did not cost $140. It SAVED $140.</strong> So the 13:24Z carve-out is <em>right about the logic and wrong about the money</em>. Applying &ldquo;day-bias UP &rarr; bench shorts&rdquo; to a fader IS a category error &mdash; it benches the fade exactly when the fade&rsquo;s setup forms. But this particular fader was losing money in those windows anyway, so the category error was accidentally protective. Both are true and neither cancels the other.</p></div>
+
+<h4 class="rh">Root cause &mdash; it is the SIGNAL, and the exit is making it worse</h4>
+<p><strong>The exit first, because it is fixable and worth $604.</strong> Same entries, six days, ten polling phases, only the exit changed:</p>
+<table>
+<thead><tr><th>exit</th><th class="num">lots</th><th class="num">net</th><th class="num">$/lot</th><th class="num">phases green</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">LIVE today (A 0.75R / B tight chandelier / atr_split 22)</td><td class="num">71</td><td class="num"><strong>&minus;$847</strong></td><td class="num">&minus;$11.93</td><td class="num">0/10</td></tr>
+<tr class="row-hl"><td class="ln"><strong>8pt stop / 12pt target / 120s</strong> (the 07-25 config)</td><td class="num">66</td><td class="num"><strong>&minus;$243</strong></td><td class="num">&minus;$3.67</td><td class="num">2/10</td></tr>
+<tr><td class="ln">12pt / 8pt / 120s</td><td class="num">66</td><td class="num">&minus;$121</td><td class="num">&minus;$1.83</td><td class="num">3/10</td></tr>
+<tr><td class="ln">15pt / 20pt / 300s</td><td class="num">66</td><td class="num">&minus;$182</td><td class="num">&minus;$2.76</td><td class="num">3/10</td></tr>
+</tbody></table>
+<p>The mechanism is obvious once you see the ATRs. This is a snap-back fade and the current exit hangs a <strong>1.0&times;ATR</strong> stop on it, at entries where ATR is 18&ndash;49 points. On 08-07 the desk was risking <strong>41.8 points to make 31</strong> on a move whose entire measured life is a handful of points and a few seconds. The favourable excursion never scales with the stop: at ATR 12&ndash;18 the average trade reaches 1.13R in its favour; at ATR 30&ndash;40 it reaches <strong>0.60R</strong> while the adverse excursion sits at 0.80R. The move is roughly a <em>fixed number of points</em>, so an ATR-scaled stop and target both become nonsense as volatility rises. <strong>A fixed-point exit is structurally the right shape and we replaced it with an ATR one on 07-29.</strong></p>
+<p><strong>Now the signal, and this is the verdict.</strong> Against a 200-trial placebo of random entries in the same sessions:</p>
+<table>
+<thead><tr><th class="num">horizon</th><th class="num">signal mean (pt)</th><th class="num">random mean (pt)</th><th class="num">where the signal sits</th></tr></thead>
+<tbody>
+<tr><td class="ln">15 s</td><td class="num">&minus;0.64</td><td class="num">&minus;0.03</td><td class="num">10th pct</td></tr>
+<tr class="row-bad"><td class="ln">30 s</td><td class="num">&minus;1.15</td><td class="num">&minus;0.00</td><td class="num"><strong>2nd pct</strong></td></tr>
+<tr class="row-bad"><td class="ln">60 s</td><td class="num">&minus;2.56</td><td class="num">&minus;0.18</td><td class="num"><strong>0th pct</strong></td></tr>
+<tr class="row-bad"><td class="ln">120 s</td><td class="num">&minus;4.36</td><td class="num">&minus;0.75</td><td class="num"><strong>0th pct</strong></td></tr>
+</tbody></table>
+<p><strong>The entry is significantly ANTI-predictive out to two minutes.</strong> Not &ldquo;no edge&rdquo; &mdash; negative edge. Shorting here is measurably worse than shorting at a coin-flip second. And the reason is our own five-second wait: decomposing the trigger&rsquo;s life, <strong>the fade happens during the five seconds we spend confirming it (+1.88pt) and it is over by the time we are allowed in</strong> (0&rarr;&minus;1.15pt at every horizon after). The confirm-veto is not the villain &mdash; the fires it rejects drift &minus;5.25pt against you <em>inside</em> the window &mdash; but it proves the shape: <strong>this signal&rsquo;s half-life is under five seconds, shorter than our own confirmation latency.</strong></p>
+<p>Two more nails. <strong>The wall &mdash; the mechanism&rsquo;s actual claim &mdash; does nothing:</strong> removing the wall test <em>improves</em> 60s and 120s forward drift and 2.5&times;s the sample; measuring it correctly (there is a genuine off-by-one, the code reads the second price level and calls it the touch) makes it <em>worse</em>; demanding a bigger wall is catastrophic. And <strong>the independent shadow twin agrees:</strong> 467 trades over 19 sessions, short side &minus;$2.85/trade, long side &minus;$3.16 &mdash; two completely independent implementations agreeing to within a dollar a trade.</p>
+
+<h4 class="rh">42 filters tested. Not one is a real win.</h4>
+<p>The eight target winners had ATR 32&ndash;49pt and extension below +1.0 ATR. Every cell that gets the number near zero deletes them:</p>
+<table>
+<thead><tr><th>filter</th><th class="num">lots</th><th class="num">net</th><th class="num">strip-3</th><th class="num">winners kept</th><th>verdict</th></tr></thead>
+<tbody>
+<tr><td class="ln">baseline</td><td class="num">71</td><td class="num">&minus;$847</td><td class="num">&minus;$1,188</td><td class="num">8/8</td><td>&mdash;</td></tr>
+<tr class="row-bad"><td class="ln"><strong>ext floor &ge; 1.5 ATR</strong> &mdash; <em>the seductive one</em></td><td class="num">15</td><td class="num"><strong>&minus;$3</strong></td><td class="num">&minus;$184</td><td class="num"><strong>0/8</strong></td><td><span class="tag pill-refuted">FAKE WIN</span></td></tr>
+<tr class="row-bad"><td class="ln">ATR ceiling &le; 18</td><td class="num">22</td><td class="num"><strong>+$14</strong></td><td class="num">&minus;$169</td><td class="num"><strong>0/8</strong></td><td><span class="tag pill-refuted">FAKE WIN</span></td></tr>
+<tr class="row-bad"><td class="ln">regime: drop violent-whipsaw</td><td class="num">44</td><td class="num">&minus;$729</td><td class="num">&minus;$951</td><td class="num">1/8</td><td><span class="tag pill-refuted">FAKE WIN</span></td></tr>
+<tr><td class="ln">ATR floors 10&hellip;35 (7 rungs)</td><td class="num">21&ndash;66</td><td class="num">&minus;$660 &hellip; &minus;$865</td><td class="num">all negative</td><td class="num">8/8</td><td><span class="tag pill-null">NULL</span></td></tr>
+<tr class="row-hl"><td class="ln"><strong>counter-regime veto (already live)</strong></td><td class="num">71</td><td class="num">turning it OFF costs <strong>&minus;$311</strong></td><td class="num">&mdash;</td><td class="num"><strong>8/8</strong></td><td><span class="tag pill-live">HOLD</span></td></tr>
+</tbody></table>
+<p><strong>Zero of forty-two clears strip-best-3.</strong> The one thing that genuinely earns is the veto we already have &mdash; which is, note, precisely the mechanism-based bench predicate the brief asked me to build. It shipped on 07-28.</p>
+
+<h4 class="rh">The one that came closest &mdash; and exactly why it fails</h4>
+<p>Enter <em>at the fire instant</em>, skip the five-second confirm entirely (since that is where the move is), fixed-point stop and target, hard time cap:</p>
+<table>
+<thead><tr><th>stop / target / cap</th><th class="num">lots</th><th class="num">net</th><th class="num">strip-3</th><th class="num">$/lot</th><th class="num">phases green</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">10pt / 5pt / 30s &mdash; <em>with our real costs</em></td><td class="num">171</td><td class="num"><strong>&minus;$330</strong></td><td class="num">&minus;$355</td><td class="num"><strong>&minus;$1.93</strong></td><td class="num">1/10</td></tr>
+<tr class="row-hl"><td class="ln"><strong>the same cell with ZERO friction</strong></td><td class="num">171</td><td class="num"><strong>+$232</strong></td><td class="num"><strong>+$202</strong></td><td class="num"><strong>+$1.36</strong></td><td class="num"><strong>8/10</strong></td></tr>
+</tbody></table>
+<p><strong>That is the whole story in two rows.</strong> Gross, the construct makes +$1.36 a lot, is green in 8 of 10 sampling phases and survives strip-best-3. Net of a $1.50 fee, 0.75pt entry slip and 1.0pt stop slip it makes &minus;$1.93 a lot. <strong>Friction costs $562 over the window; the edge is worth $232. It is not broken &mdash; it is sub-friction by roughly two dollars a lot</strong>, and no arming rule, no regime filter and no exit target closes a gap that large. Even with <em>free trading and perfect fills</em> the live configuration still loses &minus;$382.</p>
+
+<h4 class="rh">Verdict</h4>
+<p><span class="tag pill-fixed">EXIT FIXED &mdash; SHIP</span> Revert to the fixed 8/12/120s. <strong>&#9888; And remove <code>exhaustion_short</code> from <code>_BIG_RUN</code> at the same time</strong> &mdash; otherwise deleting the override silently hands it the scale-out slate&rsquo;s A@2.5R + B wide-chandelier, which the sweep says is the <em>worst</em> Lot B in every regime. That is the single most important line in this card.</p>
+<p><span class="tag pill-park">PARKED as a live gate</span> Revive when (a) a zero-latency execution path exists &mdash; fill <em>inside</em> the 20-second window, not five seconds after it &mdash; <strong>and</strong> (b) round-trip cost falls below about $0.50. Arming is not the lever. Leave the 13:24Z carve-out exactly as it is; it costs ~nothing to be present for a rare setup, and this report has no evidence a fifth bench rule would help. <strong>The one thing I would ask: with the exit reverted, the next ~20 fires are a clean re-test of the gate as originally rehabilitated. Judge it on those.</strong></p>
+<p class="rehabnote"><strong>A banked lesson that needs amending.</strong> <code>[[exhaustion-short-live-fader-success]]</code> &mdash; &ldquo;judge footprint faders on LIVE P&amp;L, the shadow understates them&rdquo; &mdash; was banked when the shadow was &minus;$194 on 145 trades. At 467 trades the shadow (&minus;$2.85/trade) is <em>kinder</em> than the live dual-slot book (&minus;$19.49/lot). The shadow was not wrong. It was early.</p>
+<p class="rehabnote"><strong>&#9888; The measurement caveat that governs every number in this card.</strong> This trigger is a sub-second knife-edge event and the desk only looks once a second. Slide the polling phase by 100ms and you get a different set of trades: the same config on the same six days ranges from &minus;$365 to &minus;$1,711 across ten phases, <strong>standard deviation $418</strong>. Every headline here is the mean of all ten. Any &ldquo;improvement&rdquo; smaller than about $800 over six days is inside the noise of <em>when we happened to look at the book</em>.</p>
+</div>
+
+<!-- ═══════════════════════════ NIPC_SHORT ═══════════════════════════ -->
+<div class="card">
+<h3><code>nipc_short</code> &mdash; 1 win in 16 (6%), &minus;$337.00 &nbsp;<span class="tag pill-shadow">SHADOW</span> <span class="tag pill-fixed">the <code>lo</code> block FIXED</span></h3>
+
+<h4 class="rh">Malfunction normalization &mdash; and it makes the symptom WORSE</h4>
+<p><strong>Two of the sixteen are not <code>nipc_short</code> trades at all.</strong> Trades 577/578 carry order ids <code>stp-*</code>, not <code>v7-mnq-*</code>. Of all 49 nipc entry legs, 47 carry the normal namespace and exactly these two carry the protective-stop namespace. They have a <code>filled</code> row with no <code>submitted</code>. No NIPC setup exists at that time on the tape. And nipc had been router-benched 38 minutes earlier. <strong>Two orphaned GTC stops fired with no position behind them and opened a naked 2-lot short.</strong> Remove: +$34.50 back.</p>
+<p><strong>And the gate&rsquo;s only green print should have been a stop.</strong> Trade 572 (+$28.50, the single winner the whole roster line rests on) had its protective stop trigger at 29390.25. The tape printed <strong>at 29390.25 and never above it</strong>, for about one millisecond. The venue&rsquo;s stop-limit does not trigger on a touch-without-through, and the desk&rsquo;s own breach guard would have fired it but reads one price per second. Its twin, filled 2.75pt lower, had its stop breached in the same burst and was stopped for &minus;$18.50. Applying the twin&rsquo;s measured 1.00pt stop slip: <strong>&minus;$18.50. Swing &minus;$47.00.</strong></p>
+<div class="callout"><div class="ct">THE HEADLINE OF THIS CARD</div><p><strong>Normalized, <code>nipc_short</code> is 0-for-14.</strong> Its one green print was a single-millisecond, exactly-at-the-trigger touch that neither the venue&rsquo;s trigger rule nor the desk&rsquo;s one-second breach guard happened to catch, on the lot that got the better of two fills 2.75pt apart.</p></div>
+
+<h4 class="rh">Root cause &mdash; not the exit, not the rung: the BASE, and then the signal</h4>
+<p>The structural suspect was that 2.0R/2.5R targets on a gate stopping out 94% of the time are never consulted. <strong>Measured, that is false.</strong> Parking the target at 12R and reading how far each trade got before its stop: <strong>31.9% of shorts reach 2.5R</strong>. The rung is reachable, and the geometric expectancy has a shallow maximum at 2.5&ndash;3.0R &mdash; the shipped pair sits on that plateau. <strong>The exit is not the disease.</strong></p>
+<p>The disease is arithmetic. Median R on the short book is 13.2pt, so 1R is about $26.40 a lot:</p>
+<table>
+<thead><tr><th>&nbsp;</th><th class="num">per lot</th></tr></thead>
+<tbody>
+<tr><td class="ln">gross edge (0.117 R &times; $26.40)</td><td class="num">+$3.09</td></tr>
+<tr><td class="ln">$1.50 fee + 2 &times; 1.25pt measured slip</td><td class="num">&minus;$6.50</td></tr>
+<tr class="row-bad"><td class="ln"><strong>net per lot</strong></td><td class="num"><strong>&minus;$3.41</strong></td></tr>
+</tbody></table>
+<p>Even at the lab&rsquo;s fantasy one-tick slippage the cost is $2.50 against a $3.09 gross edge. <strong>The entire edge is the same size as the execution cost</strong>, and a fixed-dollar cost is a regressive tax on a gate whose R is small. The slippage is structural, not a bug: NIPC&rsquo;s trigger is &ldquo;price trades <em>through</em> the half-back level&rdquo;, so you need a stop-entry &mdash; a resting limit is geometrically impossible. Stop orders always slip, most in exactly the fast tape this setup selects for.</p>
+<p><strong>And then the finding that decides it: the signal is short-delta BETA, not alpha.</strong> Per-session P&amp;L against the 13:00&ndash;15:00 UTC drift correlates <strong>&minus;0.528</strong>, and the trade count correlates <strong>&minus;0.640</strong> &mdash; it even trades <em>more</em> on down days. Down sessions +$719, up sessions &minus;$211. 2026-W31&rsquo;s news window fell on four of five sessions; W32&rsquo;s rose. <strong>That is the whole story of the &ldquo;one good week&rdquo;.</strong></p>
+<table>
+<thead><tr><th>null test</th><th class="num">result</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">&ldquo;Sell one lot at 13:00, cover at 15:00&rdquo; &mdash; same fees, same slip, no signal, no state machine</td><td class="num">+$354 over 17 round trips</td></tr>
+<tr class="row-bad"><td class="ln">the whole NIPC apparatus, same 17 sessions</td><td class="num">+$508 over <strong>126 lot round-trips</strong></td></tr>
+<tr class="row-bad"><td class="ln">random entry, 200 trials, same window, same counts, same exits</td><td class="num">nipc sits at the <strong>80th percentile</strong> &mdash; needs 95th</td></tr>
+</tbody></table>
+<p><strong>The entire NIPC apparatus buys $154 over a one-line rule, at 7&times; the execution surface and 7&times; the incident exposure.</strong> And a variance source bigger than the effect itself: both nipc legs share one tracker and one position, so which setups the short leg gets depends on what the <em>long</em> leg happened to be holding. <strong>$1,832 of the answer is decided by slot-contention luck</strong> &mdash; larger than any effect in the rehab.</p>
+
+<h4 class="rh">The one thing that IS real &mdash; the missing <code>lo</code> block</h4>
+<p>Your structural suspect was right. <code>nipc_short</code> and <code>nipc_long</code> are the only families whose override entry has no adaptive <code>lo</code> block, running a bare 2.0R/2.5R while every mature gate carries the clip.</p>
+<table>
+<thead><tr><th>config</th><th class="num">n</th><th class="num">net</th><th class="num">win%</th><th class="num">winners kept</th><th class="num">strip-3</th><th class="num">strip-5</th><th class="num">W29 / W30 / W31 / W32</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">A. bare 2.0R/2.5R (shipped)</td><td class="num">63</td><td class="num">+$508</td><td class="num">41.3%</td><td class="num">22/22</td><td class="num"><strong>&minus;$90</strong></td><td class="num"><strong>&minus;$410</strong></td><td class="num">&minus;150 / &minus;148 / +1164 / <strong>&minus;359</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>B. + <code>lo</code> clip block</strong></td><td class="num">60</td><td class="num">+$559</td><td class="num">43.3%</td><td class="num"><strong>22/22</strong></td><td class="num"><strong>+$118</strong></td><td class="num">&minus;$76</td><td class="num">&minus;7 / &minus;34 / +691 / <strong>&minus;91</strong></td></tr>
+<tr class="row-hl"><td class="ln">C. B + entry &ge; 13:30 UTC</td><td class="num">47</td><td class="num">+$649</td><td class="num">46.8%</td><td class="num">19/22</td><td class="num">+$209</td><td class="num"><strong>+$15</strong></td><td class="num">&minus;99 / +43 / +709 / <strong>&minus;4</strong></td></tr>
+</tbody></table>
+<p><strong>B keeps every one of the 22 winners and does not win by cutting anything &mdash; it wins by <em>banking</em> more of them</strong> (win rate 41.3%&rarr;43.3%), which is exactly what a fixed-dollar clip is for on a gate whose R is too small to pay an R-multiple ladder. It collapses the week-concentration (W31 from 229% of net to 124%) and it <strong>generalises to the mirror leg</strong>, which is the strongest evidence it is a mechanism and not a curve-fit: <code>nipc_long</code> goes +$463&rarr;+$668, strip-3 &minus;$5&rarr;+$332, win rate 43.3%&rarr;50.9%. <strong>The <code>lo</code> block helps the LONG leg more than the SHORT one.</strong> Its parameters are plateau-stable and $40 is the same $40 every mature gate already uses &mdash; not a fitted number.</p>
+
+<h4 class="rh">Robustness &mdash; the finding that decides the case</h4>
+<p><strong>In every single configuration I tested &mdash; 9 Lot-B rungs, 7 A&times;B rows, 6 stop widths, 5 break-even variants, 3 trails, 5 hold caps, 7 slippage assumptions, 23 filters &mdash; 2026-W31 is positive and the other three weeks are almost always negative.</strong> Even at zero slippage. And out of sample, fitting on W29&ndash;W31 and applying unchanged to the live week, <strong>every single train-optimum loses money</strong>: 13 of 13 filters, 8 of 8 rungs, 5 of 5 stop widths. The only two configurations that come back roughly flat are the two that were <em>not</em> fitted on the training window &mdash; the <code>lo</code> block (copied verbatim from the mature gates) and the 13:30 cut (the US cash open).</p>
+
+<h4 class="rh">Verdict</h4>
+<p><span class="tag pill-shadow">SHADOW</span> <strong>Do not re-arm on live capital.</strong> Not FIXED, because the best config I could build makes +$649 over 18 sessions of which +$709 is one week, does not clear a random-entry null, beats a one-line rule by $154 at 7&times; the trades, and is 0-for-14 live. Not TRULY-RETIRE, because three things are alive and cost nothing to watch. <strong>Re-arm criterion, stated concretely:</strong> <code>nipc_short</code> returns to live capital only when it prints <strong>&ge; 3 consecutive ISO weeks non-negative, at least one of which has a NET-UP 13:00&ndash;15:00 tape, on &ge; 40 shadow fires.</strong> That is a direct test of the one thing that killed it &mdash; it has never yet made money in a week the market rose.</p>
+<p><span class="tag pill-fixed">SHIP THE <code>lo</code> BLOCK ANYWAY</span> to <em>both</em> nipc legs. It is a config change with no arming implication; both gates stay off. <strong>&#9888; One wrinkle to comment in the code:</strong> NIPC carries <code>entry_atr = R</code>, not ATR, so <code>atr_split: 22</code> is being compared against R (median 13.2pt) and the clip binds on ~75% of fires. That is fine, but it is not what the field name says.</p>
+</div>
+
+<hr class="frag-sep">
+
+<!-- ═══════════════════════════ SHADOW LEDGERS ═══════════════════════════ -->
+<h3 id="p15-shadow">3 &middot; THE TWO LIVE GRIND-EXIT SHADOW LEDGERS</h3>
+
+<p>Two observe-only ledgers have been recording since 2026-07-26 with no involvement from any rehab harness. I re-derived both from the raw JSON myself rather than quoting their summary fields, and <strong>both of the &ldquo;data defects&rdquo; flagged against them this week turn out not to be defects</strong> &mdash; which matters, because one of them was about to be used to discount a result.</p>
+
+<div class="card">
+<h3><code>two_ratchet_shadow.json</code> &mdash; the runner-CLIP watch &nbsp;<span class="tag pill-shadow">SHADOW, unchanged</span></h3>
+<p><strong>The watch asks:</strong> would a second ratchet have clipped a runner before the chandelier gave it back? <strong>The answer after 26 live <code>grind_long_B</code> trades: it has never clipped one, and it costs money.</strong></p>
+<table>
+<thead><tr><th>&nbsp;</th><th class="num">n</th><th class="num">live net</th><th class="num">two-ratchet net</th><th class="num">shadow &minus; live</th><th class="num">runners</th><th class="num">runner-clips</th></tr></thead>
+<tbody>
+<tr><td class="ln"><strong>whole window (since 07-26)</strong></td><td class="num">26</td><td class="num">+$29.50</td><td class="num">&minus;$265.00</td><td class="num"><strong>&minus;$294.50</strong></td><td class="num">3</td><td class="num"><strong>0</strong></td></tr>
+<tr class="row-hl"><td class="ln">the 3 runners (rMFE 4.20 / 4.75 / 5.21 R)</td><td class="num">3</td><td class="num">+$319.50</td><td class="num">+$555.00</td><td class="num"><strong>+$235.50</strong></td><td class="num">3</td><td class="num">0</td></tr>
+<tr class="row-bad"><td class="ln">the other 23</td><td class="num">23</td><td class="num">&minus;$290.00</td><td class="num">&minus;$820.00</td><td class="num"><strong>&minus;$530.00</strong></td><td class="num">0</td><td class="num">0</td></tr>
+<tr class="row-bad"><td class="ln">this week (08-03&hellip;08-07)</td><td class="num"><strong>3</strong></td><td class="num">&minus;$123.50</td><td class="num">&minus;$143.00</td><td class="num">&minus;$19.50</td><td class="num">0</td><td class="num">0</td></tr>
+</tbody></table>
+<p><strong>The shape is clear even at n=26.</strong> On the three runners the two-ratchet genuinely does better, by $235.50. On the twenty-three non-runners it does worse by $530.00. Net it hands back <strong>$294.50</strong> &mdash; and it is negative in <em>both</em> ATR buckets (ATR&ge;22: live +$262.50 vs shadow +$139.50; ATR&lt;22: live &minus;$233.00 vs shadow &minus;$404.50). That is a variance lever with a negative mean, which is the worst kind.</p>
+<p><strong>What the scope&rsquo;s verdict rule says, and why it does not apply.</strong> The rule is &ldquo;zero clips over a genuine trend week is evidence for reconsidering the two-ratchet&rdquo;. <strong>This was not a trend week for grind &mdash; it was 177 seconds of tape.</strong> Three trades, maximum realised excursion <strong>1.17 R</strong>. The ledger did not fail to find a clip; it never got a candidate. And two of the three entries were at ATR 21.0, <em>below</em> the floor this rehab proposes.</p>
+<p><strong>But the ledger delivers something it was not built for: it is the independent, live proof of the <code>grind_long</code> ATR finding.</strong> Different tool, no harness, its own 26 rows:</p>
+<table>
+<thead><tr><th>two_ratchet ledger, live rows only</th><th class="num">n</th><th class="num">live net</th><th class="num">runners</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">entry ATR &ge; 22</td><td class="num">14</td><td class="num"><strong>+$262.50</strong></td><td class="num"><strong>3 of 3</strong></td></tr>
+<tr class="row-bad"><td class="ln">entry ATR &lt; 22</td><td class="num">12</td><td class="num"><strong>&minus;$233.00</strong></td><td class="num">0</td></tr>
+</tbody></table>
+<p>All three runners had entry ATR <strong>24.8, 25.5 and 46.7</strong>. Live data, different tool, same answer as the 744-leg harness.</p>
+<p><strong>Disposition: SHADOW, unchanged &mdash; and the watch is now conditional.</strong> It is only meaningful on trades the new ATR floor would admit; under the proposed config 14 of the 26 rows to date would have existed and all 3 runners would have. <strong>Revive the question at &ge; 10 runners recorded under an ATR &ge; 22 entry.</strong></p>
+<div class="callout"><div class="ct">✔ LEDGER-INTEGRITY CHECK &mdash; the flagged &ldquo;$435 disagreement&rdquo; is not a defect</div>
+<p>This week&rsquo;s grind dossier flagged that the file&rsquo;s <code>xcheck</code> field (&minus;$406.00) disagrees with <code>live_net</code> (+$29.50) by $435 with no documented reconciliation, and suggested a look before the ledger is used to settle anything. <strong>I summed the raw rows: <code>xcheck</code> is not a net, it is a delta.</strong> Sum of <code>recon_pure_usd</code> = &minus;$376.50; sum of <code>live_usd</code> = +$29.50; the difference is <strong>&minus;$406.00 to the cent</strong>. The field reconciles exactly &mdash; it is measuring how far the pure reconstruction sits from the live book. <strong>No defect. It just needs renaming to <code>recon_minus_live</code>.</strong></p></div>
+</div>
+
+<div class="card">
+<h3><code>partial_shadow.json</code> &mdash; the 2R-partial smoothness watch &nbsp;<span class="tag pill-shadow">SHADOW, prior RESTORED</span></h3>
+<p><strong>The claim on the table:</strong> the partial is now +$307.50 better on the mean over the window (&minus;$1,074.90 vs &minus;$1,382.40) with a shallower drawdown, which would quietly invert the standing <em>&ldquo;variance lever, not a mean-raiser&rdquo;</em> prior. <strong>I re-derived it and the inversion is an artefact of the broken entry gate.</strong></p>
+<p>First, the shape of the thing. Of the 40 trades in the ledger, <strong>only 10 have a non-zero delta at all</strong> &mdash; on 30 of 40 trades the partial does literally nothing, because nothing came within reach of 2R. Here is every trade where it acted:</p>
+<table>
+<thead><tr><th>date</th><th class="num">entry ATR</th><th class="num">baseline</th><th class="num">partial</th><th class="num">delta</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">21.6</td><td class="num">&minus;$90.00</td><td class="num">+$40.00</td><td class="num"><strong>+$130.00</strong></td></tr>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">15.5</td><td class="num">&minus;$65.40</td><td class="num">+$28.10</td><td class="num">+$93.50</td></tr>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">20.7</td><td class="num">+$22.00</td><td class="num">+$92.50</td><td class="num">+$70.50</td></tr>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">39.9</td><td class="num">+$187.00</td><td class="num">+$252.00</td><td class="num">+$65.00</td></tr>
+<tr class="row-hl"><td class="ln">07-27</td><td class="num">24.8</td><td class="num">+$66.00</td><td class="num">+$130.50</td><td class="num">+$64.50</td></tr>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">14.1</td><td class="num">+$28.00</td><td class="num">+$69.50</td><td class="num">+$41.50</td></tr>
+<tr class="row-hl"><td class="ln">07-30</td><td class="num">25.5</td><td class="num">+$126.00</td><td class="num">+$163.50</td><td class="num">+$37.50</td></tr>
+<tr class="row-hl"><td class="ln">07-29</td><td class="num">18.7</td><td class="num">+$79.00</td><td class="num">+$113.00</td><td class="num">+$34.00</td></tr>
+<tr class="row-bad"><td class="ln">07-29</td><td class="num">27.2</td><td class="num">+$356.00</td><td class="num">+$285.50</td><td class="num"><strong>&minus;$70.50</strong></td></tr>
+<tr class="row-bad"><td class="ln">07-30</td><td class="num">46.7</td><td class="num">+$688.00</td><td class="num">+$529.50</td><td class="num"><strong>&minus;$158.50</strong></td></tr>
+<tr><td class="ln"><strong>total</strong></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"><strong>+$307.50</strong></td></tr>
+</tbody></table>
+<p>Now look at where the money comes from and where it goes. <strong>Both negative deltas are the high-ATR runners</strong> (ATR 27.2 and 46.7) and together they are &minus;$229.00 &mdash; the tail forfeit, exactly as the standing prior predicts. <strong>Every positive delta at ATR below 22 is +$369.50 across five trades.</strong> Split the whole ledger by the floor the grind rehab is proposing:</p>
+<table>
+<thead><tr><th>partial ledger, split at the proposed ATR floor</th><th class="num">n</th><th class="num">baseline</th><th class="num">partial</th><th class="num">delta</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><strong>entry ATR &ge; 22 &mdash; the trades that will REMAIN</strong></td><td class="num">19</td><td class="num">&minus;$199.00</td><td class="num">&minus;$261.00</td><td class="num"><strong>&minus;$62.00</strong></td></tr>
+<tr class="row-hl"><td class="ln">entry ATR &lt; 22 &mdash; the trades being REMOVED</td><td class="num">21</td><td class="num">&minus;$1,183.40</td><td class="num">&minus;$813.90</td><td class="num"><strong>+$369.50</strong></td></tr>
+</tbody></table>
+<div class="callout"><div class="ct">THE PRIOR IS RESTORED, NOT INVERTED</div>
+<p><strong>The 2R-partial&rsquo;s apparent mean-raising is created entirely by the low-ATR population this rehab is removing. Fix the entry and the partial costs about $62 of mean on the trades that will remain.</strong> It is a variance lever after all. This week the partial&rsquo;s delta was exactly <strong>$0.00 across 3 trades</strong> (baseline &minus;$286.00 = partial &minus;$286.00) because nothing came within a mile of 2R. That is a non-observation, not evidence. <strong>Disposition: SHADOW, operator&rsquo;s mean-vs-smoothness choice UNCHANGED. Re-present after 20+ trades under the new floor.</strong></p></div>
+<div class="callout"><div class="ct">✔ LEDGER-INTEGRITY CHECK &mdash; the flagged &ldquo;suspicious pair of zeros&rdquo; is CORRECT, and the finding stands</div>
+<p>This week&rsquo;s grind dossier flagged that <code>green_day_pct</code> and <code>green_week_pct</code> both read 0.0 for baseline <em>and</em> partial across 40 trades, called it more likely a bug than a result, and said the smoothness half of the file should not be quoted until checked. <strong>I checked it by summing the raw rows per date.</strong> Baseline daily nets: &minus;$278.00, &minus;$204.00, &minus;$336.40, &minus;$278.00, &minus;$286.00. Partial daily nets: &minus;$213.50, &minus;$240.50, &minus;$56.90, &minus;$278.00, &minus;$286.00. <strong>Five dates, ten numbers, all ten negative.</strong> Both ISO weeks in the window are negative for both books too. <strong><code>green_day_pct = 0.0</code> is not a bug &mdash; it is the honest answer, and it is a brutal one: neither book has had a single green day since 07-26.</strong> The smoothness half of the file can be quoted. The partial does buy real smoothness &mdash; worst day &minus;$286.00 against the baseline&rsquo;s &minus;$336.40, drawdown &minus;$1,074.90 against &minus;$1,382.40 &mdash; it just has no green days to smooth.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<!-- ═══════════════════════════ FAILURES ═══════════════════════════ -->
+<h3 id="p15-failures">4 &middot; THE FAILURES &mdash; everything tried THIS WEEK that did not work</h3>
+
+<p class="lead">This is the part of the section that earns the rest of it. Every idea below was tried this week, on this week&rsquo;s tape, with a named test. Nothing here is imported from a previous week. <strong>REFUTED</strong> means a specific test killed it and I do not expect a reformulation to save it. <strong>PARKED</strong> means it is not dead &mdash; it is waiting on a stated condition, and the condition is written next to it.</p>
+
+<h4 class="rh">4a &middot; REFUTED &mdash; the test that killed it</h4>
+
+<table>
+<thead><tr><th>the idea</th><th>on</th><th>the named test that killed it</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">An <strong>ER floor</strong> as an entry filter <em>(any level, and the ceiling too)</em></td><td>grind_long</td><td>Winner-keep: ER&ge;0.20 drops <strong>17 of 19 winners</strong> and keeps the two smallest. Then the sign flips: in-sample the <em>ceiling</em> wins by $4,500, out-of-sample the <em>floor</em> wins by $2,600. Not a parameter with an optimum &mdash; a coin.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;Bench after a wall of stops&rdquo;</strong></td><td>grind_long</td><td>Entry caps at 2 and 4 per day per lot cost <strong>$3,576 and $2,740</strong>. The runner arrives <em>after</em> the stop cluster &mdash; 08-05 13:36 is the pattern in miniature: four stops in 20 seconds, then a +$135/+$95.50 pair off the same minute.</td></tr>
+<tr class="row-bad"><td class="ln">A <strong>DWELL requirement</strong> (signal must hold 2&ndash;3 bars) as the anti-churn fix</td><td>grind_long</td><td>DWELL-2: strip-3 <strong>&minus;$1,273</strong>, out-of-sample &minus;$548. DWELL-3 is a null. The churn fix turned out to be the ATR floor, which cuts trades 79%.</td></tr>
+<tr class="row-bad"><td class="ln">Turning <strong><code>fast_slope</code> off</strong> (60-bar slope)</td><td>grind_long</td><td>In-sample neutral, out-of-sample <strong>&minus;$1,436</strong>. The existing setting is vindicated.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;Give it the k10 stop width its best shadow uses&rdquo;</strong></td><td>abs_veto_short</td><td>Read the live slate build: <strong>it already has it</strong>, exactly. Same entry, same targets, same stop, same clip. The best shadow is the same exit at different moments. A null before a number was computed.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;The arming policy is selecting the losing minutes&rdquo;</strong></td><td>abs_veto_short</td><td>Armed windows: <strong>+$48.20/trade</strong>. Benched minutes: +$19.70/trade. <em>Every</em> armed window that produced a signal was green. The premise is the opposite of true.</td></tr>
+<tr class="row-bad"><td class="ln">An <strong>extension cap</strong> (&ldquo;don&rsquo;t chase an already-spent move&rdquo;)</td><td>abs_veto_short</td><td>6-rung sweep over 17 days. <strong>Every cap that bites loses money and drops winners.</strong> The only net-positive cap removes exactly <em>one</em> trade in seventeen days.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>ER floors / dwell rules</strong> as an arming rule</td><td>abs_veto_short</td><td>12-rung + 3-rung sweeps. Best per-trade rung ($34.70, the best number in the whole sweep) keeps <strong>4 of 15 winners</strong>. Fifth gate to reproduce &ldquo;ER filters fake, ATR floors real&rdquo;.</td></tr>
+<tr class="row-bad"><td class="ln">An <strong>ATR ceiling</strong> (bench above 19/22/25pt)</td><td>abs_veto_short</td><td>5-rung sweep. Benching above 19pt keeps <strong>0 of the 15 biggest winners</strong>. The edge lives in high-ATR tape.</td></tr>
+<tr class="row-bad"><td class="ln">The <strong>stacked router rules</strong> as an arming policy</td><td>abs_veto_short</td><td>Out-of-sample split: in-sample +$903.50 &rarr; <strong>out-of-sample &minus;$22.50</strong>. Fitted on the weeks that made it look sensible, negative on the week it actually ran.</td></tr>
+<tr class="row-bad"><td class="ln">The router <strong>&ldquo;arm trio&rdquo;</strong> (new extreme + ER rising + volume up)</td><td>abs_veto_short</td><td>Cuts <strong>+$1,672.50 &mdash; 73% of the book &mdash; and 11 of 15 winners</strong>.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>First-fire-of-burst</strong> filter</td><td>abs_veto_short</td><td>Loses $172 and 3 winners. <strong>REFUTED as a filter, KEPT as a diagnosis</strong>: first fires are +$44.40/tr at 81% win vs +$9.60/tr for later ones &mdash; real information about the entry lag.</td></tr>
+<tr class="row-bad"><td class="ln">My own <strong>5s-bar exit simulator</strong></td><td>abs_veto_short</td><td>Refuted <em>as an instrument</em>. Its stop-width conclusion <strong>flips with the detection rule</strong> (bar-extreme says double the stop; bar-close says keep it) and the bar-extreme version contradicts the tick truth. It would have recommended doubling the stop on a number produced by my own measurement choice. <strong>Do not cite its numbers.</strong></td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;Benching the fader cost us money&rdquo;</strong></td><td>exhaustion_short</td><td>Window-by-window replay of the always-armed counterfactual: <strong>benching SAVED $140</strong>. Always-armed for the full 120 hours loses &minus;$614 (mean of ten polling phases), 1 of 10 phases green.</td></tr>
+<tr class="row-bad"><td class="ln">A <strong>regime/extension bench predicate</strong> for faders (4 forms)</td><td>exhaustion_short</td><td>The best one takes &minus;$847 to &minus;$3 by <strong>deleting all eight target winners</strong>. The most seductive fake win in the whole report.</td></tr>
+<tr class="row-bad"><td class="ln">Every <strong>ATR floor / ATR ceiling / ER floor / ER ceiling / break cap</strong> &mdash; 42 cells</td><td>exhaustion_short</td><td><strong>Zero of forty-two clears strip-best-3</strong> with winners intact. Every cell near zero deletes the winners; every cell that keeps them keeps the loss.</td></tr>
+<tr class="row-bad"><td class="ln">The <strong>resting-wall mechanism</strong> &mdash; the gate&rsquo;s own core claim</td><td>exhaustion_short</td><td>Removing the wall test <strong>improves</strong> 60s and 120s forward drift and 2.5&times;s the sample. Measuring it at the true top of book makes it worse. Demanding wall &ge; 3.0 drifts &minus;13.4pt at 120s.</td></tr>
+<tr class="row-bad"><td class="ln">The <strong>fade direction itself</strong></td><td>exhaustion_short</td><td>200-trial placebo null: the entry sits at the <strong>0th percentile at 60s and 120s</strong> &mdash; significantly anti-predictive. Following the flow instead is $900 better.</td></tr>
+<tr class="row-bad"><td class="ln">An <strong>R-size floor</strong> derived from the cost arithmetic (R &gt; 27.8pt)</td><td>nipc_short</td><td>The mechanism predicts a cure, so I tested it: <strong>n=1 above the threshold</strong> and the sign flips twice below it. There is no R region to trade.</td></tr>
+<tr class="row-bad"><td class="ln">The <strong><code>span 35&ndash;50pt</code> band</strong> (one of only two filters green in all four weeks)</td><td>nipc_short</td><td>Knife-edge: move either edge by 5 points and it <strong>changes sign</strong> (35&ndash;45 strip-3 &minus;$111, 35&ndash;50 +$128, 35&ndash;55 &minus;$32). Classic overfit shape, and it keeps 9 of 22 winners.</td></tr>
+<tr class="row-bad"><td class="ln"><strong><code>al15 &le; &minus;1</code></strong> (the impulse fights the prior drift &mdash; a real news shock)</td><td>nipc_short</td><td>The most interesting lead in the file: positive in all four ISO weeks <em>including the live one</em>. Dies on two tests &mdash; <strong>strip-3 &minus;$50</strong> (all $354 is three trades) and it keeps <strong>7 of 22 winners</strong>. Rejected as a rehab, carried as the shadow&rsquo;s watch-item.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Break-even stops</strong> (at 0.5R / 0.75R / 1.0R / 1.5R)</td><td>nipc_short</td><td>All four <strong>far below the +$508 baseline</strong>, strip-3 in the &minus;$333 to &minus;$640 range. On a gate that reaches 1R half the time, a break-even stop just converts winners into scratches.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Trailing Lot B</strong> instead of the fixed rung</td><td>nipc_short</td><td>0.75R / 1.0R / 1.5R trails give +$1 / +$306 / +$429 against <strong>+$508 for the fixed 2.5R</strong>. The 08-01 finding confirmed independently.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Widening the stop</strong> to 1.5&times;R</td><td>nipc_short</td><td>Looks better in aggregate and makes the <em>live week worse</em> (W32 &minus;$537). Null.</td></tr>
+<tr class="row-bad"><td class="ln">The cheat-sheet&rsquo;s <strong>momentum prior of Lot A 1.5R</strong></td><td>nipc_short</td><td><strong>Worse than your guess</strong>: +$193 against +$508 at B=2.5R. The operator&rsquo;s A=2.0R is the best A at every B. The guess is confirmed, the prior is not.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Shortening the MAX_HOLD cap</strong> (5&ndash;60 min)</td><td>MAX_HOLD</td><td>Winner decomposition + runner audit. A 5-minute cap &ldquo;makes&rdquo; $594 by leaving <strong>4 of 20 top winners</strong> and taking $4,382 off the winner pool. At 15 minutes it clips <strong>24 of 51 runners</strong>.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Staggering the paired-lot flatten</strong> (&ldquo;the second lot eats the first lot&rsquo;s impact&rdquo;)</td><td>MAX_HOLD</td><td>Full-book same-instant fill census: <strong>18 of 18 groups, all-time cost &minus;$55.00</strong>, of which 56% is one unrelated trade. On the target event the two lots filled <strong>one tick apart, for fifty cents</strong>.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Restoring the pre-08-01 managed-profit shape</strong> &mdash; the rehab&rsquo;s own premise</td><td>chandelier</td><td>Slot-honest replay: &minus;$2,932 &rarr; <strong>&minus;$3,433, losing in 0 of 20 leave-one-day-out folds</strong>. And repricing this week&rsquo;s 34 winners under it makes them <strong>$322 worse</strong>, not better.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Restoring <code>give-back</code></strong> at 50/40, or at anything</td><td>give-back</td><td>Worst arm tested (&minus;$4,425, 0/20 folds), then a 42-config sweep (arm $30&ndash;$120 &times; retrace $20&ndash;$100): <strong>42 of 42 negative in every regime</strong>. No configuration exists.</td></tr>
+<tr class="row-bad"><td class="ln">Continuous <strong><code>exit_chandelier</code></strong> at k = 1.0 / 1.5 / 2.0 / 2.5 / 3.5</td><td>chandelier</td><td>All five in the bottom half of the field. The trail is <em>directionally</em> right in one cell but quantitatively second-best; the tightening version recovers +$761 where a plain wide rung recovers +$3,049.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;SHORTs only&rdquo;</strong> &mdash; and it PASSED leave-one-day-out</td><td>chandelier</td><td>Rejected anyway. Correlation between the session&rsquo;s own net drift and short-minus-long P&amp;L is <strong>&minus;0.462</strong> across 20 sessions. The tape fell 182pt over the window; the &ldquo;edge&rdquo; is a bet on tape direction. <strong>Flagging it rather than banking it.</strong></td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;No profit exit at all&rdquo;</strong> &mdash; which looked like a $13,540 winner</td><td>chandelier</td><td>My own bug. Unconstrained scoring lets a wide trail book the same move thirteen times when a gate fires thirteen times into one leg. Replayed with <strong>one position per sub-slot</strong> it is <strong>&minus;$1,058</strong>. <strong>The artefact was worth $14,600</strong> and every headline in that dossier is now slot-occupancy-honest.</td></tr>
+<tr class="row-bad"><td class="ln">The cheat-sheet&rsquo;s <strong>fader prior of 0.5R / 1.5R</strong></td><td>chandelier</td><td>In the one regime where faders make money it ranks <strong>131st of 135</strong> configurations and throws away $3,929 on 25 signals. It is nearly right (rank 9/135) in violent-whipsaw. <strong>The prior is not wrong, it is unconditioned.</strong></td></tr>
+</tbody></table>
+
+<h4 class="rh">4b &middot; PARKED &mdash; and exactly what would revive it</h4>
+
+<table>
+<thead><tr><th>the idea</th><th>on</th><th>where it stands</th><th>what would revive it</th></tr></thead>
+<tbody>
+<tr><td class="ln"><strong>Stop 1.0 &rarr; 1.25 &times; ATR</strong></td><td>grind_long</td><td>The only widening that improves in-sample strip-3 <em>and</em> out-of-sample (+$2,018 / +$829 vs +$1,411 / +$643). But the surface is noisy &mdash; 1.5&times; <em>dips</em> between 1.25 and 2.0.</td><td><span class="tag pill-shadow">SHADOW</span> Holds on &ge; 40 more legs. One parameter change at a time, and the ATR floor is worth ten times as much.</td></tr>
+<tr><td class="ln"><strong>Lot A 2.5R</strong></td><td>grind_long</td><td>2.0R / 2.5R / 3.0R are indistinguishable at n=44. 2.5 sits in a small local dip. 1.0R and 1.5R are clearly too tight.</td><td>A proper answer when the home segment has <strong>&ge; 100 legs</strong>. Leave it alone rather than chase 3.0R on 42 trades.</td></tr>
+<tr><td class="ln"><strong>US-session-only clock</strong></td><td>grind_long</td><td>Looked good for a long time. Once the ATR floor is in it earns nothing &mdash; the overnight segment under the new floor is <strong>+$986 on 28 legs</strong>. It was only ever a proxy for &ldquo;when is ATR high&rdquo;.</td><td>Only if the overnight segment turns negative over <strong>&ge; 30 legs</strong>.</td></tr>
+<tr><td class="ln"><strong>Range-position (box 0.5&ndash;0.95) filter</strong></td><td>grind_long</td><td>Whole-tape positive (+$2,489, strip-3 +$1,031, OOS +$1,081) but <strong>neutral on the home segment</strong>.</td><td>As a second-order filter after the ATR floor has <strong>4 weeks of live data</strong>.</td></tr>
+<tr><td class="ln"><strong>The clean-trend hole</strong> &mdash; 0-for-14 in its own namesake regime</td><td>grind_long</td><td>All 14 legs at ER30 &ge; 0.45 stopped, across three episodes. <strong>The one stone left unturned</strong>, and I will not explain it away at n=14.</td><td>A genuine multi-hour trend week. Nothing smaller can settle it.</td></tr>
+<tr><td class="ln"><strong>The router&rsquo;s arming criteria</strong> for grind</td><td>grind_long</td><td><strong>Anti-correlated this week: &minus;$211 armed, +$2,388 benched.</strong> The router arms on ER-climb; the gate earns at ATR &ge; 22 with ER &lt; 0.25 &mdash; close to opposite conditions.</td><td>Needs its own week. Revive as the &ldquo;ATR band, ignore ER&rdquo; rule once the config change has a fortnight of live data. <strong>Do not change two things at once.</strong></td></tr>
+<tr><td class="ln"><strong><code>grind_short</code></strong></td><td>grind</td><td><strong>Zero live rows in the window.</strong> Never measured. The two-sided-gate rule says its thresholds must be derived independently.</td><td>A dedicated per-side sweep. Until then, &ldquo;grind&rdquo; as a family is half-measured.</td></tr>
+<tr><td class="ln"><strong>Lot A 1.5R &rarr; 2.5R</strong> in trend-no-break and violent-whipsaw</td><td>abs_veto_short</td><td>The only two regimes with a real plateau &mdash; and the instrument that found it <strong>already failed one validation</strong>.</td><td><span class="tag pill-shadow">SHADOW</span> Run as a shadow arm on tick-repriced fills; promote at <strong>n &ge; 30 per regime</strong>.</td></tr>
+<tr><td class="ln">The <strong>61-second entry lag</strong></td><td>abs_veto_short</td><td>Real and universal (median 61s over 78 matched entries), worth ~$6.87 a lot on average with a &plusmn;$21 band. This week&rsquo;s four signals drew 2.51 standard errors worse than the population &mdash; a bad draw, not the explanation.</td><td>Instrumentation: log the SIGNAL bar alongside <code>submitted</code>/<code>filled</code> in the <code>signals</code> table, then compare live against replay per fire.</td></tr>
+<tr><td class="ln"><strong>ATR floor 13&ndash;17pt</strong></td><td>abs_veto_short</td><td>Genuinely real and plateau-shaped &mdash; keeps <strong>15/15 winners</strong> and lifts $/trade from $14.40 to $26.80. And it still <strong>costs $259&ndash;$760 of net</strong>. It buys the same money in fewer trades.</td><td>If slot contention becomes binding. It is a slot-contention lever, not a P&amp;L lever &mdash; do not deploy it to fix a bleed it does not fix.</td></tr>
+<tr><td class="ln">The <strong><code>fast=True</code> 2-bar trigger</strong></td><td>abs_veto_short</td><td><strong>The one stone I did not turn.</strong> It changes which bars fire, so it needs a full signal replay from the tape rather than a filter over an existing ledger, and no shadow variant runs it.</td><td>A dedicated signal replay. This is the outstanding piece of work on this gate.</td></tr>
+<tr><td class="ln"><strong><code>exhaustion_short</code> as a live gate</strong></td><td>exhaustion_short</td><td>Gross edge <strong>+$1.36 a lot</strong>, green in 8 of 10 phases, survives strip-3. Friction is <strong>$3.28 a lot</strong>. Sub-friction by about two dollars.</td><td>(a) a zero-latency execution path &mdash; fill <em>inside</em> the 20-second window, not 5 seconds after it &mdash; <strong>AND</strong> (b) round-trip cost below ~$0.50. Nothing about arming, ER, ATR or regime closes a gap that size.</td></tr>
+<tr><td class="ln"><strong>Dead-chop, Lot A 2.5R / Lot B 2.5R</strong></td><td>exhaustion_short</td><td>The one positive cell out of 280. A <strong>genuine 4&times;4 plateau &mdash; all 16 neighbouring cells positive</strong> &mdash; sitting on a number that two of six days produce, and it dies on strip-3 (&minus;$95) and LODO (&minus;$35). A lucky cell in a 280-comparison search.</td><td><strong>n &gt; 60 in that bucket alone</strong>, i.e. about four more weeks of dead-chop tape. The story at least coheres: <em>the fade only works when nothing is happening</em>.</td></tr>
+<tr><td class="ln"><strong>Follow-the-flow</strong> (flip the side)</td><td>exhaustion_short</td><td>A $900 swing from a sign flip (&minus;$847 &rarr; +$51). But +$51 &plusmn; $354 at $0.32 a lot is not an edge, it is the absence of a bleed.</td><td>Only if someone wants a cheap two-sided shadow sim. Not worth a slot. Recorded as the cleanest confirmation that heavy buying that has not yet moved price is a <em>continuation</em> tell.</td></tr>
+<tr><td class="ln"><strong>MFE-conditioned early release</strong> (cut at T if it never went favourable)</td><td>MAX_HOLD</td><td>Runner-safe by construction and it sweeps beautifully on the shadow book (+$9,134, 30/30 winners kept). <strong>On the live book it is &minus;$139 and has no plateau.</strong> The decisive test: <strong>84% of its shadow gain comes from rows where the sim&rsquo;s own stop had already failed.</strong></td><td>Re-test once the shadow repricer&rsquo;s <strong>44% stop leak</strong> is fixed, on the stop-honest slice only. Promote if it clears <strong>+$10/fire over 60+ live fires</strong>.</td></tr>
+<tr><td class="ln"><strong>Session-boundary cap</strong> instead of a fixed 2h clock</td><td>MAX_HOLD</td><td>Winner-safe and mildly positive &mdash; but it reaches <strong>the same three malfunction trades</strong>, and at 04:00 it arrives <em>later</em> than 120 minutes does for two of them.</td><td>It is the correct primitive for any slot that <em>deliberately</em> holds for hours (day_rider holds ~7h20m and already has its own flat-by field) &mdash; but not as a replacement for the general backstop.</td></tr>
+<tr><td class="ln">A <strong>reopen cool-down</strong> after the CME break</td><td>MAX_HOLD</td><td>Every MAX_HOLD fire opened overnight and <strong>two of them fired two minutes after the 21:00&ndash;22:00 UTC reopen</strong>, on a 14-bar ATR window holding two minutes of bars. Untested.</td><td>Belongs to the entry rehab, not the exit rehab &mdash; but it is the single most promising untested idea this reconstruction turned up.</td></tr>
+<tr><td class="ln">The <strong>trail machinery</strong> (<code>exit_chandelier_lock</code>)</td><td>chandelier</td><td>Worth <strong>+$246 across its whole parameter block</strong> &mdash; noise &mdash; and it loses in 3 of the 4 regime cells. It is the runner-up in the home cell and it is uncapped, which a fixed rung is not.</td><td><span class="tag pill-shadow">SHADOW</span> Keep it in the code. Do not re-arm it on the strength of this report.</td></tr>
+<tr><td class="ln">The <strong><code>er_split</code> code change</strong> (gate the clip on ER as well as ATR)</td><td>chandelier</td><td>Beats the config-only version on every axis (+$25 archive, +$156 week, +$345 LODO floor, better in <strong>4 of 4</strong> ISO weeks vs 2 of 4) &mdash; but the margins are small and it needs a deploy.</td><td>Ship the config-only edit today; <strong>queue <code>er_split</code> as the follow-up and re-measure before promoting it.</strong></td></tr>
+<tr><td class="ln">The <strong><code>not violent-whipsaw</code></strong> entry filter</td><td>chandelier</td><td>Keeps <strong>78% of winning lots</strong>, saves +$2,690, drops a population running &minus;$12.45 a lot, positive in 20/20 folds. But it is an <em>entry</em> change and outside this rehab&rsquo;s mandate.</td><td>Recorded for the gate rehabs, not recommended here. Do not let an exit study smuggle in an entry rule.</td></tr>
+<tr><td class="ln">The <strong><code>adaptive_exit</code> regime-3 selector</strong> on grind</td><td>grind_long</td><td>It never ran (the override file wins). Its would-have behaviour on grind&rsquo;s home segment is <strong>+$45 net, &minus;$367 strip-3</strong> &mdash; the &ldquo;tight&rdquo; mode is a disaster on a high-vol expansion.</td><td>A warning, not a finding. <strong>Do not let it pick &ldquo;tight&rdquo; here</strong> if it is ever wired in.</td></tr>
+<tr><td class="ln">The <strong>Paris-midnight auto re-arm</strong> on zero tape</td><td>desk-wide</td><td>On 08-04 it re-armed every off gate at 22:00 UTC on &ldquo;insufficient bars, range 0pt, day P&amp;L flat&rdquo;, the corrupt thrust fired <strong>two minutes later</strong>, and nothing benched it for 45 minutes.</td><td><strong>Parked &rarr; action:</strong> add the gate to the re-arm hold list, or gate the whole re-arm on there being enough bars to form a regime read. Arming anything on &ldquo;range 0pt&rdquo; is not a decision.</td></tr>
+</tbody></table>
+
+<hr class="frag-sep">
+
+<!-- ═══════════════════════════ DESK FIXES ═══════════════════════════ -->
+<h3 id="p15-desk">5 &middot; THINGS FOUND ALONG THE WAY THAT ARE NOT ABOUT ANY ONE GATE</h3>
+
+<p>Six rehabs run independently turned up the same class of problem more than once. These are the ones that matter beyond their own dossier &mdash; and two of them were found by <em>two separate rehabs that did not know about each other</em>, which is the strongest kind of confirmation available here.</p>
+
+<table>
+<thead><tr><th>what</th><th>evidence</th><th>the fix</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><strong>Stop-limit orders filling AT their limit, 20pt through their own trigger</strong> <em>(found independently by two rehabs)</em></td><td>2 lots this week, both the <em>second</em> lot of a pair, both within four minutes of the cash open. The other 54 stop fills have a median slippage of <strong>0.00pt</strong>. One filled 10.25pt above the highest print in the window. ≈<strong>$70/week</strong> of fake losses.</td><td>Narrow the limit buffer to ~5 points or use a plain stop-market. <strong>And add a fill-plausibility check</strong>: if a stop fills more than N points through its trigger, alarm and reprice it against the tape before it is booked. We caught this by hand; nothing in the desk would have.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Nothing asks &ldquo;does every live STOP have a slot?&rdquo;</strong> <em>(found independently by two rehabs)</em></td><td>Two orphaned GTC stops opened a naked 2-lot short on 08-06 and it was booked to a gate that had been benched 38 minutes earlier. Separately, the two poisoned stops from 08-04 rested ~2,000pt away for <strong>three days</strong>.</td><td>Run the orphan sweep <strong>on a timer, not only at boot</strong>. Until it exists, <em>any gate&rsquo;s ledger can be contaminated by another gate&rsquo;s garbage</em> &mdash; the nipc rehab would have started from a 6% hit rate on 16 trades instead of 0% on 14 if the order-id namespace had not been checked.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>A poisoned number survived a restart</strong></td><td>The 08-04 gold-bar leak was fixed in five minutes. Its <em>consequence</em> survived, because <code>reconstruct()</code> re-adopted two open slots with the 1,848pt ATR persisted &mdash; leaving the stop naked, both targets unreachable and the quiet clip disabled, for 115 minutes. Cost: <strong>$192.50 in one night</strong>.</td><td>On <code>reconstruct()</code>, <strong>re-derive the entry ATR from the tape</strong> and refuse to adopt a slot whose persisted stop is more than a few ATR from entry.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>The desk cannot tell you why an approved entry never became an order</strong></td><td>On 08-07 at 14:19:36 both lots logged &ldquo;confirmed &rarr; OPEN&rdquo; and then nothing at all &mdash; no order, no signals row, no error. Three silent <code>return</code> paths, none of which logs.</td><td>One log line. (For the record it <em>saved</em> us $174 that day, and I have not credited that back &mdash; you cannot bank a loss you avoided by accident.)</td></tr>
+<tr class="row-bad"><td class="ln"><strong>The shadow book leaks past its own stops on 44% of trades</strong></td><td>Median overshoot 0.56&times;ATR, <strong>maximum 32.32&times;ATR</strong>, on a book that is 99% 1.0&times;ATR stops. <strong>Every shadow study that rewards cutting early is inflated by this.</strong> It is why the MFE-release rule looks brilliant in shadow and negative on live.</td><td>Fix the repricer&rsquo;s stop detection, then re-run anything that ever concluded &ldquo;exit earlier&rdquo;.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>MD contamination in the shadow book is a 14-day condition, not one bad night</strong></td><td>The tape-consistency screen struck <strong>166 of 7,639 shadow rows across 14 separate days</strong>. Nothing flags them.</td><td><code>shadow.db</code> needs the <code>data_quality</code> column <code>gazbot7.db</code> already has.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Neither tick source covers the window on its own</strong></td><td><code>data/tape/ticks/MNQ/</code> is missing 2026-08-07 while <code>capture.db</code> has it; <code>capture.db</code>&rsquo;s ticks only reach back to 08-03. A harness reading only the archive <strong>silently loses the most recent session</strong> and books zero trades with no error &mdash; which is exactly what the shipped nipc replay is doing right now.</td><td><strong>Union the two sources</strong>, and make an empty tick-day <em>raise</em> rather than book zero.</td></tr>
+<tr class="row-bad"><td class="ln"><strong><code>signal_journal.suppressed_by</code> is NULL in all 596 rows</strong></td><td>Any statement anywhere about &ldquo;which gate fires were suppressed and why&rdquo; is currently unsupported by the store. Everything in these dossiers about what a gate would have done unrouted is <em>reconstructed from the tape</em>, not read from a log.</td><td>Populate it. It is the difference between a reconstruction and a measurement.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>A replay that was not deterministic</strong></td><td>Same-millisecond ticks came back in arbitrary order from the parallel scan, and the one-second downsample keeps the last print per bucket &mdash; so tie order changed fills. <strong>The identical config measured +$559 and +$639 on two runs.</strong></td><td>Pinned. But note the size of it: <strong>an $80 swing on 60 trades from tick tie-ordering alone</strong> is a useful yardstick for how much of everything is noise.</td></tr>
+</tbody></table>
+
+<hr class="frag-sep">
+
+<!-- ═══════════════════════════ LIMITS ═══════════════════════════ -->
+<h3 id="p15-limits">6 &middot; THE HONEST LIMITS ON ALL OF IT</h3>
+
+<div class="callout"><div class="ct">READ THIS BEFORE YOU SIZE ANYTHING ABOVE</div>
+<ol>
+<li><strong>n is small everywhere.</strong> The <code>grind_long</code> fix rests on 155 legs / 78 signals / 21 runner events across 11 sessions. The <code>abs_veto_short</code> veto rests on <strong>n=8</strong>. The chandelier width rests on <strong>5&ndash;7 trades out of 60</strong>, with two sessions carrying two thirds of it. MAX_HOLD has <strong>four fires in 21 days</strong> and every per-regime &ldquo;optimum&rdquo; in its sweep rests on one to four bound trades.</li>
+<li><strong>One instrument, one summer, one direction of drift.</strong> Everything is MNQ, three-and-a-half weeks, on a tape that fell 182 points net over the US window. The chandelier dossier caught one result that was purely a bet on that drift and rejected it; there may be others I did not catch.</li>
+<li><strong>Some of it is in-sample by construction.</strong> Where an out-of-sample leg exists I have shown it, and in two cases (abs_veto&rsquo;s router policy, nipc&rsquo;s every train-optimum) the out-of-sample result is the thing that kills the idea. Where it does not exist &mdash; MAX_HOLD, because no out-of-sample events occurred &mdash; I have said so rather than manufacture one.</li>
+<li><strong>Bar-replay is not tick-honest.</strong> The <code>grind_long</code> out-of-sample leg runs about <strong>17% optimistic in total and up to &plusmn;$370 on a single day</strong>. Nine of the chandelier dossier&rsquo;s 20 sessions are bar-replay. The <code>exhaustion_short</code> out-of-sample leg uses a <em>different book source</em> that disagrees in sign with the live one on 2 of 3 overlap days, which is why its one green number is not counted.</li>
+<li><strong>Microstructure sampling noise is real and it is large.</strong> On <code>exhaustion_short</code> the standard deviation across ten polling phases is <strong>$418 on a &minus;$880 mean</strong>. Anyone quoting a single run of that harness is quoting noise.</li>
+<li><strong>Three of the fixes are reverts, and reverts deserve suspicion too.</strong> The <code>grind_long</code> floor, the <code>grind_long</code> ceiling and the <code>exhaustion_short</code> exit all put back something that was changed on 08-01 or 07-29. The evidence says those changes were wrong. It does not say the people who made them were being careless &mdash; it says the tape they were fitted on was too short, which is exactly the risk these rehabs also carry.</li>
+</ol></div>
+
+<p class="lead"><strong>The one sentence I would keep.</strong> Not one of these six was broken in the way it looked broken from the roster. <code>grind_long</code> looked like a bad gate and was a bad <em>ATR floor</em>. <code>abs_veto_short</code> looked like a bleeder and was the strongest signal on the desk on a 3.3% leash. <code>MAX_HOLD</code> looked like the worst exit on the desk and was the fire alarm being blamed for the fire. <code>exhaustion_short</code> looked like an arming problem and is a friction problem. <code>nipc_short</code> looked like a wrong-rung problem and is a direction bet. And the chandelier looked like a threshold that stopped being reached, and was switched off in code. <strong>That is the whole argument for never benching anything at face value.</strong></p>

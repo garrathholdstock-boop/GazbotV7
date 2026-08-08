@@ -1,0 +1,255 @@
+<h2><span class="n">REV2 &middot; Q1</span> Is <code>grind_long</code> on or off on Monday? &mdash; one population, one number</h2>
+
+<div class="callout"><div class="ct">WHAT THIS PATCHES</div><p>This <strong>supersedes the deployment block in Part 1.5 &sect;10</strong>, <strong>overturns the PARKED verdict in Part 2.5 LEAD 3</strong>, <strong>refuses the retirement recommended in Part 2.6 &sect;6</strong>, and <strong>withdraws the ER-0.35 endorsement in Part 2.6 &sect;(b)</strong>. Everything below is recomputed from scratch on both disputed populations using the shipped <code>gazbot7.deciders</code> objects; nothing is inherited from the three sections it corrects.</p></div>
+
+<p class="lead">Gaz &mdash; you spotted a real contradiction and you were right not to ship into it. Three sections gave three answers because <strong>they scored three different populations and none of them said so</strong>. Part 1.5 scored 744&rarr;155 reconstructed legs on the tick tape. Part 2.5 scored 128 lots the desk actually filled. Part 2.6 scored a shadow twin (<code>grind_fast</code>) that has no ATR floor at all and is therefore not this gate. I have now put the <em>proposed</em> config through <em>both</em> real populations, and the honest result is not the one either section reported.</p>
+
+<p class="lead"><strong>The answer is ON &mdash; but with one literal changed and one literal DELETED, not two literals added.</strong> Raise <code>ATR_FLOOR["grind_long"]</code> from 10 to 22, and <em>delete</em> the <code>ext_hi</code> key so the gate falls back to its own default of 4.0. That is a clean revert of the 2026-08-01 Saturday window and nothing else. The live 128 &mdash; the population Part 2.5 used to park the gate &mdash; <strong>agrees with the ATR floor and refutes the ext ceiling</strong>: the floor turns those lots from &minus;$182.50 to <strong>+$210.00</strong> at 22 and <strong>+$605.00</strong> at the pre-08-01 value of 24, while the <code>ext&nbsp;&le;&nbsp;3.0</code> ceiling Part 1.5 wanted to ship deletes 12 of them worth <strong>+$389.00 at a 50% win rate</strong>. Both populations say the same thing about both numbers once you actually run them side by side.</p>
+
+<div class="callout"><div class="ct">&#9888; AND THREE OF PART 1.5&rsquo;s ROBUSTNESS CLAIMS DO NOT REPRODUCE</div><p>I re-ran its harness and matched its headline figures to the cent (744 legs / +$1,929.9; 155 legs / +$5,893.4; strip-5 &minus;$346.6 / +$3,592.9; LODO +$4,655.9&hellip;+$6,244.8). So the harness is sound. But <strong>(1)</strong> &ldquo;positive in all four ISO weeks&rdquo; is <strong>false</strong> &mdash; ISO week 29 is <strong>&minus;$568.2</strong>, and Part 1.5&rsquo;s own weekly row sums to $5,131 against a real total of $6,689. <strong>(2)</strong> The out-of-sample leg is <strong>three trades</strong>: +$796.0 becomes <strong>&minus;$432.5</strong> after strip-best-3, a test Part 1.5 ran everywhere except there. <strong>(3)</strong> The whole config is <strong>21 events</strong> &mdash; the legs that reach 4R net $5,744.5 of the $5,893.4, leaving the other 134 legs at <strong>+$148.9</strong>. The recommendation survives all three. The <em>confidence</em> in Part 1.5 &sect;10 does not.</p></div>
+
+<!-- ══════════════════════════════════════ 1 ══════════════════════════════════════ -->
+
+<div class="card"><h3>1 &middot; The three answers, and the one line that explains all three</h3><p>Nobody was careless. Each section scored the population it had, and the populations are not comparable &mdash; they differ in <em>coverage</em>, in <em>config era</em> and in <em>exit ladder</em>. Here is what each one actually measured.</p></div>
+
+<table>
+<tr><th>Section</th><th>Its verdict</th><th>What it actually scored</th><th>The problem with using it alone</th></tr>
+<tr><td class="ln">Part 1.5 &sect;10</td><td><span class="tag">FIXED &mdash; ship ATR&ge;22 + ext 3.0</span></td><td class="num">155 reconstructed legs, 11 tick-honest sessions, one config, one exit ladder</td><td>Complete signal coverage and one clean config &mdash; but 100% counterfactual, and its OOS leg and its ISO-week row do not hold up</td></tr>
+<tr><td class="ln">Part 2.5 LEAD 3</td><td><span class="tag">PARKED &mdash; stays off, no more entry filters</span></td><td class="num">128 lots the desk really filled, 10 sessions, <strong>four entry-config eras and eight exit mechanisms</strong></td><td>It is 23% of the signal population, hand-picked by an arming schedule the same report calls anti-correlated with the gate&rsquo;s edge</td></tr>
+<tr><td class="ln">Part 2.6 &sect;6</td><td><span class="tag">Write down its retirement</span></td><td class="num"><code>grind_fast</code>, a shadow twin with <strong>no ATR floor</strong>, over the benched window</td><td>It prices the <em>unfixed</em> gate. &ldquo;The un-floored twin bled $2,549&rdquo; is an argument <em>for</em> the floor, not for retirement</td></tr>
+<tr class="row-bad"><td class="ln">Part 2.6 &sect;(b)</td><td><span class="tag">ER&ge;0.35 floor validated hard</span></td><td class="num">21 trades above ER 0.35 on a partly hand-gated ledger</td><td>Directly contradicts Part 1.5&rsquo;s REFUTED. Settled in &sect;7 below &mdash; the floor loses on both populations</td></tr>
+</table>
+
+<p><strong>So the report contains four verdicts on one gate, and the disagreement is entirely about which population is admissible.</strong> That is answerable, so I answered it: I scored the proposed config on both, then measured exactly why they diverge.</p>
+
+<!-- ══════════════════════════════════════ 2 ══════════════════════════════════════ -->
+
+<div class="card"><h3>2 &middot; Population A &mdash; the 128 live router-gated lots, rebuilt</h3><p><code>data/gazbot7.db</code>, <code>gate LIKE 'grind%'</code>, <code>data_quality IS NULL</code>, 10 sessions 2026-07-20&hellip;08-05. It reproduces Part 2.5 exactly: <strong>128 lots, &minus;$958.00, 33.6% win</strong>. To apply an <em>entry</em> filter to it I first had to recover what the tape looked like at each fill, so every lot was matched back to the 1-minute bar on which <code>gate_grind</code> actually fired, using the <code>ext_hi</code> that was shipped that day (4.0 before 08-01, 2.0 after). <strong>126 of 128 matched</strong> &mdash; 123 on the immediately-preceding completed bar, 3 one bar earlier. The 2 that never match any firing bar (ids 70, 171, &minus;$284.00) are excluded from every filter row below rather than silently counted as passes.</p></div>
+
+<table>
+<tr><th>Cut applied to the live lots</th><th>n</th><th>Net</th><th>Win%</th><th>$/lot</th><th>strip-3</th></tr>
+<tr><td class="ln">all 128 lots &mdash; <em>the Part 2.5 number</em></td><td class="num">128</td><td class="num">&minus;$958.00</td><td class="num">33.6%</td><td class="num">&minus;$7.48</td><td class="num">&mdash;</td></tr>
+<tr><td class="ln">&nbsp;&nbsp;LONG legs only</td><td class="num">116</td><td class="num">&minus;$466.50</td><td class="num">34.5%</td><td class="num">&minus;$4.02</td><td class="num">&mdash;</td></tr>
+<tr><td class="ln">&nbsp;&nbsp;matched LONG legs (the base for every row below)</td><td class="num">114</td><td class="num">&minus;$182.50</td><td class="num">35.1%</td><td class="num">&minus;$1.60</td><td class="num">&minus;$965.00</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Part 1.5&rsquo;s PROPOSED &mdash; ATR&ge;22 <em>and</em> ext&le;3.0</strong></td><td class="num">32</td><td class="num"><strong>&minus;$179.00</strong></td><td class="num">31.2%</td><td class="num">&minus;$5.59</td><td class="num">&minus;$838.00</td></tr>
+<tr class="row-hl"><td class="ln">&nbsp;&nbsp;ATR&ge;22 alone</td><td class="num">44</td><td class="num">+$210.00</td><td class="num">36.4%</td><td class="num">+$4.77</td><td class="num">&minus;$572.50</td></tr>
+<tr><td class="ln">&nbsp;&nbsp;ext&le;3.0 alone</td><td class="num">65</td><td class="num">&minus;$382.00</td><td class="num">30.8%</td><td class="num">&minus;$5.88</td><td class="num">&minus;$1,041.00</td></tr>
+<tr><td class="ln">&nbsp;&nbsp;what the ATR floor removes</td><td class="num">70</td><td class="num">&minus;$392.50</td><td class="num">34.3%</td><td class="num">&minus;$5.61</td><td class="num">&mdash;</td></tr>
+<tr class="row-bad"><td class="ln">&nbsp;&nbsp;<strong>what the ext ceiling removes</strong></td><td class="num">12</td><td class="num"><strong>+$389.00</strong></td><td class="num"><strong>50.0%</strong></td><td class="num">+$32.42</td><td class="num">&mdash;</td></tr>
+<tr class="row-hl"><td class="ln"><strong>the PRE-08-01 shipped cell &mdash; ATR&ge;24, ext&le;4.0</strong></td><td class="num">36</td><td class="num"><strong>+$605.00</strong></td><td class="num">44.4%</td><td class="num">+$16.81</td><td class="num">&minus;$177.50</td></tr>
+<tr class="row-hl"><td class="ln">&nbsp;&nbsp;ATR&ge;27, ext&le;4.0</td><td class="num">25</td><td class="num">+$870.50</td><td class="num">48.0%</td><td class="num">+$34.82</td><td class="num"><strong>+$88.00</strong></td></tr>
+</table>
+
+<p><strong>Read the two highlighted pairs against each other, because they are the whole finding.</strong> On the population Part 2.5 used to park the gate, <em>raising the ATR floor works</em> &mdash; it turns &minus;$182.50 into +$210.00 at 22 and +$605.00 at the pre-08-01 value of 24, without any help from the tick harness. And <em>the extension ceiling is the thing that destroys it</em>: the 12 lots it deletes made +$389.00 at a 50% win rate. That direction holds in <em>every single cell</em> of the live grid &mdash; the no-ceiling column is the best of the three at all six floors:</p>
+
+<table>
+<tr><th>Live-128 grid, net$ (strip-3)</th><th>ext&le;2.0</th><th>ext&le;3.0</th><th>ext&le;4.0 &mdash; <em>no ceiling</em></th></tr>
+<tr><td class="ln">ATR&ge;18</td><td class="num">&minus;$315.0 (&minus;$773.5)</td><td class="num">&minus;$236.5 (&minus;$895.5)</td><td class="num">&minus;$7.5 (&minus;$790.0)</td></tr>
+<tr><td class="ln">ATR&ge;20</td><td class="num">&minus;$219.5 (&minus;$678.0)</td><td class="num">&minus;$198.0 (&minus;$857.0)</td><td class="num">+$46.5 (&minus;$736.0)</td></tr>
+<tr><td class="ln">ATR&ge;22</td><td class="num">&minus;$131.0 (&minus;$580.0)</td><td class="num">&minus;$179.0 (&minus;$838.0)</td><td class="num">+$210.0 (&minus;$572.5)</td></tr>
+<tr class="row-hl"><td class="ln">ATR&ge;24</td><td class="num">+$17.5 (&minus;$431.5)</td><td class="num">+$76.0 (&minus;$583.0)</td><td class="num"><strong>+$605.0 (&minus;$177.5)</strong></td></tr>
+<tr class="row-hl"><td class="ln">ATR&ge;27</td><td class="num">+$50.5 (&minus;$374.5)</td><td class="num">+$307.5 (&minus;$351.5)</td><td class="num"><strong>+$870.5 (+$88.0)</strong></td></tr>
+<tr><td class="ln">ATR&ge;32</td><td class="num">&minus;$324.0 (&minus;$284.0)</td><td class="num">&minus;$6.5 (&minus;$564.0)</td><td class="num">+$111.5 (&minus;$563.5)</td></tr>
+</table>
+
+<p>Every strip-3 in that grid except one is negative, which is the honest limit of this population: <strong>32 lots over 8 days is not enough to prove anything on its own</strong>, and 2 days carry it. What it <em>can</em> do is corroborate or contradict a direction derived elsewhere, and it does both &mdash; corroborating the floor, contradicting the ceiling.</p>
+
+<div class="card"><h3>Why this population cannot govern on its own &mdash; three measurements, not an opinion</h3></div>
+
+<table>
+<tr><th>Confound</th><th>Measured</th><th>Effect</th></tr>
+<tr class="row-bad"><td class="ln"><strong>It is 23% of the signal population</strong></td><td class="num">On the 6 sessions that are both tick-honest and in the live set, the proposed rule admits <strong>105 legs worth +$2,127.00</strong>. Real fills that the same rule would keep: <strong>24, worth &minus;$209.50</strong>.</td><td>Whatever gated the desk selected a &minus;$210 subset out of a +$2,127 population. Per day: 07-24 12%, 07-27 22%, <strong>07-29 0%</strong>, 07-30 43%, 07-31 25%, 08-05 12%.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>It is not one exit ladder</strong></td><td class="num">8 distinct exit mechanisms across the 128: STOP 72, CHANDELIER 17, <strong>GIVEBACK 11</strong>, TARGET 10, <strong>STOP_UNFILLED 8</strong>, <strong>MANUAL_CLAIM 5</strong>, <strong>ABSORPTION_CUT 4</strong>, MAX_HOLD 1.</td><td>20 lots (+$717.50) exited on three mechanisms that no longer exist, and 8 (&minus;$220.50) on a known defect. Re-exiting the 24 overlapping lots under today&rsquo;s ladder gives <strong>&minus;$598.80 against the &minus;$209.50 booked</strong> &mdash; the live result is <em>flattered</em> by $389 of operator hands.</td></tr>
+<tr><td class="ln">It is not one entry config</td><td class="num">ATR floor 20 &rarr; 24 (07-25) &rarr; dead through the <code>_base(slot)</code> wiring bug (07-29&hellip;08-01) &rarr; 10 (08-01); <code>ext_hi</code> unset (=4.0) until 08-01, then 2.0.</td><td>&ldquo;The proposed config on the live 128&rdquo; is partly a re-scoring of the config that <em>produced</em> those lots, not a counterfactual.</td></tr>
+<tr class="row-hl"><td class="ln">&#9989; Execution is <em>not</em> a confound</td><td class="num">Live fills on the 24 matched lots came in <strong>246.00 points BETTER in total</strong> than the harness&rsquo;s own first legal decision tick (mean &minus;10.25 pt/lot) &mdash; worth <strong>+$492</strong> to the live book.</td><td>The gap between the two populations is <strong>not</strong> slippage or chase. Part 1.5&rsquo;s &ldquo;43-point chase&rdquo; is real but measures from the bar-close print, and it lands on two lots the proposed floor rejects anyway (ATR 21.0).</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════ 3 ══════════════════════════════════════ -->
+
+<div class="card"><h3>3 &middot; Population B &mdash; the 744&rarr;155 tick-honest leg set, re-run and extended</h3><p>11 tick-honest sessions, 2026-07-24&hellip;08-07. Same harness, same shipped decider objects, $2.00/pt and <strong>$1.50 per lot per round trip</strong>. My re-run matches Part 1.5 to the cent on every headline it published, so the disagreements below are not harness differences &mdash; they are tests it did not run. <strong>The PRE-08-01 row is new and it is the most important line in this section.</strong></p></div>
+
+<table>
+<tr><th>Config</th><th>n</th><th>Net</th><th>Win%</th><th>$/leg</th><th>strip-3</th><th>strip-5</th><th>Days green</th><th>LODO min&hellip;max</th></tr>
+<tr class="row-bad"><td class="ln">LIVE &mdash; ATR&ge;10, ext&le;2.0</td><td class="num">744</td><td class="num">+$1,929.9</td><td class="num">35.6%</td><td class="num">+$2.59</td><td class="num">+$472.4</td><td class="num"><strong>&minus;$346.6</strong></td><td class="num">6/11</td><td class="num">+$949&hellip;+$2,696</td></tr>
+<tr><td class="ln">PRE-08-01 shipped &mdash; ATR&ge;24, ext&le;4.0</td><td class="num">141</td><td class="num">+$4,708.2</td><td class="num">36.9%</td><td class="num">+$33.39</td><td class="num">+$3,250.8</td><td class="num">+$2,431.8</td><td class="num">7/11</td><td class="num">+$3,328&hellip;+$4,967</td></tr>
+<tr><td class="ln">Part 1.5 PROPOSED &mdash; ATR&ge;22, ext&le;3.0</td><td class="num">155</td><td class="num">+$5,893.4</td><td class="num">38.7%</td><td class="num">+$38.02</td><td class="num">+$4,435.9</td><td class="num">+$3,592.9</td><td class="num"><strong>10/11</strong></td><td class="num">+$4,656&hellip;+$6,245</td></tr>
+<tr class="row-hl"><td class="ln"><strong>RECOMMENDED &mdash; ATR&ge;22, ext ceiling DELETED</strong></td><td class="num">165</td><td class="num"><strong>+$6,081.2</strong></td><td class="num">38.8%</td><td class="num">+$36.86</td><td class="num"><strong>+$4,623.7</strong></td><td class="num">+$3,804.7</td><td class="num"><strong>10/11</strong></td><td class="num">+$4,794&hellip;+$6,433</td></tr>
+</table>
+
+<div class="callout"><div class="ct">77% OF THE &ldquo;FIX&rdquo; IS A REVERT &mdash; and that is the strongest thing anyone can say for it</div><p><strong>+$4,708 of the +$6,081 was already available under the configuration the desk shipped before the 2026-08-01 Saturday window.</strong> This is not a new discovery bolted onto a losing gate; it is the undoing of a change that cost <strong>$2,778 across eleven tick-honest sessions</strong> (+$4,708 &rarr; +$1,929.9). That matters for how much credence the number deserves: a revert to a previously-shipped config is a far weaker claim than a newly-optimised cell, and weak claims are the ones that survive. It also means the pre-08-01 cell is a live candidate in its own right &mdash; see the last row of &sect;11.</p></div>
+
+<!-- ══════════════════════════════════════ 4 ══════════════════════════════════════ -->
+
+<div class="card"><h3>4 &middot; Regime and time-of-day segmentation &mdash; scored on its HOME segments only</h3><p>Regime labels are quantiles of this tape, not guesses: ATR14(1m) p25/p50/p75 = 10.4 / 13.5 / 18.2; ER30 p25/p50/p75 = 0.08 / 0.17 / 0.28. <strong>clean-trend</strong> ER30&ge;0.45 &middot; <strong>building</strong> 0.25&ndash;0.45 &middot; <strong>high-vol expansion</strong> (the taxonomy&rsquo;s &ldquo;violent-whipsaw&rdquo;) ER30&lt;0.25 with ATR&ge;22 &middot; <strong>normal-chop</strong> ER30&lt;0.25, ATR 12&ndash;22 &middot; <strong>dead-chop</strong> ATR&lt;12. Session split is the 13:30 UTC cash open. <em>The two tables below are scored on Part 1.5&rsquo;s exact proposed cell (ATR&ge;22, ext&le;3.0) so that the comparison against its published regime split is like-for-like; deleting the ceiling moves every bucket in the same direction and only changes the clean-trend row materially (see &sect;7).</em></p></div>
+
+<table>
+<tr><th>Regime</th><th colspan="3">LIVE config (ATR&ge;10, ext&le;2.0)</th><th colspan="3">PROPOSED (ATR&ge;22, ext&le;3.0)</th></tr>
+<tr><th></th><th>n</th><th>Net</th><th>$/leg</th><th>n</th><th>Net</th><th>$/leg</th></tr>
+<tr class="row-hl"><td class="ln">high-vol expansion &mdash; <strong>the home segment</strong></td><td class="num">105</td><td class="num">+$2,959.5</td><td class="num">+$28.19</td><td class="num">114</td><td class="num"><strong>+$4,241.3</strong></td><td class="num">+$37.20</td></tr>
+<tr class="row-hl"><td class="ln">building</td><td class="num">50</td><td class="num">+$310.4</td><td class="num">+$6.21</td><td class="num">32</td><td class="num">+$2,014.6</td><td class="num">+$62.96</td></tr>
+<tr class="row-bad"><td class="ln">normal-chop</td><td class="num">446</td><td class="num">&minus;$723.3</td><td class="num">&minus;$1.62</td><td class="num"><strong>0</strong></td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr class="row-bad"><td class="ln">dead-chop</td><td class="num">129</td><td class="num">+$56.6</td><td class="num">+$0.44</td><td class="num"><strong>0</strong></td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr class="row-bad"><td class="ln">clean-trend</td><td class="num">14</td><td class="num">&minus;$673.3</td><td class="num">&minus;$48.09</td><td class="num">9</td><td class="num">&minus;$362.5</td><td class="num">&minus;$40.28</td></tr>
+</table>
+
+<p><strong>The floor is not a P&amp;L filter, it is a regime filter</strong> &mdash; it deletes normal-chop and dead-chop entirely, which is 575 of the live config&rsquo;s 744 legs, and it does so by construction rather than by fitting. That is the difference between this and every ER filter the report has rejected.</p>
+
+<table>
+<tr><th>Segment &times; session, PROPOSED config</th><th>n</th><th>Net</th><th>Win%</th><th>$/leg</th><th>strip-3</th></tr>
+<tr class="row-hl"><td class="ln">high-vol expansion / US (&ge;13:30Z) &mdash; <strong>the money</strong></td><td class="num">92</td><td class="num">+$3,950.9</td><td class="num">39.1%</td><td class="num">+$42.94</td><td class="num">+$2,493.4</td></tr>
+<tr><td class="ln">building / US</td><td class="num">27</td><td class="num">+$1,489.4</td><td class="num">44.4%</td><td class="num">+$55.16</td><td class="num">+$487.9</td></tr>
+<tr><td class="ln">high-vol expansion / overnight&ndash;pre-open</td><td class="num">22</td><td class="num">+$290.4</td><td class="num">31.8%</td><td class="num">+$13.20</td><td class="num">&minus;$361.6</td></tr>
+<tr><td class="ln">building / overnight&ndash;pre-open</td><td class="num">5</td><td class="num">+$525.2</td><td class="num">80.0%</td><td class="num">+$105.05</td><td class="num">+$5.2</td></tr>
+<tr class="row-bad"><td class="ln">clean-trend / US</td><td class="num">8</td><td class="num">&minus;$533.0</td><td class="num"><strong>0.0%</strong></td><td class="num">&minus;$66.62</td><td class="num">&minus;$339.2</td></tr>
+<tr><td class="ln">clean-trend / overnight&ndash;pre-open</td><td class="num">1</td><td class="num">+$170.5</td><td class="num">100.0%</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+</table>
+
+<p>Session totals: <strong>overnight/pre-open +$986.2 on 28 legs, US +$4,907.3 on 127</strong>. The overnight block is thin but positive, which is why <strong>no clock filter is recommended</strong> &mdash; adding one costs $986 to remove 28 legs whose only sin is being awake at the wrong hour. The ATR floor already is the clock, indirectly.</p>
+
+<!-- ══════════════════════════════════════ 5 ══════════════════════════════════════ -->
+
+<div class="card"><h3>5 &middot; Why the two populations disagree &mdash; the reconciliation, in dollars</h3><p>This is the arithmetic that decides which number governs. Same six sessions, same proposed entry rule, two different observers.</p></div>
+
+<table>
+<tr><th>Session</th><th>PROPOSED legs available</th><th>Their net</th><th>Legs the desk was armed for</th><th>What the desk booked</th><th>Coverage</th></tr>
+<tr><td class="ln">2026-07-24</td><td class="num">8</td><td class="num">+$680.6</td><td class="num">1</td><td class="num">&minus;$90.5</td><td class="num">12%</td></tr>
+<tr><td class="ln">2026-07-27</td><td class="num">9</td><td class="num">+$79.2</td><td class="num">2</td><td class="num">&minus;$103.5</td><td class="num">22%</td></tr>
+<tr class="row-bad"><td class="ln">2026-07-29</td><td class="num">21</td><td class="num">+$662.1</td><td class="num">0</td><td class="num">$0.00</td><td class="num"><strong>0%</strong></td></tr>
+<tr><td class="ln">2026-07-30</td><td class="num">35</td><td class="num">+$951.6</td><td class="num">15</td><td class="num">+$360.5</td><td class="num">43%</td></tr>
+<tr><td class="ln">2026-07-31</td><td class="num">16</td><td class="num">+$104.9</td><td class="num">4</td><td class="num">&minus;$284.0</td><td class="num">25%</td></tr>
+<tr><td class="ln">2026-08-05</td><td class="num">16</td><td class="num">&minus;$351.4</td><td class="num">2</td><td class="num">&minus;$92.0</td><td class="num">12%</td></tr>
+<tr class="row-hl"><td class="ln"><strong>TOTAL</strong></td><td class="num"><strong>105</strong></td><td class="num"><strong>+$2,127.00</strong></td><td class="num"><strong>24</strong></td><td class="num"><strong>&minus;$209.50</strong></td><td class="num"><strong>23%</strong></td></tr>
+</table>
+
+<p><strong>That is the whole disagreement in one row.</strong> The gate&rsquo;s signal was worth +$2,127 over those six sessions under the proposed rule; the desk filled less than a quarter of it, and the quarter it got was the losing quarter. This is the same anti-correlation Part 1.5 found inside a single week (&minus;$210.60 armed / +$2,388.10 benched) &mdash; measured here over six sessions and three weeks instead, so it is not a one-week artefact. <strong>Scoring an entry filter on that sample measures the router&rsquo;s timing, not the filter.</strong></p>
+
+<div class="callout"><div class="ct">THE ANSWER TO &ldquo;WHICH GOVERNS&rdquo;</div><p><strong>The tick-honest population governs the CONFIG. The live population governs the CONFIDENCE.</strong> The tick set is the only one with complete signal coverage, one entry config and one exit ladder, so it is the only one on which an entry-filter comparison means anything &mdash; and an entry filter can only ever subtract from the population it is scored on, which is why applying it to 128 lots it did not generate produces a number (&minus;$179) that answers no question anyone asked. But the live set is real money on real fills, it is out-of-sample in time for the pre-08-01 cell, and it is the reason the second literal is not shipping. Use both, for different jobs. <strong>Do not average them, and do not quote &minus;$958 or +$5,893 again without saying which population it came from.</strong></p></div>
+
+<!-- ══════════════════════════════════════ 6 ══════════════════════════════════════ -->
+
+<div class="card"><h3>6 &middot; The parameters, swept &mdash; and why only one of them is load-bearing</h3><p>Both axes on the tick-honest set, with the out-of-sample bar-replay leg beside each. <strong>Every threshold here is an operator guess until it shows a plateau</strong>, so both sweeps are shown whole, including the cells that argue against the recommendation.</p></div>
+
+<table>
+<tr><th>ATR floor (at ext&le;3.0)</th><th>n</th><th>IS net</th><th>$/leg</th><th>strip-3</th><th>strip-5</th><th>Days green</th><th>OOS net</th></tr>
+<tr class="row-bad"><td class="ln">&ge;10 <em>(live)</em></td><td class="num">1050</td><td class="num">+$3,637.2</td><td class="num">+$3.46</td><td class="num">+$2,179.7</td><td class="num">+$1,336.7</td><td class="num">6/11</td><td class="num">+$979.9</td></tr>
+<tr><td class="ln">&ge;14</td><td class="num">637</td><td class="num">+$2,406.1</td><td class="num">+$3.78</td><td class="num">+$948.6</td><td class="num">+$105.6</td><td class="num">7/11</td><td class="num">+$462.5</td></tr>
+<tr><td class="ln">&ge;18</td><td class="num">325</td><td class="num">+$4,712.8</td><td class="num">+$14.50</td><td class="num">+$3,255.3</td><td class="num">+$2,412.3</td><td class="num">8/11</td><td class="num">+$221.4</td></tr>
+<tr><td class="ln">&ge;20</td><td class="num">221</td><td class="num">+$4,764.6</td><td class="num">+$21.56</td><td class="num">+$3,307.1</td><td class="num">+$2,464.1</td><td class="num">9/11</td><td class="num">+$579.3</td></tr>
+<tr class="row-hl"><td class="ln"><strong>&ge;22</strong></td><td class="num">155</td><td class="num"><strong>+$5,893.4</strong></td><td class="num">+$38.02</td><td class="num">+$4,435.9</td><td class="num">+$3,592.9</td><td class="num"><strong>10/11</strong></td><td class="num">+$796.0</td></tr>
+<tr class="row-hl"><td class="ln">&ge;24</td><td class="num">131</td><td class="num">+$4,543.0</td><td class="num">+$34.68</td><td class="num">+$3,085.5</td><td class="num">+$2,242.5</td><td class="num">7/11</td><td class="num">+$1,086.1</td></tr>
+<tr><td class="ln">&ge;27</td><td class="num">99</td><td class="num">+$4,314.2</td><td class="num">+$43.58</td><td class="num">+$2,856.7</td><td class="num">+$2,013.7</td><td class="num">7/11</td><td class="num">+$213.6</td></tr>
+<tr><td class="ln">&ge;32</td><td class="num">67</td><td class="num">+$3,261.6</td><td class="num">+$48.68</td><td class="num">+$1,804.1</td><td class="num">+$985.1</td><td class="num">6/11</td><td class="num">+$354.6</td></tr>
+</table>
+
+<p><strong>18&ndash;27 is a genuine plateau</strong> &mdash; every cell &ge;$4,300 in-sample with strip-5 &ge;$2,000, against $3,637 / $1,337 at the live floor of 10 and a trough at 14. 22 is its peak and 24 is within $1,350 of it on a $6,000 number, so <strong>the exact literal is not load-bearing</strong> and I would not defend 22 over 24 on this evidence. The OOS column has no structure at all and should not be used to pick a cell.</p>
+
+<table>
+<tr><th>Extension ceiling (at ATR&ge;22)</th><th>n</th><th>IS net</th><th>$/leg</th><th>strip-3</th><th>strip-5</th><th>OOS net</th><th>Read</th></tr>
+<tr class="row-bad"><td class="ln">&le;1.5</td><td class="num">87</td><td class="num">+$2,852.2</td><td class="num">+$32.78</td><td class="num">+$1,394.7</td><td class="num">+$575.7</td><td class="num">+$571.0</td><td>far too tight</td></tr>
+<tr class="row-bad"><td class="ln">&le;2.0 <em>(the 08-01 change)</em></td><td class="num">123</td><td class="num">+$3,871.5</td><td class="num">+$31.48</td><td class="num">+$2,414.0</td><td class="num">+$1,595.0</td><td class="num">+$925.2</td><td><strong>the tax &mdash; costs $2,210</strong></td></tr>
+<tr><td class="ln">&le;2.5</td><td class="num">135</td><td class="num">+$4,208.9</td><td class="num">+$31.18</td><td class="num">+$2,751.4</td><td class="num">+$1,932.4</td><td class="num">+$763.8</td><td>still paying</td></tr>
+<tr><td class="ln">&le;3.0 <em>(Part 1.5&rsquo;s proposal)</em></td><td class="num">155</td><td class="num">+$5,893.4</td><td class="num">+$38.02</td><td class="num">+$4,435.9</td><td class="num">+$3,592.9</td><td class="num">+$796.0</td><td>fine, but arbitrary</td></tr>
+<tr class="row-hl"><td class="ln"><strong>&le;4.0 &mdash; the gate&rsquo;s own default, i.e. DELETE the key</strong></td><td class="num">165</td><td class="num"><strong>+$6,081.2</strong></td><td class="num">+$36.86</td><td class="num"><strong>+$4,623.7</strong></td><td class="num">+$3,804.7</td><td class="num">+$662.9</td><td><strong>a revert, not a literal</strong></td></tr>
+<tr><td class="ln">&le;6.0</td><td class="num">191</td><td class="num">+$5,981.4</td><td class="num">+$31.32</td><td class="num">+$4,523.9</td><td class="num">+$3,704.9</td><td class="num">+$862.3</td><td>flat</td></tr>
+<tr><td class="ln">no ceiling at all</td><td class="num">197</td><td class="num">+$6,262.0</td><td class="num">+$31.79</td><td class="num">+$4,804.5</td><td class="num">+$3,985.5</td><td class="num">+$470.7</td><td>flat</td></tr>
+</table>
+
+<p><strong>Everything from 3.0 upward is the same number.</strong> The ceiling is not a filter with an optimum; it is a tax that is only non-zero below about 2.5. That is why the recommendation is to <em>delete</em> it rather than move it &mdash; deleting restores a value that was already in the codebase, needs no justification of its own, and is the only version the live 128 also endorses. Shipping <code>ext_hi&nbsp;=&nbsp;3.0</code> would be inventing a third number to sit between two that both work.</p>
+
+<!-- ══════════════════════════════════════ 7 ══════════════════════════════════════ -->
+
+<div class="card"><h3>7 &middot; The ER question &mdash; Part 2.6 &sect;(b) withdrawn</h3><p>Part 2.6 says &ldquo;<code>grind_long</code> makes +$27.10 a trade above ER 0.35 &hellip; the floor is exactly in the right place, do not let anyone argue it down.&rdquo; Part 1.5 says ER floors are REFUTED at any level. They cannot both stand, and the ER floor decides whether the gate fires at all, so it has to be settled here. It is settled against the floor, on <em>both</em> populations.</p></div>
+
+<table>
+<tr><th>ER30 floor added on top of ATR&ge;22 (tick-honest)</th><th>n</th><th>IS net</th><th>$/leg</th><th>strip-3</th><th>Runners kept</th><th>OOS net</th></tr>
+<tr class="row-hl"><td class="ln">none</td><td class="num">165</td><td class="num">+$6,081.2</td><td class="num">+$36.86</td><td class="num">+$4,623.7</td><td class="num"><strong>21 of 21</strong></td><td class="num">+$662.9</td></tr>
+<tr><td class="ln">&ge;0.20</td><td class="num">110</td><td class="num">+$2,002.3</td><td class="num">+$18.20</td><td class="num">+$699.8</td><td class="num">12</td><td class="num">+$1,118.5</td></tr>
+<tr><td class="ln">&ge;0.25</td><td class="num">96</td><td class="num">+$1,940.1</td><td class="num">+$20.21</td><td class="num">+$657.6</td><td class="num">11</td><td class="num">&minus;$408.5</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ge;0.35 &mdash; the Part 2.6 endorsement</strong></td><td class="num">46</td><td class="num"><strong>+$657.4</strong></td><td class="num">+$14.29</td><td class="num"><strong>&minus;$346.1</strong></td><td class="num"><strong>4 of 21</strong></td><td class="num">&minus;$44.9</td></tr>
+</table>
+
+<p>The 0.35 floor costs <strong>$5,424</strong>, its strip-3 is negative, and it throws away <strong>17 of the 21 runners the whole config exists to catch</strong> &mdash; the identical failure mode Part 1.5 documented for the 0.20 floor. And the ER response is not monotone in either direction, which is the tell that it is not a variable at all here:</p>
+
+<table>
+<tr><th>ER30 at entry (tick-honest, ATR&ge;22, no ceiling)</th><th>n</th><th>Net</th><th>Win%</th><th>$/leg</th><th>strip-3</th></tr>
+<tr class="row-hl"><td class="ln">0.00 &ndash; 0.15</td><td class="num">69</td><td class="num">+$3,881.4</td><td class="num">44.9%</td><td class="num">+$56.25</td><td class="num">+$2,423.9</td></tr>
+<tr><td class="ln">0.15 &ndash; 0.25</td><td class="num">47</td><td class="num">+$664.4</td><td class="num">29.8%</td><td class="num">+$14.14</td><td class="num">&minus;$185.6</td></tr>
+<tr class="row-bad"><td class="ln">0.25 &ndash; 0.35</td><td class="num">22</td><td class="num">&minus;$251.5</td><td class="num">27.3%</td><td class="num">&minus;$11.43</td><td class="num">&minus;$795.5</td></tr>
+<tr><td class="ln">&ge; 0.35</td><td class="num">27</td><td class="num">+$1,786.9</td><td class="num">48.1%</td><td class="num">+$66.18</td><td class="num">+$783.4</td></tr>
+</table>
+
+<p>Best band, worst band, then best band again. On the live 128 the same slice gives &minus;$136.00 over 30 lots above ER 0.35, and +$95.50 over 14 once the ATR floor is applied &mdash; i.e. nothing. <strong>Part 2.6&rsquo;s +$27.10/trade is 21 trades on a partly hand-gated ledger and it does not survive contact with either full population. The ER floor is withdrawn; Part 1.5&rsquo;s REFUTED stands.</strong></p>
+
+<div class="card"><h3>The clean-trend hole &mdash; smaller than Part 1.5 thought, and it closes on its own</h3><p>Part 1.5 flagged &ldquo;0-for-14 in its own namesake regime&rdquo; as the one unturned stone. Two things. First, <strong>most of it is the ext ceiling</strong>: at <code>ext&le;3.0</code> the clean-trend book is 9 legs / &minus;$362.5, but with the ceiling deleted it is <strong>11 legs / &minus;$5.5</strong> &mdash; the legs that rescue a clean trend are the stretched ones the ceiling was blocking. Second, an ER30 <em>ceiling</em> at 0.45 does look attractive in-sample (+$6,255.9, strip-5 +$3,955.4) but it is a <strong>spike, not a plateau</strong> &mdash; 0.50 gives +$5,844 and 0.40 gives +$5,630 &mdash; and the OOS gradient runs the other way, preferring ever-tighter ceilings (0.30 &rarr; +$1,140 OOS). That is the same unstable-sign signature that killed the ER filters in the first place. <strong>SHADOW, not a ship.</strong></p></div>
+
+<!-- ══════════════════════════════════════ 8 ══════════════════════════════════════ -->
+
+<div class="card"><h3>8 &middot; Robustness of what is actually shipping &mdash; including the parts that fail</h3></div>
+
+<table>
+<tr><th>Test</th><th>LIVE (ATR&ge;10, ext&le;2.0)</th><th>RECOMMENDED (ATR&ge;22, ceiling deleted)</th><th>Verdict</th></tr>
+<tr><td class="ln">11 tick-honest sessions</td><td class="num">+$1,929.9 / 744 legs</td><td class="num">+$6,081.2 / 165 legs</td><td>&#9989;</td></tr>
+<tr><td class="ln">strip-best-3 / strip-best-5</td><td class="num">+$472.4 / <strong>&minus;$346.6</strong></td><td class="num">+$4,623.7 / +$3,804.7</td><td>&#9989; survives deleting its 5 best</td></tr>
+<tr><td class="ln">Leave-one-day-out (min&hellip;max)</td><td class="num">+$949&hellip;+$2,696</td><td class="num">+$4,794&hellip;+$6,433</td><td>&#9989; no single day load-bearing</td></tr>
+<tr><td class="ln">Sessions green</td><td class="num">6 of 11</td><td class="num">10 of 11 <em>(only 08-05 red)</em></td><td>&#9989;</td></tr>
+<tr><td class="ln">Placebo null &mdash; 300 random-entry draws from the same admitted minutes, same exits, same 120-min horizon</td><td class="num">&mdash;</td><td class="num">real +$6,081.2 vs placebo mean +$980.6, sd $1,674, p95 +$3,869, <strong>max of 300 draws +$5,391.7</strong></td><td>&#9989; <strong>100th percentile</strong> &mdash; beats every draw. (Part 1.5&rsquo;s cell: +$5,893.4 vs mean +$925.3, max +$5,290.9, also 100th)</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Per ISO week, all 21 sessions</strong></td><td class="num">W29 &minus;$627.6 &middot; W30 +$1,884.0 &middot; W31 +$1,628.4 &middot; W32 &minus;$287.7</td><td class="num">W29 <strong>&minus;$565.0</strong> &middot; W30 +$1,829.1 &middot; W31 +$3,345.3 &middot; W32 +$2,134.8</td><td><strong>&#10060; NOT four-for-four</strong> &mdash; Part 1.5&rsquo;s claim does not reproduce</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Out-of-sample, 10 bar-replay days</strong></td><td class="num">+$667.2 / 382 legs, strip-3 <strong>&minus;$561.3</strong></td><td class="num">+$662.9 / 104 legs, strip-3 <strong>&minus;$565.6</strong>, 5 of 7 days green</td><td><strong>&#10060; three trades</strong> &mdash; the OOS leg supports nothing either way</td></tr>
+<tr class="row-bad"><td class="ln"><strong>Concentration</strong></td><td class="num">16 legs reaching 4R net $3,951.5 &mdash; 205% of the total; the other 728 legs net <strong>&minus;$2,021.6</strong></td><td class="num">21 legs reaching 4R net $5,700.5; <strong>the other 144 legs net +$380.7</strong></td><td><strong>&#9888; the config is 21 events</strong></td></tr>
+</table>
+
+<div class="callout"><div class="ct">&#9888; SAY THIS OUT LOUD BEFORE SHIPPING</div><p>Strip the 21 runners and this configuration is <strong>+$380.70 over 144 legs &mdash; $2.64 a leg, a rounding error above the fee.</strong> That is not a defect: it is what a trend-continuation gate with a locked chandelier is supposed to look like, and Part 1.5&rsquo;s own exit sweep shows the tail beyond 2R is where the money is. It is also a genuine improvement on the live config, whose non-runner book is <em>&minus;$2,021.60</em>. But it means the honest confidence interval is set by <strong>21 events over 11 sessions</strong>, not by 165 legs, and a fortnight with no expansion days will produce a flat result that is <em>not</em> evidence the change was wrong. Write the review criterion now, before the first bad week: <strong>judge it on 20 admitted legs minimum, and on whether 4R events appear at anything near the expected 12.7% rate &mdash; not on P&amp;L alone.</strong></p></div>
+
+<!-- ══════════════════════════════════════ 9 ══════════════════════════════════════ -->
+
+<div class="card"><h3>9 &middot; The retirement question &mdash; refused, with the reason</h3><p>Part 2.6 recommended writing down grind&rsquo;s retirement or automating its arm, on the grounds that the router benched it for 119.3 of 120 hours and its twin <code>grind_fast</code> lost $2,549 over that window. <strong>That argument prices the wrong gate.</strong> <code>grind_fast</code> is the un-floored shadow; on this tape the un-floored configuration loses in normal-chop and dead-chop, which is exactly the 575 legs the ATR floor deletes. A twin bleeding because it has no floor is the strongest possible argument <em>for</em> the floor.</p></div>
+
+<p>Part 2.6&rsquo;s second branch &mdash; &ldquo;or give it a hard auto-arm&rdquo; &mdash; is the right one, and it needs no router work at all: <strong><code>ATR_FLOOR</code> is evaluated in-gate on every decision tick, with no polling lag.</strong> Set it to 22 and the switch can simply be left ON; the gate self-gates and will not fire in tape where it cannot pay. That is what the bad-call ledger has been saying about this gate for a fortnight, and it removes the arm/bench decision entirely rather than automating it. <strong>Do not also add a router arming rule this week</strong> &mdash; the in-gate floor and a 5-minute polled ATR band would be two mechanisms doing one job, and the polled one would be strictly worse.</p>
+
+<div class="callout"><div class="ct">&#9888; THE OPERATIONAL FACT THAT MAKES THIS URGENT</div><p><code>grind_long</code> is <strong>not</strong> in <code>reactivate_gates.py::HOLD</code> (which currently holds only <code>nipc_long</code> and <code>nipc_short</code>). Under the standing operator policy, <code>gazbot7-gate-reactivate.timer</code> will therefore flip <code>grind_long=off</code> back to <code>on</code> at <strong>22:00 UTC Sunday</strong>, roughly 15 hours before Monday&rsquo;s cash open &mdash; regardless of what any section of this report concludes. <strong>So &ldquo;it stays off&rdquo; is not a decision that can be taken by doing nothing; it requires a HOLD entry.</strong> The choice in front of you on Saturday is: ship the two-line config change and let it re-arm into a gate that self-gates at ATR 22, or add <code>grind_long</code> to HOLD. There is no third state where it is off by default.</p></div>
+
+<!-- ══════════════════════════════════════ 10 ══════════════════════════════════════ -->
+
+<div class="card"><h3>10 &middot; The exact change</h3></div>
+
+<pre><code># src/gazbot7/deciders.py
+ATR_FLOOR: dict[str, float] = {"grind_long": 22.0, "capitulation_long": 10.0}
+#   ^ was 10.0 (set 2026-08-01). Reverted 2026-08-08 (rev2_q1) on 21 sessions, two
+#     independent populations. Plateau 18-27; 22 is its peak but 24 is within $1,373
+#     on a $6,000 number (and beats it out-of-sample), so the literal is NOT
+#     load-bearing. Deletes normal-chop and
+#     dead-chop entirely (575 of 744 legs). Independently corroborated on the 128 live
+#     lots: ATR>=24 turns -$182.50 into +$605.00. Revert: set back to 10.0.
+
+# src/gazbot7/slot_strategy.py, the grind_long SlotSpec
+params={"slope_min": 0.4, "fast_slope": True},
+#   ^ DELETE "ext_hi": 2.0 (added 2026-08-01). Falls back to gate_grind's own default
+#     of 4.0. Everything from 3.0 upward scores identically (+$5,893 / +$6,081 / +$5,981
+#     / +$6,262) so there is no optimum to find; 2.0 is a $2,210 tax. The live 128 agrees
+#     and more strongly: the ceiling deletes 12 real lots worth +$389 at 50% win.
+#     Revert: re-add "ext_hi": 2.0.</code></pre>
+
+<p><strong>Do not change</strong> anything else. The exit (<code>start_k 3.5 / lock_r 6.0 / lock_k 0.5</code>), the 1.0&times;ATR stop, Lot A&rsquo;s 2.5R, <code>base_size=2</code>, <code>slope_min 0.4</code>, <code>ext_lo 0.3</code>, <code>fast_slope=True</code> all survive their own sweeps in Part 1.5 and I found nothing to overturn there. One free note: with the floor at 22 the <code>atr_split: 22</code> quiet-tape clip becomes inert for this gate &mdash; leave it in as a fail-safe.</p>
+
+<!-- ══════════════════════════════════════ 11 ═════════════════════════════════════ -->
+
+<div class="card"><h3>11 &middot; Disposition &mdash; every thread in this question, closed</h3></div>
+
+<table>
+<tr><th>Lead</th><th>Verdict</th><th>Basis / revival condition</th></tr>
+<tr class="row-hl"><td class="ln"><code>grind_long</code> ATR floor 10 &rarr; 22</td><td><span class="tag">LIVE</span></td><td>Plateau 18&ndash;27, strip-5 +$3,805, 10/11 sessions green, deletes two whole losing regimes by construction, corroborated on 128 live lots (+$605 vs &minus;$182). Ship Saturday.</td></tr>
+<tr class="row-hl"><td class="ln"><code>ext_hi</code> 2.0 &rarr; DELETED (default 4.0)</td><td><span class="tag">LIVE</span></td><td>2.0 costs $2,210 in-sample; 3.0/4.0/6.0/none are indistinguishable; the live 128 says the ceiling deletes +$389 at 50% win. A revert, not a new literal.</td></tr>
+<tr class="row-bad"><td class="ln"><code>ext_hi</code> = 3.0 as a shipped literal (Part 1.5 &sect;10)</td><td><span class="tag">REFUTED</span></td><td>Not by its in-sample number, which is fine, but by <em>parsimony against two populations</em>: it invents a third value between two that already work, and it is the only part of the proposal the live lots contradict.</td></tr>
+<tr class="row-bad"><td class="ln">&ldquo;Grind stays off; do not re-test it with another entry filter&rdquo; (Part 2.5)</td><td><span class="tag">OVERTURNED</span></td><td>Correct on its own population and for the right instinct, but that population is a 23% arming-schedule sample across 4 entry configs and 8 exit mechanisms. Named test: &sect;5 &mdash; 105 legs / +$2,127 available, 24 legs / &minus;$209.50 taken.</td></tr>
+<tr class="row-bad"><td class="ln">&ldquo;Write down grind&rsquo;s retirement&rdquo; (Part 2.6 &sect;6)</td><td><span class="tag">REFUSED</span></td><td>Priced on <code>grind_fast</code>, the un-floored twin. Its bleed is the floor&rsquo;s evidence, not the gate&rsquo;s obituary. The &ldquo;automate its arm&rdquo; branch ships instead &mdash; via the in-gate floor, not a router rule.</td></tr>
+<tr class="row-bad"><td class="ln">ER30 &ge; 0.35 arming floor (Part 2.6 &sect;b)</td><td><span class="tag">WITHDRAWN</span></td><td>Costs $5,424, strip-3 &minus;$346, keeps 4 of 21 runners; the ER response is non-monotone (best band, worst band, best band). Live 128 agrees: &minus;$136 over 30 lots.</td></tr>
+<tr><td class="ln">ER30 <em>ceiling</em> at 0.45 (the clean-trend patch)</td><td><span class="tag">SHADOW</span></td><td>+$6,256 IS and +$918 OOS look good, but it is a spike between 0.50 and 0.40 and the OOS gradient prefers tighter. Revive if the clean-trend book is still negative after 25 legs under the new floor.</td></tr>
+<tr><td class="ln">Router arming rule for <code>grind_long</code></td><td><span class="tag">PARKED</span></td><td>Not needed &mdash; the in-gate floor is the arming rule and has no polling lag. Revive only if the gate proves it needs a bench the floor cannot give.</td></tr>
+<tr><td class="ln">ATR floor at <strong>24</strong> rather than 22 &mdash; the full pre-08-01 revert</td><td><span class="tag">PARKED &mdash; arguably the better ship</span></td><td>&minus;$1,373 in-sample (+$4,708 vs +$6,081) but <strong>+$415 out-of-sample (+$1,077.8 vs +$662.9) and the only cell in this entire section with an OOS strip-3 near zero (&minus;$150.7)</strong>, plus the shallowest bad week (W29 &minus;$36.4 vs &minus;$565.0). If anyone prefers a pure revert to 24 over a fresh 22, do not argue &mdash; on robustness it is the stronger of the two and only the in-sample headline separates them.</td></tr>
+<tr><td class="ln">Stop 1.0 &rarr; 1.25 &times; ATR</td><td><span class="tag">SHADOW (unchanged)</span></td><td>Part 1.5&rsquo;s finding, untouched here. One parameter change at a time.</td></tr>
+<tr><td class="ln"><code>grind_short</code></td><td><span class="tag">PARKED &mdash; never measured</span></td><td>The 12 live SHORT lots (&minus;$491.50) predate the current slate. Needs its own per-side derivation; nothing in this section applies to it.</td></tr>
+</table>
+
+<div class="callout"><div class="ct">THE ONE-LINE ANSWER</div><p><strong><code>grind_long</code> is ON on Monday</strong>, with <code>ATR_FLOOR</code> at 22 and the <code>ext_hi</code> key deleted &mdash; a straight revert of the 2026-08-01 Saturday window, which is the single change both disputed populations endorse. The switch itself can be left armed because the floor gates it in-code. <strong>Two literals do not ship; one changes and one is removed.</strong> On the headline number: Part 1.5&rsquo;s <strong>+$3,964</strong> is a <em>delta</em> (+$5,893.4 &minus; $1,929.9), not a P&amp;L, and it is fine arithmetic &mdash; the recommended cell makes it <strong>+$4,151</strong> (+$6,081.2 &minus; $1,929.9). But quote it with its window and its shape attached, always: <strong>11 tick-honest sessions, 165 legs, of which 21 events are the entire result &mdash; against a live sample that never got to see 77% of them.</strong> Part 2.5&rsquo;s &minus;$958 is a different population answering a different question and the two should never appear in the same sentence again without that label.</p></div>
+
+<p style="opacity:.75"><em>Harness: <code>scratchpad/grind_core.py</code> (shipped <code>gazbot7.deciders</code> objects, 1-second decision grid, tick-level protective stop), driven by <code>scratchpad/q1_live128.py</code>, <code>q1_match.py</code>, <code>q1_tick.py</code>, <code>q1_final.py</code>, <code>q1_er.py</code>, <code>q1_rec2.py</code>. Data: <code>data/gazbot7.db</code> (<code>data_quality IS NULL</code> throughout), <code>data/capture.db</code> 5s bars folded to 1m, ticks from <code>capture.db</code> unioned with <code>data/tape/ticks/MNQ/*.parquet</code>, <code>src/gazbot7/slot_strategy.py</code> + <code>deciders.py</code> git history for the config timeline. All P&amp;L at $2.00/point and $1.50 per lot per round trip.</em></p>

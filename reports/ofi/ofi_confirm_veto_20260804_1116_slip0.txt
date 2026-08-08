@@ -1,0 +1,46 @@
+depth.db MNQ floor: 2026-07-15 11:15 UTC
+Loading depth.db + building 1s OFI series ...
+  1s OFI buckets: 1,158,902  sessions: 1076
+Loading unified tape (archive_data) ...
+
+Window: 2026-07-15..2026-08-04 (actual depth.db extent) | MNQ $2.0/pt | cost $1.50/tr (fee $1.50 + slip $0.00) | exit=chandelier+1ATR stop tick-honest, 60min cap
+Runs in depth window: UP=18  DN=27  (typical 15m range 54pt, run>=1.5x)
+
+========================================================================================================
+### thrust_short   (side=SHORT)   depth-covered base entries: n=62   catchable DN runs in window: 15
+========================================================================================================
+  RAW baseline:    $    -45 /  62 (35.5%) [15/15]
+
+  -- best RETENTION-PRESERVING cell (keeps all caught runs) --
+  delay VETO (B1)           $   +488 /  45 (44.4%) [10/15]   [d=2 ofi=L1 m=0.5]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  delay CONFIRM (B2)        $   +426 /  25 (56.0%) [8/15]   [d=2 ofi=ML m=0.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  contemp CONFIRM (A)       $   +535 /  11 (90.9%) [6/15]   [q=3 ofi=L1 m=1.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  55s VETO  proxy (ref)     $   -203 /  50 (34.0%) [15/15]   [d=55 ofi=ML m=1.0 mode=veto]
+  55s CONFIRM proxy(ref)    $   -213 /  28 (32.1%) [10/15]   [d=55 ofi=L1 m=0.0 mode=confirm]
+
+  -- best cell by net$ IGNORING retention (may be a fake win) --
+  delay VETO (B1)           $   +488 /  45 (44.4%) [10/15]   [d=2 ofi=L1 m=0.5]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  delay CONFIRM (B2)        $   +426 /  25 (56.0%) [8/15]   [d=2 ofi=ML m=0.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  contemp CONFIRM (A)       $   +535 /  11 (90.9%) [6/15]   [q=3 ofi=L1 m=1.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+
+========================================================================================================
+### grind_long   (side=LONG)   depth-covered base entries: n=136   catchable UP runs in window: 14
+========================================================================================================
+  RAW baseline:    $   -172 / 136 (33.1%) [14/14]
+
+  -- best RETENTION-PRESERVING cell (keeps all caught runs) --
+  delay VETO (B1)           $   +772 / 115 (38.3%) [14/14]   [d=15 ofi=ML m=1.0]
+  delay CONFIRM (B2)        $   +185 /  74 (35.1%) [14/14]   [d=2 ofi=ML m=0.0]
+  contemp CONFIRM (A)       $   +548 /  68 (39.7%) [8/14]   [q=3 ofi=L1 m=0.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  55s VETO  proxy (ref)     $   +390 /  70 (37.1%) [11/14]   [d=55 ofi=L1 m=0.0 mode=veto]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  55s CONFIRM proxy(ref)    $   +390 /  70 (37.1%) [11/14]   [d=55 ofi=L1 m=0.0 mode=confirm]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+
+  -- best cell by net$ IGNORING retention (may be a fake win) --
+  delay VETO (B1)           $   +825 /  64 (42.2%) [11/14]   [d=15 ofi=ML m=0.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  delay CONFIRM (B2)        $   +825 /  64 (42.2%) [11/14]   [d=15 ofi=ML m=0.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+  contemp CONFIRM (A)       $   +548 /  68 (39.7%) [8/14]   [q=3 ofi=L1 m=0.0]  ⚠FAKE-WIN (beats RAW only by dropping caught runs)
+
+========================================================================================================
+READING: 'net$ / n (win%) [runs-kept/caught]'.  A cell beats RAW only by dropping caught runs = FAKE (flagged).
+Give-up is charged honestly (delayed variants enter at t0+d tick price).  In-sample, one summer regime, MNQ, 250ms-cadence.
+========================================================================================================

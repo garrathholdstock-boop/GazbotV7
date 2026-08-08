@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROUTER — GAZBOT V7</title>
+<style>
+  :root{
+    --bg:#11161d; --panel:#1a212b; --panel2:#232c38; --line:#33404e;
+    --ink:#f0f5fa; --mut:#b6c0cd; --dim:#8b97a5;
+    --amber:#f4c273; --grn:#63d67c; --grn-bg:#194326; --red:#ff745c; --red-bg:#4c221b;
+    --blu:#72b7f2; --blu-bg:#193850; --gry:#4b5663;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:20px 16px 60px}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .pos{color:var(--grn)} .neg{color:var(--red)} .mutx{color:var(--mut)}
+  .mast{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:8px}
+  .mast h1{font-size:22px;letter-spacing:.28em;font-weight:700;margin:0;color:var(--amber)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--grn);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(70,185,92,.5)}70%{box-shadow:0 0 0 7px rgba(70,185,92,0)}100%{box-shadow:0 0 0 0 rgba(70,185,92,0)}}
+  @media (prefers-reduced-motion:reduce){.dot{animation:none}}
+  .sub{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .daychip{margin-left:auto;font-family:var(--mono);font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid var(--gry)}
+  .daychip.up{background:var(--grn-bg);color:var(--grn);border-color:#245231}
+  .daychip.dn{background:var(--red-bg);color:var(--red);border-color:#5a2419}
+  .daychip small{color:var(--mut);font-size:11px}
+  .upd{font-size:10px;color:var(--dim);font-family:var(--mono);margin:0 0 18px}
+  h2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);font-weight:600;margin:24px 0 10px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .regime{padding:14px 16px}
+  .verdict{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.06em;background:var(--blu-bg);color:var(--blu);border:1px solid #1c4258;padding:4px 10px;border-radius:6px;margin-bottom:12px}
+  .clocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .clk{background:var(--panel2);padding:9px 12px}
+  .clk .lab{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+  .clk .val{font-family:var(--mono);font-size:20px;line-height:1.2;margin-top:2px}
+  .clk .tag{font-size:10px;font-family:var(--mono)}
+  .tg-trend{color:var(--amber)} .tg-mix{color:var(--mut)} .tg-chop{color:var(--blu)}
+  .metrics{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;font-family:var(--mono);font-size:13px}
+  .metrics b{color:var(--mut);font-weight:400;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .rng{margin-top:14px}
+  .rngbar{position:relative;height:26px;background:linear-gradient(90deg,var(--red-bg),#1b222b 50%,var(--grn-bg));border:1px solid var(--line);border-radius:6px}
+  .rngbar .mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+  .rngbar .cap{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--mut);padding:0 6px}
+  .rngbar .cL{left:0} .rngbar .cR{right:0}
+  .explain{padding:12px 14px;margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:6px;font-size:13px}
+  .explain b{color:var(--amber)}
+  .untr{padding:14px 16px}
+  .untr-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .untr-title{font-weight:600;font-size:12px;letter-spacing:.04em;color:var(--mut)}
+  .untr-score{font-family:var(--mono);font-size:26px;font-weight:700}
+  .untr-verdict{margin-left:auto;font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:4px 10px;border-radius:6px;border:1px solid var(--gry)}
+  .untr-verdict.out{background:var(--red-bg);color:var(--red);border-color:#5a2419}
+  .untr-verdict.caution{background:#3a3410;color:var(--amber);border-color:#5a4d19}
+  .untr-verdict.ok{background:var(--grn-bg);color:var(--grn);border-color:#245231}
+  .meter{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .mlab{width:230px;font-size:12px;color:var(--mut)} .mlab small{display:block;color:var(--dim);font-size:10px}
+  .mbar{flex:1;height:16px;background:#141a22;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .mfill{height:100%;width:0;border-radius:8px;transition:width .5s ease}
+  .mval{width:40px;text-align:right;font-family:var(--mono);font-size:13px}
+  .untr-detail{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--dim);font-family:var(--mono)}
+  .gates{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid #1b2029;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .gname{font-family:var(--mono);font-weight:600}
+  .mech{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;letter-spacing:.04em}
+  .on{background:var(--grn-bg);color:var(--grn);border:1px solid #245231}
+  .off{background:#1b2029;color:var(--mut);border:1px solid var(--gry)}
+  .reason{color:var(--mut);font-size:12px}
+  td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .shad{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .sfam{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 13px}
+  .sfam .sl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .sfam .sv{font-family:var(--mono);font-size:17px;margin-top:2px}
+  .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .rule{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .rule .rh{font-family:var(--mono);font-size:12px;margin-bottom:6px}
+  .rule.arm .rh{color:var(--grn)} .rule.bench .rh{color:var(--red)} .rule.keep .rh{color:var(--blu)}
+  .rule p{margin:0;font-size:12.5px}
+  .rule code{font-family:var(--mono);color:var(--amber);font-size:12px}
+  .stream{font-family:var(--mono);font-size:12px}
+  .ev{display:grid;grid-template-columns:52px 74px 1fr;gap:10px;padding:7px 12px;border-bottom:1px solid #1b2029;align-items:baseline}
+  .ev:last-child{border-bottom:none}
+  .ev .t{color:var(--dim)} .ev .st{font-size:10px;letter-spacing:.04em} .ev .txt{color:var(--mut)}
+  .ev.chg{background:rgba(224,169,74,.06)} .ev.chg .txt{color:var(--ink)}
+  .st-hold{color:var(--dim)} .st-chg{color:var(--amber);font-weight:600}
+  .hold{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .slot{background:var(--panel);border:1px dashed var(--gry);border-radius:8px;padding:14px;min-height:64px;display:flex;flex-direction:column;justify-content:center}
+  .slot.filled{border:1px solid #245231;background:var(--grn-bg)}
+  .slot .em{color:var(--dim);font-family:var(--mono);font-size:12px}
+  .slot .sg{font-family:var(--mono);font-weight:600}
+  .slot .sd{font-size:11px;color:var(--mut);font-family:var(--mono);margin-top:3px}
+  .claimbtn{margin-top:9px;width:100%;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.04em;padding:7px;border-radius:6px;background:var(--amber);color:#1a1000;border:none;cursor:pointer}
+  .claimbtn:hover{filter:brightness(1.12)}
+  .claimbtn:active{transform:translateY(1px)}
+  .claimbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .chand{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .chcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .chcard.active{border-color:var(--amber);box-shadow:0 0 0 1px rgba(244,194,115,.35)}
+  .chhead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .chhead .g{font-family:var(--mono);font-weight:600}
+  .badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .badge.on{background:var(--amber);color:#1a1000}
+  .badge.arm{background:#22303c;color:var(--mut);border:1px solid var(--gry)}
+  .chprog{height:8px;background:#1b2029;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin:8px 0 3px}
+  .chprog .fill{height:100%;background:linear-gradient(90deg,var(--blu),var(--amber));transition:width .4s}
+  .chnote{font-size:11px;color:var(--dim);margin:2px 0 8px}
+  .chnote b{color:var(--amber)}
+  .chtarget{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 6px;padding:10px 13px;background:var(--blu-bg);border:1px solid #1c4258;border-radius:7px}
+  .chtarget .tl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--blu)}
+  .chtarget .td{font-size:11px;font-family:var(--mono);color:var(--mut);margin-top:2px}
+  .chtarget .tv{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--amber);line-height:1;white-space:nowrap;text-shadow:0 0 12px rgba(244,194,115,.3)}
+  .chcard.active .chtarget{background:var(--grn-bg);border-color:#245231}
+  .chcard.active .chtarget .tl{color:var(--grn)}
+  .chcard.active .chtarget .tv{color:var(--grn);text-shadow:0 0 12px rgba(99,214,124,.3)}
+  .chrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;padding:2px 0;border-top:1px solid #1b2029}
+  .chrow .l{color:var(--mut)}
+  .foot{margin-top:24px;font-size:11px;color:var(--dim);text-align:center;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <h1>ROUTER</h1>
+    <span class="live"><span class="dot"></span>live · 5-min cadence</span>
+    <span class="sub">GAZBOT V7 · MNQ · PAPER · auto-router OFF (Claude owns switches)</span>
+    <span class="daychip up" id="daychip">day —</span>
+  </div>
+  <p class="upd" id="upd">loading…</p>
+
+  <h2 id="holdh">Holdings — 2 slots max (Lot A scalp · Lot B chandelier)</h2>
+  <div class="hold" id="hold"></div>
+
+  <h2 id="chandh">Chandelier — Lot B tails (loose trail → LOCK tight at target R → give-back exit)</h2>
+  <div class="chand" id="chand"></div>
+
+  <h2>Regime read — which clock are you looking at?</h2>
+  <div class="panel regime">
+    <span class="verdict" id="verdict">—</span>
+    <div class="clocks">
+      <div class="clk"><div class="lab">30-min ER · gate / dashboard clock</div><div class="val tg-trend" id="er30">—</div><div class="tag tg-trend">per leg = looks like trend</div></div>
+      <div class="clk"><div class="lab">Day ER · full session</div><div class="val tg-chop" id="erday">—</div><div class="tag tg-chop">round-trip = chop</div></div>
+      <div class="clk"><div class="lab">Day bias · net from Paris open</div><div class="val" id="daynet">—</div><div class="tag mutx" id="biaslab">—</div></div>
+    </div>
+    <div class="metrics">
+      <span><b>ATR</b><br><span class="num" id="atr">—</span></span>
+      <span><b>Price</b><br><span class="num" id="last">—</span></span>
+      <span><b>Rotation range (3h)</b><br><span class="num" id="rng">—</span></span>
+    </div>
+    <div class="rng"><div class="rngbar"><div class="mk" id="mk" style="left:50%"></div><span class="cap cL" id="rlo">—</span><span class="cap cR" id="rhi">—</span></div></div>
+    <div class="explain">
+      <b>Why "chop" when the dashboard shows ER 0.30–0.50?</b> Those are different clocks. The 30-min ER is high because each intraday <b>leg</b> is a clean directional half-hour push — but the legs <b>alternate</b> and cancel, so over the session price round-trips inside its band → day-ER stays near 0.03. That <em>is</em> chop: real short legs that net nowhere. It's why "clean trend hours" keep faking, and why momentum gates buy the top / sell the bottom of a leg right before it rotates. The router runs momentum only when the legs <b>sustain</b>, not when they alternate.
+    </div>
+  </div>
+
+  <h2>Untradeable-day meter — the stay-out evidence</h2>
+  <div class="panel untr">
+    <div class="untr-head">
+      <span class="untr-title">STAY-OUT score</span>
+      <span class="untr-score" id="untrScore">—</span>
+      <span class="untr-verdict" id="untrVerdict">—</span>
+    </div>
+    <div class="meter"><div class="mlab">Round-trip<small>net move vs range — did the day go anywhere?</small></div><div class="mbar"><div class="mfill" id="mChop"></div></div><span class="mval" id="mChopV">—</span></div>
+    <div class="meter"><div class="mlab">Give-back<small>% of the day's biggest move handed back</small></div><div class="mbar"><div class="mfill" id="mGive"></div></div><span class="mval" id="mGiveV">—</span></div>
+    <div class="meter"><div class="mlab">Gate stops<small>recent live trades that hit their stop</small></div><div class="mbar"><div class="mfill" id="mStop"></div></div><span class="mval" id="mStopV">—</span></div>
+    <div class="untr-detail" id="untrDetail">—</div>
+  </div>
+
+  <h2>Gate board — on / off + why</h2>
+  <div class="panel gates">
+    <table><thead><tr><th>Gate</th><th>State</th><th>Reason</th><th style="text-align:right">Live&nbsp;$</th></tr></thead>
+    <tbody id="gatebody"></tbody></table>
+  </div>
+
+  <h2>Shadow cross-check — unbenched counterfactual (today)</h2>
+  <div class="shad" id="shad"></div>
+
+  <h2>Flip rules — what the router is waiting for</h2>
+  <div class="rules">
+    <div class="rule arm"><div class="rh">▲ RE-ARM momentum longs</div><p>grind_long + abs_veto_long when price <code>breaks &gt; range top</code> clean <b>AND</b> the momentum-long shadow stops bleeding.</p></div>
+    <div class="rule arm"><div class="rh">▼ RE-ARM shorts</div><p>abs_veto / exhaustion_short when <code>day-bias flips &lt; +40</code> toward down <b>AND</b> short shadow goes green. rgv_short only on an up-stretch that fails.</p></div>
+    <div class="rule bench"><div class="rh">✕ BENCH a gate</div><p>Recent trades show a <code>wall of STOP</code> + wrong mechanism for the regime, <b>or</b> the gate goes <code>net-red live</code>.</p></div>
+    <div class="rule keep"><div class="rh">● KEEP through chop</div><p>Reversion (capitulation_long) stays armed — the one mechanism with a green shadow in a rotation.</p></div>
+  </div>
+
+  <h2>Activity stream — every 5-min check</h2>
+  <div class="panel stream" id="stream"></div>
+
+  <div class="foot" id="foot">router_trial_log.txt is the source of truth · auto-refresh 20s</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const money=v=>v==null?"—":(v>=0?"+$":"−$")+Math.abs(v).toFixed(0);
+const cls=v=>v==null?"mutx":(v>=0?"pos":"neg");
+function held(s){if(s==null)return"";const m=Math.floor(s/60);return m<60?m+"m":Math.floor(m/60)+"h"+(m%60)+"m";}
+
+async function tick(){
+  let d;
+  try{ d=await (await fetch("api/futures/router",{cache:"no-store"})).json(); }
+  catch(e){ $("upd").textContent="connection lost — retrying…"; return; }
+  const r=d.regime||{}, day=d.day||{};
+  // masthead
+  const chip=$("daychip"), up=(day.pnl||0)>=0;
+  chip.className="daychip "+(up?"up":"dn");
+  chip.innerHTML=`day <span class="num">${money(day.pnl)}</span> &nbsp;<small>peak ${money(day.peak)} · ${day.flat?"flat":"holding"} · ${day.trades||0} tr</small>`;
+  $("upd").textContent="updated "+(d.ts||"")+" "+(d.tz||"Paris")+" · "+(day.healthy?"healthy":"CHECK")+(day.halted?" · HALTED":"");
+  // regime
+  $("verdict").textContent=r.verdict||"—";
+  $("er30").textContent=r.er_30min==null?"—":r.er_30min.toFixed(2);
+  $("erday").textContent=r.day_er==null?"—":r.day_er.toFixed(2);
+  const dn=$("daynet"); dn.textContent=(r.day_net>0?"+":"")+(r.day_net==null?"—":r.day_net)+"pt";
+  dn.className="val "+(r.day_bias==="UP"?"pos":r.day_bias==="DOWN"?"neg":"mutx");
+  $("biaslab").textContent=r.day_bias||"—";
+  $("atr").textContent=r.atr_pts==null?"—":Math.round(r.atr_pts)+"pt"+(r.violence?" · "+r.violence:"");
+  $("last").textContent=r.last==null?"—":Math.round(r.last);
+  $("rng").textContent=(r.range_lo&&r.range_hi)?Math.round(r.range_lo)+"–"+Math.round(r.range_hi)+" · "+Math.round(r.range_hi-r.range_lo)+"pt":"—";
+  $("rlo").textContent=r.range_lo?Math.round(r.range_lo)+" lo":"";
+  $("rhi").textContent=r.range_hi?Math.round(r.range_hi)+" hi":"";
+  if(r.range_pos!=null)$("mk").style.left=r.range_pos+"%";
+  // untradeable-day meter
+  const u=d.untradeable||{}, um=u.meters||{};
+  const setMeter=(fill,val,v)=>{
+    const f=$(fill); if(f){f.style.width=(v==null?0:v)+"%"; f.style.background=v>=65?"var(--red)":(v>=45?"var(--amber)":"var(--grn)");}
+    const x=$(val); if(x)x.textContent=(v==null?"—":v);
+  };
+  setMeter("mChop","mChopV",um.chop);
+  setMeter("mGive","mGiveV",um.giveback);
+  setMeter("mStop","mStopV",um.stops);
+  $("untrScore").textContent=u.score==null?"—":u.score;
+  const uv=$("untrVerdict"); uv.textContent=u.verdict||"—";
+  uv.className="untr-verdict "+(u.verdict==="STAY-OUT"?"out":(u.verdict==="CAUTION"?"caution":"ok"));
+  $("untrDetail").textContent=u.detail||"";
+  // gates
+  $("gatebody").innerHTML=(d.gates||[]).map(g=>`<tr>
+    <td><div class="gname">${g.name}</div><div class="mech">${g.family} · ${g.mech}</div></td>
+    <td><span class="pill ${g.on?"on":"off"}">${g.on?"ON":"OFF"}</span></td>
+    <td class="reason">${g.reason}</td>
+    <td class="n ${cls(g.live_pnl)}">${g.live_pnl==null?"—":money(g.live_pnl)}${g.trades?`<span class="mutx" style="font-size:10px"> ${g.trades}tr</span>`:""}</td></tr>`).join("");
+  // shadow
+  const sh=d.shadow||{};
+  $("shad").innerHTML=Object.keys(sh).map(k=>`<div class="sfam"><div class="sl">${k}</div><div class="sv ${cls(sh[k].pnl)}">${sh[k].pnl==null?"—":money(sh[k].pnl)}</div></div>`).join("")||`<div class="sfam"><div class="sl">shadow</div><div class="sv mutx">—</div></div>`;
+  // activity
+  $("stream").innerHTML=(d.activity||[]).map(e=>`<div class="ev ${e.is_change?"chg":""}">
+    <span class="t">${e.t}</span><span class="st ${e.is_change?"st-chg":"st-hold"}">${e.tag}</span>
+    <span class="txt">${e.text.replace(/</g,"&lt;")}</span></div>`).join("")||'<div class="ev"><span class="txt mutx">no activity yet</span></div>';
+  // holdings (pad to 2)
+  const hs=d.holdings||[];
+  let hh="";
+  for(let i=0;i<2;i++){const h=hs[i];
+    hh+=h?`<div class="slot filled"><div class="sg">${h.gate} ${h.side} ${h.qty}</div><div class="sd">@${Math.round(h.entry)} · stop ${h.stop?Math.round(h.stop):"—"} · ${held(h.held_s)} · <span class="${cls(h.pnl_usd)}">${money(h.pnl_usd)}</span>${h.protected?" · 🔒":" · ⚠"}</div><button class="claimbtn" onclick="claim('${h.gate}',${h.pnl_usd})">Claim profit ${money(h.pnl_usd)}</button></div>`
+       :`<div class="slot"><span class="em">slot ${i+1} — empty (flat)</span></div>`;}
+  $("hold").innerHTML=hh;
+  // chandelier — Lot B tails
+  const chs=d.chandeliers||[];
+  $("chandh").style.display = chs.length ? "" : "none";
+  $("chand").innerHTML = chs.length ? chs.map(c=>{
+    const prog = c.lock_r ? Math.min(100, Math.round(100*c.peak_r/c.lock_r)) : 100;
+    const badge = c.active ? '<span class="badge on">● ACTIVE · locked</span>'
+                           : '<span class="badge arm">ARMING</span>';
+    const note = c.active ? `locked to a tight <b>${c.k}×ATR</b> trail — banking the tail`
+               : (c.lock_r ? `climbing toward lock — trailing <b>${c.k}×ATR</b> wide (peak now $${c.peak_usd})`
+                           : `trailing <b>${c.k}×ATR</b> — tightens as it runs`);
+    const target = c.lock_r ? `<div class="chtarget">
+        <div><div class="tl">${c.active?`${c.lock_r}R lock hit — banking`:`${c.lock_r}R lock target`}</div>
+             <div class="td">${c.active?`tight ${c.k}×ATR trail now`:`needs +$${c.to_activate_usd} more peak to get here`}</div></div>
+        <div class="tv">$${c.lock_usd}</div>
+      </div>` : '';
+    return `<div class="chcard ${c.active?'active':''}">
+      <div class="chhead"><span class="g">${c.gate}</span> ${badge}</div>
+      ${target}
+      <div class="chprog"><div class="fill" style="width:${prog}%"></div></div>
+      <div class="chnote">${note}</div>
+      <div class="chrow"><span class="l">now / peak</span><span>$${c.cur_usd} / $${c.peak_usd} <span class="mutx">(${c.cur_r}R/${c.peak_r}R)</span></span></div>
+      <div class="chrow"><span class="l">give-back if it drops</span><span>$${c.giveback_usd} <span class="mutx">(${c.giveback_pts}pt, ${c.k}×ATR)</span></span></div>
+      <div class="chrow"><span class="l">exits @${c.exit_price} → banks</span><span class="pos num">${money(c.locked_usd)}</span></div>
+      <div class="chrow"><span class="l mutx">1R = $${c.r_usd}</span><span class="mutx">${c.side} · lock ${c.lock_r||'—'}R</span></div>
+    </div>`;
+  }).join("") : "";
+}
+async function claim(gate, pnl){
+  const amt=(pnl>=0?"+$":"−$")+Math.abs(Math.round(pnl));
+  const pin=prompt(`CLAIM ${gate} — flatten this lot now and bank ${amt}?\n\nThis closes the slot at market (no new entries; the tail stops here).\nEnter PIN to confirm:`);
+  if(pin===null||pin==="") return;
+  let r;
+  try{ r=await (await fetch("api/control/claim",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({gate,pin})})).json(); }
+  catch(e){ alert("✗ request failed — try again"); return; }
+  alert(r.ok?`✓ ${r.msg}`:`✗ ${r.error}`);
+  if(r.ok) setTimeout(tick, 1500);
+}
+tick(); setInterval(tick, 20000);
+</script>
+</body>
+</html>

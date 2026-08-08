@@ -1,0 +1,92 @@
+<!-- REV2 · Q0 — closing card. PATCHES/EXTENDS: Part 1.5 (Rehab), Part 2 + Part 2·LAB (Shadow & Exit), Part 2.6 (Router Review), Movement 3 (Greenfield). It adds nothing new — it consolidates every recommendation those four sections made into one owned, time-labelled list. -->
+
+<h2><span class="n">REV2 · Q0</span> So what do I actually DO on Monday morning?</h2>
+
+<p class="lead">Garrath — fair hit. This report told you to do <b>thirteen</b> different things across four sections with four different time-labels and no owner on any of them. Here is the whole lot on one card, sorted by <b>when it is safe to do it</b>, not by which section wrote it. The split is a rule, not a preference: <b>MONDAY</b> = things that block or unblock <i>new entries only</i>, are reversible in one file edit, and touch no gate logic — the router can undo any of them on the next 5-min tick. <b>SATURDAY</b> = anything that changes a gate's entry maths or the roster, which by standing rule ([[tournament-changes-saturday-only]]) only moves in the post-Friday window — and that window is <b>today, 2026-08-01</b>, so the Saturday column is live right now, before Monday's open. <b>BUILD</b> = code that does not exist yet and goes near nothing live this week. Three headline corrections before you read it: the "promote abs_veto_55s two-sided" recommendation is <b>not an action</b> — it has been live since 07-25 and Part 2 merely re-validated it cold; <code>rgv_short</code> is <b>armed right now</b> in <code>gate_switches.env</code> while Part 1.5 verdicts it SHADOW, which is the one live inconsistency this report found in its own desk; and there is <b>no fixed Monday gate list</b>, because the untradeable meter earned the right to pick it (13/23 on the green days, 86 on the −$905 day).</p>
+
+<div class="callout">
+  <div class="ct"><b>Honesty banner.</b> Every row below is scored on its <b>home regime segment</b> and carries its n — no blanket cross-tape number appears in the action column. The tape underneath is still <b>one summer fortnight, chop-dominated, MNQ-only, PAPER</b> (router_nightly's regime column reads CHOP 52–74% on all five days), and it contains <b>no clean trend week</b>. That is why every MONDAY row is reversible and every SATURDAY row carries a revert path. Two rows are explicitly flagged as posture-on-thin-n (the CAUTION action, n=2 days; the exhaustion trial, n=3 legs) — they are proposals to gather evidence, not proven policy.</div>
+</div>
+
+<!-- ============================ MONDAY ============================ -->
+<div class="card">
+<h3>★ MONDAY 2026-08-03 — live-safe and reversible only</h3>
+<p>Owner is the <b>durable router tick</b> unless stated. Everything here is arming/exit-style posture: it blocks <i>new</i> entries only, open positions still exit, stops are untouched. Nothing in this column changes a gate's entry maths.</p>
+
+<table>
+<thead><tr><th>#</th><th>Do this Monday</th><th class="num">the number behind it</th><th>came from</th><th>owner / revert</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">M1</td><td class="ln"><b>Do not pre-set a gate list — let the meter set it.</b> Run <code>untradeable.py</code> at the 13:00 UTC pre-open and again hourly: score &lt;40 → all six armed; <b>40–64 CAUTION → veto-gates only</b> (abs_veto L+S), faders and grind benched; ≥65 → fully flat.</td><td class="num">13 / 23 = the two green days · 47 &amp; 56 = both CAUTION days lost · 86 = the −$905 day</td><td>Part 2.6 §5 <i>untradeable-day meter</i> table</td><td>ROUTER · one line in <code>gate_switches.env</code>, reversible per tick</td></tr>
+<tr class="row-hl"><td class="num">M2</td><td class="ln"><b>Bench <code>rgv_short</code>.</b> It is armed live today and the report says SHADOW. Fixes the one self-inconsistency in the desk.</td><td class="num">11 fires · −$142 · negative at <i>every</i> exit (1.5R −$32 → chandelier −$190) · strip-best-1 −$242 · red in every exit-lab rung</td><td>Part 1.5 §5 robustness table + Part 2·LAB (b) rgv row</td><td>OPERATOR/ROUTER · <code>rgv_short=off</code>; shadow keeps running</td></tr>
+<tr class="row-hl"><td class="num">M3</td><td class="ln"><b>Bench <code>capitulation_long</code> in the US cash session (13:30–21:00 UTC), overnight-only until Saturday ships its fix.</b> It is running the config Part 1.5 falsified, and its money is overnight anyway.</td><td class="num">live config 11 tr <b>+$24</b> · overnight-restricted recommended config +$422 at <b>81%</b> win · exit-lab MED −$19 / CHOP −$20</td><td>Part 1.5 §4 config table + Part 2·LAB (b) capitulation row</td><td>ROUTER · re-arm any tick</td></tr>
+<tr class="row-hl"><td class="num">M4</td><td class="ln"><b>Keep the pinned <code>exhaustion_short</code> 0.5/1.5 fade-scalp running — but only below ATR 22.</b> It needs n, not a verdict; its single loss came in the ATR-62 open.</td><td class="num">trial n=<b>3 legs</b>, −$99.5 · prior era (A@2.5R+chand) 37 tr <b>+$365</b> · STAY-OUT rung: every exit loses (best −$3.7, n=107)</td><td>Part 2·LAB (a) 3-leg table + Part 2·LAB (b) STAY-OUT row</td><td>ROUTER · pin already in <code>router_tick_durable.py</code></td></tr>
+<tr class="row-hl"><td class="num">M5</td><td class="ln"><b>Add the one exit_overrides cell that has real n:</b> <code>grind_long → {a_r 0.5, b 1.0}</code>. Tight beats the ladder guess by a mile in the only grind rung that is green.</td><td class="num">MED-TREND <b>n=78</b>, +$10.3/tr, 59% win vs the 1.5/2.5 guess (one of the worst cells) · SCALP-CHOP n=542 also picks 0.5/1.0</td><td>Part 2·LAB (b) exit-ladder table</td><td>OPERATOR · edit <code>exit_overrides.json</code> + restart tournament; delete the key to revert</td></tr>
+<tr class="row-bad"><td class="num">M5b</td><td class="ln"><b>…and put a revert trigger on it.</b> <code>exit_overrides.json</code> is <b>regime-blind</b> — a static 0.5/1.0 sprays the chop cell across a trend day and caps the tail. On a confirmed trend (30-min ER ≥0.50 sustained) revert grind to default 2.5/wide.</td><td class="num">grind BIG-TREND cell is <b>n=5</b> — the RIDE rung is unproven · grind's live profit lives in the tail (CHANDELIER+MANUAL +$1,567 / 16 tr)</td><td>Part 2·LAB (b) CRITICAL caveat + Part 1.5 §2 exit-split table</td><td>OPERATOR · restart cost is the reason this is a trigger, not a schedule</td></tr>
+<tr><td class="num">M6</td><td class="ln"><b>Change nothing on abs_veto.</b> Leave both sides armed, leave the 1.5/2.5 cells alone — for the thrust family the exit is not the lever.</td><td class="num">thrust/abs_veto raw bleeds in <i>all</i> rungs (BIG −$13, MED −$36, CHOP −$39, STAY −$67) · the veto's incremental edge = <b>+$2,538</b> vs thrust_loose</td><td>Part 2·LAB (b) thrust row + Part 2 head-to-head</td><td>— · no action is the action</td></tr>
+</tbody>
+</table>
+
+<p><b>Why M1 replaces a fixed list — the open is the whole argument.</b> Friday's enable-all proved the discriminator is not the clock, it is the gate's protection. Same open, same 172-point roundtrip:</p>
+<table>
+<thead><tr><th>Gate armed into the 07-31 open</th><th>type</th><th class="num">open P&amp;L</th><th>what it tells Monday</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">abs_veto (55s-veto protected)</td><td>VETO-gate</td><td class="num">+$146</td><td>the only thing to arm blind at a violent open</td></tr>
+<tr class="row-bad"><td class="ln">grind (no veto)</td><td>CHURNER</td><td class="num">−$370</td><td>4 stops in 90s — needs the meter's permission, not the clock's</td></tr>
+<tr class="row-bad"><td class="ln">exhaustion_short (off-regime)</td><td>FADER</td><td class="num">−$72</td><td>a 0.5R scalp cannot cover a 62-point stop → the ATR-22 ceiling in M4</td></tr>
+</tbody>
+</table>
+<p class="ln"><i>Source: Part 2.6 §6 bench-decision table. The counter-lesson still binds — on a cleanly-trending day you do <b>not</b> bench the trend-rider on open-noise (that cost ≈ −$430 on 07-30). The meter is what tells those two days apart, which is exactly why M1 is a rule and not a list.</i></p>
+</div>
+
+<!-- ============================ SATURDAY ============================ -->
+<div class="card">
+<h3>★ SATURDAY (today, 2026-08-01) — tournament changes only</h3>
+<p>These four change a gate's entry maths or a router threshold. Standing rule: they move in the post-Friday window and nowhere else. All four are in the window <b>now</b> — do them today and they are live for Monday's open; skip today and they wait a full week.</p>
+
+<table>
+<thead><tr><th>#</th><th>Change</th><th class="num">before → after (home segment, tick-honest)</th><th>robustness it passed</th><th>came from</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">S1</td><td class="ln"><b>Fader-bench ER floor 0.20 → 0.15</b> in the direction-router. Calls "trend" sooner, so counter-trend faders get benched sooner. <b>NET-min stays 30; timing stays shipped.</b></td><td class="num">shipped ER0.20/NET30: <b>+$176 / +$995</b> → ER0.15/NET30: <b>+$492 / +$1,307</b> <span class="ln">(live-managed set / full historical set)</span></td><td>ER0.15 row beats ER0.20 in <b>every</b> NET column on <b>both</b> universes — the two-sets-must-agree filter</td><td>Part 2.6 §4 threshold grid</td></tr>
+<tr class="row-hl"><td class="num">S2</td><td class="ln"><b>grind_long entry ceiling:</b> drop the ER ≥0.35 floor, ATR 24 → 12, add <code>ext_atr ≤ 2.0</code> ("don't buy what is already stretched"). This is the report's biggest single number.</td><td class="num">11 tr <b>−$284</b>, 18% win → 111 tr <b>+$2,830</b>, 34% win</td><td>strip-top-3 still +$1,172 · no single day carries it · <b>second regime</b>: V5 summer-chop archive −$1,135 → +$172</td><td>Part 1.5 §2 config table</td></tr>
+<tr class="row-hl"><td class="num">S3</td><td class="ln"><b>capitulation_long: <code>require_flip=False</code> + target 1.0R</b> — reverses our own 07-25 prior. Keep the router's US-session and down-trend benches; they are load-bearing, not optional.</td><td class="num">11 tr <b>+$24</b>, 45% win → 32 tr <b>+$434</b>, 78% win <span class="ln">(overnight-only: +$422 @ 81%)</span></td><td>every single-day-drop stays strongly green · strip-best-3 +$327 · 78% of bounces reach 1R vs ~40% reaching 2R</td><td>Part 1.5 §4 config table</td></tr>
+<tr><td class="num">S4</td><td class="ln"><b>abs_veto "config alignment" = CONFIRM, no edit.</b> Both sides have been live since 07-25 (<code>deciders.py</code> VETO_GATES holds abs_veto_long <i>and</i> abs_veto_short; the 55s veto fires in <code>tournament.run()</code>). Sizing stays base_size=1.</td><td class="num">re-validated cold: 238 tr, <b>+$2,668</b>, 47% win · LONG +$1,187 / SHORT +$1,482, both green independently</td><td>9/12 days green · strip-best-3 still +$620 · green in chop <i>and</i> trend · both walk-forward halves · 55s &gt; 50s &gt; 60s</td><td>Part 2 promotion battery + per-side table</td></tr>
+</tbody>
+</table>
+<p><b>The one thing to not get confused about:</b> S2 drops <code>grind_long</code>'s <b>gate-entry</b> ER floor. The <b>router's</b> grind ER <i>arming</i> floor of 0.35 is a different threshold, separately validated at +$728 over 10 days, and it <b>stays</b> (Part 2.6 §4 anti-overfit list). One is "should this signal fire", the other is "should this gate be switched on at all".</p>
+</div>
+
+<!-- ============================ BUILD ============================ -->
+<div class="card">
+<h3>★ BUILD — code that does not exist yet; nothing goes live this week</h3>
+<table>
+<thead><tr><th>#</th><th>Build</th><th class="num">why, in one number</th><th>where</th><th>came from</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">B1</td><td class="ln"><b>In-code continuation-veto for grind.</b> Give the churner the same 55-second continuation confirm that protects abs_veto — extend <code>VETO_GATES</code> beyond the two thrust gates. Then backtest it <b>per regime</b> before it is ever eligible for a Saturday.</td><td class="num">same open, veto-gate <b>+$146</b> vs un-vetoed grind <b>−$370</b> · the veto's standalone edge on thrust = <b>+$2,538</b></td><td class="ln"><code>src/gazbot7/deciders.py:139</code></td><td>Part 2.6 §6 open table + Part 2 head-to-head</td></tr>
+<tr class="row-hl"><td class="num">B2</td><td class="ln"><b>census <code>cluster()</code> z-score fix.</b> The <code>|flow| &gt; 50</code> rule fires on <b>66.5% of all bars</b>, so FLOW-LED and VACUUM are two names for one coin. Replace with a z-score against a trailing 2 hours, threshold <code>|z| ≥ 1</code>.</td><td class="num">it currently splits the tape into <b>21 / 17</b> runs that mean nothing — next Friday's agent digs the same empty hole</td><td class="ln"><code>scripts/run_census.py:30</code> <b>and</b> the verbatim copy at <code>scripts/run_census_full.py:38</code></td><td>Movement 3 closing ("fix the census, not the desk") + Movement 1 cluster table</td></tr>
+<tr class="row-hl"><td class="num">B3</td><td class="ln"><b>Wire NIPC into the shadow slate.</b> HOME regimes ON / <b>dead-chop OFF</b>, Lot A 2.0–2.5R + Lot B <b>fixed</b> 2.5R (the proven pair, not the 1.5/2.5 guess). Log the trail-vs-fixed A/B explicitly — it contradicts our standing chandelier prior.</td><td class="num">+$2,676 · n=171 · 12 days · 43.3% win · $15.6/tr · null-control z = <b>+5.0</b> · fixed 2.5R beats the trail by <b>$1,285</b></td><td class="ln"><code>src/gazbot7/shadow.py::default_slate()</code> (line 179)</td><td>Movement 3 regime table + exit sweep + robustness battery</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================ THE ANTI-LIST ============================ -->
+<div class="card">
+<h3>What is deliberately NOT on the list — and why</h3>
+<p>Half of "what do I do Monday" is knowing what to leave alone. Seven things this report discussed look like actions and are not:</p>
+<table>
+<thead><tr><th>Looks like an action</th><th>Verdict</th><th class="num">the disqualifying number</th><th>came from</th></tr></thead>
+<tbody>
+<tr><td class="ln">"Promote abs_veto_55s two-sided"</td><td><span class="tag">ALREADY LIVE</span></td><td class="num">live since the 07-25 roster change — Part 2 re-derived it cold, which is a validation, not a change request</td><td>Part 2 verdict</td></tr>
+<tr class="row-bad"><td class="ln">grind BIG-TREND → wide chandelier</td><td><span class="tag">UNPROVEN</span></td><td class="num"><b>n=5</b> — "a guess wearing an n=5 hat"; the RIDE rung is the #1 unturned stone</td><td>Part 2·LAB (b) CRITICAL caveat</td></tr>
+<tr class="row-bad"><td class="ln">Ship the chop-day scalp (<code>chop_turn_fade</code>)</td><td><span class="tag">HONEST NULL</span></td><td class="num">best-of-1,152 = +$288 vs a pure-noise expectation of <b>+$455</b> · leave-one-day-out OOS −$5.84/tr</td><td>Movement 3 chop lab</td></tr>
+<tr><td class="ln">Retire rgv_short</td><td><span class="tag">NO</span></td><td class="num">retiring on 11 fires is as unjustified as arming them — bench + shadow, re-look when n grows</td><td>Part 1.5 §5</td></tr>
+<tr><td class="ln">Router timing knobs (window/step/hold/fast_exit) and NET-min</td><td><span class="tag">HOLD</span></td><td class="num">the joint-best (+$692/+$984) sits on the loosest grid edge on <b>three axes at once</b>; step=5m would triple the tick-rate</td><td>Part 2.6 §4 anti-overfit list</td></tr>
+<tr><td class="ln">Wire in the two-ratchet clip or the 2R-partial</td><td><span class="tag">TOO THIN</span></td><td class="num">4 trades, 1 runner, <b>1 day</b> — the entire delta (+$122 / +$64) is that single 4.2R ride</td><td>Part 1.5 shadow-watch table + Part 2 grind-exit shadows</td></tr>
+<tr><td class="ln">Change the exhaustion_short exit to the lab's tight-chandelier</td><td><span class="tag">NOT YET</span></td><td class="num">the lab cell is real (chop n=216, +$2.2/tr) but the live pin is only <b>3 legs</b> old — killing a trial at n=3 buys nothing; re-grade next Saturday</td><td>Part 2·LAB (a) vs (b)</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================ CLOSING ============================ -->
+<div class="callout">
+  <div class="ct"><b>The whole card in four sentences.</b> Today (Saturday) do S1–S3 and confirm S4 — three real edges with a second-regime or two-universe proof behind each, and the window shuts tonight. Monday, arm nothing by the clock: run the meter, take veto-gates-only if it reads CAUTION, bench <code>rgv_short</code> outright, keep <code>capitulation_long</code> overnight-only until S3 lands, and add exactly one exit_overrides cell (<code>grind_long</code> 0.5/1.0) with a trend revert-trigger on it. Build B1–B3 during the week and let none of them near the live desk. Everything in the MONDAY column is undone by one line in <code>gate_switches.env</code> — wrongly-benched costs you missed trades, wrongly-armed costs you real churn, and that asymmetry is the reason this card leans the way it does.</div>
+</div>
