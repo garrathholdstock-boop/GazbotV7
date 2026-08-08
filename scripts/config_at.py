@@ -36,18 +36,30 @@ def show(r, *, full=False):
         print(f"        git {g['commit']}{warn}")
     if r.get("exit_overrides_raw"):
         print(f"        overrides source: {r['exit_overrides_raw']}")
+    # ★2026-08-08 — the decider tables are global, not per-slot, so nothing in a slot dump would
+    # ever have shown an ATR_FLOOR change. Printed unconditionally: they are four short dicts and
+    # they are the single most common thing an entry study needs to pin down.
+    if r.get("gates"):
+        print(f"        gates   {r['gates']}   (entry_hash={r.get('entry_hash')})")
     if full:
         print("        resolved exit ladder:")
         for tag, c in sorted((r.get("resolved") or {}).items()):
             bits = [f"{k}={v}" for k, v in c.items()
                     if v not in (0, 0.0, False, None, "") or k in ("exit",)]
             print(f"          {tag:<22} {' '.join(bits)}")
+        if r.get("entry"):
+            print("        resolved entry config:")
+            for tag, c in sorted(r["entry"].items()):
+                print(f"          {tag:<22} {c}")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--at", help="UTC time, e.g. '2026-08-04 07:28'")
     ap.add_argument("--epochs", action="store_true", help="list distinct config epochs")
+    ap.add_argument("--entry", action="store_true",
+                    help="with --epochs: segment on the ENTRY config (gate params, sizing, "
+                         "ATR/ER floors) instead of the exit ladder. Recorded from 2026-08-08.")
     ap.add_argument("--diff", nargs=2, metavar=("HASH_A", "HASH_B"))
     ap.add_argument("--full", action="store_true", help="print the whole resolved ladder")
     a = ap.parse_args()
@@ -84,20 +96,33 @@ def main() -> int:
         return 0
 
     if a.epochs:
-        print("CONFIG EPOCHS — each row is a window over which the resolved exit ladder did not change.")
-        print("Use these as the windows for any exit/stop study.\n")
+        # ★2026-08-08 — --entry segments on entry_hash instead of config_hash. An ENTRY study
+        # (ATR/ER floors, gate params, sizing) needs windows over which the ENTRY config held
+        # still; segmenting it by the exit ladder gives windows that are wrong in both
+        # directions. Rows written before 08-08 have no entry_hash and are shown as `-`, which
+        # reads correctly as "not recorded" rather than "unchanged".
+        key = "entry_hash" if a.entry else "config_hash"
+        what = ("the resolved ENTRY config (gate params, sizing, ATR/ER floors)" if a.entry
+                else "the resolved exit ladder")
+        study = "entry/filter" if a.entry else "exit/stop"
+        print(f"CONFIG EPOCHS — each row is a window over which {what} did not change.")
+        print(f"Use these as the windows for any {study} study.\n")
         print(f"{'hash':<14}{'from (UTC)':<21}{'to (UTC)':<21}{'starts':>7}")
         eps: list = []
         for r in all_rows:
-            if eps and eps[-1]["hash"] == r.get("config_hash"):
+            h = r.get(key)
+            if eps and eps[-1]["hash"] == h:
                 eps[-1]["n"] += 1
                 eps[-1]["end"] = r["ts_ms"]
             else:
-                eps.append({"hash": r.get("config_hash"), "start": r["ts_ms"],
-                            "end": r["ts_ms"], "n": 1})
+                eps.append({"hash": h, "start": r["ts_ms"], "end": r["ts_ms"], "n": 1})
         for i, e in enumerate(eps):
             end = _fmt(eps[i + 1]["start"]) if i + 1 < len(eps) else "(current)"
-            print(f"{e['hash']:<14}{_fmt(e['start']):<21}{end:<21}{e['n']:>7}")
+            print(f"{(e['hash'] or '-  (not recorded)'):<14}"
+                  f"{_fmt(e['start']):<21}{end:<21}{e['n']:>7}")
+        if not a.entry:
+            print("\n★ The exit ladder is only half the config. `--epochs --entry` segments on the "
+                  "ENTRY side\n  (gate params, sizing, ATR/ER floors), recorded from 2026-08-08.")
         return 0
 
     if a.at:
