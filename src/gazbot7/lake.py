@@ -139,6 +139,26 @@ def coverage(symbols=("MNQ", "MGC")) -> list[dict]:
     return out
 
 
+# ★★2026-08-08 — THE OOM FIX. DuckDB defaults `memory_limit` to 80% of physical RAM: on this
+# 7.7GB box that is **6.0 GiB per connection**. Nothing here ever set it, so two research agents
+# each opening a lake connection could ask for 12GB between them. That is what killed the Friday
+# report — the unit peaked at 4.9GB and was OOM-killed at 04:46 after 5 hours, losing Movement 3,
+# the skeptic pass, the Monday playbook and the whole proofread/Rev-2 stage.
+# Capped + given a spill directory so a big aggregation goes to DISK (slow, survivable) instead of
+# taking the box down (fast, fatal). Override per-connection with GAZ_DUCKDB_MEM if a study really
+# needs more — but a study that needs >2GB resident should be streaming, not materialising.
+def _cap_memory(con) -> None:
+    mem = os.environ.get("GAZ_DUCKDB_MEM", "2GB")
+    tmp = os.environ.get("GAZ_DUCKDB_TMP", "/home/alphabot/gazbot7/data/duckdb_tmp")
+    try:
+        os.makedirs(tmp, exist_ok=True)
+        con.execute(f"SET memory_limit='{mem}'")
+        con.execute("SET threads=3")           # leave a core for the desk services
+        con.execute(f"SET temp_directory='{tmp}'")
+    except Exception:
+        pass                                    # never let a tuning failure break a query
+
+
 def connect(*, remote: bool = False, symbol: str = "MNQ", include_v5: bool = True,
             include_hot: bool = True):
     """DuckDB connection with a view per stream spanning V5 + lake + hot.
@@ -149,6 +169,7 @@ def connect(*, remote: bool = False, symbol: str = "MNQ", include_v5: bool = Tru
     import duckdb
 
     con = duckdb.connect()
+    _cap_memory(con)
     base = LOCAL
     if remote:
         c = _creds()
