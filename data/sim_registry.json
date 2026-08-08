@@ -24,6 +24,10 @@
   "cx_grindA_live": 22,
   "exhaustion_rev": 23,
   "grind_fast": 24,
+  "odr_c10_s20": 54,
+  "odr_c10_s30": 55,
+  "odr_c5_s20": 56,
+  "odr_c5_s30": 57,
   "rg_long_20_flow25": 25,
   "rg_long_20_t15": 26,
   "rg_long_20_t20": 27,
@@ -45,8 +49,10 @@
   "sw_absS_B_k20": 43,
   "sw_grind_A_k10": 44,
   "sw_grind_A_k20": 45,
+  "sw_grind_A_k30": 58,
   "sw_grind_B_k10": 46,
   "sw_grind_B_k20": 47,
+  "sw_grind_B_k30": 59,
   "thrust_aligned": 48,
   "thrust_cont": 49,
   "thrust_fast": 50,
@@ -54,5 +60,5 @@
   "thrust_short_absveto55": 52,
   "thrust_short_raw": 53
  },
- "next": 54
+ "next": 60
 }

@@ -577,6 +577,14 @@ _B_CLIP = dict(clip_b_r=1.75, **_CLIP)
 
 
 def _stop_width_ab() -> list[ShadowVariant]:
+    # ⚠★2026-08-08 GRIND HERE IS DELIBERATELY FROZEN AND NO LONGER MIRRORS LIVE.
+    # SATURDAY #2 deleted `ext_hi` from the live grind gate and moved its ATR floor 10 -> 22. These
+    # arms keep `ext_hi: 2.0` ON PURPOSE: this is a STOP-WIDTH experiment, and it is only readable
+    # if the ENTRY population is held constant across the rungs. Changing entries mid-experiment
+    # would confound the one variable being measured and would invalidate the 512 trades already
+    # collected since 08-04. The cost is that `sw_grind_*` must NOT be read as "what live grind is
+    # doing" — it is a fixed cohort for comparing stops. Re-baseline it (and restart the series)
+    # only when the stop question is answered.
     THRUST = {"thr": 1.5, "amp_floor": 0.0004}
     GRIND = {"slope_min": 0.4, "fast_slope": True, "ext_hi": 2.0}
     out: list[ShadowVariant] = []
@@ -600,6 +608,23 @@ def _stop_width_ab() -> list[ShadowVariant]:
             ShadowVariant(f"sw_absS_B_{sfx}", "thrust", THRUST, side="SHORT", confirm_s=55,
                           target_r=2.5, **common, **_B_CLIP),
         ]
+    # ★2026-08-08 THE k30 THIRD RUNG — grind ONLY, and only grind.
+    # The 08-08 open-window read on the 512 tick-repriced trades already running here says wide
+    # stops do NOT transfer as a class: in 13:00-14:45Z the house 1.0x and 2.0x are a dead heat
+    # (+$30.76 vs +$30.41/tr, delta -$104, stable through strip-best-3, two days each way). It
+    # splits by GATE — grind prefers wide on BOTH lots (+$72 / +$64) while abs_veto prefers tight
+    # in all four cells. So the third rung goes on the one gate with a consistent preference, and
+    # NOT roster-wide, which is now refuted twice.
+    # ⚠ It is a rung on the SAME frozen cohort as k10/k20 (ext_hi kept — see the note above), so
+    # the three are directly comparable. Two arms, no orders, no risk.
+    grind_common = dict(decouple_target=True, stop_atr_mult=3.0, qty=1.0)
+    out += [
+        ShadowVariant("sw_grind_A_k30", "grind", GRIND, side="LONG",
+                      target_r=2.5, **grind_common, **_A_CLIP),
+        ShadowVariant("sw_grind_B_k30", "grind", GRIND, side="LONG",
+                      chandelier=True, chand_lock=True, chand_start_k=3.5, lock_r=6.0, lock_k=0.5,
+                      **grind_common),
+    ]
     return out
 
 
