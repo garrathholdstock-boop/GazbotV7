@@ -36,9 +36,25 @@ def paris_week_start_utc(now: datetime) -> str:
     return monday.astimezone(_UTC).isoformat()
 
 
-def realized(store, symbol: str, *, since_iso: str | None = None) -> tuple[float, int, int]:
+# ★★2026-08-07 TWO DESKS, TWO P&Ls (operator: "day rider will destroy it. needs to be isolated").
+# The DAY RIDER is a separate strategy on its own service and clientId, holding for HOURS with no
+# stop — a single trade swings hundreds of dollars. Blended into the tournament's number it drowns
+# 20+ scalps: on 08-07 the desk made +$227 across 23 trades while the day-rider ran ~-$975 on ONE.
+# One number cannot answer "is the desk working?" and "is the day-rider working?" at the same time.
+# Filtering here rather than at ~20 call sites for the same reason the data_quality clause lives
+# here — this module is the single P&L source, and that is the invariant worth protecting.
+DAY_RIDER_GATE_PREFIX = "day_rider"
+
+
+def realized(store, symbol: str, *, since_iso: str | None = None,
+             desk: str | None = None) -> tuple[float, int, int]:
     """Net-of-fees realized P&L (sign-aware), trade count, win count — for trades
-    closed at/after ``since_iso`` (default all-time)."""
+    closed at/after ``since_iso`` (default all-time).
+
+    ``desk`` selects which book: ``"tournament"`` excludes day-rider rows, ``"day_rider"`` keeps
+    only those, ``None`` (default) is everything — the pre-existing behaviour, so no current caller
+    changes meaning until it opts in. Attribution is by gate prefix, which is how the day-rider
+    already names its rows (``day_rider_crossdesk`` etc.)."""
     # ★2026-08-05 EXCLUDE data_quality-flagged rows AT THE SOURCE.
     # The flag was added this morning (rows 538/539 — the two abs_veto_short lots the MD_STREAM bug
     # sized with 1,848-point stops, -$255.50) and NOT ONE of the ~20 trade-table consumers filtered it.
@@ -59,6 +75,12 @@ def realized(store, symbol: str, *, since_iso: str | None = None) -> tuple[float
     if has_dq:
         q += " AND data_quality IS NULL"
     args: list = [symbol, *_CLEANUP_REASONS]
+    if desk == "tournament":
+        q += " AND (gate IS NULL OR gate NOT LIKE ?)"
+        args.append(f"{DAY_RIDER_GATE_PREFIX}%")
+    elif desk == "day_rider":
+        q += " AND gate LIKE ?"
+        args.append(f"{DAY_RIDER_GATE_PREFIX}%")
     if since_iso is not None:
         q += " AND closed_at>=?"
         args.append(since_iso)
@@ -67,6 +89,6 @@ def realized(store, symbol: str, *, since_iso: str | None = None) -> tuple[float
     return pnl, len(rows), sum(1 for r in rows if r[0] > 0)
 
 
-def day(store, symbol: str, now: datetime) -> tuple[float, int, int]:
-    """Realized P&L / trades / wins for the current Paris day."""
-    return realized(store, symbol, since_iso=paris_day_start_utc(now))
+def day(store, symbol: str, now: datetime, *, desk: str | None = None) -> tuple[float, int, int]:
+    """Realized P&L / trades / wins for the current Paris day. See ``realized`` for ``desk``."""
+    return realized(store, symbol, since_iso=paris_day_start_utc(now), desk=desk)

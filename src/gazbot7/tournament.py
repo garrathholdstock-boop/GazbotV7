@@ -207,6 +207,24 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
         adopted = core.reconstruct()               # rebuild open slots + stops from OUR ledger (netted venue can't)
         if adopted:
             log.warning("tournament ADOPTED %d open slot(s) from store: %s", len(adopted), adopted)
+        # ★★2026-08-07 ORPHAN SWEEP — runs AFTER reconstruct() so the live stop set is known.
+        # Two restart defects made orphans both inevitable and uncancellable: the stop sequence
+        # restarts at 0 (re-minting refs that are still resting at IBKR, so fills mis-attribute)
+        # and the coid->Trade map is in-memory (so cancel() no-ops on anything placed before the
+        # restart). GTC stops 1505/1506 sat ~2000pt away for DAYS as a result, and by 14:48 on
+        # 08-07 had collided with the live stops of exhaustion_short_A/B. This adopts every
+        # resting stp-* order, pushes the sequence past the highest, and cancels the ones no slot
+        # owns. It cannot touch the day-rider's stop (orderRef '') or any manual order.
+        try:
+            sweep = core._broker.adopt_and_sweep(core.owned_stop_coids())
+            if sweep.get("cancelled"):
+                log.warning("tournament ORPHAN SWEEP: %s", sweep)
+                _telegram_notifier(f"orphan sweep on startup: cancelled {sweep['cancelled']} "
+                                   f"unowned stop(s), stop_seq now {sweep.get('stop_seq')}")
+            else:
+                log.info("tournament orphan sweep: %s", sweep)
+        except Exception as e:                     # a failed sweep must never block the desk
+            log.warning("tournament orphan sweep failed: %s", e)
         audit_task = asyncio.ensure_future(core.venue_audit_loop(gw))  # reconciles adopted state vs IBKR net
     else:
         from .slotbook import SlotBook
@@ -470,6 +488,7 @@ async def _build_live(cfg: RunConfig, gates):
     core = MultiSlotCore(cfg, engine, slotbook, safeties, publisher=None, store=store,
                          notifier=_telegram_notifier)
     ref["core"] = core
+    core._broker = broker          # ★2026-08-07 handle for the startup orphan sweep (see below)
     return core, gw
 
 

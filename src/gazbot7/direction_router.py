@@ -44,7 +44,27 @@ CAP = f"{DATA}/capture.db"
 SWITCH = f"{DATA}/gate_switches.env"
 
 # ── tuned + validated knobs (edit here → both live AND the backtest move together) ──
-ER_TREND = 0.20     # ★2026-07-26 loosened 0.25→0.20 (operator, router_study.py): the 0.25 trigger was too STRICT
+ER_TREND = 0.15     # ★2026-08-01 (operator, Saturday window) loosened 0.20→0.15.
+                    #
+                    # ⚠ RATIONALE CORRECTED SAME DAY BY AUDIT — read this before citing the number below.
+                    # It was shipped on the fader-bench study (ER0.20/NET30 +$176/+$995 → ER0.15/NET30 +$492/+$1,307,
+                    # ER0.15 winning every net column on both universes). That study measures direction_router's
+                    # mechanical fader bench — and THAT PATH IS SWITCHED OFF: gazbot7-direction-router.timer is
+                    # disabled+inactive, and the Claude router that actually owns gate_switches.env never reads
+                    # ER_TREND. So the cited benefit is currently UNREACHABLE.
+                    # The ONLY live consumer is slot_strategy._regime_mode (line ~293), and under the scaleout slate
+                    # every sub-slot has adaptive_exit=False, so _regime_mode is reached solely via
+                    # veto_counter_regime — i.e. exhaustion_short and nothing else. Measured on 16,708 MNQ 1-min
+                    # marks (16 days): the counter-veto surface goes 19.20% → 23.68% of minutes, so the real effect
+                    # is ~23% MORE exhaustion_short entries vetoed. Nothing else on the desk changes.
+                    # KEPT at 0.15 anyway because that is the CHEAP direction (more vetoing = fewer entries; the
+                    # desk's standing asymmetry is wrongly-benched cheap / wrongly-armed expensive), and Q1 found
+                    # exhaustion bleeds counter-trend. But it is an UNMEASURED side effect, not the advertised win —
+                    # measure it before claiming value. Re-enabling the direction-router timer would make the
+                    # original study apply again.
+                    # NOTE: distinct from grind's ER ARMING floor — this is "is the tape trending", that is "switch the
+                    # gate on at all". Revert: ER_TREND = 0.20.
+                    # [prev 0.20] ★2026-07-26 loosened 0.25→0.20 (operator, router_study.py): the 0.25 trigger was too STRICT
                     # — mild-but-real trends read as CHOP and the faders bled into them unblocked (leaked −$641 live /
                     # −$1,453 hist of counter-trend near-miss losers vs blocking only −$152/−$736). Both fader sets agreed
                     # looser blocks more net loss; this is the MODERATE step (grid-best pinned every knob to the edge = overfit).

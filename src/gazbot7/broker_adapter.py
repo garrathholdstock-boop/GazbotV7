@@ -110,6 +110,52 @@ class IBBrokerAdapter:
         self._trades[coid] = self._ib.placeOrder(self._stop_contract, ibo)  # concrete Future, not ContFuture
         return coid
 
+    # ── ORPHAN SWEEP (2026-08-07) — the desk must clean up after itself ──────────────────────
+    # WHY THIS EXISTS. Two defects, one origin, both observed live on 08-07:
+    #   1. `_stop_seq` restarts at 0, so a restarted desk re-mints stp-000001, stp-000002 … — the
+    #      SAME orderRefs as stops still resting at IBKR from before. Two live orders then share a
+    #      ref, and because fills attribute BY REF, an old order firing books to a NEW slot. That is
+    #      the 08-06 incident (a naked short booked as nipc_short) waiting to recur.
+    #   2. `_trades` is in-memory, so after a restart `cancel(coid)` silently no-ops for anything
+    #      placed earlier — the desk cannot cancel its own orphans even when it can see them.
+    # Observed: GTC stops 1505/1506 rested ~2000pt away for days, uncancellable by any client, and
+    # by 14:48 had collided with the live stops for exhaustion_short_A/B.
+    def adopt_and_sweep(self, live_coids: set[str]) -> dict:
+        """Adopt resting `stp-*` orders so they become cancellable, bump the sequence past them,
+        and cancel any that belong to no live slot. Returns a summary for logging.
+
+        ★ CONSERVATIVE BY CONSTRUCTION — it only ever touches orders whose orderRef matches our own
+        `stp-NNNNNN` pattern. The day-rider's venue stop (orderRef '') and any hand-placed order are
+        invisible to it, so it cannot cancel another desk's protection. `live_coids` is the set of
+        stop coids the slot book currently depends on; anything else carrying our prefix is by
+        definition unowned. Cancelling a stop that IS owned would create a naked position, so the
+        caller must pass the live set — an empty set when the desk is flat is correct and safe."""
+        adopted = cancelled = 0
+        highest = self._stop_seq
+        try:
+            trades = list(self._ib.openTrades())
+        except Exception:
+            return {"adopted": 0, "cancelled": 0, "error": "openTrades failed"}
+        for tr in trades:
+            ref = getattr(tr.order, "orderRef", "") or ""
+            if not ref.startswith("stp-"):
+                continue                      # not ours — day-rider stop, manual order, anything else
+            try:
+                highest = max(highest, int(ref.split("-", 1)[1]))
+            except (ValueError, IndexError):
+                pass
+            self._trades.setdefault(ref, tr)  # make it cancellable; never clobber a live handle
+            adopted += 1
+            if ref not in live_coids:
+                try:
+                    self._ib.cancelOrder(tr.order)
+                    cancelled += 1
+                except Exception:
+                    pass
+        # ★ never re-mint a ref that is still resting at the venue
+        self._stop_seq = max(self._stop_seq, highest)
+        return {"adopted": adopted, "cancelled": cancelled, "stop_seq": self._stop_seq}
+
     # ── protective-stop liveness (S1 fast path) ──────────────────────────────
     def _on_status(self, trade) -> None:
         """A protective stop leaving a live status (rejected / cancelled / went

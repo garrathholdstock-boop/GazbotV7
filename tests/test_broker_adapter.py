@@ -104,3 +104,59 @@ def test_config_default_is_dry_run():
     c = RunConfig()
     assert c.place_live is False  # SAFE default — no live orders until cutover
     assert c.symbol == "MNQ" and c.client_id == 7 and c.port == 4002
+
+
+# ── 2026-08-07 REGRESSION: the orphan sweep ───────────────────────────────────────────────────
+# GTC stops 1505/1506 rested ~2000pt from the market for DAYS, uncancellable by any client, and by
+# 14:48 the restarted desk had re-minted stp-000001/2 for LIVE stops — two orders sharing a ref,
+# on a desk that attributes fills BY REF. Root cause: `_stop_seq` restarts at 0 and the coid->Trade
+# map is in-memory, so a restarted desk can neither recognise nor cancel its own leftovers.
+
+class _SweepOrder:
+    def __init__(self, ref): self.orderRef = ref
+
+
+class _SweepTrade:
+    def __init__(self, ref): self.order = _SweepOrder(ref)
+
+
+class _SweepIB:
+    def __init__(self, refs): self._refs = refs; self.cancelled = []
+    def openTrades(self): return [_SweepTrade(r) for r in self._refs]
+    def cancelOrder(self, order): self.cancelled.append(order.orderRef)
+
+
+def _adapter(refs):
+    from gazbot7.broker_adapter import IBBrokerAdapter
+    a = IBBrokerAdapter.__new__(IBBrokerAdapter)      # bypass __init__ (needs a live gateway)
+    a._ib = _SweepIB(refs); a._trades = {}; a._stop_seq = 0
+    return a
+
+
+def test_sweep_cancels_unowned_stops_and_keeps_owned_ones():
+    a = _adapter(["stp-000001", "stp-000002", "stp-000009"])
+    out = a.adopt_and_sweep({"stp-000009"})           # only 9 belongs to a live slot
+    assert sorted(a._ib.cancelled) == ["stp-000001", "stp-000002"]
+    assert "stp-000009" not in a._ib.cancelled, "cancelled a stop a live slot depends on"
+    assert out["cancelled"] == 2
+
+
+def test_sweep_never_touches_another_desks_order():
+    """The day-rider's venue stop carries orderRef '' — it must be invisible to the sweep."""
+    a = _adapter(["", "manual-thing", "stp-000001"])
+    a.adopt_and_sweep(set())
+    assert a._ib.cancelled == ["stp-000001"], "swept an order that was not ours"
+
+
+def test_sweep_bumps_the_sequence_past_resting_refs():
+    """The collision fix: never re-mint a ref that is still alive at the venue."""
+    a = _adapter(["stp-000001", "stp-000047"])
+    out = a.adopt_and_sweep(set())
+    assert a._stop_seq >= 47, "sequence would re-mint a ref still resting at IBKR"
+    assert out["stop_seq"] >= 47
+
+
+def test_sweep_makes_pre_restart_orders_cancellable():
+    a = _adapter(["stp-000003"])
+    a.adopt_and_sweep({"stp-000003"})                 # owned → adopted but NOT cancelled
+    assert "stp-000003" in a._trades, "pre-restart order still unreachable by cancel()"

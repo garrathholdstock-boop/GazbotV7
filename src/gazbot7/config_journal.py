@@ -45,13 +45,32 @@ log = logging.getLogger("config_journal")
 JOURNAL = os.environ.get("GAZBOT7_CONFIG_JOURNAL",
                          "/home/alphabot/gazbot7/data/config_journal.jsonl")
 
-# The exit-relevant fields only. A full SlotSpec dump would bury the ladder in entry params that
-# slot_strategy.py and git already record; these are the fields a stop/target study needs.
+# The exit ladder. Hashed into `config_hash`, whose meaning is UNCHANGED since 2026-08-04 so that
+# config_at.py and any existing scan keep working across the 08-08 extension below.
 _EXIT_FIELDS = ("exit", "target_r", "stop_atr_mult", "fixed_stop_pt", "fixed_target_pt",
                 "vol_adaptive_chandelier", "chandelier_start_k", "chandelier_min_k",
                 "chandelier_tighten", "lock_r", "lock_k", "giveback_enabled", "giveback_arm_usd",
                 "giveback_usd", "adaptive_exit", "max_hold_s", "flat_by_utc_s",
                 "atr_split", "lo_target_usd", "lo_target_r", "lo_floor_usd")
+
+# ★2026-08-08 — THE ENTRY SIDE, added because the original exclusion was wrong.
+# The comment here used to read "a full SlotSpec dump would bury the ladder in entry params that
+# slot_strategy.py and git already record". Both halves of that turned out to be false:
+#   1. GIT DOES NOT RECORD AN UNCOMMITTED TREE. The desk had five live behaviours existing only as
+#      working-tree edits, and `git.exit_overrides_uncommitted: true` was journalled at every start
+#      with nothing acting on it.
+#   2. SOURCE IS NOT THE RESOLVED CONFIG — which is this module's own founding argument. `grind_long`
+#      has TWO SlotSpecs in slot_strategy.py; the slate resolves one of them. Reading source tells you
+#      what someone wrote, not what ran.
+# Proven the same day: SATURDAY #2 changed ATR_FLOOR 10 -> 22 and deleted grind's `ext_hi`, the desk
+# restarted, and the journal recorded `changed_from_previous: false`. A live entry-config change left
+# NO TRACE in the log built to make config epochs reconstructable.
+_ENTRY_FIELDS = ("kind", "side", "params", "sizing", "base_size", "risk_budget_usd",
+                 "veto_counter_regime")
+
+# Module-level decider tables. These are not on the SlotSpec at all — they are global dicts consulted
+# per-signal — so nothing in a slot dump would ever have caught an ATR_FLOOR change.
+_DECIDER_TABLES = ("ATR_FLOOR", "ER_FLOOR", "ER_CEIL", "ER_BAND")
 
 
 def _git_head(repo: str = "/home/alphabot/gazbot7") -> dict:
@@ -74,6 +93,36 @@ def resolved_config(specs) -> dict:
     return out
 
 
+def resolved_entry(specs) -> dict:
+    """★2026-08-08. The ENTRY side as resolved, keyed by slot tag — gate kind, side, filter params,
+    sizing. `params` is copied, not referenced, so a later mutation cannot rewrite history."""
+    out = {}
+    for s in specs:
+        d = {}
+        for f in _ENTRY_FIELDS:
+            if hasattr(s, f):
+                v = getattr(s, f)
+                d[f] = dict(v) if isinstance(v, dict) else v
+        out[s.tag] = d
+    return out
+
+
+def decider_gates() -> dict:
+    """★2026-08-08. The global decider tables — ATR/ER floors, ceilings and bands.
+
+    Imported HERE rather than at module scope, inside its own try, so that a rename or a circular
+    import in deciders.py degrades this to `{"_error": ...}` instead of stopping the desk from
+    starting. Same fail-open contract as the rest of this module.
+    """
+    try:
+        from . import deciders
+        return {t: dict(getattr(deciders, t)) for t in _DECIDER_TABLES
+                if isinstance(getattr(deciders, t, None), dict)}
+    except Exception as e:  # pragma: no cover - defensive
+        log.warning("config journal: decider tables unavailable (%s)", e)
+        return {"_error": str(e)}
+
+
 def record(specs, *, slate: str, place_live: bool, extra: dict | None = None) -> dict | None:
     """Append one row describing this startup. Returns the row, or None if it could not be written."""
     try:
@@ -87,6 +136,15 @@ def record(specs, *, slate: str, place_live: bool, extra: dict | None = None) ->
                 raw = json.load(fh)
         except Exception:
             pass
+        # ★2026-08-08 — the entry side, hashed SEPARATELY. config_hash keeps its original
+        # exit-only meaning so config_at.py and every existing scan stay valid across this change;
+        # entry_hash is additive. Rows written before today have no entry_hash, which reads
+        # correctly as "not recorded" rather than "unchanged".
+        ent = resolved_entry(specs)
+        gates = decider_gates()
+        eh = hashlib.sha256(
+            json.dumps({"entry": ent, "gates": gates}, sort_keys=True, default=str).encode()
+        ).hexdigest()[:12]
         row = {
             "ts": datetime.now(UTC).isoformat(timespec="seconds"),
             "ts_ms": int(time.time() * 1000),
@@ -94,25 +152,63 @@ def record(specs, *, slate: str, place_live: bool, extra: dict | None = None) ->
             "slate": slate,
             "place_live": place_live,
             "config_hash": h,
+            "entry_hash": eh,
             "n_slots": len(cfg),
             "git": _git_head(),
             "exit_overrides_raw": raw,   # the SOURCE, kept beside the RESOLVED for divergence checks
             "resolved": cfg,
+            "entry": ent,                # ★ the entry side, resolved (params/sizing per slot)
+            "gates": gates,              # ★ the global decider tables (ATR/ER floors, ceils, bands)
         }
         if extra:
             row.update(extra)
-        prev = last_hash()
-        row["changed_from_previous"] = (prev is not None and prev != h)
+        prev_h, prev_eh = last_hashes()
+        exit_ch = prev_h is not None and prev_h != h
+        # prev_eh is None for every row written before 2026-08-08 — treat that as UNKNOWN, not as a
+        # change, so the first start after this deploy does not report a phantom entry-config change.
+        entry_ch = prev_eh is not None and prev_eh != eh
+        row["changed_from_previous"] = exit_ch or entry_ch
+        row["changed"] = {"exit": exit_ch, "entry": entry_ch}
         with open(JOURNAL, "a") as fh:
             fh.write(json.dumps(row, default=str) + "\n")
-        log.info("config journal: slate=%s hash=%s slots=%d live=%s%s",
-                 slate, h, len(cfg), place_live,
-                 "  ★ CHANGED from previous start" if row["changed_from_previous"] else "")
+        what = ", ".join(k for k, v in row["changed"].items() if v)
+        log.info("config journal: slate=%s hash=%s entry=%s slots=%d live=%s%s",
+                 slate, h, eh, len(cfg), place_live,
+                 f"  ★ CHANGED from previous start ({what})" if row["changed_from_previous"] else "")
         return row
     except Exception as e:
         # A record-keeping failure must never stop the desk starting.
         log.warning("config journal write FAILED (continuing): %s", e)
         return None
+
+
+def last_hashes() -> tuple[str | None, str | None]:
+    """★2026-08-08. (config_hash, entry_hash) of the most recent row.
+
+    entry_hash is None for rows written before this field existed — the caller must read that as
+    UNKNOWN, never as "unchanged", or the first start after the deploy reports a phantom change.
+    """
+    return last_hash(), _last_field("entry_hash")
+
+
+def _last_field(field: str) -> str | None:
+    """Value of `field` on the most recent parseable row, or None. Tail read, same as last_hash()."""
+    try:
+        with open(JOURNAL, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            fh.seek(max(0, size - 65536))
+            lines = [ln for ln in fh.read().decode(errors="replace").splitlines() if ln.strip()]
+        for ln in reversed(lines):
+            try:
+                return json.loads(ln).get(field)
+            except Exception:
+                continue
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return None
+    return None
 
 
 def last_hash() -> str | None:

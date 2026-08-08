@@ -83,6 +83,10 @@ class MultiSlotCore:
         self._pending_side: dict[str, str] = {}  # gate -> side of the in-flight entry (for the nofill signal)
         self._pending_ref: dict[str, float] = {}  # gate -> intended entry ref (for slippage)
         self._closing: dict[str, str] = {}      # gate -> in-flight CLOSE coid
+        # ★2026-08-07 close coids CANCELLED because the slot went flat underneath them (its own stop
+        # won the race). Kept so a fill that still sneaks through is recognised as a REDUNDANT CLOSE
+        # and never mistaken for a fresh entry. Bounded: a close coid matters for seconds, not hours.
+        self._voided_closes: dict[str, str] = {}   # coid -> gate
         self._close_reason: dict[str, str] = {}
         self._open_atr: dict[str, float] = {}
         self._halted = False
@@ -240,10 +244,25 @@ class MultiSlotCore:
         was_flat = slot.is_flat
         closing = (not was_flat) and self._is_closing_side(slot.side, fill.side)
         reason = (self._close_reason.get(gate) or "STOP") if closing else None
+        # ★★2026-08-07 BACKSTOP for the redundant-close race (see _on_slot_closed). If a fill would
+        # OPEN a flat slot and its coid is one we already CANCELLED as redundant, this is not an
+        # entry — it is a close order that outlived its position and won the cancel race. We still
+        # let it open the slot, deliberately: the venue really does hold the contract, and an
+        # untracked one is a NAKED position, which is far worse than a tracked one. But we alarm and
+        # close it immediately rather than letting it sit behind a stop pretending to be a strategy.
+        phantom = was_flat and fill.order_id in self._voided_closes
         trade = self._sb.apply(fill, exit_reason=reason)
         now_flat = self._sb.slot(gate).is_flat
         if was_flat and not now_flat:
             self._on_slot_opened(gate)
+            if phantom:
+                self._voided_closes.pop(fill.order_id, None)
+                self._notify(
+                    f"⚠ PHANTOM ENTRY CAUGHT — a cancelled CLOSE for {gate} filled anyway "
+                    f"({fill.side} {fill.qty} @ {fill.price}) and opened a position on a flat slot. "
+                    f"Closing it immediately. This is the 2026-08-07 13:30 abs_veto_short_B bug; "
+                    f"seeing this means the cancel lost the race and the backstop caught it.")
+                self._close({"slot": gate, "reason": "PHANTOM_CLOSE"})
         if trade is not None:
             self._on_slot_closed(gate, trade)
         self._persist_slot(gate)             # snapshot (open) or clear (flat) — restart-durable
@@ -307,7 +326,26 @@ class MultiSlotCore:
             pnl_usd=trade["pnl_usd"], fees_usd=trade["fees_usd"],
             exit_reason=trade["exit_reason"], gate=trade["gate"],
         )
-        self._closing.pop(gate, None)
+        # ★★2026-08-07 BUGFIX — CANCEL the in-flight close, do not merely forget it.
+        # This line used to be a bare pop(). If the slot went flat because its own STOP filled while
+        # a MKT close was still working, that close order stayed LIVE at the venue with nothing left
+        # to close — and filled into a BRAND NEW POSITION IN THE OPPOSITE DIRECTION.
+        # Observed 2026-08-07 13:30 (abs_veto_short_B, -$35.50 real money):
+        #   13:30:00.620  MKT BUY placed to close the short   (slot legitimately still short)
+        #   13:30:01.057  the slot's OWN stop fills @29724     -> slot flat, trade booked, coid popped
+        #   13:30:02.074  the orphaned MKT BUY fills @29712.25 -> on_fill sees a FLAT slot, so
+        #                 was_flat=True, closing=False, and it OPENS A LONG on a gate named
+        #                 abs_veto_SHORT. A protective SELL stop was then armed for that phantom long.
+        # Same family as the 08-06 incident: an order outliving the position it belonged to.
+        cl = self._closing.pop(gate, None)
+        if cl:
+            try:
+                self._oe.cancel(cl)          # kill it before it can fill into a fresh position
+            except Exception:
+                pass                          # cancel is best-effort; the guard in on_fill backstops it
+            self._voided_closes[cl] = gate
+            if len(self._voided_closes) > 64:     # bounded — drop the oldest insertion
+                self._voided_closes.pop(next(iter(self._voided_closes)), None)
         self._close_reason.pop(gate, None)
         self._exit_stuck[gate] = 0            # the close completed → clear the wedge-breaker
         self._exit_refires[gate] = 0
@@ -457,10 +495,67 @@ class MultiSlotCore:
             gw.force_reconnect()
             self._exit_refires[gate] = 0         # fresh session → let the re-fire cycle try again
 
+    def owned_stop_coids(self) -> set[str]:
+        """Stop coids the slot book currently depends on — the ONLY stops that must survive an
+        orphan sweep. Anything else carrying our `stp-` prefix belongs to no slot and, per the
+        standing gap CLAUDE.md names ('the desk never asks: does every live STOP have a slot?'),
+        is exactly what fires unattended."""
+        out: set[str] = set()
+        for g in self._gates:
+            if self._sb.slot(g).is_flat:
+                continue
+            stop = self._safeties[g].stop_for(self._cfg.symbol)
+            if stop is not None and stop.coid:
+                out.add(stop.coid)
+        return out
+
     # ── reconcile (the safety invariant) ─────────────────────────────────────
+    # ★★2026-08-07 THE IBKR ACCOUNT IS SHARED AND THIS INVARIANT DID NOT KNOW IT.
+    # The DAY RIDER trades MNQ on clientId 4; the tournament is clientId 0 and receives NONE of its
+    # executions, so reconcile compared its own slot total against the WHOLE account net and read the
+    # day-rider's lots as an unattributable leak. Live at 14:12Z: day-rider opened SHORT 2, tournament
+    # book flat, verdict=drift, HALTED. Unlike the transient 08-06 drift this one CANNOT self-clear —
+    # the position is real and held to 20:40Z — so it sidelines the tournament for 6+ hours AND skips
+    # its entire safety block (max-hold / naked-audit / re-protect / stop-breach all sit behind
+    # != "drift"). The fix is to reconcile against OUR SHARE of the account, not the whole of it.
+    DR_STATE = "/home/alphabot/gazbot7/data/day_rider_state.json"
+    DR_MAX_AGE_S = 180.0          # heartbeat older than this → do NOT believe the claim
+
+    def _foreign_net(self) -> float:
+        """Lots at the venue owned by the DAY RIDER, not by us. Returns 0.0 on ANY doubt.
+
+        ★ FAIL-CLOSED BY CONSTRUCTION. Every failure path returns 0.0, which reproduces the old
+        behaviour exactly (halt on drift). Subtracting a position we are not certain about would
+        MASK A REAL LEAK — the single thing this invariant exists to catch — so the bar for believing
+        the claim is deliberately high: the file must parse, say entered and not closed, carry a
+        usable qty and direction, AND have a heartbeat younger than DR_MAX_AGE_S. A dead, stale or
+        garbled day-rider cannot excuse a venue position; in that case we halt, as before."""
+        try:
+            with open(self.DR_STATE) as fh:
+                st = json.load(fh)
+            if not st.get("entered") or st.get("closed"):
+                return 0.0
+            qty = abs(float(st.get("qty") or 0.0))
+            direction = int(st.get("direction") or 0)
+            if qty <= 0 or direction not in (-1, 1):
+                return 0.0
+            hb = datetime.fromisoformat(str(st.get("heartbeat"))).timestamp()
+            if (datetime.now(UTC).timestamp() - hb) > self.DR_MAX_AGE_S:
+                return 0.0
+            return direction * qty
+        except Exception:
+            return 0.0
+
     def reconcile(self, venue_net: float) -> str:
         """Logical net across slots MUST equal venue truth. On drift → HALT (no new
-        opens) — a lot leaked/appeared at the venue that the slot ledger can't place."""
+        opens) — a lot leaked/appeared at the venue that the slot ledger can't place.
+
+        ★ "Venue truth" means OUR SHARE of a shared account: the day-rider's declared lots are
+        subtracted first (see _foreign_net), because IBKR nets both desks into one number and that
+        difference is another desk's position, not a leak."""
+        foreign = self._foreign_net()
+        if foreign:
+            venue_net = venue_net - foreign
         verdict = self._sb.reconcile(venue_net)
         if verdict == "drift" and not self._halted:
             self._halted = True

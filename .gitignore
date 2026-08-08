@@ -36,3 +36,16 @@ scratch/
 backups/
 data/claim_pin.txt
 data/claim_requests.txt
+
+# ★2026-08-08 (SATURDAY #7, committing the working tree). Scratch space, explicitly NOT history.
+# `scratchpad/` alone was 807MB and nothing ignored it — a "commit everything live" would have put
+# it in the repo. These are working files for one analysis, not desk behaviour.
+scratchpad/
+scratchpad_*.py
+scratchpad_*.npy
+scratch/
+# Point-in-time snapshots taken before an edit. Git IS the revert path once a file is committed;
+# keeping .pre-* copies in history is the thing that made people trust snapshots over the log.
+*.pre-*
+*.rev2-orig
+*.pre-charts

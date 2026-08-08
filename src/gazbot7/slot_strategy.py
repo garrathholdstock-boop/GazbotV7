@@ -22,7 +22,12 @@ import os
 from dataclasses import dataclass, field, replace
 
 from .deciders import (
+    NIPC_ER15_BARS,
+    NIPC_FLAT_BY_S,
+    NIPC_HOLD_CAP_S,
+    NipcTracker,
     Position,
+    _atr,
     chandelier_start_k,
     exit_chandelier,
     exit_chandelier_lock,
@@ -71,6 +76,37 @@ class SlotSpec:
                                            # reprice); the router's DAY-path UP_OFF misses these (0 fires, see
                                            # memory router-exhaustion-short-null) so the cut is at ENTRY on the
                                            # LOCAL regime the selector already reads. Revert: set False.
+    max_hold_s: float = 0.0                # ★2026-08-01 (NIPC): per-slot HARD time cap in seconds, 0 = none
+                                           # (the global cfg.max_hold_minutes stays the outer backstop). NIPC's
+                                           # rule 5 is a 20-min cap — mean hold in the lab was 2.4 min, so this
+                                           # is a tail-cutter, not a normal exit path.
+    flat_by_utc_s: float = 0.0             # ★2026-08-01 (NIPC): seconds-of-day UTC by which this slot must be
+                                           # flat (NIPC = 15:30 UTC), 0 = none. Session-end flatten still applies.
+    # ★2026-08-02 QUIET-TAPE CLIP — the exit split. 0/"" = OFF, so every gate without it is byte-identical
+    # to before. When entry ATR < atr_split the slot uses the `lo_*` exit for the life of the position
+    # (frozen at entry, never re-evaluated mid-trade); at or above it, the normal exit stack runs unchanged.
+    # Evidence (live fills, 250ms ticks, fee $1.50/RT, strip-best-3 + leave-one-day-out on every cell):
+    #   QUIET 22:00-13:30 (n=97, median ATR 17.4pt) — a fixed $40 clip nets +$360, holds at +$244 stripped
+    #     and +$25 on its WORST leave-one-day-out fold, top trade only 11% of net. The WIDE lock-chandelier
+    #     is -$538 and degrades to -$1,232 stripped; as-traded was -$354.
+    #   US 13:30-22:00 (n=144, median ATR 28.4pt) — the opposite: 3.5R nets +$2,022 (+$1,019 stripped,
+    #     +$645 LODO-worst) and wide +$2,611 (+$964 / +$416). A $40 clip there FAILS LODO at -$232.
+    # So the tape decides, and ATR is the mechanism (a trail needs room; on a 17pt ATR there is none).
+    # Keyed on ATR rather than the clock deliberately: a dead US afternoon should clip and a violent
+    # overnight should ride, and an ATR rule gets both right where a clock rule gets both wrong.
+    # Lot A takes a DOLLAR clip, not an R: a fixed $ auto-tightens as ATR rises within the quiet window,
+    # and it beat every R cell there (1.0R -$32, 1.25R -$18 — both fail stripped).
+    atr_split: float = 0.0                 # entry ATR (pt) below which the lo_* exit applies. 0 = off.
+    lo_target_usd: float = 0.0             # Lot A: bank at this $ of open profit (per the slot's own qty)
+    lo_target_r: float = 0.0               # Lot B: bank at this R instead — a fixed clip, NOT a chandelier,
+                                           # because the trail is precisely what hands the money back here
+    lo_floor_usd: float = 0.0              # ★ Lot B DOLLAR FLOOR — takes max(lo_target_r*ATR, this).
+                                           # Without it the two lots INVERT on very quiet tape: Lot A is a
+                                           # fixed $40 (=20pt) while Lot B is 1.75R, and 1.75R < 20pt for any
+                                           # ATR below 11.4 — so the runner would bank BEFORE the scalp and
+                                           # the scale-out is upside down. ATR<11 is ~17% of MNQ minute bars,
+                                           # so this is a live case, not a corner. Floor keeps B strictly the
+                                           # wider leg at every ATR while still scaling up when there is room.
 
 
 def grind_long_short_slots() -> list[SlotSpec]:
@@ -115,9 +151,36 @@ def tournament_slots() -> list[SlotSpec]:
     specs = [
         # LONG
         SlotSpec("grind_long", "grind", "LONG",   # ★2026-07-26 deploy (§356): threshold-chandelier (loose start_k=3.5 until 6.0R, then firm lock_k=0.5) captures the trend tail — +$1,782 full/+$747 wk30, robust 15/15 LODO, BEATS scalp-2R +$508+. ATR≥24 + ER floor DROPPED (deciders); no give-back.
+                 # ★2026-08-08 (operator, SATURDAY #2 / grind-long-revert-atr22-ext30-0808): "ext_hi" DELETED.
+                 # Falls back to gate_grind's own default of 4.0. REV2 · Q1 §10 re-derived it on the tick-honest
+                 # book AND on the 128 live router-gated lots and removes it on BOTH: everything from 3.0 upward
+                 # scores identically (+$5,893 / +$6,081 / +$5,981 / +$6,262) so there is NO optimum to find and
+                 # 2.0 was a $2,210 tax. The live 128 agrees more strongly — the ceiling deleted 12 real lots
+                 # worth +$389 at 50% win. ★ DO NOT PIN 3.0: the earlier card said "ext 2.0 → 3.0", and pinning
+                 # any literal here just re-fits the thing this revert is undoing. Supersedes BUILD #18
+                 # (grind-ext-hi-regime-conditional-0808), which said "do NOT remove it" on the Movement-2
+                 # sat-out-run population — a ceiling judged on exactly the trades it was designed to skip.
+                 # Revert: re-add "ext_hi": 2.0.
+                 #   Superseded rationale, kept for the audit trail: ★2026-08-01 (operator, Saturday window):
+                 #   + ext_hi 2.0 — "don't buy what is already stretched". Cuts ~39% of grind fires; claimed
+                 #   before/after +$1,552 → +$2,830 on replay.
                  params={"slope_min": 0.4, "fast_slope": True}, sizing="conviction", base_size=2,
                  exit="chandelier_lock", chandelier_start_k=3.5, lock_r=6.0, lock_k=0.5, giveback_enabled=False),
         SlotSpec("capitulation_long", "capitulation", "LONG",   # ★2026-07-25 rehab: require_flip=True IS the edge (wait for buyers to step in); give-back off; ATR≥10 + ER ceiling DROPPED (was bug-based). ★2026-07-28: base_size 2→1 (operator) — it's the gate most exposed to fast directional drops (fades a knife); a fast-move stop split its 2 lots (1 at the stop, 1 −28pt deeper) for −$147 07-28. Halve the exposure.
+                 # ★2026-08-02 REVERTED to require_flip=True / 2.0R. The 08-01 change (flip=False, 1.0R) was
+                 # shipped on a BROKEN STATISTIC and is withdrawn. The rehab justified it with "78% of bounces
+                 # reach 1R" and used that as a WIN RATE. Reaching 1R is an MFE measure — it ignores whether the
+                 # STOP came first. Measured on this gate's own live entries against 250ms ticks:
+                 #     "reached 1R" (MFE, ignores ordering) = 14/14 = 100%
+                 #     actually hit +1R BEFORE -1R (the race) =  4/14 =  29%
+                 # Breakeven at a 1.0R target with a 1.0xATR stop is 50%, so 29% is structurally negative. Every
+                 # independent measurement agrees and none is near 78%: the byte-identical shadow twin capit_loose
+                 # (climax 2.5 / dom 0.60 / no-flip / 1.0R) is -$5,250 on 238 fires at 16.8% win, and the live gate
+                 # all-time is -$122 on 24 fires at 37.5%. Same MFE-vs-ordering error found in giveback_grid.py the
+                 # same weekend — easy to make, and it inflates everything it touches.
+                 # Back to the 07-25 rehab config. Do NOT re-propose flip=False/1.0R without an ordering-correct
+                 # win rate. Also drop the capitulation_long cell from data/exit_overrides.json (it pinned Lot A
+                 # to the falsified 1.0R).
                  params={"climax_min": 2.5, "dom_min": 0.6, "require_flip": True},
                  sizing="flat", base_size=1, exit="scalp", target_r=2.0, stop_atr_mult=1.0, giveback_enabled=False),
         SlotSpec("abs_veto_long", "thrust", "LONG",   # thrust + 55s absorption-VETO (tournament.VETO_GATES)
@@ -134,9 +197,27 @@ def tournament_slots() -> list[SlotSpec]:
         SlotSpec("abs_veto_short", "thrust", "SHORT",  # thrust + 55s absorption-VETO (tournament.VETO_GATES)
                  params={"thr": 1.5, "amp_floor": 0.0004}, sizing="flat", base_size=1,
                  exit="scalp", target_r=2.0, stop_atr_mult=1.0),
+        # ★2026-08-01 (operator, Friday M3 greenfield): NIPC — news-impulse pullback continuation, the ONE
+        # brand-new entry that survived the whole robustness battery (+$2,676 · n=171 · 12d · 43.3% · 9/12
+        # days green · 44/44 parameter variants positive · both sides independently green · survives $12/RT
+        # and a 3-pt stop-slip). Two-sided, one slot per side (the abs_veto pattern). Armed 13:00–15:00 UTC
+        # ONLY, OFF in dead-chop (ATR1m<18 AND ER15<0.35), 20-min cap, flat by 15:30 UTC, one position at a
+        # time across BOTH sides + a 2-min cooldown (the shared NipcTracker enforces all of that).
+        # ★ The R is NOT ATR-derived: the decider carries |entry−stop| as entry_atr on the OPEN intent, so
+        # stop_atr_mult=1.0 reproduces the lab's pullback-extreme∓4pt stop exactly. target_r=2.5 is the
+        # 1-lot headline config; under the scaleout slate it becomes Lot A 2.0R / Lot B 2.5R (the PROVEN
+        # pair — fixed 2.5R on Lot B beats the trail by $1,285 here, so Lot B must NOT be a chandelier).
+        # base_size=1: promotion-ladder first live week. NEW GATE — ships benched (gate_switches.env=off).
+        SlotSpec("nipc_long", "nipc", "LONG", params={}, sizing="flat", base_size=1,
+                 exit="scalp", target_r=2.5, stop_atr_mult=1.0, giveback_enabled=False,
+                 risk_budget_usd=0.0, max_hold_s=NIPC_HOLD_CAP_S, flat_by_utc_s=NIPC_FLAT_BY_S),
+        SlotSpec("nipc_short", "nipc", "SHORT", params={}, sizing="flat", base_size=1,
+                 exit="scalp", target_r=2.5, stop_atr_mult=1.0, giveback_enabled=False,
+                 risk_budget_usd=0.0, max_hold_s=NIPC_HOLD_CAP_S, flat_by_utc_s=NIPC_FLAT_BY_S),
     ]
     for s in specs:            # ★2026-07-27: regime-3-exit selector LIVE roster-wide (revert: set False)
-        s.adaptive_exit = True
+        if s.kind != "nipc":   # ★2026-08-01: NIPC is exempt — its exit is a PROVEN fixed 2.0R/2.5R pair
+            s.adaptive_exit = True   # (the regime-3 chandelier is the very thing the lab falsified here)
     return specs
 
 
@@ -147,6 +228,13 @@ def tournament_slots() -> list[SlotSpec]:
 # BIG-RUN gates → A@2.5R + B wide lock-chandelier; FADERS → A@1.5R + B tight k1.5 chandelier.
 # Revert: GAZBOT7_TOURNAMENT_SLATE=tournament (back to the single-position first-to-fire slate).
 _BIG_RUN = frozenset({"grind_long", "abs_veto_short", "abs_veto_long", "exhaustion_short"})
+
+# ★2026-08-01 (NIPC): gates whose (Lot A, Lot B) pair was PROVEN by a sweep, not inherited from the
+# BIG-RUN/FADER default. NIPC's 270-config exit sweep put 2.0R/2.5R at the top (+$5,199 vs +$4,642 for
+# the 1.5R/2.5R prior) and explicitly FALSIFIED a trailing Lot B in this window ($4,642 vs $3,357 at the
+# same Lot A) — so neither built-in default is right for it. data/exit_overrides.json still wins; this is
+# the FAIL-SAFE floor for when that file is missing/malformed.
+_FIXED_PAIR: dict[str, tuple[float, float]] = {"nipc_long": (2.0, 2.5), "nipc_short": (2.0, 2.5)}
 
 # ★2026-07-31 (operator): PER-GATE EXIT OVERRIDES — the regime-flex control panel. gate_switches.env is the
 # on/off (arming) axis; data/exit_overrides.json is the EXIT axis — put ANY gate on scalp (both lots fixed-R,
@@ -179,7 +267,23 @@ def _load_exit_overrides() -> dict:
                 b = float(b)
             elif b not in ("wide", "tight"):
                 continue
-            ok[gate] = {"a_r": a, "b": b}
+            entry = {"a_r": a, "b": b}
+            # ★2026-08-02 OPTIONAL quiet-tape clip: {"atr_split": <pt>, "lo": {"a_usd": <$>, "b_r": <R>}}.
+            # Validated hard and independently of the rest of the entry — a malformed `lo` drops ONLY the
+            # split and leaves the gate's normal A/B intact, so a typo can never disarm an exit.
+            try:
+                sp = float(o.get("atr_split", 0) or 0)
+                lo = o.get("lo") or {}
+                a_usd = float(lo.get("a_usd", 0) or 0)
+                b_r = float(lo.get("b_r", 0) or 0)
+                b_floor = float(lo.get("b_floor_usd", 0) or 0)
+                if sp > 0 and 0 < a_usd <= 500 and 0 < b_r <= 20 and 0 <= b_floor <= 500:
+                    if b_floor and b_floor <= a_usd:      # Lot B must never clip tighter than Lot A
+                        b_floor = 0.0                      # bad floor → drop the floor, keep the split
+                    entry.update(atr_split=sp, lo_a_usd=a_usd, lo_b_r=b_r, lo_b_floor=b_floor)
+            except Exception:
+                pass
+            ok[gate] = entry
         except Exception:
             continue
     return ok
@@ -208,7 +312,18 @@ def scaleout_slots() -> list[SlotSpec]:
         if o:   # operator exit override (data/exit_overrides.json)
             a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
                         exit="scalp", target_r=o["a_r"], stop_atr_mult=1.0, giveback_enabled=False)
-            out += [a, _lot_b(base, o["b"])]
+            b = _lot_b(base, o["b"])
+            if o.get("atr_split"):   # ★2026-08-02 quiet-tape clip — Lot A takes $, Lot B a tighter fixed R
+                a = replace(a, atr_split=o["atr_split"], lo_target_usd=o["lo_a_usd"])
+                b = replace(b, atr_split=o["atr_split"], lo_target_r=o["lo_b_r"],
+                            lo_floor_usd=o.get("lo_b_floor", 0.0))
+            out += [a, b]
+            continue
+        pair = _FIXED_PAIR.get(base.tag)
+        if pair:                     # proven fixed pair (NIPC) — fail-safe when the override file is gone
+            a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
+                        exit="scalp", target_r=pair[0], stop_atr_mult=1.0, giveback_enabled=False)
+            out += [a, _lot_b(base, pair[1])]
             continue
         big = base.tag in _BIG_RUN   # built-in default
         a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
@@ -223,6 +338,13 @@ class SlotStrategy:
         self._vpp = value_per_point
         self._peak: dict[str, float] = {s.tag: 0.0 for s in specs}  # per-slot peak-fav (manage state)
         self._exit_mode: dict[str, str] = {}   # per-slot exit width chosen at entry (adaptive_exit gates)
+        self._exit_lo: dict[str, bool] = {}    # ★2026-08-02 per-slot quiet-tape clip on/off, frozen at entry
+        # ★ NIPC (2026-08-01): ONE tracker shared by the long+short (and _A/_B) sub-slots — rule 6 is
+        # "one position at a time" across BOTH sides, so the state machine must be single, not per-slot.
+        self._nipc_tags = [s.tag for s in specs if s.kind == "nipc"]
+        self._nipc = NipcTracker() if self._nipc_tags else None
+        self._nipc_busy = False
+        self._nipc_fire = None                 # this tick's triggered NipcSetup (consumed by _gate_fires)
 
     @staticmethod
     def _regime_mode(side: str, bars) -> str:
@@ -262,6 +384,8 @@ class SlotStrategy:
                                     footprint.get("bid1_size", 0.0), footprint.get("ask1_size", 0.0),
                                     footprint.get("bid1_price", 0.0), footprint.get("ask1_price", 0.0))
             return sig is not None and sig[0] == spec.side   # (side, entry) tuple
+        elif spec.kind == "nipc":               # news-impulse pullback — the shared tracker fired this tick
+            return self._nipc_fire is not None and self._nipc_fire.side == spec.side
         else:
             e = None
         return e is not None and e.side == spec.side   # direction-gated per slot
@@ -277,9 +401,10 @@ class SlotStrategy:
 
     # ── one decision cycle → per-slot intents ────────────────────────────────
     def decide(self, f, price: float, bars, slotbook, tape_net: float,
-               footprint: dict | None = None) -> list[dict]:
+               footprint: dict | None = None, now_ms: int | None = None) -> list[dict]:
         footprint = footprint or {}
         intents: list[dict] = []
+        self._nipc_step(price, bars, slotbook, now_ms)
         for spec in self._specs:
             slot = slotbook.slot(spec.tag)
             if slot.is_flat:
@@ -295,18 +420,72 @@ class SlotStrategy:
                     if qty > 0:
                         if spec.adaptive_exit:                          # freeze the exit width at entry
                             self._exit_mode[spec.tag] = mode
+                        # ★2026-08-02 quiet-tape clip: decide ONCE, at entry, on the entry ATR — and hold
+                        # it for the life of the position. Re-evaluating mid-trade would let a widening
+                        # tape move the target away from a position that is already green, which is the
+                        # exact give-back this is meant to stop.
+                        if spec.atr_split:
+                            self._exit_lo[spec.tag] = f.atr < spec.atr_split
+                        # ★ NIPC carries its OWN R (|entry − pullback-extreme ∓ 4pt|) as entry_atr, so the
+                        # native STP + exit_scalp land exactly on the lab's stop / 2.0R / 2.5R. Every other
+                        # gate keeps f.atr (unchanged).
+                        eatr = (self._nipc_fire.r_pt if (spec.kind == "nipc" and self._nipc_fire) else f.atr)
                         intents.append({"action": "OPEN", "slot": spec.tag, "gate": spec.tag,
                                         "side": spec.side, "qty": qty, "price": price,
-                                        "meta": {"entry_atr": f.atr,
+                                        "meta": {"entry_atr": eatr,
                                                  "exit_mode": self._exit_mode.get(spec.tag) if spec.adaptive_exit else None}})
             else:
-                reason = self._manage(spec, slot, price)
+                reason = self._manage(spec, slot, price, now_ms)
                 if reason is not None:
                     intents.append({"action": "CLOSE", "slot": spec.tag, "gate": spec.tag,
                                     "reason": reason})
         return intents
 
-    def _manage(self, spec: SlotSpec, slot, price: float) -> str | None:
+    # ── NIPC: drive the shared state machine once per tick, before the slot loop ──────────
+    def _nipc_step(self, price: float, bars, slotbook, now_ms: int | None) -> None:
+        """Fold this tape print into the tracker's 5s bars and test the live half-back trigger.
+        Rule 6 ("one position at a time", 2-min cooldown) is enforced HERE, across both sides:
+        while any nipc sub-slot holds, no impulse is detected and no trigger can fill; the
+        cooldown starts the moment the last sub-slot goes flat. now_ms is required — without a
+        clock NIPC cannot know the window, so it simply never fires (fail-safe)."""
+        self._nipc_fire = None
+        if self._nipc is None or now_ms is None or len(bars) < 6:
+            return
+        busy = any(not slotbook.slot(t).is_flat for t in self._nipc_tags)
+        if self._nipc_busy and not busy:            # the position just closed → rule 6 cooldown
+            self._nipc.note_exit(now_ms)
+        self._nipc_busy = busy
+        self._nipc.on_price(now_ms, price, atr1m=_atr(bars),
+                            er15=efficiency_ratio(bars, NIPC_ER15_BARS), busy=busy)
+        if not busy:
+            self._nipc_fire = self._nipc.trigger(now_ms, price)
+
+    @staticmethod
+    def _opened_ms(slot) -> int | None:
+        """Epoch-ms of this slot's entry fill (``opened_at`` is the venue exec time). None if
+        unparseable — the caller then skips the time-cap rather than cutting on bad data."""
+        from datetime import datetime, timezone
+        if not slot.opened_at:
+            return None
+        try:
+            dt = datetime.fromisoformat(slot.opened_at)
+        except (TypeError, ValueError):
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+
+    def _manage(self, spec: SlotSpec, slot, price: float, now_ms: int | None = None) -> str | None:
+        # ★ TIME exits first (NIPC rule 5: 20-min hard cap + flat by 15:30 UTC). Both are opt-in
+        # per spec (0 = off), so no existing gate's behaviour changes. They pre-empt the profit
+        # exits deliberately — a clock exit is a risk cut, not a P&L decision.
+        if now_ms is not None:
+            if spec.flat_by_utc_s and ((now_ms // 1000) % 86400) >= spec.flat_by_utc_s:
+                return "SESSION_FLAT"
+            if spec.max_hold_s:
+                op = self._opened_ms(slot)
+                if op is not None and (now_ms - op) >= spec.max_hold_s * 1000:
+                    return "TIME_CAP"
         # track this slot's own peak-favourable, then run its exit stack. The native
         # 1-ATR STP (execution half) owns the loss side; here = the managed/profit exits.
         fav = (price - slot.entry_price) if slot.side == "LONG" else (slot.entry_price - price)
@@ -314,6 +493,22 @@ class SlotStrategy:
             self._peak[spec.tag] = fav
         pos = Position(slot.side, slot.entry_price, slot.entry_atr, self._peak[spec.tag])
         reason = None
+        # ★2026-08-02 QUIET-TAPE CLIP — pre-empts the whole normal exit stack when the entry ATR said so.
+        # Deliberately first: on quiet tape the trail IS the leak, so nothing downstream should get to run.
+        # Lot A banks a fixed DOLLAR amount, Lot B a tighter fixed R. The native 1-ATR STP still owns the
+        # loss side, unchanged. Off unless atr_split is set, so no existing gate is touched.
+        if spec.atr_split and self._exit_lo.get(spec.tag):
+            if spec.lo_target_usd and fav * self._vpp * (slot.qty or 1) >= spec.lo_target_usd:
+                return "TARGET"
+            if spec.lo_target_r and slot.entry_atr > 0:
+                # max(R-based, dollar floor) — the floor stops Lot B inverting under Lot A on very
+                # quiet tape (1.75R < the $40 clip for any ATR under 11.4). See lo_floor_usd.
+                tgt_pt = spec.lo_target_r * slot.entry_atr
+                if spec.lo_floor_usd:
+                    tgt_pt = max(tgt_pt, spec.lo_floor_usd / (self._vpp * (slot.qty or 1)))
+                if fav >= tgt_pt:
+                    return "TARGET"
+            return None
         if spec.adaptive_exit:   # regime-3-exit selector (width frozen at entry); native 1-ATR STP owns the loss
             mode = self._exit_mode.get(spec.tag, "tight")
             if mode == "wide":   # aligned trend → WIDE lock-chandelier (ride the run)

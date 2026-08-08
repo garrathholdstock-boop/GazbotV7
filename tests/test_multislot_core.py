@@ -60,6 +60,11 @@ def _core():
     sbrokers = {g: FakeStopBroker(tag=g+"-") for g in GATES}
     safeties = {g: SafetyManager(sbrokers[g]) for g in GATES}
     core = MultiSlotCore(RunConfig(place_live=True), eng, sb, safeties, FakePub(), store)
+    # ★2026-08-07 unit tests must NOT read the LIVE day_rider_state.json. DR_STATE defaults to the
+    # production path, so without this every test silently inherits whatever the real day-rider is
+    # holding right now — two of these tests failed exactly that way when the shared-account
+    # reconcile landed. Point it at nothing; the tests that care set it to a tmp file themselves.
+    core.DR_STATE = "/nonexistent/day_rider_state.json"
     return core, eng, sb, sbrokers, store
 
 
@@ -70,6 +75,7 @@ def _restart(store):
     sbrokers = {g: FakeStopBroker(tag=g + "-") for g in GATES}
     safeties = {g: SafetyManager(sbrokers[g]) for g in GATES}
     core = MultiSlotCore(RunConfig(place_live=True), eng, sb, safeties, FakePub(), store)
+    core.DR_STATE = "/nonexistent/day_rider_state.json"      # same isolation as _core()
     return core, eng, sb, sbrokers
 
 
@@ -594,3 +600,99 @@ def test_pending_not_expired_before_timeout():
     core._pending_mono["grind_long"] = 100.0
     core.expire_pending_opens(now_mono=101.0)                # 1s < timeout → still pending
     assert "grind_long" in core._pending
+
+
+# ── 2026-08-07 REGRESSION: the redundant-close race that opened a phantom position ────────────
+# Live incident 13:30Z, abs_veto_short_B, -$35.50 of real money:
+#   13:30:00.620  MKT BUY placed to close the short (slot legitimately still short)
+#   13:30:01.057  the slot's OWN stop fills        -> slot flat, trade booked, close coid FORGOTTEN
+#   13:30:02.074  the orphaned MKT BUY fills       -> on_fill sees a flat slot, so was_flat=True and
+#                 it OPENED A LONG on a gate named abs_veto_SHORT, then armed a SELL stop for it.
+# The pop() in _on_slot_closed dropped the coid without cancelling the live order.
+
+def test_close_order_is_cancelled_when_the_stop_wins_the_race():
+    """The in-flight CLOSE must be CANCELLED — not merely forgotten — when the stop flattens first."""
+    core, eng, sb, sbrokers, _s = _core()
+    coid = _open(core, eng, "grind_short", "SHORT", 29000.0, atr=20.0)
+    _fill(core, coid, "SELL", 1, 29000.0)
+    assert sb.slot("grind_short").net == -1.0
+
+    core._close({"slot": "grind_short", "reason": "SIGNAL_CLOSE"})
+    close_coid = eng.orders[-1]["coid"]
+    assert core._closing.get("grind_short") == close_coid          # close is in flight
+
+    stop_coid = sbrokers["grind_short"].stops and "grind_short-stp1"
+    _fill(core, stop_coid, "BUY", 1, 29024.0)                      # the STOP wins the race
+    assert sb.slot("grind_short").is_flat
+
+    # THE FIX: the now-redundant close order must have been cancelled at the venue.
+    assert close_coid in eng.cancelled, "redundant CLOSE left live — it will open a phantom position"
+    assert close_coid in core._voided_closes
+
+
+def test_phantom_entry_backstopped_if_the_cancel_loses_the_race():
+    """If the cancelled close fills anyway, it must not be left sitting as a fresh position."""
+    core, eng, sb, sbrokers, _s = _core()
+    coid = _open(core, eng, "grind_short", "SHORT", 29000.0, atr=20.0)
+    _fill(core, coid, "SELL", 1, 29000.0)
+    core._close({"slot": "grind_short", "reason": "SIGNAL_CLOSE"})
+    close_coid = eng.orders[-1]["coid"]
+    _fill(core, "grind_short-stp1", "BUY", 1, 29024.0)             # stop flattens the slot
+    assert sb.slot("grind_short").is_flat
+
+    n_orders_before = len(eng.orders)
+    _fill(core, close_coid, "BUY", 1, 29012.0)                     # cancel lost — it fills anyway
+
+    # It does open (an untracked contract would be NAKED, which is worse) but must be closed at once.
+    assert len(eng.orders) > n_orders_before, "phantom position left open with no closing order"
+    assert eng.orders[-1]["type"] == "MKT"
+    assert core._close_reason.get("grind_short") == "PHANTOM_CLOSE"
+
+
+# ── 2026-08-07 REGRESSION: shared-account reconcile (the day-rider halt) ──────────────────────
+# The IBKR account is shared with the DAY RIDER (clientId 4). The tournament sees none of its
+# executions, so reconcile read its 2 lots as a leak and HALTED — for 6+ hours, since the position
+# is real and held to 20:40Z. Reconcile must compare against OUR SHARE of the account net.
+
+def _dr_state(tmp_path, **kw):
+    import json as _j
+    from datetime import UTC as _U, datetime as _dt
+    d = {"entered": True, "closed": False, "qty": 2.0, "direction": -1,
+         "heartbeat": _dt.now(_U).isoformat()}
+    d.update(kw)
+    p = tmp_path / "day_rider_state.json"
+    p.write_text(_j.dumps(d))
+    return str(p)
+
+
+def test_reconcile_subtracts_the_day_riders_declared_lots(tmp_path):
+    core, _e, _sb, _s, _st = _core()
+    core.DR_STATE = _dr_state(tmp_path)                 # day-rider is SHORT 2
+    # tournament holds nothing; the account nets -2 because of the OTHER desk
+    assert core.reconcile(-2.0) == "match", "shared-account position misread as a leak"
+    assert core._halted is False
+
+
+def test_reconcile_still_halts_on_a_real_leak_alongside_the_day_rider(tmp_path):
+    """The invariant must survive the fix: a genuine extra lot still halts."""
+    core, _e, _sb, _s, _st = _core()
+    core.DR_STATE = _dr_state(tmp_path)                 # day-rider SHORT 2
+    assert core.reconcile(-3.0) == "drift", "a real leak was masked by the day-rider subtraction"
+    assert core._halted is True
+
+
+def test_reconcile_does_not_trust_a_stale_day_rider(tmp_path):
+    """A stale heartbeat must NOT excuse a venue position — fail closed."""
+    from datetime import UTC as _U, datetime as _dt, timedelta as _td
+    old = (_dt.now(_U) - _td(seconds=600)).isoformat()
+    core, _e, _sb, _s, _st = _core()
+    core.DR_STATE = _dr_state(tmp_path, heartbeat=old)
+    assert core.reconcile(-2.0) == "drift", "stale day-rider claim was trusted"
+
+
+def test_reconcile_ignores_a_flat_or_garbled_day_rider(tmp_path):
+    core, _e, _sb, _s, _st = _core()
+    core.DR_STATE = _dr_state(tmp_path, entered=False)
+    assert core.reconcile(-2.0) == "drift"
+    core.DR_STATE = str(tmp_path / "nope.json")          # missing file
+    assert core.reconcile(-2.0) == "drift"

@@ -77,7 +77,27 @@ ENTRY_CUTOFF_MIN = 15 * 60
 # Moving it to 22:00 Paris instead would cost $2,309, so 20:40 is the right point on that curve.
 FLAT_UTC_MIN = 20 * 60 + 40
 HALT_UTC_MIN = 21 * 60             # the venue closes here; nothing can be done after it
-ARM_PT = 150.0                     # trail arms once this far ahead
+# ★★2026-08-07 ATR-SCALED TRAIL (operator: "deploy the atr trail"). Backtested over 35 detected
+# sessions 06-22..08-07, every rule scored on IDENTICAL entries so the RANKING is the trustworthy part:
+#     trail 2xATR armed at 4xATR ....... $7,341   strip-best $6,184  strip-best-3 $4,109  25/35 green
+#     hold, no exit at all ............. $6,544   strip-best $4,760  strip-best-3 $1,467  23/35
+#     FIXED trail 100pt armed +150pt ... $3,732   strip-best $2,990  strip-best-3 $1,583  25/35
+# Both halves positive for the ATR rule (H1 $4,369 / H2 $2,972), so it is not one half carrying it.
+# ★ THE FIX IS THE ARMING, NOT THE TRAIL. A FIXED +150pt arm is a threshold a losing trade can never
+#   reach: on 2026-08-07 the live rider sat -252pt and the trail NEVER armed, so it rode to the clock.
+#   On a quiet day 150pt is unreachable; on a violent day it arms on noise. At 4xATR it arms when the
+#   DAY says the move is real.
+# ⚠ HONEST CAVEAT: the lab's entries are systematically EARLIER than live — validating on 08-07 the lab
+#   detected 14:04 @29619 where the live service detected 14:12 @29567 (identical data, 5234 rows both).
+#   Cause: efficiency OSCILLATES across the 0.15 floor (0.157->0.114->0.150->0.158 in 8 min) and the lab
+#   takes the first crossing while live samples once a minute on a partial bar. ABSOLUTE totals are
+#   optimistic; the RANKING is unaffected because all rules share the entries. Deployed on the ranking.
+# REVERT: set USE_ATR_TRAIL = False — the fixed constants below are retained and still used as the
+# fallback whenever the frozen entry ATR is unavailable.
+USE_ATR_TRAIL = True
+ARM_ATR_MULT = 4.0                 # arm the trail once this many ATR ahead
+TRAIL_ATR_MULT = 2.0               # then trail this many ATR off the peak
+ARM_PT = 150.0                     # fallback: trail arms once this far ahead
 TRAIL_PT = 100.0
 VENUE_STOP_PT = 600.0              # last-resort only; see docstring note 2
 HEARTBEAT_STALE_S = 180
@@ -163,9 +183,20 @@ def should_ask_exit(direction: int, entry: float, peak: float, price: float, atr
     return direction * (peak - price) >= EXIT_ASK_ATR_MULT * atr
 
 
-def trail_level(direction: int, entry: float, peak: float) -> float | None:
-    """The trail, or None while it is not yet armed. Pure, so it is unit-testable."""
+def trail_level(direction: int, entry: float, peak: float,
+                arm_atr: float = 0.0) -> float | None:
+    """The trail, or None while it is not yet armed. Pure, so it is unit-testable.
+
+    ``arm_atr`` is the ATR **frozen at entry** — deliberately NOT ``entry_atr``, which the tick loop
+    overwrites with the LIVE atr every pass (it is the reversal-ask input, despite the name). Scaling
+    the trail off a moving number would be a different rule from the one that was backtested, which is
+    exactly the live/lab divergence this desk keeps getting bitten by. Falls back to the fixed
+    point-based rule whenever the frozen ATR is missing (old state files, restarts, atr unavailable)."""
     ahead = direction * (peak - entry)
+    if USE_ATR_TRAIL and arm_atr and arm_atr > 0:
+        if ahead < ARM_ATR_MULT * arm_atr:
+            return None
+        return peak - direction * TRAIL_ATR_MULT * arm_atr
     if ahead < ARM_PT:
         return None
     return peak - direction * TRAIL_PT
@@ -293,7 +324,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # qty stays OURS; venue_net is recorded alongside as an observation, so a divergence
             # between the two is visible in state instead of silently overwriting our position.
             out.update(entry=entry, peak=peak, direction=d, qty=own_qty, venue_net=net)
-            tl = trail_level(d, entry, peak)
+            arm_atr = float(st.get("arm_atr") or 0.0)
+            out["arm_atr"] = arm_atr            # carry it forward untouched every tick
+            tl = trail_level(d, entry, peak, arm_atr)
             out["trail"] = tl
             out["ahead_pt"] = round(d * (px - entry), 1)
 
@@ -401,7 +434,10 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         stop_px = round(fill - d * VENUE_STOP_PT, 2)
         ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", LOTS, stop_px))
         out.update(entered=True, entry=fill, peak=fill, direction=d, qty=LOTS,
-                   entry_atr=round(r.atr, 2), venue_stop=stop_px,
+                   entry_atr=round(r.atr, 2),
+                   # ★ FROZEN at entry and never rewritten — entry_atr above is overwritten every
+                   #   tick with the live ATR, so the trail needs its own immutable copy.
+                   arm_atr=round(r.atr, 2), venue_stop=stop_px,
                    note=f"ENTERED {LOTS} lots {r.direction} @ {fill}")
         if notify:
             notify(f"DAY RIDER ENTERED {LOTS} lots {r.direction} @ {fill:.2f} "

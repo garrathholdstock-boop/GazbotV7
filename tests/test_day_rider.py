@@ -160,3 +160,37 @@ def test_asia_block_window_and_semantics():
     from gazbot7 import day_rider as dr
     assert dr.ENTRY_CUTOFF_MIN > 7 * 60
     assert dr.FLAT_UTC_MIN > 7 * 60
+
+
+# ── 2026-08-07 ATR-SCALED TRAIL ───────────────────────────────────────────────────────────────
+# A FIXED +150pt arm is a threshold a losing trade can never reach: on 08-07 the live rider sat
+# -252pt and the trail never armed, so it rode to the clock. Backtest over 35 detected sessions:
+# 2xATR trail armed at 4xATR = $7,341 vs $3,732 for the fixed rule, on identical entries.
+
+def test_atr_trail_arms_on_atr_not_a_fixed_point_count():
+    from gazbot7.day_rider import trail_level
+    # ATR 20 -> arms at 4x20 = 80pt ahead, well before the old fixed 150pt bar
+    assert trail_level(1, 100.0, 179.0, 20.0) is None          # 79pt ahead — not yet
+    tl = trail_level(1, 100.0, 181.0, 20.0)                    # 81pt ahead — armed
+    assert tl is not None and tl == 181.0 - 2.0 * 20.0         # trails 2xATR off the peak
+
+
+def test_atr_trail_scales_with_volatility():
+    """The whole point: the same point-move arms on a quiet day and not on a violent one."""
+    from gazbot7.day_rider import trail_level
+    quiet, violent = 10.0, 50.0
+    assert trail_level(1, 100.0, 145.0, quiet) is not None      # 45pt ahead vs 4x10=40 -> armed
+    assert trail_level(1, 100.0, 145.0, violent) is None        # same move vs 4x50=200 -> not armed
+
+
+def test_atr_trail_falls_back_to_fixed_when_frozen_atr_missing():
+    """Old state files / restarts / no atr must keep the previous behaviour, never crash."""
+    from gazbot7.day_rider import ARM_PT, TRAIL_PT, trail_level
+    assert trail_level(1, 100.0, 100.0 + ARM_PT - 1, 0.0) is None
+    assert trail_level(1, 100.0, 100.0 + ARM_PT + 1, 0.0) == (100.0 + ARM_PT + 1) - TRAIL_PT
+
+
+def test_atr_trail_mirrors_for_a_short():
+    from gazbot7.day_rider import trail_level
+    tl = trail_level(-1, 100.0, 100.0 - 81.0, 20.0)            # 81pt ahead on a short
+    assert tl is not None and tl == 19.0 + 2.0 * 20.0          # trail sits ABOVE the peak
