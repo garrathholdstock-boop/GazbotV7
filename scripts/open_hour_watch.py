@@ -94,6 +94,17 @@ ALIGNED = {"UP": ("grind_long", "abs_veto_long"), "DOWN": ("abs_veto_short",)}
 OPEN_FROM, OPEN_TO = (13, 30), (14, 30)        # UTC — every minute
 PM_FROM, PM_TO = (14, 30), (20, 0)             # UTC — every 3rd minute (afternoon fade window)
 PM_EVERY_MIN = 3
+# ★★2026-08-07 (operator: "start it at 0700 utc") — THE PRE-OPEN / LONDON WINDOW.
+# WHY: on 2026-08-07 a 250pt run broke at 12:30 UTC with ALL FOUR arm legs passing, on the desk's own
+# signal journal (ER30 0.3525>=0.35, ATR 24.32>=18, bias +142 UP>=40, new session high TAKEN). This
+# watcher would have armed grind_long + abs_veto_long at 12:31 — while price was still inside grind's
+# ext_hi=2.0 anti-chase ceiling, i.e. while the entry was still available. It did not, for exactly one
+# reason: its window began at 13:30, sixty minutes later. Claude WAS awake (router_watch fired the
+# BREAK at 12:30:16, 19s in) and still armed 15 minutes late, by which point extension was 6.11 ATR
+# and grind was blocked by its own ceiling. FOUR INEQUALITIES BEAT AN ATTENTIVE AGENT.
+# London (07:00-13:00) is also the desk's ONLY positive session block (+$0.70/tr, n=1516).
+AM_FROM, AM_TO = (7, 0), (13, 30)              # UTC — ARITHMETIC every minute; model every 3rd
+AM_MODEL_EVERY_MIN = 3
 
 
 def sh(cmd: str, timeout: int = 60) -> str:
@@ -110,6 +121,8 @@ def in_window(now: dt.datetime) -> str | None:
     if now.weekday() > 4:
         return None
     hm = (now.hour, now.minute)
+    if AM_FROM <= hm < AM_TO:
+        return "am"                 # every minute — the ARM check is arithmetic and cheap
     if OPEN_FROM <= hm < OPEN_TO:
         return "open"
     if PM_FROM <= hm < PM_TO:
@@ -329,6 +342,29 @@ def main() -> int:
         print(ctx[:3000])
         return 0
 
+    # ── ARM FIRST, on arithmetic, BEFORE the model is even CALLED ───────────────────────────────
+    # ★★2026-08-07 REORDERED. This block used to sit AFTER the `claude -p` subprocess, which has a
+    # 200s timeout — so although arming never DEPENDED on the verdict, it still WAITED on it, and a
+    # slow round-trip delayed a confirmed break's arming by up to three minutes. On 08-07 the entry
+    # window for grind_long was ~5 minutes wide (until extension passed its ext_hi=2.0 ceiling), so
+    # that wait is the difference between arming and missing. The trio is the authority; the model's
+    # prose is logged alongside but can neither cause nor block an arming. Nothing about the decision
+    # changed here — only that it now happens FIRST, in milliseconds.
+    d = parse_desk(desk)
+    ok, trio = trend_break(d)
+    armed = arm_gates(d["dir"], trio, now) if (ok and d and not a.dry_run) else []
+
+    # ── MODEL VERDICT (alerting only) ───────────────────────────────────────────────────────────
+    # ★ Throttled in the AM window: the arithmetic arm check above runs EVERY minute (it is a couple
+    # of file reads), but 07:00-13:30 at one model call a minute would be ~390 calls/day for prose we
+    # only act on occasionally. Every 3rd minute matches the PM cadence — EXCEPT when the trio just
+    # armed something, where we always want the narrative attached to the alert.
+    if phase == "am" and not armed and now.minute % AM_MODEL_EVERY_MIN != 0:
+        with open(RUNLOG, "a") as fh:
+            fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} [am] TRIO {'PASS' if ok else 'fail'} {trio} "
+                     f"(model skipped — off-cadence)\n")
+        return 0
+
     try:
         r = subprocess.run([CLAUDE, "-p", PROMPT + ctx, "--allowedTools", ""],
                            capture_output=True, text=True, timeout=200,
@@ -338,15 +374,9 @@ def main() -> int:
         v = json.loads(raw[s:e + 1])
     except Exception as ex:
         with open(RUNLOG, "a") as fh:
-            fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} SKIP verdict failed: {ex}\n")
+            fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} SKIP verdict failed: {ex}"
+                     f"{' (BUT ARMED ' + ','.join(armed) + ')' if armed else ''}\n")
         return 0
-
-    # ── ARM FIRST, on arithmetic, BEFORE the model's verdict is even consulted ──────────────────
-    # Deliberate ordering: the trio is the authority. If it passes we arm and tell the operator; the
-    # model's prose is logged alongside but cannot block it, and equally cannot cause it.
-    d = parse_desk(desk)
-    ok, trio = trend_break(d)
-    armed = arm_gates(d["dir"], trio, now) if (ok and d and not a.dry_run) else []
     with open(RUNLOG, "a") as fh:
         fh.write(f"{now:%Y-%m-%dT%H:%M:%SZ} [{phase}] TRIO {'PASS' if ok else 'fail'} {trio}"
                  f"{' ARMED ' + ','.join(armed) if armed else ''}\n")

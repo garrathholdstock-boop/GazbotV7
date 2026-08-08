@@ -31,7 +31,12 @@ SINCE, UNTIL = "2026-07-19 22:00:00", "2026-07-24 21:00:00"
 L, B, STOP, ARM, TRAIL = 24, 5.0, 40.0, 20.0, 20.0
 CAP_S, COOL = 900, 900           # 15-min time-cap, 15-min cooldown
 NEWS_LO, NEWS_HI = 13, 15        # hour_UTC window [13,15)
-FEE, VPP = 5.0, 2.0
+FEE, VPP = 1.50, 2.0   # ★2026-08-02 COST FIX (operator): FEE was 5.0 — 3.3x the real commission.
+# Venue truth: MNQ is $1.50 per ROUND TRIP ($0.75/side) — all 487 closed trades in data/gazbot7.db carry
+# fees_usd = 1.50 exactly. The 5.0 folded unmodelled STOP slippage into the fee; keep slippage a SEPARATE
+# explicit term (scripts/grave_newsfade.py documents the same fix on 2026-07-25).
+# ⚠ ANY CONCLUSION THIS SCRIPT PRODUCED BEFORE THIS DATE WAS COMPUTED AT $5/RT — re-run before citing it.
+# Revert: set FEE back to 5.0.
 
 
 def load(con):

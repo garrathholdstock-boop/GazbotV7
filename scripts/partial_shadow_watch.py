@@ -104,8 +104,12 @@ def _iso_week(ms):
 def live_grind_trades(since_iso, until_iso):
     c = sqlite3.connect(STORE); c.row_factory = sqlite3.Row
     rows = c.execute(
+        # ★2026-08-08 FIX: multi-slot renamed the gate to 'grind_long_A'/'grind_long_B' on 07-29,
+        # so the old exact match went blind. One ENTRY = one A row + one B row at the same instant;
+        # this watch reprices ONE lot's path and scales to a 2-lot basis itself, so take Lot A as
+        # the canonical per-entry record (deduped) and never double-count the pair.
         "SELECT opened_at, closed_at, entry_price, pnl_usd FROM trades "
-        "WHERE symbol='MNQ' AND gate='grind_long' AND side='LONG' "
+        "WHERE symbol='MNQ' AND gate IN ('grind_long','grind_long_A') AND side='LONG' "
         "AND closed_at>=? AND closed_at<=? ORDER BY opened_at", (since_iso, until_iso)).fetchall()
     c.close()
     return rows

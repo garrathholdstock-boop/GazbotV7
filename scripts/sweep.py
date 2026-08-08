@@ -41,8 +41,13 @@ _RANK = {OK: 0, WARN: 1, CRIT: 2}
 _CRIT_SERVICES = ("gazbot7-md", "alphabot-gateway")   # always-on infra
 _DESK_PRIMARY = "gazbot7-tournament"                   # the live desk
 _DESK_LEGACY = ("gazbot7-core", "gazbot7-strategy")    # retired single-position desk (revert target)
-_SOFT_SERVICES = ("gazbot7-shadow", "gazbot7-web")
+# ★2026-08-04 gazbot7-depth-capture added. It ran for three weeks as alphabot-depth-capture in the
+# retired V5 tree where NOTHING swept it — a silent death would have stopped the 20-day book history
+# that every L2 study depends on, and no check would have fired. SOFT because the desk trades fine
+# without it (no gate reads depth yet); it is research/verification input, not the order path.
+_SOFT_SERVICES = ("gazbot7-shadow", "gazbot7-web", "gazbot7-depth-capture")
 _RESTART_STORM = 3   # NRestarts >= this since boot = flapping
+DEPTH_PATH = os.environ.get("DEPTH_DB", "/home/alphabot/gazbot7/data/depth.db")
 
 
 def _worst(*s: str) -> str:
@@ -176,9 +181,35 @@ def check_capture(cfg: RunConfig, now: datetime) -> dict:
     if tick_age > 60:
         status = _worst(status, WARN)
         notes.append(f"ticks stale {tick_age:.0f}s")
-    detail = f"capture OK (5s {bar_age:.0f}s, tick {tick_age:.0f}s)" if status == OK else "; ".join(notes)
+    # ★2026-08-04 L2 DEPTH FRESHNESS. An ACTIVE gazbot7-depth-capture unit is not proof it is
+    # capturing — the same trap as the router's full-roster pin, which logged "no change" for 411 ticks
+    # while doing nothing. So check the DATA, not the process: depth_capture dedups a static book and
+    # flushes every 1s, so a genuinely live MNQ book should never be more than a few seconds behind
+    # during a session. WARN only — no gate reads depth yet, so a gap costs research, not trades.
+    depth_age = None
+    try:
+        dcon = sqlite3.connect(f"file:{DEPTH_PATH}?mode=ro", uri=True, timeout=2.0)
+        try:
+            r = dcon.execute("SELECT max(ts_ms) FROM depth_snap WHERE symbol=?", (cfg.symbol,)).fetchone()
+        finally:
+            dcon.close()
+        if r and r[0]:
+            depth_age = now_s - r[0] / 1000
+            if depth_age > 120:
+                status = _worst(status, WARN)
+                notes.append(f"L2 depth stale {depth_age:.0f}s")
+        else:
+            status = _worst(status, WARN)
+            notes.append("L2 depth: no rows for symbol")
+    except Exception as e:
+        status = _worst(status, WARN)
+        notes.append(f"L2 depth unreadable: {e}")
+    d_txt = f", L2 {depth_age:.0f}s" if depth_age is not None else ", L2 n/a"
+    detail = (f"capture OK (5s {bar_age:.0f}s, tick {tick_age:.0f}s{d_txt})"
+              if status == OK else "; ".join(notes))
     return {"status": status, "detail": detail, "bar_age": round(bar_age, 1),
-            "tick_age": round(tick_age, 1), "market_open": market_open}
+            "tick_age": round(tick_age, 1), "market_open": market_open,
+            "depth_age": round(depth_age, 1) if depth_age is not None else None}
 
 
 def check_execution(store, now: datetime) -> dict:
@@ -221,7 +252,11 @@ def check_position(store, core: dict) -> dict:
 
 
 def check_killswitch(cfg: RunConfig, store, core: dict, now: datetime) -> dict:
-    day_pnl, day_n, day_w = pnl.day(store, cfg.symbol, now)
+    # ★2026-08-07 TWO DESKS, TWO NUMBERS. The killswitch and the "is the desk working?" question are
+    # about the TOURNAMENT's book; the day-rider is a separate strategy whose single multi-hour trade
+    # can swing more than 20 scalps combined and would otherwise mask the desk entirely.
+    day_pnl, day_n, day_w = pnl.day(store, cfg.symbol, now, desk="tournament")
+    dr_pnl, dr_n, dr_w = pnl.day(store, cfg.symbol, now, desk="day_rider")
     tail = store.execute(
         "SELECT pnl_usd FROM trades WHERE symbol=? AND exit_reason NOT IN ('ADOPT_FLATTEN') "
         "ORDER BY id DESC LIMIT 20", (cfg.symbol,)
@@ -244,7 +279,10 @@ def check_killswitch(cfg: RunConfig, store, core: dict, now: datetime) -> dict:
         notes.append(f"loss streak {streak} >= {cfg.loss_streak_halt}")
     detail = (f"day ${day_pnl} ({day_w}/{day_n}W), streak {streak} — headroom OK"
               if status == OK else "; ".join(notes))
-    return {"status": status, "detail": detail, "day_pnl": day_pnl, "day_trades": day_n,
+    if dr_n:
+        detail += f" | DAY-RIDER ${dr_pnl} ({dr_w}/{dr_n})"
+    return {"status": status, "day_rider_pnl": dr_pnl, "day_rider_trades": dr_n,
+            "detail": detail, "day_pnl": day_pnl, "day_trades": day_n,
             "day_wins": day_w, "loss_streak": streak}
 
 
@@ -309,6 +347,46 @@ def check_storage(cfg: RunConfig) -> dict:
 
 
 # ── driver ──────────────────────────────────────────────────────────────────
+_LIVE_BEHAVIOUR_PATHS = (
+    "data/exit_overrides.json",       # the exit ladder — untracked once, and 07-31→08-02 is gone
+    "src/gazbot7/deciders.py",        # ATR/ER floors, ceilings, bands
+    "src/gazbot7/slot_strategy.py",   # the slate: gates, entry params, sizing
+    "src/gazbot7/multislot_core.py",  # the order path and every safety branch
+)
+
+
+def check_config_committed(repo: str = "/home/alphabot/gazbot7") -> dict:
+    """★2026-08-08 (SATURDAY #7). Uncommitted live behaviour is now a finding, not a silent note.
+
+    `config_journal.jsonl` has stamped `exit_overrides_uncommitted: true` at every startup since
+    08-04 and NOTHING consumed it, while five live behaviours existed only as working-tree edits.
+    An uncommitted change cannot be diffed, reverted or attributed — exactly what made the
+    07-31→08-02 exit ladder unrecoverable, which is the incident the journal was built for.
+
+    WARN, not CRIT, deliberately: a dirty tree is a bookkeeping failure, not an order-path failure,
+    and a CRIT here would train the operator to ignore a red sweep on a desk that is trading fine
+    ([[pipeline-health-monitor-the-mechanism]] — every alarm must mean something).
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", repo, "status", "--porcelain", "--", *_LIVE_BEHAVIOUR_PATHS],
+            capture_output=True, text=True, timeout=10)
+        head = subprocess.run(["git", "-C", repo, "rev-parse", "--short", "HEAD"],
+                              capture_output=True, text=True, timeout=10).stdout.strip() or "?"
+        if out.returncode != 0:
+            return {"status": WARN, "dirty": None,
+                    "detail": f"git status failed: {out.stderr.strip()[:120]}"}
+        dirty = [ln[3:].strip() for ln in out.stdout.splitlines() if ln.strip()]
+        if not dirty:
+            return {"status": OK, "dirty": [], "head": head,
+                    "detail": f"live-behaviour files all committed @ {head}"}
+        return {"status": WARN, "dirty": dirty, "head": head,
+                "detail": (f"{len(dirty)} live-behaviour file(s) UNCOMMITTED @ {head}: "
+                           f"{', '.join(dirty)} — cannot be diffed, reverted or attributed")}
+    except Exception as e:
+        return {"status": WARN, "dirty": None, "detail": f"config-committed check failed: {e}"}
+
+
 def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict:
     cfg = cfg or RunConfig()
     now = now or datetime.now(UTC)
@@ -326,6 +404,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "recording": check_recording(cfg, store, now),
             "shadow": check_shadow(cfg, now),
             "storage": check_storage(cfg),
+            "config": check_config_committed(),
         }
     finally:
         store.close()

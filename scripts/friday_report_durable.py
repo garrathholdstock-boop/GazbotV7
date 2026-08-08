@@ -85,9 +85,18 @@ def main():
     msg = json.dumps({"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": prompt}]}}) + "\n"
     done = False   # bound BEFORE the try: an exception in Popen must not NameError the exit-code path
     try:
-        p = subprocess.Popen([CLAUDE, "-p", "--input-format", "stream-json", "--output-format", "stream-json",
+        # ★★2026-08-07 --verbose IS MANDATORY and its absence killed the 08-07 run.
+        # The CLI now errors "When using --print, --output-format=stream-json requires --verbose" and
+        # exits rc=1 in seconds. This script worked on 07-31; the claude CLI was updated to 2.1.221
+        # since, and nothing re-tested the invocation — a dependency changed under a script that only
+        # runs once a week. ⚠ stderr was DEVNULL, so the error was INVISIBLE: the log said only
+        # "claude session exited early (rc=1)" with no reason. stderr now goes to a file.
+        err_path = f"{SEC}/claude_stderr.txt"
+        _err = open(err_path, "w")
+        p = subprocess.Popen([CLAUDE, "-p", "--verbose", "--input-format", "stream-json",
+                              "--output-format", "stream-json",
                               "--allowedTools", "Bash", "Workflow", "Read", "Write", "Edit", "Agent", "Task"],
-                             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True, cwd=GB, env=ENV)
+                             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=_err, text=True, cwd=GB, env=ENV)
         p.stdin.write(msg); p.stdin.flush()          # send prompt, KEEP stdin open (session persists)
         t0 = time.time()
         while time.time() - t0 < MAX_S:
@@ -96,7 +105,13 @@ def main():
                 # give Phase-7 proofread time to finish its Rev2 rewrite, then finish
                 time.sleep(600); done = True; break
             if p.poll() is not None:                          # session died early = the bug recurred
-                log(f"claude session exited early (rc={p.returncode}) — report not built"); break
+                try:
+                    _err.flush()
+                    tail = open(err_path).read()[-400:].replace("\n", " | ")
+                except Exception:
+                    tail = "(stderr unreadable)"
+                log(f"claude session exited early (rc={p.returncode}) — report not built · stderr: {tail}")
+                break
         try:
             p.stdin.close()
             p.wait(timeout=60)

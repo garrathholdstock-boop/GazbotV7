@@ -21,7 +21,14 @@ import numpy as np
 CAP = "/home/alphabot/gazbot7/data/capture.db"
 SINCE, UNTIL = "2026-07-19 22:00:00", "2026-07-24 21:00:00"
 W, TH, STOP, ARM, TRAIL, HOLD_CAP = 60, 150.0, 20.0, 12.0, 12.0, 1200
-FEE, VPP = 5.0, 2.0
+FEE, VPP = 1.50, 2.0   # ★2026-08-02 COST FIX (operator): FEE was 5.0 — 3.3x the real commission.
+# Venue truth: MNQ is $1.50 per ROUND TRIP ($0.75/side) — all 487 closed trades in data/gazbot7.db carry
+# fees_usd = 1.50 exactly. The 5.0 is a legacy figure that folded unmodelled STOP slippage into the fee
+# (see scripts/grave_newsfade.py, which documents the same fix on 2026-07-25 and keeps slippage a SEPARATE
+# explicit term). A fixed per-trade fee is a REGRESSIVE tax on thin-edge/high-fire ideas: the same wrong
+# constant made the NIPC replay read +$264 when the true figure was +$820, and flipped its verdict.
+# ⚠ ANY CONCLUSION THIS SCRIPT PRODUCED BEFORE THIS DATE WAS COMPUTED AT $5/RT — re-run before citing it.
+# Revert: FEE, VPP = 5.0, 2.0.
 DELAYS = [0, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]   # 0 = unvetoed baseline
 
 

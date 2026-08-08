@@ -13,17 +13,54 @@ import numpy as np
 import pandas as pd
 import duckdb
 from types import SimpleNamespace
-TICKS="/home/alphabot/alphabot2/data/ticks.db"; CAP="/home/alphabot/gazbot7/data/capture.db"
+import os, glob
+# The V5 sqlite ticks.db was retired to parquet (2026-08-05) and capture.db keeps only ~5 trading
+# days, so the durable tape is a 3-source union: V5 parquet archive -> nightly tape mirror -> capture.db.
+# Precedence per DAY is capture > tape-mirror > v5-archive (freshest wins, no double-count).
+V5_TICKS="/home/alphabot/gazbot7/data/v5_parquet/ticks/trade_tick.parquet"
+TAPE_DIR="/home/alphabot/gazbot7/data/tape/ticks"
+CAP="/home/alphabot/gazbot7/data/capture.db"
 
-def load(since="2026-07-05 22:00:00", until="2026-07-24 21:00:00", flw=60):
-    con=duckdb.connect(); con.execute(f"ATTACH '{TICKS}' AS a (TYPE sqlite, READ_ONLY)"); con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
+def _cap_days(con):
+    try:
+        return {str(r[0]) for r in con.execute(
+            "SELECT DISTINCT CAST(to_timestamp(ts_ms/1000) AS DATE) FROM c.ticks WHERE symbol='MNQ'").fetchall()}
+    except Exception:
+        return set()
+
+def sources(symbol="MNQ"):
+    """Per-day provenance of the unified tape: {day: 'capture'|'tape'|'v5'}."""
+    con=duckdb.connect(); con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
+    out={d:"capture" for d in _cap_days(con)}
+    for p in sorted(glob.glob(f"{TAPE_DIR}/{symbol}/*.parquet")):
+        d=os.path.basename(p)[:-8]
+        out.setdefault(d,"tape")
+    if os.path.exists(V5_TICKS):
+        for r in con.execute(f"SELECT DISTINCT CAST(to_timestamp(ts_ms/1000) AS DATE) FROM read_parquet('{V5_TICKS}') WHERE symbol='{symbol}'").fetchall():
+            out.setdefault(str(r[0]),"v5")
+    con.close(); return dict(sorted(out.items()))
+
+def load(since="2026-07-05 22:00:00", until="2026-08-08 21:00:00", flw=60, symbol="MNQ"):
+    con=duckdb.connect(); con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
     lo=int(con.execute(f"SELECT epoch(TIMESTAMP '{since}')").fetchone()[0]); hi=int(con.execute(f"SELECT epoch(TIMESTAMP '{until}')").fetchone()[0])
-    cut=int(con.execute("SELECT min(ts_ms) FROM c.ticks WHERE symbol='MNQ'").fetchone()[0])  # ms
-    con.execute(f"""CREATE TABLE u AS
-      SELECT ts_ms, price, size, aggressor FROM a.trade_tick WHERE symbol='MNQ' AND ts_ms>={lo*1000} AND ts_ms<{cut}
-      UNION ALL
-      SELECT ts_ms, price, size, aggressor FROM c.ticks WHERE symbol='MNQ' AND ts_ms>={cut} AND ts_ms<{hi*1000}""")
+    capd=_cap_days(con)
+    parts=[]
+    if capd:
+        parts.append(f"SELECT ts_ms, price, size, aggressor FROM c.ticks WHERE symbol='{symbol}'")
+    tape_days=[]
+    for p in sorted(glob.glob(f"{TAPE_DIR}/{symbol}/*.parquet")):
+        d=os.path.basename(p)[:-8]
+        if d in capd: continue
+        tape_days.append(d); parts.append(f"SELECT ts_ms, price, size, aggressor FROM read_parquet('{p}')")
+    if os.path.exists(V5_TICKS):
+        skip=capd|set(tape_days)
+        excl=" AND ".join([f"CAST(to_timestamp(ts_ms/1000) AS DATE)<>DATE '{d}'" for d in sorted(skip)]) or "TRUE"
+        parts.append(f"SELECT ts_ms, price, size, aggressor FROM read_parquet('{V5_TICKS}') WHERE symbol='{symbol}' AND {excl}")
+    if not parts: raise RuntimeError("archive_data: no tape sources available")
+    body=" UNION ALL ".join(f"SELECT * FROM ({p})" for p in parts)
+    con.execute(f"CREATE TABLE u AS SELECT * FROM ({body}) WHERE ts_ms>={lo*1000} AND ts_ms<{hi*1000}")
     n=con.execute("SELECT COUNT(*), min(ts_ms), max(ts_ms) FROM u").fetchone()
+    srcmap={"capture":sorted(capd),"tape":tape_days}
     fdf=con.execute("""SELECT CAST(ts_ms/1000 AS BIGINT) s,
         SUM(CASE WHEN aggressor='buy' THEN size WHEN aggressor='sell' THEN -size ELSE 0 END) net, arg_max(price,ts_ms) px
         FROM u GROUP BY s ORDER BY s""").df()
@@ -43,16 +80,19 @@ def load(since="2026-07-05 22:00:00", until="2026-07-24 21:00:00", flw=60):
     for i in range(1,len(mins)): trr[i]=max(hh[i]-ll[i],abs(hh[i]-cls[i-1]),abs(ll[i]-cls[i-1]))
     er_at,atr_at,net30_at={},{},{}
     for i in range(len(mins)):
-        if i>=30:
+        # only compute across a CONTIGUOUS wall-clock window - the unified tape has real gaps
+        # (weekends, and 07-18..07-23 where no tick source survives), and a lookback that straddles
+        # a gap would fabricate ER/ATR out of two different regimes.
+        if i>=30 and mins[i]-mins[i-30]==1800:
             seg=cls[i-30:i+1]; tot=np.abs(np.diff(seg)).sum()
             er_at[int(mins[i])]=abs(seg[-1]-seg[0])/tot if tot>0 else 0.0; net30_at[int(mins[i])]=float(seg[-1]-seg[0])
-        if i>=14: atr_at[int(mins[i])]=float(trr[i-13:i+1].mean())
+        if i>=14 and mins[i]-mins[i-14]==840: atr_at[int(mins[i])]=float(trr[i-13:i+1].mean())
     def _m(ts): return int((ts//1000)-((ts//1000)%60))
     D=SimpleNamespace(s0=s0,s1=s1,secs=np.arange(s0,s1+1),flow=flow,price=price,nf=nf,hi60=hi60,lo60=lo60,
         tts=tts,tpx=tpx,mins=mins,cls=cls,hh=hh,ll=ll,vv=vv,idx=idx,
         er_for=lambda ts:er_at.get(_m(ts)),atr_for=lambda ts:atr_at.get(_m(ts)),net30_for=lambda ts:net30_at.get(_m(ts)),
         n_ticks=n[0], span=(str(pd.to_datetime(n[1],unit='ms')),str(pd.to_datetime(n[2],unit='ms'))),
-        cutover=str(pd.to_datetime(cut,unit='ms')))
+        cutover=None, src=srcmap)
     return D
 
 def _st(rows):

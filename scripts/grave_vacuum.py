@@ -16,10 +16,16 @@ GATE 2 "Trapped-Flow Reversal" (gf_top15_VACUUM)  base W60/F200/H6/STOP25/TGT45,
   .venv/bin/python scripts/grave_vacuum.py
 """
 from __future__ import annotations
+import os
 import numpy as np, pandas as pd, duckdb
 CAP="/home/alphabot/gazbot7/data/capture.db"
 SINCE,UNTIL="2026-07-19 22:00:00","2026-07-24 21:00:00"
-FEE,VPP=5.0,2.0
+# COST FIX (2026-07-25): real MNQ commission is $1.50/RT (live ledger, cost_waterfall.py), NOT $5.
+# $5 partly stood in for unmodeled STOP slippage. All-in: FEE=1.5/RT commission (env GF_FEE) +
+# explicit STOP-slippage STOP_SLIP $ on stop exits only (env GF_STOP_SLIP; 4pt=$8 realistic, $0 bound).
+FEE=float(os.environ.get("GF_FEE","1.5"))
+VPP=2.0
+STOP_SLIP=float(os.environ.get("GF_STOP_SLIP","0.0"))
 W=60  # both gates use a 60s window
 
 # ---------------------------------------------------------------- shared data load
@@ -61,7 +67,7 @@ def make_scalp(tts,tpx,STOP,TGT,CAP_S):
         ep,et,j=tpx[ei],int(tts[ei]),ei+1
         while j<len(tts):
             px,t=tpx[j],int(tts[j]); fav=(px-ep)*d
-            if -fav>=STOP: return -STOP*VPP-FEE,"stop"        # stop checked before target (conservative)
+            if -fav>=STOP: return -STOP*VPP-FEE-STOP_SLIP,"stop"        # stop checked before target (conservative); STOP_SLIP on stop exits
             if fav>=TGT: return TGT*VPP-FEE,"tgt"
             if t-et>=CAP_S*1000: return fav*VPP-FEE,"cap"
             j+=1

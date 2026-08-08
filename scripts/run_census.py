@@ -27,13 +27,27 @@ W = 180     # 15-min window in 5s bars
 STEP = 12   # slide every 60s
 
 
-def cluster(hour, flow, mv, amp):
+FLOW_Z = 1.0                  # ★2026-08-01: |z| >= this is a real flow event (was: raw |flow| > 50)
+FLOW_Z_LOOKBACK = 2 * 3600    # standardise against the trailing 2 hours of the SAME statistic
+FLOW_Z_MIN_BUCKETS = 30       # need >= 30 one-minute buckets of history before a z means anything
+
+
+def cluster(hour, flow, mv, amp, fz=None):
+    """★2026-08-01 FIX — the flow test is a Z-SCORE now, not a raw threshold.
+
+    The old rule (`abs(flow) > 50`) fired on 66.5% of ALL bars, which made FLOW-LED and VACUUM two
+    names for one coin and split the tape into 21/17 runs that meant nothing. 50 contracts of net
+    aggressor flow in 60s is unremarkable on MNQ — the desk's own measurement is ~2,664 contracts a
+    minute of flow — so the threshold was labelling ordinary tape as an event. Standardising against
+    the trailing 2 hours asks what was actually intended: is THIS minute's flow unusual *for now*?
+
+    `flow` is still used for its SIGN (does flow agree with the move); `fz` carries the magnitude
+    test. fz=None (insufficient history) means "no flow verdict" and falls through, which is correct
+    — better UNCLASS than a fake label. Revert: drop fz, restore `abs(flow) > 50`."""
     if 13 <= hour < 15:
         return "OPEN/NEWS"
-    if flow is not None and abs(flow) > 50 and (flow > 0) == (mv > 0):
-        return "FLOW-LED"
-    if flow is not None and abs(flow) > 50 and (flow > 0) != (mv > 0):
-        return "VACUUM"
+    if flow is not None and fz is not None and abs(fz) >= FLOW_Z:
+        return "FLOW-LED" if (flow > 0) == (mv > 0) else "VACUUM"
     if amp is not None and amp > 0.30:
         return "VOL-EXPANSION"
     return "UNCLASS"
@@ -81,6 +95,26 @@ def main():
             FROM c.ticks WHERE symbol='MNQ' AND ts_ms<{ts * 1000} AND ts_ms>={(ts - 60) * 1000}""").fetchone()[0]
         return r
 
+    def flow_z_at(ts, cur):
+        """★2026-08-01 — standardise `cur` (the 60s net-aggressor sum at ts) against the distribution
+        of the SAME statistic over the trailing FLOW_Z_LOOKBACK. Non-overlapping 60s buckets, so the
+        comparison population is like-for-like with the value being scored. None => not enough history
+        or a degenerate spread; cluster() then withholds a flow verdict rather than inventing one."""
+        if cur is None:
+            return None
+        t0 = ts - FLOW_Z_LOOKBACK
+        row = con.execute(f"""
+            WITH s AS (
+              SELECT CAST((ts_ms/1000 - {t0}) / 60 AS INTEGER) AS b,
+                     SUM(CASE WHEN aggressor='buy' THEN size WHEN aggressor='sell' THEN -size END) AS f
+              FROM c.ticks WHERE symbol='MNQ' AND ts_ms < {ts * 1000} AND ts_ms >= {t0 * 1000}
+              GROUP BY 1)
+            SELECT AVG(f), STDDEV_SAMP(f), COUNT(*) FROM s WHERE f IS NOT NULL""").fetchone()
+        mu, sd, n = row
+        if n is None or n < FLOW_Z_MIN_BUCKETS or sd is None or sd <= 0:
+            return None
+        return (float(cur) - float(mu)) / float(sd)
+
     def book_depletion(ts, direction):  # far-side (the side price ran toward) depth vs near-side, pre-run
         row = con.execute(f"""
             WITH b AS (SELECT side, size FROM c.book WHERE symbol='MNQ' AND ts_ms<{ts * 1000}
@@ -115,7 +149,7 @@ def main():
         seg = bars[max(0, i - 60):i]
         amp = (100 * (max(x[2] for x in seg) - min(x[3] for x in seg)) / b0[4]) if seg and b0[4] else None
         hour = dt.datetime.fromtimestamp(start, dt.UTC).hour
-        cl = cluster(hour, flow, mv, amp)
+        cl = cluster(hour, flow, mv, amp, flow_z_at(start, flow))
         book = book_depletion(start, direction)
         if took:
             us, gate = "caught", took[0][0]
@@ -149,7 +183,7 @@ def main():
         f = flow_at(b0[0])
         seg = bars[max(0, i - 60):i]
         amp = (100 * (max(x[2] for x in seg) - min(x[3] for x in seg)) / b0[4]) if seg and b0[4] else None
-        cl = cluster(dt.datetime.fromtimestamp(b0[0], dt.UTC).hour, f, mv, amp)
+        cl = cluster(dt.datetime.fromtimestamp(b0[0], dt.UTC).hour, f, mv, amp, flow_z_at(b0[0], f))
         cc[cl] = cc.get(cl, 0) + 1
     for cl, n in sorted(cc.items(), key=lambda x: -x[1]):
         print(f"   {cl:<14} {n:>3} runs")

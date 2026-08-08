@@ -24,9 +24,15 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+import os
 CAP_DB = "/home/alphabot/gazbot7/data/capture.db"
 SINCE, UNTIL = "2026-07-19 22:00:00", "2026-07-24 21:00:00"
-FEE, VPP = 5.0, 2.0
+# COST FIX (2026-07-25): real MNQ commission is $1.50/RT (live ledger, cost_waterfall.py), NOT $5.
+# $5 partly stood in for unmodeled STOP slippage. All-in: FEE=1.5/RT commission (env GF_FEE) +
+# explicit STOP-slippage STOP_SLIP $ on stop exits only (env GF_STOP_SLIP; 4pt=$8 realistic, $0 bound).
+FEE = float(os.environ.get("GF_FEE", "1.5"))
+VPP = 2.0
+STOP_SLIP = float(os.environ.get("GF_STOP_SLIP", "0.0"))
 GRID = 5           # evaluate the trigger every GRID seconds while flat
 NEWS_LO, NEWS_HI = 13, 15   # 13:00 <= hour_UTC < 15:00
 
@@ -122,7 +128,7 @@ def replay(secs, s0, price, tts, tpx, er_atr_net, L, TH, STOP, TGT, ride, CAP_S,
             j += 1
         if exit_px is None:
             exit_px, exit_t, reason = tpx[-1], int(tts[-1]), "time"
-        pnl = (exit_px - ep) * d * VPP - FEE
+        pnl = (exit_px - ep) * d * VPP - FEE - (STOP_SLIP if reason == "stop" else 0.0)
         er, atr, net30 = er_atr_net(et)
         trades.append({"ts": et, "d": d, "pnl": pnl, "reason": reason,
                        "er": er, "atr": atr, "net30": net30})

@@ -126,9 +126,14 @@ def _iso_to_ms(s):
 
 def live_grind_trades(since_iso, until_iso):
     c = sqlite3.connect(STORE); c.row_factory = sqlite3.Row
+    # ★2026-08-08 FIX: the desk went MULTI-SLOT on 2026-07-29 and the gate column became
+    # 'grind_long_A' / 'grind_long_B'. The old exact-match 'grind_long' silently stopped matching,
+    # so this watch had been reading only the 4 pre-07-29 trades and reporting a confident number
+    # off them. The CHANDELIER lot is Lot B (exit_overrides: grind_long a_r=2.5 / b="wide"), which
+    # is the lot the two-ratchet would actually modify, so B is the lot we reprice.
     rows = c.execute(
-        "SELECT opened_at, closed_at, side, entry_price, exit_price, pnl_usd, exit_reason "
-        "FROM trades WHERE symbol='MNQ' AND gate='grind_long' AND side='LONG' "
+        "SELECT opened_at, closed_at, side, entry_price, exit_price, pnl_usd, exit_reason, gate "
+        "FROM trades WHERE symbol='MNQ' AND gate IN ('grind_long','grind_long_B') AND side='LONG' "
         "AND closed_at>=? AND closed_at<=? ORDER BY opened_at",
         (since_iso, until_iso)).fetchall()
     c.close()

@@ -22,7 +22,7 @@ import duckdb
 import pandas as pd
 
 TICKS = "/home/alphabot/alphabot2/data/ticks.db"
-DEPTH = "/home/alphabot/alphabot2/data/depth.db"
+DEPTH = "/home/alphabot/gazbot7/data/depth.db"
 STOP_PT, TARGET_PT, HOLD_MS = 8.0, 12.0, 120_000
 VPP, FEE = 2.0, 1.5
 ER_GATE = 0.18

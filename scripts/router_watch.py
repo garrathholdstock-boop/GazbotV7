@@ -214,7 +214,18 @@ def main():
             # ── FEED STALE (suppressed during the CME daily maintenance halt; cooldown so it never spams) ──
             tick_age = (time.time() * 1000 - tms) / 1000.0 if tms else 999
             in_maint = time.gmtime().tm_hour == MAINT_HOUR_UTC
-            if tick_age > FEED_STALE_S and not in_maint and (wall_time - st["last_feed"]) > FEED_COOL_S:
+            # ★★2026-08-07 SESSION-AWARE. FEED_STALE_S is documented as "while market OPEN" but the guard
+            # only knew about the DAILY 21:00-22:00 maintenance halt — not the WEEKEND. CME equity futures
+            # close Friday 21:00Z and do not reopen until Sunday 22:00Z, so from 22:00 Friday this fired
+            # every ~5 min for ~48h: ~576 false alarms, which is exactly how a real alert gets ignored.
+            # Observed live 2026-08-07 22:00/22:05/22:10Z with both feed services healthy and sweep
+            # reporting "MARKET CLOSED". A stale tick with the market shut is not a feed break.
+            try:
+                from gazbot7 import session as _sess
+                market_open = _sess.is_open(datetime.now(timezone.utc))
+            except Exception:
+                market_open = True          # fail LOUD: if we cannot tell, keep alarming
+            if tick_age > FEED_STALE_S and not in_maint and market_open and (wall_time - st["last_feed"]) > FEED_COOL_S:
                 emit(f"⚠FEED-STALE — last MNQ tick {tick_age:.0f}s ago (feed break? check gateway)")
                 st["last_feed"] = wall_time
             if in_maint:

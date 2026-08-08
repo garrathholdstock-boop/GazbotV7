@@ -1,0 +1,30 @@
+[Unit]
+# ★2026-08-04 — the ROOT half of the CL sims (docs/CL_VERIFICATION_SHADOW_SCOPE.md).
+#
+# Runs as root DELIBERATELY, and this is the whole reason the service exists: gazbot7-shadow runs as
+# `alphabot`, /root is 0700, there is no system-wide `claude` and alphabot has no sudo — so the first
+# version, which called the model from inside the shadow loop, returned FileNotFoundError at 0ms on
+# every single verdict. The sims showed zero trades and looked disciplined rather than broken.
+#
+# Same pattern as gazbot7-router-tick, which has worked for days for exactly this reason.
+#
+# OBSERVE-ONLY. Reads cl_signals for NULL verdicts, calls claude, writes the verdict, and on PASS
+# books a shadow_trades row with the exit raced on 250ms ticks. Touches no switch, no order, no live
+# config. A dead worker means the CL sims stop trading and nothing else notices.
+Description=GAZBOT V7 — CL sim worker (verify queued gate signals, book the PASSes)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# claude lives under /root/.local/bin, which is only on root's PATH — make it explicit so a systemd
+# PATH change can never silently reintroduce the FileNotFoundError this service was built to fix.
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/cl_worker.py
+TimeoutStartSec=900
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
