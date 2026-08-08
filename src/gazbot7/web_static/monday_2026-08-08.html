@@ -329,9 +329,9 @@ a{color:#12558a}
     <dt>Kill criterion</dt><dd class="kill">None — this is reproducibility, not a hypothesis. If the sweep starts failing on it, that is the mechanism working.</dd>
     <dt>Why</dt><dd>An uncommitted live behaviour is a behaviour that cannot be reverted, diffed or reproduced. The desk already journals a flag that says this is happening and no instrument reads it — the same shape as `signal_journal.suppressed_by` being NULL in all 596 rows.</dd>
   </dl>
-  <p class="ledger"><b>Ledger:</b> status <code>PROPOSED</code>
-    &nbsp;·&nbsp; shipped <code>—</code>
-    &nbsp;·&nbsp; outcome <code>not yet graded</code></p>
+  <p class="ledger"><b>Ledger:</b> status <code>SHIPPED</code>
+    &nbsp;·&nbsp; shipped <code>2026-08-08T20:55:26Z</code>
+    &nbsp;·&nbsp; outcome <code>SHIPPED 2026-08-08T20:55:26Z. Working tree clean at 43f1cd4 on branch refactor/three-service, in four commits: 9632c98 live desk behaviour (deciders/slot_strategy/multislot_core/tournament/day_rider/broker_adapter/pnl/direction_router/config_journal + exit_overrides.json + tests), 084e33e tooling, 7f8a344 the report, 6b8fa1e the day-rider holdings fix. BOTH halves done: sweep.py::check_config_committed() now WARNs on an uncommitted live-behaviour file — verified by running it against the dirty tree (fired, naming all 4 files including multislot_core.py which was not on the known list) and again after (OK @ 7f8a344). ⚠ .gitignore was missing scratchpad/ (807MB), scratch/ and *.pre-* — a literal &#x27;commit everything&#x27; would have added ~826MB. Now ignored. Secret-scanned before committing: 5 keyword hits, all benign (CSS &#x27;ink tokens&#x27;, the day-rider&#x27;s replay-protection consent token).</code></p>
   <div class="pk-opts"><button class="pk-opt" data-mode="live">Live</button><button class="pk-opt" data-mode="shadow">Shadow</button><button class="pk-opt" data-mode="skip">Skip</button></div>
   <p class="foot"><span><b>Owner:</b> Garrath — git commit, then one clause in sweep.py</span
     ><span><b>Revert:</b> N/A. Committing cannot change live behaviour; it only records it.</span

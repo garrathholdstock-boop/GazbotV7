@@ -1186,9 +1186,9 @@
     "section_ref": "Part 3.3 (REV2 · Q2) §5 — 'The Saturday build, in priority order' #2",
     "verification": "git status clean on the desk tree; sweep goes red if it is not.",
     "suggested_mode": "infrastructure",
-    "status": "PROPOSED",
-    "shipped_ts": null,
-    "outcome": null,
+    "status": "SHIPPED",
+    "shipped_ts": "2026-08-08T20:55:26Z",
+    "outcome": "SHIPPED 2026-08-08T20:55:26Z. Working tree clean at 43f1cd4 on branch refactor/three-service, in four commits: 9632c98 live desk behaviour (deciders/slot_strategy/multislot_core/tournament/day_rider/broker_adapter/pnl/direction_router/config_journal + exit_overrides.json + tests), 084e33e tooling, 7f8a344 the report, 6b8fa1e the day-rider holdings fix. BOTH halves done: sweep.py::check_config_committed() now WARNs on an uncommitted live-behaviour file — verified by running it against the dirty tree (fired, naming all 4 files including multislot_core.py which was not on the known list) and again after (OK @ 7f8a344). ⚠ .gitignore was missing scratchpad/ (807MB), scratch/ and *.pre-* — a literal 'commit everything' would have added ~826MB. Now ignored. Secret-scanned before committing: 5 keyword hits, all benign (CSS 'ink tokens', the day-rider's replay-protection consent token).",
     "operator_pick": "live",
     "picked_ts": "2026-08-08T19:39:00Z"
   },
