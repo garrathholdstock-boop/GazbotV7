@@ -117,10 +117,18 @@ TIERS = {
 TAPE_DAYS = 8
 
 
-def build_tape(into: str) -> list[str]:
-    """Export the trailing TAPE_DAYS to day-partitioned zstd Parquet. Returns the files written."""
+def build_tape(into: str) -> tuple[list[str], list[str]]:
+    """Export the trailing TAPE_DAYS to day-partitioned zstd Parquet.
+
+    Returns (files_written, sources_skipped). ★2026-08-09 the skip list is returned rather than only
+    logged: a source that raises is caught and `continue`d below, so if EVERY source failed this
+    used to hand back an empty list that run_tape reported as the innocent "nothing to archive" and
+    exited 0. "The window is genuinely empty" and "every query blew up" are opposite outcomes and
+    the caller could not tell them apart.
+    """
     import duckdb
     out: list[str] = []
+    skipped: list[str] = []
     con = duckdb.connect()
     con.execute(f"ATTACH '{GB}/data/capture.db' AS cap (TYPE sqlite, READ_ONLY)")
     con.execute(f"ATTACH '{GB}/data/depth.db' AS dep (TYPE sqlite, READ_ONLY)")
@@ -146,6 +154,7 @@ def build_tape(into: str) -> list[str]:
                 f"FROM {tbl} WHERE {tcol} >= {cut}").fetchall()
         except Exception as e:
             log(f"  skip {name}: {e}")
+            skipped.append(name)
             continue
         for d, sym in days:
             day = dt.datetime.fromtimestamp(d * 86400, dt.UTC).strftime("%Y-%m-%d")
@@ -157,7 +166,7 @@ def build_tape(into: str) -> list[str]:
             if os.path.getsize(f) > 0:
                 out.append(f)
     con.close()
-    return out
+    return out, skipped
 
 
 def log(msg: str) -> None:
@@ -203,10 +212,15 @@ def run_tape(dry: bool) -> int:
     """The permanent corpus: day-partitioned Parquet, uploaded under tape/, never pruned."""
     tmp = tempfile.mkdtemp(prefix="gaztape-", dir="/tmp")
     try:
-        files = build_tape(tmp)
+        files, skipped = build_tape(tmp)
         tot = sum(os.path.getsize(f) for f in files)
         log(f"tape: {len(files)} day-partition(s), {tot/1e6:.1f} MB parquet (zstd) from the last "
-            f"{TAPE_DAYS} days")
+            f"{TAPE_DAYS} days" + (f"  ⚠ SKIPPED SOURCES: {', '.join(skipped)}" if skipped else ""))
+        if skipped and not files:
+            # ★2026-08-09 every source errored and nothing was produced. Previously this fell through
+            # to "nothing to archive" and exited 0 — a total failure wearing an empty-window costume.
+            log(f"ABORT: all {len(skipped)} source(s) failed and nothing was exported")
+            return 1
         for f in sorted(files)[:6]:
             log(f"   {os.path.getsize(f)/1e6:>8.2f} MB  {os.path.basename(f)}")
         if len(files) > 6:
@@ -225,8 +239,19 @@ def run_tape(dry: bool) -> int:
                             "--transfers", "4", "--retries", "3", "--stats", "0"],
                            capture_output=True, text=True, timeout=7200)
         if r.returncode != 0:
+            # ★2026-08-09 was `return 0`, i.e. A FAILED UPLOAD REPORTED SUCCESS TO SYSTEMD. The job
+            # logged "UPLOAD FAILED" to a file nobody tails and then exited clean, so `systemctl
+            # status` and the timer's own history showed a healthy run — the same shape as the
+            # Friday report dying for 11 minutes behind a silent rc=1, and as sweep.py stamping
+            # exit_overrides_uncommitted for four days with nothing consuming it.
+            # ⚠ The DELIBERATE exit-0 paths above are NOT this: an unconfigured remote (remote_ok())
+            # and a dry run are "there was nothing to do", which must not fail the host timer. A
+            # transfer that was attempted and FAILED is the opposite — it is the one outcome the
+            # operator needs to hear about, and now it fails the unit so systemd surfaces it.
+            # This matters more since 08-09: the tape timer went from weekly to DAILY, so a silent
+            # failure would repeat 7x more often while looking healthy every time.
             log(f"UPLOAD FAILED rc={r.returncode}: {(r.stderr or '')[:300]}")
-            return 0
+            return 1
         log(f"archived {len(files)} file(s), {tot/1e6:.1f} MB -> {PLAIN_REMOTE}/tape/  "
             f"(PLAINTEXT market data, never pruned, DuckDB-queryable over S3)")
     finally:
@@ -279,8 +304,13 @@ def main() -> int:
                "--retries", "3", "--stats", "0", "--log-level", "NOTICE"]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
         if r.returncode != 0:
+            # ★2026-08-09 was `return 0` — a FAILED UPLOAD REPORTED SUCCESS TO SYSTEMD. See the note
+            # on the same fix in run_tape(); this is the state/archive half of the identical bug, and
+            # it is the worse half: the state tier is the IRREPLACEABLE set (gazbot7.db, the config
+            # journal, gate_switches.env) and it runs hourly, so a silently-failing upload could have
+            # gone unnoticed for days with `systemctl status` showing nothing but success.
             log(f"UPLOAD FAILED rc={r.returncode}: {(r.stderr or '')[:300]}")
-            return 0
+            return 1
         up = sum(os.path.getsize(s) for s in staged)
         log(f"uploaded {len(staged)} file(s), {up/1e9:.2f} GB -> {dest}")
 
