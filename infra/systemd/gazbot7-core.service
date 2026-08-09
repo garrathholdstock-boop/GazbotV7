@@ -12,7 +12,16 @@ User=alphabot
 WorkingDirectory=/home/alphabot/gazbot7
 # SAFETY: place_live=0 = dry-run (drains intents, rejects all — touches no account).
 # The operator flips this to 1 at go-live, once the safety spine is armed.
-Environment=GAZBOT7_PLACE_LIVE=1
+# ★★2026-08-09 (operator) — SET BACK TO 0. This unit is `disabled` and per CLAUDE.md has NEVER
+# STARTED; it is vestigial. The live desk is gazbot7-tournament, which holds clientId 0 against the
+# ONE netted paper account (DUQ191770) — so `systemctl start gazbot7-core`, by anyone for any
+# reason, would have armed a SECOND order-placing desk against an account another desk is already
+# trading. The 08-06 incident is the precedent: the day-rider flattened the tournament's position
+# because IBKR nets both desks into one number, and it cost 11 halted minutes with the entire safety
+# block skipped. A never-started unit configured to place orders is a loaded gun in a drawer.
+# Found by the 08-09 unit sweep — live said 1, the repo copy said 0, and nothing reconciled them.
+# Revert (go-live only, and only with core REPLACING the tournament rather than joining it): =1.
+Environment=GAZBOT7_PLACE_LIVE=0
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.core
 Restart=on-failure
 RestartSec=5
