@@ -186,7 +186,17 @@ def main():
         _s = _pnl.paris_day_start_utc(datetime.now(timezone.utc))
         _ds = int((datetime.fromisoformat(_s) if isinstance(_s, str) else _s).timestamp())
         _u = _U.compute(f"{GB}/data/capture.db", f"{GB}/data/gazbot7.db", _ds)
-        untr_txt = f"score {_u['score']}/100 -> {_u['verdict']} | {_u['detail']}"
+        # ★2026-08-09 NO-READ GUARD. untradeable.py seeds score=50 and defaults chop/give to 50
+        # when roundtrip/giveback cannot be computed (it refuses roundtrip below a 30pt range).
+        # Under the old >=65 trigger that default was inert; under MONDAY #3's >=45 it would read
+        # as a STAY-OUT, so an absent measurement would bench the whole desk — hardest of all on a
+        # DEAD FEED or a no-range tape, inverting the meter's own "big range, ~0 net" semantics.
+        # Label it explicitly rather than let 50 masquerade as a reading.
+        _noread = _u.get("roundtrip") is None or _u.get("giveback") is None
+        untr_txt = (f"score {_u['score']}/100 -> {_u['verdict']} | {_u['detail']}"
+                    + ("  ⛔ NO READ — roundtrip/giveback unavailable (range under the 30pt floor, "
+                       "or no tape). The 50 is a DEFAULT, not a measurement: it is NOT a stay-out."
+                       if _noread else ""))
     except Exception as e:
         untr_txt = f"(unavailable: {e})"
 
@@ -392,6 +402,10 @@ def main():
         "too little of the day in it to call one, and an early stay-out benches the 13:30-14:45 window where "
         "the desk's expectancy actually lives (+$8.93/tr, n=562). Before 15:00Z, route on the TAPE. "
         "⚠ This cutoff is IN-SAMPLE on n=10 days: if it keeps the desk out of a green day twice, it goes back up. "
+        "⛔ A METER MARKED 'NO READ' IS NOT A STAY-OUT, whatever its score says. The module seeds 50 and defaults "
+        "to 50 when it cannot compute roundtrip/giveback, so on a dead feed or a sub-30pt range the number 50 is "
+        "an ABSENCE OF EVIDENCE that happens to sit above the trigger. Benching the desk because a measurement is "
+        "missing is not the same call as benching it because the day is untradeable. Route on the TAPE instead. "
         "Reversion stays through chop. DON'T THRASH — change a switch ONLY when evidence genuinely changed; "
         "most ticks are no-change.\n\n"
         f"CURRENT SWITCHES: {json.dumps(cur)}\n\n"

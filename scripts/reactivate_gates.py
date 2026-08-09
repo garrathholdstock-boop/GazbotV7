@@ -84,25 +84,32 @@ def run() -> int:
         print(f"reactivate_gates: no switch file ({e}) — nothing to do")
         return 0
     new, reactivated = reactivate_all(text)
-    # ★ HOLD and MOMENTUM_START_BENCHED are applied identically — re-bench, then drop from the
-    # reactivated list so an empty list still means "this run armed nothing" and writes nothing.
-    # They are kept as SEPARATE sets because they mean different things: HOLD is "never auto-arm,
-    # this gate has not earned its place", MOMENTUM_START_BENCHED is "arm it, but only on evidence
-    # the router has actually seen". Merging them would lose that distinction on the next audit.
-    _blocked = HOLD | MOMENTUM_START_BENCHED
-    if _blocked & set(reactivated):
-        held = sorted(HOLD & set(reactivated))
-        benched = sorted(MOMENTUM_START_BENCHED & set(reactivated))
-        for g in held + benched:
-            new = _apply(new, g, "off")
-        reactivated = [g for g in reactivated if g not in _blocked]
-        if held:
-            print(f"reactivate_gates: HELD (not auto-armed): {', '.join(held)}")
-        if benched:
-            print(f"reactivate_gates: MOMENTUM start-benched (MONDAY #2 — router arms on "
-                  f"evidence): {', '.join(benched)}")
-    if not reactivated:
-        print("reactivate_gates: no gates off — nothing to do")
+    # ★ HOLD and MOMENTUM_START_BENCHED are NOT applied the same way, and the difference is the
+    # whole point of MONDAY #2:
+    #   HOLD                   — "never AUTO-ARM this gate". It only has to undo an arm, so it acts
+    #                            on `reactivated` (the gates that were off and just got flipped on).
+    #   MOMENTUM_START_BENCHED — "this gate STARTS THE SESSION BENCHED". That is a START STATE, so
+    #                            it must be applied UNCONDITIONALLY, including to a gate that was
+    #                            already ARMED going into the reopen.
+    # ⚠2026-08-09 BUG FIXED HERE, found by audit before it ever ran: the first version filtered
+    # BOTH sets through `reactivated`, which made MOMENTUM_START_BENCHED vacuous for any momentum
+    # gate already on at 22:00. `abs_veto_long` was on, so it would have sailed through the reopen
+    # armed while gate_switches.env told the router it had been benched — the file documenting a
+    # behaviour that does not happen. A re-bench filter is not a start state.
+    held = sorted(HOLD & set(reactivated))
+    benched = sorted(MOMENTUM_START_BENCHED)          # ← unconditional, not filtered by reactivated
+    for g in held + benched:
+        new = _apply(new, g, "off")
+    reactivated = [g for g in reactivated if g not in (HOLD | MOMENTUM_START_BENCHED)]
+    if held:
+        print(f"reactivate_gates: HELD (not auto-armed): {', '.join(held)}")
+    if benched:
+        print(f"reactivate_gates: MOMENTUM start-benched (MONDAY #2 — router arms on "
+              f"evidence): {', '.join(benched)}")
+    # ★ The write test is now "did the FILE change", not "did we arm anything". Those differ: a run
+    # that arms nothing but has to bench an already-armed momentum gate MUST still write.
+    if new == text:
+        print("reactivate_gates: nothing to change — file already in the target state")
         return 0
     tmp = SWITCH + ".tmp"
     with open(tmp, "w") as f:
@@ -112,8 +119,8 @@ def run() -> int:
     if MOMENTUM_START_BENCHED:
         _bench_note = (f" | momentum start-benched per MONDAY #2 "
                        f"({', '.join(sorted(MOMENTUM_START_BENCHED))}) — router arms on evidence")
-    msg = (f"gates auto-reactivated at Paris midnight (1-day off expired): "
-           f"{', '.join(reactivated)}{_bench_note}")
+    _armed = ", ".join(reactivated) if reactivated else "none"
+    msg = (f"gates auto-reactivated at Paris midnight (1-day off expired): {_armed}{_bench_note}")
     print(f"reactivate_gates: {msg}")
     try:
         from gazbot7.notify import notify
