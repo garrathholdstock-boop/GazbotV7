@@ -120,11 +120,15 @@ TAPE_DAYS = 8
 def build_tape(into: str) -> tuple[list[str], list[str]]:
     """Export the trailing TAPE_DAYS to day-partitioned zstd Parquet.
 
-    Returns (files_written, sources_skipped). ★2026-08-09 the skip list is returned rather than only
+    Layout is NESTED — {stream}/{symbol}/{YYYY-MM-DD}.parquet — matching tape_mirror.py's local lake
+    and, critically, the glob gazbot7/lake.py uses to read B2. See the note at the write site.
+
+    Returns (files_written, problems). ★2026-08-09 the problem list is returned rather than only
     logged: a source that raises is caught and `continue`d below, so if EVERY source failed this
     used to hand back an empty list that run_tape reported as the innocent "nothing to archive" and
     exited 0. "The window is genuinely empty" and "every query blew up" are opposite outcomes and
-    the caller could not tell them apart.
+    the caller could not tell them apart. `problems` holds whole sources that errored AND individual
+    day-partitions that failed row-count verification.
     """
     import duckdb
     out: list[str] = []
@@ -158,13 +162,40 @@ def build_tape(into: str) -> tuple[list[str], list[str]]:
             continue
         for d, sym in days:
             day = dt.datetime.fromtimestamp(d * 86400, dt.UTC).strftime("%Y-%m-%d")
-            f = os.path.join(into, f"{name}__{sym}__{day}.parquet")
+            # ★★2026-08-09 NESTED, not flat. This wrote f"{name}__{sym}__{day}.parquet" and uploaded
+            # it into the SAME B2 prefix that tape_mirror.py's nested layout occupies, so the bucket
+            # held the same tape under two schemes and neither job could see the other's work.
+            # Worse than untidy: gazbot7/lake.py — the DOCUMENTED way to query history — globs
+            # f"{base}/{stream}/{symbol}/*.parquet" (lake.py:202 remote, :82 local). A flat
+            # bars__MNQ__2026-08-04.parquet NEVER MATCHES THAT GLOB, so every file this job uploaded
+            # was invisible to lake.connect(remote=True). The bytes were offsite and the archive was
+            # unreadable by the desk's own tooling — durability without queryability.
+            d_dir = os.path.join(into, name, sym)
+            os.makedirs(d_dir, exist_ok=True)
+            f = os.path.join(d_dir, f"{day}.parquet")
             lo, hi = d * 86400 * scale, (d + 1) * 86400 * scale
-            con.execute(
-                f"COPY (SELECT * FROM {tbl} WHERE symbol='{sym}' AND {tcol}>={lo} AND {tcol}<{hi}) "
-                f"TO '{f}' (FORMAT parquet, COMPRESSION zstd)")
-            if os.path.getsize(f) > 0:
-                out.append(f)
+            where = f"WHERE symbol='{sym}' AND {tcol}>={lo} AND {tcol}<{hi}"
+            con.execute(f"COPY (SELECT * FROM {tbl} {where}) "
+                        f"TO '{f}' (FORMAT parquet, COMPRESSION zstd)")
+            if os.path.getsize(f) <= 0:
+                continue
+            # ★ ROW-COUNT VERIFY, mirroring tape_mirror.py's interlock. These files now land on the
+            # SAME B2 keys as the nested lake, so an unverified export could overwrite a verified
+            # one. A file that does not match its source is never uploaded — it is reported instead.
+            try:
+                n_src = con.execute(f"SELECT count(*) FROM {tbl} {where}").fetchone()[0]
+                n_pq = con.execute(f"SELECT count(*) FROM read_parquet('{f}')").fetchone()[0]
+            except Exception as e:
+                log(f"  ✗ {name}/{sym}/{day}: verify failed ({e}) — NOT uploaded")
+                skipped.append(f"{name}/{sym}/{day}")
+                os.remove(f)
+                continue
+            if n_src != n_pq:
+                log(f"  ✗ {name}/{sym}/{day}: MISMATCH src={n_src:,} parquet={n_pq:,} — NOT uploaded")
+                skipped.append(f"{name}/{sym}/{day}")
+                os.remove(f)
+                continue
+            out.append(f)
     con.close()
     return out, skipped
 
@@ -215,11 +246,12 @@ def run_tape(dry: bool) -> int:
         files, skipped = build_tape(tmp)
         tot = sum(os.path.getsize(f) for f in files)
         log(f"tape: {len(files)} day-partition(s), {tot/1e6:.1f} MB parquet (zstd) from the last "
-            f"{TAPE_DAYS} days" + (f"  ⚠ SKIPPED SOURCES: {', '.join(skipped)}" if skipped else ""))
+            f"{TAPE_DAYS} days" + (f"  ⚠ PROBLEMS ({len(skipped)}): {', '.join(skipped)}"
+                                   if skipped else ""))
         if skipped and not files:
             # ★2026-08-09 every source errored and nothing was produced. Previously this fell through
             # to "nothing to archive" and exited 0 — a total failure wearing an empty-window costume.
-            log(f"ABORT: all {len(skipped)} source(s) failed and nothing was exported")
+            log(f"ABORT: {len(skipped)} source(s)/partition(s) failed and nothing was exported")
             return 1
         for f in sorted(files)[:6]:
             log(f"   {os.path.getsize(f)/1e6:>8.2f} MB  {os.path.basename(f)}")
