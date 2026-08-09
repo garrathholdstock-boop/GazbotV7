@@ -1,0 +1,39 @@
+[Unit]
+Description=GAZBOT V7 — tape archive timer (daily 21:40 UTC, inside the CME halt)
+
+[Timer]
+# ★★2026-08-09 (operator) — WAS: OnCalendar=Sun *-*-* 22:30:00 / Persistent=false, i.e. WEEKLY.
+# Changed to DAILY because the weekly cadence left up to seven days of tape with exactly ONE copy.
+# On 08-09 that was live: 34 day-partitions (2026-08-04 onward) existed only on this box, because
+# the timer had been installed since the previous Sunday and — with Persistent=false — had never
+# fired at all. capture.db keeps 5 TRADING days, so the window in which a day exists locally but
+# not offsite is real, not theoretical.
+#
+# ⚠ The old comment justified the weekly cadence with "an 8-day export against 28-day local
+# retention means TWO consecutive weeks can be missed before any day ages out unarchived." That is
+# about DATA LOSS (a day pruned before it was ever archived) and it still holds — the local Parquet
+# in data/tape/ is not pruned on that clock. The problem it does NOT address is REDUNDANCY: a day
+# that exists in exactly one place is one disk failure from gone, whether or not it has been pruned.
+# Daily takes that exposure from ~7 days to ~1. TAPE_DAYS=8 in cloud_backup.py is unchanged, so
+# every run still re-uploads a trailing 8-day window and day-partitioned filenames keep it
+# idempotent — a missed day is repaired by the next run, not just by a hand-run.
+#
+# 21:40 UTC, not 22:30: it sits inside the CME maintenance halt (21:00-22:00) AFTER the two jobs it
+# depends on ordering behind — tape_mirror at 21:05 and capture-prune at 21:15 — so each day's tape
+# goes offsite the same evening it is exported, while the desk is halted. 22:30 would have put a
+# multi-minute, 66M-row DuckDB export against capture.db INSIDE the live session every night.
+# It is deliberately 10 minutes clear of the 21:30 nightly-audit, which is claude-driven and
+# memory-hungry on a 7.5GB box with an OOM history.
+OnCalendar=*-*-* 21:40:00
+# ★ Persistent=TRUE now. The original reason for false was that installing the unit would fire an
+# immediate catch-up export at an arbitrary hour. That risk is real but it is a ONE-TIME
+# installation cost, and it has already been paid — the archive was brought current by hand on
+# 08-09. Against it: with false, a box that is down or OOM at 21:40 skips that day ENTIRELY and
+# SILENTLY, and on the old weekly schedule that meant losing a whole week's redundancy with no
+# alarm. Three OOM kills in 12h on 08-08 make that a live failure mode, not a hypothetical.
+# Revert: Persistent=false.
+Persistent=true
+AccuracySec=5m
+
+[Install]
+WantedBy=timers.target
