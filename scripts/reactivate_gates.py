@@ -53,6 +53,28 @@ SWITCH = "/home/alphabot/gazbot7/data/gate_switches.env"
 # Remove once the divergence is diagnosed and the replay reproduces live within a stated tolerance.
 HOLD: frozenset = frozenset({"nipc_long", "nipc_short"})
 
+# ★★2026-08-09 — MONDAY #2 (fix-midnight-reopen-reversion-only-0808), operator-picked LIVE 08-08.
+# The 22:00 reopen no longer arms the whole roster. It arms the REVERSION gates only; MOMENTUM gates
+# start BENCHED and the router must ARM them on evidence (structure break + ER climbing + vol
+# expanding — and per MONDAY #4, vol expansion alone is not enough).
+#
+# WHY this supersedes the 08-01 "every gate re-enables at midnight" policy quoted above: that policy
+# was argued from "we have no regime read at 22:00, so starting armed beats starting benched on
+# yesterday's opinion." The report's biggest single number says the opposite for MOMENTUM — chop
+# avoidance — and a momentum gate armed into 15h of overnight chop is precisely the wrongly-armed
+# error the standing asymmetry calls expensive. Reversion gates are the ones that earn through chop,
+# so they keep the old behaviour. Nothing here is irreversible: the router can arm any of these on
+# the very next 5-minute tick.
+#
+# ★ abs_veto_short is a THRUST gate (momentum by mechanism) but is listed as REVERSION-side here
+# DELIBERATELY, because SATURDAY #1 (absveto-short-arm-by-default-er035-0808) arms it BY DEFAULT and
+# explicitly includes "fix the 22:00 auto re-arm" — it is positive in all five regimes including
+# chop, and a reopen that benched it would silently undo the arm-by-default it is being reviewed on.
+# If SATURDAY #1's 15-fire review ends AGAINST the gate, move it to MOMENTUM_START_BENCHED.
+#
+# Revert (restores the 08-01 all-on policy exactly): MOMENTUM_START_BENCHED = frozenset().
+MOMENTUM_START_BENCHED: frozenset = frozenset({"grind_long", "abs_veto_long"})
+
 
 def run() -> int:
     try:
@@ -62,12 +84,23 @@ def run() -> int:
         print(f"reactivate_gates: no switch file ({e}) — nothing to do")
         return 0
     new, reactivated = reactivate_all(text)
-    if HOLD & set(reactivated):    # ★ re-bench the held gates, then keep the ORIGINAL text if
-        held = sorted(HOLD & set(reactivated))   # they were the only things this run would arm
-        for g in held:
+    # ★ HOLD and MOMENTUM_START_BENCHED are applied identically — re-bench, then drop from the
+    # reactivated list so an empty list still means "this run armed nothing" and writes nothing.
+    # They are kept as SEPARATE sets because they mean different things: HOLD is "never auto-arm,
+    # this gate has not earned its place", MOMENTUM_START_BENCHED is "arm it, but only on evidence
+    # the router has actually seen". Merging them would lose that distinction on the next audit.
+    _blocked = HOLD | MOMENTUM_START_BENCHED
+    if _blocked & set(reactivated):
+        held = sorted(HOLD & set(reactivated))
+        benched = sorted(MOMENTUM_START_BENCHED & set(reactivated))
+        for g in held + benched:
             new = _apply(new, g, "off")
-        reactivated = [g for g in reactivated if g not in HOLD]
-        print(f"reactivate_gates: HELD (not auto-armed): {', '.join(held)}")
+        reactivated = [g for g in reactivated if g not in _blocked]
+        if held:
+            print(f"reactivate_gates: HELD (not auto-armed): {', '.join(held)}")
+        if benched:
+            print(f"reactivate_gates: MOMENTUM start-benched (MONDAY #2 — router arms on "
+                  f"evidence): {', '.join(benched)}")
     if not reactivated:
         print("reactivate_gates: no gates off — nothing to do")
         return 0
@@ -75,7 +108,12 @@ def run() -> int:
     with open(tmp, "w") as f:
         f.write(new)
     os.replace(tmp, SWITCH)  # atomic; the tournament re-reads live (no restart)
-    msg = f"gates auto-reactivated at Paris midnight (1-day off expired): {', '.join(reactivated)}"
+    _bench_note = ""
+    if MOMENTUM_START_BENCHED:
+        _bench_note = (f" | momentum start-benched per MONDAY #2 "
+                       f"({', '.join(sorted(MOMENTUM_START_BENCHED))}) — router arms on evidence")
+    msg = (f"gates auto-reactivated at Paris midnight (1-day off expired): "
+           f"{', '.join(reactivated)}{_bench_note}")
     print(f"reactivate_gates: {msg}")
     try:
         from gazbot7.notify import notify

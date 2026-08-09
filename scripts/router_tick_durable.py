@@ -160,7 +160,14 @@ def append_log(msg):
 
 def main():
     # skip during the maintenance halt (desk frozen; nothing to decide)
-    if time.gmtime().tm_hour == MAINT_HOUR_UTC:
+    # ★2026-08-09 MONDAY #2, second half — "move the 21:00-22:00Z maintenance gap so the hour before
+    # the reopen is supervised." The whole hour used to be skipped, which meant the desk was
+    # UNOBSERVED going into the 22:00 reopen: on 08-08 all five services died at 01:54 and the only
+    # thing that noticed was the event watcher. A skipped tick logs nothing at all. We keep the
+    # no-decisions intent for the body of the halt and restore supervision for the last 15 minutes,
+    # so at least two ticks read the desk before reactivate_gates fires at 22:00.
+    _now = time.gmtime()
+    if _now.tm_hour == MAINT_HOUR_UTC and _now.tm_min < 45:
         hlog("skip: CME maintenance halt"); return
 
     desk = sh(f"{PY} scripts/desk_view.py")
@@ -183,13 +190,15 @@ def main():
     except Exception as e:
         untr_txt = f"(unavailable: {e})"
 
-    # ★★2026-08-06 RUN STATE — the desk's PRIMARY regime discriminator, from the Mon->Thu review.
-    # Classifying every trade of that week (taken AND missed, the missed ones RACED target-vs-stop
-    # first-touch) by one variable explained essentially all of the P&L:
-    #     in-run aligned : TAKEN n=34 50% win +$10.34/tr | MISSED n=61 67% win +$2,141 (1 lot)
-    #     chop / no run  : TAKEN n=51 16% win -$28.43/tr | MISSED n=183 27% win -$1,517
-    # A $39/trade spread that dwarfs gate, side and time-of-day. The router was blind to it and sat
-    # flat through 18 of the week's 26 runs. Guarded exactly like the meter — never blocks the tick.
+    # RUN STATE — CONTEXT ONLY. ⛔2026-08-08: the 08-06 framing below is WITHDRAWN as a routing lever.
+    # The claim was:
+    #     in-run aligned : TAKEN n=34 50% win +$10.34/tr | chop/no-run TAKEN n=51 16% win -$28.43/tr
+    # Re-derived from scratch on the SAME 89 Mon->Thu trades, the headline cell INVERTS:
+    #     in-run aligned : TAKEN n=46 41% win -$1.83/tr
+    # and the 34/4/51 split is irreproducible under any run-span definition (merge gaps 0/120/300/
+    # 600/900s all give 46/10/33). What survives is the MISSED side and an EXIT finding — re-pricing
+    # exits on the entries already taken turns the week from -$772 to +$1,493 — NOT a routing lever.
+    # Still computed and still injected, as CONTEXT. Guarded like the meter — never blocks the tick.
     try:
         import sys as _sys2
         if f"{GB}/src" not in _sys2.path:
@@ -214,6 +223,11 @@ def main():
         "RULES: chop (low ER, range-bound) -> bench ALL momentum (grind_long, abs_veto_long), keep "
         "reversion (capitulation_long). day-bias UP>=+40 -> bench shorts; DOWN<=-40 -> bench longs. "
         "Re-arm momentum only on a real range-break WITH ER climbing + vol expanding (not a delta-blip). "
+        "⛔ MONDAY #4 (2026-08-08), WRITTEN RULE: EXPANDING ATR ALONE IS NOT A RE-ARM TRIGGER. If ER is "
+        "under 0.15 and there is no range break, rising ATR is chop getting wider, not a trend starting "
+        "— it is violence without direction and it is the most expensive tape on the desk. All three "
+        "legs (structure break + ER climbing + vol expanding) or you stay benched. This rule is "
+        "fail-safe: it can only ever REDUCE arming. "
         "abs_veto_long is veto-protected (≈0-cost armed in chop unless it's firing+stopping); grind_long "
         "is a churner (keep OFF unless ER>=0.35 strong trend). Some gates may be operator-PINNED (auto-excluded "
         "from your changes) — decide holistically regardless. "
@@ -245,8 +259,23 @@ def main():
         "reactivate_gates.py holds nothing back), so YOU are the only thing keeping it off: when you see rgv_short=on, "
         "bench it again. That is expected housekeeping, NOT thrash. One good-looking read is not evidence to leave it "
         "armed — it needs n, not a tick. Re-look on/after 2026-08-08. "
-        "(b) abs_veto_short: bench it in VIOLENT WHIPSAW (ATR>=19pt AND 30-min ER<0.25) — that segment is -$20 to "
-        "-$33 per signal at every exit cell and no exit rescues it. "
+        "(b) ⛔ DELETED 2026-08-09 — SATURDAY #1 (absveto-short-arm-by-default-er035-0808), operator-picked LIVE. "
+        "The old rule was 'abs_veto_short: bench it in VIOLENT WHIPSAW (ATR>=19pt AND 30-min ER<0.25)'. It is GONE, "
+        "along with 'bench it on a stop-out pair'. DO NOT RE-CREATE EITHER BY HAND. "
+        "★★ abs_veto_short IS NOW ARMED BY DEFAULT. Its signal is the strongest thing on the desk: +$2,290.50 over "
+        "159 fires / 17 days, 4-of-4 weeks green, POSITIVE IN ALL FIVE REGIMES INCLUDING CHOP, and 53 of the 54 "
+        "filters tested LOSE to simply letting it fire — (b) was one of those filters. Over the 96.7% of last week "
+        "it sat benched, its identically-configured shadow twin made +$1,064.50; the router armed it for the 9% in "
+        "which it lost -$559.00. The desk's arming of this gate was backwards on BOTH sides: benched through the "
+        "good tape, armed into the bad. It is also EXEMPT FROM THE CHOP BENCH (MONDAY #1 carve-out). "
+        "★ You retain bench authority on exactly two things: EXECUTION PATHOLOGY (naked stop, absurd entry_atr, "
+        "MAX_HOLD stacking), and the standing DIRECTION rule (day-bias UP>=+40 -> bench shorts). Nothing else. "
+        "A losing run is NOT a reason: the review below is what judges it, not your read of a bad hour. "
+        "★ REVIEW: after 15 fires armed-by-default, re-bench if the armed book is negative over those 15. Count them. "
+        "⚠ The ER30>=0.35 arming floor once proposed alongside this is REFUTED — no ER floor on this gate, ever. "
+        "⚠ NOT YET SHIPPED, so do not assume it is filtering: the BUILDING x 13:30-20:00Z per-entry veto that "
+        "SATURDAY #1 also calls for is NOT in the live code (no BUILDING regime exists in src/). The gate is "
+        "currently armed by default with NO new veto in front of it. "
         "(b2) HISTORICAL, 2026-08-04, NO LONGER BINDING — kept only for the transferable lesson: judge a carve-out's "
         "EXPIRY on the current SEGMENT, not the chop-diluted day aggregate. day-ER was still only 0.10 when the segment "
         "was plainly trending, and using the day figure to keep a counter-trend gate armed would have been the same "
@@ -351,20 +380,38 @@ def main():
         "CLOSE; (2) any execution pathology (naked stop, absurd entry_atr, MAX_HOLD exits stacking). "
         "It self-gates to 13:00-15:00 UTC and switches itself off in dead-chop, so a quiet nipc is the gate "
         "working, not a reason to touch it. Do not ARM it if it is off — that is an operator decision. "
-        "★ UNTRADEABLE-DAY RULE: if the UNTRADEABLE METER reads STAY-OUT (score>=65 — a big range but ~0 net "
-        "roundtrip + the day's move given back + gates stopping across mechanisms), bench ALL gates and keep flat; "
-        "do NOT hunt for a gate that works — a no-trade day is correct (chasing an untradeable chop cost -$900 on 07-31). "
+        "★ UNTRADEABLE-DAY RULE (MONDAY #3, revised 2026-08-09): if the UNTRADEABLE METER scores >=45 "
+        "(a big range but ~0 net roundtrip + the day's move given back + gates stopping across mechanisms), "
+        "bench ALL gates and keep flat; do NOT hunt for a gate that works — a no-trade day is correct "
+        "(chasing an untradeable chop cost -$900 on 07-31). "
+        "⚠ YOUR THRESHOLD IS 45, NOT THE METER'S PRINTED LABEL. The meter module still prints 'STAY-OUT' "
+        "only at >=65 and 'CAUTION' at 45-64, because three analysis harnesses classify historical days off "
+        "that label and re-cutting it would silently re-label past studies. So a meter reading 'CAUTION 52' "
+        "IS A STAY-OUT FOR YOU. Read the SCORE, not the word. "
+        "⛔ AND NO STAY-OUT MAY TRIGGER BEFORE 15:00 UTC. The meter is a DAY aggregate; before 15:00Z it has "
+        "too little of the day in it to call one, and an early stay-out benches the 13:30-14:45 window where "
+        "the desk's expectancy actually lives (+$8.93/tr, n=562). Before 15:00Z, route on the TAPE. "
+        "⚠ This cutoff is IN-SAMPLE on n=10 days: if it keeps the desk out of a green day twice, it goes back up. "
         "Reversion stays through chop. DON'T THRASH — change a switch ONLY when evidence genuinely changed; "
         "most ticks are no-change.\n\n"
         f"CURRENT SWITCHES: {json.dumps(cur)}\n\n"
         f"=== ACTIVE CARVE-OUTS (top of gate_switches.env — written by the session, the operator, or "
         f"the open-hour watcher; these are INSTRUCTIONS TO YOU, honour their stated expiry) ===\n"
         f"{switch_notes()}\n\n"
-        f"=== ★ RUN STATE — READ THIS FIRST, IT OUTRANKS THE METER ===\n{run_txt}\n\n"
-        f"=== UNTRADEABLE METER ===\n{untr_txt}\n"
+        f"=== RUN STATE — CONTEXT ONLY, NOT A ROUTING LEVER (WITHDRAWN 2026-08-08) ===\n{run_txt}\n"
+        f"  ⛔ The 08-06 claim that made this the PRIMARY discriminator (in-run aligned TAKEN "
+        f"+$10.34/tr) was RE-DERIVED on the SAME 89 Mon-Thu trades and INVERTS to -$1.83/tr "
+        f"(n=46, 41% win). The 34/4/51 split could not be reproduced under ANY run-span definition "
+        f"(merge gaps 0/120/300/600/900s all give an identical 46/10/33). Verdict: an EXIT finding "
+        f"wearing a router's coat. READ IT AS CONTEXT — NEVER flip a switch on RUN STATE alone, and "
+        f"do not treat it as outranking the meter or your own read of the tape.\n\n"
+        f"=== UNTRADEABLE METER === (your stay-out trigger is SCORE>=45 and only from 15:00Z — "
+        f"the printed verdict word still switches at 65; ignore the word, read the score)\n{untr_txt}\n"
         f"  ⚠ The meter is a DAY aggregate and is diluted by earlier chop. On 08-06 it read 87/100 "
-        f"STAY-OUT while a +297pt run was underway and the desk sat flat through all of it. When RUN "
-        f"STATE and the meter disagree, the RUN STATE wins — judge the SEGMENT, not the day.\n\n"
+        f"STAY-OUT while a +297pt run was underway and the desk sat flat through all of it. "
+        f"NEITHER INSTRUMENT OUTRANKS THE OTHER — the 'RUN STATE wins' tie-break was WITHDRAWN "
+        f"2026-08-08 along with the lever itself. Judge the SEGMENT, not the day, and form the read "
+        f"from the TAPE first; the meter and RUN STATE are both confirmation.\n\n"
         f"=== DESK VIEW ===\n{desk}\n=== RECENT TRADES ===\n{recent}\n=== RECENT ROUTER LOG ===\n{logtail}\n\n"
         "Output ONLY a JSON object, nothing else:\n"
         '{"changes": {"<gate>": "on"|"off"}, "reason": "<one tight line>", "notify": "<telegram text, or empty string if no change>"}\n'
