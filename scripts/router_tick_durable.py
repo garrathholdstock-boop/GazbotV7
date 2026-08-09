@@ -197,6 +197,42 @@ def main():
                     + ("  ⛔ NO READ — roundtrip/giveback unavailable (range under the 30pt floor, "
                        "or no tape). The 50 is a DEFAULT, not a measurement: it is NOT a stay-out."
                        if _noread else ""))
+        # ★2026-08-09 C-2 — TWO-CONSECUTIVE-TICK CONFIRMATION. A stay-out benches the whole desk,
+        # and at the 08-08 cutoff of 45 the score sat mid-distribution and OSCILLATED across it
+        # (08-07: 46 -> 42 -> 44 -> 15, crossing twice), so a single-tick trigger would bench and
+        # unbench eight gates on noise — the exact churn the prompt's own closing rule forbids.
+        # The router has no memory between ticks, so persist just the last score. FAIL-SAFE: any
+        # error, or a stale/no-read prior, leaves _prev_txt saying the confirmation is UNMET, and
+        # the rule below reads unmet as "not a stay-out" (benching on absence is the wrong error).
+        try:
+            import json as _js
+            _mp = f"{GB}/data/router_meter_state.json"
+            _prev = {}
+            try:
+                with open(_mp) as _f:
+                    _prev = _js.load(_f)
+            except Exception:
+                _prev = {}
+            _age_s = int(datetime.now(timezone.utc).timestamp()) - int(_prev.get("ts", 0))
+            _pv = _prev.get("score")
+            _pnr = bool(_prev.get("noread", True))
+            if _pv is None or _age_s > 900 or _pnr:
+                _prev_txt = ("PREVIOUS TICK: none usable (missing, older than 15 min, or itself a "
+                             "NO READ) -> the two-consecutive-tick confirmation is UNMET.")
+            else:
+                _prev_txt = (f"PREVIOUS TICK: score {_pv}/100 ({_age_s}s ago) -> confirmation is "
+                             f"{'MET' if (_pv >= 55 and not _noread and _u['score'] >= 55) else 'UNMET'}.")
+            untr_txt += "\n  " + _prev_txt
+            try:
+                _tmp = _mp + ".tmp"
+                with open(_tmp, "w") as _f:
+                    _js.dump({"score": _u["score"], "noread": _noread,
+                              "ts": int(datetime.now(timezone.utc).timestamp())}, _f)
+                os.replace(_tmp, _mp)
+            except Exception:
+                pass
+        except Exception as _e:
+            untr_txt += f"\n  PREVIOUS TICK: (state unavailable: {_e}) -> confirmation UNMET."
     except Exception as e:
         untr_txt = f"(unavailable: {e})"
 
@@ -239,7 +275,19 @@ def main():
         "legs (structure break + ER climbing + vol expanding) or you stay benched. This rule is "
         "fail-safe: it can only ever REDUCE arming. "
         "abs_veto_long is veto-protected (≈0-cost armed in chop unless it's firing+stopping); grind_long "
-        "is a churner (keep OFF unless ER>=0.35 strong trend). Some gates may be operator-PINNED (auto-excluded "
+        "⛔ CORRECTED 2026-08-09 — grind_long: the old text here said 'a churner, keep OFF unless ER>=0.35 strong "
+        "trend'. BOTH HALVES WERE STALE. There is NO ER floor in the code (deciders.ER_FLOOR is {}; every ER floor "
+        "was deleted 08-01 and the 08-08 report refuted them), and 'churner' was measured when grind's ATR floor "
+        "was 10 — SATURDAY #2 raised it to 22 on 08-08, cutting its fire count ~8x (377 -> 52 over the same 4 days). "
+        "★ ITS REAL CONSTRAINT, WHICH THIS PROMPT NEVER USED TO MENTION, IS ATR14 >= 22 — enforced in code "
+        "(deciders.ATR_FLOOR['grind_long']=22.0, wired at tournament.py:156), so BELOW ATR 22 THE GATE CANNOT FIRE "
+        "AT ALL AND ARMING IT IS FREE. Judge it on ATR and structure, NOT on ER. "
+        "⚠ Do not intersect ATR>=22 with an ER>=0.35 bar of your own: the two are near-orthogonal (each ~15% of "
+        "minutes, BOTH only ~3%), so demanding both cuts grind's available legs from ~7.3/day to ~1.6/day and its "
+        "SATURDAY #2 review — which needs 20 admitted legs before it can be graded AT ALL — slips from ~4 trading "
+        "days to over 12. The revert is the desk's only live behaviour change this weekend and it CANNOT BE "
+        "EVALUATED IF IT IS NEVER ARMED. Arm it when ATR>=22 and structure supports it. "
+        "Some gates may be operator-PINNED (auto-excluded "
         "from your changes) — decide holistically regardless. "
         "★★★ ARMING IS HALF YOUR JOB — READ THIS BEFORE THE BENCH RULES BELOW. "
         "Operator, 2026-08-04: 'i dont want blanket benching all the time. it needs to be intelligent. if you "
@@ -351,9 +399,17 @@ def main():
         "The general rule 'day-bias UP>=+40 -> bench shorts' exists to stop MOMENTUM shorts fighting an up-day. "
         "exhaustion_short is a FADER: shorting an exhausted up-move IS ITS ENTIRE JOB, so benching it because the "
         "day is up removes it exactly when its setup forms. Both of its logged bench reasons were that rule. "
-        "★ THE COST OF BENCHING IT IS ~ZERO, WHICH IS THE POINT: it produced ZERO fires in signal_journal across "
-        "08-04..08-07 while grind_long produced 377, abs_veto_short 124, abs_veto_long 89. It cannot churn. And the "
-        "router has armed it 0 times against 6 benches — it only ever reaches 'on' via the 22:00 reactivation. "
+        "⛔ CORRECTED 2026-08-09 — THE 'IT CANNOT CHURN' ARGUMENT WAS AN INSTRUMENT ARTEFACT, NOT A MEASUREMENT. "
+        "This rule used to say 'it produced ZERO fires in signal_journal across 08-04..08-07 while grind_long "
+        "produced 377, so it cannot churn.' That zero was unobtainable: signal_journal has only ever held FIVE "
+        "gates (abs_veto_long/short, capitulation_long, grind_long, rgv_short) because cl_sims.py:273 routes every "
+        "other spec.kind to e=None, and exhaustion_short is a footprint/L2 kind that falls through. IT HAS NEVER "
+        "BEEN ABLE TO WRITE A ROW. It does fire: 21 live fills since the 07-29 cutover, net +$50.50. So its "
+        "churn-cost is simply UNMEASURED — there is no signal-level record of this gate anywhere, journalled or "
+        "bar-computable, so no existing harness can test it. Keep it armed on the MECHANISM argument above (a "
+        "fader benched on day-bias sign is removed exactly when its setup forms), which stands on its own — but do "
+        "NOT cite rarity as evidence, and if it starts firing repeatedly, believe the tape over this rule. "
+        "The router has armed it 0 times against 6 benches — it only ever reaches 'on' via the 22:00 reactivation. "
         "So: LEAVE IT ARMED BY DEFAULT and let its rarity be the filter. Do NOT bench it on day-bias sign. "
         "⚠ (c2) DOES NOT OVERRIDE (d) BELOW — the validated FADER BENCH still applies. Bench exhaustion_short when "
         "a TREND/RUN is genuinely running against a fade (that is the tested behaviour, +$810 non-overlap n=25), or "
@@ -390,14 +446,23 @@ def main():
         "CLOSE; (2) any execution pathology (naked stop, absurd entry_atr, MAX_HOLD exits stacking). "
         "It self-gates to 13:00-15:00 UTC and switches itself off in dead-chop, so a quiet nipc is the gate "
         "working, not a reason to touch it. Do not ARM it if it is off — that is an operator decision. "
-        "★ UNTRADEABLE-DAY RULE (MONDAY #3, revised 2026-08-09): if the UNTRADEABLE METER scores >=45 "
-        "(a big range but ~0 net roundtrip + the day's move given back + gates stopping across mechanisms), "
-        "bench ALL gates and keep flat; do NOT hunt for a gate that works — a no-trade day is correct "
-        "(chasing an untradeable chop cost -$900 on 07-31). "
-        "⚠ YOUR THRESHOLD IS 45, NOT THE METER'S PRINTED LABEL. The meter module still prints 'STAY-OUT' "
+        "★ UNTRADEABLE-DAY RULE (MONDAY #3, revised twice — read the whole rule before acting on it): "
+        "if the UNTRADEABLE METER scores >=55 ON TWO CONSECUTIVE TICKS (a big range but ~0 net roundtrip + the "
+        "day's move given back + gates stopping across mechanisms), bench the book and keep flat; do NOT hunt for "
+        "a gate that works — a no-trade day is correct (chasing an untradeable chop cost -$900 on 07-31). "
+        "⚠ THE CONFIRMATION IS MANDATORY AND IT IS COMPUTED FOR YOU — the meter block prints 'confirmation is "
+        "MET/UNMET'. If it says UNMET, THERE IS NO STAY-OUT, however bad this single reading looks. MONDAY #3 "
+        "shipped at 45-on-one-tick on 08-08; that fired on 55% of observations (vs 30% at 65) and the score "
+        "OSCILLATED across it — 08-07 ran 46 -> 42 -> 44 -> 15, crossing twice — so each crossing would have "
+        "benched and unbenched all eight gates on noise. 55-with-confirmation is the 2026-08-09 correction. "
+        "⚠ 'BENCH THE BOOK' EXCLUDES abs_veto_short — same carve-out as the chop bench, for the same reason: it "
+        "is positive in ALL FIVE regimes and 53 of 54 filters tested lose to letting it fire, so a stay-out is "
+        "not evidence against IT specifically. Bench the other seven; leave it armed. This resolves the direct "
+        "contradiction between this rule and SATURDAY #1's 'bench authority on exactly two things, nothing else'. "
+        "⚠ YOUR THRESHOLD IS 55, NOT THE METER'S PRINTED LABEL. The meter module still prints 'STAY-OUT' "
         "only at >=65 and 'CAUTION' at 45-64, because three analysis harnesses classify historical days off "
-        "that label and re-cutting it would silently re-label past studies. So a meter reading 'CAUTION 52' "
-        "IS A STAY-OUT FOR YOU. Read the SCORE, not the word. "
+        "that label and re-cutting it would silently re-label past studies. So a meter reading 'CAUTION 58' "
+        "twice running IS A STAY-OUT FOR YOU, and 'CAUTION 52' is NOT. Read the SCORE, not the word. "
         "⛔ AND NO STAY-OUT MAY TRIGGER BEFORE 15:00 UTC. The meter is a DAY aggregate; before 15:00Z it has "
         "too little of the day in it to call one, and an early stay-out benches the 13:30-14:45 window where "
         "the desk's expectancy actually lives (+$8.93/tr, n=562). Before 15:00Z, route on the TAPE. "
@@ -419,8 +484,9 @@ def main():
         f"(merge gaps 0/120/300/600/900s all give an identical 46/10/33). Verdict: an EXIT finding "
         f"wearing a router's coat. READ IT AS CONTEXT — NEVER flip a switch on RUN STATE alone, and "
         f"do not treat it as outranking the meter or your own read of the tape.\n\n"
-        f"=== UNTRADEABLE METER === (your stay-out trigger is SCORE>=45 and only from 15:00Z — "
-        f"the printed verdict word still switches at 65; ignore the word, read the score)\n{untr_txt}\n"
+        f"=== UNTRADEABLE METER === (stay-out needs SCORE>=55 on TWO CONSECUTIVE ticks, only from "
+        f"15:00Z, and never on a NO READ; the printed verdict word still switches at 65 — ignore "
+        f"the word, read the score. abs_veto_short is exempt)\n{untr_txt}\n"
         f"  ⚠ The meter is a DAY aggregate and is diluted by earlier chop. On 08-06 it read 87/100 "
         f"STAY-OUT while a +297pt run was underway and the desk sat flat through all of it. "
         f"NEITHER INSTRUMENT OUTRANKS THE OTHER — the 'RUN STATE wins' tie-break was WITHDRAWN "

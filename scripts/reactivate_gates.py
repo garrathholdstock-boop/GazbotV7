@@ -51,7 +51,25 @@ SWITCH = "/home/alphabot/gazbot7/data/gate_switches.env"
 # review. The 22:00 job re-armed it once already tonight because the warning was written as a COMMENT
 # in gate_switches.env and nothing reads comments. Holding it here is the only mechanism that works.
 # Remove once the divergence is diagnosed and the replay reproduces live within a stated tolerance.
-HOLD: frozenset = frozenset({"nipc_long", "nipc_short"})
+HOLD: frozenset = frozenset({"nipc_long", "nipc_short", "rgv_short"})
+
+# ★★2026-08-09 — rgv_short ADDED TO HOLD. This reverses the 08-01 release noted above, which moved
+# its bench from here into the router's standing guidance. That was the right call at the time and
+# it has been running as designed; the problem is that the design produces pure churn:
+#   · reactivate_gates arms it at every 22:00 reopen (it was the ONLY gate tonight would have armed)
+#   · the router's standing rule (a) benches it again within a tick or two, every single night
+#   · rule (a)'s own re-look date — "on/after 2026-08-08" — passed with no new evidence for it
+# and underneath that, its two filters are COMPLEMENTS. direction_router.py:78 puts it in UP_OFF
+# (benched in TREND_UP), but measured over 40 days of tape it fires 72.5% in TREND_UP, 0.0% in
+# TREND_DOWN and 27.5% in chop; the signal journal agrees independently at 9 of 9 fires in TREND_UP.
+# So the router removes ~three-quarters of its signal population by construction and it never fires
+# in the regime where it would be kept armed. Live since the 07-29 cutover: ONE signal, -$107.
+# Its 07-31 verdict was SHADOW (11 fires, -$142, negative at EVERY exit rung, strip-best-1 -$242),
+# so arming it nightly to re-bench it by hand buys nothing and costs a switch change every night.
+# ⚠ HOLD is the honest mechanism for "benched pending a decision" — it is NOT a retirement, and it
+# does not fix the pairing. Reviving this gate means fixing the UP_OFF contradiction FIRST, because
+# a revival that leaves it benched in the only regime it fires in is not a revival.
+# Revert: drop "rgv_short" from HOLD.
 
 # ★★2026-08-09 — MONDAY #2 (fix-midnight-reopen-reversion-only-0808), operator-picked LIVE 08-08.
 # The 22:00 reopen no longer arms the whole roster. It arms the REVERSION gates only; MOMENTUM gates
