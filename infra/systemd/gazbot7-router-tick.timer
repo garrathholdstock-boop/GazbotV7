@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the durable GAZBOT V7 router tick every 5 minutes
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=false
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target

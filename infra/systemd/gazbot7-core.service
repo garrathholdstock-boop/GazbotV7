@@ -12,7 +12,7 @@ User=alphabot
 WorkingDirectory=/home/alphabot/gazbot7
 # SAFETY: place_live=0 = dry-run (drains intents, rejects all — touches no account).
 # The operator flips this to 1 at go-live, once the safety spine is armed.
-Environment=GAZBOT7_PLACE_LIVE=0
+Environment=GAZBOT7_PLACE_LIVE=1
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.core
 Restart=on-failure
 RestartSec=5

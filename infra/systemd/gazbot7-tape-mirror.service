@@ -1,0 +1,15 @@
+[Unit]
+# ★2026-08-04 (operator: "1 week fully live and hot in sql. rest in parquet").
+# Exports completed days from capture.db/depth.db to the local Parquet lake and VERIFIES each by row
+# count. prune_capture.py refuses to delete any day this has not verified, so this job running is a
+# precondition for retention working at all — if it stops, capture.db grows instead of losing tape.
+Description=GAZBOT V7 — tape mirror (SQLite -> verified Parquet lake)
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/tape_mirror.py
+TimeoutStartSec=3600

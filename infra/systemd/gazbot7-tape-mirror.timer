@@ -1,0 +1,15 @@
+[Unit]
+Description=GAZBOT V7 — tape mirror timer (daily 21:05 UTC, in the halt, BEFORE the prune)
+
+[Timer]
+# 21:05 UTC — inside the CME halt and deliberately BEFORE gazbot7-capture-prune at 21:15. Order matters:
+# the mirror must archive a day before the prune is allowed to consider deleting it. The interlock makes
+# the wrong order safe rather than destructive (the prune would simply clamp and delete nothing), but
+# correct ordering means retention actually works instead of silently stalling.
+# DAILY, not weekly: with SQLite retention heading to 7 days there is no longer 20 days of slack.
+OnCalendar=*-*-* 21:05:00
+Persistent=false
+AccuracySec=60s
+
+[Install]
+WantedBy=timers.target

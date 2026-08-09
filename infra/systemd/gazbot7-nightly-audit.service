@@ -1,0 +1,31 @@
+[Unit]
+# ★2026-08-02 — the STANDING numbers. Read-only analysis; touches no account, no switches, no config.
+#
+# Two things that were previously rediscovered by Friday archaeology and are now measured every night:
+#
+#  1. claim_audit.py — what the operator's hands are worth. Every MANUAL_CLAIM repriced against what
+#     its slot's own exit would have done on 250ms ticks. In the 07-27..07-31 week the hands were
+#     +$655-862 on twelve trades and it was invisible in every P&L we reported.
+#  2. nipc_replay.py — NIPC's control. NIPC went live 2026-08-01 with a kill review at n>=40 or
+#     2026-08-07 and no shadow arm (it is a tick state-machine and cannot ride the bar-based
+#     ShadowSim — a variant there would silently never fire). The replay prints the BLANKET book
+#     (dead-chop filter OFF) beside HOME (filter ON), which IS the control comparison.
+#
+# Runs 21:30 UTC — inside the CME maintenance halt (21:00-22:00), so the desk is frozen and the
+# Paris-midnight day boundary (22:00 UTC) has not yet rolled.
+Description=GAZBOT V7 — nightly standing audits (claim value + NIPC control)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# Each is independent: a failure in one must not suppress the other, hence the leading '-'.
+ExecStart=-/home/alphabot/gazbot7/.venv/bin/python scripts/claim_audit.py
+ExecStart=-/home/alphabot/gazbot7/.venv/bin/python scripts/nipc_replay.py
+TimeoutStartSec=3600
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

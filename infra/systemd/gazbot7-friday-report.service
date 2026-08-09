@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 durable Friday weekly report (headless Claude build + self-proofread)
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python /home/alphabot/gazbot7/scripts/friday_report_durable.py
+TimeoutStartSec=18000

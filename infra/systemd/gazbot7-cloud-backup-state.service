@@ -1,0 +1,18 @@
+[Unit]
+# ★2026-08-04 off-box backup to an rclone remote (Backblaze B2 advised, behind an rclone crypt overlay).
+# INERT UNTIL CONFIGURED: with no remote the script logs "not configured" and exits 0, so enabling these
+# timers before you have credentials is harmless and they simply start working once rclone knows the key.
+Description=GAZBOT V7 — off-box backup: state tier
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# Set these once rclone is configured (crypt remote strongly advised — these are financial records):
+# Environment=GAZBOT7_BACKUP_REMOTE=gaz:
+# Environment=GAZBOT7_BACKUP_BWLIMIT=8M
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/cloud_backup.py --tier state
+TimeoutStartSec=7500

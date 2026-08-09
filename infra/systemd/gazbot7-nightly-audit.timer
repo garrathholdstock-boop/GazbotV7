@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — nightly standing audits (21:30 UTC, inside the CME maintenance halt)
+
+[Timer]
+# 21:30 UTC every day: the desk is frozen for the 21:00-22:00 CME halt and the Paris-midnight
+# trading-day boundary (22:00 UTC) has not rolled yet, so the day being scored is complete.
+OnCalendar=*-*-* 21:30:00 UTC
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

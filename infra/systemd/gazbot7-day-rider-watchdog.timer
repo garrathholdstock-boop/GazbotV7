@@ -1,0 +1,9 @@
+[Unit]
+Description=GAZBOT V7 — day-rider watchdog, every 2 min around the clock. Runs even when the strategy is off, because an ORPHANED position is exactly the case where the strategy is not running.
+
+[Timer]
+OnCalendar=*-*-* *:0/2:35
+Persistent=false
+
+[Install]
+WantedBy=timers.target

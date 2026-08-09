@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — day-rider tick. Every minute: the script self-gates to 13:30-21:00 UTC and to its own switch, so a dumb timer is correct and cannot misfire outside the window.
+
+[Timer]
+OnCalendar=*-*-* *:*:05
+Persistent=false
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

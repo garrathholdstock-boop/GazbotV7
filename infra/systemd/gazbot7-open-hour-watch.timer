@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V7 — tape watcher timer (weekdays 07:00-20:00 UTC; script sets the cadence)
+
+[Timer]
+# Fires every minute across the whole span; the SCRIPT decides whether to act (every minute in the
+# 13:30-14:30 open hour, every 3rd minute in the 14:30-20:00 afternoon fade window). Keeping the cadence
+# in one place means the timer cannot disagree with the script about when it should run, and a skipped
+# invocation costs milliseconds. Ranges are per-hour because systemd cannot express a range that
+# crosses the hour boundary (verified: systemd-analyze rejects '13:30..14:29').
+# ★★2026-08-07 (operator: "start it at 0700 utc") — extended from 13:30 to 07:00 to cover the
+# PRE-OPEN / LONDON window. On 08-07 a 250pt run broke at 12:30 with all four arm legs passing;
+# this timer was not running, so the auto-arm could not fire and the desk armed 15 minutes late.
+# The SCRIPT still owns the cadence (arithmetic every minute 07:00-13:30, model every 3rd).
+OnCalendar=Mon-Fri *-*-* 07..13:*:00
+OnCalendar=Mon-Fri *-*-* 14..19:*:00
+Persistent=false
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

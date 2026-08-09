@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — DAY RIDER WATCHDOG. Flattens ONLY, on its own IBKR clientId 5, if the venue holds a position while the strategy heartbeat is stale. Independent so a hung strategy cannot disable it.
+After=network-online.target alphabot-gateway.service
+
+[Service]
+Type=oneshot
+Slice=gazbot7.slice
+User=alphabot
+Group=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/day_rider_watchdog.py
+TimeoutStartSec=120
+MemoryMax=300M

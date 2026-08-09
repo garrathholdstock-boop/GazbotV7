@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 durable router tick (headless Claude decision, fail-safe benching-only)
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python /home/alphabot/gazbot7/scripts/router_tick_durable.py
+TimeoutStartSec=280

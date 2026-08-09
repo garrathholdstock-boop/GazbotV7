@@ -1,0 +1,15 @@
+[Unit]
+Description=GAZBOT V7 — DAY RIDER strategy (drift detect -> 2 lots -> arm+trail -> hard flat 21:00 UTC). Own IBKR clientId 4, independent of core. INERT unless data/day_rider.env says day_rider=on.
+After=network-online.target alphabot-gateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Slice=gazbot7.slice
+User=alphabot
+Group=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.day_rider
+TimeoutStartSec=120
+MemoryMax=400M

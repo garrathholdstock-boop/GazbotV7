@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — CL sim worker every 2 minutes
+
+[Timer]
+# Every 2 min. Signals are bar-quantised so nothing is lost by not being instant, and each call takes
+# 9-18s — a 1-min cadence could overlap itself on a busy open.
+OnCalendar=*:0/2
+Persistent=false
+RandomizedDelaySec=15
+
+[Install]
+WantedBy=timers.target

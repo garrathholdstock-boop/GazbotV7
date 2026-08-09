@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — off-box backup timer, state tier (hourly; ~1 MB, the irreplaceable set)
+
+[Timer]
+# Hourly because gazbot7.db is the only file that cannot be reconstructed from anywhere and it is
+# under a megabyte — there is no reason to risk more than an hour of trade history.
+OnCalendar=*-*-* *:07:00
+Persistent=true
+AccuracySec=60s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — clip-revert timer (21:15 UTC daily, inside the maintenance halt)
+
+[Timer]
+OnCalendar=*-*-* 21:15:00
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
