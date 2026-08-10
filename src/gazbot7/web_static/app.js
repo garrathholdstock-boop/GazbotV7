@@ -463,16 +463,28 @@
         const pin = window.prompt("PIN");
         if (!pin) return;
         b.disabled = true; b.textContent = "Claiming…";
-        fetch("/api/control/dayrider-claim", {
+        /* RELATIVE, no leading slash — every other call in this file is relative
+           and it is load-bearing: the dashboard is mounted under /v7/, so a
+           leading slash resolves to the domain ROOT, which is not routed to this
+           backend. That spelling failed as "no connection" without ever leaving
+           the browser. */
+        fetch("api/control/dayrider-claim", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pin: pin }),
-        }).then((r) => r.json()).then((j) => {
+        }).then((r) => {
+          /* Check the STATUS before parsing. A 404 returns an HTML error page,
+             r.json() throws on it, and the catch below then blamed the network —
+             which is how a wrong URL spent a press looking like a dead line. */
+          if (!r.ok) throw new Error("server said " + r.status);
+          return r.json();
+        }).then((j) => {
           b.textContent = j && j.ok ? "Claimed" : "Claim profit";
           b.disabled = !!(j && j.ok);
           window.alert(j && j.ok ? j.msg : "Not claimed: " + ((j && j.error) || "unknown"));
-        }).catch(() => {
+        }).catch((e) => {
           b.disabled = false; b.textContent = "Claim profit";
-          window.alert("Not claimed — no connection.");
+          window.alert("Not claimed — " + (e && e.message ? e.message : "no connection")
+            + ".\n\nThe position is untouched.");
         });
       };
     });
