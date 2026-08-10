@@ -220,35 +220,144 @@ def check_execution(store, now: datetime) -> dict:
             "submitted": v.submitted, "fills": v.fills, "rejects": v.rejects}
 
 
-def check_position(store, core: dict) -> dict:
+# ── the DAY RIDER is a SECOND desk and core_health.json knows nothing about it ──
+DR_HB_STALE_S = 180        # 3 ticks missed; the watchdog acts at 2, so this is not trigger-happy
+DR_FLAT_UTC_MIN = 20 * 60 + 40     # day_rider.FLAT_UTC_MIN — hard flat, never held overnight
+# The flatten FIRES at 20:40 and needs a few seconds to fill, so grade it overdue only after
+# three ticks have had their chance. Without this the sweep CRITs at 20:40:30 on a flatten
+# that is working normally — a false alarm on a schedule, which is how alarms get ignored.
+DR_OVERDUE_UTC_MIN = DR_FLAT_UTC_MIN + 3
+
+
+def _day_rider_position(cfg, now) -> dict | None:
+    """The day rider's open position, or None if it holds nothing.
+
+    ★2026-08-10. The sweep read core_health.json only — the TOURNAMENT's truth —
+    and so printed "flat" while the day rider sat SHORT 2 lots, 30pt offside, with
+    an unarmed trail. The dashboard was given this surface on 08-07 for exactly
+    this reason ("a live position with no surface is how 08-06 stayed invisible
+    for hours"); the 3-hourly health check never got it. Same blind spot, quieter
+    place.
+
+    Fail-soft by design: any error returns None and the caller renders the
+    tournament verdict exactly as before, so a garbled state file can never blank
+    the position check. The cost is that an unreadable file reads as "no day-rider
+    position" — acceptable only because the heartbeat check below catches a rider
+    that has actually stopped.
+    """
+    if cfg is None:
+        return None
+    try:
+        path = os.path.join(os.path.dirname(cfg.store_path), "day_rider_state.json")
+        with open(path) as fh:
+            d = json.load(fh)
+    except Exception:
+        return None
+    if not d.get("entered") or d.get("closed"):
+        return None
+    try:
+        qty = abs(float(d.get("qty") or 0))
+        direction = int(d.get("direction") or 0)
+    except Exception:
+        return None
+    if qty <= 0 or direction not in (-1, 1):
+        return None
+    out = {"side": "LONG" if direction > 0 else "SHORT", "qty": qty,
+           "entry": d.get("entry"), "ahead_pt": d.get("ahead_pt"),
+           # An UNARMED trail is not protection. The 600pt venue stop is
+           # last-resort insurance by the strategy's own documentation, so it must
+           # not be reported as a working protective stop.
+           "trail": d.get("trail"), "protected": bool(d.get("trail"))}
+    hb = d.get("heartbeat")
+    age = None
+    if hb and now is not None:
+        try:
+            age = (now - datetime.fromisoformat(hb)).total_seconds()
+        except Exception:
+            age = None
+    out["hb_age_s"] = round(age, 1) if age is not None else None
+    out["stale"] = bool(age is not None and age > DR_HB_STALE_S)
+    # Past its own hard flat and still holding: the standing rule is NEVER hold
+    # overnight, and after 21:00Z the venue is shut and nothing can be done.
+    mins = (now.hour * 60 + now.minute) if now is not None else None
+    out["overdue"] = bool(mins is not None and mins >= DR_OVERDUE_UTC_MIN)
+    return out
+
+
+def _merge_day_rider(verdict: dict, dr: dict | None) -> dict:
+    """Fold the day rider into the tournament's position verdict, worst-status wins.
+
+    ★ WHAT IS AND IS NOT AN ALARM HERE. Riding with an UNARMED trail is the
+    strategy working as designed — the trail arms at 4xATR and a losing trade may
+    never reach it. Grading that CRIT would paint the sweep red on ordinary days
+    and train the operator to ignore it, the same reasoning that keeps the dirty-
+    tree check at WARN. So a normal ride reports OK and simply states, honestly,
+    that the only backstop is the 600pt venue stop.
+
+    Two things ARE alarms, and neither was visible anywhere before:
+      · a STALE heartbeat while holding — a live position whose manager has
+        stopped ticking is the 08-06 shape exactly;
+      · still holding past the 20:40Z hard flat — the standing rule is NEVER hold
+        overnight, and after 21:00Z the venue is shut.
+    """
+    if not dr:
+        return verdict
+    pos = f"day_rider {dr['side']} {dr['qty']:g}"
+    if dr.get("entry"):
+        pos += f" @ {dr['entry']:g}"
+    if dr.get("ahead_pt") is not None:
+        pos += f" ({dr['ahead_pt']:+g}pt)"
+    if dr.get("overdue"):
+        st, note = CRIT, "STILL HOLDING past the 20:40Z hard flat — CHECK IBKR / flatten"
+    elif dr.get("stale"):
+        st, note = CRIT, f"heartbeat STALE {dr['hb_age_s']:.0f}s while holding — rider may be dead"
+    elif dr.get("protected"):
+        st, note = OK, f"trail armed @ {dr['trail']:g}"
+    else:
+        st, note = OK, "trail NOT armed — only the 600pt venue stop behind it"
+    out = dict(verdict)
+    out["day_rider"] = dict(dr)
+    out["held"] = True
+    out["detail"] = f"{verdict['detail']} · {pos} — {note}"
+    if (st, verdict.get("status")) != (OK, OK):
+        out["status"] = CRIT if CRIT in (st, verdict.get("status")) else WARN
+    return out
+
+
+def check_position(store, core: dict, cfg=None, now=None) -> dict:
     """VENUE-TRUTH protection gate, read from core's freshly-written ``protection`` block
     (2026-07-17 lesson: 'held' is not 'protected' — a stop-less position bled for 3h reading
     OK). Multi-slot tournament: ``protection.slots`` each carry a ``stop_coid`` (a live venue
     order) — a held slot without one is NAKED. Also handles the retired single-position shape
     (``protection.verified``) for a revert. Reads core-health only — NOT the ``open_position``
     table (the tournament's truth is per-slot, so that table is empty here by design)."""
+    dr = _day_rider_position(cfg, now)
     flat = bool(core.get("flat", True))
     prot = core.get("protection") if isinstance(core.get("protection"), dict) else {}
     slots = prot.get("slots") or []
     held = (not flat) or bool(slots) or bool(prot.get("held"))
     if not held:
+        # The tournament is flat. The DESK is only flat if the day rider is too.
+        if dr:
+            return _merge_day_rider({"status": OK, "detail": "tournament flat"}, dr)
         return {"status": OK, "detail": "flat"}
     # held → gate on protection. 'can't verify' is never 'safe'.
     unver = prot.get("unverified_cycles") or 0
     if unver:
-        return {"status": CRIT, "held": True,
-                "detail": f"held but venue snapshot UNVERIFIABLE {unver} cycles — CHECK IBKR / flatten"}
+        return _merge_day_rider({"status": CRIT, "held": True,
+                "detail": f"held but venue snapshot UNVERIFIABLE {unver} cycles — CHECK IBKR / flatten"}, dr)
     if prot.get("verified") is False:              # single-position shape (reverted desk)
-        return {"status": CRIT, "held": True,
-                "detail": "held but protection NOT verified — CHECK IBKR / flatten"}
+        return _merge_day_rider({"status": CRIT, "held": True,
+                "detail": "held but protection NOT verified — CHECK IBKR / flatten"}, dr)
     naked = [str(s.get("gate")) for s in slots if not s.get("stop_coid")]   # tournament per-slot
     if naked:
-        return {"status": CRIT, "held": True,
-                "detail": f"NAKED slot(s) {', '.join(naked)} — no stop resting; CHECK IBKR / flatten"}
+        return _merge_day_rider({"status": CRIT, "held": True,
+                "detail": f"NAKED slot(s) {', '.join(naked)} — no stop resting; CHECK IBKR / flatten"}, dr)
     if slots:
         desc = ", ".join(f"{s.get('gate')} {s.get('side')} {s.get('qty'):g}" for s in slots)
-        return {"status": OK, "held": True, "detail": f"holding {len(slots)} slot(s): {desc} — all protected"}
-    return {"status": OK, "held": True, "detail": "holding — protected"}
+        return _merge_day_rider(
+            {"status": OK, "held": True, "detail": f"holding {len(slots)} slot(s): {desc} — all protected"}, dr)
+    return _merge_day_rider({"status": OK, "held": True, "detail": "holding — protected"}, dr)
 
 
 def check_killswitch(cfg: RunConfig, store, core: dict, now: datetime) -> dict:
@@ -399,7 +508,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "core": core,
             "capture": check_capture(cfg, now),
             "execution": check_execution(store, now),
-            "position": check_position(store, core),
+            "position": check_position(store, core, cfg, now),
             "killswitch": check_killswitch(cfg, store, core, now),
             "recording": check_recording(cfg, store, now),
             "shadow": check_shadow(cfg, now),
