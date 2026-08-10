@@ -130,6 +130,54 @@ def enabled() -> bool:
     return False
 
 
+CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
+# Long enough to survive a slow tick or a one-off service restart, far short of
+# the overnight gap that would let a press leak into the next session.
+CLAIM_MAX_AGE_S = 15 * 60
+
+
+def claim_requested() -> bool:
+    """Has the operator pressed Claim profit on the dashboard?
+
+    ★ The web process NEVER places an order. It writes this file and returns; the
+    day-rider picks it up on its own cycle and flattens through its own safety.
+    That indirection is the whole design: a button that reached the broker
+    directly is how 2026-08-06 happened — a flatten fired without checking whose
+    position it was, the tournament's book went to +2 against a venue of 0, and
+    the desk sat halted for 11 minutes with the safety block skipped.
+
+    ⚠ A claim EXPIRES after CLAIM_MAX_AGE_S. The endpoint refuses to write one
+    unless a position is open, but the tick can still exit by hard-flat or venue
+    stop in the same cycle before this branch is reached, leaving the file behind
+    with nothing to consume it. Unbounded, that file waits and fires against
+    TOMORROW's entry seconds after it opens — a press the operator made yesterday
+    at +$300 flattening a fresh position at 0. Age-bounding makes a lost press
+    cost a re-press, which is the cheap direction of that trade.
+    """
+    try:
+        raw = open(CLAIM_FILE).read().strip()
+    except Exception:
+        return False
+    try:
+        age = (dt.datetime.now(dt.UTC) - dt.datetime.fromisoformat(raw)).total_seconds()
+    except Exception:
+        clear_claim()          # unreadable stamp — refuse it and do not retry
+        return False
+    if age > CLAIM_MAX_AGE_S or age < -60:
+        clear_claim()
+        return False
+    return True
+
+
+def clear_claim() -> None:
+    """Consume the request. Cleared whether or not the flatten succeeded, so a
+    stale file cannot re-fire the claim on every subsequent tick."""
+    try:
+        os.remove(CLAIM_FILE)
+    except Exception:
+        pass
+
+
 def load_state() -> dict:
     try:
         with open(STATE) as fh:
@@ -382,6 +430,40 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                            f"now {px:.2f}, {d*(px-entry):+.0f}pt from entry, peak {peak:.2f}. "
                            f"/sell to exit · /hold to keep riding · "
                            f"NO REPLY = HOLD to the 21:00 flat", critical=True)
+
+            # ── OPERATOR CLAIM ────────────────────────────────────────────────
+            # Checked BEFORE the trail: if he has pressed the button, that is the
+            # decision, and a trail level reached in the same tick must not
+            # pre-empt it and book a different price than the one he saw.
+            # Recorded as MANUAL_CLAIM — the same reason string the tournament
+            # uses — so scripts/claim_audit.py scores this button automatically
+            # against what holding would have made. The nightly audit already
+            # exists to answer "what are the operator's hands worth"; this makes
+            # the day-rider's claims part of that number from day one.
+            if claim_requested():
+                clear_claim()
+                v = own_flatten_verdict(d, own_qty)   # ours, never the shared account net
+                if v:
+                    from ib_async import MarketOrder
+                    ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                    await asyncio.sleep(2.0)
+                    out["closed"] = True
+                    out["exit_reason"] = "MANUAL_CLAIM"
+                    out["note"] = f"claimed by operator at {px:.1f} ({d*(px-entry):+.0f}pt from entry)"
+                    if notify:
+                        notify(f"DAY RIDER claimed @ {px:.1f} · {d*(px-entry):+.0f}pt from entry "
+                               f"(peak {peak:.1f})", critical=False)
+                    save_state(out)
+                    return out
+                # No verdict means we do not own what we think we own. Refuse and
+                # say so — silently doing nothing is how an operator presses a
+                # button twice and ends up short.
+                out["note"] = "claim ignored — ownership check refused (position not ours)"
+                if notify:
+                    notify("DAY RIDER claim REFUSED — ownership check says this position is not ours",
+                           critical=True)
+                save_state(out)
+                return out
 
             if tl is not None and ((px <= tl) if d > 0 else (px >= tl)):
                 v = own_flatten_verdict(d, own_qty)       # ours, not the shared account net

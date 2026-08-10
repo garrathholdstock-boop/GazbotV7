@@ -902,6 +902,49 @@ def claim_post(body, data_dir):
     return {"ok": True, "gate": gate, "msg": f"claim requested — {gate} flattens on the next cycle"}
 
 
+# ── POST /api/control/dayrider-claim — operator "Claim profit" on the day rider ─
+def dayrider_claim_post(body, data_dir):
+    """PIN-guarded REQUEST to bank the day rider's open position.
+
+    Same shape as claim_post above and for the same reason: this layer writes a
+    file and returns, and the DAY RIDER does the flatten on its own cycle through
+    own_flatten_verdict. The web process never touches the broker. A button that
+    reached the broker directly is how 2026-08-06 happened — a flatten fired
+    without checking whose position it was and took the tournament's with it.
+
+    ⚠ Not instant. The day rider ticks every minute, so the fill is up to ~60s
+    after the press and the price will have moved. The response says so rather
+    than letting the operator believe he banked the number he was looking at.
+    ⚠ It ENDS the session: the `closed` latch means no re-entry today.
+    """
+    try:
+        req = json.loads(body or b"{}")
+    except Exception:
+        return {"ok": False, "error": "bad request"}
+    pin = str(req.get("pin", "")).strip()
+    try:
+        want = open(os.path.join(data_dir, "claim_pin.txt")).read().strip()
+    except Exception:
+        return {"ok": False, "error": "claim PIN not set on server"}
+    if not want or pin != want:
+        return {"ok": False, "error": "wrong PIN"}
+    # Refuse when there is nothing to claim, so the button cannot leave a stale
+    # request file lying in wait to fire against tomorrow's position.
+    try:
+        st = json.load(open(os.path.join(data_dir, "day_rider_state.json")))
+    except Exception:
+        st = {}
+    if not st.get("entered") or st.get("closed"):
+        return {"ok": False, "error": "nothing to claim — the day rider is not in a position"}
+    try:
+        with open(os.path.join(data_dir, "day_rider_claim.txt"), "w") as f:
+            f.write(datetime.now(UTC).isoformat() + "\n")
+    except Exception as e:
+        return {"ok": False, "error": f"write failed: {e}"}
+    return {"ok": True, "msg": "claim requested — the day rider flattens on its next tick (up to ~60s). "
+                               "This ends its session; it will not re-enter today."}
+
+
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────
 def _shadow_block(vals):
     """The {n, real_pnl, win} block the shadow UI reads — honest net, win% or null."""
@@ -1304,6 +1347,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                 body = self.rfile.read(n) if n else b""
                 if path == "/api/control/claim":
                     self._json(claim_post(body, data_dir))
+                elif path == "/api/control/dayrider-claim":
+                    self._json(dayrider_claim_post(body, data_dir))
                 else:
                     self._send(b"not found", "text/plain", 404)
             except Exception as e:

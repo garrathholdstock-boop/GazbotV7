@@ -431,12 +431,51 @@
         ["Stop", h.stop ? `<span class="red">${nf(h.stop, 2)}</span>` : "—"],
         ["Time in trade", holdStr(h.held_seconds)],
       ];
+      /* ★ CLAIM PROFIT — day rider only (2026-08-10, operator).
+         "if im actively watching and its at $300 i can go bang and put it to bed."
+         The button only appears on the day rider's own row, beside the live P&L
+         it is claiming, so there is no doubt about which position is being
+         banked. It does NOT flatten from here: it POSTs a request and the day
+         rider flattens on its own next tick through its own ownership check.
+         A dashboard that placed orders directly is how 2026-08-06 happened. */
+      const claim = h.entry_gate === "day_rider"
+        ? `<button class="claimbtn" data-claim="1">Claim profit</button>` : "";
       return `<div class="slot-card">`
-        + `<div class="hold-head">${sidePill(side)}<span class="sym">${esc(gateAbbr(h.entry_gate))}</span>${prot}</div>`
+        + `<div class="hold-head">${sidePill(side)}<span class="sym">${esc(gateAbbr(h.entry_gate))}</span>${prot}${claim}</div>`
         + rows.map((r) => `<div class="row"><span class="k">${r[0]}</span><span class="val">${r[1]}</span></div>`).join("")
         + `</div>`;
     };
     body.innerHTML = holds.map(card).join("");
+
+    /* Wired after render because the cards are rebuilt on every poll. The
+       confirm states the two things that surprise people: it is not instant,
+       and it ends the session. */
+    Array.prototype.forEach.call(body.querySelectorAll("[data-claim]"), (b) => {
+      b.onclick = () => {
+        const dr = holds.filter((x) => x.entry_gate === "day_rider")[0];
+        const pnl = dr ? nf(dr.pnl_usd, 2) : "?";
+        if (!window.confirm(
+          "Claim the day rider's position?\n\n"
+          + "Showing " + pnl + " right now.\n\n"
+          + "It flattens on the day rider's next tick — up to about 60 seconds — so the fill "
+          + "will not be exactly this number.\n\n"
+          + "This ENDS its session: it will not re-enter today.")) return;
+        const pin = window.prompt("PIN");
+        if (!pin) return;
+        b.disabled = true; b.textContent = "Claiming…";
+        fetch("/api/control/dayrider-claim", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: pin }),
+        }).then((r) => r.json()).then((j) => {
+          b.textContent = j && j.ok ? "Claimed" : "Claim profit";
+          b.disabled = !!(j && j.ok);
+          window.alert(j && j.ok ? j.msg : "Not claimed: " + ((j && j.error) || "unknown"));
+        }).catch(() => {
+          b.disabled = false; b.textContent = "Claim profit";
+          window.alert("Not claimed — no connection.");
+        });
+      };
+    });
   }
 
   /* ---------- tournament — the 6-gate scoreboard ---------- */

@@ -153,6 +153,15 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
 .slot-card:last-child{margin-bottom:0}
 .slot-card .hold-head{margin-bottom:6px}
 .slot-card .hold-head .sym{font-size:14px;letter-spacing:.5px}
+/* Claim-profit button — day rider only, sits on the right of its own card head.
+   Deliberately unstyled-loud: it ends a live session, so it should not look like
+   a view toggle. margin-left:auto pushes it away from the side pill so it cannot
+   be hit by a thumb aiming at the gate name. */
+.claimbtn{margin-left:auto;font:600 11px/1 var(--mono);letter-spacing:.5px;
+  padding:5px 9px;border-radius:4px;cursor:pointer;
+  color:#0b0f14;background:var(--grn,#37d07a);border:1px solid rgba(0,0,0,.25)}
+.claimbtn:hover{filter:brightness(1.12)}
+.claimbtn:disabled{opacity:.5;cursor:default;filter:none}
 .prot-ok{margin-left:auto;font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:3px;color:var(--grn);border:1px solid rgba(55,208,122,.35)}
 .prot-naked{margin-left:auto;font-family:var(--sans);font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:3px;color:var(--red);background:rgba(255,90,95,.15);border:1px solid rgba(255,90,95,.5)}
 /* ── tournament scoreboard ── */
