@@ -236,6 +236,73 @@ def main():
     except Exception as e:
         untr_txt = f"(unavailable: {e})"
 
+    # ★★2026-08-10 SEGMENT BIAS — judge the SEGMENT, not the day.
+    # The standing direction rule keyed off DAY bias, an average over the whole session and therefore
+    # the last thing to notice a reversal. On a day that opens -150 and turns +200 the day aggregate
+    # still reads DOWN, so longs stay benched THROUGH the trend. Same aggregate-vs-segment error the
+    # ledger already records twice: the 08-04 carve-out expiry judged on a chop-diluted day, and the
+    # 08-06 meter reading 87/100 STAY-OUT while a +297pt run was underway.
+    #
+    # ⚠ THE TRAP IN THE FIX: a 60-minute window crosses +/-40 far more often than a day average, so
+    # segment-judging ALONE would turn one switch change a day into a dozen. The direction trigger
+    # already flickered on 08-10 — net -29 -> -51 -> -35 in fifty minutes, three changes, zero fills.
+    # So the segment reading carries a TWO-CONSECUTIVE-TICK confirmation, exactly as the untradeable
+    # meter got, with the previous reading persisted. Shortening the window without the dwell would
+    # make the churn worse, not better.
+    seg_txt = "(unavailable)"
+    try:
+        import json as _sj
+        import duckdb as _sd
+        _sc = _sd.connect()
+        _sc.execute(f"ATTACH '{GB}/data/capture.db' AS sc (READ_ONLY)")
+        _now = int(datetime.now(timezone.utc).timestamp())
+        _rows = _sc.execute(
+            "SELECT (bar_ts-bar_ts%60) m, arg_max(close,bar_ts) cl FROM sc.bars "
+            f"WHERE symbol='MNQ' AND bar_ts>={_now - 60*60} GROUP BY 1 ORDER BY 1").fetchall()
+        _sc.close()
+        if len(_rows) >= 20:
+            _o, _l = _rows[0][1], _rows[-1][1]
+            _net = _l - _o
+            _path = sum(abs(_rows[i][1] - _rows[i - 1][1]) for i in range(1, len(_rows))) or 1.0
+            _er = abs(_net) / _path
+            # ★ A DIRECTION NEEDS EFFICIENCY, NOT JUST DISTANCE. The old day rule keyed on net
+            # points alone; on a 60-minute window that is far too easy to satisfy by drifting.
+            # The very first live reading of this block was UP net +53.75pt at ER 0.085 — a
+            # chop-drift that would have benched shorts on nothing. Calibrated against today's own
+            # tape: the real 12:00-12:41 break ran ER 0.311, the morning chop 0.031, the 179pt
+            # retrace 0.115. A 0.20 floor calls the break and stays FLAT through both the chop and
+            # the bounce, which is exactly the discrimination the rule is for.
+            SEG_ER_FLOOR = 0.20
+            if abs(_net) > 40 and _er >= SEG_ER_FLOOR:
+                _dir = "DOWN" if _net < 0 else "UP"
+            else:
+                _dir = "FLAT"
+            _sp = f"{GB}/data/router_segment_state.json"
+            _prev_dir, _age = None, 10 ** 9
+            try:
+                with open(_sp) as _f:
+                    _p = _sj.load(_f)
+                _prev_dir = _p.get("dir")
+                _age = _now - int(_p.get("ts", 0))
+            except Exception:
+                pass
+            _conf = (_prev_dir == _dir and _age <= 900 and _dir != "FLAT")
+            seg_txt = (f"last 60min: {_dir}  net {_net:+.0f}pt  ER {_er:.2f} "
+                       f"(needs |net|>40 AND ER>=0.20 to be directional)  "
+                       f"({len(_rows)} bars, path {_path:.0f}pt) | previous tick: "
+                       f"{_prev_dir or 'none'} -> confirmation {'MET' if _conf else 'UNMET'}")
+            try:
+                _t = _sp + ".tmp"
+                with open(_t, "w") as _f:
+                    _sj.dump({"dir": _dir, "net": _net, "er": round(_er, 3), "ts": _now}, _f)
+                os.replace(_t, _sp)
+            except Exception:
+                pass
+        else:
+            seg_txt = f"(only {len(_rows)} bars in the last hour — no segment read)"
+    except Exception as e:
+        seg_txt = f"(unavailable: {e})"
+
     # RUN STATE — CONTEXT ONLY. ⛔2026-08-08: the 08-06 framing below is WITHDRAWN as a routing lever.
     # The claim was:
     #     in-run aligned : TAKEN n=34 50% win +$10.34/tr | chop/no-run TAKEN n=51 16% win -$28.43/tr
@@ -267,7 +334,19 @@ def main():
         "benching-only). Decide which of the 8 gates should be on/off on a HOLISTIC regime read "
         "(trend vs chop), not mechanical thresholds.\n\n"
         "RULES: chop (low ER, range-bound) -> bench ALL momentum (grind_long, abs_veto_long), keep "
-        "reversion (capitulation_long). day-bias UP>=+40 -> bench shorts; DOWN<=-40 -> bench longs. "
+        "reversion (capitulation_long). "
+        "★★ THE DIRECTION RULE NOW JUDGES THE SEGMENT, NOT THE DAY (2026-08-10). Use the SEGMENT BIAS "
+        "block (last 60 minutes): UP -> bench shorts; DOWN -> bench longs; FLAT -> the direction rule "
+        "says nothing and you decide on the rest of the read. "
+        "⚠ IT MUST BE CONFIRMED: the block prints 'confirmation MET/UNMET' and UNMET means DO NOT act "
+        "on direction this tick. A 60-minute window crosses +/-40 far more readily than a day average, "
+        "and on 08-10 the old day trigger already flickered -29 -> -51 -> -35 in fifty minutes for "
+        "three switch changes and zero fills. One reading is a blip; two in a row is a segment. "
+        "★ WHY THE CHANGE: day bias is an average over the whole session and the LAST thing to notice "
+        "a reversal. A day that opens -150 and turns +200 still reads DOWN, so longs stay benched "
+        "through the trend — the same aggregate-over-segment error that had the meter reading 87/100 "
+        "STAY-OUT on 08-06 while a +297pt run was underway. DAY BIAS is still shown and is still "
+        "useful CONTEXT for where you are in the session, but it is no longer the trigger. "
         "Re-arm momentum only on a real range-break WITH ER climbing + vol expanding (not a delta-blip). "
         "⛔ MONDAY #4 (2026-08-08), WRITTEN RULE: EXPANDING ATR ALONE IS NOT A RE-ARM TRIGGER. If ER is "
         "under 0.15 and there is no range break, rising ATR is chop getting wider, not a trend starting "
@@ -327,7 +406,7 @@ def main():
         "which it lost -$559.00. The desk's arming of this gate was backwards on BOTH sides: benched through the "
         "good tape, armed into the bad. It is also EXEMPT FROM THE CHOP BENCH (MONDAY #1 carve-out). "
         "★ You retain bench authority on exactly two things: EXECUTION PATHOLOGY (naked stop, absurd entry_atr, "
-        "MAX_HOLD stacking), and the standing DIRECTION rule (day-bias UP>=+40 -> bench shorts). Nothing else. "
+        "MAX_HOLD stacking), and the standing DIRECTION rule (CONFIRMED segment bias UP -> bench shorts). Nothing else. "
         "A losing run is NOT a reason: the review below is what judges it, not your read of a bad hour. "
         "★ REVIEW: after 15 fires armed-by-default, re-bench if the armed book is negative over those 15. Count them. "
         "⚠ The ER30>=0.35 arming floor once proposed alongside this is REFUTED — no ER floor on this gate, ever. "
@@ -338,7 +417,7 @@ def main():
         "EXPIRY on the current SEGMENT, not the chop-diluted day aggregate. day-ER was still only 0.10 when the segment "
         "was plainly trending, and using the day figure to keep a counter-trend gate armed would have been the same "
         "aggregate error as benching grind_long on its red day book. The standing direction rule stands on its own "
-        "merits: day-bias UP>=+40 -> bench shorts. "
+        "merits: a CONFIRMED segment bias UP -> bench shorts. "
         "(b3) HISTORICAL, 2026-08-04, NO LONGER BINDING — that day's 'do not re-arm grind_long' was an operator "
         "decision scoped to 08-04 and it expired at that day's 22:00 reopen. JUDGE grind_long FRESH ON TODAY'S TAPE. "
         "Kept for the MECHANISM, which is durable and worth knowing BEFORE you arm it: on 08-04 it was armed on a fully "
@@ -396,7 +475,7 @@ def main():
         "CHOP gate (13 blocked fires worth +$384; live and shadow both green in that cell). Bench it on VIOLENCE, "
         "not on chop. "
         "★★ (c2) 2026-08-07 OPERATOR CARVE-OUT — exhaustion_short: STOP BENCHING IT ON THE DIRECTION RULE. "
-        "The general rule 'day-bias UP>=+40 -> bench shorts' exists to stop MOMENTUM shorts fighting an up-day. "
+        "The general rule 'confirmed segment bias UP -> bench shorts' exists to stop MOMENTUM shorts fighting a rising tape. "
         "exhaustion_short is a FADER: shorting an exhausted up-move IS ITS ENTIRE JOB, so benching it because the "
         "day is up removes it exactly when its setup forms. Both of its logged bench reasons were that rule. "
         "⛔ CORRECTED 2026-08-09 — THE 'IT CANNOT CHURN' ARGUMENT WAS AN INSTRUMENT ARTEFACT, NOT A MEASUREMENT. "
@@ -477,6 +556,9 @@ def main():
         f"=== ACTIVE CARVE-OUTS (top of gate_switches.env — written by the session, the operator, or "
         f"the open-hour watcher; these are INSTRUCTIONS TO YOU, honour their stated expiry) ===\n"
         f"{switch_notes()}\n\n"
+        f"=== ★ SEGMENT BIAS — THIS IS THE DIRECTION TRIGGER ===\n  {seg_txt}\n"
+        f"  The DAY BIAS line in DESK VIEW below is CONTEXT, not the trigger. Act on the segment, and "
+        f"only when its confirmation reads MET.\n\n"
         f"=== RUN STATE — CONTEXT ONLY, NOT A ROUTING LEVER (WITHDRAWN 2026-08-08) ===\n{run_txt}\n"
         f"  ⛔ The 08-06 claim that made this the PRIMARY discriminator (in-run aligned TAKEN "
         f"+$10.34/tr) was RE-DERIVED on the SAME 89 Mon-Thu trades and INVERTS to -$1.83/tr "
