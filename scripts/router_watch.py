@@ -14,6 +14,11 @@ COVERAGE (silence is not success — health problems ALSO emit, never mask a dea
   WALL-OF-STOP    >=STOP_WALL_N STOP exits on one gate within STOP_WALL_MIN
   BLEED           day P&L dropped >=DD_ALARM from its session peak
   ⚠HALT / ⚠NAKED / ⚠FEED-STALE / ⚠AUDIT-STALE   health exceptions (critical)
+  DAY-RIDER ENTERED/CLOSED   the SECOND desk took or left a position
+  DAY-RIDER BLEED            the rider's OWN unrealised drawdown (never the account net)
+  ⚠DAY-RIDER STALE-FLAT      rider not ticking while flat — its watchdog says "ok flat" forever
+  DAY-RIDER NO-DETECT        past its 15:00Z cutoff with no entry this session
+  ⚠DESK-MISMATCH             venue net != tournament claim + rider claim (the 08-06 detector)
 
 Read-only. Debounced per event-type (cooldown) so it never spams. Thresholds are tunable.
 """
@@ -24,6 +29,69 @@ try:
     _PARIS = ZoneInfo("Europe/Paris")
 except Exception:
     _PARIS = None
+
+
+def desk_book():
+    """Who owns what, per DESK, plus the shared-account reconciliation.
+
+    Returns a dict or None. Every position number is attributed to the desk that owns it,
+    because the two desks net into ONE IBKR number and treating that number as anybody's in
+    particular is precisely the 2026-08-06 failure.
+
+    `mismatch` is the interesting field: venue_net minus (tournament + rider) claims. Non-zero
+    means the account holds something no desk admits to — an orphan stop that fired with no
+    slot behind it, a fill one desk never received, or one desk acting on the other's lots.
+
+    ⚠ venue_net is read from the RIDER's state file, so it is only as fresh as the rider's
+    heartbeat. A stale rider makes venue_net stale, and a stale number must never be
+    reconciled against live claims — so this returns venue_net=None once the heartbeat is old,
+    and the caller must not report a mismatch it cannot actually see.
+    """
+    try:
+        with open(DR_STATE) as fh:
+            dr = json.load(fh)
+    except Exception:
+        return None
+    now = datetime.now(timezone.utc)
+    hb_age = None
+    try:
+        hb_age = (now - datetime.fromisoformat(dr["heartbeat"])).total_seconds()
+    except Exception:
+        pass
+
+    rider_qty = 0.0
+    if dr.get("entered") and not dr.get("closed"):
+        try:
+            rider_qty = abs(float(dr.get("qty") or 0)) * int(dr.get("direction") or 0)
+        except Exception:
+            rider_qty = 0.0
+
+    tour_qty, tour_known = 0.0, False
+    try:
+        with open(HEALTH) as fh:
+            h = json.load(fh)
+        prot = h.get("protection") if isinstance(h.get("protection"), dict) else {}
+        for sl in (prot.get("slots") or []):
+            q = abs(float(sl.get("qty") or 0))
+            tour_qty += -q if str(sl.get("side", "")).upper() == "SHORT" else q
+        tour_known = True
+    except Exception:
+        pass
+
+    venue = None
+    if hb_age is not None and hb_age <= DR_HB_STALE_S:
+        try:
+            venue = float(dr["venue_net"])
+        except Exception:
+            venue = None
+
+    mismatch = None
+    if venue is not None and tour_known:
+        mismatch = venue - (tour_qty + rider_qty)
+
+    return {"rider": dr, "rider_qty": rider_qty, "tour_qty": tour_qty,
+            "tour_known": tour_known, "venue_net": venue, "mismatch": mismatch,
+            "hb_age": hb_age}
 
 
 def paris_day_start_utc():
@@ -69,6 +137,30 @@ FEED_COOL_S  = 300     # min seconds between feed-stale emits
 AUDIT_STALE_S= 30      # core_health audit age -> auditor stale
 # CME index-futures daily maintenance halt = 21:00-22:00 UTC (16:00-17:00 CT): no ticks is NORMAL then.
 MAINT_HOUR_UTC = 21
+
+# ── DAY RIDER (2026-08-11, operator: "does the day rider have a watcher too?") ──────────────
+# It did not. It has a flatten-only WATCHDOG for the catastrophic case — venue holds a
+# position nobody is managing — and nothing else. That watchdog returns "ok flat" whenever the
+# venue is flat NO MATTER HOW STALE the heartbeat is, so a rider that died at 09:00 and never
+# entered pages nobody and looks fine all day. Silent non-participation.
+DR_STATE = f"{DATA}/day_rider_state.json"
+DR_HB_STALE_S   = 300      # heartbeat age -> the rider is not ticking (it ticks every 60s)
+DR_BLEED_USD    = 200.0    # unrealised drawdown on the RIDER alone -> bleed (mirrors DD_ALARM)
+DR_BLEED_COOL_S = 900      # it holds for hours; one bleed alert per 15min, not per poll
+DR_NO_DETECT_UTC_MIN = 15 * 60      # its own entry cutoff — after this, no entry can happen
+DR_VPP = 2.0               # MNQ $/point
+
+# ★★ THE TWO DESKS SHARE ONE IBKR ACCOUNT (DUQ191770) AND IBKR NETS THEM INTO ONE NUMBER.
+# That is the whole 2026-08-06 incident: the day-rider flattened the ACCOUNT net without
+# checking whose position it was, took the tournament's 2 lots with it, and the tournament sat
+# 11 minutes halted with its safety block skipped. So every position number here is labelled
+# with the desk that OWNS it, and they are reconciled rather than assumed:
+#     venue_net  ==  tournament claim  +  day-rider claim
+# venue_net is the whole-account net the RIDER's client already reports (day_rider_state.json),
+# the tournament's claim comes from core_health.json, and the rider's claim from its own state.
+# No new IB connection is opened to do this — a watcher that grabbed its own clientId to check
+# for confusion between clients would be adding another one.
+DESK_MISMATCH_COOL_S = 600
 
 
 def emit(msg):
@@ -197,6 +289,9 @@ def main():
         "day_anchor": paris_day_start_utc(),
         "walls": set(),
         "halt": False, "naked": False, "audit": False,
+        # DAY RIDER (a SEPARATE desk — never fold its numbers into the tournament's)
+        "dr_in": False, "dr_peak": None, "last_dr_bleed": 0.0,
+        "dr_stale_flat": False, "dr_no_detect": False, "last_mismatch": 0.0,
     }
 
     px, tms = last_tick()
@@ -334,6 +429,84 @@ def main():
                 if dd >= DD_ALARM and st["bleed_armed"]:
                     emit(f"BLEED — day P&L ${dp:.0f}, down ${dd:.0f} from session peak ${st['peak_pnl']:.0f}")
                     st["bleed_armed"] = False  # re-arms when a new peak is made
+
+            # ── DAY RIDER — a SECOND DESK, watched separately and labelled as such ──────
+            # Everything below says "DAY-RIDER" in the event text on purpose. The two desks
+            # net into ONE IBKR number and the 08-06 cascade began with a flatten that did
+            # not check whose position it was; an alert that does not name the desk invites
+            # exactly that confusion at exactly the wrong moment.
+            book = desk_book()
+            if book:
+                drs = book["rider"]
+                in_pos = bool(drs.get("entered") and not drs.get("closed"))
+                hb_age = book["hb_age"]
+                mins_utc = time.gmtime().tm_hour * 60 + time.gmtime().tm_min
+
+                # (1) ENTERED — it took a position. Informational, once per entry.
+                if in_pos and not st["dr_in"]:
+                    side = "SHORT" if book["rider_qty"] < 0 else "LONG"
+                    emit(f"DAY-RIDER ENTERED — {side} {abs(book['rider_qty']):g} @ "
+                         f"{drs.get('entry')} (its own desk; tournament claim "
+                         f"{book['tour_qty']:+g})")
+                    st["dr_peak"] = 0.0
+                elif not in_pos and st["dr_in"]:
+                    emit(f"DAY-RIDER CLOSED — {drs.get('note') or 'flat'}")
+                    st["dr_peak"] = None
+                st["dr_in"] = in_pos
+
+                # (2) BLEED on the RIDER'S OWN unrealised P&L, never the account net.
+                if in_pos:
+                    try:
+                        ahead = float(drs.get("ahead_pt"))
+                        upnl = ahead * abs(book["rider_qty"]) * DR_VPP
+                    except Exception:
+                        upnl = None
+                    if upnl is not None:
+                        if st["dr_peak"] is None or upnl > st["dr_peak"]:
+                            st["dr_peak"] = upnl
+                        dd = st["dr_peak"] - upnl
+                        if dd >= DR_BLEED_USD and (wall_time - st["last_dr_bleed"]) > DR_BLEED_COOL_S:
+                            emit(f"DAY-RIDER BLEED — unrealised ${upnl:.0f} on ITS OWN 2 lots, "
+                                 f"down ${dd:.0f} from its peak ${st['dr_peak']:.0f}; trail "
+                                 f"{'ARMED @ ' + str(drs.get('trail')) if drs.get('trail') else 'NOT ARMED'}, "
+                                 f"hard flat 20:40Z (tournament P&L is separate)")
+                            st["last_dr_bleed"] = wall_time
+
+                # (3) STALE-FLAT — closes the hole in day_rider_watchdog.py: it returns
+                # "ok flat" whenever the venue is flat however dead the strategy is, so a
+                # rider that died before entering pages nobody and looks fine all day.
+                stale_flat = (not in_pos and hb_age is not None and hb_age > DR_HB_STALE_S
+                              and market_open)
+                if stale_flat and not st["dr_stale_flat"]:
+                    emit(f"⚠DAY-RIDER STALE-FLAT — heartbeat {hb_age:.0f}s old and it holds "
+                         f"nothing, so the flatten-watchdog will report 'ok flat' forever. "
+                         f"The rider may be DEAD and simply not trading (check "
+                         f"gazbot7-day-rider.timer)")
+                st["dr_stale_flat"] = stale_flat      # latch on rise, clear when it recovers
+
+                # (4) NO-DETECT — past its own 15:00Z entry cutoff with no entry all session.
+                if (mins_utc >= DR_NO_DETECT_UTC_MIN and not st["dr_no_detect"]
+                        and market_open and not in_pos and not drs.get("entered")):
+                    emit(f"DAY-RIDER NO-DETECT — past its 15:00Z entry cutoff with no entry "
+                         f"this session (drift never cleared eff>=0.15 & rt>=0.45). Not a "
+                         f"fault; it means the desk is tournament-only today")
+                    st["dr_no_detect"] = True
+
+                # (5) ★★ DESK MISMATCH — the 08-06 detector. The account holds something no
+                # desk admits to: an orphan stop that fired with no slot behind it, a fill one
+                # desk never received, or one desk moving the other's lots. Only checked when
+                # venue_net is FRESH — desk_book() returns None for it once the rider's
+                # heartbeat is stale, and reconciling live claims against a stale number would
+                # manufacture phantom mismatches.
+                mm = book["mismatch"]
+                if (mm is not None and abs(mm) >= 1
+                        and (wall_time - st["last_mismatch"]) > DESK_MISMATCH_COOL_S):
+                    emit(f"⚠DESK-MISMATCH — venue net {book['venue_net']:+g} but tournament "
+                         f"claims {book['tour_qty']:+g} and day-rider claims "
+                         f"{book['rider_qty']:+g} (unaccounted {mm:+g}). Shared account "
+                         f"DUQ191770 — this is the 08-06 shape: CHECK TWS for working stops "
+                         f"with no position behind them")
+                    st["last_mismatch"] = wall_time
 
             # liveness heartbeat to file (NOT an event)
             try:

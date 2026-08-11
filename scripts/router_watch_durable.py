@@ -52,12 +52,20 @@ STALE_LOCK_S = 300       # a tick that ran longer than this is dead, not running
 # Event routing. Matched as substrings against the emitted line — verified against every
 # emit() in router_watch.py, because a key that matches nothing fails SILENTLY and this
 # whole service would look healthy while doing nothing.
-CRITICAL = ("⚠HALT", "⚠NAKED", "⚠FEED-STALE", "⚠AUDIT-STALE")
+CRITICAL = ("⚠HALT", "⚠NAKED", "⚠FEED-STALE", "⚠AUDIT-STALE",
+            "⚠DESK-MISMATCH", "⚠DAY-RIDER STALE-FLAT", "DAY-RIDER BLEED")
 TRIGGER = ("BREAK↑", "BREAK↓", "REGIME→TREND", "REGIME→CHOP", "WALL-OF-STOP", "BLEED")
 # ⚠ REGIME→MIXED is deliberately NOT a trigger. It is the "no longer definite" state — the
 # absence of a regime, not the arrival of one — and arming on the absence of a signal is the
 # lapsed-bench error the ledger has billed five times. The 5-min timer picks it up anyway.
 # ⚠ NEW-DAY is log-only: bookkeeping, not tape.
+# ★★ NO DAY-RIDER EVENT TRIGGERS A ROUTER TICK, and that is deliberate. The tick moves
+# gate_switches.env, which controls TOURNAMENT gates only — it has no authority over the day
+# rider whatsoever (separate service, own clientId, own switch in day_rider.env). Firing a
+# tick because the RIDER is bleeding would spend a routing decision on the wrong desk and
+# churn gates that have nothing to do with it. Rider events go to the OPERATOR, who is the
+# only one who can act on them (the Claim-profit button, or day_rider.env).
+# DAY-RIDER ENTERED / CLOSED / NO-DETECT are log-only: worth a record, not worth a 3am text.
 WATCH_ERROR = "⚠WATCH-ERROR"
 WATCH_ERROR_NOTIFY_GAP_S = 3600   # the watcher failing is worth ONE text an hour, not one a poll
 
