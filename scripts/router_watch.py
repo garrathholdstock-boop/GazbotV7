@@ -201,7 +201,13 @@ def main():
 
     px, tms = last_tick()
     er = er_recent(tms or now_ms0)
-    emit(f"WATCH START — px {px} hi {hi} lo {lo} ER(20m) {er} — event-driven router watch live, "
+    # ★2026-08-11 the label said "ER(20m)" while ER_WIN_MIN has been 30 — it printed the
+    # 30-min ER under a 20-min name. On the US-open reversal that read 0.09 ("dead tape")
+    # while the actual 20-min leg was 0.55, i.e. the label hid the entire move. Derive the
+    # label from the constant so the two can never drift apart again, and round it: the raw
+    # float printed 17 significant digits.
+    emit(f"WATCH START — px {px} hi {hi} lo {lo} ER({ER_WIN_MIN}m) {er:.3f} — "
+         f"event-driven router watch live, "
          f"thresholds ER_TREND {ER_TREND_ENTER}/ER_CHOP {ER_CHOP_ENTER} break±{BREAK_PAD} DD ${DD_ALARM:.0f}")
 
     while True:
