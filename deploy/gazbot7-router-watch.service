@@ -1,0 +1,37 @@
+[Unit]
+# GAZBOT V7 — DURABLE ROUTER WATCH (the fast lane).
+# The 5-min gazbot7-router-tick.timer is the desk's FLOOR and stays exactly as it is. This
+# service is the exception layer on top: it reacts to breaks / regime flips / walls-of-STOP
+# / bleed within ~30s instead of up to 5 minutes, and texts the operator on health
+# exceptions. It NEVER writes gate_switches.env — it only asks the existing tick to run
+# early, so every routing fail-safe stays in one place.
+Description=GAZBOT V7 — durable router WATCH (fast lane: events -> early tick / operator alert)
+After=network.target gazbot7-tournament.service
+Wants=gazbot7-router-tick.timer
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -u /home/alphabot/gazbot7/scripts/router_watch_durable.py
+
+# Always come back. A watcher that stays dead after one bad poll is worse than no watcher,
+# because the desk looks covered. RestartSec is generous so a persistent crash does not
+# spin; StartLimit lets systemd give up loudly rather than hammer forever.
+Restart=always
+RestartSec=30
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+# The box is 7.5GB and three global_oom kills on 2026-08-08 each picked a victim at random.
+# Cap this so it OOMs ITSELF rather than taking the desk with it, and protect it lightly —
+# it is oversight, so it yields to the trading path (which runs at -500) but outranks batch.
+MemoryMax=400M
+MemorySwapMax=100M
+OOMScoreAdjust=-200
+
+[Install]
+WantedBy=multi-user.target
