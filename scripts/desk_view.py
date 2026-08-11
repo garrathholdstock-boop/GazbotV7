@@ -72,13 +72,29 @@ def main():
             sum(CASE WHEN epoch(opened_at::TIMESTAMPTZ) >= {tnow-3600} THEN 1 ELSE 0 END) hn,
             max(CASE WHEN epoch(opened_at::TIMESTAMPTZ) >= {tnow-3600} THEN substr(side,1,1) END) side1
         FROM g.trades WHERE symbol='MNQ' AND data_quality IS NULL
+          AND (gate IS NULL OR gate NOT LIKE 'day_rider%')
           AND epoch(opened_at::TIMESTAMPTZ) >= {ds}
         GROUP BY gate ORDER BY pnl""").fetchall()
     dtot = sum(r[2] for r in rows) if rows else 0.0
+    # ★2026-08-11 THE DAY RIDER IS EXCLUDED ABOVE AND SHOWN SEPARATELY HERE.
+    # It began writing trade rows today and landed straight in the router's per-gate evidence —
+    # the day total jumped from the tournament's +371.5 to +560.5 within hours. This view is the
+    # DECISION layer (see the data_quality note above: a wrong row here arms a gate), and the
+    # rider is a gate the router does not control and cannot bench. So it is filtered OUT of the
+    # gate table and printed as its own line: excluding it silently would just swap one wrong
+    # number for another, and the router should know the second desk exists.
     for gate, n, pnl, w, h, hn, s1 in rows:
         hrmark = f"  [last hr {h:+.0f}/{hn}tr]" if hn else ""
         print(f"  {gate:18} {pnl:>+7.1f}  ({n}tr {w}W){hrmark}")
-    print(f"  {'— DAY TOTAL':18} {dtot:>+7.1f}")
+    print(f"  {'— DAY TOTAL':18} {dtot:>+7.1f}   (TOURNAMENT only — the book you route)")
+    # NB: named dr_row, not dr — `dr` is already the day_rider module alias in this scope and
+    # shadowing it threw UnboundLocalError on the FIRST run, before this ever reached the router.
+    dr_row = con.execute(f"""SELECT count(*), round(sum(pnl_usd),1), sum(pnl_usd>0) FROM g.trades
+        WHERE symbol='MNQ' AND data_quality IS NULL AND gate LIKE 'day_rider%'
+          AND epoch(opened_at::TIMESTAMPTZ) >= {ds}""").fetchone()
+    if dr_row and dr_row[0]:
+        print(f"  {'— day_rider':18} {dr_row[1]:>+7.1f}  ({dr_row[0]}tr {dr_row[2]}W)  ★ SEPARATE DESK — its own "
+              f"service and clientId. You do NOT route it and cannot bench it; it is context only.")
 
     # ── SHADOW per-gate today (unbenched counterfactual — did benched gates avoid losses?) ──
     # ★2026-08-04 TWO FIXES, both found because the operator spotted abs_veto_55s running 100% green
