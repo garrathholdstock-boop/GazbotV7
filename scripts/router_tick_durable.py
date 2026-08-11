@@ -277,6 +277,35 @@ def main():
                 _raw = "DOWN" if _net < 0 else "UP"
             else:
                 _raw = "FLAT"
+            # ★2026-08-11 FAST WINDOW — CONTEXT ONLY, NOT A TRIGGER. The 60-min segment cannot
+            # see a V-reversal: if the hour opened above a dump, a sharp recovery averages to a
+            # net near zero and the rule reads FLAT or even DOWN while price runs. Live case this
+            # session — 15min UP +113pt ER 0.704 while the 60-min window read DOWN -70pt ER 0.103,
+            # and the operator saw the run before the instrument did. Showing the 20-min leg beside
+            # the 60-min one lets the router SEE the divergence and say so, instead of being blind
+            # to it. It is deliberately NOT a trigger: a fast window flips on noise, which is what
+            # the 60-min window and the two-tick confirmation exist to prevent.
+            try:
+                _r2 = [r for r in _rows if r[0] >= _now - 20 * 60]
+                if len(_r2) >= 8:
+                    _n2 = _r2[-1][1] - _r2[0][1]
+                    _p2 = sum(abs(_r2[i][1] - _r2[i - 1][1]) for i in range(1, len(_r2))) or 1.0
+                    _e2 = abs(_n2) / _p2
+                    _d2 = "UP" if _n2 > 0 else "DOWN"
+                    fast_txt = (f"\n  FAST 20-min leg (CONTEXT ONLY, never a trigger): {_d2} "
+                                f"net {_n2:+.0f}pt  ER {_e2:.3f}")
+                    if abs(_n2) > 40 and _e2 >= 0.20:
+                        fast_txt += ("  ⚠ THE 20-MIN LEG IS DIRECTIONAL. If it DISAGREES with the "
+                                     "60-min read above, a reversal is under way that the 60-min "
+                                     "window is averaging away. Do NOT flip the direction rule on "
+                                     "this — but do NOT claim the tape is flat either, and say in "
+                                     "your reason which window you are acting on and why. Ask "
+                                     "whether STRUCTURE has broken (new high/low of the last 2h) "
+                                     "before treating it as a trend rather than a retrace.")
+                else:
+                    fast_txt = ""
+            except Exception:
+                fast_txt = ""
             _sp = f"{GB}/data/router_segment_state.json"
             _prev_dir, _prev_conf, _prev_dis, _age = None, False, 0, 10 ** 9
             try:
@@ -313,7 +342,8 @@ def main():
             seg_txt = (f"last 60min: {_dir}  net {_net:+.0f}pt  ER {_er:.3f} "
                        f"(needs |net|>40 AND ER>=0.20 to be directional)  "
                        f"({len(_rows)} bars, path {_path:.0f}pt) | previous tick: "
-                       f"{_prev_dir or 'none'} -> confirmation {'MET' if _conf else 'UNMET'}{_hold_txt}")
+                       f"{_prev_dir or 'none'} -> confirmation {'MET' if _conf else 'UNMET'}"
+                       f"{_hold_txt}{fast_txt}")
             try:
                 _t = _sp + ".tmp"
                 with open(_t, "w") as _f:
