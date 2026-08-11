@@ -274,27 +274,51 @@ def main():
             # the bounce, which is exactly the discrimination the rule is for.
             SEG_ER_FLOOR = 0.20
             if abs(_net) > 40 and _er >= SEG_ER_FLOOR:
-                _dir = "DOWN" if _net < 0 else "UP"
+                _raw = "DOWN" if _net < 0 else "UP"
             else:
-                _dir = "FLAT"
+                _raw = "FLAT"
             _sp = f"{GB}/data/router_segment_state.json"
-            _prev_dir, _age = None, 10 ** 9
+            _prev_dir, _prev_conf, _prev_dis, _age = None, False, 0, 10 ** 9
             try:
                 with open(_sp) as _f:
                     _p = _sj.load(_f)
                 _prev_dir = _p.get("dir")
+                _prev_conf = bool(_p.get("conf"))
+                _prev_dis = int(_p.get("dissent", 0))
                 _age = _now - int(_p.get("ts", 0))
             except Exception:
                 pass
-            _conf = (_prev_dir == _dir and _age <= 900 and _dir != "FLAT")
-            seg_txt = (f"last 60min: {_dir}  net {_net:+.0f}pt  ER {_er:.2f} "
+            # ★2026-08-11 SYMMETRIC HYSTERESIS. This rule needed two consecutive ticks to ENTER a
+            # direction but only ONE to leave it, so five confirmed UP reads were undone by a single
+            # marginal tick and `abs_veto_short` was benched at 01:00 and re-armed at 01:30 — a
+            # 30-minute round trip caused by the instrument, not by judgement. Entry confirmation was
+            # added precisely to stop boundary flicker; the flicker simply moved to the other edge.
+            # A first dissenting tick against a CONFIRMED direction now HOLDS that direction and is
+            # recorded as dissent 1; a second consecutive dissent releases it. Leaving costs two
+            # ticks exactly as entering does.
+            _held = False
+            if (_prev_conf and _prev_dir not in (None, "FLAT") and _raw != _prev_dir
+                    and _age <= 900 and _prev_dis < 1):
+                _dir, _conf, _dis, _held = _prev_dir, True, _prev_dis + 1, True
+            else:
+                _dir = _raw
+                _conf = (_prev_dir == _raw and _age <= 900 and _raw != "FLAT")
+                _dis = 0
+            # ER is printed to 3dp because the test is `_er >= 0.20` on the RAW value: at 2dp a raw
+            # 0.1996 printed as "0.20" and read FLAT, so the log contradicted its own stated floor
+            # and cost real audit time. Never round a number across the threshold it is judged on.
+            _hold_txt = (f"  ⚠ HELD: raw read is {_raw} but the previous tick's {_prev_dir} was "
+                        f"CONFIRMED, so this is dissent 1 of 2 — the direction does NOT flip until a "
+                        f"second consecutive dissent. Treat {_prev_dir} as still in force." if _held else "")
+            seg_txt = (f"last 60min: {_dir}  net {_net:+.0f}pt  ER {_er:.3f} "
                        f"(needs |net|>40 AND ER>=0.20 to be directional)  "
                        f"({len(_rows)} bars, path {_path:.0f}pt) | previous tick: "
-                       f"{_prev_dir or 'none'} -> confirmation {'MET' if _conf else 'UNMET'}")
+                       f"{_prev_dir or 'none'} -> confirmation {'MET' if _conf else 'UNMET'}{_hold_txt}")
             try:
                 _t = _sp + ".tmp"
                 with open(_t, "w") as _f:
-                    _sj.dump({"dir": _dir, "net": _net, "er": round(_er, 3), "ts": _now}, _f)
+                    _sj.dump({"dir": _dir, "net": _net, "er": round(_er, 3), "ts": _now,
+                              "conf": bool(_conf), "dissent": int(_dis), "raw": _raw}, _f)
                 os.replace(_t, _sp)
             except Exception:
                 pass
@@ -302,6 +326,28 @@ def main():
             seg_txt = f"(only {len(_rows)} bars in the last hour — no segment read)"
     except Exception as e:
         seg_txt = f"(unavailable: {e})"
+
+    # ★2026-08-11 SESSION WINDOW — the router had no concept of session time at all, so it armed
+    # gates inside the Asia block that could not fire, and called the tape "Asia chop" for two hours
+    # after Asia ended while sitting in LONDON, the desk's only positive block. Computed from the
+    # SAME helper the desk gates entries with, so the router cannot disagree with the order path.
+    try:
+        from gazbot7 import session as _sess2
+        _n2 = datetime.now(timezone.utc)
+        _asia = bool(_sess2.in_asia_block(_n2))
+        _h2 = _n2.hour + _n2.minute / 60.0
+        _blk = ("ASIA" if _asia else "LONDON" if 7 <= _h2 < 13 else
+                "US-PRE/OPEN" if 13 <= _h2 < 15 else "US-LATE" if 15 <= _h2 < 21 else "CLOSED/REOPEN")
+        sess_txt = (f"{_n2:%H:%M}Z — {_blk}"
+                    + ("  ⛔ NEW ENTRIES ARE REFUSED (no_open_asia). An ARM now is inert until 07:00Z "
+                       "and then goes live unreviewed — only make one you would still make on the "
+                       "07:00 tape. BENCHES are fully effective." if _asia else "")
+                    + ("  ★ 13:30-14:45Z is where the desk's expectancy lives (+$8.93/tr, n=562)."
+                       if 13 <= _h2 < 15 else "")
+                    + ("  ★ LONDON is the desk's ONLY positive block (+$0.70/tr, n=1516) — do not "
+                       "under-arm it, and do not call this tape 'Asia'." if _blk == "LONDON" else ""))
+    except Exception as e:
+        sess_txt = f"(session window unavailable: {e}) — derive it from the UTC clock yourself"
 
     # RUN STATE — CONTEXT ONLY. ⛔2026-08-08: the 08-06 framing below is WITHDRAWN as a routing lever.
     # The claim was:
@@ -542,6 +588,30 @@ def main():
         "only at >=65 and 'CAUTION' at 45-64, because three analysis harnesses classify historical days off "
         "that label and re-cutting it would silently re-label past studies. So a meter reading 'CAUTION 58' "
         "twice running IS A STAY-OUT FOR YOU, and 'CAUTION 52' is NOT. Read the SCORE, not the word. "
+        "⛔⛔ A LAPSED BENCH IS NOT AN ARMING CASE — THE MOST-REPEATED ERROR ON THIS DESK. When the ONLY "
+        "thing benching a gate stops applying (a stay-out lapses, a direction read goes FLAT, a carve-out "
+        "expires), that gate returns to BENCHED-BY-DEFAULT. It does NOT return to armed. Arming needs a "
+        "POSITIVE case made this tick; the absence of a bench is not one, and neither is 'the tape is dead' "
+        "or 'nothing is stopping me'. This fired FIVE times in 24h (2026-08-10/11) and the 17:45 instance "
+        "cost $92.50 by re-arming exhaustion_short, already the day's worst gate at -$137.50 with 4 of 6 "
+        "lots stopped, which then stopped 4 more. ⚠ TWO NAMED EXCEPTIONS, and only these two: abs_veto_short "
+        "is ARMED-BY-DEFAULT under the 08-08 carve-out (+$2,290.50 / 159 fires, positive in all five "
+        "regimes), so restoring IT when a bench lapses is correct policy; capitulation_long likewise carries "
+        "no start-benched flag. Every gate in MOMENTUM_START_BENCHED (grind_long, abs_veto_long) is "
+        "benched-by-default and needs the MONDAY #4 trio — structure break + ER climbing + vol expanding — "
+        "before it is armed. ⚠ AND WEIGH THE GATE'S OWN RECORD: per-gate evidence OUTRANKS the meter's "
+        "silence. A meter going quiet says nothing about the gate; it says the meter is quiet. "
+        "⛔ THE ASIA BLOCK: 00:00-07:00 UTC, NEW ENTRIES ARE REFUSED whatever your switches say. "
+        "no_open_asia=True and multislot_core._open() returns before any entry (shadow n=1840, -$3.17/tr, "
+        "the desk's worst block). Exits and every flatten path are UNAFFECTED. Two consequences you must "
+        "act on. FIRST, an ARM decided in this window is inert now and becomes LIVE at 07:00 with nothing "
+        "resetting it — gate_switches.env has no 07:00 reset, only the 22:00 reactivation. So treat an arm "
+        "made in Asia as a decision ABOUT 07:00, not about now: make it only if you would still make it on "
+        "the 07:00 tape, and say so in your reason. On 2026-08-11 06:10 an arm crossed that boundary "
+        "unexamined. SECOND, do not spend ticks deliberating arms that cannot fire — BENCHES in this window "
+        "are still fully effective and still worth making. ⚠ And do not call the tape 'Asia' after 07:00: "
+        "07:00-13:00 is LONDON, the desk's ONLY positive block (+$0.70/tr, n=1516). Every tick from 07:00Z "
+        "to 08:47Z on 2026-08-10 said 'Asia chop unchanged' while sitting in the one window that pays. "
         "⛔ AND NO STAY-OUT MAY TRIGGER BEFORE 15:00 UTC. The meter is a DAY aggregate; before 15:00Z it has "
         "too little of the day in it to call one, and an early stay-out benches the 13:30-14:45 window where "
         "the desk's expectancy actually lives (+$8.93/tr, n=562). Before 15:00Z, route on the TAPE. "
@@ -556,6 +626,7 @@ def main():
         f"=== ACTIVE CARVE-OUTS (top of gate_switches.env — written by the session, the operator, or "
         f"the open-hour watcher; these are INSTRUCTIONS TO YOU, honour their stated expiry) ===\n"
         f"{switch_notes()}\n\n"
+        f"=== ★ SESSION WINDOW — WHICH BLOCK YOU ARE IN RIGHT NOW ===\n  {sess_txt}\n\n"
         f"=== ★ SEGMENT BIAS — THIS IS THE DIRECTION TRIGGER ===\n  {seg_txt}\n"
         f"  The DAY BIAS line in DESK VIEW below is CONTEXT, not the trigger. Act on the segment, and "
         f"only when its confirmation reads MET.\n\n"
@@ -597,7 +668,11 @@ def main():
         hlog(f"ABORT: JSON parse fail {e} -> no change | raw={out[:200]!r}"); return
 
     changes = dec.get("changes") or {}
-    reason = str(dec.get("reason", ""))[:300]
+    # ★2026-08-11 was [:300] and it clipped mid-word, systematically keeping the boilerplate
+    # context the router front-loads and dropping the ARGUMENT for the change it made. Two
+    # consecutive bad-call reviews could not grade a decision because its justification was
+    # in the clipped remainder. The ledger grades REASONING; do not clip the reasoning.
+    reason = str(dec.get("reason", ""))[:1200]
     notify = str(dec.get("notify", "")).strip()
 
     blocked = {g: v for g, v in changes.items()
