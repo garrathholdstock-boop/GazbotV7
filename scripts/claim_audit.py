@@ -58,6 +58,90 @@ def _ms(iso: str) -> int:
     return int(datetime.fromisoformat(iso).timestamp() * 1000)
 
 
+
+# ── THE DAY RIDER IS A DIFFERENT DESK WITH A DIFFERENT COUNTERFACTUAL ────────────────────
+# (2026-08-11, operator: "if im claiming profits every time how is that bad?")
+# slot_exit_cfg() returns None for gate='day_rider' — it has no scale-out ladder, so pricing
+# its claims against the tournament's exit spec is meaningless and they would sit in the
+# UNPRICED bucket forever. Its machine exit is its OWN rule, and there are only two ways it
+# ever leaves a trade on its own:
+#   1. the ARMED TRAIL — arm once ARM_ATR_MULT x ATR ahead of entry, then trail
+#      TRAIL_ATR_MULT x ATR off the running peak (ATR frozen at entry);
+#   2. the 20:40Z HARD FLAT, which is where it ends up whenever the trail never arms.
+# The 600pt venue stop is last-resort insurance, modelled for completeness.
+#
+# ★ WHY THIS IS THE RIGHT QUESTION. The battery found holding to the flat beat 25 exit
+# variants, and the ONE thing that beat holding was the armed trail. So "what the machine
+# would have done" IS trail-or-clock — and a hand-claim is only good if it beats that.
+DR_ARM_ATR_MULT = 4.0        # day_rider.ARM_ATR_MULT
+DR_TRAIL_ATR_MULT = 2.0      # day_rider.TRAIL_ATR_MULT
+DR_FLAT_UTC_MIN = 20 * 60 + 40
+DR_VENUE_STOP_PT = 600.0
+DR_FEE_RT = 1.5
+
+
+def dr_entry_atr(con, ts_ms: int) -> float | None:
+    """The rider's OWN ATR: 14 one-minute true ranges (drift.py:128). Deliberately NOT
+    claim_audit's entry_atr() — that is ATR-14 built for the tournament's stop distances, and
+    scoring a desk against a volatility unit it does not use would be a different instrument
+    answering a different question."""
+    t_s = ts_ms // 1000
+    rows = con.execute(f"""
+        SELECT CAST(bar_ts / 60 AS BIGINT) m, MAX(high) h, MIN(low) l, ARG_MAX(close, bar_ts) c
+        FROM c.bars WHERE symbol='MNQ' AND timeframe='5s'
+          AND bar_ts < {t_s} AND bar_ts >= {t_s - 60 * 60}
+        GROUP BY 1 ORDER BY 1""").fetchall()
+    if len(rows) < 3:
+        return None
+    trs = [max(rows[i][1] - rows[i][2], abs(rows[i][1] - rows[i - 1][3]),
+               abs(rows[i][2] - rows[i - 1][3])) for i in range(1, len(rows))]
+    return (sum(trs[-14:]) / min(14, len(trs))) if trs else None
+
+
+def day_rider_hold(con, entry: float, d: int, qty: float, t0_ms: int, atr: float):
+    """Simulate the rider's own exit from entry. Returns (pnl_usd, exit_px, reason, armed).
+
+    Priced on TICKS, and the trail is raced tick-by-tick against the clock — a trail level and
+    a 20:40 flatten are not interchangeable and whichever comes FIRST is the one that happened.
+    """
+    t0 = t0_ms // 1000
+    day = datetime.fromtimestamp(t0, UTC).date()
+    flat_s = int(datetime(day.year, day.month, day.day,
+                          DR_FLAT_UTC_MIN // 60, DR_FLAT_UTC_MIN % 60, tzinfo=UTC).timestamp())
+    ticks = con.execute(f"""
+        SELECT ts_ms, price FROM c.ticks WHERE symbol='MNQ'
+          AND ts_ms >= {t0_ms} AND ts_ms <= {flat_s * 1000} ORDER BY ts_ms""").fetchall()
+    if not ticks:
+        return None
+    arm_at = DR_ARM_ATR_MULT * atr
+    trail_by = DR_TRAIL_ATR_MULT * atr
+    stop_px = entry - d * DR_VENUE_STOP_PT
+    peak = entry
+    armed = False
+    for ts, px in ticks:
+        if d * (px - entry) > d * (peak - entry):
+            peak = px
+        if not armed and d * (peak - entry) >= arm_at:
+            armed = True
+        if armed:
+            tl = peak - d * trail_by
+            if (px <= tl) if d > 0 else (px >= tl):
+                return (round(d * (tl - entry) * VPP * qty - DR_FEE_RT * qty, 2), tl,
+                        "TRAIL", True)
+        if (px <= stop_px) if d > 0 else (px >= stop_px):
+            return (round(d * (stop_px - entry) * VPP * qty - DR_FEE_RT * qty, 2), stop_px,
+                    "VENUE_STOP", armed)
+    px = ticks[-1][1]
+    # ⚠ PROVISIONAL IF THE DAY IS NOT OVER. Run before 20:40Z the tick stream simply ends at
+    # "now", so this is not the clock flat — it is the price this minute, and the remaining
+    # hours can move it a long way. The nightly audit runs at 21:30Z and is therefore always
+    # complete; an intraday run is not, and must not be read as a verdict. Observed the first
+    # time this was ever run: 17:22Z, with 3h18m still to go.
+    incomplete = (ticks[-1][0] // 1000) < flat_s - 120
+    return (round(d * (px - entry) * VPP * qty - DR_FEE_RT * qty, 2), px,
+            "OPEN-SO-FAR" if incomplete else "CLOCK_FLAT", armed)
+
+
 def entry_atr(con, ts_ms: int) -> float | None:
     """ATR-14 on 1-MINUTE bars as of the entry. The desk does not persist entry_atr on the trade
     ([[position-orphan-entry-atr-cascade]]), so it is reconstructed. The grind sweep measured this
@@ -163,8 +247,45 @@ def main() -> int:
     rows, tot_hand, tot_mach, unpriced = [], 0.0, 0.0, 0
     for t in claims:
         tag = t["gate"]
-        spec = slot_exit_cfg(tag)
         t0 = _ms(t["opened_at"])
+
+        # ── DAY RIDER: priced against ITS OWN machine exit, not the tournament ladder ──
+        if str(tag or "").startswith("day_rider"):
+            d = 1 if t["side"] == "LONG" else -1
+            dr_atr = dr_entry_atr(con, t0)
+            res = day_rider_hold(con, float(t["entry_price"]), d, float(t["qty"]),
+                                 t0, dr_atr) if dr_atr else None
+            if res is None:
+                unpriced += 1
+                rows.append(dict(id=t["id"], gate=tag, opened=t["opened_at"],
+                                 hand=t["pnl_usd"], machine=None, delta=None,
+                                 note="no tick/ATR history for the rider hold"))
+                continue
+            mach, mpx, mreason, armed = res
+            hand = float(t["pnl_usd"])
+            tot_hand += hand
+            tot_mach += mach
+            mfe = hand_mfe(con, t["side"], t["entry_price"], t0, _ms(t["closed_at"]))
+            mfe_usd = (mfe or 0) * VPP * float(t["qty"])
+            rows.append(dict(
+                id=t["id"], gate=tag, side=t["side"], opened=t["opened_at"],
+                hand=round(hand, 2), machine=round(mach, 2), delta=round(hand - mach, 2),
+                machine_exit=f"{mreason}{'*' if armed else ''}",
+                machine_held_s=None,
+                hand_held_s=round((_ms(t["closed_at"]) - t0) / 1000),
+                mfe_pt=round(mfe or 0, 2), mfe_usd=round(mfe_usd, 2),
+                captured_pct=round(100 * hand / mfe_usd, 1) if mfe_usd else None,
+                entry_atr=round(dr_atr, 2),
+                # The trail-armed flag matters more than it looks: if the trail NEVER armed,
+                # the rider's machine exit was simply the 20:40 clock, and the comparison is
+                # "your hand vs the close" — not "your hand vs the trail".
+                note=f"rider hold -> {mreason} @ {mpx:.1f}"
+                     f"{' (trail ARMED)' if armed else ' (trail never armed)'}"
+                     + (" ⚠PROVISIONAL: the 20:40Z flat has not happened yet"
+                        if mreason == "OPEN-SO-FAR" else "")))
+            continue
+
+        spec = slot_exit_cfg(tag)
         atr = entry_atr(con, t0)
         if spec is None or atr is None:
             unpriced += 1
