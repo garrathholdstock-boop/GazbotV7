@@ -403,17 +403,28 @@ class Core:
         """Bound the catastrophic day. Computed fresh from realized P&L each open,
         so a breach stays tripped for the session (realized losses don't un-realize;
         a halted desk takes no trade that could reset the streak)."""
-        day_pnl, _n, _w = pnl.day(self._store, self._cfg.symbol, now)
+        # ★2026-08-11 desk="tournament". The day rider began writing trade rows today and
+        # this is the TOURNAMENT's kill check — its daily-loss and streak limits must not
+        # be tripped (or masked) by a second desk's P&L. Same producer-vs-consumer lesson
+        # as md-stream-multi-symbol-filter: rows were added and every reader had to be
+        # audited, not just the writer.
+        day_pnl, _n, _w = pnl.day(self._store, self._cfg.symbol, now, desk="tournament")
         limit = self._cfg.max_daily_loss_usd
         if limit > 0 and day_pnl <= -limit:
             return f"daily loss limit (${day_pnl:.0f} ≤ −${limit:.0f})"
         k = self._cfg.loss_streak_halt
         if k > 0:
             ph = ",".join("?" * len(pnl._CLEANUP_REASONS))  # exclude cleanup (ADOPT_FLATTEN)
+            # ★2026-08-11 EXCLUDE THE DAY RIDER. This is a raw query rather than a pnl.py
+            # call, so it did not inherit the desk split — and from today the day rider writes
+            # rows into this same table. Without the filter, one desk's losses would halt the
+            # OTHER desk, which is the shared-resource confusion the 08-06 incident was made of.
             rows = self._store.execute(
                 f"SELECT pnl_usd FROM trades WHERE symbol=? AND exit_reason NOT IN ({ph}) "
+                f"AND (gate IS NULL OR gate NOT LIKE ?) "
                 f"ORDER BY id DESC LIMIT ?",
-                (self._cfg.symbol, *pnl._CLEANUP_REASONS, k),
+                (self._cfg.symbol, *pnl._CLEANUP_REASONS,
+                 f"{pnl.DAY_RIDER_GATE_PREFIX}%", k),
             ).fetchall()
             if len(rows) == k and all(r[0] < 0 for r in rows):
                 return f"loss streak ({k} in a row)"

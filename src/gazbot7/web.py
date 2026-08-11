@@ -249,7 +249,11 @@ def mnq_json(store_path):
            "contracts_cap_aggregate": None}
     try:
         c = _conn(store_path)
-        today, n_today, wins = pnl.day(c, "MNQ", now)
+        # ★2026-08-11 desk="tournament" so this header keeps the meaning it has always had.
+        # The day rider started writing trade rows today; folding them in would silently change
+        # the number the operator reads as "the desk's day" without him asking for it. The
+        # rider's own position and P&L surface separately in HOLDINGS.
+        today, n_today, wins = pnl.day(c, "MNQ", now, desk="tournament")
         d7, _, _ = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=7)).isoformat())
         d30, _, _ = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=30)).isoformat())
         y0 = pnl.paris_day_start_utc(now - timedelta(days=1))

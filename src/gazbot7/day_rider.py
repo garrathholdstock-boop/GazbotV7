@@ -130,6 +130,70 @@ def enabled() -> bool:
     return False
 
 
+
+# ── BOOKING THE TRADE (2026-08-11, operator: "yes ship the trade rows") ──────────────────
+# The day rider has been live in paper since 08-05 and has NEVER written a trade row. Three
+# things were false as a result and all three were reported as if true:
+#   · scripts/claim_audit.py scores MANUAL_CLAIM against what holding would have made — it
+#     queries `trades`, so every Claim-profit press was UNSCORED. The operator is actively
+#     using that button; nothing was measuring it.
+#   · sweep.py's day_rider_pnl / day_rider_trades read 0 on every day, whatever the rider did.
+#   · there was no P&L history for a desk that has been trading for a week.
+#
+# ★★ ATTRIBUTION IS THE POINT, not just the row. The gate is tagged `day_rider` because
+# pnl.realized() splits the books on exactly that prefix (DAY_RIDER_GATE_PREFIX): desk=
+# "tournament" excludes it, desk="day_rider" keeps only it. Two desks share one IBKR account
+# and one trades table; a row that does not say which desk owns it is how the 08-06 confusion
+# gets written into the permanent record.
+#
+# Fee is fee_rt (1.50) PER LOT round-turn — never $5, never per side. VPP is 2.0 for MNQ.
+DAY_RIDER_GATE = "day_rider"
+DB_PATH = f"{GB}/data/gazbot7.db"
+# ⚠ MNQ IS $2/POINT AND THE FEE IS $1.50 PER LOT ROUND-TURN. Written out because the pair
+# `VPP, FEE = 2.0, 1.5` and `FEE, VPP = 5.0, 2.0` look identical at a glance and are reversed —
+# a wrong fee constant has silently corrupted twelve harnesses on this desk before.
+VPP = 2.0
+FEE_RT = 1.5
+
+
+def book_trade(out: dict, exit_px: float, reason: str, notify=None) -> None:
+    """Write the closed round-trip to the trades table. Never raises: a booking failure must
+    not stop a flatten from completing or a session from closing cleanly — the position is
+    already out at this point and the row is bookkeeping. It DOES notify on failure, because a
+    silently missing row is what created this whole gap."""
+    try:
+        entry = float(out.get("entry") or 0)
+        qty = abs(float(out.get("qty") or 0))
+        d = int(out.get("direction") or 0)
+        if entry <= 0 or qty <= 0 or d not in (-1, 1) or not exit_px:
+            return
+        gross = d * (exit_px - entry) * VPP * qty
+        fees = FEE_RT * qty
+        from . import store as _store
+        conn = _store.open_store(DB_PATH)
+        _store.record_trade(
+            conn, symbol="MNQ", side="LONG" if d > 0 else "SHORT", qty=qty,
+            entry_price=entry, exit_price=float(exit_px),
+            opened_at=out.get("entered_at") or dt.datetime.now(dt.UTC).isoformat(),
+            closed_at=dt.datetime.now(dt.UTC).isoformat(),
+            pnl_usd=round(gross - fees, 2), fees_usd=round(fees, 2),
+            exit_reason=reason, gate=DAY_RIDER_GATE,
+            # The exit fill id would make this idempotent; the rider places a plain market
+            # order and does not capture one, so a same-second double-book is possible in
+            # principle. One entry per session and a `closed` latch make it not possible in
+            # practice — but say so rather than imply an idempotency that is not there.
+        )
+        conn.close()
+    except Exception as e:
+        if notify:
+            try:
+                notify(f"DAY RIDER: trade booked to state but FAILED to write the trades row "
+                       f"({type(e).__name__}: {e}) — P&L history and claim_audit will be short "
+                       f"one trade", critical=False)
+            except Exception:
+                pass
+
+
 CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
 # Long enough to survive a slow tick or a one-off service restart, far short of
 # the overnight gap that would let a press leak into the next session.
@@ -333,7 +397,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     post = await _net_position(ib, cfg.symbol)
                     if abs(post) < 1e-9:
                         out["closed"] = True
+                        out["exit_reason"] = "CLOCK_FLAT"
                         out["note"] = f"FLAT at the {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d} clock"
+                        book_trade(out, px, "CLOCK_FLAT", notify)
                         if notify:
                             notify(f"DAY RIDER flat at the {FLAT_UTC_MIN//60:02d}:"
                                    f"{FLAT_UTC_MIN%60:02d} UTC clock ({v[0]} {v[1]})", critical=True)
@@ -390,8 +456,14 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                         ib.placeOrder(contract, MarketOrder(v[0], v[1]))
                         await asyncio.sleep(2.0)
                         out["closed"] = True
+                        out["exit_reason"] = "OPERATOR_SELL"
                         out["pending_exit"] = None
                         out["note"] = "OPERATOR-APPROVED exit"
+                        # A distinct reason from MANUAL_CLAIM on purpose: this is the rider
+                        # ASKING and the operator saying sell; MANUAL_CLAIM is the operator
+                        # acting unprompted. claim_audit.py should be able to tell a prompted
+                        # hand from an unprompted one — they are different skills.
+                        book_trade(out, px, "OPERATOR_SELL", notify)
                         if notify:
                             notify(f"DAY RIDER flat on your approval @ ~{px:.2f} "
                                    f"({d*(px-entry):+.0f}pt from entry)", critical=True)
@@ -449,6 +521,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     await asyncio.sleep(2.0)
                     out["closed"] = True
                     out["exit_reason"] = "MANUAL_CLAIM"
+                    book_trade(out, px, "MANUAL_CLAIM", notify)
                     out["note"] = f"claimed by operator at {px:.1f} ({d*(px-entry):+.0f}pt from entry)"
                     if notify:
                         notify(f"DAY RIDER claimed @ {px:.1f} · {d*(px-entry):+.0f}pt from entry "
@@ -472,7 +545,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))
                     await asyncio.sleep(2.0)
                     out["closed"] = True
+                    out["exit_reason"] = "TRAIL"
                     out["note"] = f"trail hit at {tl:.1f} (peak {peak:.1f})"
+                    book_trade(out, px, "TRAIL", notify)
                     if notify:
                         notify(f"DAY RIDER trail exit @ {tl:.1f}, peak {peak:.1f}", critical=False)
             else:
@@ -516,6 +591,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         stop_px = round(fill - d * VENUE_STOP_PT, 2)
         ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", LOTS, stop_px))
         out.update(entered=True, entry=fill, peak=fill, direction=d, qty=LOTS,
+                   # ★2026-08-11 the state had NO entry timestamp, so a booked trade had no
+                   # opened_at and "how long did it hold?" was unanswerable after the fact.
+                   entered_at=dt.datetime.now(dt.UTC).isoformat(),
                    entry_atr=round(r.atr, 2),
                    # ★ FROZEN at entry and never rewritten — entry_atr above is overwritten every
                    #   tick with the live ATR, so the trail needs its own immutable copy.
