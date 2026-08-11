@@ -347,6 +347,17 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         ib, contract = await _venue(cfg)
         net = await _net_position(ib, cfg.symbol)
         out["venue_ok"] = True          # we are genuinely talking to the broker this tick
+        # ★2026-08-11 STAMP THE VENUE READ HERE, ON EVERY PATH, WITH ITS OWN TIMESTAMP.
+        # venue_net used to be written only inside the position-management branch, so once the
+        # rider closed it FROZE at its last in-position value while save_state kept stamping a
+        # fresh heartbeat. The new DESK-MISMATCH detector read the heartbeat as proof the
+        # venue number was current and fired a critical false alarm at 19:10Z — "account holds
+        # SHORT 2 that no desk claims" — 2.5 hours after it shipped, against an account the
+        # watchdog's independent client correctly reported as flat.
+        # Two fields in one file with DIFFERENT lifetimes, and one was taken as vouching for
+        # the other. Now every read is stamped with venue_net_ts and nothing has to infer it.
+        out["venue_net"] = net
+        out["venue_net_ts"] = dt.datetime.now(dt.UTC).isoformat()
 
         # ── 1. THE HARD FLAT. Runs before anything else — but ONLY on a position WE OPENED. ──
         # ★2026-08-06 INCIDENT — this branch used to flatten the ACCOUNT net without asking whose

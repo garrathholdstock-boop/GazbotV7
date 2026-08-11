@@ -78,12 +78,19 @@ def desk_book():
     except Exception:
         pass
 
+    # ⚠ venue_net has its OWN timestamp and the heartbeat must not stand in for it. Until
+    # 2026-08-11 venue_net was refreshed only while the rider held a position, so a closed
+    # rider kept a fresh heartbeat beside a frozen venue number — and this detector read the
+    # two as one, firing a critical false DESK-MISMATCH. If venue_net_ts is absent (a rider on
+    # older code, or a tick that never reached the broker) the venue read is UNKNOWN, and an
+    # unknown must not be reconciled: no number is better than a stale one.
     venue = None
-    if hb_age is not None and hb_age <= DR_HB_STALE_S:
-        try:
+    try:
+        v_age = (now - datetime.fromisoformat(dr["venue_net_ts"])).total_seconds()
+        if v_age <= DR_HB_STALE_S:
             venue = float(dr["venue_net"])
-        except Exception:
-            venue = None
+    except Exception:
+        venue = None
 
     mismatch = None
     if venue is not None and tour_known:
