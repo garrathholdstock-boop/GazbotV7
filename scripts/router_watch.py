@@ -98,7 +98,7 @@ def desk_book():
 
     return {"rider": dr, "rider_qty": rider_qty, "tour_qty": tour_qty,
             "tour_known": tour_known, "venue_net": venue, "mismatch": mismatch,
-            "hb_age": hb_age}
+            "hb_age": hb_age, "venue_ts": dr.get("venue_net_ts")}
 
 
 def paris_day_start_utc():
@@ -299,6 +299,7 @@ def main():
         # DAY RIDER (a SEPARATE desk — never fold its numbers into the tournament's)
         "dr_in": False, "dr_peak": None, "last_dr_bleed": 0.0,
         "dr_stale_flat": False, "dr_no_detect": False, "last_mismatch": 0.0,
+        "mismatch_seen": (None, None),
     }
 
     px, tms = last_tick()
@@ -505,8 +506,30 @@ def main():
                 # venue_net is FRESH — desk_book() returns None for it once the rider's
                 # heartbeat is stale, and reconciling live claims against a stale number would
                 # manufacture phantom mismatches.
+                # ★2026-08-12 REQUIRE TWO INDEPENDENT VENUE READS TO AGREE.
+                # The claims and the venue snapshot are sampled at DIFFERENT INSTANTS: venue_net
+                # comes from the rider's 60s tick, the tournament's claim from core_health written
+                # on its own cycle. So any position change by either desk opens a window where they
+                # legitimately disagree. It false-fired twice — 16:09:13 nine seconds after the
+                # tournament opened 2 shorts, and again when it stopped out at 16:11:56, 35s AFTER
+                # the venue read that still counted them.
+                # A real orphan persists across venue reads; a race does not. So a mismatch must be
+                # seen on TWO SEPARATE venue snapshots (different venue_net_ts) before it alerts —
+                # the same two-tick confirmation the direction rule uses, for the same reason.
                 mm = book["mismatch"]
-                if (mm is not None and abs(mm) >= 1
+                v_ts = book.get("venue_ts")
+                confirmed = False
+                if mm is not None and abs(mm) >= 1:
+                    prev_mm, prev_ts = st["mismatch_seen"]
+                    if prev_mm is not None and abs(prev_mm - mm) < 0.5 and prev_ts != v_ts:
+                        confirmed = True          # same imbalance, a genuinely newer venue read
+                    st["mismatch_seen"] = (mm, v_ts)
+                    if not confirmed:
+                        log(f"  -> DESK-MISMATCH {mm:+g} seen, awaiting a second venue read "
+                            f"(transient during a position change looks exactly like this)")
+                else:
+                    st["mismatch_seen"] = (None, None)
+                if (confirmed
                         and (wall_time - st["last_mismatch"]) > DESK_MISMATCH_COOL_S):
                     emit(f"⚠DESK-MISMATCH — venue net {book['venue_net']:+g} but tournament "
                          f"claims {book['tour_qty']:+g} and day-rider claims "
