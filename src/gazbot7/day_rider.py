@@ -465,7 +465,23 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             return out
 
         # ── 2. MANAGE an open position (restart-safe: peak comes from state) ─────────────
-        if abs(net) > 1e-9 and st.get("entered"):
+        # ★★2026-08-13 — `and not st.get("closed")` IS LOAD-BEARING. Without it this guard tested
+        # `entered` only, and `net` is the SHARED ACCOUNT NET (DUQ191770 carries the tournament too).
+        # So once our own position was closed but the TOURNAMENT opened something, net went non-zero,
+        # `entered` was still true from this session, and we re-entered the manage path on a position
+        # we no longer held — evaluating the stale trail against the ORIGINAL entry and peak and
+        # booking an exit EVERY MINUTE.
+        # Live damage on 08-13: the 13:38 LONG 2 was claimed by the operator at 14:26 (booked once,
+        # correctly, +$731). From 15:53 the tournament opened abs_veto_short, net went non-zero, and
+        # this branch re-booked that same dead position four times — +$372/+$404/+$373/+$402, $1,551
+        # of fictitious profit — until the rider was switched off. It placed no orders (its only
+        # executions all day were orderId 48 BOT 2 and orderId 53 SLD 2), so the money was never
+        # real, only the rows. They are flagged EXCLUDE:day_rider_phantom_rebook_20260813.
+        # ★ This is the 08-06 bug class in a branch that fix missed: a SHARED resource consumed
+        # without checking the tag that says whose it is. The direction/size below were already
+        # taken from our own book for exactly that reason — but the GUARD deciding whether to run at
+        # all was still trusting the shared number. [[md-stream-multi-symbol-filter]]
+        if abs(net) > 1e-9 and st.get("entered") and not st.get("closed"):
             # ★2026-08-06 — DIRECTION AND SIZE COME FROM OUR OWN BOOK, NEVER FROM THE ACCOUNT NET.
             # This used to read `d = 1 if net > 0 else -1` and then store `qty=abs(net)`, i.e. it
             # inferred its own position from a number that nets EVERY desk on DUQ191770. With the

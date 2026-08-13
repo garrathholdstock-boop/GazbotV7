@@ -254,6 +254,19 @@ def mnq_json(store_path):
         # the number the operator reads as "the desk's day" without him asking for it. The
         # rider's own position and P&L surface separately in HOLDINGS.
         today, n_today, wins = pnl.day(c, "MNQ", now, desk="tournament")
+        # ★★2026-08-13 (operator): "we watch the day rider holding but then it doesnt show in any
+        # daily p&l. there should be a tourn p&l, day rider p&l and a total desk p&l."
+        # He is right, and the strip was worse than merely incomplete — it was INCONSISTENT:
+        # `today` was tournament-only (deliberately, 08-11) while `yest`/`d7`/`d30` were and remain
+        # UNFILTERED, i.e. both desks. So TODAY and 7D silently measured different things and the
+        # comparison across the strip was meaningless.
+        # Fixed by publishing the split explicitly instead of picking one meaning. `today` KEEPS its
+        # tournament-only meaning so no existing consumer shifts under it (the P&L strip parse is
+        # pinned in memory as header.today); the UI reads the new fields.
+        # The week that prompted this: tournament −$438, day-rider +$1,183.50 — one number could
+        # not have told him the desk was losing while the rider carried it.
+        today_rider, n_rider, _ = pnl.day(c, "MNQ", now, desk="day_rider")
+        today_total = round(today + today_rider, 2)
         d7, _, _ = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=7)).isoformat())
         d30, _, _ = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=30)).isoformat())
         y0 = pnl.paris_day_start_utc(now - timedelta(days=1))
@@ -264,7 +277,14 @@ def mnq_json(store_path):
             (y0, t0, *_CLEANUP)).fetchall()), 2)
         out["header"] = {"today": today, "yest": yest, "d2": None, "d7": d7, "d30": d30,
                          "win_today": (round(100 * wins / n_today) if n_today else None),
-                         "trades_today": n_today}
+                         "trades_today": n_today,
+                         # The explicit three-way split. `today_tournament` is the same number as
+                         # `today` — named, so a reader never has to know which desk the bare
+                         # `today` meant. `yest`/`d7`/`d30` are already BOTH desks, so the strip is
+                         # internally consistent once the UI shows `today_total`.
+                         "today_tournament": today, "today_rider": today_rider,
+                         "today_total": today_total,
+                         "trades_tournament": n_today, "trades_rider": n_rider}
         # rolling
         def _roll(days):
             p, n, w = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=days)).isoformat())
