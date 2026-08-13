@@ -203,3 +203,42 @@ gazbot7-cloud-backup-tape.timer    Sun 22:30 UTC     the permanent corpus
 ⚠ A weekly VACUUM timer was **removed**: `systemctl restart` on it fired the service immediately and ran
 a VACUUM during market hours. Only the one-shot remains. If you re-add it, schedule the *service*, do
 not enable a timer that can trigger on restart.
+
+
+---
+
+## APPENDIX — live retention & journal facts (moved from CLAUDE.md, 2026-08-13)
+
+**The tape no longer lives only in SQLite.** `capture.db` holds **5 TRADING days** (days with rows, so
+weekends/holidays do not consume the window); everything older is **Parquet** — locally in `data/tape/`
+and permanently in Backblaze B2. Same rows, same columns, **28x smaller**.
+
+- **Query history via `gazbot7.lake.connect()`**, NOT by ATTACHing capture.db. It gives
+  `ticks/quotes/bars/book/depth` views over local Parquet, or straight off B2 when local is absent.
+  Measured: 11.2M rows aggregated in 12.1s over the network. Most existing harnesses still ATTACH
+  capture.db and will silently see only 5 days — check before trusting an old script's window.
+- **B2 is split by sensitivity.** Market tape is PLAINTEXT (`b2raw:gazbotv7/plain/`) so DuckDB can read
+  it in place; the trade record (`gazbot7.db`, configs) is ENCRYPTED (`gaz:` crypt). Credentials live in
+  `/root/.config/rclone/rclone.conf` and the operator's password manager — **never in git**.
+- **★ THE INTERLOCK:** `prune_capture.py` may not delete a day `tape_mirror.py` has not exported AND
+  verified by row count. If the mirror stops, the prune stops and capture.db grows. Growth you notice;
+  a silent gap in the tape you do not.
+- `data/exit_overrides.json` is now git-tracked and every desk startup journals its RESOLVED exit ladder
+  to `config_journal.jsonl` — `scripts/config_at.py --at/--epochs/--diff`. Reconstructing a config epoch
+  by hand is what made 07-31→08-02 unrecoverable.
+- **★2026-08-08 THE JOURNAL NOW RECORDS THE ENTRY SIDE TOO.** It used to log the exit ladder only, on the
+  reasoning that entry params were "already recorded by slot_strategy.py and git". Both halves were
+  false — **git does not record an uncommitted tree, and source is not the resolved config.** Proven the
+  same day: SATURDAY #2 changed a live entry floor (`ATR_FLOOR` 10→22, `ext_hi` deleted), the desk
+  restarted, and the journal logged `changed_from_previous: false`. Rows now carry `entry` (per-slot
+  params/sizing) + `gates` (the global `ATR_FLOOR`/`ER_FLOOR`/`ER_CEIL`/`ER_BAND` dicts) + `entry_hash`.
+  Read with **`config_at.py --epochs --entry`**. `config_hash` keeps its exit-only meaning so every
+  existing scan stays valid; pre-08-08 rows show `- (not recorded)`, which is *unknown*, not *unchanged*.
+- **★2026-08-08 A DIRTY TREE NOW SHOWS UP IN THE SWEEP.** `sweep.py::check_config_committed()` WARNs if
+  `exit_overrides.json` / `deciders.py` / `slot_strategy.py` / `multislot_core.py` are uncommitted. The
+  journal had been stamping `exit_overrides_uncommitted: true` at every startup since 08-04 and **nothing
+  consumed it** while five live behaviours existed only as working-tree edits. WARN not CRIT on purpose:
+  a dirty tree is a bookkeeping failure, not an order-path failure, and a CRIT would train you to ignore
+  a red sweep on a desk that is trading fine.
+- ⚠ `scratchpad/` (807MB), `scratch/` and `*.pre-*` snapshots were **not** in `.gitignore` until 08-08.
+  A "commit everything" would have put ~826MB into the repo. They are ignored now.

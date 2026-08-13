@@ -55,132 +55,66 @@ position?"), and six `web.py` queries that had no `data_quality` filter.
   `Error 10147: not found` — IBKR saying *"not yours to cancel"* (clientId 6 vs the order's 4), not
   *"it is gone"*. It was reported as clean. Cancel from the OWNING clientId.
 
-## ★★★ WEEKEND OF 2026-08-08 — READ `docs/WEEKEND_2026-08-08_CHANGES.md` BEFORE TOUCHING ANYTHING
+## ★★ WEEKEND 2026-08-08 → `docs/WEEKEND_2026-08-08_CHANGES.md` (read it before touching the report or the gates)
 
-**The theme of this weekend: almost everything that broke was an INSTRUMENT, not a strategy.** Four
-instruments failed and no gate did — a journal recording half the config, a sweep never reading the flag
-it was writing, a shadow board whose ceiling disagreed in SIGN with its own repricer, and a report that
-argued for things its own proofread had refuted. Nine claims were withdrawn; the doc leads with them.
+**The theme: almost everything that broke was an INSTRUMENT, not a strategy.** Four instruments
+failed and no gate did. Nine claims were withdrawn; the doc leads with them.
 
-**The report is published and complete:** `weekly_2026-08-08.html` / `.pdf` (287pp) + the Monday
-playbook, all served at `/static/` and top of `/api/reports`. It carries a **Part 3** (six REV2
-sections) that the first build did not — the build was OOM-killed four minutes before folding them in,
-so the 10:17 file argued for things its own proofread had already refuted.
+Only the still-BINDING facts are kept here — the narrative, the withdrawn claims and the full
+reasoning are in the doc:
+- **NO GATE GETS AN ER FLOOR.** `deciders.ER_FLOOR` is `{}` and the deletion is pinned by
+  `tests/test_deciders.py`. The old ER30 ≥ 0.35 floor on `abs_veto_short` was REFUTED three ways —
+  it kept 5 of 15 winners and binned $1,363.
+- **`grind_long` keeps `atr_split: 22`** while the other five non-NIPC rows take 24 (operator call).
+  ⚠ FIX0's +$3,024 was measured with all six at 24, so **the shipped config is not the tested one**.
+- **`grind_long` has NO `ext_hi`** — deleted, falls back to `gate_grind`'s 4.0. Do NOT pin 3.0;
+  everything ≥3.0 scores identically. Live since 08-08 20:29Z and **graded on admitted legs, not P&L**.
+- **`abs_veto_short` is EXEMPT from the chop bench** until its 15-fire arm-by-default review
+  completes: +$2,290.50 over 159 fires / 17 days, positive in ALL FIVE regimes, and 53 of 54 filters
+  tested LOSE to just letting it fire. Grade the chop bench on the non-carved-out book only.
+- **`sw_grind_*` does NOT mirror live** — it keeps `ext_hi: 2.0` deliberately to hold the stop-width
+  experiment's entry population constant. Never read those arms as "what live grind is doing".
+- **NEVER conclude from `ceiling_pnl`.** On the identical 512 trades it said wide was ahead +$311
+  while tick-repriced said behind −$364, with **3 of 6 gates flipping SIGN**.
+- **Every shadow sim has a permanent number** — `scripts/sim_registry.py [--stats|--id N|--match X]`.
+  Open Rider 54–57, grind k30 58–59, drift-gated Open Rider 60–63.
 
-**★ Three things the report overturned that this file used to assert.** All are corrected in place
-below; do not act on the old versions:
-1. **RUN STATE as a routing lever — WITHDRAWN** (see the router section). The +$10.34/tr cell inverts to
-   −$1.83/tr on re-derivation.
-2. **The ER30 ≥ 0.35 floor on `abs_veto_short` — REFUTED** by two independent derivations plus a third
-   corroboration. It keeps 5 of 15 winners and bins $1,363 of profit. **No gate gets an ER floor**;
-   `deciders.ER_FLOOR` is `{}` and the deletion is pinned by `tests/test_deciders.py`.
-3. **`grind_long`'s `ext_hi` — DELETE it, do not pin 3.0.** Everything ≥3.0 scores identically.
+## ★★ THE BOX IS 7.5GB — the report build will OOM it (2026-08-08)
 
-**★ The card is ordered by EXECUTION LOGIC, not headline size** — `reports/friday_v7/plays.json`,
-52 plays. Every play now carries **`status` / `shipped_ts` / `outcome`** (the play ledger) plus
-`operator_pick` / `picked_ts`. **A pick is not a ship**: `status` stays `PROPOSED` until the change is
-actually applied, and whoever applies it sets `status` + `shipped_ts` at that moment. This exists because
-nothing graded last week's card and the audit took hours of archaeology.
+Three `global_oom` kills in 12h, each a headless `claude` past 6.5GB (two were the operator's own
+tmux sessions). It presents as **"everything keeps exiting."** Guarded: the report unit is capped
+(`MemoryMax=4G`) so it OOMs *itself* rather than triggering a global kill that picks a victim at
+random, and the trading path carries `OOMScoreAdjust=-500`.
+⚠ The cap converts a machine-wide outage into a single job failure; it does **not** make the job
+finish. The real fix is checkpointing — a fresh process per movement would stay flat in memory.
+⚠ `gazbot7-core` and `gazbot7-strategy` are `disabled` and have **NEVER started** — vestigial. The
+desk is `gazbot7-tournament`. `sweep.py` reporting "restarts core: 0" for a unit that has never run
+is false comfort.
 
-**★ Operator calls of 08-08, already folded in — do not re-litigate:**
-- **`grind_long` is EXEMPT from the `atr_split` 22→24 move** (SATURDAY #10). It keeps `atr_split: 22`;
-  the other five non-NIPC rows take 24. Reason: SATURDAY #2 sets grind's entry floor to 22 and Q1 relied
-  on the clip being *inert* at that floor; **19.3% of grind-eligible time sits in the 22–24 band**, and
-  the clip caps Lot B at 1.75R/$60 — which truncates the 21 runner events that ARE grind's whole case.
-  ⚠ FIX0's +$3,024 was measured with all six rows at 24, so **the shipped config is not the tested
-  config** and the direction is unmeasured. Re-run the archive before quoting that number.
-- **Router timing (WINDOW 45 / HOLD 3 / STEP 5) is DEFERRED one week**, not rejected. It confounds with
-  the chop off-switch by the report's own admission — *"a stickier router is a chop optimisation."*
-- **`abs_veto_short` carve-out from the chop bench** (see the router section).
+## ★★★ STANDING METHOD TRAPS — check for these in ANY number you are given
 
-**★ Cross-references on the card are ID-ANCHORED and the build ENFORCES it.** Plays used to point at each
-other by position ("see MONDAY #4"); the re-rank rotted five of those silently. Every reference now
-carries the target's id, `friday_v7_build.py::check_xrefs()` asserts each one resolves to the stated
-window and rank, and **the build refuses to run if one does not**.
+Discovered over the 08-01/02 weekend but they are **standing rules, not history**. Each has bitten
+more than once. Full provenance in `docs/WEEKEND_2026-08-01_CHANGES.md`.
 
-**★ SHIPPED 2026-08-08 (both on branch `refactor/three-service`):**
-- **SATURDAY #2 `grind-long-revert-atr22-ext30-0808`** — live since **20:29:33Z**. `ATR_FLOOR["grind_long"]`
-  10→22 and grind's `ext_hi` **deleted** (falls back to `gate_grind`'s 4.0 — *do not pin 3.0*). Verified
-  at the resolved layer: `scaleout_slots()` shows `ext_hi` gone, and the floor is genuinely WIRED because
-  `tournament.py:156` calls `atr_blocks(_base(slot), atr)` — the raw suffixed tag `grind_long_A` does
-  **not** block, which was the 07-29 dead-floor bug. ⚠ NOT YET GRADED: first tradeable tape is the Sunday
-  22:00Z reopen. Review on **20 admitted legs** and on whether 4R events appear near the expected 12.7%
-  rate — **NOT on P&L**, and not on a fortnight without expansion days.
-- **SATURDAY #7 `commit-the-working-tree-0808`** — the tree is clean at `43f1cd4`. Four commits:
-  live desk behaviour, tooling, the report, the day-rider holdings fix.
-- **BUILD #2 `open-rider-to-shadow-0808`** — THE OPEN RIDER is in the shadow slate as a **2×2**:
-  `odr_c5_s20` / `odr_c5_s30` / `odr_c10_s20` / `odr_c10_s30` (cadence 5 vs 10 min × stop 2.0 vs
-  3.0 ×ATR). **Shadow only and not eligible for live** — promotion needs all four of: +0.15R over
-  200 shadow trades *including a non-trending open week*, the 14:45Z cut, a real 2×ATR live stop
-  path, and day-rider position isolation.
-  ★ It needed a new gate kind — **`clock_rider`, the first shadow variant with no signal at all**
-  (the clock is the trigger; direction = raw sign of the 15-min move, no deadband) — plus the
-  shadow's **first time-based exit** (`TIME_CAP`, 45 min). Every other variant runs to a stop,
-  target or chandelier. The tick repricer needed no change: its quote window ends at the sim's
-  `exit_ts`, so a capped trade races stop-vs-target on honest ticks over exactly 45 minutes.
-  ★ Why 2×2 rather than one arm — and the reason is now stronger than the one first given.
-  **⚠ THE BACKTEST CANNOT RANK THESE CELLS.** Per-trade SD is ~$160, so on the 5 unseen days the SE
-  on a cadence difference is **$39.78 against a $24.86 gap — t = +0.63**. The earlier claim that
-  "cadence 10 beats 5 on the unseen days better than 2:1" does **not** survive its own error bars;
-  every rank in that column is noise. And the marginals do **not compose**: cad10 × stop3.0 is the
-  best all-days cell (+$82.88/tr) but only +$43.64 unseen, *below* cad10 × stop2.0. **The four
-  shadow arms ARE the joint grid, run forward, precisely because the backtest cannot choose.**
-  ★ Two things that WERE checked and held: 3.0×ATR is a real stop, not a clock exit (**34.5%** of
-  its trades stop out vs 62.9% at 1.0×), and it is not directional drift (LONG +$1,475 / SHORT
-  +$2,695, both positive). ⚠ 17 days contain no FOMC/CPI gap — the tail a 3×ATR stop is exposed to.
-- **BUILD #3 `wide-stops-open-window-shadow-0808`** — the live-gate half is **REFUTED**. Wide stops do
-  NOT transfer: in the open window the house 1.0× and 2.0× are a dead heat (+$30.76 vs +$30.41/tr,
-  delta −$104, stable through strip-best-3, two days each way). **It splits by GATE, not by window** —
-  grind prefers wide on both lots, `abs_veto` prefers tight in all four cells. Roster-wide stop
-  widening is refuted twice over now. Third rung `sw_grind_A_k30`/`sw_grind_B_k30` added on grind ONLY.
-  ★★ And **the ceiling lied**: on the identical 512 trades `ceiling_pnl` says wide is ahead +$311 while
-  tick-repriced says behind −$364, **3 of 6 gates flipping sign**. Never conclude from `ceiling_pnl`.
-- ⚠ `sw_grind_*` **no longer mirrors live** — it deliberately keeps `ext_hi: 2.0` so the stop-width
-  experiment holds its entry population constant. Do not read those arms as "what live grind is doing".
-
-**★ ALL SHADOW SIMS ARE NUMBERED** — 59 of them, allocated once and never reissued, so one can be named
-in a word: `PYTHONPATH=src .venv/bin/python scripts/sim_registry.py [--stats|--id N|--match frag]`.
-The Open Rider arms are **54–57**, the grind k30 rungs **58–59**.
-
-## ★★ 2026-08-08 — THE BOX IS 7.5GB AND THE REPORT BUILD WILL OOM IT
-
-Three `global_oom` kills in 12h, each a headless `claude` past 6.5GB: the report service at 04:46
-(6.46GB), then two of the operator's own tmux sessions at 07:39 (6.76GB) and 11:19 (7.31GB). It presents
-as "everything keeps exiting." Now guarded:
-- `gazbot7-friday-report.service` → `MemoryHigh=3G` / `MemoryMax=4G` / `MemorySwapMax=1G`, so the cgroup
-  OOMs **itself** instead of triggering a global OOM that picks a victim at random.
-- `OOMScoreAdjust=-500` on core / tournament / md / strategy / day-rider / day-rider-watchdog, applied
-  live via `/proc/<pid>/oom_score_adj` too (a drop-in only binds on restart, and restarting a live desk
-  to install OOM protection is the wrong trade).
-- ⚠ The cap converts a machine-wide outage into a single job failure; it does **not** make the job
-  finish. The real fix is checkpointing — sections already land on disk one at a time, so a fresh process
-  per movement would stay flat in memory. [[friday-report-oom-killed-not-crashed]]
-- ⚠ `gazbot7-core` and `gazbot7-strategy` are `disabled` and have **never started** — vestigial units.
-  The desk is `gazbot7-tournament`, which writes `core_health.json`. `sweep.py` reporting "all up ·
-  restarts core: 0" for a unit that has never run is false comfort of the same shape as
-  [[router-tick-trusts-a-stale-health-file]].
-
-## ★★ WEEKEND OF 2026-08-01/02 — READ `docs/WEEKEND_2026-08-01_CHANGES.md` BEFORE TOUCHING ANYTHING
-
-Five headline recommendations went into that weekend and **one survived intact**. The desk changed a lot:
-8 gates now (nipc live at 1 lot), the **quiet-tape clip** on exits (ATR<22 → both lots clip $40 / 1.75R
-floored $60; ATR≥22 unchanged — `docs/REGIME_EXIT_CHEATSHEET.md`), all ER floors deleted, the `_base(slot)`
-floor-wiring bug fixed, shadow slate cut 28→18, and 12 scripts corrected off a wrong $5 fee.
-
-**The three traps that bit repeatedly — check for them in any number you are given:**
-1. **MFE is not a win rate.** "X% of trades reach N R" ignores whether the STOP came first. It inflated
-   capitulation's win rate 29% → 78% and shipped a losing config live. Compute the *race*.
-2. **The fee is $1.50/RT**, never $5 or $2 or $1.50/side. Grep every harness for its fee constant; note
+1. **MFE is not a win rate.** "X% of trades reach N R" ignores whether the STOP came first. It
+   inflated capitulation's win rate 29% → 78% and shipped a losing config live. Compute the *race*.
+2. **The fee is $1.50/RT** — never $5, $2, or $1.50/side. Grep every harness's fee constant; note
    `FEE, VPP = 5.0, 2.0` and `VPP, FEE = 2.0, 1.5` look identical at a glance and are reversed.
-3. **The scale-out slate silently drops things.** It has now killed the ER/ATR floors, the ER-hold shadow,
-   the regime-3 exit selector, and any base `target_r`. Verify config via `scaleout_slots()`, never source.
-   ★ 2026-08-08 worked example: `grind_long` has **two** SlotSpecs in source — `slot_strategy.py:116`
-   (no `ext_hi`) and `:161` (`ext_hi: 2.0`). The live slate resolves to **:161**. Editing :116 would have
-   been a silent no-op. `scaleout_slots()` settles it in one line; source does not.
-4. **A pick is not a ship, and a shadow result is not a live result.** `plays.json` now separates
-   `operator_pick` from `status`, and `fix-shadow-repricer-stop-detection-0808` (the shadow book leaks
-   past its own stops on **44%** of trades, median overshoot 0.56×ATR) gates every study that ever
-   concluded *"exit earlier"*. It does **not** gate results that exit LATER — the bias runs the other way.
+3. **The scale-out slate silently drops things** — it has killed the ER/ATR floors, the ER-hold
+   shadow, the regime-3 exit selector and any base `target_r`. **Verify config via
+   `scaleout_slots()`, never source.** `grind_long` has TWO SlotSpecs in source; the live slate
+   resolves to `slot_strategy.py:161`, so editing `:116` is a silent no-op.
+4. **A pick is not a ship, and a shadow result is not a live result.** Also: the shadow book leaks
+   past its own stops on **44%** of trades (median overshoot 0.56×ATR), which gates every study
+   concluding *"exit earlier"* — it does NOT gate results that exit LATER; the bias runs one way.
+5. **★2026-08-13 A RIGHT NUMBER BESIDE A WRONG ONE IS WORSE THAN EITHER ALONE.** `pnl.py` filtered
+   the phantom rows and six other `web.py` queries did not, so a correct header sat above a blotter
+   and equity curve carrying $1,551 of trades that never happened, with nothing saying which to
+   believe. When you add a flag, **audit every consumer** — that is now twice for this one field.
+
+⚠ Desk changes from that weekend (8 gates, the quiet-tape clip, ER floors deleted, the `_base(slot)`
+fix, slate cut 28→18) are in the doc. The **quiet-tape clip** is still live: ATR<22 → both lots clip
+$40 / 1.75R floored $60; ATR≥22 unchanged — `docs/REGIME_EXIT_CHEATSHEET.md`.
 
 ## ON SESSION START — DO THIS
 
@@ -290,36 +224,25 @@ bench: +$2,290.50 over 159 fires / 17 days, **positive in ALL FIVE regimes** inc
 filters tested LOSE to just letting it fire. Benching it in chop costs money **and** biases the 15-fire
 sample. Grade the chop bench on the non-carved-out book only.
 
-## ★★★ 2026-08-06 INCIDENT — THE ACCOUNT IS SHARED. ONE FLATTEN CASCADED ALL DAY.
+## ★★ 2026-08-06 — THE ACCOUNT IS SHARED → `docs/INCIDENT_2026-08-06_SHARED_ACCOUNT.md`
 
-**07:08:01** tournament `abs_veto_long` bought 2 lots. **07:08:21** the DAY-RIDER sold them — its
-hard-flat branch flattened the ACCOUNT net without checking whose position it was, while its own state
-said `entered=false`. Both desks trade MNQ in **DUQ191770** and IBKR nets them into ONE number.
+The day-rider flattened the ACCOUNT net without checking whose position it was. Both desks trade MNQ
+in **DUQ191770** and IBKR nets them into ONE number. Cascade: tournament book +2 vs a venue of 0 →
+reconcile DRIFT → **11 minutes halted with the whole safety block skipped**, then a leftover GTC stop
+fired with no position behind it and **opened a naked short**, booked 6h later as `nipc_short`.
 
-**The cascade, because nothing stayed local:** the tournament does not receive executions from another
-clientId, so its book stayed +2 against a venue of 0 → reconcile DRIFT → **11 minutes halted with the
-whole safety block skipped** (`multislot_core.py:610` gates max-hold, the naked auditor, re-protect and
-stop-breach behind `!= "drift"`). `audit_age_s` stayed GREEN throughout — the loop was cycling, only the
-work inside it was skipped. On restart it "exited" phantom longs into a real −1 short and booked two
-mis-paired TARGET wins. Then at **13:47** a leftover GTC stop from that mess fired with no position
-behind it, **opened a naked short**, and was booked as `nipc_short` — six and a half hours later.
+**Still live from it:**
+- Every flatten is ownership-gated (`safety.own_flatten_verdict`), the watchdog too.
+- `desk_view`/`recent_trades` filter `data_quality IS NULL` so excluded rows cannot reach the ROUTER.
+- **⚠ STILL OPEN: on `drift` the tournament skips its ENTIRE safety block** — max-hold, naked
+  auditor, re-protect and stop-breach all sit behind `!= "drift"` (`multislot_core.py:610`). The
+  alarm disables the fire brigade. `audit_age_s` stays GREEN throughout: the loop cycles, only the
+  work inside it is skipped.
+- nipc hit the operator's −$400 kill criterion (n=47, 26% win) and is in `reactivate_gates.py::HOLD`
+  with `rgv_short`; re-arming is a fresh operator decision.
 
-**Fixed (`d0f5bbd`):** every day-rider flatten is ownership-gated (`safety.own_flatten_verdict`), the
-watchdog too (it was passive only by luck — a disabled strategy still stamps a fresh heartbeat), and
-`desk_view`/`recent_trades` now filter `data_quality IS NULL` so excluded rows cannot reach the ROUTER's
-decision inputs (the convention existed only in the reporting layer).
-
-**⚠ THE GAP THAT IS STILL OPEN:** the desk audits *"does every SLOT have a live stop?"* — it never asks
-the inverse, *"does every live STOP have a slot?"* An order belonging to no slot is invisible to the
-per-slot auditor, and that is exactly what fires unattended. **Check TWS for working stops with no
-position behind them.** Same class as [[md-stream-multi-symbol-filter]]: a SHARED resource consumed
-without checking the tag that says whose it is — there the stream was multi-symbol, here the account is
-multi-desk.
-
-**Also 08-06:** nipc hit the operator's **−$400** kill criterion exactly (n=47, 26% win) and was benched
-at 13:09; it is in `reactivate_gates.py::HOLD` so the 22:00 reopen will not bring it back. Re-arming is a
-fresh operator decision — the 08-05 regime filter had its first out-of-sample day and did NOT rescue the
-short side (SHORT n=14 −$302.50 = 76% of the loss on 30% of the fills).
+**★ The inverse-audit gap this incident named — "does every STOP have a position?" — was CLOSED on
+08-13** by `desk_reconcile.orphan_stops()` (detection, 30s) and `day_rider.cancel_own_stops()` (cause).
 
 ## ~~DURABILITY CAVEAT~~ — RESOLVED 2026-08-13
 
@@ -332,102 +255,53 @@ presents identically to a healthy desk — timer active, service exiting 0, swee
 "no change" — which is why `gazbot7-router-health.timer` exists. **If it pages, run `claude` on the
 box and `/login`; nothing else is needed and no restart is required.**
 
-## ★★★ DAY RIDER IS LIVE (PAPER) SINCE 2026-08-05 15:54 UTC — a SECOND desk, separate from the tournament
+## ★★★ DAY RIDER — a SECOND desk (PAPER, live since 2026-08-05) → `docs/DAY_RIDER.md`
 
-A new strategy runs **as its own service**, not as a tournament gate, and it places real (paper) orders.
-`gazbot7-day-rider.timer` (every minute) + `gazbot7-day-rider-watchdog.timer` (every 2 min).
-Switch: `data/day_rider.env` -> `day_rider=on|off`. **Currently ON.**
-★ Deployed 08-05 at 15:54 UTC, i.e. AFTER that day's 15:00 entry cutoff — so it ticked and heartbeat
-from 08-05 but its **first tradeable session is 2026-08-06**. Do not read an 08-05 no-entry as a miss.
+Its own service + timers, own IBKR clientId 4, **same account as the tournament**. Switch:
+`data/day_rider.env` → `day_rider=on|off`. **Currently ON.**
 
 ```
 DETECT  from the 13:30 UTC cash open: efficiency >=0.15 AND roundtrip >=0.45  (gazbot7/drift.py)
 ENTER   2 lots, direction = sign of net. ONE entry per session. No entry after 15:00 UTC.
-EXIT    trail 100pt, ARMED only once +150pt ahead. HARD FLAT 20:40 UTC.
+EXIT    ATR trail (arm 4xATR ahead, trail 2xATR off peak). HARD FLAT 20:40 UTC.
 ASK     a 2xATR reversal off the peak pages the operator 3x/15min -> DEFAULT IS HOLD.
 ```
 
-**★ WHY IT IS NOT A GATE:** `multislot_core.py:372` force-flattens every position at
-`max_hold_minutes=120`; this holds ~7h. Inside that cap it earns $7,047 and FAILS the battery; uncapped
-$13,257 and passes 5/5. Do NOT "fix" this by raising the global cap — that cap is what limited the
-MD_STREAM incident to −$255.50.
+**The five things not to re-litigate** (all tested, numbers in the doc):
+- **NOT a tournament gate** — `multislot_core.py:372` force-flattens at `max_hold_minutes=120` and
+  this holds ~7h. Do NOT raise the global cap; that cap is what limited the MD_STREAM incident to −$255.50.
+- **FLAT AT 20:40 UTC, NEVER 21:00** — 21:00 *is* the CME halt, so a flatten fired then has no market
+  and no retry. **STANDING OPERATOR RULE: NEVER HOLD OVERNIGHT. EVER.**
+- **The anchor is the CASH OPEN** — a 22:00 anchor gives ZERO detections in 33 sessions.
+- **The exit is essentially exit-proof** — 25 variants tested, holding beat every one; only the armed
+  trail improved on it. Don't re-run these.
+- **600pt venue stop is insurance, not a trading decision** — a 400pt stop costs $3,451 and *worsens*
+  the worst day.
 
-**★★ FLAT AT 20:40 UTC (22:40 Paris), NEVER 21:00.** 21:00 UTC *is* the CME halt — a flatten fired then
-has no market and no retry. 20:40 leaves 20 minute-ticks of retry. Cost: $149 of $13,257; days-green
-81%→84%. **STANDING OPERATOR RULE: NEVER HOLD OVERNIGHT. EVER.**
+**★★2026-08-13 — FOUR FIXES AFTER IT SOLD 8 LOTS IT DID NOT OWN** (`docs/SESSION_2026-08-13.md`).
+All live and tested; **none has traded yet** — 08-14's open is their first exercise.
+`closed` added to the manage guard · `venue_first_ok()` on every order path **except the 20:40 hard
+flat** (refusing to flatten because the books disagree is strictly worse than the bug) ·
+`CLOSED_ELSEWHERE` books-and-alarms instead of dropping the trade silently (**2 of 4 rider trades
+this week never reached the ledger**) · `cancel_own_stops()` on all five close paths,
+**clientId-filtered so it can never cancel the tournament's stops**.
 
-**★ THE ANCHOR IS THE CASH OPEN, and this was tested — do not re-litigate.** A 22:00 UTC (midnight
-Paris/CME) anchor gives ZERO detections in 33 sessions: 15h40m of overnight chop makes the path ~25x
-longer so efficiency collapses to 0.048 vs the 0.15 floor. Full numbers pinned in `drift.py`.
+⚠ 31 in-sample sessions after ~60 configurations. Treat the first weeks as evidence, not proof.
 
-**★ SAFETY, since it inherits none of the tournament's:** heartbeat + an INDEPENDENT flatten-only
-watchdog (clientId 5) that requires BOTH a fresh heartbeat AND `venue_ok` — a tick that could not reach
-IBKR still stamps a heartbeat, and treating that as "managed" would recreate the naked-position bug.
-600pt venue stop is last-resort insurance only (a 400pt stop costs $3,451 and *worsens* the worst day).
-Restart-safe atomic state. Fail-closed everywhere; a garbled switch reads OFF.
+## ★★ DATA & BACKUP (2026-08-05) → `docs/BACKUP_AND_ARCHIVE.md` before touching retention
 
-**★★2026-08-13 — FOUR FIXES AFTER IT SOLD 8 LOTS IT DID NOT OWN.** Full account in
-`docs/SESSION_2026-08-13.md`; all live and tested, but **none has traded yet** — 08-14's open is
-their first real exercise.
-- **the `closed` guard.** Section-2's manage block now tests `abs(net) > 1e-9 and entered and NOT
-  closed`. `net` is the SHARED ACCOUNT NET, so without the last clause the tournament opening a
-  position re-animated a rider trade that had already closed. Pinned by a test that also asserts the
-  source line has not drifted.
-- **`venue_first_ok()`** gates ENTRY / TRAIL / MANUAL_CLAIM / OPERATOR_SELL on the cross-desk
-  invariant. ⚠ **NOT the 20:40 hard flat** — refusing to flatten because the books disagree turns a
-  bookkeeping fault into an overnight position, which is strictly worse. A test pins that exemption.
-- **`CLOSED_ELSEWHERE`.** Venue flat at the clock while our book still holds now books, latches and
-  ALARMS. It used to fall through silently: **2 of 4 rider trades this week never reached the
-  ledger** (backfilled as `CLOCK_FLAT_RECON`).
-- **`cancel_own_stops()`** on all five close paths. The 600pt stop used to outlive every exit — one
-  sat working for 2h against a flat account. **clientId-filtered: it must NEVER cancel the
-  tournament's per-slot stops**, and that is the tested safety property, not an optimisation.
-- ⚠ The trail readout used to print `need +150` (the `ARM_PT` fallback) while the rule armed at
-  `4 × arm_atr` ≈ **131pt**. It overstated the distance to arming by ~19pt every time it was read.
-
-**★ THE EXIT IS ESSENTIALLY EXIT-PROOF — 25 variants tested, holding to the flat beat every one.**
-Stops (7 widths) all negative; give-back rules ~$0; progress/underwater exits worse; reactive
-direction-change worse by $3,115+. Do not re-run these. The ONE thing that beat holding is the
-armed trail (+$2,320), and a fixed 400pt target lands within $33 of it — so "take profit somehow"
-is the robust finding, not the specific mechanism.
-
-⚠ It is 31 in-sample sessions after ~60 configurations. Treat the first weeks as evidence, not proof.
-
-## ★★ DATA & BACKUP ARCHITECTURE (2026-08-05) — read `docs/BACKUP_AND_ARCHIVE.md` before touching retention
-
-**The tape no longer lives only in SQLite.** `capture.db` holds **5 TRADING days** (days with rows, so
-weekends/holidays do not consume the window); everything older is **Parquet** — locally in `data/tape/`
-and permanently in Backblaze B2. Same rows, same columns, **28x smaller**.
-
-- **Query history via `gazbot7.lake.connect()`**, NOT by ATTACHing capture.db. It gives
-  `ticks/quotes/bars/book/depth` views over local Parquet, or straight off B2 when local is absent.
-  Measured: 11.2M rows aggregated in 12.1s over the network. Most existing harnesses still ATTACH
-  capture.db and will silently see only 5 days — check before trusting an old script's window.
-- **B2 is split by sensitivity.** Market tape is PLAINTEXT (`b2raw:gazbotv7/plain/`) so DuckDB can read
-  it in place; the trade record (`gazbot7.db`, configs) is ENCRYPTED (`gaz:` crypt). Credentials live in
-  `/root/.config/rclone/rclone.conf` and the operator's password manager — **never in git**.
+- **`capture.db` holds 5 TRADING days**; everything older is Parquet, local + Backblaze B2.
+  **Query history via `gazbot7.lake.connect()`, NOT by ATTACHing capture.db** — most old harnesses
+  ATTACH and will silently see only 5 days.
 - **★ THE INTERLOCK:** `prune_capture.py` may not delete a day `tape_mirror.py` has not exported AND
-  verified by row count. If the mirror stops, the prune stops and capture.db grows. Growth you notice;
-  a silent gap in the tape you do not.
-- `data/exit_overrides.json` is now git-tracked and every desk startup journals its RESOLVED exit ladder
-  to `config_journal.jsonl` — `scripts/config_at.py --at/--epochs/--diff`. Reconstructing a config epoch
-  by hand is what made 07-31→08-02 unrecoverable.
-- **★2026-08-08 THE JOURNAL NOW RECORDS THE ENTRY SIDE TOO.** It used to log the exit ladder only, on the
-  reasoning that entry params were "already recorded by slot_strategy.py and git". Both halves were
-  false — **git does not record an uncommitted tree, and source is not the resolved config.** Proven the
-  same day: SATURDAY #2 changed a live entry floor (`ATR_FLOOR` 10→22, `ext_hi` deleted), the desk
-  restarted, and the journal logged `changed_from_previous: false`. Rows now carry `entry` (per-slot
-  params/sizing) + `gates` (the global `ATR_FLOOR`/`ER_FLOOR`/`ER_CEIL`/`ER_BAND` dicts) + `entry_hash`.
-  Read with **`config_at.py --epochs --entry`**. `config_hash` keeps its exit-only meaning so every
-  existing scan stays valid; pre-08-08 rows show `- (not recorded)`, which is *unknown*, not *unchanged*.
-- **★2026-08-08 A DIRTY TREE NOW SHOWS UP IN THE SWEEP.** `sweep.py::check_config_committed()` WARNs if
-  `exit_overrides.json` / `deciders.py` / `slot_strategy.py` / `multislot_core.py` are uncommitted. The
-  journal had been stamping `exit_overrides_uncommitted: true` at every startup since 08-04 and **nothing
-  consumed it** while five live behaviours existed only as working-tree edits. WARN not CRIT on purpose:
-  a dirty tree is a bookkeeping failure, not an order-path failure, and a CRIT would train you to ignore
-  a red sweep on a desk that is trading fine.
-- ⚠ `scratchpad/` (807MB), `scratch/` and `*.pre-*` snapshots were **not** in `.gitignore` until 08-08.
-  A "commit everything" would have put ~826MB into the repo. They are ignored now.
+  verified by row count. If the mirror stops, the prune stops and capture.db grows — growth you
+  notice, a silent gap in the tape you do not.
+- **Config epochs:** `scripts/config_at.py --at/--epochs/--diff`, and `--epochs --entry` for the
+  entry side (added 08-08, after the journal was found recording only the exit ladder — a live
+  `ATR_FLOOR` change logged `changed_from_previous: false`). Pre-08-08 rows show
+  `- (not recorded)`, which is *unknown*, not *unchanged*.
+- `sweep.py::check_config_committed()` WARNs on a dirty tree for the live-behaviour files. WARN not
+  CRIT on purpose: a dirty tree is a bookkeeping failure, not an order-path failure.
 
 ## ★★ MD_STREAM IS MULTI-SYMBOL — every consumer MUST filter (2026-08-04 incident)
 

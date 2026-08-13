@@ -118,3 +118,33 @@ Do not read those arms as "what live grind is doing".
 4. **The system's own tooling is where the undetected errors live**, not the trading logic — four
    instruments failed this weekend and no gate did.
 5. **A pointer by position rots the moment you re-rank.** Anchor cross-references to ids and enforce it.
+
+---
+
+## APPENDIX — moved out of CLAUDE.md 2026-08-13 (bootstrap prune)
+
+These were carried inline in the session bootstrap and are recorded here instead. The two that are
+still BINDING CONFIG are also kept as one-liners in CLAUDE.md; the rest is reference.
+
+### ★ grind_long is EXEMPT from the `atr_split` 22→24 move (SATURDAY #10) — still binding
+The other five non-NIPC rows take 24; **`grind_long` keeps `atr_split: 22`**. Reason: SATURDAY #2 set
+grind's entry floor to 22 and Q1 relied on the clip being *inert* at that floor. **19.3% of
+grind-eligible time sits in the 22–24 band**, and the clip caps Lot B at 1.75R/$60 — which truncates
+the 21 runner events that are grind's entire case.
+
+⚠ **FIX0's +$3,024 was measured with all six rows at 24, so the shipped config is NOT the tested
+config and the direction is unmeasured.** Re-run the archive before quoting that number.
+
+### ★ Cross-references on the card are ID-ANCHORED and the build ENFORCES it
+Plays used to point at each other by position ("see MONDAY #4"); a re-rank rotted five of those
+silently. Every reference now carries the target's id, `friday_v7_build.py::check_xrefs()` asserts
+each one resolves to the stated window and rank, and **the build refuses to run if one does not**.
+
+### ★ Router timing (WINDOW 45 / HOLD 3 / STEP 5) is DEFERRED one week, not rejected
+It confounds with the chop off-switch by the report's own admission — *"a stickier router is a chop
+optimisation."*
+
+### ★ ALL SHADOW SIMS ARE NUMBERED — permanent ids, never reissued
+`PYTHONPATH=src .venv/bin/python scripts/sim_registry.py [--stats|--id N|--match frag]`.
+Open Rider arms **54–57**, grind k30 rungs **58–59**, drift-gated Open Rider arms **60–63**
+(added 2026-08-13). A retired sim keeps its number forever.

@@ -177,3 +177,70 @@ never show one thing while the desk acts on another.
 - **MGC would need a different anchor.** Gold moves all day — Asia 00-02 UTC is nearly as active as its
   US session — so 13:30 is meaningless for it. And six independent attacks on MGC direction are null:
   moving is not the same as tradeable.
+
+
+---
+
+## APPENDIX — live operational facts (moved from CLAUDE.md, 2026-08-13)
+
+The scoping notes above predate deployment. THIS is what the running service actually does; the
+session bootstrap now carries only a summary and points here.
+
+A new strategy runs **as its own service**, not as a tournament gate, and it places real (paper) orders.
+`gazbot7-day-rider.timer` (every minute) + `gazbot7-day-rider-watchdog.timer` (every 2 min).
+Switch: `data/day_rider.env` -> `day_rider=on|off`. **Currently ON.**
+★ Deployed 08-05 at 15:54 UTC, i.e. AFTER that day's 15:00 entry cutoff — so it ticked and heartbeat
+from 08-05 but its **first tradeable session is 2026-08-06**. Do not read an 08-05 no-entry as a miss.
+
+```
+DETECT  from the 13:30 UTC cash open: efficiency >=0.15 AND roundtrip >=0.45  (gazbot7/drift.py)
+ENTER   2 lots, direction = sign of net. ONE entry per session. No entry after 15:00 UTC.
+EXIT    trail 100pt, ARMED only once +150pt ahead. HARD FLAT 20:40 UTC.
+ASK     a 2xATR reversal off the peak pages the operator 3x/15min -> DEFAULT IS HOLD.
+```
+
+**★ WHY IT IS NOT A GATE:** `multislot_core.py:372` force-flattens every position at
+`max_hold_minutes=120`; this holds ~7h. Inside that cap it earns $7,047 and FAILS the battery; uncapped
+$13,257 and passes 5/5. Do NOT "fix" this by raising the global cap — that cap is what limited the
+MD_STREAM incident to −$255.50.
+
+**★★ FLAT AT 20:40 UTC (22:40 Paris), NEVER 21:00.** 21:00 UTC *is* the CME halt — a flatten fired then
+has no market and no retry. 20:40 leaves 20 minute-ticks of retry. Cost: $149 of $13,257; days-green
+81%→84%. **STANDING OPERATOR RULE: NEVER HOLD OVERNIGHT. EVER.**
+
+**★ THE ANCHOR IS THE CASH OPEN, and this was tested — do not re-litigate.** A 22:00 UTC (midnight
+Paris/CME) anchor gives ZERO detections in 33 sessions: 15h40m of overnight chop makes the path ~25x
+longer so efficiency collapses to 0.048 vs the 0.15 floor. Full numbers pinned in `drift.py`.
+
+**★ SAFETY, since it inherits none of the tournament's:** heartbeat + an INDEPENDENT flatten-only
+watchdog (clientId 5) that requires BOTH a fresh heartbeat AND `venue_ok` — a tick that could not reach
+IBKR still stamps a heartbeat, and treating that as "managed" would recreate the naked-position bug.
+600pt venue stop is last-resort insurance only (a 400pt stop costs $3,451 and *worsens* the worst day).
+Restart-safe atomic state. Fail-closed everywhere; a garbled switch reads OFF.
+
+**★★2026-08-13 — FOUR FIXES AFTER IT SOLD 8 LOTS IT DID NOT OWN.** Full account in
+`docs/SESSION_2026-08-13.md`; all live and tested, but **none has traded yet** — 08-14's open is
+their first real exercise.
+- **the `closed` guard.** Section-2's manage block now tests `abs(net) > 1e-9 and entered and NOT
+  closed`. `net` is the SHARED ACCOUNT NET, so without the last clause the tournament opening a
+  position re-animated a rider trade that had already closed. Pinned by a test that also asserts the
+  source line has not drifted.
+- **`venue_first_ok()`** gates ENTRY / TRAIL / MANUAL_CLAIM / OPERATOR_SELL on the cross-desk
+  invariant. ⚠ **NOT the 20:40 hard flat** — refusing to flatten because the books disagree turns a
+  bookkeeping fault into an overnight position, which is strictly worse. A test pins that exemption.
+- **`CLOSED_ELSEWHERE`.** Venue flat at the clock while our book still holds now books, latches and
+  ALARMS. It used to fall through silently: **2 of 4 rider trades this week never reached the
+  ledger** (backfilled as `CLOCK_FLAT_RECON`).
+- **`cancel_own_stops()`** on all five close paths. The 600pt stop used to outlive every exit — one
+  sat working for 2h against a flat account. **clientId-filtered: it must NEVER cancel the
+  tournament's per-slot stops**, and that is the tested safety property, not an optimisation.
+- ⚠ The trail readout used to print `need +150` (the `ARM_PT` fallback) while the rule armed at
+  `4 × arm_atr` ≈ **131pt**. It overstated the distance to arming by ~19pt every time it was read.
+
+**★ THE EXIT IS ESSENTIALLY EXIT-PROOF — 25 variants tested, holding to the flat beat every one.**
+Stops (7 widths) all negative; give-back rules ~$0; progress/underwater exits worse; reactive
+direction-change worse by $3,115+. Do not re-run these. The ONE thing that beat holding is the
+armed trail (+$2,320), and a fixed 400pt target lands within $33 of it — so "take profit somehow"
+is the robust finding, not the specific mechanism.
+
+⚠ It is 31 in-sample sessions after ~60 configurations. Treat the first weeks as evidence, not proof.

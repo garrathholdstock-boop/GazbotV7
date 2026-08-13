@@ -81,3 +81,31 @@ Retired **13** of 31 (slate 28 → 18). The board was −$7,505 and these carrie
 - **Front-month stop fix (`99e3c11`) NOT merged.** The leak is closed: 26 STOP_UNFILLED all-time, last at 07-28T08:02, **32 minutes before** the tape-primary guard went live, zero since. And `multislot_core.py:489` says IBKR fails to fire a resting stop *"even on the concrete Future"* — the exact mechanism the branch implements. Keep the branch for a real-money cutover, where the native stop is primary.
 - **Exit-lab sequential re-run** — the paired method stacks overlapping positions the desk cannot hold ($5,076 swing on identical tape). Two live exit cells still rest on it and are flagged in `plays.json`.
 - **`reprice_pending()`** full-scans all trades every 30s, unbounded.
+
+---
+
+## APPENDIX — moved out of CLAUDE.md 2026-08-13 (bootstrap prune)
+
+The weekend narrative is above. What CLAUDE.md actually carried inline was a set of **method traps**
+discovered that weekend. They were reclassified rather than deleted: they are STANDING RULES, not
+history, so they remain in CLAUDE.md under "STANDING METHOD TRAPS" and are recorded here for
+provenance.
+
+1. **MFE is not a win rate.** "X% of trades reach N R" ignores whether the STOP came first. It
+   inflated capitulation's win rate 29% → 78% and shipped a losing config live. Compute the *race*.
+2. **The fee is $1.50/RT**, never $5 or $2 or $1.50/side. Grep every harness's fee constant — note
+   `FEE, VPP = 5.0, 2.0` and `VPP, FEE = 2.0, 1.5` look identical at a glance and are reversed.
+3. **The scale-out slate silently drops things.** It has killed the ER/ATR floors, the ER-hold
+   shadow, the regime-3 exit selector, and any base `target_r`. Verify config via `scaleout_slots()`,
+   never source. Worked example: `grind_long` has TWO SlotSpecs in source (`slot_strategy.py:116`
+   and `:161`); the live slate resolves to `:161`, so editing `:116` would have been a silent no-op.
+4. **A pick is not a ship, and a shadow result is not a live result.** `plays.json` separates
+   `operator_pick` from `status`. `fix-shadow-repricer-stop-detection-0808` (the shadow book leaks
+   past its own stops on **44%** of trades, median overshoot 0.56×ATR) gates every study concluding
+   *"exit earlier"* — it does NOT gate results that exit LATER; the bias runs the other way.
+
+### Other 08-01/02 desk changes carried inline
+8 gates (nipc live at 1 lot), the **quiet-tape clip** on exits (ATR<22 → both lots clip $40 / 1.75R
+floored $60; ATR≥22 unchanged — `docs/REGIME_EXIT_CHEATSHEET.md`), all ER floors deleted, the
+`_base(slot)` floor-wiring bug fixed, shadow slate cut 28→18, and 12 scripts corrected off a wrong
+$5 fee.
