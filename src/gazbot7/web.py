@@ -35,6 +35,28 @@ _VPP, _FEE = 2.0, 1.5
 _CLEANUP = pnl._CLEANUP_REASONS  # ADOPT_FLATTEN etc. — not strategy trades
 
 
+def _dq(c) -> str:
+    """``" AND data_quality IS NULL"`` when the column exists, else ``""``.
+
+    ★★2026-08-13 — ONE PLACE, because six copies is how this drifted in the first place. The flag
+    was added on 08-05 and fixed only in `pnl.py`; its own comment warned that "a field was added
+    and the CONSUMERS were not audited", and then the same thing happened again here — SIX separate
+    queries in this file read the trades table and NONE of them filtered. So the operator saw a
+    correct P&L sitting above a blotter, an equity curve, a per-gate table, a router panel and a
+    cube that all still contained four phantom day-rider trades worth $1,551 that never happened.
+    A wrong number is bad; a right number next to a wrong one is worse, because nothing says which
+    to believe.
+    ⚠ Conditional on the column existing, for the same reason pnl.py is: fixtures and older
+    databases build `trades` without it, and a view that throws is worse than one that over-counts.
+    """
+    try:
+        if any(r[1] == "data_quality" for r in c.execute("PRAGMA table_info(trades)").fetchall()):
+            return " AND data_quality IS NULL"
+    except Exception:
+        pass
+    return ""
+
+
 def _status(data_dir):
     try:
         with open(os.path.join(data_dir, "status.json")) as f:
@@ -209,9 +231,25 @@ def us_terminal_json(cap_path, data_dir):
 
 # ── /api/futures/mnq — header / rolling / blotter / curve / gates ──────────────
 def _strategy_trades(c, since_iso=None):
+    """Today's real trades. Feeds the BLOTTER, the equity CURVE and the per-GATE table.
+
+    ★★2026-08-13 — EXCLUDE data_quality-flagged rows HERE TOO. `pnl.py` learned this on 08-05 and
+    its own comment names the trap: "a field was added and the CONSUMERS were not audited". The fix
+    went into the P&L source and stopped there, so this function — a completely separate query —
+    kept returning flagged rows. Operator, the same day the rider booked four phantom trades:
+    "the trades list is still showing those erroneous day trade trades."
+    He was reading a correct P&L above a blotter full of trades that never happened, which is worse
+    than either being wrong alone: the numbers disagree and neither says why.
+    It is not only the blotter — `curve` and `gate_perf` are built from these rows, so the equity
+    line and every per-gate stat carried the $1,551 of fictitious profit as well.
+    ⚠ Tolerates the column being absent, for exactly the reason pnl.py does: adding the clause
+    unconditionally broke 8 tests whose fixtures build `trades` without it, and would equally break
+    a fresh deployment or an older database. A view that throws is worse than one that over-counts.
+    """
     ph = ",".join("?" * len(_CLEANUP))
     q = (f"SELECT closed_at, side, gate, exit_reason, pnl_usd, entry_price, exit_price, qty "
          f"FROM trades WHERE symbol='MNQ' AND exit_reason NOT IN ({ph})")
+    q += _dq(c)
     args = list(_CLEANUP)
     if since_iso:
         q += " AND closed_at>=?"
@@ -273,7 +311,7 @@ def mnq_json(store_path):
         t0 = pnl.paris_day_start_utc(now)
         yest = round(sum(r["pnl_usd"] for r in c.execute(
             "SELECT pnl_usd FROM trades WHERE symbol='MNQ' AND closed_at>=? AND closed_at<? "
-            "AND exit_reason NOT IN (" + ",".join("?" * len(_CLEANUP)) + ")",
+            "AND exit_reason NOT IN (" + ",".join("?" * len(_CLEANUP)) + ")" + _dq(c),
             (y0, t0, *_CLEANUP)).fetchall()), 2)
         out["header"] = {"today": today, "yest": yest, "d2": None, "d7": d7, "d30": d30,
                          "win_today": (round(100 * wins / n_today) if n_today else None),
@@ -727,7 +765,7 @@ def router_json(store_path, cap_path, data_dir):
     try:
         c = _conn(store_path)
         for r in c.execute("SELECT gate, ROUND(SUM(pnl_usd),1) p, COUNT(*) n FROM trades "
-                           "WHERE closed_at>=? GROUP BY gate", (ds_iso,)).fetchall():
+                           "WHERE closed_at>=?" + _dq(c) + " GROUP BY gate", (ds_iso,)).fetchall():
             g = r["gate"] or ""
             base = g.rsplit("_", 1)[0] if g.rsplit("_", 1)[-1] in ("A", "B") else g
             d = live.setdefault(base, [0.0, 0])
@@ -797,7 +835,8 @@ def router_json(store_path, cap_path, data_dir):
 
     try:
         c = _conn(store_path)
-        rr = c.execute("SELECT pnl_usd FROM trades WHERE closed_at>=? ORDER BY closed_at", (ds_iso,)).fetchall()
+        rr = c.execute("SELECT pnl_usd FROM trades WHERE closed_at>=?" + _dq(c)
+                       + " ORDER BY closed_at", (ds_iso,)).fetchall()
         c.close()
         run, peak = 0.0, 0.0
         for r in rr:
@@ -1229,7 +1268,7 @@ def cube_days_json(store_path):
         c = _conn(store_path)
         rows = c.execute(
             "SELECT DISTINCT closed_at FROM trades WHERE symbol='MNQ' AND exit_reason NOT IN ("
-            + ",".join("?" * len(_CLEANUP)) + ")", tuple(_CLEANUP)).fetchall()
+            + ",".join("?" * len(_CLEANUP)) + ")" + _dq(c), tuple(_CLEANUP)).fetchall()
         c.close()
         for r in rows:
             d = _cube_paris_date(r["closed_at"])
@@ -1262,7 +1301,8 @@ def cube_json(store_path, cap_path, day):
         c = _conn(store_path)
         trows = c.execute(
             "SELECT opened_at, closed_at, pnl_usd, gate FROM trades WHERE symbol='MNQ' "
-            "AND exit_reason NOT IN (" + ",".join("?" * len(_CLEANUP)) + ")", tuple(_CLEANUP)).fetchall()
+            "AND exit_reason NOT IN (" + ",".join("?" * len(_CLEANUP)) + ")" + _dq(c),
+            tuple(_CLEANUP)).fetchall()
         c.close()
         for r in trows:
             if _cube_paris_date(r["closed_at"]) != day:  # same day-convention as available-days
