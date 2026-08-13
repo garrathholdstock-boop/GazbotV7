@@ -599,8 +599,18 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     if notify:
                         notify(f"DAY RIDER trail exit @ {tl:.1f}, peak {peak:.1f}", critical=False)
             else:
+                # ★2026-08-13 THE READOUT LIED. This rendered ARM_PT (150) unconditionally, but
+                # trail_level() arms at ARM_ATR_MULT x arm_atr whenever USE_ATR_TRAIL is on — which
+                # it is. On 08-11 the real threshold was 130.8pt and on 08-13 it was 131.9pt, so the
+                # note overstated the distance to arming by ~19pt every time the operator read it,
+                # and shaped a belief that the trail "was still too low" on days it was closer than
+                # shown. Report the threshold the RULE uses, and say which rule that is.
+                arm_need = (ARM_ATR_MULT * arm_atr
+                            if (USE_ATR_TRAIL and arm_atr and arm_atr > 0) else ARM_PT)
+                basis = f"{ARM_ATR_MULT:.0f}xATR {arm_atr:.1f}" if arm_need != ARM_PT else "fixed"
                 out["note"] = ("riding · trail " + (f"{tl:.1f}" if tl else
-                               f"not armed (need +{ARM_PT:.0f}, at {d*(px-entry):+.0f})"))
+                               f"not armed (need +{arm_need:.0f} [{basis}], "
+                               f"at {d*(px-entry):+.0f})"))
             save_state(out)
             return out
 
