@@ -55,7 +55,36 @@ GRAVES = (
     "name with its stats and a one-line cause of death. The honest failures ARE the deliverable — never quietly drop "
     "a killed candidate. A verdict with no visible working is worthless to him."
 )
-PRE = f"You are writing one section of the GAZBOT V7 Friday report. Repo {GB} (cd there; venv .venv). Read {SCOPE} for the mission. "
+# ★★2026-08-13 THE DATA CONTRACT. Operator: "make sure friday night report takes advantage of all
+# data for backtesting" and "make sure the census, greenfield and associated sections include mgc".
+# Before this, PRE was one line and every phase discovered the data estate for itself — so three
+# prompts said "backtest on capture.db", which silently caps a backtest at FIVE TRADING DAYS of
+# ticks, and one specified a $5 round-trip fee against a true $1.50. Both are the kind of error that
+# produces a confident, wrong, negative result: a marginal edge dies of a 3.3x fee on a week of tape
+# and nobody sees why. Every phase now gets this, in front of its own instructions.
+DATA = (
+    "=== DATA CONTRACT — read before any query. Getting this wrong produces confident WRONG answers. "
+    "(1) SYMBOLS: we capture BOTH MNQ (CME) and MGC (COMEX), L1 and L2. Never assume MNQ-only. "
+    "(2) capture.db is a ROLLING WINDOW, not the archive: book/quotes/ticks = 5 TRADING DAYS, bars = 60. "
+    "ATTACHing it for anything multi-week silently returns a fifth of the data with no error. "
+    "(3) FOR HISTORY USE THE PARQUET LAKE: `from gazbot7.lake import connect` gives ticks/quotes/bars/"
+    "book/depth from 2026-07-16 onward, local or straight off Backblaze. That is the correct source "
+    "for every backtest longer than this week. "
+    "(4) THE FEE IS $1.50 PER ROUND TRIP. Never $5, never $2, never $1.50/side. Grep any harness you "
+    "reuse — `FEE, VPP = 5.0, 2.0` and `VPP, FEE = 2.0, 1.5` look identical at a glance and are reversed. "
+    "(5) MNQ = $2.00/point, MGC = $10.00/point. Do NOT price MGC with the MNQ multiplier. "
+    "(6) OLDER HISTORY EXISTS ON B2: `rclone copy gaz:v5archive/alphabot/<t>.parquet /tmp/v5/` — the "
+    "retired V5 desk, incl. 574 MNQ trades, 3,012 us_futures_daytrade trades, fut_signal_funnel (143MB), "
+    "fut_edge_observations, fut_regime_routing. Use it to EXTEND a sample; filter "
+    "discipline='us_futures_daytrade' or symbol IN ('MNQ','MGC') — the rest is crypto/equities and is "
+    "not our desk. "
+    "(7) L2: MGC book lives in depth.db.depth_snap, NOT capture.db.book (IBKR allows only 3 depth "
+    "subscriptions; capture.db.book is MNQ-only). capture.db.book is 41ms event-driven, depth.db is a "
+    "250ms sample — book sees fleeting quotes depth.db cannot. === "
+)
+
+PRE = (f"You are writing one section of the GAZBOT V7 Friday report. Repo {GB} (cd there; venv .venv). "
+       f"Read {SCOPE} for the mission. {DATA}")
 
 # The census is frozen out-of-band by the driver before any phase runs (multi-minute tick crunch;
 # running it inside a schema'd agent is what timed out the very first attempt back on 07-24).
@@ -112,7 +141,8 @@ PHASES = [
     dict(key="movement2_idle", artifact=f"{SEC}/movement2_idle_gates.html", deps=[], timeout_s=3600, prompt=PRE +
          f"Read {SCOPE} Movement 2. Using the frozen census at {SEC}/census_summary.json (do NOT re-run run_census.py — it is "
          f"a multi-minute tick crunch), fire ALL SIX live gates (deciders.py) mechanically + ungated at the sat-out runs, "
-         f"in-direction, in the 10min before ignition, with tick-honest exits on this week's capture.db ticks. Per-gate "
+         f"in-direction, in the 10min before ignition, with tick-honest exits. Use capture.db ONLY if you are strictly "
+         f"within its 5-trading-day window; otherwise gazbot7.lake. Per-gate "
          f"scoreboard: fires-on-sat-out-runs, honest $, why-it-misses (mechanism). Almost certainly an HONEST NULL — prove it. "
          f"{SEGMENT} {JUDGE} {GRAVES} {STYLE} Write to {SEC}/movement2_idle_gates.html"),
 
@@ -137,7 +167,11 @@ PHASES = [
     *[dict(key=f"gf_{cl}", artifact=f"{SEC}/gf_full_{cl}.md", deps=[], timeout_s=5400, prompt=PRE +
         f"GREENFIELD HUNT — cluster '{cl}'. Read the frozen census {SEC}/census_summary.json (do NOT re-run run_census.py). "
         f"IGNORE the existing gates. INVENT a brand-new entry signal to catch these sat-out runs, with an exact mechanical spec "
-        f"(trigger/direction/entry/stop/exit). BACKTEST it tick-honest on capture.db, net of ~$5/round-trip. ESCALATE if it "
+        f"(trigger/direction/entry/stop/exit). BACKTEST it tick-honest over the FULL PARQUET LAKE "
+        f"(gazbot7.lake, 2026-07-16 onward) — NOT capture.db, which is 5 trading days and would "
+        f"silently shrink your sample. "
+        f"Net of $1.50/round-trip — the TRUE venue fee. A previous version of this prompt said $5, "
+        f"which would have killed any marginal edge on a fee 3.3x too high. ESCALATE if it "
         f"fails: hunt the full sat-out set, then the top-25 biggest runs, then the top-15 — narrowing may reveal a footprint the "
         f"marginal runs washed out. Report the size-threshold at which a footprint becomes tradeable, if any (that IS the "
         f"finding). ROBUSTNESS: placebo/shuffle test (shift the signal series, keep every other rule — if a FAKE signal books "
@@ -148,6 +182,36 @@ PHASES = [
         f"{SEGMENT} Write your full working to {SEC}/gf_full_{cl}.md, ending with an explicit VERDICT line stating "
         f"whether it survived and, if not, WHICH robustness test killed it.")
       for cl in ("VACUUM", "FLOW-LED", "OPEN-NEWS")],
+
+    # ★★2026-08-13 THE GOLD HUNT. Operator: "we want to find some gates that work for mgc. and put
+    # them into shadow." MGC has been captured since 08-04 (L1 + L2, its own depth subscription) and
+    # nothing has ever looked at it for entries. This is a NEW line of enquiry, not a port: the
+    # existing gates were fitted to MNQ, and the standing memory [[mgc-momentum-greenfield-null]]
+    # already records that gold's runs are SIZE-predictable but DIRECTION-unpredictable — so a
+    # momentum clone is the known-dead path and must not be re-derived.
+    # ⚠ MGC IS $10/POINT, five times MNQ. Price it wrong and gold looks unworthy on arithmetic alone.
+    dict(key="gf_MGC", artifact=f"{SEC}/gf_MGC.md", deps=[], timeout_s=5400, prompt=PRE +
+         f"GOLD GATE HUNT — MGC. We capture MGC L1 (ticks/quotes/bars) and L2 (depth.db.depth_snap, 10 "
+         f"levels) and have NEVER hunted an entry on it. Read {SEC}/movement1_census_MGC.html (the frozen "
+         f"MGC run census) for what gold actually did this week, and use the PARQUET LAKE for history "
+         f"(MGC L1 from 2026-08-04, L2 from 08-04) — capture.db holds only 5 trading days. "
+         f"⚠ MGC = $10.00/POINT (MNQ is $2.00). Every $ figure must use 10. "
+         f"⚠ DO NOT re-derive the known null: gold's runs are SIZE-predictable (ATR d=+0.80, ER30 d=+0.43) "
+         f"but DIRECTION-unpredictable — a momentum/thrust clone of the MNQ gates is a GRAVE already dug. "
+         f"Hunt what is DIFFERENT about gold instead: it is event-driven (US data, USD moves), it trades a "
+         f"different session shape (London/COMEX), and its L2 is far thinner than MNQ's — so absorption, "
+         f"depletion and level-reclaim mechanics that wash out in MNQ's depth may be visible here. "
+         f"Also check whether the OPPOSITE of the MNQ finding holds: if direction is unpredictable but SIZE "
+         f"is, a VOLATILITY or straddle-shaped entry may beat a directional one. "
+         f"DELIVERABLE: for each candidate give an exact mechanical spec (trigger/direction/entry/stop/exit), "
+         f"backtest it tick-honest over all available MGC tape net of $1.50/round-trip, and run the full "
+         f"robustness battery. Then — this is the point of the section — write a SHADOW-READY block for any "
+         f"survivor: the exact ShadowVariant(...) line for src/gazbot7/shadow.py (name it `mgc_<idea>`), the "
+         f"gate kind it needs, and whether the existing ShadowSim._entry can express it or a new branch is "
+         f"required. If NOTHING survives, say so plainly and name the test that killed each — an honest gold "
+         f"null is a real result and stops us paying for the data twice. "
+         f"{SEGMENT} {JUDGE} {GRAVES} Write your full working to {SEC}/gf_MGC.md, ending with an explicit "
+         f"VERDICT line and, if anything survived, the SHADOW-READY block."),
 
     dict(key="gf_chopscalp", artifact=f"{SEC}/gf_chopscalp.md", deps=[], timeout_s=5400, prompt=PRE +
          f"CHOP-DAY SCALP GREENFIELD — operator's explicit focus. The week's chop days BLED or broke even with the CURRENT "
@@ -181,7 +245,7 @@ PHASES = [
          f"(if one did, widen its window or fix the timestamps). These are inline self-contained SVG — never an external "
          f"image or JS library."),
 
-    dict(key="movement3", artifact=f"{SEC}/movement3_greenfield.html", deps=["gf_VACUUM", "gf_FLOW-LED", "gf_OPEN-NEWS", "gf_chopscalp"],
+    dict(key="movement3", artifact=f"{SEC}/movement3_greenfield.html", deps=["gf_VACUUM", "gf_FLOW-LED", "gf_OPEN-NEWS", "gf_chopscalp", "gf_MGC"],
          timeout_s=3600, prompt=PRE +
          f"Read EVERY {SEC}/gf_*.md from this week's hunts. ★ If {SEC}/movement3_greenfield.html already exists it is a STALE "
          f"PRIOR-WEEK file — OVERWRITE it completely and carry over none of its findings. Write the flagship Movement 3 section "

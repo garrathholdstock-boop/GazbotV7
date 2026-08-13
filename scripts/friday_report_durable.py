@@ -105,10 +105,25 @@ def main():
     # 1. PRE-FREEZE the census out-of-band
     try:
         os.makedirs(SEC, exist_ok=True)
+        # ★★2026-08-13 CENSUS BOTH SYMBOLS. Operator: "make sure the census, greenfield and
+        # associated sections include mgc. we want to find some gates that work for mgc."
+        # MNQ stays the primary artifact (movement1_census.html / census_summary.json) so nothing
+        # downstream changes meaning; MGC writes its own pair alongside. ~10 min each, which the
+        # 7h window absorbs easily.
         subprocess.run(f"{PY} scripts/run_census.py --days 7 --html {SEC}/movement1_census.html > {SEC}/census_stdout.txt 2>{SEC}/census_err.txt",
                        shell=True, cwd=GB, env=ENV, timeout=1200)
         subprocess.run(f"{PY} scripts/friday/parse_census_summary.py", shell=True, cwd=GB, env=ENV, timeout=180)
         log("census frozen OK" if os.path.exists(f"{SEC}/census_summary.json") else "census MISSING")
+        try:
+            subprocess.run(f"{PY} scripts/run_census.py --days 7 --symbol MGC "
+                           f"--html {SEC}/movement1_census_MGC.html > {SEC}/census_stdout_MGC.txt 2>&1",
+                           shell=True, cwd=GB, env=ENV, timeout=1200)
+            log("MGC census frozen OK" if os.path.exists(f"{SEC}/movement1_census_MGC.html")
+                else "MGC census MISSING")
+        except Exception as e:
+            # Non-fatal: gold is the NEW line of enquiry, MNQ is the desk. A failed MGC census must
+            # never cost us the MNQ report.
+            log(f"MGC census error (non-fatal): {e}")
     except Exception as e:
         log(f"census freeze error: {e}"); notify(f"⚠ Durable Friday: census freeze errored ({e}).", crit=True)
 

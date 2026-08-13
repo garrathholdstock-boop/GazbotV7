@@ -22,7 +22,12 @@ import duckdb
 
 CAP = "/home/alphabot/gazbot7/data/capture.db"
 DB = "/home/alphabot/gazbot7/data/gazbot7.db"
-VPP = 2.0   # MNQ $/point (1 lot)
+# ★★2026-08-13 PER-SYMBOL MULTIPLIER. Operator: "make sure the census, greenfield and associated
+# sections include mgc. we want to find some gates that work for mgc."
+# MGC is $10/point — FIVE TIMES MNQ. Pricing a gold move with the MNQ multiplier understates every
+# number on the page by 5x, which would make gold look unworthy of a gate on arithmetic alone.
+VPP_BY_SYMBOL = {"MNQ": 2.0, "MGC": 10.0}
+VPP = 2.0   # rebound per-run in main(); kept for import-compatibility
 W = 180     # 15-min window in 5s bars
 STEP = 12   # slide every 60s
 
@@ -55,25 +60,30 @@ def cluster(hour, flow, mv, amp, fz=None):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--symbol", default="MNQ", choices=sorted(VPP_BY_SYMBOL),
+                    help="which instrument to census (MGC prices at $10/pt, MNQ at $2/pt)")
     ap.add_argument("--days", type=int, default=7)
     ap.add_argument("--min-atr", type=float, default=1.5)
     ap.add_argument("--html", type=str, default=None, help="write the Movement-1 light-theme HTML fragment here")
     a = ap.parse_args()
     t1 = dt.datetime.now(dt.UTC).timestamp()
     t0 = t1 - a.days * 86400
+    global VPP
+    SYM = a.symbol
+    VPP = VPP_BY_SYMBOL[SYM]
 
     con = duckdb.connect()
     con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
     con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
     bars = con.execute(f"""
         SELECT bar_ts, open, high, low, close FROM c.bars
-        WHERE symbol='MNQ' AND timeframe='5s' AND bar_ts>={t0} AND bar_ts<={t1} ORDER BY bar_ts""").fetchall()
+        WHERE symbol='{SYM}' AND timeframe='5s' AND bar_ts>={t0} AND bar_ts<={t1} ORDER BY bar_ts""").fetchall()
     if len(bars) < 400:
         print("too few 5s bars")
         return
     trades = con.execute(f"""
         SELECT epoch(opened_at::TIMESTAMPTZ) te, side, gate, pnl_usd FROM g.trades
-        WHERE symbol='MNQ' AND epoch(opened_at::TIMESTAMPTZ)>={t0 - 600} ORDER BY te""").fetchall()
+        WHERE symbol='{SYM}' AND epoch(opened_at::TIMESTAMPTZ)>={t0 - 600} ORDER BY te""").fetchall()
 
     # typical 15-min range (the ATR-like unit) + threshold
     rng = [max(x[2] for x in bars[i:i + W]) - min(x[3] for x in bars[i:i + W]) for i in range(0, len(bars) - W, STEP)]
@@ -92,7 +102,7 @@ def main():
 
     def flow_at(ts):  # net aggressor (buy-sell) in the 60s before the run
         r = con.execute(f"""SELECT COALESCE(SUM(CASE WHEN aggressor='buy' THEN size WHEN aggressor='sell' THEN -size END),0)
-            FROM c.ticks WHERE symbol='MNQ' AND ts_ms<{ts * 1000} AND ts_ms>={(ts - 60) * 1000}""").fetchone()[0]
+            FROM c.ticks WHERE symbol='{SYM}' AND ts_ms<{ts * 1000} AND ts_ms>={(ts - 60) * 1000}""").fetchone()[0]
         return r
 
     def flow_z_at(ts, cur):
@@ -107,7 +117,7 @@ def main():
             WITH s AS (
               SELECT CAST((ts_ms/1000 - {t0}) / 60 AS INTEGER) AS b,
                      SUM(CASE WHEN aggressor='buy' THEN size WHEN aggressor='sell' THEN -size END) AS f
-              FROM c.ticks WHERE symbol='MNQ' AND ts_ms < {ts * 1000} AND ts_ms >= {t0 * 1000}
+              FROM c.ticks WHERE symbol='{SYM}' AND ts_ms < {ts * 1000} AND ts_ms >= {t0 * 1000}
               GROUP BY 1)
             SELECT AVG(f), STDDEV_SAMP(f), COUNT(*) FROM s WHERE f IS NOT NULL""").fetchone()
         mu, sd, n = row
@@ -117,7 +127,7 @@ def main():
 
     def book_depletion(ts, direction):  # far-side (the side price ran toward) depth vs near-side, pre-run
         row = con.execute(f"""
-            WITH b AS (SELECT side, size FROM c.book WHERE symbol='MNQ' AND ts_ms<{ts * 1000}
+            WITH b AS (SELECT side, size FROM c.book WHERE symbol='{SYM}' AND ts_ms<{ts * 1000}
                        AND ts_ms>={(ts - 30) * 1000} AND level<=3)
             SELECT COALESCE(SUM(CASE WHEN side='bid' THEN size END),0), COALESCE(SUM(CASE WHEN side='ask' THEN size END),0) FROM b""").fetchone()
         bid, ask = row
@@ -127,7 +137,7 @@ def main():
             return None
         return far / (far + near)   # <0.5 = far side thin (depleted) = telegraphed the run
 
-    print(f"═══ MNQ RUN CENSUS — last {a.days}d · {len(runs)} runs ≥ {a.min_atr}×ATR "
+    print(f"═══ {SYM} RUN CENSUS — last {a.days}d · {len(runs)} runs ≥ {a.min_atr}×ATR "
           f"(15-min move ≥ {thr:.0f}pt; typical 15m range = {typ:.0f}pt) ═══\n")
     caught = fought = sat = 0
     ceil_caught = real_caught = ceil_fought = real_fought = ceil_sat = 0.0
@@ -202,8 +212,8 @@ def main():
         import html as _h
         conv = 100 * real_caught / ceil_caught if ceil_caught else 0
         h = [
-            '<h2><span class="n">M1</span> The biggest runs on MNQ this week &mdash; did we show up?</h2>',
-            f'<p class="lead">Forget what the desk did this week &mdash; start from the raw tape. MNQ printed '
+            f'<h2><span class="n">M1</span> The biggest runs on {SYM} this week &mdash; did we show up?</h2>',
+            f'<p class="lead">Forget what the desk did this week &mdash; start from the raw tape. {SYM} printed '
             f'<strong>{len(runs)} runs of 1.5&times;ATR or bigger</strong> in the last seven days (a 15-minute move of at '
             f'least {thr:.0f} points, against a typical 15-min range of {typ:.0f}). That is the whole tape, not a top-ten. '
             f'We <strong>caught {caught}</strong>, we were positioned <em>against</em> <strong>{fought}</strong>, and we '
@@ -211,7 +221,7 @@ def main():
             f'money &mdash; but that is only {conv:.0f}% of their ${ceil_caught:.0f} hindsight ceiling, and the {sat} we sat out '
             f'left <strong>${ceil_sat:.0f}</strong> on the table. The bleed is not the runs; it is the fading we do around them.</p>',
             '<div class="callout"><div class="ct">THE FULL CENSUS</div><p>Every qualifying run, in order. '
-            '<strong>Move</strong> is the swing in points; <strong>$ 1lot</strong> is that move on one MNQ lot ($2/pt) &mdash; '
+            f'<strong>Move</strong> is the swing in points; <strong>$ 1lot</strong> is that move on one {SYM} lot (${VPP:.0f}/pt) &mdash; '
             'the hindsight ceiling. <strong>real $</strong> is what a gate actually banked near it. <strong>Flow</strong> is '
             'net aggressor volume in the 60s before; <strong>amp</strong> is pre-run amplitude; <strong>book</strong> is the '
             'far-side L2 depth share (below 0.50 = the side price ran toward was thin). Green = we caught it, red = we fought it.</p></div>',
