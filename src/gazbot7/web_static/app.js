@@ -204,9 +204,13 @@
     conn.className = "conn" + (ok ? "" : " off");
     lbl.textContent = ok ? "CONNECTED" : "DISCONNECTED";
     const mk = $("mkt-chip");
-    if (!ok) { mk.textContent = "—"; mk.className = "chip"; }
-    else if (open === false) { mk.textContent = "MARKET CLOSED"; mk.className = "chip chop"; }
-    else { mk.textContent = "MARKET OPEN"; mk.className = "chip bull"; }
+    // ★ DUAL-SPAN so the phone can show the short form without the JS knowing the breakpoint. CSS
+    // picks one; both are static strings, no interpolation. "MARKET OPEN" is ~95px of nowrap chip
+    // that a 320px row cannot spare, and the word MARKET carries no information here.
+    const dual = (long, short) => `<span class="lg">${long}</span><span class="sm">${short}</span>`;
+    if (!ok) { mk.innerHTML = dual("—", "—"); mk.className = "chip"; }
+    else if (open === false) { mk.innerHTML = dual("MARKET CLOSED", "CLOSED"); mk.className = "chip chop"; }
+    else { mk.innerHTML = dual("MARKET OPEN", "OPEN"); mk.className = "chip bull"; }
     // the safety pill (was the dead regime chip) is owned by renderSafety()
   }
 

@@ -52,7 +52,9 @@
 <nav class="tabbar" id="tabbar">
   <button class="tab on" data-tab="desk">DESK<span class="b" id="tb-desk">—</span></button>
   <button class="tab" data-tab="tourn">TOURNEY<span class="b" id="tb-tourn">—</span></button>
-  <button class="tab" data-tab="chart">CHART</button>
+  <!-- ★ the empty .b is deliberate: every other tab stacks label-over-value, and without a value
+       cell CHART's label centred across both rows and sat off-baseline from its neighbours. -->
+  <button class="tab" data-tab="chart">CHART<span class="b">&nbsp;</span></button>
   <button class="tab" data-tab="hold">HOLD<span class="b" id="tb-hold">—</span></button>
   <button class="tab" data-tab="trades">TRADES<span class="b" id="tb-trades">—</span></button>
   <button class="tab" data-tab="exec">EXEC<span class="b" id="tb-exec">—</span></button>

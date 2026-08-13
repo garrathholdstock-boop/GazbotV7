@@ -46,6 +46,9 @@ header{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px
 .chip.bull{border-color:rgba(55,208,122,.4);color:var(--grn)}
 .chip.bear{border-color:rgba(255,90,95,.4);color:var(--red)}
 .chip.chop,.chip.flat{border-color:var(--line2);color:var(--mut)}
+/* dual-span chip labels: desktop shows the long form, the phone block swaps to the short one.
+   The DEFAULT must live here — without it both spans render and the chip reads "MARKET OPENOPEN". */
+.chip .lg{display:inline} .chip .sm{display:none}
 .spacer{flex:1}
 .kpis{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
 .kpi{display:flex;flex-direction:column;align-items:flex-end;min-width:50px}
@@ -239,54 +242,71 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
   /* lock header + tab bar together as ONE sticky block so the tabs never slide under the header
      (both were top:0 → the tabs vanished on scroll). Header compacted hard to reclaim vertical room. */
   .topstick{position:sticky;top:0;z-index:30;background:var(--bg)}
-  /* ★★2026-08-13 PHONE HEADER REBUILD — four honest rows, each owning its own vertical space.
-     THE FAULT: .kpis was a single `flex-wrap:nowrap; overflow-x:auto; align-items:center` scroller
-     holding tiles of UNEQUAL HEIGHT. The 3-line TODAY tile centred against its 2-line siblings, so
-     its third line hung below them and collided with the bordered NET box at gap:10px. It read as
-     an absolute-position bug; it was a cramped flex row. No position:absolute and no negative
-     margin exists in this header, and none is introduced here.
-     Grid areas rather than flex+order: the rows are then structural, so nothing can share a line
-     with something it is unrelated to (the period strip and the desk split are different data
-     classes and interleaving them is what made this unreadable). */
-  header{display:grid;grid-template-columns:auto 1fr auto;
-    grid-template-areas:"brand conn mkt" "safety . net" "kpis kpis kpis" "sub sub sub";
-    align-items:center;padding:4px 10px;gap:5px 8px;min-height:0}
+  /* ★★2026-08-13 PHONE HEADER — v2, after a horizontal DOCUMENT scroll appeared.
+     ROOT CAUSE was NOT the header: .tabbar held SEVEN tabs (DESK TOURNEY CHART HOLD TRADES EXEC
+     CUBE) at `flex:1; min-width:64px` = 448px of min-content against a 430px viewport. Its
+     overflow-x:auto could not contain that because neither it nor .topstick had min-width:0, so the
+     448px propagated up and set the DOCUMENT width — which is why every block below the header
+     scrolled sideways with it. Overhang was +18px at 430 and +128px at 320.
+     Fixed at the shallowest offender (the tabs), with root containment as defence so one bad child
+     can never widen the document again.
+     Rows are FLEX-WRAP here rather than fixed grid areas: v1 used grid-template-areas, which made
+     each row rigid and unable to wrap, so a long chip had nowhere to go. Wrapping rows degrade
+     gracefully instead — if SAFETY and NET cannot share a line, NET takes its own. */
+  html,body{max-width:100%;overflow-x:hidden}
+  /* min-width:0 all the way down the chain — a flex/grid child defaults to min-width:auto, which
+     refuses to shrink below its content and is how ONE nowrap element sets the whole document's
+     width. `.grid` is the content wrapper (there is no <main> in this document). */
+  .topstick,header,.tabbar,.kpis,.kpisub,.grid,.panel,.panel>*,.pb{min-width:0;max-width:100%}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;padding:4px 10px;min-height:0}
   .tag,.spacer{display:none}                         /* drop the subtitle + spacer on phone — pure space */
-  .brand{grid-area:brand} .conn{grid-area:conn;justify-self:start}
-  #mkt-chip{grid-area:mkt;justify-self:end}
-  #safety-chip{grid-area:safety;justify-self:start}
-  /* NET moves beside SAFETY: both are STATE, and it stops NET sharing a row with the numbers. */
-  #net-tile{grid-area:net;justify-self:end;flex-direction:row;align-items:center;gap:6px;
-    min-width:0;padding:3px 8px}
-  /* ROW 3 — the period strip as a real grid, not inline siblings. minmax(0,1fr) not bare 1fr: a
-     bare 1fr refuses to shrink below its content and would reintroduce overflow on a 430px screen. */
-  .kpis{grid-area:kpis;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:clamp(4px,1.5vw,10px);align-items:end;width:100%;overflow:visible;padding-bottom:0}
-  /* Every cell uses the SAME two classes — no per-period overrides. That is what fixes the four
-     different baselines and the 7D-value-bigger-than-TODAY inconsistency. Fluid, not a breakpoint. */
+  /* Rows 1-2 flow and wrap; nothing is pinned, nothing floats, no auto margins. */
+  .brand,.conn,.chip,#net-tile{flex:0 1 auto;min-width:0}
+  #mkt-chip{margin-left:auto}                        /* trailing chip hugs the right edge of ITS row */
+  /* NET is a plain flex sibling of the SAFETY chip — same padding and radius so they read as a
+     matched pair of STATE pills, and it can no longer collide with the numbers row. */
+  #net-tile{flex-direction:row;align-items:center;gap:6px;padding:3px 9px;border-radius:4px}
+  #net-tile .l{font-size:11px}
+  /* ROW 3 — 3x2, not 4-up. Six cells: TODAY YEST 2D / 7D 30D WIN%. Three columns give ~132px at
+     430px, which fits the widest real value ("−$3,313") at the full 28px type — the v1 4-up forced
+     the font down to 24px to fit. The column count was the bug, not the size.
+     minmax(0,1fr) not bare 1fr: a bare 1fr refuses to shrink below min-content and would re-widen
+     the document, which is the exact failure being fixed here. */
+  .kpis{flex:1 0 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    column-gap:clamp(4px,1.5vw,10px);row-gap:clamp(2px,1vw,6px);align-items:end;
+    width:100%;max-width:100%;overflow:visible;padding-bottom:0}
+  /* Every cell uses the SAME two classes — no per-period overrides. That is what fixes the mixed
+     baselines and 7D reading larger than TODAY. Fluid, not a breakpoint. */
   .kpi{align-items:center;min-width:0}
   .kpis .kpi .l{font-size:clamp(10px,2.6vw,12px);letter-spacing:.08em;text-transform:uppercase;
     color:var(--mut);line-height:1.1;text-align:center}
-  /* ★ 5.2vw/24px ceiling, not 5.6/26. At 430px a 4-up grid gives ~98px columns, and the widest real
-     value is 30D at "−$3,313" — 7 mono chars, which needs <=23px to fit. 5.6vw rendered 24.1px and
-     clipped it. Checked against the actual strings, not eyeballed. */
-  /* 16px floor so a 320px phone (iPhone SE) still fits "−$3,313" — at 18px it overflowed by 4px.
-     The floor never binds at 390-430px, so the common case is unaffected. */
-  .kpis .kpi .v{font-size:clamp(16px,5.2vw,24px);font-variant-numeric:tabular-nums;
+  .kpis .kpi .v{font-size:clamp(20px,6vw,28px);font-variant-numeric:tabular-nums;
     line-height:1.15;white-space:nowrap;text-align:center}
-  /* ★ PARIS clock hidden on phone — "18:42:07" is 8 chars and cannot fit a 98px cell at any legible
-     size, and a phone already shows the time. The Paris DAY boundary still matters to the desk, so
-     this is a display choice, not a data one: delete this rule to bring it back. */
+  /* PARIS hidden on phone — 8 chars ("18:42:07") fits no legible size, and a phone shows the time.
+     A display choice, not a data one: delete this rule to bring it back. */
   .kpis .kpi:last-child{display:none}
   /* ROW 4 — the desk split, alone on its line. */
-  .kpisub{grid-area:sub;justify-self:start;font-size:11px;font-variant-numeric:tabular-nums;
-    color:var(--mut2)}
+  .kpisub{flex:1 0 100%;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut2)}
+  /* dual-span chips: short label on phone (see renderConn in app.js) */
+  .chip .lg{display:none} .chip .sm{display:inline}
+  /* ★★ THIS WAS THE ROOT CAUSE OF THE DOCUMENT-WIDE HORIZONTAL SCROLL.
+     Seven tabs (DESK TOURNEY CHART HOLD TRADES EXEC CUBE) at `flex:1; min-width:64px` is 448px of
+     MIN-CONTENT. Against a 430px viewport that is +18px, and +128px at 320px. overflow-x:auto could
+     not contain it because a flex container still contributes its min-content width to its parent
+     unless min-width:0 is set — so the 448px propagated up through .topstick and set the DOCUMENT
+     width, which is why DESK STATS and the rolling table scrolled sideways too.
+     `flex:0 0 auto` + min-width:0 makes the strip size to its own content and scroll INSIDE itself.
+     A contained horizontal scroll on a tab strip is correct; widening the document is not. */
   .tabbar{display:flex;background:var(--panel2);border-top:1px solid var(--line);
-    border-bottom:1px solid var(--line);overflow-x:auto}
-  .tab{flex:1;min-width:64px;text-align:center;padding:7px 6px;font-size:12px;letter-spacing:1px;
+    border-bottom:1px solid var(--line);overflow-x:auto;min-width:0;max-width:100%;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabbar::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;min-width:0;text-align:center;padding:7px 10px;font-size:12px;letter-spacing:1px;
     color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans)}
   .tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
-  .tab .b{display:block;font-family:var(--mono);font-size:13px;color:var(--txt2);margin-top:2px}
+  /* every tab stacks label-over-value; CHART carries an empty .b so its baseline matches. */
+  .tab .b{display:block;font-family:var(--mono);font-size:13px;color:var(--txt2);margin-top:2px;
+    min-height:1em}
   /* phone: bump every text element +1px vs desktop for legibility at arm's length */
   body{font-size:14px}
   .tag,.conn,.chip,.subval,.dtt-row{font-size:12px}
