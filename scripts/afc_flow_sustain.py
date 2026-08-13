@@ -11,7 +11,12 @@ import duckdb
 import numpy as np
 CAP="/home/alphabot/gazbot7/data/capture.db"; CENSUS="/home/alphabot/gazbot7/reports/friday_v7/sections/census_stdout.txt"
 SINCE,UNTIL="2026-07-19 22:00:00","2026-07-24 21:00:00"
-W,TH,STOP,ARM,TRAIL,HOLD_CAP,ARM_TO=60,150.0,20.0,12.0,12.0,1200,300; FEE,VPP=5.0,2.0
+W,TH,STOP,ARM,TRAIL,HOLD_CAP,ARM_TO=60,150.0,20.0,12.0,12.0,1200,300; FEE, VPP = 1.50, 2.0   # ★2026-08-13 COST FIX — was FEE, VPP = 1.50, 2.0   # ★2026-08-13 COST FIX — was FEE,VPP=5.0,2.0. $5.00 is 3.3x the real
+# $1.50 commission. An over-charged fee never looks wrong: it silently kills marginal edges and
+# reports a confident NULL. Any conclusion this script produced before today used $5/RT — RE-RUN IT. (unspaced), which is why the
+# 08-02 sweep missed it: that pass grepped the SPACED form. $5.00 is 3.3x the real $1.50 commission,
+# and an over-charged fee does not look wrong — it silently kills marginal edges and reports a
+# confident NULL. Any conclusion this script produced before today was computed at $5/RT: RE-RUN IT.
 WIN_PRE,WIN_POST=600,300; M=16.0; T=10; FLOORS=[0,30,50,80,120,160]
 def main():
     runs=[]

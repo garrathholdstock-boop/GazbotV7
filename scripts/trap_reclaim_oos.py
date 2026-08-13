@@ -12,7 +12,9 @@ import duckdb
 import pandas as pd
 TDB="/home/alphabot/alphabot2/data/ticks.db"
 FLW,F,STOP,TGT,RECLAIM,CAP_S,COOL,ERG=60,300.0,40.0,30.0,6.0,900,60,0.35
-FEE,VPP=5.0,2.0
+FEE, VPP = 1.50, 2.0   # ★2026-08-13 COST FIX — was FEE,VPP=5.0,2.0. $5.00 is 3.3x the real
+# $1.50 commission. An over-charged fee never looks wrong: it silently kills marginal edges and
+# reports a confident NULL. Any conclusion this script produced before today used $5/RT — RE-RUN IT.
 def main():
     con=duckdb.connect(); con.execute(f"ATTACH '{TDB}' AS a (TYPE sqlite, READ_ONLY)")
     span=con.execute("SELECT min(ts_ms),max(ts_ms),COUNT(*) FROM a.trade_tick WHERE symbol='MNQ'").fetchone()

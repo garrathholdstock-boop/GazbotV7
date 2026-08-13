@@ -12,7 +12,9 @@ import duckdb
 CAP="/home/alphabot/gazbot7/data/capture.db"
 SINCE,UNTIL="2026-07-19 22:00:00","2026-07-24 21:00:00"
 FLW,F,STOP,TGT,RECLAIM,CAP_S,COOL=60,300.0,40.0,30.0,6.0,900,60
-FEE,VPP=5.0,2.0
+FEE, VPP = 1.50, 2.0   # ★2026-08-13 COST FIX — was FEE,VPP=5.0,2.0. $5.00 is 3.3x the real
+# $1.50 commission. An over-charged fee never looks wrong: it silently kills marginal edges and
+# reports a confident NULL. Any conclusion this script produced before today used $5/RT — RE-RUN IT.
 def main():
     con=duckdb.connect(); con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
     lo=int(con.execute(f"SELECT epoch(TIMESTAMP '{SINCE}')").fetchone()[0]); hi=int(con.execute(f"SELECT epoch(TIMESTAMP '{UNTIL}')").fetchone()[0])

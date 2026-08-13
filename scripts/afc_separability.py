@@ -12,7 +12,12 @@ import numpy as np
 import duckdb
 CAP="/home/alphabot/gazbot7/data/capture.db"
 SINCE,UNTIL="2026-07-19 22:00:00","2026-07-24 21:00:00"
-W,TH,STOP,ARM,TRAIL,HOLD_CAP,ARM_TO,M=60,150.0,20.0,12.0,12.0,1200,300,16.0; FEE,VPP=5.0,2.0
+W,TH,STOP,ARM,TRAIL,HOLD_CAP,ARM_TO,M=60,150.0,20.0,12.0,12.0,1200,300,16.0; FEE, VPP = 1.50, 2.0   # ★2026-08-13 COST FIX — was FEE, VPP = 1.50, 2.0   # ★2026-08-13 COST FIX — was FEE,VPP=5.0,2.0. $5.00 is 3.3x the real
+# $1.50 commission. An over-charged fee never looks wrong: it silently kills marginal edges and
+# reports a confident NULL. Any conclusion this script produced before today used $5/RT — RE-RUN IT. (unspaced), which is why the
+# 08-02 sweep missed it: that pass grepped the SPACED form. $5.00 is 3.3x the real $1.50 commission,
+# and an over-charged fee does not look wrong — it silently kills marginal edges and reports a
+# confident NULL. Any conclusion this script produced before today was computed at $5/RT: RE-RUN IT.
 def main():
     con=duckdb.connect(); con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
     lo=int(con.execute(f"SELECT epoch(TIMESTAMP '{SINCE}')").fetchone()[0]); hi=int(con.execute(f"SELECT epoch(TIMESTAMP '{UNTIL}')").fetchone()[0])
