@@ -92,7 +92,11 @@ def main():
                f"({why}). Nothing has been built and nothing will be. Run `claude` on the box and "
                f"/login, then: systemctl start gazbot7-friday-report.service", crit=True)
         log("=== DURABLE FRIDAY REPORT — END (ok=False, preflight) ===")
-        return 1
+        # ★ FALSE, not 1. The wrapper is `sys.exit(0 if main() else 1)`, so a truthy return means
+        # SUCCESS — returning 1 here would have reported a green unit on an auth failure, which is
+        # the exact "logged its own failure and still returned 0" bug this file already carries a
+        # comment about. Caught before it shipped.
+        return False
     log("preflight auth OK")
 
     notify("📋 Durable Friday report starting (headless) — census freeze then keep-alive max-depth build + self-proofread.", crit=False)
@@ -123,56 +127,29 @@ def main():
         log(f"progress page error: {e}")
         notify(f"⚠ Durable Friday: progress page errored ({e}).", crit=False)
 
-    # 2. stream-json session, stdin HELD OPEN so the workflow (background task) survives to completion
-    prompt = (
-        f"Build the GAZBOT V7 Friday weekly report. The census is ALREADY frozen at {SEC}/census_summary.json "
-        f"(do NOT run run_census.py). Launch the max-depth workflow via the Workflow tool with scriptPath '{WF}' "
-        f"and let it run fully (Census->Desks->Rehab->BigRuns->Greenfield->Skeptic->Assemble->Proofread; Phase 7 "
-        f"proof-reads as the operator, gap-fills, does Revision 2, and pings). Keep working until it completes; then "
-        f"verify weekly_<date>.html + .pdf + monday_<date>.html exist in src/gazbot7/web_static/ and the publish gate "
-        f"passed. If it dies mid-run, read its journal and resume via Workflow scriptPath+resumeFromRunId."
-    )
-    msg = json.dumps({"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": prompt}]}}) + "\n"
-    done = False   # bound BEFORE the try: an exception in Popen must not NameError the exit-code path
+    # 2. THE BUILD
+    # ★★2026-08-13 THE BUILD IS NOW SERIAL, one phase per process. Operator: "run less agents at a
+    # time and use the time you have." He was right and it is the whole fix.
+    # The stream-json keep-alive driver this replaces ran all 16 phases inside ONE Claude session,
+    # so RSS only ever grew (6.46 / 6.76 / 7.31 GB on three consecutive attempts) and any death lost
+    # everything in flight. serial_runner.py starts a FRESH PROCESS PER PHASE — memory returns to
+    # zero between phases, and the artifact on disk is the checkpoint so a re-run resumes rather
+    # than restarts.
+    # It also RESERVES time for assemble -> proofread -> rev2 -> final and drops optional sections to
+    # protect it. That inverts the failure this exists to fix: REV2 has never survived to Saturday
+    # morning precisely because it is built LAST.
+    rc = 1
     try:
-        # ★★2026-08-07 --verbose IS MANDATORY and its absence killed the 08-07 run.
-        # The CLI now errors "When using --print, --output-format=stream-json requires --verbose" and
-        # exits rc=1 in seconds. This script worked on 07-31; the claude CLI was updated to 2.1.221
-        # since, and nothing re-tested the invocation — a dependency changed under a script that only
-        # runs once a week. ⚠ stderr was DEVNULL, so the error was INVISIBLE: the log said only
-        # "claude session exited early (rc=1)" with no reason. stderr now goes to a file.
-        err_path = f"{SEC}/claude_stderr.txt"
-        _err = open(err_path, "w")
-        p = subprocess.Popen([CLAUDE, "-p", "--verbose", "--input-format", "stream-json",
-                              "--output-format", "stream-json",
-                              "--allowedTools", "Bash", "Workflow", "Read", "Write", "Edit", "Agent", "Task"],
-                             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=_err, text=True, cwd=GB, env=ENV)
-        p.stdin.write(msg); p.stdin.flush()          # send prompt, KEEP stdin open (session persists)
-        t0 = time.time()
-        while time.time() - t0 < MAX_S:
-            time.sleep(POLL_S)
-            if newest_weekly_mtime() > baseline_mtime + 60:   # a fresh report landed
-                # give Phase-7 proofread time to finish its Rev2 rewrite, then finish
-                time.sleep(600); done = True; break
-            if p.poll() is not None:                          # session died early = the bug recurred
-                try:
-                    _err.flush()
-                    tail = open(err_path).read()[-400:].replace("\n", " | ")
-                except Exception:
-                    tail = "(stderr unreadable)"
-                log(f"claude session exited early (rc={p.returncode}) — report not built · stderr: {tail}")
-                break
-        try:
-            p.stdin.close()
-            p.wait(timeout=60)
-        except Exception:
-            p.kill()
-        if done:
-            log("report built OK (fresh weekly_*.html)"); notify("✅ Durable Friday report built (headless). Verify /v7/reports.", crit=False)
-        else:
-            log("NO fresh report after build window"); notify("⚠ Durable Friday: headless build did NOT produce a fresh report — session-backstop must recover. CHECK.", crit=True)
+        r = subprocess.run(f"{PY} scripts/friday/serial_runner.py --deadline 06:30",
+                           shell=True, cwd=GB, env=ENV, timeout=int(7.5 * 3600))
+        rc = r.returncode
+    except subprocess.TimeoutExpired:
+        log("serial runner hit its own 7.5h wall")
     except Exception as e:
-        log(f"build error: {e}"); notify(f"⚠ Durable Friday build error: {e} — CHECK.", crit=True)
+        log(f"serial runner error: {e}")
+    done = (rc == 0)
+    log(f"serial runner rc={rc} -> done={done}")
+
     log(f"=== DURABLE FRIDAY REPORT — END (ok={done}) ===")
     return done
 
