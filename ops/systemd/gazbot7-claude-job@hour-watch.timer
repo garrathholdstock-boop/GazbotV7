@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — hourly tape/gate watch timer (weekdays 05-21 UTC)
+[Timer]
+# Was the session cron `8 5-21 * * 1-5`. Distinct from gazbot7-open-hour-watch, which is the
+# every-minute 13:30-14:30 open-hour watcher plus the PM fade window — a different job entirely.
+OnCalendar=Mon-Fri *-*-* 05..21:08:00
+Persistent=false
+AccuracySec=60s
+[Install]
+WantedBy=timers.target

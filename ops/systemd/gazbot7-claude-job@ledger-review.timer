@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — bad-call ledger review timer (~4-hourly)
+[Timer]
+# Was the session cron `13 */4 * * *`. Off-the-hour on purpose: :13 keeps it clear of the router
+# tick (:00/:05/:10...) and of the 3-hourly sweep at :41.
+OnCalendar=*-*-* 00,04,08,12,16,20:13:00
+Persistent=false
+AccuracySec=60s
+[Install]
+WantedBy=timers.target

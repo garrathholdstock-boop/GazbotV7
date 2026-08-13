@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — Sunday pre-open / reopen ramp timer
+[Timer]
+# Was the session cron `9 20-23 * * 0`. Runs hourly across the approach to the 22:00 UTC CME reopen
+# so a dead router or a wrong HOLD list is caught BEFORE the week's first tick, not after.
+OnCalendar=Sun *-*-* 20..23:09:00
+Persistent=false
+AccuracySec=60s
+[Install]
+WantedBy=timers.target

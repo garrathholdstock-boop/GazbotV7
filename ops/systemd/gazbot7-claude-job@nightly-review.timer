@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — nightly grind-exit + router/selector review timer
+[Timer]
+# Was two session crons (`43 22` grind-exit shadow, `50 22` router/selector review); merged into one
+# job because they read the same day and splitting them doubled the context for no benefit.
+# 22:43 UTC sits inside the CME halt (21:00-22:00 is the halt; the reopen is 22:00), after the
+# 21:30 nightly audit has produced claim_audit.json for it to read.
+OnCalendar=Mon-Fri *-*-* 22:43:00
+Persistent=false
+AccuracySec=60s
+[Install]
+WantedBy=timers.target

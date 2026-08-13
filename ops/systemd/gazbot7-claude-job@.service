@@ -1,0 +1,37 @@
+[Unit]
+# ★2026-08-13 — THE SESSION CRONS, MADE DURABLE.
+# Six standing jobs (bad-call ledger review, hourly tape/gate watch, 3-hourly sweep, nightly review,
+# Sunday pre-open ramp) existed ONLY as Claude-session crons. They died with every session, and
+# data/router_crons_manifest.md exists purely so a human can remember to re-arm them by hand. That is
+# the fragility CLAUDE.md calls the #1 risk. These now run whether or not a session is alive.
+#
+# ONE TEMPLATE, MANY JOBS: %i is the job name, which selects both the prompt file
+# (ops/job_prompts/%i.md) and the tool allowlist (scripts/claude_job.py::TOOLS). Adding a job is a
+# prompt file plus a timer — no new code, so there is nothing to drift between six copies.
+#
+# ★ NONE OF THESE MAY WRITE data/gate_switches.env. That file belongs to gazbot7-router-tick.timer
+# alone; a second writer is the "two routers" hazard. The prompts say so explicitly and the tool
+# allowlists are per-job and minimal.
+Description=GAZBOT V7 — headless claude job "%i"
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# PATH pinned explicitly: a systemd PATH change previously produced FileNotFoundError: 'claude'.
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Exit 1 means the job failed and already PAGED; do not also mark the unit failed on a bad night.
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/claude_job.py --name %i
+# Generous: the runner enforces its own per-job timeout and pages on expiry. This is the backstop
+# for a wedged CLI that never returns at all.
+TimeoutStartSec=1200
+# The box is 7.5GB and three global_oom kills happened on 2026-08-08, each picking a victim at
+# random. Cap these so a review job can never be the process that takes the trading path down.
+MemoryHigh=1G
+MemoryMax=1500M
+MemorySwapMax=512M
+OOMScoreAdjust=200
