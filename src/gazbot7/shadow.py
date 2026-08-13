@@ -102,6 +102,10 @@ class ShadowVariant:
     rider_win_start_s: int = 13 * 3600           # 13:00 UTC
     rider_win_end_s: int = 14 * 3600 + 45 * 60   # 14:45 UTC — the 08-08 right-edge cut
     time_cap_s: float = 0.0                      # flat at market after this long (0 = no cap)
+    # ★2026-08-13 THE DRIFT-DIRECTION GATE. Once drift.py's detector CONFIRMS a session direction,
+    # refuse rider entries against it. Entries BEFORE confirmation stay completely unguarded — that
+    # asymmetry is the whole design; see _rider_entry.
+    rider_gate_drift: bool = False
 
 
 def _eff_target_r(v: ShadowVariant, atr: float, vpp: float) -> float:
@@ -173,8 +177,54 @@ class ShadowSim:
         mom = bars[-1].close - bars[-1 - lb].close
         if mom == 0:
             return None
-        return Entry(side="LONG" if mom > 0 else "SHORT", gate="clock_rider",
+        side = "LONG" if mom > 0 else "SHORT"
+
+        # ★★2026-08-13 THE DRIFT-DIRECTION GATE (gated arms only).
+        # Measured on the 4 days the rider has run (n=68, tick-repriced), the ungated book is
+        # −$476.50 and it splits sharply:
+        #   · entries BEFORE the detector confirms:  n=36  +$502.50  (+$14.00/tr)  <- the edge
+        #   · the two chop days lost in BOTH directions, 15 of 16 trades stopping  <- whipsaw
+        # So the fault is never "it traded too early", it is "it kept re-entering AGAINST a
+        # direction the tape had already declared". A permission gate (wait for confirmation
+        # before trading at all) tests WORSE than doing nothing — n=32, −$979.00 — because the
+        # detector confirmed on all four days and so suppressed no losses while deleting the
+        # profitable early window. Operator: "the fact it jumps in early is kind of its edge."
+        # Hence the asymmetry: unguarded before confirmation, direction-only after.
+        #   ungated  −$476.50   ->   gated  +$603.50   (+$1,080), ahead on strip-best-day all 4 ways
+        # ⚠ n=68 over FOUR days and one of them is a third of the sample. This is a shadow arm to
+        # settle the question forward, NOT a validated result. Its ungated twin runs alongside it
+        # precisely so the gate can be attributed rather than assumed.
+        if v.rider_gate_drift:
+            read = self._rider_drift(bars, ts)
+            if read is not None and read.confirmed and read.direction in ("UP", "DOWN"):
+                if side != ("LONG" if read.direction == "UP" else "SHORT"):
+                    return None
+            # read is None / not yet confirmed -> DELIBERATELY unguarded. Do not "fail closed" here:
+            # failing closed would silently recreate the permission gate that tested worse.
+
+        return Entry(side=side, gate="clock_rider",
                      target_r=v.target_r, stop_atr_mult=v.stop_atr_mult)
+
+    @staticmethod
+    def _rider_drift(bars: list, ts: int):
+        """drift.py's real detector, fed the session's minute bars up to `ts`. Returns None on any
+        doubt (too little tape, a bad read) so the caller leaves the entry unguarded.
+
+        ★ CALLS THE REAL DETECTOR rather than re-deriving it. A hand-rolled version of this that
+        omitted MIN_BARS=9 once fabricated a +$819 counterfactual on this desk. And note it must be
+        `compute()` on a BOUNDED window, never `drift.read()`: read() selects `bar_ts >= open` with
+        no upper bound, so replaying it at a past instant silently reads forward to now.
+        """
+        try:
+            from .drift import OPEN_UTC_MIN, compute
+            open_s = (ts // 86400) * 86400 + OPEN_UTC_MIN * 60
+            rows = [(b.ts, b.high, b.low, b.close) for b in bars if open_s <= b.ts < ts]
+            if not rows:
+                return None
+            r = compute(rows)
+            return r if r.ok else None
+        except Exception:
+            return None
 
     def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool, cap: dict,
                bars: list[Bar] | None = None, ts: int = 0):
@@ -497,6 +547,23 @@ def _open_rider() -> list[ShadowVariant]:
         ShadowVariant("odr_c5_s30", rider_cadence_min=5, stop_atr_mult=3.0, **common),
         ShadowVariant("odr_c10_s20", rider_cadence_min=10, stop_atr_mult=2.0, **common),
         ShadowVariant("odr_c10_s30", rider_cadence_min=10, stop_atr_mult=3.0, **common),
+        # ★★2026-08-13 THE DRIFT-GATED HALF — an EXACT PAIR for each cell above, differing in one
+        # bit (rider_gate_drift). Paired on purpose: the backtest cannot rank cadence or stop width
+        # (per-trade SD ~$160 makes every cell difference noise), so an unpaired gated arm would
+        # confound the gate with whichever cell it happened to sit in. Four extra arms is real slate
+        # cost — the slate was cut 28->18 on 08-02 — but attribution is the entire point of running
+        # this forward instead of just believing the backtest.
+        # The gate itself and its evidence are documented at _rider_entry. Headline: ungated
+        # −$476.50 -> gated +$603.50 on the same 68 trades, ahead on strip-best-day all four ways,
+        # and it takes NOTHING off the one trending day (the detector agreed with the tape).
+        ShadowVariant("odr_c5_s20_g", rider_cadence_min=5, stop_atr_mult=2.0,
+                      rider_gate_drift=True, **common),
+        ShadowVariant("odr_c5_s30_g", rider_cadence_min=5, stop_atr_mult=3.0,
+                      rider_gate_drift=True, **common),
+        ShadowVariant("odr_c10_s20_g", rider_cadence_min=10, stop_atr_mult=2.0,
+                      rider_gate_drift=True, **common),
+        ShadowVariant("odr_c10_s30_g", rider_cadence_min=10, stop_atr_mult=3.0,
+                      rider_gate_drift=True, **common),
     ]
 
 

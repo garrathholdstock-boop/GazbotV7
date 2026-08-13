@@ -150,12 +150,19 @@ def test_full_slate_with_chandelier_ab_instantiates_and_steps():
     # ★2026-08-08 + "clock_rider": the Open Rider, the first variant here with no signal at all.
     assert {v.gate for v in slate} <= {"thrust", "reversal_grab", "capitulation", "grind",
                                        "clock_rider"}
-    # ★2026-08-08 the four Open Rider arms (cadence x stop width, shadow only). Drop below 4 and
-    # an arm has been silently retired, at which point the 2x2 is no longer a comparison.
+    # ★2026-08-08 the four Open Rider arms (cadence x stop width, shadow only). Drop one and it has
+    # been silently retired, at which point the 2x2 is no longer a comparison.
+    # ★2026-08-13 now EIGHT: the same 2x2 run twice, once with the drift-direction gate. The pairing
+    # assertion is the real guard — an unpaired gated arm confounds the gate with whichever cadence
+    # or stop cell it sits in, and the backtest cannot separate those (per-trade SD ~$160).
     riders = [v for v in slate if v.gate == "clock_rider"]
-    assert len(riders) == 4, [v.name for v in riders]
+    assert len(riders) == 8, [v.name for v in riders]
     assert {v.rider_cadence_min for v in riders} == {5, 10}
     assert {v.stop_atr_mult for v in riders} == {2.0, 3.0}
+    gated = {v.name for v in riders if v.rider_gate_drift}
+    plain = {v.name for v in riders if not v.rider_gate_drift}
+    assert len(gated) == len(plain) == 4, (gated, plain)
+    assert gated == {n + "_g" for n in plain}, "every gated arm needs its exact ungated twin"
     # Every rider MUST carry a time cap. The sim has no other way out of a trade that neither
     # stops nor targets, so an uncapped rider would sit open until the feed stopped.
     assert all(v.time_cap_s == 45 * 60 for v in riders)
