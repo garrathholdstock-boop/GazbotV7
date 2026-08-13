@@ -1,0 +1,19 @@
+[Unit]
+Description=GAZBOT V7 — nightly supervisor timer (21:40 UTC, inside the CME halt)
+
+[Timer]
+# 21:40 UTC and every part of that is deliberate:
+#  · 21:00-22:00 UTC is the CME halt — no market, and the desk is flat (EOD flatten 16:53 New York,
+#    day-rider hard flat 20:40), so a repair cannot land mid-position.
+#  · It follows the 21:30 nightly audit, so claim_audit.json is fresh when it looks.
+#  · It is NOT the operator's suggested Paris midnight: 22:00 UTC is the REOPEN and already the
+#    busiest minute on the calendar (gazbot7-gate-reactivate arms every benched gate then).
+#    Repairing into that is asking for exactly the churn the reopen is known for.
+# Runs every day including weekends: a timer that dies on Saturday should not go unnoticed until
+# Monday, and the Sunday reopen depends on this machinery being alive.
+OnCalendar=*-*-* 21:40:00
+Persistent=false
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

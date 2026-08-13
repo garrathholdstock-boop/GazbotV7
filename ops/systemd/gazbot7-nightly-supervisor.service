@@ -1,0 +1,20 @@
+[Unit]
+# ★2026-08-13 — VERIFY AND REPAIR, not the nightly reboot that was asked for.
+# The reboot idea could not have re-armed the session crons (they lived only in a Claude process's
+# memory), would NOT have prevented the 10.5h outage that prompted it (an expired token survives a
+# restart — that needed gazbot7-router-health), and blanket-restarting a healthy desk re-adopts
+# slots and drops IB connections for no gain. So: check every layer that can fail silently, and
+# restart only a unit that is enabled, genuinely down, and only while the desk is FLAT.
+Description=GAZBOT V7 — nightly supervisor (verify the machinery, repair only what is wedged)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/nightly_supervisor.py
+TimeoutStartSec=300
+MemoryMax=400M
