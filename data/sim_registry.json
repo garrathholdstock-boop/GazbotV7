@@ -25,9 +25,13 @@
   "exhaustion_rev": 23,
   "grind_fast": 24,
   "odr_c10_s20": 54,
+  "odr_c10_s20_g": 60,
   "odr_c10_s30": 55,
+  "odr_c10_s30_g": 61,
   "odr_c5_s20": 56,
+  "odr_c5_s20_g": 62,
   "odr_c5_s30": 57,
+  "odr_c5_s30_g": 63,
   "rg_long_20_flow25": 25,
   "rg_long_20_t15": 26,
   "rg_long_20_t20": 27,
@@ -60,5 +64,5 @@
   "thrust_short_absveto55": 52,
   "thrust_short_raw": 53
  },
- "next": 60
+ "next": 64
 }
