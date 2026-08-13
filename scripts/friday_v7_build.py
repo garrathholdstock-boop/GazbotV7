@@ -128,6 +128,16 @@ table.plays .num-cell{font-weight:700;color:#0f2942}
 
 # The full report spine, in order. (label, sub-title, fragment file, anchor)
 SECTIONS = (
+    # ★★2026-08-13 PART 0 GOES FIRST, in the operator's own words: "we never had multiple green days
+    # in a week like we having now ... we should almost open with this. gives hope and shows
+    # progress." He is right and the report had no place that showed it — every other section answers
+    # "what happened THIS WEEK"; none answered "are we getting BETTER?", which is the only question
+    # that survives past Friday. A reader could finish 287 pages knowing every gate's P&L and still
+    # not know the desk had gone from 0 green days in a week to 2-3.
+    # GENERATED, never written: scripts/friday/progress_page.py rebuilds it from the live trade
+    # record each Friday — total desk (tournament + day-rider), data_quality IS NULL — so it cannot
+    # drift from the books and nobody has to remember to update it.
+    ("Part 0", "Are we getting better? — every day the desk has traded, green or red", "part0_progress.html", "sec0"),
     ("Part 1", "The live desk — what the six-gate paper tournament actually did", "part1_live.html", "sec1"),
     ("Part 1.5", "Live-desk REHABILITATION — never bench a gate at face value", "part1_5_rehab.html", "sec2"),
     ("Part 2", "The shadow desk, the promotion battery &amp; the regime-flex exit lab", "part2_shadow.html", "sec3"),

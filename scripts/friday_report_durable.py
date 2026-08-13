@@ -73,6 +73,21 @@ def main():
     except Exception as e:
         log(f"census freeze error: {e}"); notify(f"⚠ Durable Friday: census freeze errored ({e}).", crit=True)
 
+    # 1b. ★2026-08-13 PART 0 — the progress page. Generated here, not by an agent phase, for the
+    # same reason the census is: it is deterministic. It is a straight read of the trade record, so
+    # a model writing it could only introduce error. Cheap (<1s) and it must never be stale — it is
+    # the FIRST thing in the report and the one section a reader checks against their own memory.
+    try:
+        subprocess.run(f"{PY} scripts/friday/progress_page.py", shell=True, cwd=GB, env=ENV, timeout=120)
+        ok = os.path.exists(f"{SEC}/part0_progress.html")
+        log("progress page OK" if ok else "progress page MISSING")
+        if not ok:
+            notify("⚠ Durable Friday: Part 0 progress page did not generate — the report will open "
+                   "on Part 1 instead.", crit=False)
+    except Exception as e:
+        log(f"progress page error: {e}")
+        notify(f"⚠ Durable Friday: progress page errored ({e}).", crit=False)
+
     # 2. stream-json session, stdin HELD OPEN so the workflow (background task) survives to completion
     prompt = (
         f"Build the GAZBOT V7 Friday weekly report. The census is ALREADY frozen at {SEC}/census_summary.json "
