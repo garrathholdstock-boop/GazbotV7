@@ -163,25 +163,11 @@ PHASES = [
          f"keep-the-winners test -> robustness -> verdict pill), leading with what got rehabilitated, then the honest GRAVES. "
          f"{SEGMENT} {JUDGE} {GRAVES} {STYLE} Write to {SEC}/part1_5_rehab.html"),
 
-    # ── Greenfield: one phase per cluster, independent, so a wedge in one cannot cost the others ──
-    *[dict(key=f"gf_{cl}", artifact=f"{SEC}/gf_full_{cl}.md", deps=[], timeout_s=5400, prompt=PRE +
-        f"GREENFIELD HUNT — cluster '{cl}'. Read the frozen census {SEC}/census_summary.json (do NOT re-run run_census.py). "
-        f"IGNORE the existing gates. INVENT a brand-new entry signal to catch these sat-out runs, with an exact mechanical spec "
-        f"(trigger/direction/entry/stop/exit). BACKTEST it tick-honest over the FULL PARQUET LAKE "
-        f"(gazbot7.lake, 2026-07-16 onward) — NOT capture.db, which is 5 trading days and would "
-        f"silently shrink your sample. "
-        f"Net of $1.50/round-trip — the TRUE venue fee. A previous version of this prompt said $5, "
-        f"which would have killed any marginal edge on a fee 3.3x too high. ESCALATE if it "
-        f"fails: hunt the full sat-out set, then the top-25 biggest runs, then the top-15 — narrowing may reveal a footprint the "
-        f"marginal runs washed out. Report the size-threshold at which a footprint becomes tradeable, if any (that IS the "
-        f"finding). ROBUSTNESS: placebo/shuffle test (shift the signal series, keep every other rule — if a FAKE signal books "
-        f"most of the money, the real one is not the edge), parameter sweep (edge only as n collapses = curve-fit tell), "
-        f"strip-the-3-best, long/short symmetry, leave-one-day-out, OOS leg, and big-moves-caught X/N. ★ ALSO interrogate the "
-        f"CLUSTER LABEL itself before trusting it — check its base rate on all bars; a label that is true on most of the tape is "
-        f"not a footprint, it is noise, and that finding outranks any signal you build on top of it. {JUDGE} {GRAVES} "
-        f"{SEGMENT} Write your full working to {SEC}/gf_full_{cl}.md, ending with an explicit VERDICT line stating "
-        f"whether it survived and, if not, WHICH robustness test killed it.")
-      for cl in ("VACUUM", "FLOW-LED", "OPEN-NEWS")],
+    # ★2026-08-13 GOLD RUNS FIRST, ahead of the three MNQ clusters (operator: "move mgc ahead
+    # of the mnq greenfield clusters"). The serial runner walks this list IN ORDER and drops
+    # optional sections from the END when the body budget runs short — so declaration order IS
+    # priority. Gold is the new line of enquiry; the MNQ clusters have had three weeks of
+    # attention. If something must be cut this week it should not be the one nobody has run.
     # ★★2026-08-13 THE GOLD HUNT. Operator: "we want to find some gates that work for mgc. and put
     # them into shadow" and, sharpening it: "any gates for mgc long or short need to be created
     # FRESH. dont try and use any existing mnq gates on mgc. if we can end up with a momentum and
@@ -249,6 +235,25 @@ PHASES = [
          f"{SEGMENT} {JUDGE} {GRAVES} Write your full working to {SEC}/gf_MGC.md, ending with a "
          f"PER-CELL VERDICT TABLE (momentum-long / momentum-short / reversion-long / reversion-short) "
          f"and every SHADOW-READY block."),
+    # ── Greenfield: one phase per cluster, independent, so a wedge in one cannot cost the others ──
+    *[dict(key=f"gf_{cl}", artifact=f"{SEC}/gf_full_{cl}.md", deps=[], timeout_s=5400, prompt=PRE +
+        f"GREENFIELD HUNT — cluster '{cl}'. Read the frozen census {SEC}/census_summary.json (do NOT re-run run_census.py). "
+        f"IGNORE the existing gates. INVENT a brand-new entry signal to catch these sat-out runs, with an exact mechanical spec "
+        f"(trigger/direction/entry/stop/exit). BACKTEST it tick-honest over the FULL PARQUET LAKE "
+        f"(gazbot7.lake, 2026-07-16 onward) — NOT capture.db, which is 5 trading days and would "
+        f"silently shrink your sample. "
+        f"Net of $1.50/round-trip — the TRUE venue fee. A previous version of this prompt said $5, "
+        f"which would have killed any marginal edge on a fee 3.3x too high. ESCALATE if it "
+        f"fails: hunt the full sat-out set, then the top-25 biggest runs, then the top-15 — narrowing may reveal a footprint the "
+        f"marginal runs washed out. Report the size-threshold at which a footprint becomes tradeable, if any (that IS the "
+        f"finding). ROBUSTNESS: placebo/shuffle test (shift the signal series, keep every other rule — if a FAKE signal books "
+        f"most of the money, the real one is not the edge), parameter sweep (edge only as n collapses = curve-fit tell), "
+        f"strip-the-3-best, long/short symmetry, leave-one-day-out, OOS leg, and big-moves-caught X/N. ★ ALSO interrogate the "
+        f"CLUSTER LABEL itself before trusting it — check its base rate on all bars; a label that is true on most of the tape is "
+        f"not a footprint, it is noise, and that finding outranks any signal you build on top of it. {JUDGE} {GRAVES} "
+        f"{SEGMENT} Write your full working to {SEC}/gf_full_{cl}.md, ending with an explicit VERDICT line stating "
+        f"whether it survived and, if not, WHICH robustness test killed it.")
+      for cl in ("VACUUM", "FLOW-LED", "OPEN-NEWS")],
     dict(key="gf_chopscalp", artifact=f"{SEC}/gf_chopscalp.md", deps=[], timeout_s=5400, prompt=PRE +
          f"CHOP-DAY SCALP GREENFIELD — operator's explicit focus. The week's chop days BLED or broke even with the CURRENT "
          f"gates — but 'untradeable' is only true for THOSE gates. The trend days already carry most of the week's profit, so "
