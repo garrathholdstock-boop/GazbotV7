@@ -289,6 +289,20 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
   .kpisub{flex:1 0 100%;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut2)}
   /* dual-span chips: short label on phone (see renderConn in app.js) */
   .chip .lg{display:none} .chip .sm{display:inline}
+  /* ★ FLUID PANEL INTERNALS — the next things that would overflow once the tab strip was fixed.
+     .dtt-row was dl(112) + dbar(flex) + dpct(38) + dblk(120) = 294px of FIXED width plus 24px of
+     gaps, against ~296px of usable panel at a 320px viewport: it fit only by collapsing .dbar to
+     nothing, and overflowed below that. Percentages + min-width:0 let the two text cells shrink and
+     use the ellipsis they already declare, instead of forcing the row wider than its panel.
+     .slot-tile goes one-per-row: at flex-basis 150px/min-width 140px two could never share a phone
+     row anyway, so the wrap was already implicit — this just stops the 140px floor being a hard
+     minimum on a narrow panel. */
+  .dtt-row{gap:6px}
+  .dtt-row .dl{width:auto;flex:1 1 38%;min-width:0}
+  .dtt-row .dbar{flex:1 1 18%;min-width:26px}
+  .dtt-row .dpct{width:auto;flex:0 0 34px}
+  .dtt-row .dblk{width:auto;flex:1 1 30%;min-width:0}
+  .slot-tile{flex:1 1 100%;min-width:0}
   /* ★★ THIS WAS THE ROOT CAUSE OF THE DOCUMENT-WIDE HORIZONTAL SCROLL.
      Seven tabs (DESK TOURNEY CHART HOLD TRADES EXEC CUBE) at `flex:1; min-width:64px` is 448px of
      MIN-CONTENT. Against a 430px viewport that is +18px, and +128px at 320px. overflow-x:auto could
