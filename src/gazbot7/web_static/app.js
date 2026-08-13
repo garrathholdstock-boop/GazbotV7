@@ -216,7 +216,20 @@
     $("hero-expiry").textContent = m.expiry || "—";
     $("k-fee").textContent = m.fee_per_rt != null ? "−$" + nf(m.fee_per_rt, 2) + "/RT" : "NET";
     const set = (id, v, d = 0) => { const el = $(id); el.textContent = money(v, d); el.className = "v " + cls(v); };
-    set("k-today", h.today); set("k-yest", h.yest); set("k-d2", h.d2); set("k-d7", h.d7); set("k-d30", h.d30);
+    // ★2026-08-13 TODAY is the WHOLE desk now, with the two books underneath. The day-rider is a
+    // separate service on its own clientId holding for hours, and its P&L appeared in no total at
+    // all — the operator watched it hold and then saw nothing. Week that prompted it: tournament
+    // −$438 while the rider made +$1,183.50. Falls back to h.today (tournament-only) so an older
+    // API build still renders rather than showing "—".
+    const total = h.today_total != null ? h.today_total : h.today;
+    set("k-today", total); set("k-yest", h.yest); set("k-d2", h.d2); set("k-d7", h.d7); set("k-d30", h.d30);
+    const sub = (id, label, v) => {
+      const el = $(id); if (!el) return;
+      el.textContent = v == null ? label + " —" : label + " " + money(v, 0);
+      el.className = cls(v);
+    };
+    sub("k-today-trn", "TRN", h.today_tournament);
+    sub("k-today-rdr", "RDR", h.today_rider);
     $("k-win").textContent = h.win_today != null ? h.win_today + "%" : "—";
   }
 

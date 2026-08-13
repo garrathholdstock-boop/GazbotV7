@@ -26,7 +26,16 @@
   <div class="spacer"></div>
   <div class="kpis">
     <div class="kpi box"><span class="l" title="all figures NET of the round-turn fee">NET</span><span class="v cyan" id="k-fee">—</span></div>
-    <div class="kpi"><span class="l">TODAY</span><span class="v" id="k-today">—</span></div>
+    <!-- ★2026-08-13 (operator): "there should be a tourn p&l, day rider p&l and a total desk p&l"
+         — but "the bars at the top are already very busy". So this REPLACES the old single TODAY
+         tile rather than adding three: the total reads big, the two desks read small underneath.
+         Header stays at 8 tiles. TODAY now means the WHOLE desk, which also makes the strip
+         internally consistent — yest/7D/30D were always both desks while TODAY was tournament-only,
+         so the row used to compare different things. -->
+    <div class="kpi split" title="TODAY = both desks. TRN = tournament (the gate book you route), RDR = day rider (its own service, own clientId, holds for hours)">
+      <span class="l">TODAY</span><span class="v" id="k-today">—</span>
+      <span class="sub"><span id="k-today-trn">—</span><i>·</i><span id="k-today-rdr">—</span></span>
+    </div>
     <div class="kpi"><span class="l">YEST</span><span class="v" id="k-yest">—</span></div>
     <div class="kpi"><span class="l">2D</span><span class="v" id="k-d2">—</span></div>
     <div class="kpi"><span class="l">7D</span><span class="v" id="k-d7">—</span></div>

@@ -52,6 +52,15 @@ header{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px
 .kpi .l{font-size:10px;letter-spacing:1.1px;color:var(--mut)}
 .kpi .v{font-family:var(--mono);font-size:15px;font-weight:600}
 .kpi.box{border:1px solid var(--cyan-dim);border-radius:5px;padding:4px 10px;background:var(--cyan-bg)}
+/* ★ TODAY, split by desk. The header was already crowded, so the two desks ride UNDER the total
+   instead of claiming two more tiles: same tile count, three numbers. The sub-line is deliberately
+   quiet (muted, 10px) so the eye still lands on the total first and only drops to the split when
+   the question is "which desk did that?". nowrap keeps it one line on the phone strip. */
+.kpi.split{min-width:118px}
+.kpi.split .sub{font-family:var(--mono);font-size:10.5px;color:var(--mut);margin-top:1px;
+  white-space:nowrap;line-height:1.15}
+.kpi.split .sub i{font-style:normal;opacity:.45;margin:0 4px}
+/* colour comes from the existing .pos/.neg classes (line 22) via cls() in app.js — no new palette */
 .halt-banner{display:none;background:var(--red-bg);border-bottom:1px solid var(--red);
   color:var(--red);font-size:12px;letter-spacing:1px;padding:6px 14px;text-align:center}
 .halt-banner.on{display:block}
