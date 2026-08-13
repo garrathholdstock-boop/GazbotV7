@@ -1,0 +1,16 @@
+[Unit]
+Description=GAZBOT V7 — router health timer (every 5 min, offset off the tick)
+
+[Timer]
+# Offset to :02/:07/:12... deliberately. The router tick fires on :00/:05/:10 and takes 15-30s to
+# write its line, so checking on the same boundary would race it and read a half-written tail —
+# manufacturing a SILENT fault out of a healthy desk. Two minutes is comfortably clear of the
+# slowest tick observed (31s).
+# Every 5 minutes, not hourly: the alarm needs 3 consecutive ABORTs to fire, so a 5-minute cadence
+# detects a dead router in ~15 minutes. The check is two systemctl calls and 50 lines of a log.
+OnCalendar=*:02/5
+Persistent=false
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target

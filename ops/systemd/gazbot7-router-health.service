@@ -1,0 +1,30 @@
+[Unit]
+# ★2026-08-13 — THE MONITOR THE ROUTER NEVER HAD.
+# On this date the durable router no-opped for 125 consecutive ticks (02:40→13:00Z, 10.5 HOURS,
+# straight through London and into the US open) because the headless `claude -p` could not
+# authenticate. Every indicator stayed green: the timer was active/enabled, the service exited
+# 0/SUCCESS every 5 minutes, sweep.py was clean and PINNED was empty. The fail-safe writes "no
+# change" on a parse failure — which is exactly what a calm tape also produces — so nothing could
+# tell a frozen desk from a quiet one.
+# Nothing else looks at router_headless.log: router_watch_durable.py relays router_watch.py, which
+# reads the TAPE and the DESK, never the router's own output. This closes that hole.
+# The operator declined a long-lived API key and re-logs in by hand, so this alarm IS the
+# mitigation, not a backstop to one.
+# Verified against the real event: fires on the 3rd ABORT tick, 02:50:02Z — 10 minutes in.
+Description=GAZBOT V7 — router health (ABORT streak / silent log / full-roster pin / dead timer)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# PATH pinned explicitly for the same reason as open-hour-watch: a systemd PATH change previously
+# produced FileNotFoundError. This one only shells out to systemctl, but pin it anyway.
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Exits 1 when a fault is present, which is honest for `systemctl status` but must not mark the
+# unit failed on every run of a real outage — the alarm is the notify(), not the exit code.
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/router_health_check.py
+TimeoutStartSec=120
+MemoryMax=200M
