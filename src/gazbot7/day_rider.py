@@ -203,6 +203,38 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None) -> None:
                 pass
 
 
+def venue_first_ok(net: float | None, what: str, notify=None) -> bool:
+    """VENUE-FIRST GATE. May this desk place an order at all?
+
+    ★★2026-08-13 — the lesson of the phantom re-booking. This desk sold EIGHT LOTS IT DID NOT OWN
+    because its order paths trusted its own state file. Operator: "ibkr is the truth ... never rely
+    on our books. ever."
+
+    ★ On a SHARED, NETTED account you cannot fix that by "reading the venue" — IBKR nets both desks
+    into one number, so the venue CANNOT tell this desk what it holds (``own_flatten_verdict``'s
+    docstring says exactly this). The only honest precondition is that the WHOLE account adds up:
+    venue == tournament claim + our claim. An unaccounted lot means some book is lying and you do
+    not know which, so nobody may trade until it is resolved. That is what deskrecon owns.
+
+    ⚠ NOT APPLIED TO THE 20:40 HARD FLAT, deliberately. "NEVER HOLD OVERNIGHT. EVER." is the
+    operator's absolute rule, and refusing to flatten because the account does not reconcile would
+    turn a bookkeeping fault into an overnight position — strictly worse. That path pages instead.
+    """
+    try:
+        from .deskrecon import may_place_order
+        ok, why = may_place_order(net)
+    except Exception:
+        return True          # never let the GATE itself break trading; deskrecon's own service alarms
+    if not ok and notify:
+        try:
+            notify(f"⚠ DAY RIDER REFUSED to {what} — venue-first check failed: {why}. "
+                   f"IBKR does not reconcile against the desks' claims, so no order was placed.",
+                   critical=True)
+        except Exception:
+            pass
+    return ok
+
+
 CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
 # Long enough to survive a slow tick or a one-off service restart, far short of
 # the overnight gap that would let a press leak into the next session.
@@ -408,6 +440,21 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                                f"over-flatten a shared account, but overnight is ruled out. CHECK IBKR.",
                                critical=True)
                 if v:
+                    # ★★ THE HARD FLAT IS DELIBERATELY *NOT* GATED by venue_first_ok. Every other
+                    # order path in this file refuses when the account fails to reconcile, but
+                    # "NEVER HOLD OVERNIGHT. EVER." is the operator's absolute rule and a
+                    # bookkeeping fault must not be allowed to become an overnight position — that
+                    # trade is strictly worse. So we flatten anyway and SAY SO loudly instead.
+                    try:
+                        from .deskrecon import may_place_order
+                        _ok, _why = may_place_order(net)
+                    except Exception:
+                        _ok, _why = True, ""
+                    if not _ok and notify:
+                        notify(f"⚠ DAY RIDER hard-flatting at the clock WHILE THE ACCOUNT DOES NOT "
+                               f"RECONCILE ({_why}). Proceeding anyway — overnight is ruled out — "
+                               f"but the sizing comes from a book that may be wrong. CHECK IBKR.",
+                               critical=True)
                     from ib_async import MarketOrder
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))
                     await asyncio.sleep(2.0)
@@ -514,7 +561,11 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             if pend.get("token"):
                 dec = read_approval(pend["token"])
                 if dec == "sell":
-                    v = own_flatten_verdict(d, own_qty)   # ours, not the shared account net
+                    # Gated too: an operator "sell" is a decision about a position, and when the
+                    # account does not reconcile we do not know what the position IS. Better to
+                    # refuse and page than to size an exit off a book that may be lying.
+                    v = (own_flatten_verdict(d, own_qty)  # ours, not the shared account net
+                         if venue_first_ok(net, "exit on OPERATOR_SELL", notify) else None)
                     if v:
                         from ib_async import MarketOrder
                         ib.placeOrder(contract, MarketOrder(v[0], v[1]))
@@ -578,7 +629,11 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # the day-rider's claims part of that number from day one.
             if claim_requested():
                 clear_claim()
-                v = own_flatten_verdict(d, own_qty)   # ours, never the shared account net
+                # Gated. The operator pressing "claim" is not evidence about what the account holds
+                # — on 08-13 the claim button was pressed while the books and the venue disagreed by
+                # 8 lots. Refusing and paging is the honest answer; the claim can be re-pressed.
+                v = (own_flatten_verdict(d, own_qty)  # ours, never the shared account net
+                     if venue_first_ok(net, "exit on MANUAL_CLAIM", notify) else None)
                 if v:
                     from ib_async import MarketOrder
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))
@@ -603,7 +658,12 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 return out
 
             if tl is not None and ((px <= tl) if d > 0 else (px >= tl)):
-                v = own_flatten_verdict(d, own_qty)       # ours, not the shared account net
+                # ★★ THIS IS THE PATH THAT FIRED ON 2026-08-13. With the `closed` latch ignored
+                # upstream, it re-armed on a dead position and sold 2 lots a minute, four times,
+                # opening a naked 8-lot short. The upstream guard is fixed; this is the second line
+                # of defence — it will not place ANYTHING unless IBKR reconciles against both desks.
+                v = (own_flatten_verdict(d, own_qty)      # ours, not the shared account net
+                     if venue_first_ok(net, "exit on TRAIL", notify) else None)
                 if v:
                     from ib_async import MarketOrder
                     ib.placeOrder(contract, MarketOrder(v[0], v[1]))
@@ -651,6 +711,14 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                           "rt": round(r.roundtrip, 3), "confirmed": r.confirmed}
         if not r.confirmed:
             out["note"] = "not confirmed — " + (r.detail or "")
+            save_state(out)
+            return out
+
+        # ★ VENUE-FIRST on the ENTRY. Opening a position while the account does not reconcile means
+        # adding lots to a venue we cannot already explain — the surest way to turn one unaccounted
+        # lot into an unrecoverable tangle. Refuse and page; the detection is deskrecon's job.
+        if not venue_first_ok(net, "ENTER 2 lots", notify):
+            out["note"] = "entry refused — venue does not reconcile against desk claims"
             save_state(out)
             return out
 

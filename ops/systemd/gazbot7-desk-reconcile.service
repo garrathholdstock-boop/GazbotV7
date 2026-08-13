@@ -1,0 +1,24 @@
+[Unit]
+# ★★2026-08-13 — THE MISSING OWNER OF `venue == tournament + day_rider`.
+# The day-rider sold 8 lots it did not own and booked $1,551 of profit that never existed. Every
+# guard on the box was PER-DESK: the tournament's reconcile fired but halted only itself, the rider
+# had no invariant at all, and the one cross-desk detector was throwing NameError with an undeployed
+# fix. IBKR put the day at -$25.50 while the books said +$835.
+# Operator: "ibkr is the truth ... never rely on our books. ever."
+# READ-ONLY at the venue (clientId 8, readonly=True) — it cannot place or cancel an order. It stops
+# desks with switch files, never by trading, and it NEVER re-arms: releasing the kill is a human act.
+Description=GAZBOT V7 — cross-desk reconciler (IBKR truth vs every desk's claim)
+After=network-online.target gazbot7-tournament.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Exit 1 = breach detected and already paged; the alarm is the notify, not the unit state.
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/desk_reconcile.py
+TimeoutStartSec=90
+MemoryMax=300M
+OOMScoreAdjust=-200

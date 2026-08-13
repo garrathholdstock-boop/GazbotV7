@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — cross-desk reconcile timer (every 30s)
+
+[Timer]
+# Every 30 seconds. The day-rider acts on a one-minute tick, so this catches a rogue desk within one
+# action: in the 08-13 incident it would have confirmed the breach and stopped both desks after the
+# FIRST phantom sell instead of the fourth. Each run is a ~2s read-only IBKR connect.
+OnCalendar=*:*:0/30
+Persistent=false
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
