@@ -182,37 +182,73 @@ PHASES = [
         f"{SEGMENT} Write your full working to {SEC}/gf_full_{cl}.md, ending with an explicit VERDICT line stating "
         f"whether it survived and, if not, WHICH robustness test killed it.")
       for cl in ("VACUUM", "FLOW-LED", "OPEN-NEWS")],
-
     # ★★2026-08-13 THE GOLD HUNT. Operator: "we want to find some gates that work for mgc. and put
-    # them into shadow." MGC has been captured since 08-04 (L1 + L2, its own depth subscription) and
-    # nothing has ever looked at it for entries. This is a NEW line of enquiry, not a port: the
-    # existing gates were fitted to MNQ, and the standing memory [[mgc-momentum-greenfield-null]]
-    # already records that gold's runs are SIZE-predictable but DIRECTION-unpredictable — so a
-    # momentum clone is the known-dead path and must not be re-derived.
+    # them into shadow" and, sharpening it: "any gates for mgc long or short need to be created
+    # FRESH. dont try and use any existing mnq gates on mgc. if we can end up with a momentum and
+    # reversion setup for long and short for mgc after a few weeks would be amazing. all exit types
+    # should be tested. scalp with tight Rs and wide chandys for big momentum runs. and also assume
+    # the router keeps it turned off in chop."
+    # MGC has been captured since 08-04 (L1 + L2, its own depth subscription) and nothing has ever
+    # looked at it for entries. The existing six gates were FITTED TO MNQ — reusing them here is
+    # not a shortcut, it is the known-dead path: [[mgc-momentum-greenfield-null]] already records
+    # that gold's runs are SIZE-predictable but DIRECTION-unpredictable.
     # ⚠ MGC IS $10/POINT, five times MNQ. Price it wrong and gold looks unworthy on arithmetic alone.
     dict(key="gf_MGC", artifact=f"{SEC}/gf_MGC.md", deps=[], timeout_s=5400, prompt=PRE +
-         f"GOLD GATE HUNT — MGC. We capture MGC L1 (ticks/quotes/bars) and L2 (depth.db.depth_snap, 10 "
-         f"levels) and have NEVER hunted an entry on it. Read {SEC}/movement1_census_MGC.html (the frozen "
-         f"MGC run census) for what gold actually did this week, and use the PARQUET LAKE for history "
-         f"(MGC L1 from 2026-08-04, L2 from 08-04) — capture.db holds only 5 trading days. "
-         f"⚠ MGC = $10.00/POINT (MNQ is $2.00). Every $ figure must use 10. "
-         f"⚠ DO NOT re-derive the known null: gold's runs are SIZE-predictable (ATR d=+0.80, ER30 d=+0.43) "
-         f"but DIRECTION-unpredictable — a momentum/thrust clone of the MNQ gates is a GRAVE already dug. "
-         f"Hunt what is DIFFERENT about gold instead: it is event-driven (US data, USD moves), it trades a "
-         f"different session shape (London/COMEX), and its L2 is far thinner than MNQ's — so absorption, "
-         f"depletion and level-reclaim mechanics that wash out in MNQ's depth may be visible here. "
-         f"Also check whether the OPPOSITE of the MNQ finding holds: if direction is unpredictable but SIZE "
-         f"is, a VOLATILITY or straddle-shaped entry may beat a directional one. "
-         f"DELIVERABLE: for each candidate give an exact mechanical spec (trigger/direction/entry/stop/exit), "
-         f"backtest it tick-honest over all available MGC tape net of $1.50/round-trip, and run the full "
-         f"robustness battery. Then — this is the point of the section — write a SHADOW-READY block for any "
-         f"survivor: the exact ShadowVariant(...) line for src/gazbot7/shadow.py (name it `mgc_<idea>`), the "
-         f"gate kind it needs, and whether the existing ShadowSim._entry can express it or a new branch is "
-         f"required. If NOTHING survives, say so plainly and name the test that killed each — an honest gold "
-         f"null is a real result and stops us paying for the data twice. "
-         f"{SEGMENT} {JUDGE} {GRAVES} Write your full working to {SEC}/gf_MGC.md, ending with an explicit "
-         f"VERDICT line and, if anything survived, the SHADOW-READY block."),
+         f"GOLD GATE HUNT — MGC. A GREENFIELD build, not a port. This is the flagship new line of "
+         f"enquiry: we have captured MGC L1 (ticks/quotes/bars) and L2 (depth.db.depth_snap, 10 levels) "
+         f"since 2026-08-04 and have NEVER hunted an entry on it. "
 
+         f"★★ RULE 1 — EVERY GATE MUST BE INVENTED FRESH FOR GOLD. Do NOT port, clone, re-tune or "
+         f"re-threshold ANY existing MNQ gate (grind, abs_veto, capitulation, exhaustion, rgv, nipc). "
+         f"They were fitted to MNQ's microstructure and a re-tuned MNQ gate is a fitted MNQ gate wearing "
+         f"a gold hat. Derive each signal from what GOLD's own tape does. You may reuse the desk's "
+         f"MECHANICAL PLUMBING (Bar/Features, exit_scalp, exit_chandelier, the ShadowVariant contract) — "
+         f"that is infrastructure, not a signal. "
+
+         f"★★ RULE 2 — THE TARGET SHAPE IS A 2x2: {{MOMENTUM, REVERSION}} x {{LONG, SHORT}}. Four cells. "
+         f"Hunt all four deliberately and report each one's verdict separately; do not let a strong long "
+         f"stand in for a missing short. Gold is event-driven (US data, USD, COMEX/London session shape) "
+         f"and its book is far THINNER than MNQ's, so absorption / depletion / level-reclaim mechanics "
+         f"that wash out in MNQ depth may be visible here — that is the most promising unexplored angle. "
+         f"⚠ Do NOT re-derive the known null: a directional momentum clone is a grave already dug. If "
+         f"direction is unpredictable but SIZE is predictable, a VOLATILITY-shaped or breakout-either-way "
+         f"entry may beat a directional one — test that explicitly. "
+
+         f"★★ RULE 3 — TEST THE FULL EXIT MATRIX ON EVERY SURVIVING ENTRY, and report the grid. The "
+         f"entry and the exit are separate questions and the desk has been burned assuming one implies "
+         f"the other. At minimum: (a) TIGHT-R SCALP — sweep target_r across ~0.5/0.75/1.0/1.5/2.0 with a "
+         f"matched stop; (b) WIDE CHANDELIER — sweep arm/trail multiples wide enough to ride a big gold "
+         f"run rather than clip it; (c) the desk's dual-slot shape, Lot A scalp + Lot B chandelier, which "
+         f"is what live MNQ actually runs; (d) a time-cap variant. State plainly which exit family each "
+         f"entry NEEDS — a momentum entry that only pays with a wide chandelier is a different animal "
+         f"from one that pays on a tight scalp, and the difference decides the slot config. "
+
+         f"★★ RULE 4 — ASSUME THE ROUTER BENCHES IT WHERE IT SHOULD BE BENCHED. Do NOT score a candidate "
+         f"blanket across all tape and kill it on the average. Every gate here will be routed: it only "
+         f"has to work in the regime it is ARMED for, because the router turns it off elsewhere (in chop "
+         f"for momentum, in trend for reversion, and so on). So for EACH cell state explicitly: the HOME "
+         f"REGIME it needs, the ROUTER RULE that should arm/bench it (in the same vocabulary the MNQ "
+         f"router uses — ER/ATR/structure/session), and its expectancy ON THAT HOME REGIME ONLY, with the "
+         f"blanket number reported alongside as context, never as the verdict. If a gate is only viable "
+         f"with a router condition we cannot yet measure, say so — that is a finding, not a failure. "
+
+         f"★ DATA: use ALL available MGC tape via the Parquet lake (gazbot7.lake), not capture.db's 5-day "
+         f"window. Read {SEC}/movement1_census_MGC.html — the frozen MGC run census — for what gold "
+         f"actually did this week and which runs we sat out. MGC = $10.00/POINT. Fees $1.50/round-trip. "
+
+         f"★ DELIVERABLE, and it is the point of the section: for EACH of the four cells give an exact "
+         f"mechanical spec (trigger/direction/entry/stop/exit), the tick-honest backtest on its home "
+         f"regime, the full robustness battery, the exit grid, and — for any survivor — a SHADOW-READY "
+         f"block: the literal ShadowVariant(...) line for src/gazbot7/shadow.py named `mgc_<idea>_<side>`, "
+         f"the gate kind it needs, whether ShadowSim._entry can express it or a new branch is required, "
+         f"and the router rule that should govern it. The operator's stated goal is a momentum AND a "
+         f"reversion setup, long AND short, proven over the coming WEEKS in shadow — so a thin-n "
+         f"candidate is a SHADOW ARM, never a kill, and never a live promotion. "
+         f"If a cell yields nothing, say so plainly and name the test that killed each attempt — an "
+         f"honest gold null is a real result and stops us paying for the data twice. "
+         f"{SEGMENT} {JUDGE} {GRAVES} Write your full working to {SEC}/gf_MGC.md, ending with a "
+         f"PER-CELL VERDICT TABLE (momentum-long / momentum-short / reversion-long / reversion-short) "
+         f"and every SHADOW-READY block."),
     dict(key="gf_chopscalp", artifact=f"{SEC}/gf_chopscalp.md", deps=[], timeout_s=5400, prompt=PRE +
          f"CHOP-DAY SCALP GREENFIELD — operator's explicit focus. The week's chop days BLED or broke even with the CURRENT "
          f"gates — but 'untradeable' is only true for THOSE gates. The trend days already carry most of the week's profit, so "
