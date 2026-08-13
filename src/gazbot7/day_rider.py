@@ -166,6 +166,15 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None) -> None:
         qty = abs(float(out.get("qty") or 0))
         d = int(out.get("direction") or 0)
         if entry <= 0 or qty <= 0 or d not in (-1, 1) or not exit_px:
+            # ★2026-08-13 was a BARE `return`. The docstring promises "It DOES notify on failure,
+            # because a silently missing row is what created this whole gap" — but that only held
+            # for the except path below. A falsy exit_px or a torn book returned here in silence,
+            # which is the same invisible-loss shape the else-branch bug produced. Guard failures
+            # are now as loud as exceptions.
+            if notify:
+                notify(f"⚠ DAY RIDER: refused to book {reason} — entry={entry!r} qty={qty!r} "
+                       f"direction={d!r} exit_px={exit_px!r}. The trades row is MISSING and P&L "
+                       f"plus claim_audit will be short one trade.", critical=True)
             return
         gross = d * (exit_px - entry) * VPP * qty
         fees = FEE_RT * qty
@@ -422,6 +431,34 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                             notify(f"⚠ DAY RIDER FLATTEN INCOMPLETE — venue still holds {post}. "
                                    f"Retrying every minute; {mins_left} min until the CME halt.",
                                    critical=True)
+            elif owns_position:
+                # ★2026-08-13 THE LEDGER GAP. Venue is flat at the clock but OUR OWN BOOK still
+                # says we are holding (entered and not closed). Both branches above test
+                # `abs(net) > 1e-9`, so before this existed the session fell through to the
+                # "flat, idle" note below: no book_trade(), no `closed` latch, and the trade
+                # vanished from the ledger entirely.
+                # Observed twice in one week and NEITHER produced a row:
+                #   08-12  SHORT 2 @ 29876.125 — ended `closed: false`, `venue_net: 0`
+                #   08-10  SHORT 2 @ 29759.50  — the same shape earlier in the flatten path
+                # The dollar cost was small (+$38 / -$71, roughly cancelling) but the RECORD was
+                # wrong, and claim_audit.py only reads MANUAL_CLAIM rows so it was structurally
+                # blind to it — the week looked like 2 rider trades when there were 4.
+                # We do NOT know who closed it (a venue stop, another desk on the shared account,
+                # or a manual flatten), so this books the round-trip at the last known price and
+                # ALARMS rather than pretending it was a clean exit. Booking a slightly wrong
+                # exit price is recoverable; a missing row is not — it silently corrupts every
+                # future study, which is exactly what happened here.
+                out["closed"] = True
+                out["exit_reason"] = "CLOSED_ELSEWHERE"
+                out["note"] = ("venue FLAT at the clock but our book still held — booked at last "
+                               "price and latched closed; someone else closed this position")
+                book_trade(out, px, "CLOSED_ELSEWHERE", notify)
+                if notify:
+                    notify(f"⚠ DAY RIDER: venue was already FLAT at the {FLAT_UTC_MIN//60:02d}:"
+                           f"{FLAT_UTC_MIN%60:02d} clock while our book still held "
+                           f"{out.get('qty')} @ {out.get('entry')}. Booked as CLOSED_ELSEWHERE at "
+                           f"{px} — CHECK who closed it (shared account DUQ191770).",
+                           critical=True)
             else:
                 out["note"] = "outside 13:30-21:00 — flat, idle"
             save_state(out)
