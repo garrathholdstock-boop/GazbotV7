@@ -58,8 +58,43 @@ def newest_weekly_mtime():
         return 0
 
 
+def preflight_auth() -> tuple[bool, str]:
+    """Can headless claude authenticate AT ALL? Checked BEFORE the 20-minute census freeze.
+
+    ★★2026-08-13. On this date the durable ROUTER produced 125 consecutive no-op ticks over 10.5
+    hours because its OAuth token had expired — and it looked healthy the whole time. This report
+    runs the same way, once a week, unattended, at 22:07 on a Friday. An expired token here costs
+    the entire report and is not discovered until Saturday: exactly the 2026-08-07 failure, where
+    the session exited rc=1 eleven minutes in and the log said only "report not built".
+    A 20-second check turns a silent weekend-long loss into a page the operator can act on in the
+    minute it happens. The operator re-logs in by hand (he declined a long-lived API key), so the
+    alarm IS the mitigation.
+    """
+    try:
+        r = subprocess.run([CLAUDE, "-p", "reply with exactly: PREFLIGHT_OK", "--allowedTools", ""],
+                           capture_output=True, text=True, timeout=120,
+                           env={**ENV, "PATH": "/root/.local/bin:/usr/local/bin:/usr/bin:/bin"})
+        out = (r.stdout or "").strip()
+        if r.returncode == 0 and "PREFLIGHT_OK" in out:
+            return True, "ok"
+        return False, f"rc={r.returncode} out={out[:160]!r} err={(r.stderr or '')[-160:]!r}"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
+
+
 def main():
     log("=== DURABLE FRIDAY REPORT — START (stream-json keep-alive) ===")
+
+    ok, why = preflight_auth()
+    if not ok:
+        log(f"PREFLIGHT FAILED — headless claude cannot run: {why}")
+        notify(f"⚠⚠ FRIDAY REPORT ABORTED AT THE GATE — headless claude cannot authenticate "
+               f"({why}). Nothing has been built and nothing will be. Run `claude` on the box and "
+               f"/login, then: systemctl start gazbot7-friday-report.service", crit=True)
+        log("=== DURABLE FRIDAY REPORT — END (ok=False, preflight) ===")
+        return 1
+    log("preflight auth OK")
+
     notify("📋 Durable Friday report starting (headless) — census freeze then keep-alive max-depth build + self-proofread.", crit=False)
     baseline_mtime = newest_weekly_mtime()
 

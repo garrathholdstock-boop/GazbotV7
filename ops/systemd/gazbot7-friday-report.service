@@ -9,4 +9,10 @@ Environment=HOME=/root
 Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
 WorkingDirectory=/home/alphabot/gazbot7
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python /home/alphabot/gazbot7/scripts/friday_report_durable.py
-TimeoutStartSec=18000
+# ★2026-08-13 5h -> 8h. The phase graph's critical path is SERIAL at the end —
+# assemble(60m) -> proofread(60m) -> rev2(90m) -> final(45m) — and with the parallel
+# block and movement3 ahead of it the worst case is ~6.8h. At 5h systemd killed the run
+# mid-REV2, which is exactly the part that has never survived to Saturday morning:
+# the proofread and the revision are the LAST things built and so the first things lost.
+# 8h from a 22:07 start lands at 06:07 Saturday, still before the operator reads it.
+TimeoutStartSec=28800
