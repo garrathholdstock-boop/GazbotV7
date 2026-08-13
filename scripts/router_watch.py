@@ -525,8 +525,18 @@ def main():
                         confirmed = True          # same imbalance, a genuinely newer venue read
                     st["mismatch_seen"] = (mm, v_ts)
                     if not confirmed:
-                        log(f"  -> DESK-MISMATCH {mm:+g} seen, awaiting a second venue read "
-                            f"(transient during a position change looks exactly like this)")
+                        # ★2026-08-13 FIX: this called an undefined `log()`. The NameError raised on
+                        # EVERY unconfirmed-mismatch cycle and aborted the rest of the block — the
+                        # `if confirmed` DESK-MISMATCH alert below AND the liveness heartbeat write
+                        # were both skipped. It surfaced the moment the day-rider opened 2 lots
+                        # (13:38:29Z): the 08-06 shared-account detector broke exactly when a second
+                        # desk took a position, which is the one case it exists to watch.
+                        # Deliberately stderr, not emit(): this is the "seen once, awaiting a second
+                        # read" note, which the comment above calls NOT an event. emit() would page
+                        # every 15s through every ordinary position change.
+                        print(f"  -> DESK-MISMATCH {mm:+g} seen, awaiting a second venue read "
+                              f"(transient during a position change looks exactly like this)",
+                              file=sys.stderr, flush=True)
                 else:
                     st["mismatch_seen"] = (None, None)
                 if (confirmed
