@@ -235,6 +235,66 @@ def venue_first_ok(net: float | None, what: str, notify=None) -> bool:
     return ok
 
 
+async def cancel_own_stops(ib, symbol: str, notify=None) -> int:
+    """Cancel THIS client's working stop orders. Call on EVERY path that closes the position.
+
+    ★★2026-08-13 — THE ROOT CAUSE OF A LIVE ORPHAN. The 600pt venue stop is placed with the entry
+    and nothing ever took it down. The operator claimed at 14:26; the stop (orderId 49, SELL 2 STP
+    @ 29424.25) stayed WORKING at the venue for two more hours against a flat account. That is the
+    08-06 shape exactly: on that date a leftover stop fired with nothing behind it and opened a
+    naked short, booked six hours later as a gate trade nobody placed.
+    eod_flatten cannot clean this up: it runs as clientId 6 and IBKR answers a cross-client cancel
+    with `Error 10147: not found`, which reads like an all-clear. Only the OWNER can cancel it, and
+    the owner is this module.
+
+    ★★ IT FILTERS ON clientId AND WILL NOT TOUCH ANOTHER DESK'S STOPS. DUQ191770 is shared with the
+    tournament, whose per-slot stops are the only thing standing between it and an unprotected
+    position. Cancelling those would convert a bookkeeping tidy-up into the worst incident on this
+    desk. The filter is the safety property here, not an optimisation.
+
+    Returns the number cancelled. Never raises — a failed cleanup must not break a flatten that has
+    already completed, and the cross-desk reconciler alarms on any orphan within 30s regardless.
+    """
+    n = 0
+    try:
+        await ib.reqAllOpenOrdersAsync()
+        await asyncio.sleep(0.5)
+        for t in list(ib.openTrades()):
+            o = t.order
+            if getattr(t.contract, "symbol", None) != symbol:
+                continue
+            if int(getattr(o, "clientId", -1)) != CLIENT_ID:
+                continue                      # ← NOT OURS. Never cancel the tournament's stops.
+            if str(getattr(o, "orderType", "")).upper() not in ("STP", "STP LMT", "TRAIL",
+                                                               "TRAIL LIMIT"):
+                continue
+            if t.orderStatus.status in ("Cancelled", "ApiCancelled", "Filled"):
+                continue
+            ib.cancelOrder(o)
+            n += 1
+        if n:
+            await asyncio.sleep(1.5)
+            still = [t for t in ib.openTrades()
+                     if getattr(t.contract, "symbol", None) == symbol
+                     and int(getattr(t.order, "clientId", -1)) == CLIENT_ID
+                     and t.orderStatus.status not in ("Cancelled", "ApiCancelled", "Filled")]
+            if still and notify:
+                # Say so rather than assume: an uncancelled stop is a naked position waiting to
+                # happen, and silence here is what let orderId 49 live for two hours.
+                notify(f"⚠ DAY RIDER: asked to cancel {n} venue stop(s) but {len(still)} still "
+                       f"WORKING (ids {[t.order.orderId for t in still]}). A stop with no position "
+                       f"can FIRE and open a naked one — cancel it as clientId {CLIENT_ID}.",
+                       critical=True)
+    except Exception as e:
+        if notify:
+            try:
+                notify(f"⚠ DAY RIDER: venue-stop cleanup FAILED ({type(e).__name__}: {e}). Check "
+                       f"for a working stop with no position behind it.", critical=True)
+            except Exception:
+                pass
+    return n
+
+
 CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
 # Long enough to survive a slow tick or a one-off service restart, far short of
 # the overnight gap that would let a press leak into the next session.
@@ -465,6 +525,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     if abs(post) < 1e-9:
                         out["closed"] = True
                         out["exit_reason"] = "CLOCK_FLAT"
+                        # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
+                        # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
+                        await cancel_own_stops(ib, cfg.symbol, notify)
                         out["note"] = f"FLAT at the {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d} clock"
                         book_trade(out, px, "CLOCK_FLAT", notify)
                         if notify:
@@ -497,6 +560,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 # future study, which is exactly what happened here.
                 out["closed"] = True
                 out["exit_reason"] = "CLOSED_ELSEWHERE"
+                # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
+                # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
+                await cancel_own_stops(ib, cfg.symbol, notify)
                 out["note"] = ("venue FLAT at the clock but our book still held — booked at last "
                                "price and latched closed; someone else closed this position")
                 book_trade(out, px, "CLOSED_ELSEWHERE", notify)
@@ -572,6 +638,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                         await asyncio.sleep(2.0)
                         out["closed"] = True
                         out["exit_reason"] = "OPERATOR_SELL"
+                        # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
+                        # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
+                        await cancel_own_stops(ib, cfg.symbol, notify)
                         out["pending_exit"] = None
                         out["note"] = "OPERATOR-APPROVED exit"
                         # A distinct reason from MANUAL_CLAIM on purpose: this is the rider
@@ -640,6 +709,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     await asyncio.sleep(2.0)
                     out["closed"] = True
                     out["exit_reason"] = "MANUAL_CLAIM"
+                    # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
+                    # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
+                    await cancel_own_stops(ib, cfg.symbol, notify)
                     book_trade(out, px, "MANUAL_CLAIM", notify)
                     out["note"] = f"claimed by operator at {px:.1f} ({d*(px-entry):+.0f}pt from entry)"
                     if notify:
@@ -670,6 +742,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     await asyncio.sleep(2.0)
                     out["closed"] = True
                     out["exit_reason"] = "TRAIL"
+                    # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
+                    # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
+                    await cancel_own_stops(ib, cfg.symbol, notify)
                     out["note"] = f"trail hit at {tl:.1f} (peak {peak:.1f})"
                     book_trade(out, px, "TRAIL", notify)
                     if notify:
