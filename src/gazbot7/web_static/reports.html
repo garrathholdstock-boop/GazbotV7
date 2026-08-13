@@ -79,7 +79,10 @@
     if(!reps.length){ el.innerHTML = '<div class="empty">No reports yet.</div>'; return; }
     el.innerHTML = '<div class="rlist">' + reps.map(function(x){
       var title = esc(decode(x.title||x.file));
-      var tag = /V7/i.test(x.title||'') ? 'V7' : 'V5';
+      // ★2026-08-13 the tag defaulted to V5 for anything without "V7" in its title, which would
+      // have labelled the pinned progress page as the RETIRED V5 desk. A pinned entry is neither —
+      // it is the live, always-current page, so it says so.
+      var tag = x.pinned ? 'LIVE' : (/V7/i.test(x.title||'') ? 'V7' : 'V5');
       var acts = '';
       if(x.pdf)  acts += '<a class="ic" href="static/'+x.pdf+'" download title="Download PDF">PDF</a>';
       if(x.play) acts += '<a class="ic play" href="static/'+x.play+'" title="Monday playbook">Playbook</a>';

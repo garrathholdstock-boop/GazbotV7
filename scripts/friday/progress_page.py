@@ -179,15 +179,59 @@ flatter a real book. The trend is real; the destination is not reached.</p>
 """
 
 
+STANDALONE = "/home/alphabot/gazbot7/src/gazbot7/web_static/progress.html"
+
+# Palette and type lifted from the Friday report shell so the standalone page and the in-report
+# section are visibly the same document, not two designs of the same numbers.
+_SHELL = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GAZBOT V7 — are we getting better?</title>
+<style>
+ :root{{--ink:#0f2942;--mut:#5a6472;--rule:#e6e2d8;--bg:#fbfaf7;--grn:#1f6f43;--red:#c0392b}}
+ *{{box-sizing:border-box}}
+ body{{margin:0;background:var(--bg);color:var(--ink);
+   font:16px/1.55 Georgia,"Iowan Old Style",serif;padding:28px 18px 60px}}
+ .wrap{{max-width:1040px;margin:0 auto}}
+ h2{{font-size:26px;line-height:1.2;margin:0 0 14px;font-weight:700;letter-spacing:-.2px}}
+ h2 .n{{display:inline-block;background:var(--ink);color:#fff;font:700 13px/1 system-ui,sans-serif;
+   padding:6px 9px;border-radius:4px;margin-right:10px;vertical-align:3px}}
+ p{{margin:0 0 14px}} .lede{{font-size:18px;color:#26364a}}
+ .card{{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:14px;margin:0 0 20px}}
+ table{{width:100%;border-collapse:collapse;margin:6px 0 20px;
+   font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}}
+ th{{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);
+   border-bottom:2px solid var(--rule);padding:7px 8px}}
+ td{{padding:7px 8px;border-bottom:1px solid var(--rule)}}
+ .caveat{{background:#fff6f4;border-left:3px solid var(--red);padding:12px 14px;border-radius:0 6px 6px 0;
+   font-size:15px}}
+ .stamp{{margin-top:26px;padding-top:12px;border-top:1px solid var(--rule);
+   font:12px/1.5 system-ui,sans-serif;color:var(--mut)}}
+ @media (max-width:640px){{body{{padding:16px 12px 44px}}h2{{font-size:21px}}.lede{{font-size:16px}}}}
+</style></head><body><div class="wrap">
+{body}
+<p class="stamp">Generated {stamp} from the live trade record
+(<code>data_quality IS NULL</code>, tournament + day-rider). Rebuilt every Friday by
+<code>scripts/friday/progress_page.py</code> — this page cannot drift from the books.</p>
+</div></body></html>"""
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=OUT)
     ap.add_argument("--db", default=DB)
+    ap.add_argument("--standalone", default=STANDALONE,
+                    help="also write a self-contained page for /static/ and the reports index")
     a = ap.parse_args()
     html = build(rows(a.db))
     with open(a.out, "w") as fh:
         fh.write(html)
     print(f"wrote {a.out} ({len(html):,} bytes)")
+    if a.standalone:
+        page = _SHELL.format(body=html,
+                             stamp=dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M UTC"))
+        with open(a.standalone, "w") as fh:
+            fh.write(page)
+        print(f"wrote {a.standalone} ({len(page):,} bytes)")
     return 0
 
 

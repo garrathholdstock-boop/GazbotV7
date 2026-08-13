@@ -1154,6 +1154,16 @@ def reports_json(static_dir):
         out.append({"date": m.group(1), "file": fn, "title": title,
                     "pdf": pdf if has_pdf else None, "play": play if has_play else None})
     out.sort(key=lambda r: r["date"], reverse=True)
+    # ★2026-08-13 PIN THE PROGRESS PAGE AT THE TOP. Operator: "put it on reports page."
+    # It is not a dated archive like the weeklies — it is a LIVE page rebuilt from the trade record
+    # every Friday, so it deliberately does not match the weekly_<date> pattern above and would
+    # otherwise never appear. Pinned rather than dated because "is the desk getting better?" is
+    # always a question about NOW; a reader should never have to pick which copy is current.
+    # Fail-soft: if it has not been generated yet, the index renders exactly as before.
+    if os.path.exists(os.path.join(static_dir, "progress.html")):
+        out.insert(0, {"date": "live", "file": "progress.html", "pinned": True,
+                       "title": "Are we getting better? — every day the desk has traded",
+                       "pdf": None, "play": None})
     return {"reports": out}
 
 
