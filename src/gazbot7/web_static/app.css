@@ -52,15 +52,13 @@ header{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px
 .kpi .l{font-size:10px;letter-spacing:1.1px;color:var(--mut)}
 .kpi .v{font-family:var(--mono);font-size:15px;font-weight:600}
 .kpi.box{border:1px solid var(--cyan-dim);border-radius:5px;padding:4px 10px;background:var(--cyan-bg)}
-/* ★ TODAY, split by desk. The header was already crowded, so the two desks ride UNDER the total
-   instead of claiming two more tiles: same tile count, three numbers. The sub-line is deliberately
-   quiet (muted, 10px) so the eye still lands on the total first and only drops to the split when
-   the question is "which desk did that?". nowrap keeps it one line on the phone strip. */
-.kpi.split{min-width:118px}
-.kpi.split .sub{font-family:var(--mono);font-size:10.5px;color:var(--mut);margin-top:1px;
-  white-space:nowrap;line-height:1.15}
-.kpi.split .sub i{font-style:normal;opacity:.45;margin:0 4px}
-/* colour comes from the existing .pos/.neg classes (line 22) via cls() in app.js — no new palette */
+/* ★ TODAY split by desk (TRN/RDR). Its own element, never inside a KPI tile — a 3-line tile among
+   2-line siblings is what made the phone bar collide. Quiet by design so the eye lands on the total
+   first and only drops here for "which desk did that?". Colour reuses .pos/.neg via cls() in
+   app.js — no new palette. Desktop: sits just right of the tiles, where .spacer already pushes it. */
+.kpisub{font-family:var(--mono);font-size:10.5px;color:var(--mut);white-space:nowrap;
+  line-height:1.15;letter-spacing:.2px;align-self:center}
+.kpisub i{font-style:normal;opacity:.45;margin:0 4px}
 .halt-banner{display:none;background:var(--red-bg);border-bottom:1px solid var(--red);
   color:var(--red);font-size:12px;letter-spacing:1px;padding:6px 14px;text-align:center}
 .halt-banner.on{display:block}
@@ -241,9 +239,48 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
   /* lock header + tab bar together as ONE sticky block so the tabs never slide under the header
      (both were top:0 → the tabs vanished on scroll). Header compacted hard to reclaim vertical room. */
   .topstick{position:sticky;top:0;z-index:30;background:var(--bg)}
-  header{padding:3px 10px;gap:5px 8px;min-height:0;flex-wrap:wrap}
+  /* ★★2026-08-13 PHONE HEADER REBUILD — four honest rows, each owning its own vertical space.
+     THE FAULT: .kpis was a single `flex-wrap:nowrap; overflow-x:auto; align-items:center` scroller
+     holding tiles of UNEQUAL HEIGHT. The 3-line TODAY tile centred against its 2-line siblings, so
+     its third line hung below them and collided with the bordered NET box at gap:10px. It read as
+     an absolute-position bug; it was a cramped flex row. No position:absolute and no negative
+     margin exists in this header, and none is introduced here.
+     Grid areas rather than flex+order: the rows are then structural, so nothing can share a line
+     with something it is unrelated to (the period strip and the desk split are different data
+     classes and interleaving them is what made this unreadable). */
+  header{display:grid;grid-template-columns:auto 1fr auto;
+    grid-template-areas:"brand conn mkt" "safety . net" "kpis kpis kpis" "sub sub sub";
+    align-items:center;padding:4px 10px;gap:5px 8px;min-height:0}
   .tag,.spacer{display:none}                         /* drop the subtitle + spacer on phone — pure space */
-  .kpis{width:100%;gap:10px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:1px}
+  .brand{grid-area:brand} .conn{grid-area:conn;justify-self:start}
+  #mkt-chip{grid-area:mkt;justify-self:end}
+  #safety-chip{grid-area:safety;justify-self:start}
+  /* NET moves beside SAFETY: both are STATE, and it stops NET sharing a row with the numbers. */
+  #net-tile{grid-area:net;justify-self:end;flex-direction:row;align-items:center;gap:6px;
+    min-width:0;padding:3px 8px}
+  /* ROW 3 — the period strip as a real grid, not inline siblings. minmax(0,1fr) not bare 1fr: a
+     bare 1fr refuses to shrink below its content and would reintroduce overflow on a 430px screen. */
+  .kpis{grid-area:kpis;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:clamp(4px,1.5vw,10px);align-items:end;width:100%;overflow:visible;padding-bottom:0}
+  /* Every cell uses the SAME two classes — no per-period overrides. That is what fixes the four
+     different baselines and the 7D-value-bigger-than-TODAY inconsistency. Fluid, not a breakpoint. */
+  .kpi{align-items:center;min-width:0}
+  .kpis .kpi .l{font-size:clamp(10px,2.6vw,12px);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--mut);line-height:1.1;text-align:center}
+  /* ★ 5.2vw/24px ceiling, not 5.6/26. At 430px a 4-up grid gives ~98px columns, and the widest real
+     value is 30D at "−$3,313" — 7 mono chars, which needs <=23px to fit. 5.6vw rendered 24.1px and
+     clipped it. Checked against the actual strings, not eyeballed. */
+  /* 16px floor so a 320px phone (iPhone SE) still fits "−$3,313" — at 18px it overflowed by 4px.
+     The floor never binds at 390-430px, so the common case is unaffected. */
+  .kpis .kpi .v{font-size:clamp(16px,5.2vw,24px);font-variant-numeric:tabular-nums;
+    line-height:1.15;white-space:nowrap;text-align:center}
+  /* ★ PARIS clock hidden on phone — "18:42:07" is 8 chars and cannot fit a 98px cell at any legible
+     size, and a phone already shows the time. The Paris DAY boundary still matters to the desk, so
+     this is a display choice, not a data one: delete this rule to bring it back. */
+  .kpis .kpi:last-child{display:none}
+  /* ROW 4 — the desk split, alone on its line. */
+  .kpisub{grid-area:sub;justify-self:start;font-size:11px;font-variant-numeric:tabular-nums;
+    color:var(--mut2)}
   .tabbar{display:flex;background:var(--panel2);border-top:1px solid var(--line);
     border-bottom:1px solid var(--line);overflow-x:auto}
   .tab{flex:1;min-width:64px;text-align:center;padding:7px 6px;font-size:12px;letter-spacing:1px;
