@@ -67,22 +67,75 @@ def page(msg: str, critical: bool = True) -> None:
         pass
 
 
-async def venue_net(cfg: RunConfig) -> float | None:
-    """IBKR truth for the symbol. None on ANY doubt — never guess, and never return 0.0 as a
-    stand-in for "could not read", which would make a naked position look like a flat account."""
+STOP_TYPES = ("STP", "STP LMT", "TRAIL", "TRAIL LIMIT", "MIT")
+
+
+def orphan_stops(net: float, orders: list[dict]) -> list[dict]:
+    """Working protective orders with nothing behind them.
+
+    ★★2026-08-13 — THE INVERSE AUDIT. The desk has always asked "does every SLOT have a stop?"; it
+    has never asked "does every STOP have a position?" An order belonging to no position is
+    invisible to a per-slot auditor, and that is exactly the thing that fires unattended: on 08-06 a
+    leftover stop triggered with no position behind it and OPENED A NAKED SHORT, booked six hours
+    later as a gate trade nobody placed.
+    It happened again today and sat live for ~2h: the day-rider's 600pt venue stop (orderId 49,
+    SELL 2 STP @ 29424.25) outlived the position it protected — the operator claimed at 14:26 and
+    nothing cancelled the stop. eod_flatten TRIED at the flatten and got `Error 10147: not found`,
+    which is IBKR saying "not yours to cancel" (it runs as clientId 6, the order belonged to
+    clientId 4) — a permissions error that reads exactly like an all-clear.
+    ★ Note the cross-desk position reconcile could not have caught this: it watches POSITIONS, and
+    an orphan order is not a position until the moment it becomes one.
+
+    A stop is legitimate only if it REDUCES exposure: SELL against a long, BUY against a short, and
+    no more than the position size. Everything else would OPEN or ADD.
+    """
+    bad = []
+    for o in orders:
+        if (o.get("type") or "").upper() not in STOP_TYPES:
+            continue
+        qty = abs(float(o.get("qty") or 0))
+        act = (o.get("action") or "").upper()
+        if abs(net) < 0.5:
+            bad.append({**o, "why": "venue is FLAT — this stop can only OPEN a position"})
+        elif net > 0 and act != "SELL":
+            bad.append({**o, "why": f"BUY stop against a LONG {net:g} — would ADD, not protect"})
+        elif net < 0 and act != "BUY":
+            bad.append({**o, "why": f"SELL stop against a SHORT {net:g} — would ADD, not protect"})
+        elif qty > abs(net) + 0.5:
+            bad.append({**o, "why": f"stop qty {qty:g} exceeds the position {abs(net):g} — the "
+                                    f"excess would open the other way"})
+    return bad
+
+
+async def venue_snapshot(cfg: RunConfig):
+    """(net, orders) in ONE read-only connection. None net on ANY doubt — never guess, and never
+    return 0.0 as a stand-in for "could not read", which would make a naked position look flat.
+
+    Positions and orders come from the SAME snapshot on purpose: fetching them separately would let
+    a fill land between the two and manufacture a phantom orphan.
+    """
     try:
         from ib_async import IB, ContFuture
     except Exception:
-        return None
+        return None, None
     ib = IB()
     try:
         await ib.connectAsync(cfg.host, cfg.port, clientId=RECON_CLIENT_ID,
                               readonly=True, timeout=15)
         await asyncio.sleep(1.0)
         await ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
-        return sum(p.position for p in ib.positions() if p.contract.symbol == cfg.symbol)
+        await ib.reqAllOpenOrdersAsync()
+        await asyncio.sleep(0.8)
+        net = sum(p.position for p in ib.positions() if p.contract.symbol == cfg.symbol)
+        orders = [{"id": t.order.orderId, "client": t.order.clientId, "action": t.order.action,
+                   "type": t.order.orderType, "qty": t.order.totalQuantity,
+                   "aux": t.order.auxPrice, "status": t.orderStatus.status}
+                  for t in ib.openTrades()
+                  if getattr(t.contract, "symbol", None) == cfg.symbol
+                  and t.orderStatus.status not in ("Cancelled", "ApiCancelled", "Filled")]
+        return net, orders
     except Exception:
-        return None
+        return None, None
     finally:
         try:
             ib.disconnect()
@@ -153,21 +206,26 @@ def main() -> int:
             print("no kill file — nothing to release")
         return 0
 
-    net1 = asyncio.run(venue_net(cfg))
+    net1, orders1 = asyncio.run(venue_snapshot(cfg))
     r1 = deskrecon.reconcile(net1)
+    orph1 = orphan_stops(net1, orders1) if (net1 is not None and orders1 is not None) else []
     result = {"ts": datetime.now(UTC).isoformat(timespec="seconds"),
               "read1": {"venue": net1, "ok": r1.ok, "breach": r1.breach,
                         "unaccounted": r1.unaccounted, "summary": r1.summary(),
-                        "reasons": r1.reasons}}
+                        "reasons": r1.reasons, "orders": len(orders1 or []),
+                        "orphan_stops": orph1}}
 
-    if r1.breach and not a.dry_run:
+    if (r1.breach or orph1) and not a.dry_run:
         # ★ SECOND, INDEPENDENT READ. A fresh connection a few seconds later — not a re-use of the
         # first snapshot, which would confirm nothing. A fill in flight resolves; an orphan does not.
+        # This confirms BOTH faults: a bracket's stop can exist for a moment before its parent
+        # fills, which looks identical to an orphan on a single read.
         time.sleep(SECOND_READ_DELAY_S)
-        net2 = asyncio.run(venue_net(cfg))
+        net2, orders2 = asyncio.run(venue_snapshot(cfg))
         r2 = deskrecon.reconcile(net2)
+        orph2 = orphan_stops(net2, orders2) if (net2 is not None and orders2 is not None) else []
         result["read2"] = {"venue": net2, "breach": r2.breach, "unaccounted": r2.unaccounted,
-                           "summary": r2.summary()}
+                           "summary": r2.summary(), "orphan_stops": orph2}
         confirmed = (r2.breach and r1.unaccounted is not None and r2.unaccounted is not None
                      and abs(r1.unaccounted - r2.unaccounted) < 0.5)
         result["confirmed"] = confirmed
@@ -178,15 +236,37 @@ def main() -> int:
             page(f"⚠⚠ GAZBOT CROSS-DESK BREACH — {reason}. BOTH DESKS STOPPED: "
                  f"{'; '.join(actions)}. IBKR is the truth and it does not match our books. "
                  f"Check TWS; release with scripts/desk_reconcile.py --release.")
-        else:
+        elif r1.breach:
             result["note"] = "not confirmed on the second read — treated as a position-change race"
+
+        # ★ ORPHAN STOPS ALARM BUT DO NOT KILL, and this asymmetry is deliberate. An unaccounted
+        # POSITION means a book is lying and nobody may trade. An orphan ORDER means the books may
+        # be perfectly right and a stop was simply not cleaned up — stopping both desks for that is
+        # disproportionate. It still pages critical, because this is what opened a naked short on
+        # 08-06 and what sat live for two hours on 08-13.
+        # It does NOT cancel, either: this service is read-only by construction (clientId 8,
+        # readonly=True) so that it can be trusted to run unattended. Cancelling is a human call —
+        # and note the owning clientId matters, since eod_flatten's cancel failed with Error 10147
+        # ("not yours") and that read as an all-clear.
+        both = [o for o in orph2 if any(o["id"] == p["id"] for p in orph1)]
+        result["orphans_confirmed"] = both
+        if both:
+            desc = "; ".join(f"#{o['id']} client{o['client']} {o['action']} {o['type']} "
+                             f"{o['qty']:g} @ {o['aux']} — {o['why']}" for o in both)
+            page(f"⚠⚠ GAZBOT ORPHAN STOP — a working order with nothing behind it: {desc}. "
+                 f"This is the 08-06 shape: it can FIRE and open a naked position. Cancel it as its "
+                 f"OWNING clientId — another client gets Error 10147 which looks like success.")
 
     if a.json:
         print(json.dumps(result, indent=2))
     else:
-        print(("BREACH " if r1.breach else "ok     ") + r1.summary())
+        print(("BREACH " if r1.breach else "ok     ") + r1.summary()
+              + f"  | {len(orders1 or [])} working order(s)")
         for x in r1.reasons:
             print(f"  · {x}")
+        for o in orph1:
+            print(f"  ! ORPHAN STOP #{o['id']} client{o['client']} {o['action']} {o['type']} "
+                  f"{o['qty']:g} @ {o['aux']} — {o['why']}")
         if "actions" in result:
             print("  ACTIONS: " + "; ".join(result["actions"]))
     try:
@@ -194,7 +274,7 @@ def main() -> int:
             json.dump(result, fh, indent=1)
     except Exception:
         pass
-    return 1 if r1.breach else 0
+    return 1 if (r1.breach or orph1) else 0
 
 
 if __name__ == "__main__":
