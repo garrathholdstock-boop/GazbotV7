@@ -140,7 +140,7 @@ def main():
     # morning precisely because it is built LAST.
     rc = 1
     try:
-        r = subprocess.run(f"{PY} scripts/friday/serial_runner.py --deadline 06:30",
+        r = subprocess.run(f"{PY} scripts/friday/serial_runner.py --deadline 05:15",
                            shell=True, cwd=GB, env=ENV, timeout=int(7.5 * 3600))
         rc = r.returncode
     except subprocess.TimeoutExpired:

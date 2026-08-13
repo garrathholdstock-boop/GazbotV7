@@ -131,7 +131,7 @@ def run_phase(p, budget_s: float) -> bool:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--deadline", default="06:30",
+    ap.add_argument("--deadline", default="05:15",
                     help="UTC HH:MM to be finished by (next occurrence)")
     ap.add_argument("--reserve-min", type=int, default=200,
                     help="minutes held back for assemble+proofread+rev2+final")

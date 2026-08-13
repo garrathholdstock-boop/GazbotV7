@@ -55,6 +55,42 @@ position?"), and six `web.py` queries that had no `data_quality` filter.
   `Error 10147: not found` — IBKR saying *"not yours to cancel"* (clientId 6 vs the order's 4), not
   *"it is gone"*. It was reported as clean. Cancel from the OWNING clientId.
 
+## ★★★ WHERE OUR DATA LIVES — **BACKBLAZE IS THE RECORD. THE LOCAL DISK IS A CACHE.**
+
+> **Operator, 2026-08-13: "you need to look on backblaze. its all backed up there. you need to know
+> this i dont need to remind you."**
+
+Said after I surveyed the local disk, found V5's `alphabot.db` at **ZERO BYTES**, and told him there
+was no V5 history. There is. **Never conclude data does not exist without checking B2.**
+
+**★ RUN THIS AT SESSION START — it is instant (cached; the 4-hourly timer does the slow network scan):**
+```
+PYTHONPATH=src .venv/bin/python scripts/data_inventory.py          # cached, <1s
+PYTHONPATH=src .venv/bin/python scripts/data_inventory.py --scan   # forces a live B2 listing
+```
+`gazbot7-data-inventory.timer` (4-hourly) pages **critical** if any source goes stale or a bucket
+stops listing. Every backup job already existed; nothing was checking they still RUN — and a backup
+that silently stopped looks exactly like one that works.
+
+| where | what | notes |
+|---|---|---|
+| `data/gazbot7.db` | the V7 trade record, from **2026-07-16** | tiny (0.9MB); the P&L truth |
+| `data/capture.db` | live tape, **5 TRADING days only** | 5.7GB. ⚠ ATTACHing this silently sees 5 days |
+| `data/shadow.db` | shadow book (63 sims) | |
+| `data/tape/` + `b2raw:gazbotv7/plain/` | Parquet tape, **07-16 →**, never pruned | **query via `gazbot7.lake.connect()`**, or DuckDB straight off B2 |
+| `gaz:state/<ts>/` | hourly encrypted gazbot7.db + shadow.db + configs | 180 objects |
+| **`gaz:v5archive/alphabot/*.parquet`** | **THE V5 ARCHIVE — 21 tables, ~440MB** | see below |
+| `b2raw:AlphabotV2/monthly/` | full V5 SQLite dump, 183MB zst, 2026-05-01 | the deepest history we own |
+
+**★★ THE V5 ARCHIVE IS A RICH, UNUSED RESEARCH SOURCE.** `gaz:v5archive` — 4,934 trades over 47
+days (2026-05-23 → 07-15, net +$18,934) across 10 disciplines. Critically it contains **574 MNQ
+trades (−$3,444)** and 3,012 `us_futures_daytrade` trades (+$13,485) — the same instruments we trade
+now, **more than doubling our MNQ sample.** Also `fut_signal_funnel` (143MB), `fut_edge_observations`
+(94MB), `fut_regime_routing`, `courtroom_verdicts`, `rejections` (6.3MB), `trade_postmortems`.
+⚠ **Do NOT append V5 to the V7 green/red record** — it is 800+ symbols across crypto/ASX/TSE/HKEX and
+its profit is mostly not the futures desk. Filter to `discipline='us_futures_daytrade'` or
+`symbol='MNQ'` for anything comparable. Fetch: `rclone copy gaz:v5archive/alphabot/trades.parquet /tmp/v5/`
+
 ## ★★ WEEKEND 2026-08-08 → `docs/WEEKEND_2026-08-08_CHANGES.md` (read it before touching the report or the gates)
 
 **The theme: almost everything that broke was an INSTRUMENT, not a strategy.** Four instruments
@@ -138,15 +174,20 @@ $40 / 1.75R floored $60; ATR≥22 unchanged — `docs/REGIME_EXIT_CHEATSHEET.md`
    the tick to run early. **Do not build another one** (a duplicate was written on 08-13 before
    checking). You may *additionally* arm a session `Monitor` on the same script for in-chat
    visibility while you work; it is read-only and dies with the session.
-4. **Verify the safety layer is alive:** `systemctl is-active gazbot7-desk-reconcile.timer` and
+4. **★★ SCAN THE DATA ESTATE (instant, cached):**
+   `PYTHONPATH=src .venv/bin/python scripts/data_inventory.py` — local DBs + all four B2 remotes,
+   with freshness. **BACKBLAZE IS THE RECORD; the local disk is a cache.** If it reports a fault or
+   the cache is >6h old, run `--scan`. Never conclude a dataset does not exist without checking B2 —
+   V5's `alphabot.db` is 0 bytes locally and its full history is on B2.
+5. **Verify the safety layer is alive:** `systemctl is-active gazbot7-desk-reconcile.timer` and
    `tail data/desk_reconcile_state.json` — it should read `venue … = tournament … + rider …` with
    `unaccounted +0` and `0 orphan(s)`. This is the only thing on the box that reconciles ACROSS both
    desks, and the only thing that watches orders as well as positions.
-2. **Read, thoroughly:**
+6. **Read, thoroughly:**
    - `/home/alphabot/gazbot7/data/router_badcall_ledger.md` — the scored audit of past bench calls. Internalise the ❌/⚠ patterns so you don't repeat them.
    - `tail -50 /home/alphabot/gazbot7/data/router_trial_log.txt` — the recent tick-by-tick state + last switch changes.
    - Auto-memory `MEMORY.md` (already loaded) — especially [[router-tune-trial]] (permanent, mechanism), [[us-open-dont-bench-trend-rider]], [[rearm-momentum-needs-er-climb-not-delta-blip]], [[exhaustion-short-live-fader-success]].
-3. **Verify desk health:** `cd /home/alphabot/gazbot7 && .venv/bin/python scripts/sweep.py --json` — flat/healthy/not-halted, capture fresh, no wedge.
+7. **Verify desk health:** `cd /home/alphabot/gazbot7 && .venv/bin/python scripts/sweep.py --json` — flat/healthy/not-halted, capture fresh, no wedge.
 
 ## THE STANDING TIMERS — ALL DURABLE (2026-08-13). No session crons. Do not re-arm any.
 

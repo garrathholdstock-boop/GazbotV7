@@ -1,0 +1,24 @@
+[Unit]
+# ★★2026-08-13 — WHERE OUR DATA LIVES, AND WHETHER IT IS STILL BEING BACKED UP.
+# Built after I surveyed the local disk, found V5's alphabot.db at ZERO BYTES and told the operator
+# there was no V5 history. There is — on Backblaze: 4,934 trades over 47 days including 574 MNQ
+# trades nobody had looked at. Operator: "you need to look on backblaze. its all backed up there.
+# you need to know this i dont need to remind you."
+# THE LOCAL DISK IS A CACHE. THE RECORD IS B2.
+# Every backup job here already existed; what was missing was anything checking they still RUN. A
+# backup that silently stopped looks exactly like one that is working — the same shape as a router
+# logging "no change" for 10.5 hours.
+Description=GAZBOT V7 — data & backup inventory (local + Backblaze freshness)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Exit 1 = a fault was found and already paged; the alarm is the notify, not the unit state.
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/data_inventory.py --scan
+TimeoutStartSec=900
+MemoryMax=300M

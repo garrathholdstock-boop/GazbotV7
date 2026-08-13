@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — data/backup inventory timer (4-hourly)
+
+[Timer]
+# 4-hourly at :37, and once shortly after boot. Frequent enough that a stopped backup is caught the
+# same day; cheap enough (a few rclone listings) that it costs nothing. The SLOW network scan lives
+# here so that a session start can read data_status.json instantly instead of waiting on B2.
+OnCalendar=*-*-* 00,04,08,12,16,20:37:00
+OnBootSec=10min
+Persistent=true
+AccuracySec=60s
+
+[Install]
+WantedBy=timers.target
