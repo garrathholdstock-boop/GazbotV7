@@ -85,8 +85,12 @@ async def run(dry: bool) -> int:
     age = hb_age_s(now)
     ib = IB()
     try:
+        # ★2026-08-14 skip the completed-orders request: IB Gateway never answers it on this paper
+        # account and the connect then blocks for the full 15s — on a 60s watchdog that is a quarter
+        # of every cycle spent waiting for data nothing reads. See day_rider.startup_fetch().
+        from gazbot7.day_rider import startup_fetch
         await ib.connectAsync(cfg.host, cfg.port, clientId=WATCHDOG_CLIENT_ID,
-                              readonly=False, timeout=15)
+                              readonly=False, timeout=15, fetchFields=startup_fetch())
         await asyncio.sleep(0.8)
         (contract,) = await ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
         net = sum(p.position for p in ib.positions() if p.contract.symbol == cfg.symbol)

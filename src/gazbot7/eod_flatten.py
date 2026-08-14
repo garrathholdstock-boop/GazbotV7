@@ -29,7 +29,12 @@ async def flatten_once(cfg: RunConfig) -> tuple[float, float]:
     from ib_async import IB, ContFuture, MarketOrder
 
     ib = IB()
-    await ib.connectAsync(cfg.host, cfg.port, clientId=EOD_CLIENT_ID, readonly=False, timeout=15)
+    # ★2026-08-14 skip the completed-orders request: it never answers on this gateway and blocks the
+    # connect for the full 15s timeout. This path runs MINUTES BEFORE THE CME HALT, so 15s of a
+    # closing window spent on data nothing reads is a safety cost, not just log noise.
+    from ib_async import StartupFetch, StartupFetchALL
+    await ib.connectAsync(cfg.host, cfg.port, clientId=EOD_CLIENT_ID, readonly=False, timeout=15,
+                          fetchFields=StartupFetchALL & ~StartupFetch.ORDERS_COMPLETE)
     try:
         await asyncio.sleep(1.0)
         (contract,) = await ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))

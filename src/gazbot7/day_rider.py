@@ -57,6 +57,26 @@ from .safety import own_flatten_verdict, safe_flatten_verdict
 log = logging.getLogger("day_rider")
 
 CLIENT_ID = 4                      # core=0, md=2, eod=6, checks=8, depth=97 — 4 is free
+
+# ★★2026-08-14 DO NOT FETCH COMPLETED ORDERS AT CONNECT.
+# ib_async's startup `gather` includes reqCompletedOrders whenever readonly=False. IB Gateway never
+# answers it on this paper account, so the whole connect BLOCKS for the full timeout: measured
+# session time 15.9s, of which ~15s was this single request — every minute, on a 60s oneshot, for
+# data NOTHING on this desk reads (grep: zero uses of completedOrders anywhere).
+# It also emitted ~1,020 `ERROR completed orders request timed out` lines a day, and a log that cries
+# error 1,020 times for a non-problem is how a REAL error goes unnoticed — it briefly convinced me a
+# working change had broken something.
+# desk_reconcile never saw this because it connects readonly=True, which skips the block entirely.
+# Resolved lazily inside _venue(), like every other ib_async use in this file — importing it at
+# module scope would make `import gazbot7.day_rider` depend on the broker library.
+
+
+def startup_fetch():
+    """Everything ib_async fetches at connect EXCEPT the completed-orders request. See the note above."""
+    from ib_async import StartupFetch, StartupFetchALL
+    return StartupFetchALL & ~StartupFetch.ORDERS_COMPLETE
+
+
 GB = "/home/alphabot/gazbot7"
 STATE = f"{GB}/data/day_rider_state.json"
 SWITCH = f"{GB}/data/day_rider.env"
@@ -549,7 +569,9 @@ def trail_level(direction: int, entry: float, peak: float,
 async def _venue(cfg: RunConfig):
     from ib_async import ContFuture, IB
     ib = IB()
-    await ib.connectAsync(cfg.host, cfg.port, clientId=CLIENT_ID, readonly=False, timeout=15)
+    # ★2026-08-14 see startup_fetch() — skip the completed-orders request that never answers.
+    await ib.connectAsync(cfg.host, cfg.port, clientId=CLIENT_ID, readonly=False, timeout=15,
+                          fetchFields=startup_fetch())
     await asyncio.sleep(0.8)
     (contract,) = await ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
     return ib, contract
