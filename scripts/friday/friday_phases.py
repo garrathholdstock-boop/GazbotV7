@@ -168,6 +168,48 @@ PHASES = [
          f"{SEGMENT} {JUDGE} {GRAVES} {STYLE} Write to {SEC}/movement2_idle_gates.html"),
 
     dict(key="rehab", artifact=f"{SEC}/part1_5_rehab.html", deps=[], timeout_s=5400, prompt=PRE +
+         # ★★2026-08-14 OPERATOR-COMMISSIONED REHAB TARGET. "i also want a little study on exhaustion
+         # short. it wins a lot and then can have a series of jumping into up wobbles ... see if any
+         # rehab tuning can be done to reduce these bleeding periods ... maybe its the price of doing
+         # business but we need to look into it." Then: "maybe more contracts 500 or 600. or maybe a
+         # short veto to make sure its not a wobble."
+         f"★★ REQUIRED REHAB TARGET #1 THIS WEEK — `exhaustion_short`, commissioned by the operator: "
+         f"'it wins a lot and then can have a SERIES of jumping into up wobbles'. It is one of only two "
+         f"gates currently armed, so this matters live. The diagnosis is already measured — START FROM "
+         f"THESE NUMBERS and go deeper, do not re-derive them:\n"
+         f"  · 144 live trades over 15 days, net -$127.00, win 48.6%%, median trade -$16.00.\n"
+         f"  · STOPs n=74 = -$3,734.50. EVERYTHING ELSE n=70 = +$3,607.50. The gate earns +$3,608 on "
+         f"its winners and the stops erase all of it. The bleed IS the stop book.\n"
+         f"  · THE LOSSES ARE CLUSTERED, NOT RANDOM: 26 losing streaks, max 8 long, and streaks of >=3 "
+         f"carry 51 of the 74 losses (69%%). 45 of 74 losses arrive WITHIN 15 MINUTES of the previous "
+         f"trade. Worst days read WWLLLLLLLL (08-10, -$230) and LLLLWWLLWWLLLLWWLLLLLL (08-12, -$367.50). "
+         f"It is re-firing into the SAME rising move, which is exactly the operator's 'wobble'.\n"
+         f"★ TEST AT LEAST THESE FOUR, each on LIVE trades and each placebo-controlled against removing "
+         f"the same NUMBER of trades at random (removing 40%% of trades looks brilliant whenever the "
+         f"removed 40%% lost):\n"
+         f"  (1) A RE-ENTRY COOLDOWN after a stop — the 45-of-74-inside-15min figure points straight at "
+         f"it. Sweep the cooldown and report the whole curve, not the best cell.\n"
+         f"  (2) A STREAK BREAKER — bench the gate after 2 (or N) consecutive stops, for a window or for "
+         f"the session. Report what it costs in forgone winners, not only what it saves.\n"
+         f"  (3) THE OPERATOR'S VETO IDEA — 'a short veto to make sure its not a wobble'. This is the "
+         f"best-motivated of the four: on this desk VETO-shaped filters work where SELECTORS fail "
+         f"(abs_veto's 55s wait IS the filter; the OFI delay-veto is the one surviving book cell). Model "
+         f"it as a delay-and-re-test on a side the gate has ALREADY chosen — never as a direction "
+         f"selector.\n"
+         f"  (4) THE OPERATOR'S STOP/SIZE IDEA — he wrote 'maybe more contracts 500 or 600', which is "
+         f"AMBIGUOUS: it may mean a much WIDER STOP (500-600 points, the day-rider's insurance-stop "
+         f"shape) or more SIZE. TEST BOTH READINGS AND SAY WHICH YOU TESTED. ⚠ Be careful with the wide "
+         f"stop: the bleed is driven by the COUNT of stops (74) and their clustering, not obviously by "
+         f"their size, so a wider stop may simply convert many small losses into fewer larger ones — "
+         f"measure it, do not assume. On MNQ at $2/pt a 500-600pt stop is $1,000-1,200 per contract, "
+         f"which is day-rider scale, so state plainly what that does to worst-day.\n"
+         f"★ AND ANSWER THE OPERATOR'S ACTUAL QUESTION HONESTLY: he said 'maybe not, maybe its the price "
+         f"of doing business'. If the wobble losses are inseparable from the winning fades — i.e. every "
+         f"filter that removes them also removes the winners — SAY SO PLAINLY and show the evidence. A "
+         f"clean 'this is the cost of the edge' is a real answer and a more useful one than a fitted "
+         f"filter that will not survive next week. Judge on LIVE P&L, never the fixed-target shadow, "
+         f"which lies about faders. "
+
          f"The LIVE-DESK REHABILITATION dossier — the operator's #1 recurring section: 'never bench a gate or exit at face "
          f"value; if it's not working, HOW can it work — or at least show the honest trying.' STEP 1: from the live tournament "
          f"trades (data/gazbot7.db), shadow.db, hour_watch logs and the router switch history, identify EVERY rehab target for "
