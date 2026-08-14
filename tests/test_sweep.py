@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import sqlite3
+
 import pytest
 
 from gazbot7.config import RunConfig
@@ -236,9 +238,10 @@ def test_run_sweep_smoke_produces_all_sections(tmp_path):
     open_store(cfg.shadow_store_path).close()
     report = sweep.run_sweep(cfg, NOW)
     # ★2026-08-08 + "config" (SATURDAY #7): uncommitted live-behaviour files are now a finding.
+    # ★2026-08-14 + "book_vs_fills": the ledger measured against IBKR's executions.
     assert set(report["sections"]) == {
         "services", "core", "capture", "execution", "position",
-        "killswitch", "recording", "shadow", "storage", "config"}
+        "killswitch", "recording", "shadow", "storage", "config", "book_vs_fills"}
     assert report["overall"] in ("OK", "WARN", "CRIT")
     assert report["preflight_ok"] is False  # no core_health.json in tmp_path
 
@@ -297,3 +300,61 @@ def test_restarts_recent_returns_None_when_journalctl_fails(monkeypatch):
         returncode, stdout = 1, ""
     monkeypatch.setattr(_sp, "run", lambda *a, **k: _R())
     assert _REAL_RESTARTS_RECENT("anything") is None
+
+
+# ── book vs fills ────────────────────────────────────────────────────────────
+class _FakeStore:
+    """Serves the two queries check_book_vs_fills makes, in order."""
+
+    def __init__(self, trades, fills):
+        self._q = [trades, fills]
+
+    def execute(self, sql, _params=()):
+        rows = self._q.pop(0) if "trades" in sql else self._q.pop()
+        return _Cursor(rows)
+
+
+class _Cursor:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def fetchall(self):
+        return self._rows
+
+
+_RT = [("2026-08-14", "rider-73", "SELL", 2, 30194.25),
+       ("2026-08-14", "rider-78", "BUY", 2, 30084.25)]        # venue net $437.00
+
+
+def test_book_vs_fills_is_OK_when_the_ledger_matches():
+    r = sweep.check_book_vs_fills(_FakeStore([("2026-08-14", "day_rider", 437.00, None)], _RT), NOW)
+    assert r["status"] == "OK" and not r["faults"]
+
+
+def test_book_vs_fills_WARNs_never_CRITs():
+    """★ SEVERITY IS DELIBERATE, same reasoning as check_config_committed. A recording fault is not
+    an order-path fault: nothing is naked and no position is at risk. The P&L we reason from is
+    wrong, which is serious for DECISIONS and not for SAFETY. CRIT here would page as if the desk
+    were down and would train the operator to discount a red sweep."""
+    r = sweep.check_book_vs_fills(_FakeStore([("2026-08-14", "day_rider", 434.00, None)], _RT), NOW)
+    assert r["status"] == "WARN", "a book/venue divergence must not CRIT"
+    assert r["faults"][0]["divergence"] == -3.00
+    assert "-3.00" in r["detail"]
+
+
+def test_book_vs_fills_does_not_fault_on_an_unverifiable_day():
+    """No execution record is an honest refusal, not a fault — but it must still be SURFACED, so
+    nobody reads 'no faults' as 'everything reconciled'."""
+    r = sweep.check_book_vs_fills(_FakeStore([("2026-08-12", "day_rider", 224.50, None)], []), NOW)
+    assert r["status"] == "OK" and not r["faults"]
+    assert r["unverifiable"] and r["unverifiable"][0]["why"] == "NO_FILLS"
+    assert "not the same as clean" in r["detail"]
+
+
+def test_book_vs_fills_WARNs_when_it_cannot_RUN():
+    """A check that cannot run must say so, never return OK — the whole point of the module."""
+    class _Broken:
+        def execute(self, *_a, **_k):
+            raise sqlite3.OperationalError("no such table: fills")
+    r = sweep.check_book_vs_fills(_Broken(), NOW)
+    assert r["status"] == "WARN" and "could not read" in r["detail"]

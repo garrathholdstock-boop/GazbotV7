@@ -445,6 +445,51 @@ def check_killswitch(cfg: RunConfig, store, core: dict, now: datetime) -> dict:
             "day_wins": day_w, "loss_streak": streak}
 
 
+def check_book_vs_fills(store, now: datetime, *, days: int = 3) -> dict:
+    """Does the trade ledger match what IBKR actually executed?
+
+    ★★2026-08-14. `trades` is what we BELIEVE happened, `fills` is what the venue SAYS happened, and
+    until now nothing compared them — so the two were wrong together twice (08-13's +$1,551 of
+    profit from orders that sold 8 lots the desk did not own; 08-14's rider booking a computed exit
+    price 0.75pt off the fill). [[ibkr-is-truth-never-trust-our-books]] is only enforceable if
+    something actually checks.
+
+    WARN, never CRIT — deliberately, and for the same reason `check_config_committed` is a WARN: a
+    recording fault is not an order-path fault. Nothing is naked and no position is at risk; the
+    P&L we reason from is wrong, which is serious for DECISIONS and not for SAFETY.
+
+    Unverifiable desk-days (no execution record, or a position carried across the boundary) are
+    reported but never scored as faults — and never as clean either.
+    """
+    from gazbot7.bookrecon import reconcile
+    try:
+        trades = store.execute(
+            "SELECT date(closed_at), gate, pnl_usd, data_quality FROM trades "
+            "WHERE closed_at >= date('now', ?)", (f"-{days} day",)).fetchall()
+        fills = store.execute(
+            "SELECT date(exec_time), order_id, side, qty, price FROM fills "
+            "WHERE exec_time >= date('now', ?)", (f"-{days} day",)).fetchall()
+    except Exception as e:
+        # A check that cannot run must SAY SO, not return OK.
+        return {"status": WARN, "detail": f"could not read the ledger/fills: {e}"}
+
+    verdicts = reconcile([tuple(r) for r in trades], [tuple(r) for r in fills])
+    faults = [v for v in verdicts if v.is_fault]
+    unver = [v for v in verdicts if v.is_unverifiable]
+    status = WARN if faults else OK
+    if faults:
+        detail = "; ".join(f"{v.day} {v.desk} book vs venue {v.divergence:+,.2f}" for v in faults[:4])
+    else:
+        detail = f"{len(verdicts) - len(unver)} desk-day(s) reconcile exactly"
+        if unver:
+            detail += f" · {len(unver)} unverifiable ({unver[0].status.lower()}) — not the same as clean"
+    return {"status": status, "detail": detail,
+            "days": days,
+            "faults": [{"day": v.day, "desk": v.desk, "booked": v.booked, "venue": v.venue,
+                        "divergence": v.divergence} for v in faults],
+            "unverifiable": [{"day": v.day, "desk": v.desk, "why": v.status} for v in unver]}
+
+
 def check_recording(cfg: RunConfig, store, now: datetime) -> dict:
     since_iso = pnl.paris_day_start_utc(now)
     n = store.execute("SELECT count(*) FROM trades WHERE symbol=? AND closed_at>=?",
@@ -561,6 +606,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "position": check_position(store, core, cfg, now),
             "killswitch": check_killswitch(cfg, store, core, now),
             "recording": check_recording(cfg, store, now),
+            "book_vs_fills": check_book_vs_fills(store, now),
             "shadow": check_shadow(cfg, now),
             "storage": check_storage(cfg),
             "config": check_config_committed(),
