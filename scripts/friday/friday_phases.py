@@ -98,6 +98,34 @@ PHASES = [
          f"as the flagship case study, every number computed from the data. {JUDGE} {STYLE} Write to {SEC}/part1_live.html"),
 
     dict(key="part2_shadow", artifact=f"{SEC}/part2_shadow.html", deps=[], timeout_s=3600, prompt=PRE +
+         # ★★2026-08-14 OPERATOR: "open rider best shadow again. if we can figure out how to switch
+         # it on and off could be a good one." Measured before the run so the phase starts from
+         # facts: the premise is wrong but there IS a real finding underneath it.
+         f"★★ REQUIRED THIS WEEK — THE OPEN RIDER (odr_*) FAMILY, sims 54-57 and 60-63. The operator "
+         f"believes it is 'best shadow again' and wants to know how to switch it on and off. CORRECT "
+         f"HIM GENTLY AND WITH THE NUMBERS, then give him the finding that IS there:\n"
+         f"  · It is NOT the board leader. Best cell odr_c5_s30 (+$262, n=20) ranks #16 of 51 sims "
+         f"this week; the family TOTAL is -$481 over 106 trades. The board is led by abs_veto_55s "
+         f"(+$882) and abs_veto_50s (+$797). Every odr arm is flagged n<40 — below this desk's own "
+         f"threshold for a forward A/B to claim anything. Verify all of this yourself from "
+         f"shadow_real.real_pnl (NEVER ceiling_pnl) before repeating it.\n"
+         f"  · ★ THE REAL SIGNAL IS THE STOP WIDTH, and it is consistent across all four pairs, not "
+         f"one lucky cell: stop 2.0xATR = n=58, -$874, -$15.08/trade; stop 3.0xATR = n=48, +$393, "
+         f"+$8.19/trade. A $23/trade swing on one axis. This ECHOES two other independent results "
+         f"this week — the MGC run-catcher (a trail is shaken out of a grind; a 5xATR stop held 8h "
+         f"moved the oracle ceiling $83/wk -> ~$346/wk) and the day-rider's own 600pt insurance stop. "
+         f"Ask whether that is one finding wearing three hats: WIDE STOPS BEAT TIGHT ONES ON ANYTHING "
+         f"THAT RIDES. Test it, do not assert it.\n"
+         f"  · ★ THE ON/OFF EXPERIMENT ALREADY EXISTS AND HAS NOT SWITCHED ANYTHING OFF YET. Sims "
+         f"60-63 are the drift-GATED Open Rider (`_g`). They started 2026-08-14 — ONE day. On the "
+         f"overlapping period the gated and ungated arms are IDENTICAL (n=19, -$2, -$0.13/trade "
+         f"both), i.e. the drift gate has not yet REJECTED a single entry. So the honest answer to "
+         f"'how do we switch it on and off' is: the mechanism is installed and live, it is one day "
+         f"old, and it needs WEEKS not analysis. Say what would PROVE it — how many gated fires, and "
+         f"what separation, would be enough — and say plainly that no promotion can follow from n=19. "
+         f"⚠ Do NOT compare gated vs ungated on ALL-TIME totals: the gated arms cover 1 day and the "
+         f"ungated 5, so an all-time comparison is measuring the calendar. "
+
          f"Read {SCOPE} Part 2. Write the SHADOW DESK + PROMOTION section, DISCOVERED FRESH from THIS week's data. Rank "
          f"the shadow board by honest real_pnl (all-time + this week) and let the promotion candidate(s) EMERGE from that "
          f"ranking. Run scripts/abs_veto_robustness.py and present its full battery (headline, per-day spread, regime split, "
