@@ -46,7 +46,21 @@ _DESK_LEGACY = ("gazbot7-core", "gazbot7-strategy")    # retired single-position
 # that every L2 study depends on, and no check would have fired. SOFT because the desk trades fine
 # without it (no gate reads depth yet); it is research/verification input, not the order path.
 _SOFT_SERVICES = ("gazbot7-shadow", "gazbot7-web", "gazbot7-depth-capture")
-_RESTART_STORM = 3   # NRestarts >= this since boot = flapping
+# ★★2026-08-14 RESTARTS ARE COUNTED IN A WINDOW, NOT SINCE BOOT.
+# `NRestarts` is CUMULATIVE and never self-resets, so comparing it to a fixed threshold meant that
+# once the desk tripped it, sweep WARNed forever and the number only ever grew. That is not a flap
+# detector, it is a monotonic counter with an alarm bolted on — and a monitor that is permanently
+# amber is a monitor you stop reading. It tripped on the NIGHTLY IBKR GATEWAY RESET: the tournament
+# watchdog-aborts and self-heals at ~04:32-04:46 UTC every night (Error 1100 lost -> SIGABRT ->
+# Error 1102 restored -> clean start, ~4 min), which is benign because the desk is always flat then
+# (Asia block refuses entries + max_hold 120min). Seven of eight restarts in the week to 08-14 were
+# that. See [[nightly-ibkr-gateway-reset-restarts-the-desk]].
+#
+# A WINDOW makes the check mean what its name says: real flapping is a restart LOOP (systemd's
+# RestartSec puts dozens in an hour), while the nightly reset contributes at most 2. It also
+# SELF-CLEARS an hour later instead of needing a human `systemctl reset-failed`.
+_RESTART_STORM = 3          # restarts INSIDE the window = flapping
+_RESTART_WINDOW_MIN = 60
 DEPTH_PATH = os.environ.get("DEPTH_DB", "/home/alphabot/gazbot7/data/depth.db")
 
 
@@ -66,6 +80,26 @@ def _svc(name: str) -> dict:
                 "restarts": int(kv.get("NRestarts", "0") or 0)}
     except Exception as e:  # systemctl absent / timeout — report, don't crash
         return {"active": False, "state": f"err:{e}", "restarts": 0}
+
+
+def _restarts_recent(name: str, minutes: int = _RESTART_WINDOW_MIN) -> int | None:
+    """How many times systemd restarted `name` in the last `minutes`.
+
+    Returns None if the journal cannot be read — the CALLER must then fall back to the cumulative
+    counter rather than reporting zero. Returning 0 on an unreadable journal would turn a monitoring
+    outage into a clean bill of health, which is the failure this desk keeps meeting
+    ([[an-instrument-that-reports-healthy-about-something-it-does-not-check]]).
+    """
+    try:
+        r = subprocess.run(
+            ["journalctl", "-u", name, "--since", f"-{int(minutes)}min", "--no-pager", "-o", "cat"],
+            capture_output=True, text=True, timeout=20,
+        )
+        if r.returncode != 0:
+            return None
+        return sum(1 for ln in r.stdout.splitlines() if "Scheduled restart job" in ln)
+    except Exception:
+        return None
 
 
 def _conn(path: str) -> sqlite3.Connection:
@@ -96,13 +130,29 @@ def check_services() -> dict:
             notes.append(f"{n} {svc[n]['state']}")
     # only storm on services that are SUPPOSED to run (skip the intentionally-off legacy desk)
     watched = {*_CRIT_SERVICES, _DESK_PRIMARY, *_SOFT_SERVICES}
-    storms = [f"{n}×{svc[n]['restarts']}" for n in watched if svc[n]["restarts"] >= _RESTART_STORM]
+    recent = {n: _restarts_recent(n) for n in sorted(watched)}
+    storms, degraded = [], []
+    for n in sorted(watched):
+        got = recent[n]
+        if got is None:
+            # journal unreadable → fall back to the cumulative counter so we never go silent, but
+            # SAY SO, because that number cannot self-clear and will read as a permanent storm.
+            if svc[n]["restarts"] >= _RESTART_STORM:
+                degraded.append(f"{n}×{svc[n]['restarts']} cumulative")
+        elif got >= _RESTART_STORM:
+            storms.append(f"{n}×{got}")
     if storms:
         status = _worst(status, WARN)
-        notes.append("restart-storm: " + ",".join(storms))
+        notes.append(f"restart-storm (last {_RESTART_WINDOW_MIN}min): " + ",".join(storms))
+    if degraded:
+        status = _worst(status, WARN)
+        notes.append("restart-count DEGRADED, journal unreadable: " + ",".join(degraded))
     desk = _DESK_PRIMARY if svc[_DESK_PRIMARY]["active"] else ("core+strategy (reverted)" if desk_up else "NONE")
     detail = f"all up · desk={desk}" if status == OK else "; ".join(notes)
-    return {"status": status, "detail": detail, "restarts": {n: v["restarts"] for n, v in svc.items()}}
+    return {"status": status, "detail": detail,
+            "restarts": {n: v["restarts"] for n, v in svc.items()},   # cumulative, kept for history
+            "restarts_recent": recent,
+            "restart_window_min": _RESTART_WINDOW_MIN}
 
 
 def check_core(cfg: RunConfig, now: datetime) -> dict:

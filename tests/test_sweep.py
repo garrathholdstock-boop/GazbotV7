@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+
 from gazbot7.config import RunConfig
 from gazbot7.store import open_store
 
@@ -94,11 +96,31 @@ def test_recording_ok_for_realtime_rows():
     assert r["today_trades"] == 2
 
 
-def _fake_svc(active_set):
+def _fake_svc(active_set, restarts=0):
     def _svc(n):
         on = n in active_set
-        return {"active": on, "state": "active" if on else "inactive", "restarts": 0}
+        return {"active": on, "state": "active" if on else "inactive", "restarts": restarts}
     return _svc
+
+
+ALL_UP = {"gazbot7-md", "alphabot-gateway", "gazbot7-tournament", "gazbot7-shadow", "gazbot7-web",
+          "gazbot7-depth-capture"}
+
+# Captured BEFORE the autouse fixture below can shadow it — the source-level test needs the real one.
+_REAL_RESTARTS_RECENT = sweep._restarts_recent
+
+
+@pytest.fixture(autouse=True)
+def _no_real_journal(monkeypatch):
+    """`check_services()` shells out to journalctl. NEVER let a unit test read the real journal.
+
+    ★2026-08-14, and this is the same lesson as [[tests-must-not-read-the-wall-clock]] one file over:
+    a test that consults live machine state answers a different question every time you run it. With
+    the real journal, these tests would pass or fail depending on whether the box happened to restart
+    a service in the previous hour — and the nightly IBKR gateway reset guarantees that it does.
+    Default to a quiet journal; the tests that care state their own count.
+    """
+    monkeypatch.setattr(sweep, "_restarts_recent", lambda n, minutes=None: 0)
 
 
 def test_services_tournament_is_the_desk_core_strategy_inactive_ok(monkeypatch):
@@ -219,3 +241,59 @@ def test_run_sweep_smoke_produces_all_sections(tmp_path):
         "killswitch", "recording", "shadow", "storage", "config"}
     assert report["overall"] in ("OK", "WARN", "CRIT")
     assert report["preflight_ok"] is False  # no core_health.json in tmp_path
+
+
+# ── restart-storm: a WINDOW, not a monotonic counter ─────────────────────────
+def test_restart_storm_ignores_a_huge_cumulative_count(monkeypatch):
+    """★★2026-08-14 THE BUG THIS FIXES. `NRestarts` is cumulative and never self-resets, so the old
+    check compared a monotonically increasing number against a fixed threshold: once the desk tripped
+    it, sweep WARNed forever and the count only grew. A monitor that is permanently amber is one you
+    stop reading — and it went amber on a benign nightly event, not a fault."""
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(ALL_UP, restarts=99))
+    monkeypatch.setattr(sweep, "_restarts_recent", lambda n, minutes=None: 0)
+    r = sweep.check_services()
+    assert r["status"] == "OK", f"a stale cumulative count still alarms: {r['detail']}"
+    assert r["restarts"]["gazbot7-tournament"] == 99, "cumulative history must still be REPORTED"
+
+
+def test_restart_storm_fires_on_real_flapping_inside_the_window(monkeypatch):
+    """...and it must still catch the thing it is for. A guard that cannot fail is not a guard."""
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(ALL_UP, restarts=0))
+    monkeypatch.setattr(sweep, "_restarts_recent",
+                        lambda n, minutes=None: 5 if n == "gazbot7-tournament" else 0)
+    r = sweep.check_services()
+    assert r["status"] == "WARN"
+    assert "gazbot7-tournament×5" in r["detail"] and str(sweep._RESTART_WINDOW_MIN) in r["detail"]
+
+
+def test_nightly_gateway_reset_does_not_trip_the_storm(monkeypatch):
+    """The real case: IBKR's daily gateway reset watchdog-aborts the tournament at ~04:40 UTC and it
+    self-heals in ~4 min, contributing at most 2 restarts. Benign — the desk is always flat then
+    (Asia block refuses entries, max_hold is 120min). It must not alarm.
+    See [[nightly-ibkr-gateway-reset-restarts-the-desk]]."""
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(ALL_UP, restarts=9))
+    monkeypatch.setattr(sweep, "_restarts_recent",
+                        lambda n, minutes=None: 2 if n == "gazbot7-tournament" else 0)
+    assert sweep.check_services()["status"] == "OK"
+
+
+def test_unreadable_journal_falls_back_and_says_so(monkeypatch):
+    """An unreadable journal must NOT read as zero restarts. Reporting a clean bill of health when
+    the instrument is blind is this desk's most-repeated failure — fall back to the cumulative
+    counter and NAME the degradation, so nobody reads the fallback as a live measurement."""
+    monkeypatch.setattr(sweep, "_svc", _fake_svc(ALL_UP, restarts=9))
+    monkeypatch.setattr(sweep, "_restarts_recent", lambda n, minutes=None: None)
+    r = sweep.check_services()
+    assert r["status"] == "WARN"
+    assert "DEGRADED" in r["detail"] and "cumulative" in r["detail"]
+    assert r["restarts_recent"]["gazbot7-tournament"] is None
+
+
+def test_restarts_recent_returns_None_when_journalctl_fails(monkeypatch):
+    """The None contract is what the fallback above depends on — pin it at the source too."""
+    import subprocess as _sp
+
+    class _R:
+        returncode, stdout = 1, ""
+    monkeypatch.setattr(_sp, "run", lambda *a, **k: _R())
+    assert _REAL_RESTARTS_RECENT("anything") is None
