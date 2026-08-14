@@ -1,7 +1,24 @@
 # THE FRIDAY REPORT — V7 CANONICAL SCOPE (locked 2026-07-24)
 
 > **★★★ IF YOU ARE THE FRIDAY-REPORT CRON (fresh Claude session, ~Fri 22:00 UTC / midnight Paris): THIS FILE IS THE REPORT SHAPE. ★★★**
-> The desk is **GAZBOT V7 — MNQ-ONLY**. IGNORE the old 7-contract structure (MNQ/MES/MGC/M2K/MYM/MCL/MBT) in `FRIDAY_SHADOW_REPORT_SCOPE.md` / `FRIDAY_REPORT_MASTER.md` — those describe the RETIRED V5 desk. Build the shape below. Publish ONLY via `scripts/friday/publish_report.py` (the hard verify-gate). Data is V7: `gazbot7/data/capture.db` (bars/ticks/L1 quotes/L2 book) + `gazbot7/data/gazbot7.db` (trades) + `gazbot7/data/shadow.db` (the shadow board).
+> **★★2026-08-14 UPDATED — THE DESK IS MNQ-LED, NOT MNQ-ONLY.** The LIVE desk trades **MNQ**; that is
+> still where the P&L and every existing gate live. But we have captured **MGC** (COMEX gold) L1 AND
+> L2 since 2026-08-04 and it is now an active line of enquiry — the operator: *"we want to find some
+> gates that work for mgc"*. The census runs for both symbols and phase `gf_MGC` hunts gold entries.
+> ⚠ This line previously read "MNQ-ONLY … IGNORE MGC", which directly contradicted the DATA CONTRACT
+> the phases also receive. A phase told both things would have dropped the gold work.
+> ⚠ MGC is **$10.00/point**; MNQ is $2.00. Never price gold with the MNQ multiplier.
+> ⚠ MGC gates must be **INVENTED FRESH** — never port, clone or re-tune an MNQ gate onto gold.
+> Still IGNORE the old 7-contract structure (MES/M2K/MYM/MCL/MBT) in `FRIDAY_SHADOW_REPORT_SCOPE.md`
+> / `FRIDAY_REPORT_MASTER.md` — those describe the RETIRED V5 desk. Build the shape below. Publish ONLY via `scripts/friday/publish_report.py` (the hard verify-gate). Data is V7: `gazbot7/data/gazbot7.db` (trades) + `gazbot7/data/shadow.db` (the shadow board) + the tape.
+> **★ THE TAPE: `capture.db` IS A ROLLING WINDOW, NOT THE ARCHIVE** — book/quotes/ticks hold only
+> **5 TRADING DAYS** (bars 60). ATTACHing it for anything multi-week silently returns a fifth of the
+> data with no error. For history use the **Parquet lake**: `from gazbot7.lake import connect`
+> (2026-07-16 onward, local or straight off Backblaze). MGC L2 is in `depth.db.depth_snap`, not
+> `capture.db.book` (which is MNQ-only — IBKR allows just 3 depth subscriptions).
+> Older history still exists on B2: `gaz:v5archive/alphabot/*.parquet` — the retired V5 desk,
+> incl. 574 MNQ trades and 3,012 us_futures_daytrade trades. Filter to
+> `discipline='us_futures_daytrade'` or `symbol IN ('MNQ','MGC')`; the rest is crypto/equities.
 
 ## ★★★ DISPOSITION — NEVER KILL A LEAD THAT HAS A GLIMMER (operator, standing, 2026-08-07)
 > *"dont negatively kill everything. if theres a lead with a glimmer of hope lets put it into shadow."*
@@ -200,7 +217,8 @@ Each mid-week lead walked in plain English: the test and the honest verdict (HEL
 **★ FLAGGED THIS WEEK #3 — rgv PER-SIDE BASE GRID + the cross-week REGIME test (2026-07-24). The two-sided-gate principle, proven.** Tick-honest per-side sweep of the raw `gate_reversal_grab` base (`scripts/rgv_base_grid.py`, ext_min × turn_atr × flow_min, exit repriced on capture.db ticks). Findings to narrate: (a) **the two sides want OPPOSITE bases** — SHORT's own optimum (ext 2.0, flow 25) vs LONG's (ext 3.0, no flow); mirroring short→long costs −$481, mirroring long→short leaves +$457 on the table. (b) **The flow-confirm is regime-luck** — helped short this week (+), was CATASTROPHIC last week (−$600 to −$810); keep flow OFF. (c) **The asymmetry is REGIME, not structural** — re-run on last week (07-15..17): both weeks leaned down yet the sides swapped leadership and the best cell drifted, so a single week's optimum is partly overfit. This **vindicates the router and refutes relegating a direction** — which is the whole point of the two-sided-gate rule (see the reframed Relegation view above). (d) **The one cross-week-robust edge: SHORT at tight-ext (2.5–3.0), no flow, no confirm** (~+$300 both weeks); LONG has no stable green zone → it's a **router problem, not a filter one.** Saturday's per-side-tuning candidate: move rgv SHORT to a tight-ext base, formalise LONG as router-only. Present the grids as tables (the operator loves clear per-cell facts).
 
 ### PART 3 — ★ HOW WE GRAB THE BIG RUNS (the closing deep-dive — the section the operator loves)
-Cold and tape-first: **ignore what the desk did mid-week**; start from the raw L1/L2 tape and ask where the money was and whether we showed up. MNQ-only but **deep** (our tape + 58.9M-row L2 book). THREE MOVEMENTS:
+Cold and tape-first: **ignore what the desk did mid-week**; start from the raw L1/L2 tape and ask where the money was and whether we showed up. **MNQ-led but now two-symbol**, and deep (our tape + 58.9M-row L2 book). Movement 1 runs a census for
+MNQ **and** MGC; the greenfield movement includes a dedicated gold hunt (`gf_MGC`). THREE MOVEMENTS:
 
 **Movement 1 — the full runs census (the long table).** Tool: `scripts/run_census.py`. Every 15-min move ≥ **1.5× MNQ's typical range** — the FULL census, EVERY run, **never a top-N** (07-17 wrongly showed top-30 of 207 — do not repeat). Columns per run: `time · dir · move(pt) · $ 1-lot ceiling · us (caught/FOUGHT/sat) · GATE · real$ · flow (net aggressor) · pre-run amp% · L2 book (far-side depletion) · cause-cluster`. Then: the **cause-cluster taxonomy** (VACUUM / FLOW-LED / OPEN-NEWS / UNCLASS) with a per-cluster caught/fought/sat + ceiling-$ table; the **pre-run signal funnel** (rvol/atr%/vwap-dist/vwap-slope by cluster) with the honest-null callout when the tape doesn't lead; the **per-run L2 book read** (did depth telegraph the move?); and the **ceiling-vs-honest-money reconciliation** (caught N → +$X of $Y ceiling = conversion%; fought → wash; sat-out → $0 = the money on the table), tied to the actual gate.
 

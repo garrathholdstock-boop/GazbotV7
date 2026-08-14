@@ -115,17 +115,55 @@ reasoning are in the doc:
 - **Every shadow sim has a permanent number** — `scripts/sim_registry.py [--stats|--id N|--match X]`.
   Open Rider 54–57, grind k30 58–59, drift-gated Open Rider 60–63.
 
-## ★★ THE BOX IS 7.5GB — the report build will OOM it (2026-08-08)
+## ★★★ THE FRIDAY REPORT — rebuilt 2026-08-13. It had NEVER completed unattended.
 
-Three `global_oom` kills in 12h, each a headless `claude` past 6.5GB (two were the operator's own
-tmux sessions). It presents as **"everything keeps exiting."** Guarded: the report unit is capped
-(`MemoryMax=4G`) so it OOMs *itself* rather than triggering a global kill that picks a victim at
-random, and the trading path carries `OOMScoreAdjust=-500`.
-⚠ The cap converts a machine-wide outage into a single job failure; it does **not** make the job
-finish. The real fix is checkpointing — a fresh process per movement would stay flat in memory.
+Three consecutive Fridays, three different causes, zero REV2 reports without hand-finishing:
+07-31 claude exited 0 after 28min having only DESCRIBED the plan · 08-07 rc=1 in 11min (the CLI began
+requiring `--verbose` with stream-json) · 08-07 retry OOM-killed at 6.46GB, two manual continuations
+died at 6.76 and 7.31GB, the last **four minutes before folding REV2 in**; finished BY HAND 13:55 Sat.
+
+**★ ONE PHASE, ONE PROCESS** (`scripts/friday/serial_runner.py`). The old driver ran all 17 phases
+inside ONE session so RSS only grew. A fresh `claude -p` per phase stays FLAT (~2.3GB observed), and
+**the artifact on disk is the checkpoint** — a re-run resumes, it does not restart. No `Workflow` or
+`Agent` in the allowlist: every sub-agent a phase cannot spawn is memory it cannot consume.
+**Judge on the ARTIFACT, never the exit code** — 07-31 exited 0 having built nothing.
+
+**★ THE TAIL IS RESERVED.** `assemble → proofread → rev2 → final` is serial, runs LAST, and is
+therefore what always got lost. It now holds a **200-minute reserve** and optional sections are
+dropped to protect it: you lose a greenfield cluster, never the revision.
+
+| | |
+|---|---|
+| window | Fri 22:07Z → **Sat 05:15Z = 07:15 Paris** (operator needs it by 08:00; 06:30Z was 30 min LATE) |
+| memory | `MemoryHigh=4.5G / MemoryMax=5.5G / MemorySwapMax=2G` **in a systemd DROP-IN, not the unit file** |
+| preflight | auth checked in 20s at 22:07 and PAGES — an expired token is the 08-07 failure exactly |
+| resume | `PYTHONPATH=src scripts/friday/serial_runner.py` — finished artifacts are skipped |
+
+⚠ The old 4G+1G ceiling was **never survivable**: 5,120MB effective against a 7,310MB observed peak.
+It protected the box and guaranteed the report died. 5.5G+2G = 7,680MB clears it; `MemoryHigh`
+throttles into swap first so the job SLOWS instead of dying. **Revert to 3G/4G/1G if this ever runs
+with the market open** — at these limits report + desk exceeds physical RAM.
+⚠ Staleness is measured against the report window (most recent Friday 22:00Z). "Artifact exists" alone
+is not a checkpoint — last week's files are still on disk and would publish last week twice.
+
+**★★ THE DATA CONTRACT is in `PRE`, so all 17 phases inherit it** (`scripts/friday/friday_phases.py`):
+both symbols · capture.db's 5-day window vs the lake · **$1.50/RT** · MNQ $2/pt vs **MGC $10/pt** · the
+V5 archive on B2 · where MGC L2 lives. Before it, three prompts said "backtest on capture.db" (silently
+5 days) and one said **"$5/round-trip"** — 3.3× the true fee, which does not look wrong, it just kills
+marginal edges and reports a confident NULL.
+
+**★★ GOLD IS THE NEW LINE OF ENQUIRY.** `run_census.py --symbol` now covers MGC (74 runs ≥1.5×ATR last
+week vs MNQ's 72) and phase **`gf_MGC` runs 7th, AHEAD of the MNQ clusters** so it is not what gets cut.
+Operator's brief, all four constraints pinned in the prompt: gates **INVENTED FRESH** (no porting or
+re-tuning any of the six MNQ gates) · target is a **2×2 {momentum,reversion}×{long,short}** · the
+**full exit matrix** (tight-R scalp, wide chandelier, dual-slot A+B, time cap) · and **assume the
+router benches it** — score on its HOME regime and name the router rule, never blanket. Thin n is a
+SHADOW ARM, never a kill and never a live promotion; the goal is proof over weeks in shadow.
+
 ⚠ `gazbot7-core` and `gazbot7-strategy` are `disabled` and have **NEVER started** — vestigial. The
-desk is `gazbot7-tournament`. `sweep.py` reporting "restarts core: 0" for a unit that has never run
-is false comfort.
+desk is `gazbot7-tournament`. `sweep.py` reporting "restarts core: 0" for a unit that never ran is
+false comfort. And the box is 7.5GB: three `global_oom` kills on 08-08, two of them the operator's own
+tmux sessions. It presents as "everything keeps exiting."
 
 ## ★★★ STANDING METHOD TRAPS — check for these in ANY number you are given
 
@@ -207,6 +245,8 @@ double-fire. Prompts for the headless-Claude jobs live in `ops/job_prompts/*.md`
 | `gazbot7-claude-job@nightly-review.timer` `22:43 Mon-Fri` | grind-exit shadow + router/selector review, split by desk |
 | `gazbot7-claude-job@sunday-ramp.timer` `Sun 20..23:09` | pre-open / reopen ramp |
 | `gazbot7-nightly-supervisor.timer` `21:40` | **★2026-08-13** verify-and-repair. Checks timers actually FIRED (not merely active), the router is deciding, jobs have recent run records, and the mirror/prune interlock. Restarts only a unit that is enabled, down, **and while flat**. Deliberately NOT a reboot, and NOT at 22:00 (that is the reopen). |
+| `gazbot7-data-inventory.timer` `4-hourly :37` | **★2026-08-13** local DBs + all four B2 remotes with freshness → `data/data_status.json`. Pages critical on staleness. The slow network scan lives here so a session start reads it instantly. |
+| `gazbot7-friday-report.timer` `Fri 22:07` | the weekly report — serial runner, 8h cap, deadline 05:15Z. See the Friday section above. |
 | `gazbot7-nightly-audit.timer` `21:30` | `claim_audit.py` + `nipc_replay.py`, inside the CME halt. |
 | `gazbot7-gate-reactivate.timer` `22:00 = 00:00 Paris` | **⚠ arms EVERY `=off` gate.** A bench in `gate_switches.env` therefore only lasts until 22:00 — a longer hold must go in `reactivate_gates.py::HOLD` (currently `nipc_long`, `nipc_short`, `rgv_short`). |
 
