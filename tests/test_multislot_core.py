@@ -6,11 +6,37 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 
+from dataclasses import replace
+
 from gazbot7.config import RunConfig
 from gazbot7.multislot_core import EXIT_REFIRE_MAX, EXIT_STUCK_CYCLES, MultiSlotCore
 from gazbot7.safety import SafetyManager
 from gazbot7.slotbook import SlotBook
 from gazbot7.store import Fill, get_slot_positions, get_trades, open_store
+
+
+def _cfg(**kw):
+    """RunConfig for the order-mechanics tests in this file.
+
+    ★★2026-08-14 `no_open_asia=False` IS LOAD-BEARING — it is what makes this file's result
+    independent of the clock, and it is not a convenience. The production default is True
+    (config.py:135) and the guard in `_open()` calls `session.in_asia_block(datetime.now(UTC))`
+    against the REAL wall clock, so with that default every test here that opens a position PASSES
+    from 07:00 UTC and FAILS between 00:00 and 07:00: no order reaches the engine and the `_open`
+    helper dies on `eng.orders[-1]` with a bare IndexError that names nothing.
+
+    It shipped with the Asia bench on 08-05 and hid for nine days because the suite is normally run
+    in Paris working hours. It surfaced at 06:56Z on 08-14 as 37 failures in a file that had not
+    been touched — which is the worst way to meet it, because it reads as a fresh regression in the
+    execution core on the morning of a report build.
+
+    A suite whose answer depends on WHEN you ask it is the instrument failure this desk keeps
+    meeting: the test was not checking the thing it appeared to check. The session policy loses no
+    coverage here — `in_asia_block` has its own table test in test_day_rider.py, and the guard's
+    WIRING into the order path is now pinned deterministically by the three `test_asia_block_*`
+    tests at the end of this file, which fake the clock instead of waiting for it.
+    """
+    return replace(RunConfig(place_live=True, no_open_asia=False), **kw)
 
 
 class FakeEngine:
@@ -59,7 +85,7 @@ def _core():
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
     sbrokers = {g: FakeStopBroker(tag=g+"-") for g in GATES}
     safeties = {g: SafetyManager(sbrokers[g]) for g in GATES}
-    core = MultiSlotCore(RunConfig(place_live=True), eng, sb, safeties, FakePub(), store)
+    core = MultiSlotCore(_cfg(), eng, sb, safeties, FakePub(), store)
     # ★2026-08-07 unit tests must NOT read the LIVE day_rider_state.json. DR_STATE defaults to the
     # production path, so without this every test silently inherits whatever the real day-rider is
     # holding right now — two of these tests failed exactly that way when the shared-account
@@ -74,7 +100,7 @@ def _restart(store):
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
     sbrokers = {g: FakeStopBroker(tag=g + "-") for g in GATES}
     safeties = {g: SafetyManager(sbrokers[g]) for g in GATES}
-    core = MultiSlotCore(RunConfig(place_live=True), eng, sb, safeties, FakePub(), store)
+    core = MultiSlotCore(_cfg(), eng, sb, safeties, FakePub(), store)
     core.DR_STATE = "/nonexistent/day_rider_state.json"      # same isolation as _core()
     return core, eng, sb, sbrokers
 
@@ -466,7 +492,7 @@ def test_audit_loop_survives_a_cycle_exception_and_pages_once():
     store = open_store(":memory:")
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
     safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
-    core = MultiSlotCore(RunConfig(place_live=True), FakeEngine(), sb, safeties, FakePub(), store,
+    core = MultiSlotCore(_cfg(), FakeEngine(), sb, safeties, FakePub(), store,
                          notifier=msgs.append)
 
     async def boom(_gw):
@@ -491,11 +517,10 @@ def test_audit_stale_gates_the_watchdog():
 
 
 def test_audit_age_grows_when_cycles_fail_and_resets_on_success():
-    from dataclasses import replace as _replace
     store = open_store(":memory:")
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
     safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
-    core = MultiSlotCore(_replace(RunConfig(place_live=True), store_path=":memory:"),
+    core = MultiSlotCore(_cfg(store_path=":memory:"),
                          FakeEngine(), sb, safeties, FakePub(), store)
     # never-run loop → audit_age is None (don't false-CRIT a dry/pre-start desk)
     assert core._last_audit_ok_mono is None
@@ -509,12 +534,11 @@ def test_audit_age_grows_when_cycles_fail_and_resets_on_success():
 
 def test_write_heartbeat_carries_audit_age(tmp_path):
     import json as _json
-    from dataclasses import replace as _replace
     dbp = str(tmp_path / "gb.db")
     store = open_store(dbp)
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
     safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
-    core = MultiSlotCore(_replace(RunConfig(place_live=True), store_path=dbp),
+    core = MultiSlotCore(_cfg(store_path=dbp),
                          FakeEngine(), sb, safeties, FakePub(), store)
     core.write_heartbeat(conn="HEALTHY", healthy=True)
     h = _json.loads((tmp_path / "core_health.json").read_text())
@@ -527,13 +551,12 @@ def test_write_heartbeat_carries_audit_age(tmp_path):
 
 def test_write_heartbeat_reflects_flatness_and_held_slots(tmp_path):
     import json
-    from dataclasses import replace
     dbp = str(tmp_path / "gb.db")
     store = open_store(dbp)
     eng = FakeEngine()
     sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
     safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
-    cfg = replace(RunConfig(place_live=True), store_path=dbp)
+    cfg = _cfg(store_path=dbp)
     core = MultiSlotCore(cfg, eng, sb, safeties, FakePub(), store)
 
     core.write_heartbeat(conn="HEALTHY", healthy=True)
@@ -696,3 +719,72 @@ def test_reconcile_ignores_a_flat_or_garbled_day_rider(tmp_path):
     assert core.reconcile(-2.0) == "drift"
     core.DR_STATE = str(tmp_path / "nope.json")          # missing file
     assert core.reconcile(-2.0) == "drift"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ★★2026-08-14 THE ASIA BENCH, PINNED WITH A FAKE CLOCK.
+#
+# The guard (multislot_core._open, added 08-05) is the single funnel every tournament entry passes
+# through, and until now NOTHING tested that it was wired in — `session.in_asia_block` had a table
+# test, but whether `_open` actually consulted it did not. The only thing exercising the wiring was
+# the wall clock, silently, and it did so by BREAKING 37 unrelated tests between 00:00 and 07:00 UTC
+# rather than by asserting anything.
+#
+# These three fake the clock instead of waiting for it, so they mean the same thing at every hour.
+# They also pin the half of the policy that matters most to the operator and is the easiest to lose
+# in a refactor: NEW ENTRIES ONLY — an open position must still be able to get out during the block.
+# See CLAUDE.md session-time policy and [[session-time-blocks-mnq]].
+
+def _asia_core(monkeypatch, *, blocked: bool):
+    """A core with the PRODUCTION default (no_open_asia=True) and a forced clock verdict."""
+    from gazbot7 import session as _sess
+    monkeypatch.setattr(_sess, "in_asia_block", lambda _now: blocked)
+    store = open_store(":memory:")
+    eng = FakeEngine()
+    sb = SlotBook(list(GATES), value_per_point=2.0, fee_rt=1.5)
+    safeties = {g: SafetyManager(FakeStopBroker(tag=g + "-")) for g in GATES}
+    cfg = replace(RunConfig(place_live=True), no_open_asia=True)
+    core = MultiSlotCore(cfg, eng, sb, safeties, FakePub(), store)
+    core.DR_STATE = "/nonexistent/day_rider_state.json"
+    return core, eng, sb, store
+
+
+def _intent_open(core, slot, side, price, qty=1, atr=20.0):
+    asyncio.run(core.on_intents([{"action": "OPEN", "slot": slot, "gate": slot, "side": side,
+                                  "qty": qty, "price": price, "meta": {"entry_atr": atr}}]))
+
+
+def test_asia_block_refuses_new_opens(monkeypatch):
+    core, eng, sb, _st = _asia_core(monkeypatch, blocked=True)
+    _intent_open(core, "grind_long", "LONG", 29000.0)
+    assert eng.orders == [], "an entry was submitted inside the 00-07 UTC bench"
+    assert sb.slot("grind_long").is_flat
+
+
+def test_asia_block_lets_opens_through_outside_the_window(monkeypatch):
+    """The mirror case — without it, a guard that refuses EVERYTHING also passes the test above."""
+    core, eng, sb, _st = _asia_core(monkeypatch, blocked=False)
+    _intent_open(core, "grind_long", "LONG", 29000.0)
+    assert len(eng.orders) == 1 and eng.orders[-1]["side"] == "BUY"
+
+
+def test_asia_block_never_blocks_an_exit(monkeypatch):
+    """NEW ENTRIES ONLY. A position opened before the window must still exit inside it — the desk
+    holding a lot it cannot close because of a session policy is the failure this must never become.
+    """
+    core, eng, sb, store = _asia_core(monkeypatch, blocked=False)
+    _intent_open(core, "grind_long", "LONG", 29000.0)
+    _fill(core, eng.orders[-1]["coid"], "BUY", 1, 29000.0)
+    assert sb.slot("grind_long").net == 1.0
+
+    from gazbot7 import session as _sess
+    monkeypatch.setattr(_sess, "in_asia_block", lambda _now: True)   # the clock rolls into Asia
+    n_before = len(eng.orders)
+    asyncio.run(core.on_intents([{"action": "CLOSE", "slot": "grind_long", "gate": "grind_long",
+                                  "reason": "CHANDELIER"}]))
+    assert len(eng.orders) == n_before + 1, "the exit was suppressed by the Asia entry bench"
+    _fill(core, eng.orders[-1]["coid"], "SELL", 1, 29030.0)
+    assert sb.slot("grind_long").is_flat and len(get_trades(store)) == 1
+
+    _intent_open(core, "grind_long", "LONG", 29000.0)                # ...and entries stay benched
+    assert len(eng.orders) == n_before + 1
