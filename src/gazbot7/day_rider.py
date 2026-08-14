@@ -165,6 +165,52 @@ VPP = 2.0
 FEE_RT = 1.5
 
 
+async def await_fill(tr, fallback: float, *, what: str, notify=None, out: dict | None = None) -> float:
+    """Wait for a market order to fill and return THE PRICE THE VENUE GAVE US.
+
+    ★★★2026-08-14 THE BUG THIS FIXES. Every close path placed its order, slept a flat 2s, and then
+    booked `px` — the CURRENT MARKET PRICE — as the exit. So the ledger recorded the price we were
+    looking at, not the price we got. On 08-14 that booked 30085.00 against a fill of 30084.25: $3 of
+    a $437 trade, and only visible because `fills` had just started being captured
+    ([[day-rider-fills-gap-closed]]). $3 is small; the same bug in a fast market is not, and it is
+    unbounded — a market order in a gap can fill points away from the last print.
+
+    The ENTRY side already did this correctly (poll for Filled, read `avgFillPrice`, fall back to the
+    signal price). This is that pattern, shared, so the two sides of every round trip are sourced the
+    same way. Polling also replaces the blind 2s sleep: quicker when the fill is instant, more patient
+    when it is not.
+
+    `avgFillPrice` is the right field for a 2-lot order that fills in pieces — the average IS the
+    round-trip price.
+
+    ⚠ The fallback still exists, because refusing to book a trade we really made would be worse than
+    booking it a tick off. But it is now RECORDED (`exit_px_source`) and it PAGES, so a fallback
+    shows up as a known-suspect row instead of silently reintroducing the very divergence this
+    removes. `book_vs_fills` will flag it either way.
+    """
+    for _ in range(20):
+        await asyncio.sleep(0.5)
+        if tr.orderStatus.status == "Filled":
+            break
+    px = 0.0
+    try:
+        px = float(tr.orderStatus.avgFillPrice or 0.0)
+    except (TypeError, ValueError):
+        px = 0.0
+    if px > 0:
+        if out is not None:
+            out["exit_px_source"] = "fill"
+        return px
+    if out is not None:
+        out["exit_px_source"] = "FALLBACK:market"
+    if notify:
+        notify(f"⚠ DAY RIDER {what}: no fill price from the venue (status "
+               f"{getattr(tr.orderStatus, 'status', '?')!r}) — booking the market price "
+               f"{fallback:.2f} instead. This row will show a book-vs-fills divergence; the venue "
+               f"record in `fills` is the truth.", critical=True)
+    return float(fallback)
+
+
 def book_trade(out: dict, exit_px: float, reason: str, notify=None) -> None:
     """Write the closed round-trip to the trades table. Never raises: a booking failure must
     not stop a flatten from completing or a session from closing cleanly — the position is
@@ -628,8 +674,8 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                                f"but the sizing comes from a book that may be wrong. CHECK IBKR.",
                                critical=True)
                     from ib_async import MarketOrder
-                    ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                    await asyncio.sleep(2.0)
+                    _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                    _xpx = await await_fill(_tr, px, what="CLOCK_FLAT exit", notify=notify, out=out)
                     # ★ VERIFY, then let the minute cadence retry. A market order that does not fill
                     # is exactly why the flatten moved off the halt — silence here would carry the
                     # position overnight, which the operator has ruled out absolutely.
@@ -641,7 +687,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                         # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
                         await cancel_own_stops(ib, cfg.symbol, notify)
                         out["note"] = f"FLAT at the {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d} clock"
-                        book_trade(out, px, "CLOCK_FLAT", notify)
+                        book_trade(out, _xpx, "CLOCK_FLAT", notify)
                         if notify:
                             notify(f"DAY RIDER flat at the {FLAT_UTC_MIN//60:02d}:"
                                    f"{FLAT_UTC_MIN%60:02d} UTC clock ({v[0]} {v[1]})", critical=True)
@@ -677,6 +723,14 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 await cancel_own_stops(ib, cfg.symbol, notify)
                 out["note"] = ("venue FLAT at the clock but our book still held — booked at last "
                                "price and latched closed; someone else closed this position")
+                # ★2026-08-14 THE ONE CLOSE PATH THAT CANNOT SOURCE A FILL PRICE, and it is honest
+                # about it. The other four now book `avgFillPrice` from their own order (see
+                # await_fill); here the close was somebody ELSE'S execution — a venue stop, eod_flatten
+                # on clientId 6, another desk — so it is not in our executions and `record_own_fills`
+                # will never see it either. Marking it ESTIMATE means the book-vs-fills divergence this
+                # row produces is attributable rather than mysterious. Do NOT "fix" it by inventing a
+                # price: a missing row is worse than an approximate one, which is why this branch exists.
+                out["exit_px_source"] = "ESTIMATE:closed_elsewhere"
                 book_trade(out, px, "CLOSED_ELSEWHERE", notify)
                 if notify:
                     notify(f"⚠ DAY RIDER: venue was already FLAT at the {FLAT_UTC_MIN//60:02d}:"
@@ -746,8 +800,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                          if venue_first_ok(net, "exit on OPERATOR_SELL", notify) else None)
                     if v:
                         from ib_async import MarketOrder
-                        ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                        await asyncio.sleep(2.0)
+                        _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                        _xpx = await await_fill(_tr, px, what="OPERATOR_SELL exit",
+                                                notify=notify, out=out)
                         out["closed"] = True
                         out["exit_reason"] = "OPERATOR_SELL"
                         # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
@@ -759,10 +814,10 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                         # ASKING and the operator saying sell; MANUAL_CLAIM is the operator
                         # acting unprompted. claim_audit.py should be able to tell a prompted
                         # hand from an unprompted one — they are different skills.
-                        book_trade(out, px, "OPERATOR_SELL", notify)
+                        book_trade(out, _xpx, "OPERATOR_SELL", notify)
                         if notify:
-                            notify(f"DAY RIDER flat on your approval @ ~{px:.2f} "
-                                   f"({d*(px-entry):+.0f}pt from entry)", critical=True)
+                            notify(f"DAY RIDER flat on your approval @ {_xpx:.2f} "
+                                   f"({d*(_xpx-entry):+.0f}pt from entry)", critical=True)
                         save_state(out)
                         return out
                 elif dec == "hold":
@@ -817,17 +872,17 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                      if venue_first_ok(net, "exit on MANUAL_CLAIM", notify) else None)
                 if v:
                     from ib_async import MarketOrder
-                    ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                    await asyncio.sleep(2.0)
+                    _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                    _xpx = await await_fill(_tr, px, what="MANUAL_CLAIM exit", notify=notify, out=out)
                     out["closed"] = True
                     out["exit_reason"] = "MANUAL_CLAIM"
                     # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
                     # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
                     await cancel_own_stops(ib, cfg.symbol, notify)
-                    book_trade(out, px, "MANUAL_CLAIM", notify)
-                    out["note"] = f"claimed by operator at {px:.1f} ({d*(px-entry):+.0f}pt from entry)"
+                    book_trade(out, _xpx, "MANUAL_CLAIM", notify)
+                    out["note"] = f"claimed by operator at {_xpx:.1f} ({d*(_xpx-entry):+.0f}pt from entry)"
                     if notify:
-                        notify(f"DAY RIDER claimed @ {px:.1f} · {d*(px-entry):+.0f}pt from entry "
+                        notify(f"DAY RIDER claimed @ {_xpx:.1f} · {d*(_xpx-entry):+.0f}pt from entry "
                                f"(peak {peak:.1f})", critical=False)
                     save_state(out)
                     return out
@@ -850,15 +905,15 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                      if venue_first_ok(net, "exit on TRAIL", notify) else None)
                 if v:
                     from ib_async import MarketOrder
-                    ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                    await asyncio.sleep(2.0)
+                    _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                    _xpx = await await_fill(_tr, px, what="TRAIL exit", notify=notify, out=out)
                     out["closed"] = True
                     out["exit_reason"] = "TRAIL"
                     # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
                     # outlive every exit — see cancel_own_stops(). clientId-filtered: never the other desk's.
                     await cancel_own_stops(ib, cfg.symbol, notify)
                     out["note"] = f"trail hit at {tl:.1f} (peak {peak:.1f})"
-                    book_trade(out, px, "TRAIL", notify)
+                    book_trade(out, _xpx, "TRAIL", notify)
                     if notify:
                         notify(f"DAY RIDER trail exit @ {tl:.1f}, peak {peak:.1f}", critical=False)
             else:
