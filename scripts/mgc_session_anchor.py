@@ -203,7 +203,18 @@ def run(anchor_name: str, anchor_min: int, m: pd.DataFrame, ticks: pd.DataFrame,
             side = -side
         stop = entry - side * stop_atr * atr_v
         target = entry + side * target_r * stop_atr * atr_v if target_r else None
-        e_ms = int(etime.value // 10**6)
+        # ★★ RACE FROM THE TICK THAT ACTUALLY CROSSES, not from the bar's left edge. The break
+        # level is touched somewhere INSIDE the signal bar; starting at the bar's open replays ticks
+        # that happened BEFORE the entry existed, and any of them could spuriously trigger the stop
+        # or the target. Find the crossing tick and start there.
+        b0 = int(etime.value // 10**6)
+        b1 = b0 + 60_000
+        w0, w1 = np.searchsorted(tk_all, b0), np.searchsorted(tk_all, b1)
+        seg = px_all[w0:w1]
+        hit = (np.nonzero(seg >= entry)[0] if side > 0 else np.nonzero(seg <= entry)[0])
+        if len(hit) == 0:
+            continue                      # the level was never actually traded inside the bar
+        e_ms = int(tk_all[w0 + hit[0]])
         j = np.searchsorted(tk_all, e_ms)
         k = np.searchsorted(tk_all, e_ms + cap_min * 60000 + 1)
         xp, why, mins = race(tk_all[j:k], px_all[j:k], side, entry, stop, target,
