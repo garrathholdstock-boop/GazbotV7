@@ -194,3 +194,77 @@ def test_atr_trail_mirrors_for_a_short():
     from gazbot7.day_rider import trail_level
     tl = trail_level(-1, 100.0, 100.0 - 81.0, 20.0)            # 81pt ahead on a short
     assert tl is not None and tl == 19.0 + 2.0 * 20.0          # trail sits ABOVE the peak
+
+
+# ── the "not mine" alarm is said ONCE, not on every tick ─────────────────────
+def _unowned_rig(tmp_path, monkeypatch, net=-2.0):
+    """A rider tick that finds an unowned position on the venue, with every I/O redirected."""
+    import asyncio
+
+    from gazbot7 import notify as _notify
+
+    monkeypatch.setattr(dr, "STATE", str(tmp_path / "rider.json"))
+    monkeypatch.setattr(_notify, "_DEDUPE_PATH", str(tmp_path / "dedupe.json"))
+    monkeypatch.setattr(dr, "enabled", lambda: True)
+
+    class _IB:
+        def disconnect(self):
+            pass
+
+    async def _venue(_cfg):
+        return _IB(), object()
+
+    async def _net(_ib, _sym):
+        return _net.value
+    _net.value = net
+
+    monkeypatch.setattr(dr, "_venue", _venue)
+    monkeypatch.setattr(dr, "_net_position", _net)
+
+    sent = []
+    # 08:00 UTC — before OPEN_UTC_MIN, so the stand-down branch is reached, exactly as it is on
+    # every real tick all morning.
+    when = dt.datetime(2026, 8, 14, 8, 0, tzinfo=dt.UTC)
+
+    def tick(minutes=0, net_now=None):
+        if net_now is not None:
+            _net.value = net_now
+        asyncio.run(dr.step(dr.RunConfig(), now=when + dt.timedelta(minutes=minutes),
+                            notify=lambda m, **k: sent.append(m)))
+    return tick, sent
+
+
+def test_unowned_position_alarms_once_not_every_tick(tmp_path, monkeypatch):
+    """★★2026-08-14 THE OPERATOR-FACING BUG. Standing down is CORRECT, but this branch is reached on
+    every tick outside the rider's window, so it repeated on Telegram for hours while desk_reconcile
+    independently confirmed the account was fully accounted for. Telegram is where CRITICAL alarms
+    land — steady state must be silent so that change is loud."""
+    tick, sent = _unowned_rig(tmp_path, monkeypatch)
+    for m in range(30):                      # half an hour of 60s ticks
+        tick(m)
+    assert len(sent) == 1, f"the stand-down alarm repeated {len(sent)}x over 30 ticks"
+    assert "NOT mine" in sent[0] and "NOT flattening" in sent[0]
+
+
+def test_a_resize_stays_quiet_but_a_direction_flip_speaks(tmp_path, monkeypatch):
+    """The signature carries direction + ownership, never magnitude: the tournament scales in and
+    out all session and the rider's decision is identical at -1 or -2 (size correctness is the
+    reconciler's job). Observed live at 12:12Z, where keying on the message re-alarmed on -2 -> -1."""
+    tick, sent = _unowned_rig(tmp_path, monkeypatch, net=-2.0)
+    tick(0)
+    tick(1, net_now=-1.0)                    # tournament closed a lot
+    tick(2, net_now=-4.0)                    # ...and opened two more
+    assert len(sent) == 1, f"a resize re-alarmed: {sent}"
+    tick(3, net_now=+2.0)                    # a FLIP is genuinely different news
+    assert len(sent) == 2
+
+
+def test_going_flat_rearms_so_the_next_occurrence_is_not_swallowed(tmp_path, monkeypatch):
+    """A cooldown must suppress a CONTINUING state, never a fresh occurrence of one."""
+    tick, sent = _unowned_rig(tmp_path, monkeypatch, net=-2.0)
+    tick(0)
+    assert len(sent) == 1
+    tick(1, net_now=0.0)                     # venue flat -> condition resolved, key cleared
+    assert len(sent) == 1                    # nothing to say about a flat venue
+    tick(2, net_now=-2.0)                    # it came back: this is NEW, and must be heard
+    assert len(sent) == 2, "a new occurrence was swallowed by the running cooldown"

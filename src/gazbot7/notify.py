@@ -82,7 +82,7 @@ def _dedupe_load(path: str) -> dict:
 
 
 def dedupe_ok(key: str, message: str, *, cooldown_s: float = 3600.0,
-              now: datetime | None = None, path: str = _DEDUPE_PATH) -> bool:
+              now: datetime | None = None, path: str | None = None) -> bool:
     """Should this (key, message) be sent now? Records the send when it returns True.
 
     Sends when the key is new, when the MESSAGE TEXT changed (so a position going -2 → -4 alarms
@@ -96,6 +96,10 @@ def dedupe_ok(key: str, message: str, *, cooldown_s: float = 3600.0,
     the cooldown then expires normally and the next tick retries, which is the desired behaviour for
     a steady-state condition.
     """
+    # ★ Resolve the path at CALL time, never as a default arg — a default binds at def
+    # time, so a test (or a redirected data dir) could not override it and would silently
+    # read and write the PRODUCTION store. Same trap already caught in deskrecon.
+    path = path or _DEDUPE_PATH
     try:
         now = now or datetime.now(UTC)
         ts = now.timestamp()
@@ -115,13 +119,14 @@ def dedupe_ok(key: str, message: str, *, cooldown_s: float = 3600.0,
         return True                               # FAIL OPEN. Never lose an alarm to bookkeeping.
 
 
-def dedupe_clear(key: str, *, path: str = _DEDUPE_PATH) -> None:
+def dedupe_clear(key: str, *, path: str | None = None) -> None:
     """Forget `key`, so the condition re-arms and alarms immediately if it returns.
 
     Call this the moment the condition RESOLVES. Without it a condition that clears and comes back
     inside the cooldown would be silently swallowed — the cooldown is meant to suppress a continuing
     state, never a new occurrence of one.
     """
+    path = path or _DEDUPE_PATH
     try:
         store = _dedupe_load(path)
         if key in store:
