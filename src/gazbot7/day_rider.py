@@ -51,6 +51,7 @@ import os
 
 from .config import RunConfig
 from .drift import OPEN_UTC_MIN, read as drift_read
+from .notify import dedupe_clear, dedupe_ok
 from .safety import own_flatten_verdict, safe_flatten_verdict
 
 log = logging.getLogger("day_rider")
@@ -96,6 +97,14 @@ HALT_UTC_MIN = 21 * 60             # the venue closes here; nothing can be done 
 # fallback whenever the frozen entry ATR is unavailable.
 USE_ATR_TRAIL = True
 ARM_ATR_MULT = 4.0                 # arm the trail once this many ATR ahead
+
+# ★2026-08-14 repeat-suppression for the "not mine, standing down" alarm. SIX HOURS because the
+# condition is a normal shared-account steady state that persists for the whole pre-open stretch —
+# the tournament may hold from the 22:00 reopen until the 13:30 cash open. A size change re-alarms
+# immediately regardless (the message carries `net`), and the key is CLEARED the moment the venue
+# goes flat, so a NEW occurrence is never swallowed by a running cooldown.
+_UNOWNED_KEY = "day_rider.unowned_venue_net"
+_UNOWNED_COOLDOWN_S = 6 * 3600
 TRAIL_ATR_MULT = 2.0               # then trail this many ATR off the peak
 ARM_PT = 150.0                     # fallback: trail arms once this far ahead
 TRAIL_PT = 100.0
@@ -477,13 +486,33 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         # the tag that says which owner it belongs to.
         owns_position = bool(out.get("entered")) and not bool(out.get("closed"))
         if mod >= FLAT_UTC_MIN or mod < OPEN_UTC_MIN:
+            # Re-arm the moment the condition RESOLVES — the venue went flat, or the position became
+            # ours. A cooldown must suppress a CONTINUING state, never a fresh occurrence of one.
+            if not (abs(net) > 1e-9 and not owns_position):
+                dedupe_clear(_UNOWNED_KEY)
             if abs(net) > 1e-9 and not owns_position:
                 out["note"] = (f"venue holds {net:g} the day-rider did NOT open "
                                f"(entered={out.get('entered')}) — left alone, not mine")
-                if notify:
-                    notify(f"DAY RIDER: venue holds {net:g} MNQ that is NOT mine "
-                           f"(entered={out.get('entered')}). Leaving it to its owner — the "
-                           f"tournament shares this account. NOT flattening.", critical=False)
+                # ★★2026-08-14 SAY IT ONCE. This branch is reached on EVERY tick outside the rider's
+                # window — `mod < OPEN_UTC_MIN` is true all morning — so whenever the tournament held
+                # a position before 13:30 the operator got this same message every minute for hours.
+                # Standing down is CORRECT and fully reconciled (desk_reconcile confirms
+                # `venue = tournament + rider, unaccounted +0` every 30s); repeating it is what
+                # turned the alarm channel into noise. The text carries `net`, so a SIZE CHANGE
+                # re-alarms at once — only an unchanging state goes quiet.
+                _msg = (f"DAY RIDER: venue holds {net:g} MNQ that is NOT mine "
+                        f"(entered={out.get('entered')}). Leaving it to its owner — the "
+                        f"tournament shares this account. NOT flattening.")
+                # ★ DEDUPE ON THE SITUATION, NOT THE SIZE. The signature deliberately drops the
+                # magnitude: the tournament scales in and out all session, and the rider's decision
+                # is identical at -1 or -2, so keying on `net` would re-alarm on every lot it opened
+                # or closed (observed live at 12:12Z, -2 → -1). Size correctness is the RECONCILER's
+                # job — it checks `venue == tournament + rider` every 30s and pages on an
+                # unaccounted lot. What is news here is only that an unowned position EXISTS, so a
+                # direction flip re-alarms and a resize does not. The message still shows live size.
+                _sig = f"unowned {'SHORT' if net < 0 else 'LONG'} present, entered={out.get('entered')}"
+                if notify and dedupe_ok(_UNOWNED_KEY, _sig, cooldown_s=_UNOWNED_COOLDOWN_S):
+                    notify(_msg, critical=False)
             elif abs(net) > 1e-9:
                 # Size the hard flat from OUR OWN book too (same shared-account reasoning as the
                 # exits below). The one deliberate exception in this file: if our own book is

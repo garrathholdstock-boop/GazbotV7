@@ -121,11 +121,17 @@ async def run(dry: bool) -> int:
             log(f"ALARM position {net} unmanaged ({why}) but day-rider state says it is NOT ours "
                 f"(entered={_st.get('entered')}, closed={_st.get('closed')}) — NOT acting")
             try:
-                from gazbot7.notify import notify
-                notify(f"⚠ DAY RIDER WATCHDOG: venue holds {net} MNQ and the day-rider is unmanaged "
+                # ★2026-08-14 deduped for the same reason as day_rider.py's twin message: this is a
+                # 60s oneshot, so a standing unowned position would repeat a CRITICAL every minute
+                # until someone acted. Cooldown is much shorter than the rider's 6h — this fires only
+                # when the rider is ALSO unmanaged, which is a genuinely odd state worth re-stating —
+                # and the text carries `net`, so a size change re-alarms immediately.
+                from gazbot7.notify import dedupe_ok, notify
+                msg = (f"⚠ DAY RIDER WATCHDOG: venue holds {net} MNQ and the day-rider is unmanaged "
                        f"({why}), but that position is NOT the day-rider's. NOT flattening — it "
-                       f"belongs to another desk on this account. Check the tournament.",
-                       critical=True)
+                       f"belongs to another desk on this account. Check the tournament.")
+                if dedupe_ok("day_rider_watchdog.unowned_unmanaged", msg, cooldown_s=1800):
+                    notify(msg, critical=True)
             except Exception:
                 pass
             return 0
