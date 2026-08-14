@@ -360,6 +360,82 @@ def load_state() -> dict:
         return {}
 
 
+async def record_own_fills(ib, symbol: str = "MNQ", *, db_path: str | None = None) -> int:
+    """Write THIS DESK'S venue executions into the shared `fills` table. Returns rows newly added.
+
+    ★★★2026-08-14 THE GAP THIS CLOSES. The `fills` table held 1,437 executions going back to 07-16
+    and **not one of them was the day-rider's** — every order_id was `v7-mnq-*` or `stp-*`, i.e. the
+    tournament's. Nine rider trades were booked in `trades` with no execution record behind them at
+    all. So the one desk that malfunctioned was the one desk with no venue record.
+
+    That is what made 2026-08-13 take hours to reconstruct by hand, and it left a permanent hole:
+    IBKR's `reqExecutions` only reaches back ~24h, so once that window closed the rider's history
+    became BOOKS-ONLY — the exact thing the operator's standing rule forbids relying on
+    ("ibkr is the truth ... never rely on our books. ever."). Today the naked-8-lot cost of 08-13
+    still cannot be derived from anything on this box; it can only be inferred from a total.
+
+    Design notes that are load-bearing:
+    * **Venue-first.** This records what IBKR SAYS HAPPENED, not what we believe we sent. The
+      rider's `trades` row carries a COMPUTED exit price and today it was 0.75pt off the real fill
+      (booked 30085.00, filled 30084.25 — $3 of a $437 trade). A fill record is the only thing that
+      can ever catch that.
+    * **clientId-FILTERED.** A master API client id is configured, so this connection can see the
+      tournament's executions too. Recording those here would attribute another desk's fills to the
+      rider — the same shared-resource-without-the-owner-tag mistake as the 08-06 flatten and the
+      MD_STREAM incident. Only our own clientId is ours to record.
+    * **Idempotent + fail-quiet.** `record_fill` conflicts on IBKR's execId, so re-observing the
+      same executions every minute is free. Any error is swallowed: a bookkeeping failure must
+      NEVER break the order path.
+    """
+    try:
+        from ib_async import ExecutionFilter
+
+        from . import store as _store
+        from .store import Fill, record_fill
+
+        rows = await ib.reqExecutionsAsync(ExecutionFilter())
+    except Exception:
+        log.warning("record_own_fills: could not read executions", exc_info=True)
+        return 0
+
+    added = 0
+    conn = None
+    try:
+        conn = _store.open_store(db_path or DB_PATH)
+        for r in rows:
+            ex = getattr(r, "execution", None)
+            if ex is None or getattr(r.contract, "symbol", None) != symbol:
+                continue
+            if int(getattr(ex, "clientId", -1)) != CLIENT_ID:
+                continue                       # not ours — see the clientId note above
+            comm = 0.0
+            cr = getattr(r, "commissionReport", None)
+            if cr is not None and getattr(cr, "commission", None):
+                try:
+                    comm = float(cr.commission)
+                except (TypeError, ValueError):
+                    comm = 0.0
+            added += bool(record_fill(conn, Fill(
+                exec_id=ex.execId,
+                order_id=f"rider-{ex.orderId}",   # never collides with v7-mnq-* / stp-*
+                symbol=symbol,
+                side="BUY" if ex.side == "BOT" else "SELL",
+                qty=float(ex.shares),
+                price=float(ex.price),
+                exec_time=r.time.isoformat(),
+                commission=comm,
+            )))
+    except Exception:
+        log.warning("record_own_fills: could not write fills", exc_info=True)
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+    return added
+
+
 def save_state(d: dict) -> None:
     """★ THE HEARTBEAT IS A CLAIM THAT SOMEONE IS MANAGING THE POSITION, so callers must set
     `venue_ok` honestly. Discovered live: a clientId collision made the venue connection fail, step()
@@ -468,6 +544,13 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         # the other. Now every read is stamped with venue_net_ts and nothing has to infer it.
         out["venue_net"] = net
         out["venue_net_ts"] = dt.datetime.now(dt.UTC).isoformat()
+
+        # ★★2026-08-14 CAPTURE OUR EXECUTIONS ON EVERY TICK, before any branch decides anything.
+        # Placed here deliberately: every path below this point either returns early or acts, and
+        # the fills record must not depend on WHICH path ran — including the stand-down path, where
+        # a position exists that we did not open. It is idempotent (conflicts on IBKR's execId) so a
+        # per-minute re-read costs nothing, and fail-quiet so bookkeeping can never block an order.
+        await record_own_fills(ib, cfg.symbol)
 
         # ── 1. THE HARD FLAT. Runs before anything else — but ONLY on a position WE OPENED. ──
         # ★2026-08-06 INCIDENT — this branch used to flatten the ACCOUNT net without asking whose
