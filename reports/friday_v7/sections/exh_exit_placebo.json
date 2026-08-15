@@ -1,0 +1,86 @@
+{
+ "stop 1.5xATR / target 2.0R / 15min cap": {
+  "real_entries": 3465.48,
+  "real_exits": {
+   "TARGET": 22,
+   "STOP": 31,
+   "TIME": 34
+  },
+  "draws": 60,
+  "mean": -2.3,
+  "median": 3.02,
+  "p05": -1683.31,
+  "p95": 2350.83,
+  "min": -2780.93,
+  "max": 3038.82,
+  "real_pctile": 100.0,
+  "entry_alpha": 3467.78
+ },
+ "stop 1.5xATR / target 0.75R / 15min cap": {
+  "real_entries": 1860.92,
+  "real_exits": {
+   "TARGET": 59,
+   "STOP": 25,
+   "TIME": 3
+  },
+  "draws": 60,
+  "mean": -294.31,
+  "median": -327.74,
+  "p05": -1420.27,
+  "p95": 1297.36,
+  "min": -2586.43,
+  "max": 1524.57,
+  "real_pctile": 100.0,
+  "entry_alpha": 2155.23
+ },
+ "stop 1.0xATR / target 0.75R / 15min cap": {
+  "real_entries": -186.04,
+  "real_exits": {
+   "STOP": 37,
+   "TARGET": 50
+  },
+  "draws": 60,
+  "mean": -420.67,
+  "median": -432.72,
+  "p05": -1367.59,
+  "p95": 738.58,
+  "min": -1697.84,
+  "max": 883.76,
+  "real_pctile": 65.0,
+  "entry_alpha": 234.63
+ },
+ "stop 20pt / target 24pt / hold 300": {
+  "real_entries": 336.0,
+  "real_exits": {
+   "STOP": 32,
+   "TARGET": 36,
+   "TIME": 19
+  },
+  "draws": 60,
+  "mean": -253.66,
+  "median": -183.75,
+  "p05": -1208.0,
+  "p95": 910.5,
+  "min": -1636.5,
+  "max": 1204.0,
+  "real_pctile": 85.0,
+  "entry_alpha": 589.66
+ },
+ "stop 8pt / target 12pt / hold 120": {
+  "real_entries": -245.5,
+  "real_exits": {
+   "STOP": 46,
+   "TARGET": 31,
+   "TIME": 10
+  },
+  "draws": 60,
+  "mean": -251.53,
+  "median": -232.5,
+  "p05": -697.0,
+  "p95": 154.5,
+  "min": -854.5,
+  "max": 182.0,
+  "real_pctile": 46.7,
+  "entry_alpha": 6.03
+ }
+}

@@ -1,0 +1,1204 @@
+{
+ "cells": [
+  {
+   "stop_k": 0.5,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": -55.93,
+   "per_trade": -0.64,
+   "win_pct": 52.9,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 46,
+    "STOP": 41
+   },
+   "lodo_worst": -327.88,
+   "strip3": -319.79,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -283.32
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 312.56,
+   "per_trade": 3.59,
+   "win_pct": 43.7,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 38,
+    "STOP": 49
+   },
+   "lodo_worst": 25.15,
+   "strip3": -87.73,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -256.12
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": -26.43,
+   "per_trade": -0.3,
+   "win_pct": 35.6,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 31,
+    "STOP": 56
+   },
+   "lodo_worst": -249.49,
+   "strip3": -439.75,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -235.94
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": 258.06,
+   "per_trade": 2.97,
+   "win_pct": 33.3,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 29,
+    "STOP": 58
+   },
+   "lodo_worst": -37.72,
+   "strip3": -260.84,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -235.94
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": 159.99,
+   "per_trade": 1.84,
+   "win_pct": 28.7,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 25,
+    "STOP": 62
+   },
+   "lodo_worst": -69.22,
+   "strip3": -428.91,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -235.94
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 362.68,
+   "per_trade": 4.17,
+   "win_pct": 25.3,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 22,
+    "STOP": 65
+   },
+   "lodo_worst": -138.98,
+   "strip3": -361.92,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -235.94
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 592.3,
+   "per_trade": 6.81,
+   "win_pct": 25.3,
+   "time_exits": 4,
+   "exits": {
+    "TARGET": 18,
+    "STOP": 65,
+    "TIME": 4
+   },
+   "lodo_worst": -62.41,
+   "strip3": -181.2,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -235.94
+  },
+  {
+   "stop_k": 0.5,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 501.72,
+   "per_trade": 5.77,
+   "win_pct": 24.1,
+   "time_exits": 7,
+   "exits": {
+    "TARGET": 14,
+    "STOP": 66,
+    "TIME": 7
+   },
+   "lodo_worst": -214.86,
+   "strip3": -372.48,
+   "days_green": 5,
+   "days": 12,
+   "worst_day": -235.94
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": -337.53,
+   "per_trade": -3.88,
+   "win_pct": 59.8,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 52,
+    "STOP": 35
+   },
+   "lodo_worst": -600.32,
+   "strip3": -601.39,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -301.78
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 90.86,
+   "per_trade": 1.04,
+   "win_pct": 51.7,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 45,
+    "STOP": 42
+   },
+   "lodo_worst": -159.96,
+   "strip3": -309.43,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -279.54
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": -478.16,
+   "per_trade": -5.5,
+   "win_pct": 42.5,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 37,
+    "STOP": 50
+   },
+   "lodo_worst": -671.81,
+   "strip3": -891.48,
+   "days_green": 5,
+   "days": 12,
+   "worst_day": -279.05
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": -195.5,
+   "per_trade": -2.25,
+   "win_pct": 39.1,
+   "time_exits": 1,
+   "exits": {
+    "TARGET": 34,
+    "STOP": 52,
+    "TIME": 1
+   },
+   "lodo_worst": -461.87,
+   "strip3": -714.4,
+   "days_green": 5,
+   "days": 12,
+   "worst_day": -277.31
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": -577.98,
+   "per_trade": -6.64,
+   "win_pct": 33.3,
+   "time_exits": 1,
+   "exits": {
+    "TARGET": 29,
+    "STOP": 57,
+    "TIME": 1
+   },
+   "lodo_worst": -768.42,
+   "strip3": -1166.88,
+   "days_green": 4,
+   "days": 12,
+   "worst_day": -261.99
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": -381.32,
+   "per_trade": -4.38,
+   "win_pct": 28.7,
+   "time_exits": 2,
+   "exits": {
+    "TARGET": 25,
+    "STOP": 60,
+    "TIME": 2
+   },
+   "lodo_worst": -662.31,
+   "strip3": -1117.04,
+   "days_green": 4,
+   "days": 12,
+   "worst_day": -346.41
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": -178.25,
+   "per_trade": -2.05,
+   "win_pct": 28.7,
+   "time_exits": 8,
+   "exits": {
+    "TARGET": 19,
+    "STOP": 60,
+    "TIME": 8
+   },
+   "lodo_worst": -622.5,
+   "strip3": -951.75,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -346.41
+  },
+  {
+   "stop_k": 0.75,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": -168.72,
+   "per_trade": -1.94,
+   "win_pct": 28.7,
+   "time_exits": 12,
+   "exits": {
+    "TARGET": 15,
+    "STOP": 60,
+    "TIME": 12
+   },
+   "lodo_worst": -685.05,
+   "strip3": -1042.92,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -346.41
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": -454.59,
+   "per_trade": -5.23,
+   "win_pct": 67.8,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 59,
+    "STOP": 28
+   },
+   "lodo_worst": -708.22,
+   "strip3": -718.45,
+   "days_green": 5,
+   "days": 12,
+   "worst_day": -400.82
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": -184.15,
+   "per_trade": -2.12,
+   "win_pct": 57.5,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 50,
+    "STOP": 37
+   },
+   "lodo_worst": -398.37,
+   "strip3": -584.44,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -419.93
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": -448.76,
+   "per_trade": -5.16,
+   "win_pct": 51.7,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 45,
+    "STOP": 42
+   },
+   "lodo_worst": -688.64,
+   "strip3": -862.08,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -318.8
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": -248.01,
+   "per_trade": -2.85,
+   "win_pct": 46.0,
+   "time_exits": 2,
+   "exits": {
+    "TARGET": 40,
+    "STOP": 45,
+    "TIME": 2
+   },
+   "lodo_worst": -484.97,
+   "strip3": -766.91,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -276.56
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": -305.52,
+   "per_trade": -3.51,
+   "win_pct": 41.4,
+   "time_exits": 3,
+   "exits": {
+    "TARGET": 35,
+    "STOP": 49,
+    "TIME": 3
+   },
+   "lodo_worst": -620.76,
+   "strip3": -930.0,
+   "days_green": 5,
+   "days": 12,
+   "worst_day": -363.08
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 91.72,
+   "per_trade": 1.05,
+   "win_pct": 36.8,
+   "time_exits": 4,
+   "exits": {
+    "TARGET": 31,
+    "STOP": 52,
+    "TIME": 4
+   },
+   "lodo_worst": -588.22,
+   "strip3": -715.92,
+   "days_green": 4,
+   "days": 12,
+   "worst_day": -456.88
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 460.42,
+   "per_trade": 5.29,
+   "win_pct": 36.8,
+   "time_exits": 11,
+   "exits": {
+    "TARGET": 24,
+    "STOP": 52,
+    "TIME": 11
+   },
+   "lodo_worst": -464.82,
+   "strip3": -426.18,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -456.88
+  },
+  {
+   "stop_k": 1.0,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 364.5,
+   "per_trade": 4.19,
+   "win_pct": 36.8,
+   "time_exits": 18,
+   "exits": {
+    "TARGET": 17,
+    "STOP": 52,
+    "TIME": 18
+   },
+   "lodo_worst": -673.82,
+   "strip3": -509.7,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -456.88
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": 46.02,
+   "per_trade": 0.53,
+   "win_pct": 78.2,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 68,
+    "STOP": 19
+   },
+   "lodo_worst": -198.45,
+   "strip3": -217.84,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -343.73
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 632.91,
+   "per_trade": 7.27,
+   "win_pct": 70.1,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 61,
+    "STOP": 26
+   },
+   "lodo_worst": 316.5,
+   "strip3": 232.62,
+   "days_green": 6,
+   "days": 12,
+   "worst_day": -277.12
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": 1310.16,
+   "per_trade": 15.06,
+   "win_pct": 66.7,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 58,
+    "STOP": 29
+   },
+   "lodo_worst": 883.28,
+   "strip3": 773.44,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -190.15
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": 1352.07,
+   "per_trade": 15.54,
+   "win_pct": 59.8,
+   "time_exits": 4,
+   "exits": {
+    "TARGET": 51,
+    "STOP": 32,
+    "TIME": 4
+   },
+   "lodo_worst": 850.42,
+   "strip3": 688.92,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -190.15
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": 1350.95,
+   "per_trade": 15.53,
+   "win_pct": 55.2,
+   "time_exits": 6,
+   "exits": {
+    "TARGET": 45,
+    "STOP": 36,
+    "TIME": 6
+   },
+   "lodo_worst": 747.17,
+   "strip3": 553.37,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -229.37
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 1760.12,
+   "per_trade": 20.23,
+   "win_pct": 49.4,
+   "time_exits": 14,
+   "exits": {
+    "TARGET": 35,
+    "TIME": 14,
+    "STOP": 38
+   },
+   "lodo_worst": 823.1,
+   "strip3": 693.68,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -340.9
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 2344.97,
+   "per_trade": 26.95,
+   "win_pct": 49.4,
+   "time_exits": 21,
+   "exits": {
+    "TARGET": 28,
+    "TIME": 21,
+    "STOP": 38
+   },
+   "lodo_worst": 1124.95,
+   "strip3": 1090.37,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -340.9
+  },
+  {
+   "stop_k": 1.25,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 2394.36,
+   "per_trade": 27.52,
+   "win_pct": 49.4,
+   "time_exits": 29,
+   "exits": {
+    "TARGET": 20,
+    "TIME": 29,
+    "STOP": 38
+   },
+   "lodo_worst": 1023.56,
+   "strip3": 1023.06,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -340.9
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": 672.21,
+   "per_trade": 7.73,
+   "win_pct": 85.1,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 74,
+    "STOP": 13
+   },
+   "lodo_worst": 271.1,
+   "strip3": 408.07,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -318.46
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 1307.34,
+   "per_trade": 15.03,
+   "win_pct": 77.0,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 67,
+    "STOP": 20
+   },
+   "lodo_worst": 743.6,
+   "strip3": 906.63,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -263.49
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": 2065.29,
+   "per_trade": 23.74,
+   "win_pct": 73.6,
+   "time_exits": 0,
+   "exits": {
+    "TARGET": 64,
+    "STOP": 23
+   },
+   "lodo_worst": 1375.86,
+   "strip3": 1528.01,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -208.52
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": 1743.75,
+   "per_trade": 20.04,
+   "win_pct": 64.4,
+   "time_exits": 5,
+   "exits": {
+    "TARGET": 55,
+    "STOP": 27,
+    "TIME": 5
+   },
+   "lodo_worst": 1048.54,
+   "strip3": 1080.61,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -153.55
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": 1802.89,
+   "per_trade": 20.72,
+   "win_pct": 59.8,
+   "time_exits": 8,
+   "exits": {
+    "TARGET": 49,
+    "STOP": 30,
+    "TIME": 8
+   },
+   "lodo_worst": 938.78,
+   "strip3": 1005.31,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -274.68
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 2678.28,
+   "per_trade": 30.78,
+   "win_pct": 55.2,
+   "time_exits": 17,
+   "exits": {
+    "TARGET": 39,
+    "TIME": 17,
+    "STOP": 31
+   },
+   "lodo_worst": 1337.93,
+   "strip3": 1611.84,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -391.88
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 3289.74,
+   "per_trade": 37.81,
+   "win_pct": 54.0,
+   "time_exits": 25,
+   "exits": {
+    "TARGET": 31,
+    "TIME": 25,
+    "STOP": 31
+   },
+   "lodo_worst": 1628.98,
+   "strip3": 2035.14,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -391.88
+  },
+  {
+   "stop_k": 1.5,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 3459.98,
+   "per_trade": 39.77,
+   "win_pct": 54.0,
+   "time_exits": 34,
+   "exits": {
+    "TARGET": 22,
+    "TIME": 34,
+    "STOP": 31
+   },
+   "lodo_worst": 1626.49,
+   "strip3": 2046.14,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -391.88
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": 637.86,
+   "per_trade": 7.33,
+   "win_pct": 86.2,
+   "time_exits": 1,
+   "exits": {
+    "TARGET": 75,
+    "STOP": 11,
+    "TIME": 1
+   },
+   "lodo_worst": 285.56,
+   "strip3": 373.72,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -294.77
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 1256.57,
+   "per_trade": 14.44,
+   "win_pct": 78.2,
+   "time_exits": 2,
+   "exits": {
+    "TARGET": 68,
+    "STOP": 17,
+    "TIME": 2
+   },
+   "lodo_worst": 725.24,
+   "strip3": 855.86,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -322.62
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": 2008.37,
+   "per_trade": 23.08,
+   "win_pct": 74.7,
+   "time_exits": 3,
+   "exits": {
+    "TARGET": 65,
+    "STOP": 19,
+    "TIME": 3
+   },
+   "lodo_worst": 1372.96,
+   "strip3": 1471.09,
+   "days_green": 10,
+   "days": 12,
+   "worst_day": -198.01
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": 1758.2,
+   "per_trade": 20.21,
+   "win_pct": 65.5,
+   "time_exits": 9,
+   "exits": {
+    "TARGET": 56,
+    "STOP": 22,
+    "TIME": 9
+   },
+   "lodo_worst": 1138.79,
+   "strip3": 1095.05,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -171.1
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": 2001.51,
+   "per_trade": 23.01,
+   "win_pct": 62.1,
+   "time_exits": 13,
+   "exits": {
+    "TARGET": 50,
+    "STOP": 24,
+    "TIME": 13
+   },
+   "lodo_worst": 1221.16,
+   "strip3": 1203.93,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -196.68
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 2986.95,
+   "per_trade": 34.33,
+   "win_pct": 57.5,
+   "time_exits": 23,
+   "exits": {
+    "TARGET": 40,
+    "TIME": 23,
+    "STOP": 24
+   },
+   "lodo_worst": 1730.36,
+   "strip3": 1920.51,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -313.88
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 3650.11,
+   "per_trade": 41.96,
+   "win_pct": 56.3,
+   "time_exits": 31,
+   "exits": {
+    "TARGET": 32,
+    "TIME": 31,
+    "STOP": 24
+   },
+   "lodo_worst": 2073.11,
+   "strip3": 2395.51,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -313.88
+  },
+  {
+   "stop_k": 1.75,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 3872.05,
+   "per_trade": 44.51,
+   "win_pct": 56.3,
+   "time_exits": 40,
+   "exits": {
+    "TARGET": 23,
+    "TIME": 40,
+    "STOP": 24
+   },
+   "lodo_worst": 2122.32,
+   "strip3": 2458.21,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -313.88
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": 1170.87,
+   "per_trade": 13.46,
+   "win_pct": 89.7,
+   "time_exits": 2,
+   "exits": {
+    "TARGET": 78,
+    "STOP": 7,
+    "TIME": 2
+   },
+   "lodo_worst": 600.78,
+   "strip3": 906.73,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -199.76
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 1814.62,
+   "per_trade": 20.86,
+   "win_pct": 81.6,
+   "time_exits": 4,
+   "exits": {
+    "TARGET": 71,
+    "STOP": 12,
+    "TIME": 4
+   },
+   "lodo_worst": 1038.84,
+   "strip3": 1413.91,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -118.94
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": 2596.62,
+   "per_trade": 29.85,
+   "win_pct": 78.2,
+   "time_exits": 5,
+   "exits": {
+    "TARGET": 68,
+    "STOP": 14,
+    "TIME": 5
+   },
+   "lodo_worst": 1711.72,
+   "strip3": 2059.34,
+   "days_green": 10,
+   "days": 12,
+   "worst_day": -84.34
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": 2420.25,
+   "per_trade": 27.82,
+   "win_pct": 69.0,
+   "time_exits": 12,
+   "exits": {
+    "TARGET": 59,
+    "STOP": 16,
+    "TIME": 12
+   },
+   "lodo_worst": 1546.47,
+   "strip3": 1757.1,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -57.43
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": 2794.11,
+   "per_trade": 32.12,
+   "win_pct": 66.7,
+   "time_exits": 16,
+   "exits": {
+    "TARGET": 54,
+    "STOP": 17,
+    "TIME": 16
+   },
+   "lodo_worst": 1629.32,
+   "strip3": 1996.53,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -228.52
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 3745.36,
+   "per_trade": 43.05,
+   "win_pct": 62.1,
+   "time_exits": 27,
+   "exits": {
+    "TARGET": 43,
+    "TIME": 27,
+    "STOP": 17
+   },
+   "lodo_worst": 2035.1,
+   "strip3": 2678.92,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -345.72
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 4387.45,
+   "per_trade": 50.43,
+   "win_pct": 60.9,
+   "time_exits": 37,
+   "exits": {
+    "TARGET": 33,
+    "TIME": 37,
+    "STOP": 17
+   },
+   "lodo_worst": 2377.85,
+   "strip3": 3132.85,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -345.72
+  },
+  {
+   "stop_k": 2.0,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 4627.16,
+   "per_trade": 53.19,
+   "win_pct": 60.9,
+   "time_exits": 46,
+   "exits": {
+    "TARGET": 24,
+    "TIME": 46,
+    "STOP": 17
+   },
+   "lodo_worst": 2427.06,
+   "strip3": 3213.32,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -345.72
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 0.5,
+   "n": 87,
+   "net": 1361.79,
+   "per_trade": 15.65,
+   "win_pct": 90.8,
+   "time_exits": 2,
+   "exits": {
+    "TARGET": 79,
+    "STOP": 6,
+    "TIME": 2
+   },
+   "lodo_worst": 836.0,
+   "strip3": 1084.41,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -175.16
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 0.75,
+   "n": 87,
+   "net": 1953.44,
+   "per_trade": 22.45,
+   "win_pct": 82.8,
+   "time_exits": 4,
+   "exits": {
+    "TARGET": 72,
+    "STOP": 11,
+    "TIME": 4
+   },
+   "lodo_worst": 1221.96,
+   "strip3": 1532.87,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -217.99
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 1.0,
+   "n": 87,
+   "net": 2721.94,
+   "per_trade": 31.29,
+   "win_pct": 79.3,
+   "time_exits": 5,
+   "exits": {
+    "TARGET": 69,
+    "STOP": 13,
+    "TIME": 5
+   },
+   "lodo_worst": 1924.57,
+   "strip3": 2158.18,
+   "days_green": 11,
+   "days": 12,
+   "worst_day": -199.06
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 1.25,
+   "n": 87,
+   "net": 2561.47,
+   "per_trade": 29.44,
+   "win_pct": 70.1,
+   "time_exits": 13,
+   "exits": {
+    "TARGET": 60,
+    "STOP": 14,
+    "TIME": 13
+   },
+   "lodo_worst": 1760.95,
+   "strip3": 1854.53,
+   "days_green": 8,
+   "days": 12,
+   "worst_day": -172.15
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 1.5,
+   "n": 87,
+   "net": 3145.61,
+   "per_trade": 36.16,
+   "win_pct": 67.8,
+   "time_exits": 18,
+   "exits": {
+    "TARGET": 55,
+    "STOP": 14,
+    "TIME": 18
+   },
+   "lodo_worst": 2054.07,
+   "strip3": 2295.47,
+   "days_green": 7,
+   "days": 12,
+   "worst_day": -91.72
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 2.0,
+   "n": 87,
+   "net": 4184.96,
+   "per_trade": 48.1,
+   "win_pct": 63.2,
+   "time_exits": 29,
+   "exits": {
+    "TARGET": 44,
+    "TIME": 29,
+    "STOP": 14
+   },
+   "lodo_worst": 2547.95,
+   "strip3": 3048.44,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -248.1
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 2.5,
+   "n": 87,
+   "net": 4915.15,
+   "per_trade": 56.5,
+   "win_pct": 62.1,
+   "time_exits": 39,
+   "exits": {
+    "TARGET": 34,
+    "TIME": 39,
+    "STOP": 14
+   },
+   "lodo_worst": 2978.8,
+   "strip3": 3513.65,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -248.1
+  },
+  {
+   "stop_k": 2.5,
+   "tgt_k": 3.0,
+   "n": 87,
+   "net": 5242.96,
+   "per_trade": 60.26,
+   "win_pct": 62.1,
+   "time_exits": 48,
+   "exits": {
+    "TARGET": 25,
+    "TIME": 48,
+    "STOP": 14
+   },
+   "lodo_worst": 3116.11,
+   "strip3": 3630.52,
+   "days_green": 9,
+   "days": 12,
+   "worst_day": -248.1
+  }
+ ],
+ "live_net": -84.5,
+ "n": 87
+}

@@ -1,0 +1,762 @@
+{
+ "baseline": {
+  "label": "every book break, as detected",
+  "n": 397,
+  "net": -291.0,
+  "per": -0.73,
+  "win": 48.4,
+  "strip3": -1496.0,
+  "lodo": -1594.0,
+  "days": 22,
+  "green_days": 12
+ },
+ "candidates": [
+  {
+   "label": "far side is EMPTY (obstacle = 0)",
+   "n": 192,
+   "net": -2059.5,
+   "per": -10.73,
+   "win": 43.8,
+   "strip3": -3264.5,
+   "lodo": -2664.0,
+   "days": 22,
+   "green_days": 8,
+   "placebo": 4.8,
+   "delta": -1768.5
+  },
+  {
+   "label": "far side thin (obstacle < 5 lots)",
+   "n": 228,
+   "net": -2091.5,
+   "per": -9.17,
+   "win": 45.6,
+   "strip3": -3296.5,
+   "lodo": -2698.0,
+   "days": 22,
+   "green_days": 9,
+   "placebo": 3.7,
+   "delta": -1800.5
+  },
+  {
+   "label": "far side depleted vs pre (obst < 50% of obst_pre)",
+   "n": 200,
+   "net": 9.0,
+   "per": 0.04,
+   "win": 49.0,
+   "strip3": -1157.5,
+   "lodo": -525.5,
+   "days": 22,
+   "green_days": 12,
+   "placebo": 55.8,
+   "delta": 300.0
+  },
+  {
+   "label": "depletion ratio = 1.0 (fully cleared)",
+   "n": 141,
+   "net": -1175.0,
+   "per": -8.33,
+   "win": 44.7,
+   "strip3": -2341.5,
+   "lodo": -1464.5,
+   "days": 22,
+   "green_days": 11,
+   "placebo": 16.2,
+   "delta": -884.0
+  },
+  {
+   "label": "book imbalance with us (imb > 0.10)",
+   "n": 134,
+   "net": 1795.0,
+   "per": 13.4,
+   "win": 50.0,
+   "strip3": 590.0,
+   "lodo": 970.0,
+   "days": 22,
+   "green_days": 16,
+   "placebo": 96.2,
+   "delta": 2086.0
+  },
+  {
+   "label": "book imbalance strongly with us (imb > 0.25)",
+   "n": 41,
+   "net": 51.0,
+   "per": 1.24,
+   "win": 43.9,
+   "strip3": -880.5,
+   "lodo": -438.5,
+   "days": 16,
+   "green_days": 7,
+   "placebo": 56.4,
+   "delta": 342.0
+  },
+  {
+   "label": "support behind us (support > obstacle)",
+   "n": 146,
+   "net": -45.0,
+   "per": -0.31,
+   "win": 49.3,
+   "strip3": -1041.0,
+   "lodo": -550.5,
+   "days": 22,
+   "green_days": 12,
+   "placebo": 53.6,
+   "delta": 246.0
+  },
+  {
+   "label": "efficiency >= 0.35 at the break",
+   "n": 114,
+   "net": -1526.0,
+   "per": -13.39,
+   "win": 40.4,
+   "strip3": -2375.5,
+   "lodo": -2206.5,
+   "days": 22,
+   "green_days": 7,
+   "placebo": 7.5,
+   "delta": -1235.0
+  },
+  {
+   "label": "efficiency >= 0.50 at the break",
+   "n": 21,
+   "net": 198.5,
+   "per": 9.45,
+   "win": 47.6,
+   "strip3": -396.5,
+   "lodo": -140.5,
+   "days": 14,
+   "green_days": 7,
+   "placebo": 67.0,
+   "delta": 489.5
+  },
+  {
+   "label": "ATR >= 2.0pt (the move has room)",
+   "n": 128,
+   "net": -2262.5,
+   "per": -17.68,
+   "win": 47.7,
+   "strip3": -3328.0,
+   "lodo": -2756.0,
+   "days": 22,
+   "green_days": 10,
+   "placebo": 1.6,
+   "delta": -1971.5
+  },
+  {
+   "label": "ATR >= 3.0pt",
+   "n": 45,
+   "net": -353.5,
+   "per": -7.86,
+   "win": 51.1,
+   "strip3": -1353.0,
+   "lodo": -815.0,
+   "days": 21,
+   "green_days": 9,
+   "placebo": 31.5,
+   "delta": -62.5
+  },
+  {
+   "label": "CLEAN_TREND only",
+   "n": 73,
+   "net": -1605.0,
+   "per": -21.99,
+   "win": 42.5,
+   "strip3": -2530.5,
+   "lodo": -2025.5,
+   "days": 22,
+   "green_days": 9,
+   "placebo": 2.8,
+   "delta": -1314.0
+  },
+  {
+   "label": "not DEAD_CHOP",
+   "n": 327,
+   "net": -463.0,
+   "per": -1.42,
+   "win": 48.0,
+   "strip3": -1668.0,
+   "lodo": -1206.5,
+   "days": 22,
+   "green_days": 14,
+   "placebo": 38.8,
+   "delta": -172.0
+  },
+  {
+   "label": "US session only",
+   "n": 122,
+   "net": -1050.0,
+   "per": -8.61,
+   "win": 43.4,
+   "strip3": -2115.5,
+   "lodo": -1573.5,
+   "days": 22,
+   "green_days": 9,
+   "placebo": 17.6,
+   "delta": -759.0
+  },
+  {
+   "label": "LONDON session only",
+   "n": 129,
+   "net": 163.0,
+   "per": 1.26,
+   "win": 49.6,
+   "strip3": -835.0,
+   "lodo": -537.5,
+   "days": 22,
+   "green_days": 10,
+   "placebo": 59.6,
+   "delta": 454.0
+  },
+  {
+   "label": "ASIA session only",
+   "n": 146,
+   "net": 596.0,
+   "per": 4.08,
+   "win": 51.4,
+   "strip3": -218.5,
+   "lodo": -306.0,
+   "days": 22,
+   "green_days": 11,
+   "placebo": 74.7,
+   "delta": 887.0
+  },
+  {
+   "label": "LONDON or US (skip Asia)",
+   "n": 251,
+   "net": -887.0,
+   "per": -3.53,
+   "win": 46.6,
+   "strip3": -2092.0,
+   "lodo": -1491.0,
+   "days": 22,
+   "green_days": 12,
+   "placebo": 26.9,
+   "delta": -596.0
+  },
+  {
+   "label": "empty far side AND trend",
+   "n": 49,
+   "net": -1367.5,
+   "per": -27.91,
+   "win": 38.8,
+   "strip3": -2241.5,
+   "lodo": -1668.0,
+   "days": 21,
+   "green_days": 8,
+   "placebo": 3.6,
+   "delta": -1076.5
+  },
+  {
+   "label": "empty far side AND ER>=0.35",
+   "n": 65,
+   "net": -1621.0,
+   "per": -24.94,
+   "win": 35.4,
+   "strip3": -2410.0,
+   "lodo": -2220.0,
+   "days": 22,
+   "green_days": 8,
+   "placebo": 2.8,
+   "delta": -1330.0
+  },
+  {
+   "label": "empty far side AND not Asia",
+   "n": 123,
+   "net": 232.5,
+   "per": 1.89,
+   "win": 48.0,
+   "strip3": -972.5,
+   "lodo": -198.5,
+   "days": 22,
+   "green_days": 12,
+   "placebo": 61.0,
+   "delta": 523.5
+  }
+ ],
+ "escalation": [
+  {
+   "level": "FULL population",
+   "base": {
+    "label": "FULL population \u2014 no filter",
+    "n": 397,
+    "net": -291.0,
+    "per": -0.73,
+    "win": 48.4,
+    "strip3": -1496.0,
+    "lodo": -1594.0,
+    "days": 22,
+    "green_days": 12
+   },
+   "best": [
+    {
+     "label": "book imbalance with us (imb > 0.10)",
+     "n": 134,
+     "net": 1795.0,
+     "per": 13.4,
+     "win": 50.0,
+     "strip3": 590.0,
+     "lodo": 970.0,
+     "days": 22,
+     "green_days": 16,
+     "placebo": 97.0
+    },
+    {
+     "label": "ASIA session only",
+     "n": 146,
+     "net": 596.0,
+     "per": 4.08,
+     "win": 51.4,
+     "strip3": -218.5,
+     "lodo": -306.0,
+     "days": 22,
+     "green_days": 11,
+     "placebo": 74.7
+    },
+    {
+     "label": "empty far side AND not Asia",
+     "n": 123,
+     "net": 232.5,
+     "per": 1.89,
+     "win": 48.0,
+     "strip3": -972.5,
+     "lodo": -198.5,
+     "days": 22,
+     "green_days": 12,
+     "placebo": 62.2
+    },
+    {
+     "label": "efficiency >= 0.50 at the break",
+     "n": 21,
+     "net": 198.5,
+     "per": 9.45,
+     "win": 47.6,
+     "strip3": -396.5,
+     "lodo": -140.5,
+     "days": 14,
+     "green_days": 7,
+     "placebo": 67.7
+    },
+    {
+     "label": "LONDON session only",
+     "n": 129,
+     "net": 163.0,
+     "per": 1.26,
+     "win": 49.6,
+     "strip3": -835.0,
+     "lodo": -537.5,
+     "days": 22,
+     "green_days": 10,
+     "placebo": 61.2
+    }
+   ]
+  },
+  {
+   "level": "TOP 25 by move size",
+   "base": {
+    "label": "TOP 25 by move size \u2014 no filter",
+    "n": 25,
+    "net": -696.5,
+    "per": -27.86,
+    "win": 44.0,
+    "strip3": -1901.5,
+    "lodo": -1979.5,
+    "days": 15,
+    "green_days": 5
+   },
+   "best": [
+    {
+     "label": "book imbalance with us (imb > 0.10)",
+     "n": 10,
+     "net": 992.5,
+     "per": 99.25,
+     "win": 60.0,
+     "strip3": -212.5,
+     "lodo": 264.0,
+     "days": 9,
+     "green_days": 5,
+     "placebo": 94.7
+    },
+    {
+     "label": "empty far side AND not Asia",
+     "n": 10,
+     "net": 288.0,
+     "per": 28.8,
+     "win": 50.0,
+     "strip3": -917.0,
+     "lodo": -152.0,
+     "days": 8,
+     "green_days": 5,
+     "placebo": 79.8
+    },
+    {
+     "label": "LONDON session only",
+     "n": 9,
+     "net": -287.0,
+     "per": -31.89,
+     "win": 44.4,
+     "strip3": -1285.0,
+     "lodo": -982.5,
+     "days": 7,
+     "green_days": 2,
+     "placebo": 46.5
+    },
+    {
+     "label": "depletion ratio = 1.0 (fully cleared)",
+     "n": 10,
+     "net": -288.5,
+     "per": -28.85,
+     "win": 40.0,
+     "strip3": -1455.0,
+     "lodo": -728.5,
+     "days": 10,
+     "green_days": 4,
+     "placebo": 51.0
+    },
+    {
+     "label": "ASIA session only",
+     "n": 9,
+     "net": -333.0,
+     "per": -37.0,
+     "win": 44.4,
+     "strip3": -1147.5,
+     "lodo": -887.5,
+     "days": 7,
+     "green_days": 2,
+     "placebo": 43.4
+    }
+   ]
+  },
+  {
+   "level": "TOP 15 by move size",
+   "base": {
+    "label": "TOP 15 by move size \u2014 no filter",
+    "n": 15,
+    "net": -630.0,
+    "per": -42.0,
+    "win": 40.0,
+    "strip3": -1835.0,
+    "lodo": -1644.5,
+    "days": 11,
+    "green_days": 4
+   },
+   "best": [
+    {
+     "label": "LONDON or US (skip Asia)",
+     "n": 11,
+     "net": -54.0,
+     "per": -4.91,
+     "win": 45.5,
+     "strip3": -1259.0,
+     "lodo": -782.5,
+     "days": 8,
+     "green_days": 4,
+     "placebo": 74.5
+    },
+    {
+     "label": "far side is EMPTY (obstacle = 0)",
+     "n": 10,
+     "net": -267.5,
+     "per": -26.75,
+     "win": 40.0,
+     "strip3": -1472.5,
+     "lodo": -707.5,
+     "days": 9,
+     "green_days": 4,
+     "placebo": 70.8
+    },
+    {
+     "label": "far side thin (obstacle < 5 lots)",
+     "n": 12,
+     "net": -321.0,
+     "per": -26.75,
+     "win": 41.7,
+     "strip3": -1526.0,
+     "lodo": -1033.0,
+     "days": 10,
+     "green_days": 4,
+     "placebo": 67.7
+    },
+    {
+     "label": "not DEAD_CHOP",
+     "n": 13,
+     "net": -659.5,
+     "per": -50.73,
+     "win": 38.5,
+     "strip3": -1864.5,
+     "lodo": -1371.5,
+     "days": 10,
+     "green_days": 4,
+     "placebo": 36.9
+    },
+    {
+     "label": "ATR >= 2.0pt (the move has room)",
+     "n": 10,
+     "net": -1063.5,
+     "per": -106.35,
+     "win": 30.0,
+     "strip3": -2129.0,
+     "lodo": -1489.5,
+     "days": 9,
+     "green_days": 3,
+     "placebo": 16.7
+    }
+   ]
+  }
+ ],
+ "excursion": {
+  "median_mfe_atr": 3.28,
+  "median_mae_atr": -3.04,
+  "mfe_ge_2atr_pct": 66.0,
+  "mae_ge_1atr_pct": 80.4,
+  "ran_pct": 48.4
+ },
+ "book_sep": [
+  {
+   "label": "book AGAINST us (imb < \u22120.10)",
+   "n": 101,
+   "net": -315.0,
+   "per": -3.12,
+   "win": 45.5,
+   "strip3": -1077.5,
+   "lodo": -771.0,
+   "days": 22,
+   "green_days": 12
+  },
+  {
+   "label": "book neutral (\u22120.10 to +0.10)",
+   "n": 161,
+   "net": -1703.0,
+   "per": -10.58,
+   "win": 49.1,
+   "strip3": -2459.0,
+   "lodo": -2271.5,
+   "days": 22,
+   "green_days": 7
+  },
+  {
+   "label": "book with us (+0.10 to +0.25)",
+   "n": 91,
+   "net": 1758.5,
+   "per": 19.32,
+   "win": 51.6,
+   "strip3": 691.0,
+   "lodo": 902.0,
+   "days": 22,
+   "green_days": 13
+  },
+  {
+   "label": "book strongly with us (> +0.25)",
+   "n": 44,
+   "net": -31.5,
+   "per": -0.72,
+   "win": 45.5,
+   "strip3": -963.0,
+   "lodo": -521.0,
+   "days": 17,
+   "green_days": 8
+  }
+ ],
+ "by_day": [
+  {
+   "day": "2026-07-16",
+   "n": 18,
+   "net": -366.0
+  },
+  {
+   "day": "2026-07-17",
+   "n": 18,
+   "net": -720.0
+  },
+  {
+   "day": "2026-07-20",
+   "n": 19,
+   "net": -211.5
+  },
+  {
+   "day": "2026-07-21",
+   "n": 17,
+   "net": -75.0
+  },
+  {
+   "day": "2026-07-22",
+   "n": 18,
+   "net": -9.0
+  },
+  {
+   "day": "2026-07-23",
+   "n": 16,
+   "net": 72.5
+  },
+  {
+   "day": "2026-07-24",
+   "n": 14,
+   "net": 159.0
+  },
+  {
+   "day": "2026-07-27",
+   "n": 19,
+   "net": 160.0
+  },
+  {
+   "day": "2026-07-28",
+   "n": 19,
+   "net": 174.0
+  },
+  {
+   "day": "2026-07-29",
+   "n": 21,
+   "net": 848.0
+  },
+  {
+   "day": "2026-07-30",
+   "n": 19,
+   "net": -754.5
+  },
+  {
+   "day": "2026-07-31",
+   "n": 15,
+   "net": 115.5
+  },
+  {
+   "day": "2026-08-03",
+   "n": 19,
+   "net": -366.0
+  },
+  {
+   "day": "2026-08-04",
+   "n": 18,
+   "net": 108.0
+  },
+  {
+   "day": "2026-08-05",
+   "n": 21,
+   "net": 1303.0
+  },
+  {
+   "day": "2026-08-06",
+   "n": 19,
+   "net": -298.5
+  },
+  {
+   "day": "2026-08-07",
+   "n": 17,
+   "net": -1076.5
+  },
+  {
+   "day": "2026-08-10",
+   "n": 18,
+   "net": 227.0
+  },
+  {
+   "day": "2026-08-11",
+   "n": 16,
+   "net": 87.0
+  },
+  {
+   "day": "2026-08-12",
+   "n": 21,
+   "net": 42.0
+  },
+  {
+   "day": "2026-08-13",
+   "n": 19,
+   "net": -281.0
+  },
+  {
+   "day": "2026-08-14",
+   "n": 16,
+   "net": 571.0
+  }
+ ],
+ "regime": [
+  {
+   "label": "BUILDING",
+   "n": 61,
+   "net": -497.0,
+   "per": -8.15,
+   "win": 37.7,
+   "strip3": -1220.0,
+   "lodo": -884.5,
+   "days": 22,
+   "green_days": 8
+  },
+  {
+   "label": "CLEAN_TREND",
+   "n": 73,
+   "net": -1605.0,
+   "per": -21.99,
+   "win": 42.5,
+   "strip3": -2530.5,
+   "lodo": -2025.5,
+   "days": 22,
+   "green_days": 9
+  },
+  {
+   "label": "DEAD_CHOP",
+   "n": 70,
+   "net": 172.0,
+   "per": 2.46,
+   "win": 50.0,
+   "strip3": -487.0,
+   "lodo": -387.5,
+   "days": 21,
+   "green_days": 8
+  },
+  {
+   "label": "NORMAL_CHOP",
+   "n": 181,
+   "net": 2156.5,
+   "per": 11.91,
+   "win": 54.1,
+   "strip3": 1030.5,
+   "lodo": 1503.5,
+   "days": 22,
+   "green_days": 16
+  },
+  {
+   "label": "VIOLENT_WHIPSAW",
+   "n": 12,
+   "net": -517.5,
+   "per": -43.12,
+   "win": 41.7,
+   "strip3": -772.0,
+   "lodo": -621.0,
+   "days": 9,
+   "green_days": 4
+  }
+ ],
+ "session": [
+  {
+   "label": "ASIA",
+   "n": 146,
+   "net": 596.0,
+   "per": 4.08,
+   "win": 51.4,
+   "strip3": -218.5,
+   "lodo": -306.0,
+   "days": 22,
+   "green_days": 11
+  },
+  {
+   "label": "LONDON",
+   "n": 129,
+   "net": 163.0,
+   "per": 1.26,
+   "win": 49.6,
+   "strip3": -835.0,
+   "lodo": -537.5,
+   "days": 22,
+   "green_days": 10
+  },
+  {
+   "label": "US",
+   "n": 122,
+   "net": -1050.0,
+   "per": -8.61,
+   "win": 43.4,
+   "strip3": -2115.5,
+   "lodo": -1573.5,
+   "days": 22,
+   "green_days": 9
+  }
+ ]
+}

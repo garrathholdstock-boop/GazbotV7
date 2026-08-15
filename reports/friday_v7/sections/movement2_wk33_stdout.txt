@@ -1,0 +1,199 @@
+frozen census: 68 runs, 60 sat out
+1-min bars: 30525  2026-07-15 15:35:00+00:00 .. 2026-08-14 20:59:00+00:00
+ticks: 5,172,092  2026-08-10 00:00:00.513000+00:00 .. 2026-08-14 21:00:00.283000+00:00
+L1 book rows: bid 6,981,001 ask 6,980,999
+
+regime cut points: ATR p25=8.3pt  p75=15.1pt
+
+====================================================================================================
+GRIND_LONG CONFIG A/B — the shipped cells, fired on the same sat-out runs
+  deployed_0808    fires  1  net $  -120.0  $ -120.0/fire  win   0%  ATR-blocked 10
+         14  vwap slope not up (no established up-trend)
+          4  ATR floor 22pt not met
+          2  price not riding above VWAP (ext<0.3 ATR)
+          2  already stretched (ext>4.0 ATR)
+  wk32_0801        fires  1  net $  -120.0  $ -120.0/fire  win   0%  ATR-blocked 2
+         14  vwap slope not up (no established up-trend)
+          5  already stretched (ext>2.0 ATR)
+          2  price not riding above VWAP (ext<0.3 ATR)
+          1  FIRES
+  no_atr_floor     fires  5  net $  -178.0  $  -35.6/fire  win  20%  ATR-blocked 0
+         14  vwap slope not up (no established up-trend)
+          5  FIRES
+          2  price not riding above VWAP (ext<0.3 ATR)
+          2  already stretched (ext>4.0 ATR)
+  ext_hi_3.0       fires  1  net $  -120.0  $ -120.0/fire  win   0%  ATR-blocked 3
+         14  vwap slope not up (no established up-trend)
+          5  already stretched (ext>3.0 ATR)
+          2  price not riding above VWAP (ext<0.3 ATR)
+          1  FIRES
+
+====================================================================================================
+PER-GATE SCOREBOARD — fires at the sat-out runs, in-direction, 10min pre-ignition
+gate                mode      elig  fires     net$  $/fire  win%  exits
+grind_long          mech        23      1   -120.0  -120.0    0%  A:STOP/B:STOP:1
+grind_long          ungated     23      7   -152.0   -21.7   29%  A:STOP/B:STOP:5 A:TARGET/B:TARGET:2
+capitulation_long   mech        23      0     +0.0    +0.0    0%  
+capitulation_long   ungated     23      6   +116.5   +19.4   50%  A:STOP/B:STOP:3 A:TARGET/B:TARGET:2 A:TARGET/B:STOP:1
+abs_veto_long       mech        23      1    -76.0   -76.0    0%  A:STOP/B:STOP:1
+abs_veto_long       ungated     23      3     -7.0    -2.3   33%  A:STOP/B:STOP:2 A:TARGET/B:TARGET:1
+rgv_short           mech        34      1   +110.0  +110.0  100%  A:TARGET/B:TARGET:1
+rgv_short           ungated     34      2   +212.5  +106.2  100%  A:TARGET/B:TARGET:2
+exhaustion_short    mech        34      2   +192.5   +96.2  100%  A:TARGET/B:CHANDELIER:1 A:TARGET/B:TARGET:1
+exhaustion_short    ungated     34      2   +193.5   +96.8  100%  A:TARGET/B:CHANDELIER:1 A:TARGET/B:TARGET:1
+abs_veto_short      mech        34      1    -91.0   -91.0    0%  A:STOP/B:STOP:1
+abs_veto_short      ungated     34      7    +16.0    +2.3   43%  A:STOP/B:STOP:4 A:TARGET/B:TARGET:3
+
+====================================================================================================
+WHY IT MISSES — how far each gate ever got in its own rule chain (per eligible run)
+
+  grind_long [mech] — 23 eligible runs
+       14  vwap slope not up (no established up-trend)
+        4  ATR floor 22pt not met
+        2  price not riding above VWAP (ext<0.3 ATR)
+        2  already stretched (ext>4.0 ATR)
+        1  FIRES
+      -> 10 raw fires killed by a LIVE filter: 08-10 14:25(ATR floor 22), 08-12 00:08(ATR floor 22), 08-12 00:08(ATR floor 22), 08-12 00:08(ATR floor 22), 08-12 13:08(ATR floor 22), 08-12 13:08(ATR floor 22), 08-12 13:08(ATR floor 22), 08-12 13:08(ATR floor 22)
+
+  grind_long [ungated] — 23 eligible runs
+       14  vwap slope not up (no established up-trend)
+        7  FIRES
+        2  price not riding above VWAP (ext<0.3 ATR)
+
+  capitulation_long [mech] — 23 eligible runs
+       15  sell volume < 2.5x baseline (no climax)
+        3  buyers never flipped at the low (require_flip)
+        3  ATR floor 10pt not met
+        2  sellers not 60% dominant
+      -> 3 raw fires killed by a LIVE filter: 08-11 00:02(ATR floor 10), 08-11 10:13(ATR floor 10), 08-13 13:32(ATR floor 10)
+
+  capitulation_long [ungated] — 23 eligible runs
+       15  sell volume < 2.5x baseline (no climax)
+        6  FIRES
+        2  sellers not 60% dominant
+
+  abs_veto_long [mech] — 23 eligible runs
+       16  no 5-bar thrust >= 1.5 ATR
+        5  amp floor: tape too thin (atr% < 0.04%)
+        1  no volume surge on the thrust bar
+        1  FIRES
+
+  abs_veto_long [ungated] — 23 eligible runs
+       16  no 5-bar thrust >= 1.5 ATR
+        4  no volume surge on the thrust bar
+        3  FIRES
+
+  rgv_short [mech] — 34 eligible runs
+       22  ATR floor 20pt not met
+        9  regime stand-down (vol too high / slope too steep)
+        2  not stretched >= 1.5 ATR above VWAP
+        1  FIRES
+
+  rgv_short [ungated] — 34 eligible runs
+       16  not stretched >= 1.5 ATR above VWAP
+        9  regime stand-down (vol too high / slope too steep)
+        7  no fresh down-turn
+        2  FIRES
+
+  exhaustion_short [mech] — 34 eligible runs
+       16  20s net aggressor flow < 400 (no aggression to fade)
+       10  the aggression DID move price >2pt (not absorption)
+        6  no ask wall (hit side not 1.5x)
+        2  FIRES
+
+  exhaustion_short [ungated] — 34 eligible runs
+       16  20s net aggressor flow < 400 (no aggression to fade)
+       10  the aggression DID move price >2pt (not absorption)
+        6  no ask wall (hit side not 1.5x)
+        2  FIRES
+
+  abs_veto_short [mech] — 34 eligible runs
+       18  no 5-bar thrust >= 1.5 ATR
+        6  amp floor: tape too thin (atr% < 0.04%)
+        4  thrust is the wrong way
+        3  55s absorption VETO (burst absorbed)
+        2  no volume surge on the thrust bar
+        1  FIRES
+      -> 3 raw fires killed by a LIVE filter: 08-10 00:22(55s absorption veto), 08-12 15:30(55s absorption veto), 08-13 15:43(55s absorption veto)
+
+  abs_veto_short [ungated] — 34 eligible runs
+       18  no 5-bar thrust >= 1.5 ATR
+        7  FIRES
+        5  no volume surge on the thrust bar
+        4  thrust is the wrong way
+
+====================================================================================================
+BLIND IN-DIRECTION CONTROL (hindsight direction, Lot A 1.5R + Lot B wide chandelier)
+  enter ign     n= 57  net $  +3799.0  $  +66.6/run  win  75%   strip-best-3 $+3162.5
+  enter t-60    n= 57  net $  +1377.0  $  +24.2/run  win  47%   strip-best-3 $+796.5
+        BUILDING           n=  9  net $   +98.5  $  +10.9/run  win  44%
+        CLEAN-TREND        n=  1  net $   -33.0  $  -33.0/run  win   0%
+        DEAD-CHOP          n= 10  net $  +211.0  $  +21.1/run  win  40%
+        NORMAL-CHOP        n= 24  net $  +198.5  $   +8.3/run  win  42%
+        TREND-NO-BREAK     n=  2  net $  +282.0  $ +141.0/run  win  50%
+        VIOLENT-WHIPSAW    n= 11  net $  +620.0  $  +56.4/run  win  73%
+        US session         n= 26  net $ +1065.0  $  +41.0/run  win  58%
+        overnight          n= 31  net $  +312.0  $  +10.1/run  win  39%
+  enter t-300   n= 57  net $   +389.5  $   +6.8/run  win  40%   strip-best-3 $+84.5
+
+====================================================================================================
+R SWEEP on the blind t-60 population (both lots at the same R) — per regime
+  R                   ALL                US                ON         DEAD-CHOP       NORMAL-CHOP   VIOLENT-WHIPSAW          BUILDING    TREND-NO-BREAK       CLEAN-TREND
+  0.5         -182/57/63%        +27/26/65%       -209/31/61%        -67/10/60%       -175/24/62%       +132/11/73%         -48/9/67%          +9/2/50%          -33/1/0%
+  0.75         +28/57/56%       +293/26/65%       -265/31/48%       -110/10/40%       -162/24/54%       +266/11/73%         +24/9/67%         +43/2/50%          -33/1/0%
+  1.0         +229/57/53%       +411/26/62%       -182/31/45%        -84/10/40%        -19/24/54%       +403/11/73%        -115/9/44%         +77/2/50%          -33/1/0%
+  1.5         +751/57/49%       +790/26/58%        -39/31/42%        -33/10/40%        +20/24/46%       +675/11/73%         -24/9/44%        +146/2/50%          -33/1/0%
+  2.0        +1475/57/49%      +1274/26/58%       +201/31/42%        +18/10/40%       +251/24/46%       +956/11/73%         +69/9/44%        +214/2/50%          -33/1/0%
+  2.5        +2093/57/47%      +1781/26/58%       +312/31/39%        +68/10/40%       +355/24/42%      +1258/11/73%        +162/9/44%        +283/2/50%          -33/1/0%
+  3.0        +2324/57/44%      +1953/26/54%       +371/31/35%       +119/10/40%       +405/24/38%      +1229/11/64%        +253/9/44%        +351/2/50%          -33/1/0%
+  4.0        +3585/57/44%      +2811/26/54%       +774/31/35%       +220/10/40%       +791/24/38%      +1751/11/64%        +438/9/44%        +418/2/50%          -33/1/0%
+  6.0        +4349/57/44%      +3071/26/54%      +1278/31/35%       +424/10/40%      +1103/24/38%      +1928/11/64%        +509/9/44%        +418/2/50%          -33/1/0%
+  leave-one-day-out on the best-R cell (ALL segment):
+    best R = 6.0  net $+4349.0; -08-10 $+2882  -08-11 $+3662  -08-12 $+4204  -08-13 $+3239  -08-14 $+3409
+
+====================================================================================================
+BASE RATE — does the gate fire at all this week, and does it fire NEAR a sat-out run?
+gate                mode       fires/week   in a pre-run 10m window   share
+grind_long          mech               44                         8   18.2%
+grind_long          ungated          1118                        92    8.2%
+capitulation_long   mech               19                         3   15.8%
+capitulation_long   ungated            79                         8   10.1%
+abs_veto_long       mech               25                         4   16.0%
+abs_veto_long       ungated           231                        20    8.7%
+rgv_short           mech                1                         1  100.0%
+rgv_short           ungated           122                         5    4.1%
+exhaustion_short    mech                8                         1   12.5%
+exhaustion_short    ungated             8                         1   12.5%
+abs_veto_short      mech               44                         7   15.9%
+abs_veto_short      ungated           252                        15    6.0%
+
+====================================================================================================
+COVERAGE — which sat-out runs drew ANY in-direction fire
+  mech      runs touched  6/57  top-15 3/15  top-25 3/25  fires 6  net $+15.5  ceiling touched $878
+      strip-best-1: 5 fires  net $-94.5
+      strip-best-3: 3 fires  net $-287.0
+      cost-stress $3.00/RT/lot $-2.5   $6.00/RT/lot $-38.5
+      per-day: 08-10 3f $-116  08-11 2f $+207  08-13 1f $-76
+      leave-one-day-out: -08-10 $+131  -08-11 $-192  -08-13 $+92
+  ungated   runs touched 24/57  top-15 6/15  top-25 9/25  fires 27  net $+379.5  ceiling touched $3452
+      strip-best-1: 26 fires  net $+269.5
+      strip-best-3: 24 fires  net $+69.5
+      cost-stress $3.00/RT/lot $+298.5   $6.00/RT/lot $+136.5
+      per-day: 08-10 7f $+96  08-11 9f $+373  08-12 5f $+191  08-13 6f $-281
+      leave-one-day-out: -08-10 $+283  -08-11 $+6  -08-12 $+188  -08-13 $+660
+
+====================================================================================================
+THE 55s VETO — what it saved vs what the WAIT cost (abs_veto_short/long)
+  abs_veto_long: blocked 0 raw fires (saved $+0.0) · 55s WAIT on the 1 survivors cost $+0.0
+  abs_veto_short: blocked 3 raw fires (saved $+50.0) · 55s WAIT on the 1 survivors cost $+0.0
+
+====================================================================================================
+RUN CONTEXT (regime / cluster / tape availability)
+   NORMAL-CHOP         24 runs
+   DEAD-CHOP           11 runs
+   VIOLENT-WHIPSAW     11 runs
+   BUILDING            10 runs
+   TREND-NO-BREAK       3 runs
+   CLEAN-TREND          1 runs
+
+JSON -> reports/friday_v7/sections/movement2_wk33.json

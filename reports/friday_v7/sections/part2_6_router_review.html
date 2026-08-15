@@ -1,426 +1,899 @@
-<h2><span class="n">P2.6</span> The router operation review &mdash; what works, what doesn&rsquo;t, and what to change on Saturday</h2>
+<style>
+/* P2.6 router-review pills — everything else inherits from the report shell */
+.tag.r-keep{background:#1a7f47;border-color:#125c33;color:#fff}
+.tag.r-ship{background:#e6f6ec;border-color:#1a7f47;color:#125c33}
+.tag.r-watch{background:#e8f1fb;border-color:#2f6fb0;color:#1d4a78}
+.tag.r-park{background:#f2f2ef;border-color:#a8a396;color:#5a5548}
+.tag.r-ref{background:#fbe3e0;border-color:#c0392b;color:#8a1c10}
+.tag.r-gap{background:#fdf3e0;border-color:#c08a2b;color:#7a5410}
+h4.r26{margin:1.4em 0 .45em;font-size:1em;letter-spacing:.03em;color:#0f2942;text-transform:uppercase}
+.rnote{font-size:.92em;color:#5a6472;margin:.45em 0 0}
+</style>
 
-<p class="lead">Gaz, you asked for a full interrogation of the router, so here it is, and the headline is better than the desk&rsquo;s P&amp;L would suggest. <strong>By its own nightly repricing the router was worth +$2,951 this week</strong> &mdash; it blocked $20,329 of would-be losses and gave up $17,378 of would-be winners &mdash; against <strong>&minus;$1,216 the week before</strong>. That is its first clearly positive week. The independent check agrees: the gates it kept benched had shadow twins bleeding the whole time (<code>capit_live_mirror</code> &minus;$1,609, <code>grind_fast</code> &minus;$2,549 over the exact windows those gates were off). And it did it without thrashing &mdash; <strong>1,393 ticks, 66 switch changes, 95.3% of ticks changed nothing</strong>.</p>
+<h2><span class="n">P2.6</span> THE ROUTER OPERATION REVIEW &mdash; week of 10&ndash;14 August 2026</h2>
 
-<p class="lead">Three things need fixing and all three are concrete. <strong>(1)</strong> The thresholds do not need touching &mdash; ER 0.15 / net 30 came out top on both test sets &mdash; but the <em>timing</em> does: window 30&rarr;45 minutes and hold 2&rarr;3 marks is worth <strong>+$502 on the live-managed set and +$399 on the full historical set</strong>, and it is an interior peak on four of five axes, not a grid edge. <strong>(2)</strong> The untradeable meter separates green days from red days <em>perfectly</em> at end-of-day (every green day &le;23, every red day &ge;34) but is <em>useless before the US open</em> &mdash; its 13:30Z reading correlates +0.13 with the day&rsquo;s P&amp;L, which is noise. The 65 cutoff catches 2 of 6 red days. <strong>(3)</strong> One gate is the whole leak: <code>abs_veto_short</code> was benched 91% of the week while its shadow twin made <strong>+$928</strong>, and armed for 9% of it during which it lost <strong>&minus;$559.00 on nine lots without a single winner</strong>. The router had it backwards on both sides.</p>
+<p class="lead">Gaz, the router had a quiet, disciplined, slightly profitable week, and then I found two things
+underneath it that matter more than the week itself. <strong>The decisions it actually made were worth
++$51.50</strong> &mdash; its benches blocked $611 of losers and gave up $410 of winners (+$201), its armings paid
+$716.50 and cost $866 (&minus;$149.50). That is a rounding error, and on a week where the tournament book closed
+<strong>&minus;$325.00 over 108 trades</strong> a rounding error is not a bad result. The nightly rollup, which
+prices what the benched gates <em>would</em> have done, is more generous: <strong>+$400 net over the four days it
+can actually see</strong>.</p>
 
-<div class="callout"><div class="ct">THE ONE THING THAT DID <em>NOT</em> SURVIVE &mdash; and it is the most useful negative result in this section</div><p>I expected the 5-minute poll to be leaking money to reaction lag, and it is not. <strong>Zero trades opened in the five minutes before any bench decision all week.</strong> More than that: I backtested the alternative you asked about &mdash; an in-code, per-gate, zero-lag regime guard evaluated at entry time instead of a poll &mdash; and it is <strong>worse</strong>. On this week it would have returned +$304 of router value against the poll&rsquo;s +$682; over 40 days, +$267 against +$475. The hysteresis that makes the poll &ldquo;slow&rdquo; is the thing earning the money. <strong>Do not build the event-driven version.</strong></p></div>
+<p class="lead"><strong>The first thing underneath.</strong> The router is managing an empty room. Its managed
+universe is <code>capitulation_long</code> on the down side and <code>rgv_short</code> on the up side. Those two
+gates took <strong>2 trades between them all week</strong>. Meanwhile <code>exhaustion_short</code> &mdash; which
+is an up-fader, exactly the shape the router exists to bench &mdash; took <strong>71 of the week&rsquo;s 108
+trades</strong>, and <strong>12 of them fired straight into a confirmed TREND_UP for &minus;$241.00, at
+&minus;$20.08 a trade</strong>. The nightly leakage detector reported <strong>zero leakage every single day</strong>,
+because it is only allowed to look at the two gates that never traded. That is not a small number and it is not a
+one-week fluke: over 30 days the same gate has 26 counter-trend fires for &minus;$398.50, negative on
+<strong>7 of the 8 days it happened</strong>, and it survives both strip-the-worst-day and leave-one-day-out.
+<strong>That is the Saturday play, and it is the best-evidenced thing in this section.</strong></p>
 
-<!-- ══════════════════════════════════════ 1 ══════════════════════════════════════ -->
+<p class="lead"><strong>The second thing underneath.</strong> I do not fully trust the ruler the nightly uses,
+and I can prove it with the desk&rsquo;s own trades. The nightly prices every blocked signal under a plain
+scalp-2R / 1-ATR exit. So I took the week&rsquo;s <strong>108 real live trades</strong> &mdash; same entries, same
+tape &mdash; and repriced them under that identical exit. They go from <strong>&minus;$325.00 to
++$459.50</strong>. The ruler is $7.26 a trade more generous than what the desk actually achieves, which means
+every &ldquo;wins we missed&rdquo; figure in the nightly is inflated. But &mdash; and this is why I segmented it
+before saying anything &mdash; <strong>the gap is almost exactly zero in chop (&minus;$0.28 a trade over 65
+trades) and huge in trend (+$25.02 in TREND_UP, +$11.38 in TREND_DOWN)</strong>. The router benches in trend. So
+the over-benching it gets accused of is measured with a ruler that is at its most generous precisely where the
+router does its work.</p>
 
-<div class="card"><h3>1 &middot; The week&rsquo;s decisions and the scoreboard</h3><p>Every number in this table is recomputed from <code>data/router_trial_log.txt</code> (one line per 5-minute tick, plus session lines) and <code>data/gazbot7.db</code>. Days are <strong>Paris days</strong> &mdash; 22:00 UTC to 22:00 UTC &mdash; because that is the unit the router itself works in, and P&amp;L is on the clean ledger (<code>data_quality IS NULL</code>). That basis puts the week at <strong>&minus;$953.00 on 112 lots</strong>; P1 quotes &minus;$772.50 on 110 because it uses UTC calendar days, which pushes the two Monday-night lots out of the week entirely. Same trades, different fence.</p></div>
+<div class="callout"><div class="ct">THE ONE-PARAGRAPH VERSION</div>
+<p><strong>SURVIVED:</strong> the durable router as a mechanism. 5-minute systemd tick ran <strong>288/288 on
+three days and 284/284 on the fourth, zero service failures</strong>; <strong>95% of ticks changed nothing</strong>
+and Friday changed almost nothing at all (6 transitions in 24 hours) on the day the desk made its second-best
+number. The <strong>untradeable meter genuinely works</strong> over 22 days &mdash; STAY-OUT days averaged
+&minus;$651, CAUTION days &minus;$212, TRADEABLE days +$7, cleanly monotone &mdash; and the 65 cutoff sits in the
+middle of a flat plateau from 50 to 75, so it does <strong>not</strong> want tuning.
+<strong>THE ACTION:</strong> put <code>exhaustion_short</code> into the router&rsquo;s UP-side managed set. 26
+counter-trend fires over 30 days, &minus;$398.50, &minus;$15.33 a trade, red on 7 of 8 days, survives
+strip-the-worst.
+<strong>THE SECOND ACTION:</strong> the 40-day sweep says leave ER 0.15 / net 30 exactly where they are and change
+the <em>timing</em> &mdash; window 30&rarr;45 min, step 15&rarr;5 min, hold 2&rarr;3 marks. That is worth +$502 on
+the live set and +$399 on the full set, and it independently arrives at the two fixes the ledger identified by
+hand: a longer window kills the boundary flicker, a shorter step cuts the actuation lag.
+<strong>WHAT ERRED:</strong> <strong>62% of the week&rsquo;s 64 gate transitions were dead</strong> &mdash; no
+trade, no blocked signal, nothing. <code>abs_veto_short</code> alone was flipped <strong>36 times and 28 of those
+flips produced literally nothing</strong>. Actuation lag cost <strong>&minus;$242.00</strong>, all of it on the
+bench side.
+<strong>THE HONEST GAP:</strong> on Thursday the router was <strong>brain-dead for 10 hours 20 minutes</strong>
+&mdash; 125 consecutive ticks aborted on an expired OAuth session while systemd reported every one of them as a
+success. It cost $0, and that was luck, not design.</p></div>
 
-<table>
-<tr><th>Day</th><th>Ticks</th><th>Switch changes</th><th>Change rate</th><th>Meter (EOD)</th><th>Desk P&amp;L</th><th>What the router actually did</th></tr>
-<tr><td class="ln">Mon 08-03</td><td class="num">276</td><td class="num">5</td><td class="num">1.8%</td><td class="num">34</td><td class="num">&minus;$460.50</td><td>All five changes in the 22:00&ndash;23:59Z reopen block &mdash; benched five of six gates straight after the midnight re-arm. Zero changes for the following 22 hours.</td></tr>
-<tr class="row-hl"><td class="ln">Tue 08-04</td><td class="num">277</td><td class="num">9</td><td class="num">3.2%</td><td class="num">22</td><td class="num">+$330.50</td><td>Seven of nine changes fell in the 01:00&ndash;04:00Z Asia block, cycling <code>abs_veto_long</code> off and on four times each. The gate it kept fiddling with was the one that made the day.</td></tr>
-<tr class="row-bad"><td class="ln">Wed 08-05</td><td class="num">276</td><td class="num">16</td><td class="num">5.8%</td><td class="num">44</td><td class="num">&minus;$817.00</td><td>The busiest non-Friday. <code>abs_veto_long</code> off 7&times; / on 5&times;. The day&rsquo;s damage (&minus;$474 in the 14:00Z hour) came from gates it had <em>armed</em>, not ones it failed to bench.</td></tr>
-<tr class="row-bad"><td class="ln">Thu 08-06</td><td class="num">276</td><td class="num">11</td><td class="num">4.0%</td><td class="num">78 <span class="tag">STAY-OUT</span></td><td class="num">&minus;$233.00</td><td><code>abs_veto_short</code> armed and benched <strong>three separate times</strong>. First two never fired; the third fired and lost &minus;$129.50. The nipc kill-criterion fired at 13:09 exactly on the written &minus;$400 line.</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">288</td><td class="num">25</td><td class="num">8.7%</td><td class="num">15</td><td class="num">+$227.00</td><td>276 durable ticks + 12 session ticks. <strong>20 of 25 changes fell in 12:00&ndash;16:59Z</strong>, then the 17:00 and 18:00 hours passed with none at all. Three written expiries fired autonomously and correctly.</td></tr>
-<tr><td class="ln"><strong>WEEK</strong></td><td class="num"><strong>1,393</strong></td><td class="num"><strong>66</strong></td><td class="num"><strong>4.7%</strong></td><td class="num">&mdash;</td><td class="num"><strong>&minus;$953.00</strong></td><td>1,326 ticks explicitly logged &ldquo;changed: none&rdquo;.</td></tr>
-</table>
+<h3>1 &middot; THE WEEK&rsquo;S DECISIONS AND THE SCOREBOARD</h3>
 
-<p><strong>The thrash check passes, and it passes comfortably.</strong> Ninety-five percent of ticks changed nothing. But the raw rate hides the shape, and the shape is the finding: the changes are not spread across the week, they are bunched into two blocks. Here is every switch change by the hour it happened.</p>
-
-<table>
-<tr><th>UTC hour block</th><th>What it is</th><th>Changes</th><th>Share</th><th>Read</th></tr>
-<tr class="row-bad"><td class="ln">22:00&ndash;01:59</td><td>Paris reopen + the midnight all-on re-arm</td><td class="num">21</td><td class="num">32%</td><td>The router spends its first hours every night undoing the automatic re-arm</td></tr>
-<tr class="row-bad"><td class="ln">12:00&ndash;15:59</td><td>London close through the US cash open</td><td class="num">22</td><td class="num">33%</td><td>The hardest four hours of the day carry a third of all decisions</td></tr>
-<tr><td class="ln">02:00&ndash;11:59</td><td>Asia + European morning</td><td class="num">17</td><td class="num">26%</td><td>Mostly Tuesday and Wednesday <code>abs_veto_long</code> cycling</td></tr>
-<tr class="row-hl"><td class="ln">16:00&ndash;21:59</td><td>US afternoon</td><td class="num">6</td><td class="num">9%</td><td>Quiet &mdash; and this is where <code>abs_veto_long</code> made its money on Friday</td></tr>
-</table>
-
-<p>Two-thirds of every decision the router made this week happened either in the four hours around the US open or in the four hours after the midnight reset. <strong>The reset block is self-inflicted.</strong> <code>gazbot7-gate-reactivate.timer</code> turns everything back on at 22:00 and the router then spends 21 changes turning most of it back off. That is 32% of the week&rsquo;s decision budget spent correcting a scheduled action, and it is the same &ldquo;all-6-open reopen churn&rdquo; the ledger already flagged on 07-31 &mdash; when it cost <strong>&minus;$275</strong> in real money (<code>rgv_short</code> &minus;$107, <code>abs_veto_long</code> &minus;$82, grind stops &minus;$86.50) before the router could get to it.</p>
-
-<div class="card"><h3>The graded ledger &mdash; where the scoreboard actually stands</h3><p><code>data/router_badcall_ledger.md</code> carries the running tally: <strong>GOOD 30 &middot; BAD 5 &middot; CHURN 10 &middot; NEUTRAL 6</strong> as of Friday&rsquo;s close. Parsed by session, here is how it accumulated &mdash; and one thing worth saying out loud.</p></div>
-
-<table>
-<tr><th>Ledger session</th><th>&#9989; GOOD</th><th>&#10060; BAD</th><th>&#9888; CHURN</th><th>&#9723; NEUTRAL</th><th>Day P&amp;L</th></tr>
-<tr class="row-hl"><td class="ln">2026-07-30 (Thu)</td><td class="num">4</td><td class="num">2</td><td class="num">1</td><td class="num">2</td><td class="num">+$1,172.00</td></tr>
-<tr class="row-bad"><td class="ln">2026-07-31 (Fri)</td><td class="num">8</td><td class="num">0</td><td class="num">4</td><td class="num">0</td><td class="num">&minus;$905.00</td></tr>
-<tr class="row-bad"><td class="ln">2026-08-03 &rarr; 08-05</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&minus;$947.00</td></tr>
-<tr class="row-bad"><td class="ln">2026-08-06 (Thu)</td><td class="num">5</td><td class="num">1</td><td class="num">1</td><td class="num">1</td><td class="num">&minus;$233.00</td></tr>
-<tr class="row-hl"><td class="ln">2026-08-07 (Fri, 6 passes)</td><td class="num">9</td><td class="num">3</td><td class="num">4</td><td class="num">1</td><td class="num">+$227.00</td></tr>
-</table>
-
-<div class="callout"><div class="ct">&#9888; A PROCESS HOLE, and it is in the three worst days of the week</div><p><strong>The ledger has no graded entries at all for Monday, Tuesday or Wednesday.</strong> Those three days carry 30 of the week&rsquo;s 66 switch changes and &minus;$947.00 of realised P&amp;L, including Wednesday&rsquo;s &minus;$817.00 &mdash; the worst session of the week. The grading resumes on Thursday and is dense on Friday. So the scoreboard you are reading is <strong>not a sample of the week, it is a sample of the days somebody sat down to grade</strong>, and those days are Thursday and Friday. That biases the tally toward the sessions with the most oversight, which are also the sessions where the router behaved best. Fixing this is a discipline item, not a code item: the 4-hourly review must run on the bad days too, or especially on the bad days.</p></div>
-
-<!-- ══════════════════════════════════════ 2 ══════════════════════════════════════ -->
-
-<div class="card"><h3>2 &middot; What paid, what erred &mdash; in dollars</h3><p>Two independent ways to price a bench. <strong>(a)</strong> The gate&rsquo;s shadow twin over the exact hours the gate was benched &mdash; that is the &ldquo;what it would have done&rdquo; counterfactual, and it is the honest one because the twin was running the same logic on the same tape with nobody stopping it. <strong>(b)</strong> The nightly&rsquo;s repricing of every suppressed signal. Both are below. Shadow trades whose entry-to-exit distance exceeds 300 points are dropped as contract-roll contamination (13 rows across the week). <strong>&ldquo;Hours benched&rdquo; is reconstructed from the switch-change log</strong>, walking each gate&rsquo;s on/off events across the 120-hour week; P1 counts arm-windows from the switch file itself and will differ by a few hours per gate. The share is what matters here, not the decimal.</p></div>
-
-<table>
-<tr><th>Gate</th><th>Hours benched</th><th>% of week</th><th>Its shadow twin over the benched window</th><th>Live P&amp;L while ARMED</th><th>Verdict</th></tr>
-<tr class="row-hl"><td class="ln">capitulation_long</td><td class="num">111.6 h</td><td class="num">93%</td><td class="num"><code>capit_live_mirror</code> &minus;$1,609 (70 tr) &middot; <code>capit_loose</code> &minus;$3,566 (146 tr)</td><td class="num">+$84.50</td><td><span class="tag">BEST BENCH</span></td></tr>
-<tr class="row-hl"><td class="ln">grind_long</td><td class="num">119.3 h</td><td class="num">99%</td><td class="num"><code>grind_fast</code> &minus;$2,549 (335 tr) &middot; <code>cx_grindA_live</code> &minus;$202 (74 tr)</td><td class="num">&minus;$172.00</td><td><span class="tag">RIGHT CALL</span></td></tr>
-<tr><td class="ln">rgv_short</td><td class="num">120.0 h</td><td class="num">100%</td><td class="num"><code>rg_short_025_raw</code> &minus;$89 (19 tr)</td><td class="num">$0.00</td><td><span class="tag">FREE</span></td></tr>
-<tr><td class="ln">abs_veto_long</td><td class="num">85.8 h</td><td class="num">71%</td><td class="num"><code>cx_absLA_live</code> &minus;$77 (18 tr) &middot; <code>sw_absL_A_k20</code> &minus;$78 (21 tr)</td><td class="num">+$385.50</td><td><span class="tag">WELL TIMED</span></td></tr>
-<tr><td class="ln">exhaustion_short</td><td class="num">112.7 h</td><td class="num">94%</td><td class="num"><code>exhaustion_rev</code> <strong>+$218</strong> (124 tr)</td><td class="num">&minus;$162.00</td><td><span class="tag">MILD OVER-BENCH</span></td></tr>
-<tr class="row-bad"><td class="ln">abs_veto_short</td><td class="num">109.2 h</td><td class="num">91%</td><td class="num"><code>abs_veto_55s</code> <strong>+$928</strong> (71 tr) &middot; <code>cx_absSB_live</code> <strong>+$262</strong> (21 tr)</td><td class="num">&minus;$559.00</td><td><span class="tag">BACKWARDS</span></td></tr>
-</table>
-
-<p><strong>Read the top two rows first, because they are the week&rsquo;s case for the router existing.</strong> It kept <code>capitulation_long</code> off for 93% of the week and <code>grind_long</code> off for 99%, and over exactly those windows their unmanaged twins lost <strong>$1,609</strong> and <strong>$2,549</strong>. That is the money that did not leave the account. Everything else in this review is a rounding error next to those two decisions, and they were both essentially <em>one</em> decision each, held for days without fiddling.</p>
-
-<p><strong>Now read the bottom row, because it is the week&rsquo;s indictment.</strong> <code>abs_veto_short</code>&rsquo;s shadow twins made <strong>+$928</strong> and <strong>+$262</strong> during the 109 hours it was benched, and the gate itself lost <strong>&minus;$559.00 across nine lots with zero winners</strong> in the 11 hours it was armed. The router was not merely wrong about this gate &mdash; it was <em>anti-correlated</em>. It sat the gate down while the opportunity was there and stood it up for the losses.</p>
-
-<div class="callout"><div class="ct">WHY &mdash; and the answer is not &ldquo;the router is stupid&rdquo;</div><p>The ledger already caught this on 08-06 and it holds for the whole week: <strong>the live gate and its shadow twin do not enter at the same price.</strong> On 08-06 at 13:33 the live gate sold at ~29253, <strong>66 points below the 29319 break low</strong> its own twin sold; the twin banked +$108.50 and the live gate stopped for &minus;$129.50 on the same setup. So the twin&rsquo;s +$928 is <em>not</em> a clean measure of what the live gate would have earned &mdash; it is a measure of what the <em>setup</em> was worth to a faster fill. The router was reading shadow P&amp;L as a proxy for gate quality and the proxy is broken for this gate. That is banked as <code>[[shadow-green-does-not-mean-live-green]]</code> and it is the single most important mechanism lesson of the week.</p></div>
-
-<div class="card"><h3>The &#10060; BAD and &#9888; CHURN patterns, priced</h3><p>These are the recurring error shapes from the ledger, with the dollars attached. Each one has a rule already written against it; the question for Saturday is whether the rules are being <em>applied</em>.</p></div>
-
-<table>
-<tr><th>Pattern</th><th>When</th><th>What happened</th><th>Cost</th><th>Rule it violated</th></tr>
-<tr class="row-bad"><td class="ln">Premature arm on a delta blip</td><td class="num">07-30 15:49</td><td>Flipped to longs on a 4-bucket buyer-delta build and a 45pt poke of the range top, in <strong>ER 0.01 chop</strong>. Faded in 2 minutes.</td><td class="num">~$0 net (salvaged by operator Claims)</td><td><code>rearm-momentum-needs-er-climb-not-delta-blip</code></td></tr>
-<tr class="row-bad"><td class="ln">Benching the aligned trend-rider on open noise</td><td class="num">07-30 13:36</td><td>Benched <code>grind</code> on the 13:33 false-breakout flush while the day was <em>cleanly trending up</em>. Operator overrode; grind then booked +$234 and +$197.</td><td class="num">&minus;$431 avoided only by the override</td><td><code>us-open-dont-bench-trend-rider</code></td></tr>
-<tr class="row-bad"><td class="ln">All-6-on at the reopen</td><td class="num">07-31 21:58</td><td>Clean-slate midnight re-arm into a directional reopen; the wrong-side gates churned before the router could reach them.</td><td class="num">&minus;$275</td><td>Reset-design cost &mdash; still unfixed, still costing 32% of the change budget</td></tr>
-<tr class="row-bad"><td class="ln">Re-arming into a &ldquo;calm&rdquo; recovery</td><td class="num">07-31 16:41 &amp; 17:37</td><td>Two <code>abs_veto</code> re-enables into ER 0.24&ndash;0.30 chop. Even veto-protected, even on scalp exits, both churned.</td><td class="num">&minus;$245</td><td>Wait for ER&ge;0.35 <em>sustained</em>, not ER-0.25 elevated chop</td></tr>
-<tr class="row-bad"><td class="ln">Arming on shadow evidence</td><td class="num">08-06 13:20</td><td><code>abs_veto_short</code> armed because its shadow family was the day&rsquo;s one green cell. Live entry was 66pt worse than the twin.</td><td class="num">&minus;$129.50</td><td><code>shadow-green-does-not-mean-live-green</code> (banked <em>from</em> this)</td></tr>
-<tr class="row-bad"><td class="ln">Holding a short through the cash open</td><td class="num">08-07 13:20</td><td>Armed after a correct operator challenge &mdash; the reasoning improved, the outcome did not. Both lots stopped 59 seconds later at the bell, 11pt of slippage through the stops.</td><td class="num">&minus;$155.50</td><td>Process was right, ATR-39 tape was the cost</td></tr>
-<tr class="row-bad"><td class="ln">Recommending the bench of the day&rsquo;s only earner</td><td class="num">08-07 morning</td><td>The router advised benching <code>capitulation_long</code> <strong>four separate times</strong>. It was never actioned. It then made <strong>+$207 in ten seconds</strong> &mdash; the day&rsquo;s entire P&amp;L.</td><td class="num">+$207 saved by <em>not</em> listening</td><td>Fader benches must be on mechanism, never on day-sign</td></tr>
-<tr class="row-bad"><td class="ln">Zero-cost churn</td><td class="num">08-07 12:30&ndash;16:35</td><td><strong>20 switch changes in 4 hours; 16 never fired at all.</strong> Every one grades NEUTRAL in isolation. The $0 was availability, not judgement.</td><td class="num">$0 realised, real risk</td><td><code>count-switch-changes-churn-is-invisible-at-zero-cost</code></td></tr>
-</table>
+<p>Here is the week, day by day. The tournament book and the day-rider are kept apart because one day-rider trade
+swings more than twenty tournament scalps &mdash; blending them answers neither question.</p>
 
 <table>
-<tr><th>&#9989; The calls that paid</th><th>When</th><th>Evidence</th><th>Value</th></tr>
-<tr class="row-hl"><td class="ln">Bench both momentum longs on a regime flip</td><td class="num">07-30 14:51</td><td>ER collapsed 0.40&rarr;0.20&rarr;0.07 off the highs; desk was <em>flat</em>, so this was a regime read not a reaction to stops. The unbenched momentum shadows lost &minus;$398 over that window.</td><td class="num">+$398</td></tr>
-<tr class="row-hl"><td class="ln">Bench the fader family on the meter</td><td class="num">08-06 02:15</td><td>Meter 72 STAY-OUT, roundtrip 0.21, 66% given back. Held for 21 hours without thrashing. <code>capit_loose</code> ran &minus;$551 and <code>capit_live_mirror</code> &minus;$395.50 that day.</td><td class="num">+$400&ndash;550</td></tr>
-<tr class="row-hl"><td class="ln">Execute the written kill criterion</td><td class="num">08-06 13:09</td><td>nipc hit <strong>exactly &minus;$400.00 on its 47th lot</strong> and was benched the same minute, then held in <code>reactivate_gates.py::HOLD</code> so the 22:00 reopen cannot resurrect it.</td><td class="num">rule, not $</td></tr>
-<tr class="row-hl"><td class="ln">Three written expiries firing headless</td><td class="num">08-07</td><td>13:05 <code>grind_long</code> on the ER&lt;0.25 line &middot; 14:20 <code>abs_veto_short</code> on the 29700 reclaim &middot; 15:40 <code>exhaustion_short</code> re-armed on NO-RUN. Each condition was written into <code>gate_switches.env</code> <em>before</em> the fact and honoured by a headless tick.</td><td class="num">mechanism</td></tr>
-<tr class="row-hl"><td class="ln">Re-arm <code>exhaustion_short</code> under the (c2) carve-out</td><td class="num">08-07 14:25</td><td>The 14:20 bench had applied a <em>momentum</em> rationale to a <em>fader</em>. The tick caught it and re-armed. Went 2-for-2 at 14:48.</td><td class="num">+$104.00</td></tr>
-<tr class="row-hl"><td class="ln">Arm <code>abs_veto_long</code> and then leave it alone</td><td class="num">08-07 15:25</td><td>Armed on a completed trio, then <strong>six entries over 4.5 hours with no further intervention</strong>.</td><td class="num">+$248.50</td></tr>
-<tr class="row-hl"><td class="ln">Revert an auto-re-arm built on a false number</td><td class="num">08-07 13:52</td><td>The tick armed citing &ldquo;ATR 39.1&rarr;27, the spike is over&rdquo;. Measured ATR14 was <strong>42.1</strong> &mdash; vol had risen. Codified as (d2): measure vol against the <em>session</em> baseline, never a window containing the spike.</td><td class="num">error caught</td></tr>
-</table>
+<thead><tr><th>Paris day</th><th class="num">tournament $</th><th class="num">trades</th><th class="num">win%</th>
+<th class="num">day-rider $</th><th class="num">gate transitions</th><th class="num">of which DEAD</th>
+<th class="ln">what the router actually did</th></tr></thead>
+<tbody>
+<tr><td>Mon 08-10</td><td class="num">&minus;244.50</td><td class="num">18</td><td class="num">33%</td>
+<td class="num">+39.00</td><td class="num">9*</td><td class="num">n/a</td>
+<td class="ln">Two stay-outs triggered and both lapsed. The lapsed-bench bug fired for the third time in a day.</td></tr>
+<tr><td>Tue 08-11</td><td class="num">+371.50</td><td class="num">14</td><td class="num">79%</td>
+<td class="num">+189.00</td><td class="num">21</td><td class="num">14</td>
+<td class="ln">Busiest day. Benched grind_long at 13:40 for 48 hours &mdash; the week&rsquo;s single best call. Also the operator carve-out on abs_veto_long, honoured and expired on time.</td></tr>
+<tr class="row-bad"><td>Wed 08-12</td><td class="num">&minus;660.00</td><td class="num">30</td><td class="num">23%</td>
+<td class="num">+224.50</td><td class="num">19</td><td class="num">12</td>
+<td class="ln">The bad day. Seven flips on one gate decided by three points of net. exhaustion_short lost &minus;$367.50 on 24 lots with 17 stops and no rule could touch it.</td></tr>
+<tr><td>Thu 08-13</td><td class="num">+37.50</td><td class="num">9</td><td class="num">44%</td>
+<td class="num">+731.00</td><td class="num">18</td><td class="num">9</td>
+<td class="ln">Router dead 02:40&ndash;13:00 on expired credentials. Recovered and had its best afternoon window of the week.</td></tr>
+<tr class="row-hl"><td>Fri 08-14</td><td class="num">+170.50</td><td class="num">37</td><td class="num">49%</td>
+<td class="num">+434.00</td><td class="num">6</td><td class="num">5</td>
+<td class="ln">Near-total restraint. 100 of 102 ticks logged &ldquo;changed: none&rdquo; and the desk made money by being left alone.</td></tr>
+<tr><td><strong>WEEK</strong></td><td class="num"><strong>&minus;325.00</strong></td><td class="num"><strong>108</strong></td>
+<td class="num"><strong>42.6%</strong></td><td class="num"><strong>+1,617.50</strong></td><td class="num"><strong>64</strong></td>
+<td class="num"><strong>40 (62%)</strong></td><td class="ln"><strong>All-in across both desks: +$1,292.50.</strong></td></tr>
+</tbody></table>
 
-<!-- ══════════════════════════════════════ 3 ══════════════════════════════════════ -->
+<p class="rnote">* Monday&rsquo;s transition count is from the router&rsquo;s own log only. The systemd journal does not
+reach back past 2026-08-10 23:11 UTC, so Monday cannot be verified the second way. Everything else in this section
+that depends on the journal starts Tuesday.</p>
 
-<div class="card"><h3>3 &middot; Net router value &mdash; the nightly rollup</h3><p>Regenerated for every day of this week by running <code>scripts/router_nightly.py</code> and <code>scripts/selector_nightly.py</code> against the tournament journal (they had not been run since 07-31). Each blocked signal is repriced tick-honest under a scalp-2R / 1-ATR-stop exit. <strong>Health warning on the size of these numbers:</strong> every gate reports as an A and a B lot, so &ldquo;saved&rdquo; and &ldquo;missed&rdquo; are roughly double-counted &mdash; the <em>net</em> is unaffected but do not read $20,329 as a real dollar figure. Read the net, and read the direction.</p></div>
+<h4 class="r26">Counting the switch changes &mdash; and why it has to be done three ways</h4>
 
-<table>
-<tr><th>Day</th><th>CHOP %</th><th>TREND UP %</th><th>TREND DOWN %</th><th>Blocked losses SAVED</th><th>Winners MISSED</th><th>NET router value</th><th>Leakage</th></tr>
-<tr class="row-hl"><td class="ln">Mon 08-03</td><td class="num">73%</td><td class="num">23%</td><td class="num">4%</td><td class="num">$4,020</td><td class="num">$3,135</td><td class="num">+$885</td><td class="num">0</td></tr>
-<tr class="row-bad"><td class="ln">Tue 08-04</td><td class="num">63%</td><td class="num">30%</td><td class="num">7%</td><td class="num">$2,306</td><td class="num">$3,176</td><td class="num">&minus;$870</td><td class="num">0</td></tr>
-<tr class="row-hl"><td class="ln">Wed 08-05</td><td class="num">72%</td><td class="num">12%</td><td class="num">16%</td><td class="num">$4,832</td><td class="num">$3,323</td><td class="num">+$1,509</td><td class="num">0</td></tr>
-<tr><td class="ln">Thu 08-06</td><td class="num">63%</td><td class="num">20%</td><td class="num">18%</td><td class="num">$4,533</td><td class="num">$4,540</td><td class="num">&minus;$7</td><td class="num">0</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">66%</td><td class="num">27%</td><td class="num">7%</td><td class="num">$4,638</td><td class="num">$3,204</td><td class="num">+$1,434</td><td class="num">0</td></tr>
-<tr class="row-hl"><td class="ln"><strong>WEEK</strong></td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>$20,329</strong></td><td class="num"><strong>$17,378</strong></td><td class="num"><strong>+$2,951</strong></td><td class="num"><strong>0</strong></td></tr>
-<tr class="row-bad"><td class="ln">Previous week 07-27&rarr;07-31</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">$15,788</td><td class="num">$17,003</td><td class="num">&minus;$1,216</td><td class="num">22 tr / &minus;$1,083</td></tr>
-</table>
-
-<p><strong>Two things flipped between the weeks and both matter.</strong> Net value went from &minus;$1,216 to <strong>+$2,951</strong>, and <strong>leakage went to zero</strong>. Leakage counts managed gates that fired <em>while armed</em> and lost in a regime they should have been benched in &mdash; the router letting a loser through. Last week that was 22 trades and &minus;$1,083; this week it was nothing, on any day. Whatever else is wrong, <strong>the router is no longer leaving gates on in regimes that kill them.</strong></p>
-
-<p>The three positive days are all high-CHOP days (73%, 72%, 66%) and the two flat-to-negative days are the two lowest-CHOP days (both 63%). That is the router doing exactly its designed job: in chop it benches the momentum gates and gets paid; in a day with more trend in it, its benches start costing winners. Tuesday is the clean example &mdash; 30% TREND_UP, the week&rsquo;s best trend day, and the router&rsquo;s benches cost &minus;$870 of would-be winners while the desk still made +$330.50.</p>
-
-<table>
-<tr><th>Gate</th><th>Blocked signals</th><th>Would-have-WON</th><th>Would-have-LOST</th><th>Net blocked</th><th>Verdict</th></tr>
-<tr class="row-hl"><td class="ln">grind_long</td><td class="num">404</td><td class="num">+$6,982</td><td class="num">&minus;$9,186</td><td class="num">&minus;$2,204</td><td>the router&rsquo;s biggest single earner</td></tr>
-<tr class="row-hl"><td class="ln">abs_veto_long</td><td class="num">88</td><td class="num">+$1,623</td><td class="num">&minus;$2,168</td><td class="num">&minus;$545</td><td>good block on net</td></tr>
-<tr class="row-hl"><td class="ln">nipc_long</td><td class="num">22</td><td class="num">+$568</td><td class="num">&minus;$1,010</td><td class="num">&minus;$442</td><td>good block</td></tr>
-<tr class="row-hl"><td class="ln">abs_veto_short</td><td class="num">172</td><td class="num">+$3,342</td><td class="num">&minus;$3,676</td><td class="num">&minus;$334</td><td>marginal &mdash; near coin-flip</td></tr>
-<tr><td class="ln">nipc_short</td><td class="num">34</td><td class="num">+$1,353</td><td class="num">&minus;$1,414</td><td class="num">&minus;$61</td><td>neutral</td></tr>
-<tr class="row-bad"><td class="ln">rgv_short</td><td class="num">10</td><td class="num">+$400</td><td class="num">&minus;$294</td><td class="num">+$106</td><td>over-bench</td></tr>
-<tr class="row-bad"><td class="ln">exhaustion_short</td><td class="num">70</td><td class="num">+$2,339</td><td class="num">&minus;$2,178</td><td class="num">+$161</td><td>over-bench &mdash; agrees with the shadow read</td></tr>
-<tr class="row-bad"><td class="ln">capitulation_long</td><td class="num">20</td><td class="num">+$771</td><td class="num">&minus;$403</td><td class="num">+$368</td><td><strong>over-bench</strong> &mdash; and it disagrees with the shadow read</td></tr>
-</table>
-
-<div class="callout"><div class="ct">THE ONE PLACE THE TWO METHODS DISAGREE &mdash; and you should trust the shadow</div><p>The nightly says benching <code>capitulation_long</code> cost <strong>+$368 of missed winners</strong>. The shadow twin over the same benched windows says it avoided <strong>&minus;$1,609</strong>. They cannot both be right, and the difference is the exit: the nightly reprices every blocked signal under a <em>fixed scalp-2R</em>, which flatters a flush-buyer that snaps back fast and then gives it all up; the shadow mirror runs the gate&rsquo;s actual exit logic to its actual conclusion. On a gate whose entire mechanism is &ldquo;buy the flush and get paid on the snap&rdquo;, a 2R scalp on 20 signals is not a fair proxy. <strong>Treat the nightly&rsquo;s per-gate verdicts as directional for momentum gates and unreliable for faders</strong>, and price fader benches off the shadow mirror instead. This is a real defect in the nightly, worth an hour on Saturday.</p></div>
-
-<div class="card"><h3>The exit selector, same week, same method</h3><p>The router picks <em>which gates are on</em>; the selector picks <em>which exit each trade gets</em>. Both are &ldquo;regime&rarr;config&rdquo; policies, so they get judged the same way &mdash; against fixed alternatives, not in isolation.</p></div>
+<p>The ledger learned this the hard way on Thursday morning and it is worth restating, because a churn metric read
+off the wrong instrument is worse than no churn metric. <strong>The router&rsquo;s own log under-reports</strong>:
+its <code>changed:</code> field only records what the <em>router</em> changed, so the 22:00Z reactivation timer moves
+gates while every router tick that hour says &ldquo;changed: none&rdquo;. <strong>The systemd journal
+over-reports</strong>: <code>tournament.py</code> initialises its last-known set to empty, so the first tick after
+any restart logs a phantom change. Here is the reconciliation.</p>
 
 <table>
-<tr><th>Day</th><th>Trades</th><th>Optimal picks</th><th>Regret</th><th>Selector</th><th>Perfect hindsight</th><th>Always-SCALP</th><th>Always-WIDE</th></tr>
-<tr class="row-hl"><td class="ln">Mon 08-03</td><td class="num">30</td><td class="num">26/30 (87%)</td><td class="num">$357</td><td class="num">+$1,152</td><td class="num">+$1,509</td><td class="num">+$72</td><td class="num">+$1,152</td></tr>
-<tr><td class="ln">Tue 08-04</td><td class="num">16</td><td class="num">8/16 (50%)</td><td class="num">$428</td><td class="num">+$1,246</td><td class="num">+$1,674</td><td class="num">+$584</td><td class="num">+$1,510</td></tr>
-<tr class="row-hl"><td class="ln">Wed 08-05</td><td class="num">29</td><td class="num">23/29 (79%)</td><td class="num">$353</td><td class="num">&minus;$488</td><td class="num">&minus;$134</td><td class="num">&minus;$1,164</td><td class="num">&minus;$1,310</td></tr>
-<tr><td class="ln">Thu 08-06</td><td class="num">12</td><td class="num">10/12 (83%)</td><td class="num">$40</td><td class="num">&minus;$294</td><td class="num">&minus;$254</td><td class="num">&minus;$254</td><td class="num">&minus;$294</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">23</td><td class="num">14/23 (61%)</td><td class="num">$358</td><td class="num">+$70</td><td class="num">+$427</td><td class="num">&minus;$250</td><td class="num">&minus;$370</td></tr>
-<tr class="row-hl"><td class="ln"><strong>WEEK</strong></td><td class="num"><strong>110</strong></td><td class="num"><strong>81/110 (74%)</strong></td><td class="num"><strong>$1,536</strong></td><td class="num"><strong>+$1,686</strong></td><td class="num"><strong>+$3,222</strong></td><td class="num"><strong>&minus;$1,012</strong></td><td class="num"><strong>+$688</strong></td></tr>
-</table>
+<thead><tr><th>Paris day</th><th class="num">router log says</th><th class="num">journal raw</th>
+<th class="num">restart artifacts</th><th class="num">22:00Z timer</th><th class="num">TRUE switch events</th>
+<th class="num">gate transitions</th></tr></thead>
+<tbody>
+<tr><td>Tue 08-11</td><td class="num">21</td><td class="num">22</td><td class="num">1</td><td class="num">0</td><td class="num">20</td><td class="num">21</td></tr>
+<tr><td>Wed 08-12</td><td class="num">16</td><td class="num">19</td><td class="num">2</td><td class="num">1</td><td class="num">16</td><td class="num">19</td></tr>
+<tr><td>Thu 08-13</td><td class="num">12</td><td class="num">15</td><td class="num">1</td><td class="num">1</td><td class="num">15</td><td class="num">18</td></tr>
+<tr><td>Fri 08-14</td><td class="num">4</td><td class="num">5</td><td class="num">1</td><td class="num">1</td><td class="num">5</td><td class="num">6</td></tr>
+<tr><td><strong>Tue&ndash;Fri</strong></td><td class="num"><strong>53</strong></td><td class="num"><strong>61</strong></td>
+<td class="num"><strong>5</strong></td><td class="num"><strong>3</strong></td><td class="num"><strong>56</strong></td><td class="num"><strong>64</strong></td></tr>
+</tbody></table>
 
-<p><strong>Adapting the exit beat both fixed alternatives.</strong> +$1,686 against &minus;$1,012 for always-scalp (<strong>+$2,698</strong>) and +$688 for always-wide (<strong>+$998</strong>). It picked the best of three exits on 74% of trades and left $1,536 of regret on the table &mdash; but the regret is measured against perfect hindsight, which is not a benchmark you can trade. The one systematic error is visible in the worst-pick lists: <strong>it chose WIDE on longs that needed TIGHT or MID, repeatedly</strong> (08-05 <code>nipc_long</code> chose wide &minus;$64 when tight made +$22.50; 08-07 <code>abs_veto_long</code> chose wide &minus;$38 when mid made +$35, twice). Wide was picked 70 times out of 110. That is a bias worth sweeping.</p>
+<p>The three instruments disagree by up to 25% on any given day and they agree within one event on the week.
+<strong>The arbiter is the modification time on <code>gate_switches.env</code></strong> &mdash; the file is what the
+tournament actually reads. Fifty-six real switch events, sixty-four individual gate flips, over five days.</p>
 
-<!-- ══════════════════════════════════════ 4 ══════════════════════════════════════ -->
+<h4 class="r26">The thrash check &mdash; and it fails on one gate</h4>
 
-<div class="card"><h3>4 &middot; Threshold tuning &mdash; and the answer is &ldquo;leave the thresholds alone, fix the timing&rdquo;</h3><p>From <code>scripts/router_study.py --days 40</code>, extended with an isolated timing sweep and a grid-edge probe I ran on top of it. The fast replay is asserted identical to the shipped <code>direction_router.replay_marks</code> on every day before anything is measured, so there is no drift between what is being swept and what is running. Both universes are reported side by side throughout: <strong>LIVE</strong> = the two gates the router actually manages as faders (<code>capitulation_long</code>, <code>rgv_short</code>); <strong>FULL</strong> = the historical fader set including <code>rgv_long</code> and <code>exhaustion_short</code>.</p></div>
-
-<p><strong>First the thresholds, because this is the short answer.</strong> Sweeping ER_TREND &times; NET_MIN at the shipped timing, the incumbent wins on both sets.</p>
-
-<table>
-<tr><th>&nbsp;</th><th colspan="5">LIVE managed set &mdash; router &Delta; vs no-router</th></tr>
-<tr><th>ER \ NET</th><th>20</th><th>30</th><th>40</th><th>50</th><th>60</th></tr>
-<tr class="row-hl"><td class="ln">0.15</td><td class="num">+$461</td><td class="num"><strong>+$492 &#9733;</strong></td><td class="num">+$428</td><td class="num">+$316</td><td class="num">+$158</td></tr>
-<tr><td class="ln">0.20</td><td class="num">+$224</td><td class="num">+$176</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td></tr>
-<tr><td class="ln">0.25</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td></tr>
-<tr><td class="ln">0.30</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td></tr>
-<tr><td class="ln">0.35</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td><td class="num">+$152</td></tr>
-</table>
+<p>Sixty-four flips sounds like a lot. Spread across 1,148 ticks it is not: <strong>the router changed nothing on
+95% of its ticks</strong>. The rate per day was 0.88, 0.79, 0.75 and 0.25 changes an hour &mdash; well under the
+5-an-hour that got flagged on 08-07. <strong>But the rate is not the problem this week. The concentration is.</strong></p>
 
 <table>
-<tr><th>&nbsp;</th><th colspan="5">FULL historical fader set &mdash; router &Delta; vs no-router</th></tr>
-<tr><th>ER \ NET</th><th>20</th><th>30</th><th>40</th><th>50</th><th>60</th></tr>
-<tr class="row-hl"><td class="ln">0.15</td><td class="num">+$1,300</td><td class="num"><strong>+$1,307 &#9733;</strong></td><td class="num">+$1,294</td><td class="num">+$1,120</td><td class="num">+$858</td></tr>
-<tr><td class="ln">0.20</td><td class="num">+$1,044</td><td class="num">+$995</td><td class="num">+$976</td><td class="num">+$1,014</td><td class="num">+$816</td></tr>
-<tr><td class="ln">0.25</td><td class="num">+$787</td><td class="num">+$787</td><td class="num">+$806</td><td class="num">+$806</td><td class="num">+$744</td></tr>
-<tr><td class="ln">0.30</td><td class="num">+$334</td><td class="num">+$334</td><td class="num">+$334</td><td class="num">+$334</td><td class="num">+$428</td></tr>
-<tr><td class="ln">0.35</td><td class="num">+$428</td><td class="num">+$428</td><td class="num">+$428</td><td class="num">+$428</td><td class="num">+$428</td></tr>
-</table>
+<thead><tr><th>gate</th><th class="num">transitions</th><th class="num">benches</th><th class="num">arms</th>
+<th class="num">DEAD ($0 either way)</th><th class="num">dead%</th><th class="num">blocked signals</th><th class="num">live trades</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td><code>abs_veto_short</code></td><td class="num">36</td><td class="num">18</td><td class="num">18</td>
+<td class="num">28</td><td class="num">78%</td><td class="num">3</td><td class="num">20</td></tr>
+<tr><td><code>abs_veto_long</code></td><td class="num">9</td><td class="num">5</td><td class="num">4</td>
+<td class="num">2</td><td class="num">22%</td><td class="num">10</td><td class="num">7</td></tr>
+<tr><td><code>exhaustion_short</code></td><td class="num">7</td><td class="num">4</td><td class="num">3</td>
+<td class="num">2</td><td class="num">29%</td><td class="num">15</td><td class="num">55</td></tr>
+<tr class="row-bad"><td><code>grind_long</code></td><td class="num">6</td><td class="num">3</td><td class="num">3</td>
+<td class="num">4</td><td class="num">67%</td><td class="num">14</td><td class="num">0</td></tr>
+<tr class="row-bad"><td><code>capitulation_long</code></td><td class="num">6</td><td class="num">3</td><td class="num">3</td>
+<td class="num">4</td><td class="num">67%</td><td class="num">1</td><td class="num">2</td></tr>
+<tr><td><strong>TOTAL</strong></td><td class="num"><strong>64</strong></td><td class="num"><strong>33</strong></td><td class="num"><strong>31</strong></td>
+<td class="num"><strong>40</strong></td><td class="num"><strong>62%</strong></td><td class="num"><strong>43</strong></td><td class="num"><strong>84</strong></td></tr>
+</tbody></table>
 
-<p>The shipped cell <strong>ER 0.15 / net 30</strong> is the maximum on both grids independently, and the surface around it is flat &mdash; net 20, 30 and 40 are within $13 of each other on the full set. <strong>There is nothing to gain here and no case for touching it.</strong> Note also how badly ER 0.35 does (+$152 on the live set means it essentially never declares a trend, so the router stops doing anything). That is a useful boundary: the router&rsquo;s ER and <code>grind</code>&rsquo;s 0.35 entry floor are different animals and must not be confused.</p>
+<p><strong><code>abs_veto_short</code> accounts for 56% of every flip the router made this week, and 78% of its own
+flips produced nothing whatsoever</strong> &mdash; no trade taken, no signal blocked. Eighteen benches and eighteen
+arms, and twenty-eight of those thirty-six were pure motion. Sixteen of them lasted under thirty minutes.
+This is the same disease the 08-07 review named &mdash; churn is invisible at $0 because each half of a round trip
+grades NEUTRAL in isolation &mdash; and it is now concentrated in one gate rather than spread across three.</p>
 
-<div class="card"><h3>The timing sweep &mdash; this is where the money is</h3><p>Thresholds pinned at shipped (ER 0.15 / net 30); only <code>WINDOW</code>, <code>STEP</code>, <code>HOLD</code> and <code>fast_exit</code> move. &ldquo;Days +/&minus;&rdquo; counts sessions where the config helped or hurt. &ldquo;LOO worst&rdquo; is leave-one-day-out: the total with the single most favourable day deleted &mdash; if that goes negative, the result is one day in a trenchcoat.</p></div>
+<p>The cause is not judgement. It is the threshold. The direction rule requires 60-minute net above 40pt
+<em>and</em> ER at or above 0.20, and this week&rsquo;s tape sat on top of both bars for hours at a time. Wednesday
+morning is the clean example, straight from the log: UP +63pt/ER 0.385 &rarr; FLAT +38pt/ER 0.222 (net leg fails
+by 2 points) &rarr; UP +60pt/ER 0.324 &rarr; FLAT +39pt/ER 0.252 (fails by 1 point) &rarr; UP +42pt/ER 0.268
+&rarr; FLAT +5pt. <strong>Five flips in fifty minutes, and three of them turned on a single point of net.</strong>
+Each individual read was correct.</p>
 
-<table>
-<tr><th>Config</th><th>LIVE &Delta;</th><th>LIVE days +/&minus;</th><th>LIVE LOO worst</th><th>FULL &Delta;</th><th>FULL days +/&minus;</th><th>FULL LOO worst</th></tr>
-<tr><td class="ln"><strong>SHIPPED</strong> w30 step15 hold2</td><td class="num">+$492</td><td class="num">3 / 0</td><td class="num">+$228</td><td class="num">+$1,307</td><td class="num">7 / 0</td><td class="num">+$802</td></tr>
-<tr class="row-bad"><td class="ln">w30 step5 hold2</td><td class="num">&minus;$320</td><td class="num">0 / 4</td><td class="num">&minus;$320</td><td class="num">+$308</td><td class="num">4 / 3</td><td class="num">+$17</td></tr>
-<tr><td class="ln">w30 step5 hold3</td><td class="num">+$190</td><td class="num">3 / 0</td><td class="num">+$38</td><td class="num">+$744</td><td class="num">5 / 3</td><td class="num">+$310</td></tr>
-<tr class="row-hl"><td class="ln"><strong>w45 step5 hold3</strong> &#9733;</td><td class="num"><strong>+$994</strong></td><td class="num">4 / 0</td><td class="num">+$574</td><td class="num"><strong>+$1,706</strong></td><td class="num">6 / 1</td><td class="num">+$1,040</td></tr>
-<tr><td class="ln">w45 step5 hold2</td><td class="num">+$838</td><td class="num">5 / 0</td><td class="num">+$520</td><td class="num">+$1,430</td><td class="num">6 / 1</td><td class="num">+$868</td></tr>
-<tr><td class="ln">w45 step5 hold4</td><td class="num">+$633</td><td class="num">3 / 0</td><td class="num">+$318</td><td class="num">+$1,314</td><td class="num">5 / 2</td><td class="num">+$728</td></tr>
-<tr><td class="ln">w45 step10 hold3</td><td class="num">+$756</td><td class="num">3 / 0</td><td class="num">+$440</td><td class="num">+$1,526</td><td class="num">5 / 1</td><td class="num">+$954</td></tr>
-<tr><td class="ln">w45 step15 hold3</td><td class="num">+$400</td><td class="num">2 / 0</td><td class="num">+$171</td><td class="num">+$894</td><td class="num">3 / 2</td><td class="num">+$370</td></tr>
-<tr><td class="ln">w60 step5 hold3</td><td class="num">+$832</td><td class="num">4 / 0</td><td class="num">+$460</td><td class="num">+$1,285</td><td class="num">6 / 1</td><td class="num">+$655</td></tr>
-<tr><td class="ln">w45 step5 hold3 <em>fast_exit</em></td><td class="num">+$994</td><td class="num">4 / 0</td><td class="num">+$574</td><td class="num">+$1,706</td><td class="num">6 / 1</td><td class="num">+$1,040</td></tr>
-<tr class="row-bad"><td class="ln">zero-lag w30 step1 hold1</td><td class="num">+$178</td><td class="num">2 / 2</td><td class="num">&minus;$75</td><td class="num">+$856</td><td class="num">4 / 3</td><td class="num">+$350</td></tr>
-</table>
+<h4 class="r26">The graded scoreboard</h4>
 
-<p><strong>Both sets pick the same winner, and it beats the incumbent by +$502 on the live set and +$399 on the full set.</strong> It survives leave-one-day-out on both (+$574 and +$1,040 with the best day deleted &mdash; it never goes negative). And <code>fast_exit</code> makes literally zero difference at this setting, so leave it off; it is a knob with no effect on this tape.</p>
-
-<div class="card"><h3>The anti-overfit test &mdash; is w45/step5/hold3 a peak or a cliff edge?</h3><p>The backtest discipline says resist the grid edge, so I pushed every axis past where <code>router_study</code> stops and re-measured. A parameter you should trust sits on a <em>plateau with an interior peak</em>; a parameter you should not sits at the boundary of what was tested.</p></div>
-
-<table>
-<tr><th>Axis</th><th colspan="7">LIVE set &Delta; / FULL set &Delta; &mdash; recommended value in bold</th><th>Shape</th></tr>
-<tr><td class="ln">WINDOW (min)</td><td class="num">30<br>+190/+744</td><td class="num"><strong>45<br>+994/+1706</strong></td><td class="num">60<br>+832/+1285</td><td class="num">75<br>+316/+598</td><td class="num">90<br>&minus;39/+308</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td><span class="tag">INTERIOR PEAK</span></td></tr>
-<tr><td class="ln">STEP (min)</td><td class="num">1<br>+364/+1124</td><td class="num">2<br>+439/+1117</td><td class="num">3<br>+764/+1454</td><td class="num"><strong>5<br>+994/+1706</strong></td><td class="num">10<br>+756/+1526</td><td class="num">15<br>+400/+894</td><td class="num">&nbsp;</td><td><span class="tag">INTERIOR PEAK</span></td></tr>
-<tr><td class="ln">HOLD (marks)</td><td class="num">2<br>+838/+1430</td><td class="num"><strong>3<br>+994/+1706</strong></td><td class="num">4<br>+633/+1314</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td><span class="tag">INTERIOR PEAK</span></td></tr>
-<tr><td class="ln">ER_TREND</td><td class="num">0.10<br>+778/+1464</td><td class="num">0.12<br>+881/+1527</td><td class="num"><strong>0.15<br>+994/+1706</strong></td><td class="num">0.20<br>+264/+874</td><td class="num">0.35<br>&minus;0/&minus;112</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td><span class="tag">INTERIOR PEAK</span></td></tr>
-<tr><td class="ln">NET_MIN (pt)</td><td class="num">10<br>+994/+1706</td><td class="num">20<br>+994/+1706</td><td class="num"><strong>30<br>+994/+1706</strong></td><td class="num">40<br>+829/+1658</td><td class="num">50<br>+764/+1604</td><td class="num">&nbsp;</td><td class="num">&nbsp;</td><td><span class="tag">FLAT PLATEAU</span></td></tr>
-</table>
-
-<p><strong>This is as clean as a robustness check gets on this desk.</strong> Interior maximum on four axes out of five, and the fifth is a flat plateau &mdash; net 10, 20 and 30 give bit-identical results, so <code>router_study</code>&rsquo;s joint-best answer of &ldquo;net 20&rdquo; is not an improvement, it is the grid edge of a region where the parameter does nothing. <strong>Keep net at 30.</strong> Both universes agree on the ranking of every single cell. The recommendation is therefore two numbers, and only two: <code>WINDOW 30&rarr;45</code>, <code>HOLD 2&rarr;3</code>. <code>STEP</code> is nominally 15 in the module but the live mechanism already ticks every 5 minutes, so that one is a code-comment fix, not a behaviour change.</p>
-
-<div class="callout"><div class="ct">&#9888; THE HONEST CAVEAT, and it is not small</div><p>This is 40 days of <strong>realised</strong> trades, which is 601 rows across 17 trading days &mdash; and those trades are already partly hand-gated and partly router-gated, so it is not a clean A/B. It is also one summer RANGE regime: 62&ndash;73% of every day this week read CHOP. <strong>A longer window and a hold of 3 marks makes the router stickier, which is exactly what you want in chop and exactly what will hurt in a real trend week</strong>, because it will hold a stale trend read for 15 minutes instead of 10. Every number above is an argument for chop. Deploy it Saturday, then <strong>re-validate after the first week with two or more clean-trend days in it</strong> before treating it as settled. If the next trend week shows the router benching the aligned rider late, hold is the first thing to put back to 2.</p></div>
-
-<div class="card"><h3>The three live rules you asked me to check specifically</h3></div>
-
-<p><strong>(a) The day-bias &plusmn;40 rule</strong> &mdash; bench shorts when the day is up more than 40 points, bench longs when it is down more than 40. I tested every threshold from 0 to 300 on 599 clean realised trades over 30 days.</p>
+<p>The bad-call ledger graded 61 items across the week&rsquo;s 25 review windows.</p>
 
 <table>
-<tr><th>Bias threshold</th><th>Counter-bias trades</th><th>Their net</th><th>$ / trade</th><th>Aligned trades</th><th>Their net</th></tr>
-<tr class="row-bad"><td class="ln">&plusmn;0 pt</td><td class="num">207</td><td class="num">&minus;$3,534</td><td class="num">&minus;$17.07</td><td class="num">392</td><td class="num">&minus;$467</td></tr>
-<tr class="row-bad"><td class="ln">&plusmn;20 pt</td><td class="num">194</td><td class="num">&minus;$3,147</td><td class="num">&minus;$16.22</td><td class="num">405</td><td class="num">&minus;$854</td></tr>
-<tr class="row-bad"><td class="ln"><strong>&plusmn;40 pt (live)</strong></td><td class="num">186</td><td class="num">&minus;$3,354</td><td class="num"><strong>&minus;$18.03</strong></td><td class="num">413</td><td class="num">&minus;$647</td></tr>
-<tr class="row-bad"><td class="ln">&plusmn;80 pt</td><td class="num">166</td><td class="num">&minus;$2,807</td><td class="num">&minus;$16.91</td><td class="num">433</td><td class="num">&minus;$1,194</td></tr>
-<tr class="row-bad"><td class="ln">&plusmn;150 pt</td><td class="num">136</td><td class="num">&minus;$2,522</td><td class="num">&minus;$18.54</td><td class="num">463</td><td class="num">&minus;$1,479</td></tr>
-<tr class="row-bad"><td class="ln">&plusmn;300 pt</td><td class="num">83</td><td class="num">&minus;$870</td><td class="num">&minus;$10.48</td><td class="num">516</td><td class="num">&minus;$3,131</td></tr>
-</table>
+<thead><tr><th>verdict</th><th class="num">this week</th><th class="num">all-time running</th><th class="ln">reading</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>&#9989; GOOD</td><td class="num">11</td><td class="num">41</td><td class="ln">18% of the week&rsquo;s grades against 32% all-time &mdash; a quieter week with fewer chances to be right.</td></tr>
+<tr class="row-bad"><td>&#10060; BAD</td><td class="num">2</td><td class="num">10</td><td class="ln">Both on Monday, both the same lapsed-bench bug, one of them &minus;$92.50.</td></tr>
+<tr class="row-bad"><td>&#9888; CHURN</td><td class="num">15</td><td class="num">22</td><td class="ln">★ <strong>The week booked 15 of the 22 CHURN grades this ledger has ever issued.</strong> That is the honest headline of the scoreboard.</td></tr>
+<tr><td>&#9723; NEUTRAL</td><td class="num">32</td><td class="num">36</td><td class="ln">Mostly $0 flips on gates that never got a setup &mdash; availability, not judgement.</td></tr>
+</tbody></table>
 
-<p><strong>There is no optimum to find here, and that is the answer.</strong> Counter-day-bias trades lose $16&ndash;$18 each at every threshold from zero to 150 points. The rule is not a tuned parameter, it is a directional fact: <em>trading against the day loses money on this desk regardless of how far the day has gone.</em> The &plusmn;40 setting happens to isolate the worst per-trade cohort of the low thresholds, so <strong>leave it at 40</strong> &mdash; and note that raising it is actively harmful, because the &ldquo;aligned&rdquo; bucket gets steadily worse as you raise it (it starts absorbing counter-trend losers it should be excluding).</p>
+<p>Read plainly: <strong>the router got materially better at not being wrong and materially worse at not being
+busy.</strong> Two bad calls in five days is a good ratio. Fifteen churn grades in five days, against seven in all
+prior history, is not.</p>
 
-<p><strong>(b) The grind ER-0.35 floor</strong> &mdash; validated hard, and it also tells you what to do next.</p>
+<h3>2 &middot; WHAT PAID AND WHAT ERRED, IN DOLLARS</h3>
 
-<table>
-<tr><th>Gate</th><th>ER &lt; 0.15</th><th>ER 0.15&ndash;0.25</th><th>ER 0.25&ndash;0.35</th><th>ER &ge; 0.35</th></tr>
-<tr class="row-hl"><td class="ln"><code>grind_long</code></td><td class="num">n=18 &nbsp; +$118 &nbsp; <strong>+$6.5</strong>/tr</td><td class="num">n=29 &nbsp; &minus;$1,160 &nbsp; <strong>&minus;$40.0</strong>/tr</td><td class="num">n=30 &nbsp; +$20 &nbsp; +$0.7/tr</td><td class="num">n=21 &nbsp; <strong>+$568</strong> &nbsp; <strong>+$27.1</strong>/tr</td></tr>
-<tr class="row-bad"><td class="ln"><code>abs_veto_short</code></td><td class="num">n=10 &nbsp; &minus;$218 &nbsp; &minus;$21.9/tr</td><td class="num">n=11 &nbsp; &minus;$452 &nbsp; &minus;$41.1/tr</td><td class="num">n=5 &nbsp; &minus;$80 &nbsp; &minus;$16.1/tr</td><td class="num">n=9 &nbsp; <strong>+$550</strong> &nbsp; <strong>+$61.2</strong>/tr</td></tr>
-<tr><td class="ln"><code>abs_veto_long</code></td><td class="num">n=27 &nbsp; +$80 &nbsp; +$3.0/tr</td><td class="num">n=29 &nbsp; <strong>+$552</strong> &nbsp; +$19.0/tr</td><td class="num">n=8 &nbsp; &minus;$162 &nbsp; &minus;$20.2/tr</td><td class="num">n=29 &nbsp; &minus;$25 &nbsp; &minus;$0.9/tr</td></tr>
-<tr><td class="ln"><code>exhaustion_short</code></td><td class="num">n=33 &nbsp; &minus;$144 &nbsp; &minus;$4.3/tr</td><td class="num">n=10 &nbsp; &minus;$170 &nbsp; &minus;$17.0/tr</td><td class="num">n=17 &nbsp; <strong>+$468</strong> &nbsp; <strong>+$27.6</strong>/tr</td><td class="num">n=15 &nbsp; &minus;$94 &nbsp; &minus;$6.3/tr</td></tr>
-<tr><td class="ln"><code>capitulation_long</code></td><td class="num">n=15 &nbsp; &minus;$254 &nbsp; &minus;$17.0/tr</td><td class="num">n=8 &nbsp; &minus;$16 &nbsp; &minus;$2.1/tr</td><td class="num">n=3 &nbsp; +$56</td><td class="num">n=4 &nbsp; +$177</td></tr>
-</table>
+<p>Every one of the 64 flips is graded here on its own terms. A <strong>bench</strong> is judged on what it blocked
+&mdash; each <code>SUPPRESSED-OPEN</code> in the benched window, repriced tick-honest at $1.50 a round trip and $2 a
+point. A negative blocked number means it stopped a loser, which is the point. An <strong>arm</strong> is judged on
+the gate&rsquo;s real live P&amp;L over the window it was armed.</p>
 
-<p><code>grind_long</code> makes <strong>+$27.10 a trade above ER 0.35</strong> and loses <strong>&minus;$40.00 a trade in the 0.15&ndash;0.25 band</strong>. The floor is exactly in the right place. Do not move it, do not let anyone argue it down on a &ldquo;close enough&rdquo; reading.</p>
-
-<p><strong>And now the actionable half of that table.</strong> <code>abs_veto_short</code> has the identical shape &mdash; <strong>+$61.20/trade above ER 0.35, negative in all three bands below it</strong> &mdash; and it has <em>no floor at all</em>. That is this week&rsquo;s biggest single leak with a mechanism attached. Two of the week&rsquo;s four losing entries fired at ER30 of 0.17 and 0.18 for a combined &minus;$274; an ER-0.35 floor blocks both. The other two fired at 0.47 and 0.38, so the floor is not a complete fix &mdash; but it is a free one, it uses a threshold already proven on a sibling gate, and it fails safe. Note the mirror-image result on <code>abs_veto_long</code>: it earns in the 0.15&ndash;0.25 band and does nothing above 0.35. <strong>The two halves of the same gate want opposite ER regimes.</strong> Do not apply one floor to both.</p>
-
-<p><strong>(c) The re-arm test (ER climbing + vol expanding + structure)</strong> &mdash; the mechanism is sound and the failures are all in the <em>measurement</em>, not the rule. Three separate times this week the test was applied to a false vol number: 08-07 13:17 (ATR60 as denominator, which contains the spike), 13:50 (the tick&rsquo;s &ldquo;ATR 39.1&rarr;27, spike over&rdquo; when measured ATR was 42.1), and the 08-06 08:15/11:05 pair where ER climbed on ATR 11&ndash;12 and both re-arms decayed within 15 minutes. The (d2) codification &mdash; <em>measure vol against the SESSION baseline, never a window containing the spike</em> &mdash; is the right fix and it is already written. What is <em>not</em> written is the necessary-but-not-sufficient half: <strong>vol expansion alone, in ER-0.08 chop with no range break, is a whipsaw trap</strong>, and it has now fooled the desk at least three times. That deserves promotion from a note to a rule.</p>
-
-<!-- ══════════════════════════════════════ 5 ══════════════════════════════════════ -->
-
-<div class="card"><h3>5 &middot; The untradeable-day meter &mdash; it works, and it works too late</h3><p><code>src/gazbot7/untradeable.py</code>, shipped 07-31, computed here for every Paris day since 07-27 by calling <code>untradeable.compute</code> directly against <code>capture.db</code> and <code>gazbot7.db</code>. Three meters blend into one 0&ndash;100 score: <strong>ROUNDTRIP</strong> (how much of the day&rsquo;s range the day actually kept), <strong>GIVE-BACK</strong> (how much of its biggest excursion it handed back), and <strong>STOPS</strong> (the recent stop-rate, excluded below n=10). Score &ge;65 = STAY-OUT, &ge;45 = CAUTION.</p></div>
+<h4 class="r26">The benches</h4>
 
 <table>
-<tr><th>Day</th><th>Score</th><th>Verdict</th><th>Roundtrip</th><th>Give-back</th><th>Stops meter</th><th>ATR14</th><th>Day net / range</th><th>Actual desk P&amp;L</th><th>Right?</th></tr>
-<tr class="row-hl"><td class="ln">Fri 07-31</td><td class="num">86</td><td>STAY-OUT</td><td class="num">0.10</td><td class="num">0.84</td><td class="num">80</td><td class="num">11.7</td><td class="num">&minus;61 / 611</td><td class="num">&minus;$905.00</td><td>&#9989;</td></tr>
-<tr class="row-hl"><td class="ln">Thu 08-06</td><td class="num">78</td><td>STAY-OUT</td><td class="num">0.14</td><td class="num">0.81</td><td class="num">58</td><td class="num">4.1</td><td class="num">&minus;61 / 422</td><td class="num">&minus;$233.00</td><td>&#9989;</td></tr>
-<tr class="row-hl"><td class="ln">Tue 07-28</td><td class="num">56</td><td>CAUTION</td><td class="num">0.38</td><td class="num">0.62</td><td class="num">33</td><td class="num">6.9</td><td class="num">&minus;230 / 610</td><td class="num">&minus;$54.00</td><td>&#9989;</td></tr>
-<tr class="row-hl"><td class="ln">Mon 07-27</td><td class="num">47</td><td>CAUTION</td><td class="num">0.52</td><td class="num">0.40</td><td class="num">60</td><td class="num">5.6</td><td class="num">&minus;417 / 808</td><td class="num">&minus;$226.50</td><td>&#9989;</td></tr>
-<tr class="row-bad"><td class="ln">Wed 08-05</td><td class="num">44</td><td>TRADEABLE</td><td class="num">0.45</td><td class="num">0.12</td><td class="num">87</td><td class="num">8.1</td><td class="num">&minus;234 / 522</td><td class="num">&minus;$817.00</td><td>&#10060; miss</td></tr>
-<tr class="row-bad"><td class="ln">Mon 08-03</td><td class="num">34</td><td>TRADEABLE</td><td class="num">0.51</td><td class="num">0.10</td><td class="num">53</td><td class="num">3.6</td><td class="num">+316 / 624</td><td class="num">&minus;$460.50</td><td>&#10060; miss</td></tr>
-<tr class="row-hl"><td class="ln">Wed 07-29</td><td class="num">23</td><td>TRADEABLE</td><td class="num">0.75</td><td class="num">0.05</td><td class="num">53</td><td class="num">14.1</td><td class="num">&minus;724 / 961</td><td class="num">+$638.50</td><td>&#9989;</td></tr>
-<tr class="row-hl"><td class="ln">Tue 08-04</td><td class="num">22</td><td>TRADEABLE</td><td class="num">0.77</td><td class="num">0.15</td><td class="num">33</td><td class="num">10.4</td><td class="num">+862 / 1115</td><td class="num">+$330.50</td><td>&#9989;</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">15</td><td>TRADEABLE</td><td class="num">0.84</td><td class="num">0.05</td><td class="num">33</td><td class="num">3.4</td><td class="num">+339 / 403</td><td class="num">+$227.00</td><td>&#9989;</td></tr>
-<tr class="row-hl"><td class="ln">Thu 07-30</td><td class="num">13</td><td>TRADEABLE</td><td class="num">0.96</td><td class="num">0.04</td><td class="num">47</td><td class="num">8.4</td><td class="num">+1030 / 1074</td><td class="num">+$1,172.00</td><td>&#9989;</td></tr>
-</table>
-
-<div class="callout"><div class="ct">&#9733; THE RESULT &mdash; and it is better than the verdict labels suggest</div><p>Sort by score and the ordering is <strong>perfect</strong>. <strong>Every green day scores 23 or below. Every red day scores 34 or above.</strong> There is an eleven-point gap with nothing in it. On ten days the meter has never once put a profitable day above an unprofitable one &mdash; Spearman &minus;0.76 against realised P&amp;L. It flagged 07-31 (&minus;$905) at <strong>86</strong>, the highest score in the record, and it put the desk&rsquo;s two best days at <strong>13</strong> and <strong>15</strong>. <strong>The measurement is right.</strong> What is wrong is the cutoff and the clock.</p></div>
-
-<p><strong>Which of the three meters actually discriminated?</strong> You had a prior on this and it is mostly right, with one correction.</p>
+<thead><tr><th>outcome</th><th class="num">n</th><th class="num">signals</th><th class="num">$</th><th class="ln">what it means</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>GOOD &mdash; blocked net losers</td><td class="num">8</td><td class="num">27</td><td class="num">saved +611.00</td><td class="ln">The bench earned its keep.</td></tr>
+<tr class="row-bad"><td>OVER-BENCH &mdash; blocked net winners</td><td class="num">4</td><td class="num">16</td><td class="num">cost &minus;410.00</td><td class="ln">Money left on the table.</td></tr>
+<tr><td>FREE &mdash; nothing wanted in</td><td class="num">21</td><td class="num">0</td><td class="num">0.00</td><td class="ln"><strong>64% of all benches cost and saved exactly nothing.</strong></td></tr>
+<tr><td><strong>NET BENCH VALUE</strong></td><td class="num"><strong>33</strong></td><td class="num"><strong>43</strong></td><td class="num"><strong>+201.00</strong></td><td class="ln">&nbsp;</td></tr>
+</tbody></table>
 
 <table>
-<tr><th>Signal</th><th>Spearman vs day P&amp;L</th><th>Verdict</th><th>Note</th></tr>
-<tr class="row-hl"><td class="ln">ROUNDTRIP meter</td><td class="num">&minus;0.82</td><td><span class="tag">DISCRIMINATES</span></td><td>The strongest single input. Confirms the module&rsquo;s own claim.</td></tr>
-<tr class="row-hl"><td class="ln">Blended SCORE</td><td class="num">&minus;0.76</td><td><span class="tag">DISCRIMINATES</span></td><td>Slightly <em>worse</em> than roundtrip alone &mdash; the blend is diluting its best input</td></tr>
-<tr class="row-hl"><td class="ln">STOPS meter</td><td class="num">&minus;0.72</td><td><span class="tag">BETTER THAN BILLED</span></td><td>Stronger than expected, but it is a lagging read of damage already done</td></tr>
-<tr><td class="ln">GIVE-BACK meter</td><td class="num">&minus;0.66</td><td><span class="tag">DISCRIMINATES</span></td><td>Real, but weakest of the three &mdash; and it <em>pulled the score down</em> on both miss days (0.12 and 0.10)</td></tr>
-<tr class="row-bad"><td class="ln">Router CHOP-time %</td><td class="num">&minus;0.38</td><td><span class="tag">NOISE</span></td><td>Every day this week read 63&ndash;73% CHOP. It cannot separate what it cannot vary.</td></tr>
-<tr class="row-bad"><td class="ln">ATR14</td><td class="num">+0.21</td><td><span class="tag">NOISE</span></td><td>Confirmed dead. The best day (07-30) and a bad day (07-31) sat at ATR 8.4 and 11.7.</td></tr>
-<tr><td class="ln">Shadow net, all 46 sims</td><td class="num">+0.73</td><td><span class="tag">COINCIDENT</span></td><td><strong>Correction to the prior:</strong> it <em>does</em> track P&amp;L &mdash; but only at the close, when it is useless</td></tr>
-</table>
+<thead><tr><th>when (UTC)</th><th>gate</th><th class="num">window</th><th class="num">signals</th><th class="num">blocked $</th><th class="ln">verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>08-11 13:40</td><td><code>grind_long</code></td><td class="num">48.3h</td><td class="num">12</td><td class="num">&minus;247.0</td><td class="ln"><strong>The week&rsquo;s best call.</strong> Benched into the US pre-open on a confirmed DOWN segment (&minus;150pt / ER 0.381) and left alone for two full days.</td></tr>
+<tr class="row-hl"><td>08-13 15:35</td><td><code>grind_long</code></td><td class="num">31.4h</td><td class="num">2</td><td class="num">&minus;81.0</td><td class="ln">Same gate, same treatment, same result.</td></tr>
+<tr class="row-hl"><td>08-11 13:40</td><td><code>abs_veto_long</code></td><td class="num">0.5h</td><td class="num">1</td><td class="num">&minus;65.5</td><td class="ln">Half an hour, one signal, a loser stopped.</td></tr>
+<tr class="row-hl"><td>08-13 15:35</td><td><code>abs_veto_long</code></td><td class="num">31.4h</td><td class="num">2</td><td class="num">&minus;57.0</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-hl"><td>08-13 13:15</td><td><code>abs_veto_short</code></td><td class="num">1.8h</td><td class="num">2</td><td class="num">&minus;50.0</td><td class="ln">The only one of eighteen <code>abs_veto_short</code> benches that blocked anything at all.</td></tr>
+<tr class="row-hl"><td>08-12 13:55</td><td><code>abs_veto_long</code></td><td class="num">23.7h</td><td class="num">4</td><td class="num">&minus;40.0</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-hl"><td>08-11 16:00</td><td><code>abs_veto_long</code></td><td class="num">20.6h</td><td class="num">3</td><td class="num">&minus;37.0</td><td class="ln">The operator carve-out expiring on schedule &mdash; and it was right to expire.</td></tr>
+<tr class="row-hl"><td>08-12 23:10</td><td><code>capitulation_long</code></td><td class="num">22.8h</td><td class="num">1</td><td class="num">&minus;33.5</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>08-12 16:50</td><td><code>exhaustion_short</code></td><td class="num">5.2h</td><td class="num">4</td><td class="num">+21.5</td><td class="ln">Small over-bench.</td></tr>
+<tr class="row-bad"><td>08-12 13:15</td><td><code>abs_veto_short</code></td><td class="num">0.4h</td><td class="num">1</td><td class="num">+49.5</td><td class="ln">Benched for 25 minutes and the one signal in that window would have won.</td></tr>
+<tr class="row-bad"><td>08-12 23:10</td><td><code>exhaustion_short</code></td><td class="num">22.8h</td><td class="num">6</td><td class="num">+156.0</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>08-11 15:00</td><td><code>exhaustion_short</code></td><td class="num">7.0h</td><td class="num">5</td><td class="num">+183.0</td><td class="ln"><strong>The week&rsquo;s worst bench.</strong> The 15:00Z stay-out fired on a genuinely untradeable read (239pt range for &minus;6pt net) and cost seven hours of the one gate that was working.</td></tr>
+</tbody></table>
 
-<p>Two corrections worth writing down. <strong>The stops meter is stronger than we credited it</strong> (&minus;0.72, essentially tied with the blend) &mdash; the 08-05 fix that excludes it below n=10 was still right, because n=4 setting a fifth of the score was a coin flip, but the meter itself is not weak. And <strong>shadow-net is not a non-discriminator</strong>; at +0.73 it is one of the better readings in the table. It just cannot be used, because a day&rsquo;s shadow net is only known once the day has happened &mdash; which is exactly the problem the whole meter has.</p>
+<p><strong>Note what is missing from that table: twenty-one benches.</strong> Nothing wanted to open during them,
+so they are neither good nor bad &mdash; they were free. The router&rsquo;s standing asymmetry says a wrong bench
+costs opportunity while a wrong arm costs real money, so when unsure, sit benched. That policy is why two-thirds of
+its benches are free, and it is the right policy. But it also means the bench half of the scoreboard is being
+judged on 12 events, not 33.</p>
 
-<div class="card"><h3>The clock problem &mdash; when is the meter actually right?</h3><p>The table above uses the end-of-day reading. But the router reads this meter <em>during</em> the session. So I recomputed it at five points in every day and asked, at each one, whether it separates green days from red days.</p></div>
-
-<table>
-<tr><th>Day</th><th>12:00Z</th><th>13:30Z</th><th>15:00Z</th><th>17:00Z</th><th>20:00Z</th><th>End of day</th><th>Actual P&amp;L</th></tr>
-<tr class="row-bad"><td class="ln">Mon 07-27</td><td class="num">78</td><td class="num">66</td><td class="num">35</td><td class="num">25</td><td class="num">44</td><td class="num">47</td><td class="num">&minus;$226.50</td></tr>
-<tr class="row-bad"><td class="ln">Tue 07-28</td><td class="num">36</td><td class="num">34</td><td class="num">36</td><td class="num">70</td><td class="num">50</td><td class="num">56</td><td class="num">&minus;$54.00</td></tr>
-<tr class="row-hl"><td class="ln">Wed 07-29</td><td class="num"><strong>92</strong></td><td class="num"><strong>82</strong></td><td class="num">36</td><td class="num">44</td><td class="num">20</td><td class="num">23</td><td class="num">+$638.50</td></tr>
-<tr class="row-hl"><td class="ln">Thu 07-30</td><td class="num">12</td><td class="num">12</td><td class="num">30</td><td class="num">18</td><td class="num">16</td><td class="num">13</td><td class="num">+$1,172.00</td></tr>
-<tr class="row-bad"><td class="ln">Fri 07-31</td><td class="num">44</td><td class="num">42</td><td class="num">92</td><td class="num">92</td><td class="num">84</td><td class="num">86</td><td class="num">&minus;$905.00</td></tr>
-<tr class="row-bad"><td class="ln">Mon 08-03</td><td class="num">21</td><td class="num">21</td><td class="num">47</td><td class="num">43</td><td class="num">40</td><td class="num">34</td><td class="num">&minus;$460.50</td></tr>
-<tr class="row-hl"><td class="ln">Tue 08-04</td><td class="num">14</td><td class="num">28</td><td class="num">18</td><td class="num">11</td><td class="num">15</td><td class="num">22</td><td class="num">+$330.50</td></tr>
-<tr class="row-bad"><td class="ln">Wed 08-05</td><td class="num">44</td><td class="num">18</td><td class="num">84</td><td class="num">96</td><td class="num">49</td><td class="num">44</td><td class="num">&minus;$817.00</td></tr>
-<tr class="row-bad"><td class="ln">Thu 08-06</td><td class="num">52</td><td class="num">22</td><td class="num">74</td><td class="num">86</td><td class="num">74</td><td class="num">78</td><td class="num">&minus;$233.00</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">43</td><td class="num">45</td><td class="num">46</td><td class="num">42</td><td class="num">14</td><td class="num">15</td><td class="num">+$227.00</td></tr>
-</table>
+<h4 class="r26">The armings</h4>
 
 <table>
-<tr><th>Read time</th><th>Spearman vs day P&amp;L</th><th>Worst green day scores</th><th>Best red day scores</th><th>Cleanly separated?</th></tr>
-<tr class="row-bad"><td class="ln">12:00Z (pre-open)</td><td class="num">&minus;0.26</td><td class="num">92</td><td class="num">21</td><td><span class="tag">NO &mdash; NOISE</span></td></tr>
-<tr class="row-bad"><td class="ln">13:30Z (the cash bell)</td><td class="num">+0.13</td><td class="num">82</td><td class="num">18</td><td><span class="tag">NO &mdash; INVERTED</span></td></tr>
-<tr><td class="ln">15:00Z</td><td class="num">&minus;0.82</td><td class="num">46</td><td class="num">35</td><td>nearly</td></tr>
-<tr><td class="ln">17:00Z</td><td class="num">&minus;0.72</td><td class="num">44</td><td class="num">25</td><td>nearly</td></tr>
-<tr class="row-hl"><td class="ln">20:00Z</td><td class="num">&minus;0.73</td><td class="num">20</td><td class="num">40</td><td><span class="tag">YES</span></td></tr>
-<tr class="row-hl"><td class="ln">End of day</td><td class="num">&minus;0.76</td><td class="num">23</td><td class="num">34</td><td><span class="tag">YES</span></td></tr>
-</table>
-
-<p><strong>Before the US open the meter is noise, and on one day it was actively dangerous.</strong> On 07-29 it read <strong>92 at 12:00Z and 82 at 13:30Z</strong> &mdash; a screaming STAY-OUT &mdash; on a day that went on to make <strong>+$638.50</strong>. At the cash bell the correlation is <em>+0.13</em>, which is worse than a coin. It only becomes reliable from 15:00Z and only fully separates by 20:00Z. That is because the inputs are cumulative session statistics: before the US open they are measuring eight hours of thin European tape, and a quiet overnight range looks identical to a dead day.</p>
-
-<p><strong>And that timing is what kills its actual value this week.</strong> Here is what a stay-flat rule would really have saved, counting only the P&amp;L booked <em>after</em> the meter tripped.</p>
+<thead><tr><th>outcome</th><th class="num">n</th><th class="num">live trades</th><th class="num">$</th><th class="ln">what it means</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>PAID</td><td class="num">6</td><td class="num">46</td><td class="num">+716.50</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>ERRED</td><td class="num">6</td><td class="num">38</td><td class="num">&minus;866.00</td><td class="ln">&nbsp;</td></tr>
+<tr><td>NEVER FIRED</td><td class="num">19</td><td class="num">0</td><td class="num">0.00</td><td class="ln"><strong>61% of arms produced no trade at all.</strong></td></tr>
+<tr><td><strong>NET ARM VALUE</strong></td><td class="num"><strong>31</strong></td><td class="num"><strong>84</strong></td><td class="num"><strong>&minus;149.50</strong></td><td class="ln">&nbsp;</td></tr>
+</tbody></table>
 
 <table>
-<tr><th>Day</th><th>Score @15:00Z</th><th>Would trip at 65?</th><th>Day P&amp;L</th><th>P&amp;L booked after 15:00Z</th><th>Actually saved</th></tr>
-<tr class="row-bad"><td class="ln">Mon 08-03</td><td class="num">47</td><td>no</td><td class="num">&minus;$460.50</td><td class="num">$0.00</td><td class="num">$0</td></tr>
-<tr><td class="ln">Tue 08-04</td><td class="num">18</td><td>no</td><td class="num">+$330.50</td><td class="num">+$256.50</td><td class="num">&mdash;</td></tr>
-<tr class="row-bad"><td class="ln">Wed 08-05</td><td class="num">84</td><td><strong>yes</strong></td><td class="num">&minus;$817.00</td><td class="num">$0.00</td><td class="num"><strong>$0</strong></td></tr>
-<tr class="row-bad"><td class="ln">Thu 08-06</td><td class="num">74</td><td><strong>yes</strong></td><td class="num">&minus;$233.00</td><td class="num">$0.00</td><td class="num"><strong>$0</strong></td></tr>
-<tr><td class="ln">Fri 08-07</td><td class="num">46</td><td>no</td><td class="num">+$227.00</td><td class="num">+$268.50</td><td class="num">&mdash;</td></tr>
-<tr class="row-bad"><td class="ln">Fri 07-31 (reference)</td><td class="num">92</td><td><strong>yes</strong></td><td class="num">&minus;$905.00</td><td class="num">&minus;$282.00</td><td class="num"><strong>+$282</strong></td></tr>
-</table>
+<thead><tr><th>when (UTC)</th><th>gate</th><th class="num">window</th><th class="num">trades</th><th class="num">$</th><th class="ln">reading</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>08-11 22:00</td><td><code>exhaustion_short</code></td><td class="num">18.8h</td><td class="num">24</td><td class="num">&minus;367.50</td><td class="ln">The 22:00Z reactivation timer, not the router. It armed the gate into Wednesday and Wednesday is where the money went.</td></tr>
+<tr class="row-hl"><td>08-13 22:00</td><td><code>exhaustion_short</code></td><td class="num">21.8h</td><td class="num">31</td><td class="num">+310.00</td><td class="ln">The same timer, the same gate, two days later &mdash; and it paid. That is the honest counterweight.</td></tr>
+<tr class="row-bad"><td>08-13 17:50</td><td><code>abs_veto_short</code></td><td class="num">26.2h</td><td class="num">6</td><td class="num">&minus;139.50</td><td class="ln">A restore-on-lapse: the direction bench stopped applying, so the gate came back. Nothing argued <em>for</em> it.</td></tr>
+<tr class="row-bad"><td>08-12 12:35</td><td><code>abs_veto_long</code></td><td class="num">1.3h</td><td class="num">2</td><td class="num">&minus;133.00</td><td class="ln">Armed on a confirmed UP read that lasted 20 minutes.</td></tr>
+<tr class="row-hl"><td>08-11 11:25</td><td><code>abs_veto_short</code></td><td class="num">3.5h</td><td class="num">3</td><td class="num">+131.50</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>08-12 13:40</td><td><code>abs_veto_short</code></td><td class="num">3.2h</td><td class="num">2</td><td class="num">&minus;111.50</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-hl"><td>08-11 06:10</td><td><code>abs_veto_long</code></td><td class="num">7.5h</td><td class="num">2</td><td class="num">+98.00</td><td class="ln">Two TARGET wins. Quietly the cleanest arm of the week.</td></tr>
+<tr class="row-hl"><td>08-13 13:35</td><td><code>abs_veto_long</code></td><td class="num">2.0h</td><td class="num">3</td><td class="num">+95.00</td><td class="ln">Armed on the 29922 ceiling breaking. Two targets and one regime-normal stop.</td></tr>
+<tr class="row-hl"><td>08-11 15:05</td><td><code>abs_veto_short</code></td><td class="num">4.5h</td><td class="num">3</td><td class="num">+73.00</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>08-13 16:10</td><td><code>abs_veto_short</code></td><td class="num">1.1h</td><td class="num">2</td><td class="num">&minus;66.50</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>08-11 22:00</td><td><code>capitulation_long</code></td><td class="num">21.8h</td><td class="num">2</td><td class="num">&minus;48.00</td><td class="ln">Timer again. Both lots stopped.</td></tr>
+<tr><td>08-13 15:05</td><td><code>abs_veto_short</code></td><td class="num">0.9h</td><td class="num">4</td><td class="num">+9.00</td><td class="ln">&nbsp;</td></tr>
+</tbody></table>
 
-<p><strong>The meter correctly identified Wednesday and Thursday as stay-out days and it saved nothing, because by 15:00Z every dollar had already been lost.</strong> Look at where the week&rsquo;s damage actually landed: &minus;$434 in the 13:00Z hour on Monday, &minus;$203 then &minus;$474 in the 13:00 and 14:00 hours on Wednesday, &minus;$194 in the 13:00 hour on Thursday. <strong>The losses live in the two hours around the cash open, which is precisely the window in which the meter is a coin flip.</strong> Across the whole record its actionable saving is $282, all of it on 07-31.</p>
+<p><strong>The single most important line in that table is that the two biggest armings were not the router&rsquo;s.
+They were the 22:00Z reactivation timer</strong>, which brings gates back on schedule regardless of what anyone
+thinks. It armed <code>exhaustion_short</code> into Wednesday for &minus;$367.50 and into Friday for +$310.00. Net
+across the week the timer is roughly a wash &mdash; but it is the largest single lever on this desk and nothing
+grades it, because it is not a decision, it is a clock.</p>
 
-<p><strong>Does the 65 cutoff want tuning?</strong> On the end-of-day score, yes &mdash; badly. It catches two of six red days.</p>
+<h3>3 &middot; NET ROUTER VALUE &mdash; THE NIGHTLY ROLLUP</h3>
 
-<table>
-<tr><th>STAY-OUT cutoff</th><th>Days flagged</th><th>Red-day loss avoided</th><th>Green-day profit missed</th><th>Net</th><th>Which days</th></tr>
-<tr><td class="ln">&ge; 30 (in-sample optimum)</td><td class="num">6</td><td class="num">$2,696</td><td class="num">$0</td><td class="num">+$2,696</td><td>all six red days, zero green days</td></tr>
-<tr class="row-hl"><td class="ln">&ge; 45 <span class="tag">RECOMMENDED</span></td><td class="num">4</td><td class="num">$1,418</td><td class="num">$0</td><td class="num">+$1,418</td><td>07-27, 07-28, 07-31, 08-06</td></tr>
-<tr><td class="ln">&ge; 55</td><td class="num">3</td><td class="num">$1,192</td><td class="num">$0</td><td class="num">+$1,192</td><td>07-28, 07-31, 08-06</td></tr>
-<tr><td class="ln">&ge; 65 (live)</td><td class="num">2</td><td class="num">$1,138</td><td class="num">$0</td><td class="num">+$1,138</td><td>07-31, 08-06</td></tr>
-<tr><td class="ln">&ge; 85</td><td class="num">1</td><td class="num">$905</td><td class="num">$0</td><td class="num">+$905</td><td>07-31</td></tr>
-</table>
-
-<p><strong>No cutoff anywhere from 30 to 85 has ever flagged a green day.</strong> The in-sample optimum is 30, which would have caught all six red days and none of the green &mdash; but 30 sits four points above the highest green day in a ten-day sample, and that is curve-fitting to a gap I can see. <strong>Move it to 45, not 30.</strong> That catches four of six red days, still leaves 22 points of headroom above the worst green day, and is the change I would defend if next month&rsquo;s data disagrees. Note also that the CAUTION band at 45 and the STAY-OUT band at 65 currently do the same job on this data &mdash; every day in 45&ndash;65 was red. Collapsing STAY-OUT to 45 is as much a simplification as a tuning.</p>
-
-<!-- ══════════════════════════════════════ 6 ══════════════════════════════════════ -->
-
-<div class="card"><h3>6 &middot; Bench-decision review &mdash; grading the actual calls</h3></div>
-
-<table>
-<tr><th>Decision</th><th>What was armed / benched</th><th>Result</th><th>Grade</th><th>What to change</th></tr>
-<tr class="row-bad"><td class="ln"><strong>07-31 13:30 US-open enable-all</strong></td><td>All six gates armed into a real up-thrust (ER 0.68, break 28713)</td><td class="num"><code>abs_veto</code> <strong>+$146</strong> &middot; <code>grind</code> <strong>&minus;$370</strong> &middot; <code>exhaustion</code> <strong>&minus;$72</strong> = ~&minus;$300</td><td><span class="tag">CHURN</span></td><td><strong>The lesson of the week.</strong> The veto-protected gate caught the move; the un-vetoed churner bought the rollover top. Arm the <em>veto</em> gates at the open, never the churners.</td></tr>
-<tr class="row-hl"><td class="ln">07-31 13:40&rarr;14:22 trim to flat</td><td>Escalating bench: grind &rarr; capit + rgv_short &rarr; exhaustion &rarr; abs_veto &rarr; fully flat</td><td class="num">Shadow confirms every benched gate would have bled: grind_fast &minus;$153, thrust_loose &minus;$153, exhaustion_rev &minus;$99, abs_veto_55s &minus;$80, thrust_short_raw &minus;$153 &mdash; ~&minus;$500 avoided</td><td><span class="tag">GOOD &times;4</span></td><td>Nothing. This is one-directional escalation as the tape genuinely worsened &mdash; the opposite of thrash.</td></tr>
-<tr class="row-hl"><td class="ln">07-31 19:08 fully flat</td><td>Accepted the no-trade day; zero further exposure</td><td class="num">Zero further bleed. The exhaustion trial&rsquo;s one calm-regime fire stopped at &minus;$27.50 &mdash; chop paid nobody.</td><td><span class="tag">GOOD</span></td><td>Nothing. <code>some-days-stay-out-fully-flat</code> earned its keep.</td></tr>
-<tr class="row-bad"><td class="ln">07-31 16:41 &amp; 17:37 re-enables</td><td><code>abs_veto</code> re-armed twice into an ER 0.24&ndash;0.30 &ldquo;calm&rdquo; recovery, second time on scalp exits</td><td class="num">&minus;$131 then &minus;$114 = <strong>&minus;$245</strong></td><td><span class="tag">CHURN &times;2</span></td><td>Even a veto-protected gate on scalp exits churns a choppy recovery. The 55s veto is a <em>microstructure</em> filter and a chop thrust passes it. Wait for ER&ge;0.35 <em>sustained</em>.</td></tr>
-<tr class="row-hl"><td class="ln">The grind benches (all week)</td><td>Benched 119.3 of 120 hours</td><td class="num"><code>grind_fast</code> lost <strong>&minus;$2,549</strong> over that window; grind&rsquo;s one live hour lost &minus;$172</td><td><span class="tag">GOOD</span></td><td>Make it explicit. The router has effectively retired this gate through 9 separate arm/bench decisions without ever saying so. Either write the retirement down or give it a hard ER-0.35 auto-arm.</td></tr>
-<tr class="row-bad"><td class="ln"><code>abs_veto_short</code> scalp-then-bench</td><td>Eight separate arm events across 08-05, 08-06 and 08-07 &mdash; three arm/bench cycles on Thursday alone</td><td class="num">Four armings never fired ($0 &mdash; luck, not judgement). Three fired: <strong>&minus;$559.00 on nine lots, zero winners</strong></td><td><span class="tag">BAD</span></td><td>Add the ER-0.35 floor. Three arm/bench cycles on one gate in a day is the churn signature and its expected cost is not $0, it is P(setup) &times; the loss.</td></tr>
-<tr><td class="ln">The exhaustion trial (fade-scalp A@0.5R / B@1.5R)</td><td>Deployed 07-31 07:55, pinned out of the router</td><td class="num">First fire came in ATR-62 open violence, off-regime: A +$51.50, B &minus;$123.50 = <strong>&minus;$72</strong>. Later, under the (c2) carve-out on 08-07: <strong>+$104.00, 2-for-2</strong>. Week total &minus;$162 on 6 lots.</td><td><span class="tag">PENDING</span></td><td>The core thesis &mdash; fader-scalp in <em>normal</em> chop, ATR 11&ndash;18 &mdash; is still untested. The ER table says its habitat is ER 0.25&ndash;0.35 (+$27.60/tr on n=17), not high or low ER. Gate the trial to that band and stop sampling it at the open.</td></tr>
-<tr class="row-hl"><td class="ln">The fully-flat stay-out calls</td><td>07-31 19:08, and the overnight low-vol grind holds</td><td class="num">Recognised an <em>untradeable trend</em> &mdash; price ground +141pt overnight on ATR 13&ndash;16 and every one of the 8 earlier gate-fires had stopped out</td><td><span class="tag">GOOD</span></td><td>Nothing. &ldquo;Not every up-move is tradeable&rdquo; is the correct and hard-won read.</td></tr>
-</table>
-
-<div class="callout"><div class="ct">THE BENCH ASYMMETRY, RESTATED WITH THIS WEEK&rsquo;S NUMBERS</div><p>The ledger&rsquo;s standing principle is that a wrongly-benched gate costs opportunity while a wrongly-armed gate costs real money, so when unsure, sit benched one more tick. <strong>This week priced that principle exactly.</strong> The over-benches cost <strong>+$368 + $161 + $106 = $635</strong> of missed winners across <code>capitulation_long</code>, <code>exhaustion_short</code> and <code>rgv_short</code> combined (and the fader half of that is probably illusory &mdash; see the nightly defect above). The wrong <em>arms</em> cost <strong>&minus;$559.00</strong> on <code>abs_veto_short</code> alone, in eleven hours. The asymmetry is real and it is roughly 1:1 in headline dollars but far worse in variance: the missed winners are spread over 100 signals, the losses arrived in three bursts.</p></div>
-
-<!-- ══════════════════════════════════════ 7 ══════════════════════════════════════ -->
-
-<div class="card"><h3>7 &middot; The durable tick and the architecture question</h3><p>The mechanical <code>gazbot7-direction-router.timer</code> is switched off; the live mechanism is <code>gazbot7-router-tick.timer</code> running a Claude judgement every five minutes. So &ldquo;did the durable router manage correctly&rdquo; is really two questions: did the plumbing hold, and is a poll the right shape for this job.</p></div>
+<p>Every <code>data/router_nightly/*.json</code> and <code>data/selector_nightly/*.json</code> for the week. Two
+things to say before the numbers. <strong>First, none of these files existed for this week when I started</strong>
+&mdash; the last router nightly on disk was 2026-08-07. I backfilled all five days. <strong>Second, Monday is a
+measurement gap, not a zero.</strong> The nightly reads blocked signals out of the systemd journal, and the journal
+does not reach back past 2026-08-10 23:11 UTC. Monday&rsquo;s file reads $0 / $0 / $0 because there was nothing to
+read. It is not a quiet day; it is a blind spot, and I am reporting it as one.</p>
 
 <table>
-<tr><th>Day</th><th>Durable ticks</th><th>Median gap</th><th>Max gap</th><th>Gaps &gt; 10 min</th><th>Coverage</th></tr>
-<tr class="row-hl"><td class="ln">Mon 08-03</td><td class="num">276</td><td class="num">5.0 min</td><td class="num">5.2 min</td><td class="num">0</td><td class="num">23 h</td></tr>
-<tr class="row-hl"><td class="ln">Tue 08-04</td><td class="num">276</td><td class="num">5.0 min</td><td class="num">5.3 min</td><td class="num">0</td><td class="num">23 h</td></tr>
-<tr class="row-hl"><td class="ln">Wed 08-05</td><td class="num">276</td><td class="num">5.0 min</td><td class="num">5.7 min</td><td class="num">0</td><td class="num">23 h</td></tr>
-<tr class="row-hl"><td class="ln">Thu 08-06</td><td class="num">276</td><td class="num">5.0 min</td><td class="num">5.8 min</td><td class="num">0</td><td class="num">23 h</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">276</td><td class="num">5.0 min</td><td class="num">5.6 min</td><td class="num">0</td><td class="num">23 h</td></tr>
-</table>
+<thead><tr><th>Paris day</th><th class="num">CHOP%</th><th class="num">TREND_UP%</th><th class="num">TREND_DOWN%</th>
+<th class="num">losses SAVED</th><th class="num">wins MISSED</th><th class="num">NET ROUTER VALUE</th><th class="num">leakage reported</th></tr></thead>
+<tbody>
+<tr><td>Mon 08-10</td><td class="num">69.3</td><td class="num">10.2</td><td class="num">20.5</td>
+<td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr class="row-hl"><td>Tue 08-11</td><td class="num">69.1</td><td class="num">11.3</td><td class="num">19.6</td>
+<td class="num">+1,123</td><td class="num">967</td><td class="num">+156</td><td class="num">0</td></tr>
+<tr class="row-hl"><td>Wed 08-12</td><td class="num">91.8</td><td class="num">5.2</td><td class="num">3.1</td>
+<td class="num">+1,192</td><td class="num">666</td><td class="num">+526</td><td class="num">0</td></tr>
+<tr class="row-bad"><td>Thu 08-13</td><td class="num">82.5</td><td class="num">13.4</td><td class="num">4.1</td>
+<td class="num">+588</td><td class="num">1,064</td><td class="num">&minus;476</td><td class="num">0</td></tr>
+<tr class="row-hl"><td>Fri 08-14</td><td class="num">92.8</td><td class="num">0.0</td><td class="num">7.2</td>
+<td class="num">+484</td><td class="num">290</td><td class="num">+194</td><td class="num">0</td></tr>
+<tr><td><strong>WEEK (4 visible days)</strong></td><td class="num"><strong>84.1</strong></td><td class="num"><strong>7.5</strong></td><td class="num"><strong>8.5</strong></td>
+<td class="num"><strong>+3,387</strong></td><td class="num"><strong>2,987</strong></td><td class="num"><strong>+400</strong></td><td class="num"><strong>0</strong></td></tr>
+</tbody></table>
 
-<p><strong>The plumbing is flawless.</strong> Exactly 276 ticks every day, median gap 5.0 minutes to the second, no gap anywhere in the week longer than 5.8 minutes, not one missed window. There is a consistent hole at <strong>21:00&ndash;21:59Z</strong> &mdash; zero ticks in that hour on all five days &mdash; which is the pre-reopen maintenance hour and is by design, but it means the desk is unsupervised for the hour immediately before the 22:00 all-on re-arm. Given that the reopen block carries 32% of the week&rsquo;s switch changes and cost &minus;$275 on 07-31, <strong>that gap is in the wrong place.</strong></p>
+<p><strong>Net positive, but thinly so, and one bad Thursday nearly wipes it out.</strong> Three days green, one red.
+And note the regime column &mdash; <strong>this week was 84% chop</strong>. A router built to bench counter-trend
+faders has very little to do on a tape that is barely trending, which is exactly why the week&rsquo;s numbers are
+small in both directions.</p>
 
-<div class="card"><h3>Is polling right? I backtested the alternative.</h3><p>The proposed alternative is an in-code, per-gate regime guard evaluated at signal time &mdash; no poll, no lag, no hysteresis, the gate checks the regime the instant it wants to fire. That is exactly <code>step=1 minute, hold=1 mark</code>. I ran it against the shipped poll and the 5-minute tick under the full live policy (DOWN_OFF / UP_OFF / CHOP_OFF plus the 13:15&ndash;14:00Z open-window carve-out) on this week&rsquo;s realised trades and on 40 days.</p></div>
-
-<table>
-<tr><th>Mechanism</th><th>This week: router value</th><th>Signals blocked</th><th>40 days: router value</th><th>40d days helped / hurt</th><th>40d LOO worst</th></tr>
-<tr class="row-hl"><td class="ln">SHIPPED poll &mdash; 15 min, hold 2</td><td class="num">+$682</td><td class="num">26</td><td class="num">+$475</td><td class="num">9 / 4</td><td class="num">&minus;$124</td></tr>
-<tr><td class="ln">Claude tick &mdash; 5 min, hold 2</td><td class="num">+$456</td><td class="num">24</td><td class="num">&minus;$454</td><td class="num">7 / 7</td><td class="num">&minus;$1,052</td></tr>
-<tr class="row-hl"><td class="ln"><strong>Recommended &mdash; 5 min, hold 3, window 45</strong></td><td class="num">+$402</td><td class="num">22</td><td class="num"><strong>+$1,382</strong></td><td class="num">10 / 4</td><td class="num">+$783</td></tr>
-<tr class="row-bad"><td class="ln">Event-driven zero-lag guard &mdash; 1 min, hold 1</td><td class="num">+$304</td><td class="num">14</td><td class="num">+$267</td><td class="num">8 / 5</td><td class="num">&minus;$295</td></tr>
-</table>
-
-<p><strong>The event-driven version is the worst option on both horizons.</strong> +$304 this week against the poll&rsquo;s +$682; +$267 over 40 days against +$475, and it fails leave-one-day-out (&minus;$295 with the best day removed) where the recommended config never does. The reason is visible in the &ldquo;signals blocked&rdquo; column: the zero-lag guard blocks only 14 signals this week against the poll&rsquo;s 26. An instantaneous regime read <em>flickers</em> &mdash; it declares a trend on a one-minute burst, un-benches the gate, and the gate fires into the burst that then fails. <strong>The lag is not a bug, it is the filter.</strong> Removing it removes the edge.</p>
-
-<div class="card"><h3>Quantifying the actuation lag directly</h3><p>Two measures, because the mechanism question deserves better than one.</p></div>
-
-<table>
-<tr><th>Measure</th><th>Method</th><th>Result</th></tr>
-<tr class="row-hl"><td class="ln">Observed reaction lag</td><td>For every bench decision this week, sum the P&amp;L of trades that opened on that gate in the N minutes before the switch flipped &mdash; the money that leaked while the flip was detectable but not yet actioned</td><td class="num"><strong>N=5 min: 0 trades, $0.00</strong><br>N=10 min: 8 trades, &minus;$301.50<br>N=15 min: 10 trades, &minus;$370.50<br>N=30 min: 12 trades, &minus;$439.50</td></tr>
-<tr class="row-hl"><td class="ln">Mechanism lag</td><td>Router value of a zero-lag guard minus router value of the poll, full live policy, this week</td><td class="num"><strong>&minus;$378</strong> &mdash; i.e. removing the lag <em>costs</em> $378</td></tr>
-</table>
-
-<p><strong>Not one trade opened in the five minutes before a bench, all week.</strong> The tick cadence is not leaking anything. The &minus;$301.50 at ten minutes is the cost of &ldquo;one tick earlier&rdquo;, and it is made of four decisions: two <code>abs_veto_long</code> lots 8.3 minutes before the 08-02 22:10 bench (&minus;$180.50), two <code>abs_veto_long</code> lots 7.5 minutes before the 08-06 07:15 bench (<strong>+$56</strong> &mdash; that bench cost money, it did not save it), two <code>exhaustion_short</code> lots 7.2 minutes before the 08-07 13:38 narrowing (&minus;$125), and two <code>capitulation_long</code> lots 7.6 minutes before the 16:27 flip (&minus;$52). Stretch the window to fifteen minutes and one more pair appears (&minus;$69, 11.3 minutes before the 08-05 12:40 bench). Three of those benches were triggered <em>by</em> the stop-out that had just happened &mdash; the information did not exist a tick earlier. <strong>The genuinely recoverable lag cost this week is close to zero, and the theoretical ceiling on it is about $300.</strong> That is not where to spend Saturday.</p>
-
-<!-- ══════════════════════════════════════ REGIME SPLIT ══════════════════════════════════════ -->
-
-<div class="card"><h3>The regime split &mdash; because a blanket number is a bug</h3><p>Every config above is a <em>policy</em> (regime&rarr;config), not a static setting, so it has to be scored on its home segments. Tape is segmented on ATR level, ER and range-break &mdash; not the clock &mdash; into dead-chop / normal-chop / in-between-building / clean-trend / violent-whipsaw, then separately by session block. 301 router-managed trades over 40 days.</p></div>
+<h4 class="r26">Where the benching lands, by gate</h4>
 
 <table>
-<tr><th>Regime segment</th><th>n</th><th>Net</th><th>Win %</th><th>$ / trade</th><th>SHIPPED blocked (n / $)</th><th>RECOMMENDED blocked (n / $)</th></tr>
-<tr class="row-bad"><td class="ln">violent-whipsaw</td><td class="num">19</td><td class="num">&minus;$960</td><td class="num">16%</td><td class="num">&minus;$50.50</td><td class="num">8 / &minus;$243</td><td class="num">8 / &minus;$322</td></tr>
-<tr class="row-bad"><td class="ln">normal-chop</td><td class="num">110</td><td class="num">&minus;$559</td><td class="num">35%</td><td class="num">&minus;$5.10</td><td class="num">36 / &minus;$114</td><td class="num">61 / &minus;$382</td></tr>
-<tr class="row-bad"><td class="ln">in-between-building</td><td class="num">110</td><td class="num">&minus;$328</td><td class="num">39%</td><td class="num">&minus;$3.00</td><td class="num">40 / <strong>+$346</strong></td><td class="num">49 / &minus;$268</td></tr>
-<tr class="row-hl"><td class="ln">clean-trend</td><td class="num">55</td><td class="num">+$1,119</td><td class="num">49%</td><td class="num">+$20.30</td><td class="num">15 / &minus;$246</td><td class="num">19 / &minus;$182</td></tr>
-<tr><td class="ln">dead-chop</td><td class="num">3</td><td class="num">+$26</td><td class="num">33%</td><td class="num">+$8.50</td><td class="num">0 / $0</td><td class="num">1 / +$86</td></tr>
-</table>
+<thead><tr><th>gate</th><th class="num">blocked signals</th><th class="num">would-WIN</th><th class="num">$</th>
+<th class="num">would-LOSE</th><th class="num">$</th><th class="num">net blocked (2-lot)</th><th class="ln">verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td><code>grind_long</code></td><td class="num">14</td><td class="num">3</td><td class="num">+234</td><td class="num">11</td><td class="num">&minus;562</td><td class="num">&minus;656</td><td class="ln">Best-blocked gate on the desk. It has an ATR floor of 22pt and the tape ran 2.6&ndash;4.4 &mdash; it could not have fired anyway on most days.</td></tr>
+<tr class="row-hl"><td><code>nipc_short</code></td><td class="num">12</td><td class="num">2</td><td class="num">+137</td><td class="num">10</td><td class="num">&minus;345</td><td class="num">&minus;416</td><td class="ln">Held under the &minus;$400 kill criterion. Correctly.</td></tr>
+<tr class="row-hl"><td><code>abs_veto_long</code></td><td class="num">11</td><td class="num">3</td><td class="num">+135</td><td class="num">8</td><td class="num">&minus;290</td><td class="num">&minus;310</td><td class="ln">★ The one long gate with <strong>no ATR floor</strong>, so it is the one that actually had signals to suppress. Its bench was not free and it priced well.</td></tr>
+<tr><td><code>nipc_long</code></td><td class="num">11</td><td class="num">4</td><td class="num">+240</td><td class="num">7</td><td class="num">&minus;243</td><td class="num">&minus;7</td><td class="ln">A coin-flip.</td></tr>
+<tr><td><code>abs_veto_short</code></td><td class="num">3</td><td class="num">1</td><td class="num">+50</td><td class="num">2</td><td class="num">&minus;50</td><td class="num">&minus;1</td><td class="ln">Thirty-six flips produced three blocked signals worth one dollar.</td></tr>
+<tr class="row-bad"><td><code>capitulation_long</code></td><td class="num">6</td><td class="num">3</td><td class="num">+124</td><td class="num">3</td><td class="num">&minus;88</td><td class="num">+70</td><td class="ln">Mild over-bench.</td></tr>
+<tr class="row-bad"><td><code>rgv_short</code></td><td class="num">1</td><td class="num">1</td><td class="num">+100</td><td class="num">0</td><td class="num">0</td><td class="num">+199</td><td class="ln">n=1. Ignore it.</td></tr>
+<tr class="row-bad"><td><code>exhaustion_short</code></td><td class="num">15</td><td class="num">10</td><td class="num">+476</td><td class="num">5</td><td class="num">&minus;116</td><td class="num">+721</td><td class="ln"><strong>The single biggest over-bench figure of the week &mdash; and the one I do not believe. See below.</strong></td></tr>
+</tbody></table>
 
-<p><strong>This table explains where the recommended config&rsquo;s +$900 comes from, and it is one segment.</strong> In <em>in-between-building</em> tape &mdash; ER 0.20 to 0.35, the ambiguous zone &mdash; the shipped config blocks <strong>+$346 of winners</strong>, while the longer window and stickier hold blocks <strong>&minus;$268 of losers</strong> instead. That single flip is a $614 swing and it is the whole story. The shipped 30-minute window is too short to tell a building trend from a chop bounce, so it declares a trend, benches the fader, and the &ldquo;trend&rdquo; fails. A 45-minute window with three agreeing marks does not make that mistake.</p>
+<h4 class="r26">★ THE RULER PROBLEM &mdash; and why I re-measured it before believing the over-bench</h4>
 
-<p>Note also the segment nobody has a rule for: <strong>violent-whipsaw is &minus;$50.50 a trade at a 16% win rate</strong>, and neither config blocks more than 8 of its 19 trades. That is the most expensive tape on the desk per trade and the router barely touches it.</p>
+<p>That <code>exhaustion_short</code> line says the router benched $721 of winners. But <code>exhaustion_short</code>
+was the desk&rsquo;s <em>worst</em> gate this week &mdash; 71 live trades for &minus;$218.50, minus three dollars a
+trade. Both things cannot be true of the same gate on the same tape unless the difference is the <strong>exit</strong>.
+The nightly prices every blocked signal under a plain scalp-2R with a 1-ATR stop. The live desk does not use that exit.</p>
 
-<table>
-<tr><th>Session block</th><th>n</th><th>Net</th><th>Win %</th><th>$ / trade</th><th>SHIPPED blocked</th><th>RECOMMENDED blocked</th></tr>
-<tr class="row-bad"><td class="ln">Overnight 21:00&ndash;06:00Z</td><td class="num">89</td><td class="num">&minus;$906</td><td class="num">31%</td><td class="num">&minus;$10.20</td><td class="num">40 / +$64</td><td class="num">57 / +$21</td></tr>
-<tr><td class="ln">EU morning 06:00&ndash;13:30Z</td><td class="num">62</td><td class="num">+$28</td><td class="num">32%</td><td class="num">+$0.40</td><td class="num">23 / &minus;$160</td><td class="num">27 / &minus;$485</td></tr>
-<tr><td class="ln">US session 13:30&ndash;21:00Z</td><td class="num">150</td><td class="num">&minus;$40</td><td class="num">43%</td><td class="num">&minus;$0.30</td><td class="num">40 / &minus;$378</td><td class="num">58 / &minus;$821</td></tr>
-</table>
-
-<p><strong>The overnight block is a $906 hole over 40 days and the router is not helping there</strong> &mdash; both configs show it blocking <em>winners</em> overnight (+$64 and +$21). This week it was worse: 8 overnight trades, <strong>zero winners, &minus;$578</strong>. That is the reopen churn showing up in the trade record rather than the switch log. The US session, by contrast, is where the recommended config does its work &mdash; 58 blocks worth &minus;$821 of avoided losses against the shipped 40 blocks worth &minus;$378.</p>
-
-<!-- ══════════════════════════════════════ 8 ══════════════════════════════════════ -->
-
-<div class="card"><h3>8 &middot; Verdict, and the Saturday list</h3></div>
-
-<div class="callout"><div class="ct">IS THE ROUTER EARNING ITS KEEP?</div><p><strong>Yes, and by the largest margin it ever has.</strong> +$2,951 of net value on its own accounting, up from &minus;$1,216 the week before. Zero leakage on every day. Two decisions &mdash; keep <code>capitulation_long</code> off and keep <code>grind_long</code> off &mdash; held for essentially the whole week with almost no fiddling, and the shadow twins of those two gates lost <strong>$4,158</strong> over exactly those windows. The desk still lost $953 this week, but it lost it through gates the router had <em>armed</em>, not through gates it failed to bench. Is it over-benching? Marginally, on the faders (+$635 of missed winners across three gates), and the fader half of that number is probably an artefact of the nightly&rsquo;s scalp-2R repricing. Where is it leaking? <strong>One gate and one time-block: <code>abs_veto_short</code>, and the overnight/reopen window.</strong></p></div>
+<p>So I ran the control. Same 108 live trades, same entries, same tape, repriced under the nightly&rsquo;s exit.</p>
 
 <table>
-<tr><th>#</th><th>Saturday action</th><th>Evidence</th><th>Risk gate</th></tr>
-<tr class="row-hl"><td class="num">1</td><td class="ln"><strong>Add an ER30 &ge; 0.35 arming floor to <code>abs_veto_short</code></strong>, mirroring grind&rsquo;s. Do <em>not</em> apply it to <code>abs_veto_long</code>.</td><td>+$61.20/trade above 0.35 (n=9) vs negative in all three bands below (n=26). Blocks 2 of the week&rsquo;s 4 losing entries, &minus;$274. Long twin has the opposite profile: +$19.00/tr in the 0.15&ndash;0.25 band, &minus;$0.90 above 0.35.</td><td>Fails safe &mdash; a floor can only reduce arming. Review after 15 fires.</td></tr>
-<tr class="row-hl"><td class="num">2</td><td class="ln"><strong>Router timing: <code>WINDOW 30&rarr;45</code>, <code>HOLD 2&rarr;3</code>.</strong> Leave <code>ER_TREND</code> at 0.15 and <code>NET_MIN</code> at 30. Correct <code>STEP</code> to 5 to match the live tick.</td><td>+$502 on the live set, +$399 on the full set. Interior peak on window, step, hold and ER; flat plateau on net. Survives LOO on both sets (+$574 / +$1,040). Both universes rank every cell identically.</td><td><strong>Re-validate after the first week containing two or more clean-trend days.</strong> A stickier router is a chop optimisation. If it starts benching the aligned rider late, put hold back to 2 first.</td></tr>
-<tr class="row-hl"><td class="num">3</td><td class="ln"><strong>Untradeable meter: STAY-OUT cutoff 65&rarr;45</strong>, and add an explicit rule that <strong>readings before 15:00Z do not trigger a stay-out</strong>.</td><td>At 45: catches 4 of 6 red days, 0 of 4 green, +$1,418 vs the current +$1,138 &mdash; and 22 points of headroom above the worst green day. Pre-open the meter correlates +0.13 with the day (noise) and read 92 on a +$638 day.</td><td>In-sample on n=10. The 45 choice deliberately declines the in-sample optimum of 30.</td></tr>
-<tr class="row-hl"><td class="num">4</td><td class="ln"><strong>Fix the midnight reopen.</strong> Re-arm reversion gates only; make momentum gates earn their arm. And move the 21:00&ndash;22:00Z maintenance gap so the hour before the reopen is supervised.</td><td>32% of the week&rsquo;s switch changes are spent undoing the 22:00 all-on. It cost &minus;$275 in one night on 07-31. Overnight block: 8 trades this week, 0 winners, &minus;$578; 89 trades over 40 days, &minus;$906.</td><td>Reversible &mdash; it is a change to <code>reactivate_gates.py</code>&rsquo;s default set.</td></tr>
-<tr><td class="num">5</td><td class="ln"><strong>Fix the nightly&rsquo;s fader repricing.</strong> Stop scoring blocked fader signals under a fixed scalp-2R; use the gate&rsquo;s own exit.</td><td>The nightly says benching <code>capitulation_long</code> cost +$368 of winners; the shadow mirror says it avoided &minus;$1,609. Both cannot be right and the fixed-scalp assumption is the suspect.</td><td>Diagnostic only &mdash; no live behaviour changes.</td></tr>
-<tr><td class="num">6</td><td class="ln"><strong>Write down grind&rsquo;s retirement, or automate its arm.</strong> It was benched 119.3 of 120 hours through nine separate decisions.</td><td><code>grind_fast</code> lost &minus;$2,549 over the benched window; grind&rsquo;s single live hour lost &minus;$172. The router has already decided; it just costs a decision every time.</td><td>Either direction is safe. Prefer the automated ER-0.35 auto-arm so it can still catch a real trend.</td></tr>
-<tr><td class="num">7</td><td class="ln"><strong>Promote the vol-expansion caveat to a rule:</strong> expanding ATR alone, in ER&lt;0.15 chop with no range break, is not a re-arm trigger.</td><td>Fooled the desk at least three times: 08-06 08:15 and 11:05 (both decayed inside 15 min), 08-07 13:50 (armed on an ATR reading that was wrong by 15 points).</td><td>Rule text only.</td></tr>
-<tr><td class="num">8</td><td class="ln"><strong>Grade the bad days.</strong> The ledger has zero entries for 08-03, 08-04 and 08-05 &mdash; 30 switch changes and &minus;$947 ungraded.</td><td>The scoreboard currently samples the well-supervised days, which biases it favourably.</td><td>Discipline, not code.</td></tr>
-</table>
+<thead><tr><th>gate</th><th class="num">n</th><th class="num">LIVE exit $</th><th class="num">$/trade</th>
+<th class="num">scalp-2R $</th><th class="num">$/trade</th><th class="num">difference</th><th class="num">scalp better on</th></tr></thead>
+<tbody>
+<tr><td><code>exhaustion_short</code></td><td class="num">71</td><td class="num">&minus;218.50</td><td class="num">&minus;3.08</td><td class="num">+177.00</td><td class="num">+2.49</td><td class="num">+395.50</td><td class="num">42/71</td></tr>
+<tr><td><code>abs_veto_long</code></td><td class="num">9</td><td class="num">+6.00</td><td class="num">+0.67</td><td class="num">+203.50</td><td class="num">+22.61</td><td class="num">+197.50</td><td class="num">5/9</td></tr>
+<tr><td><code>abs_veto_short</code></td><td class="num">26</td><td class="num">&minus;64.50</td><td class="num">&minus;2.48</td><td class="num">+128.00</td><td class="num">+4.92</td><td class="num">+192.50</td><td class="num">20/26</td></tr>
+<tr><td><code>capitulation_long</code></td><td class="num">2</td><td class="num">&minus;48.00</td><td class="num">&minus;24.00</td><td class="num">&minus;49.00</td><td class="num">&minus;24.50</td><td class="num">&minus;1.00</td><td class="num">0/2</td></tr>
+<tr><td><strong>TOTAL</strong></td><td class="num"><strong>108</strong></td><td class="num"><strong>&minus;325.00</strong></td><td class="num"><strong>&minus;3.01</strong></td>
+<td class="num"><strong>+459.50</strong></td><td class="num"><strong>+4.25</strong></td><td class="num"><strong>+784.50</strong></td><td class="num"><strong>67/108</strong></td></tr>
+</tbody></table>
 
-<div class="callout"><div class="ct">WHAT I WOULD NOT DO, AND WHY</div><p><strong>Do not build the event-driven per-gate guard.</strong> Backtested above: worse on this week (+$304 vs +$682), worse over 40 days (+$267 vs +$475), and it fails leave-one-day-out. <strong>Do not chase the actuation lag.</strong> Zero trades leaked in the 5-minute window all week and the theoretical ceiling is ~$300. <strong>Do not touch ER_TREND or NET_MIN.</strong> Both grids independently pick the incumbent cell and the surface around it is flat. <strong>Do not move the day-bias &plusmn;40.</strong> There is no optimum &mdash; counter-day-bias trades lose $16&ndash;18 each at every threshold from 0 to 150, and raising it makes the aligned book worse.</p></div>
+<p><strong>The nightly&rsquo;s ruler is $7.26 a trade more generous than the desk.</strong> Every &ldquo;wins we
+missed&rdquo; number in this section is measured with it, so every one of them is too big &mdash; which means the
+router&rsquo;s true net value is <em>higher</em> than the +$400 reported. But before recommending anything off that,
+I segmented it, because a blanket number across mixed regimes is the exact bug the standing backtest rule exists to
+prevent.</p>
 
-<p><strong>The sample caveats, stated once and plainly.</strong> The threshold and timing work rests on 601 realised trades across 17 trading days, already partly hand-gated and partly router-gated &mdash; it is not a clean A/B and it is a lower bound, not a measurement. The meter work is ten days. The bench grades are one week, in-sample, and drawn from a ledger that skipped three of this week&rsquo;s five sessions. Every regime bucket except normal-chop and in-between-building has n under 60. <strong>What survived everything I threw at it: the router&rsquo;s two long-held benches, the timing change (interior peak on four axes, both universes, both leave-one-out tests), the grind ER-0.35 floor, and the meter&rsquo;s end-of-day ranking.</strong> Everything else in this section is a lead, not a conclusion.</p>
+<table>
+<thead><tr><th>segment at entry</th><th class="num">n</th><th class="num">LIVE $/trade</th><th class="num">scalp-2R $/trade</th><th class="num">gap per trade</th><th class="ln">reading</th></tr></thead>
+<tbody>
+<tr><td>CHOP (router label)</td><td class="num">65</td><td class="num">+0.65</td><td class="num">+0.36</td><td class="num">&minus;0.28</td><td class="ln"><strong>Zero gap.</strong> In chop our live exits are as good as the ruler.</td></tr>
+<tr class="row-bad"><td>TREND_UP</td><td class="num">23</td><td class="num">&minus;13.98</td><td class="num">+11.04</td><td class="num">+25.02</td><td class="ln">The whole gap lives here.</td></tr>
+<tr class="row-bad"><td>TREND_DOWN</td><td class="num">20</td><td class="num">&minus;2.27</td><td class="num">+9.10</td><td class="num">+11.38</td><td class="ln">&nbsp;</td></tr>
+<tr><td colspan="6" style="padding-top:.6em"><em>and the same cut on ATR/ER rather than the router&rsquo;s own label, as a cross-check:</em></td></tr>
+<tr class="row-bad"><td>violent-whipsaw (ER&lt;0.20, ATR&ge;12)</td><td class="num">47</td><td class="num">&minus;10.40</td><td class="num">+1.99</td><td class="num">+12.39</td><td class="ln">&nbsp;</td></tr>
+<tr class="row-bad"><td>clean-trend (ER&ge;0.35)</td><td class="num">22</td><td class="num">+9.98</td><td class="num">+22.95</td><td class="num">+12.98</td><td class="ln">Live makes money here &mdash; just less than half what was on offer.</td></tr>
+<tr><td>normal-chop (ER&lt;0.20, ATR 6&ndash;12)</td><td class="num">25</td><td class="num">+4.72</td><td class="num">+2.10</td><td class="num">&minus;2.62</td><td class="ln"><strong>Live BEATS the ruler here.</strong></td></tr>
+<tr><td>in-between (ER 0.20&ndash;0.35)</td><td class="num">14</td><td class="num">&minus;12.39</td><td class="num">&minus;13.68</td><td class="num">&minus;1.29</td><td class="ln">Both lose. Nobody&rsquo;s regime.</td></tr>
+</tbody></table>
+
+<p><strong>So the honest statement is narrow and useful: our live exits are fine in ordinary chop and leak badly
+once the tape moves.</strong> That is an exit finding, not a router finding, and I am handing it to the rehab
+section rather than acting on it here. What it means <em>for the router</em> is precise: <strong>the wins-missed
+figure is inflated exactly in trend, which is the only regime where the router does anything.</strong> The
+$721 <code>exhaustion_short</code> over-bench is mostly the ruler. <strong>Do not tighten the router on the strength
+of it.</strong></p>
+
+<h4 class="r26">★★ THE LEAKAGE THE DETECTOR CANNOT SEE</h4>
+
+<p>Every nightly this week reported <strong>leakage_n = 0</strong>. Four days, zero leaked losers. That reads as a
+router with nothing getting past it. It is not. <strong>The detector is only allowed to look at
+<code>capitulation_long</code> and <code>rgv_short</code> &mdash; the two gates in its managed set &mdash; and those
+two took two trades between them all week.</strong> It is reporting zero because it is looking at an empty room.</p>
+
+<p>Here is every live trade this week, laid out against the router&rsquo;s own regime label at the moment of entry.</p>
+
+<table>
+<thead><tr><th>gate</th><th class="num">CHOP n / $</th><th class="num">TREND_UP n / $</th><th class="num">TREND_DOWN n / $</th><th class="ln">router-managed?</th></tr></thead>
+<tbody>
+<tr><td><code>abs_veto_long</code></td><td class="num">4 / +44.00</td><td class="num">5 / &minus;38.00</td><td class="num">0 / 0.00</td><td class="ln">no (momentum, not a fader)</td></tr>
+<tr><td><code>abs_veto_short</code></td><td class="num">14 / +52.00</td><td class="num">4 / +5.50</td><td class="num">8 / &minus;122.00</td><td class="ln">no (momentum, not a fader)</td></tr>
+<tr><td><code>capitulation_long</code></td><td class="num">0 / 0.00</td><td class="num">2 / &minus;48.00</td><td class="num">0 / 0.00</td><td class="ln"><strong>YES</strong> &mdash; and it took 2 trades all week</td></tr>
+<tr class="row-bad"><td><code>exhaustion_short</code></td><td class="num">47 / &minus;54.00</td><td class="num"><strong>12 / &minus;241.00</strong></td><td class="num">12 / +76.50</td><td class="ln"><strong>NO &mdash; and it is an UP-fader that took 71 of 108 trades</strong></td></tr>
+</tbody></table>
+
+<p>Read the <code>exhaustion_short</code> row across. <strong>Aligned with a down-trend it made +$76.50. In chop it
+lost a trivial &minus;$54.00. Fired into a confirmed up-trend &mdash; fading a move that was proven to be
+going the other way &mdash; it lost &minus;$241.00 on twelve trades, twenty dollars a trade.</strong> That is
+textbook counter-trend fader bleed, it is precisely what this router was built to prevent, and the router is not
+allowed to touch it.</p>
+
+<p>Then I checked whether that is a one-week accident, across the full 30 days of tape.</p>
+
+<table>
+<thead><tr><th>fader</th><th class="num">counter-trend fires</th><th class="num">$</th><th class="num">$/trade</th>
+<th class="num">aligned fires</th><th class="num">$/trade</th><th class="num">CHOP fires</th><th class="num">$</th><th class="ln">managed today?</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td><code>rgv_long</code></td><td class="num">36</td><td class="num">&minus;698.50</td><td class="num">&minus;19.40</td><td class="num">2</td><td class="num">+8.00</td><td class="num">22</td><td class="num">&minus;8.50</td><td class="ln">no (dormant gate)</td></tr>
+<tr class="row-bad"><td><code>exhaustion_short</code></td><td class="num">26</td><td class="num">&minus;398.50</td><td class="num">&minus;15.33</td><td class="num">48</td><td class="num">&minus;6.98</td><td class="num">72</td><td class="num">+575.50</td><td class="ln"><strong>no &mdash; and it is LIVE</strong></td></tr>
+<tr class="row-bad"><td><code>rgv_short</code></td><td class="num">12</td><td class="num">&minus;380.00</td><td class="num">&minus;31.67</td><td class="num">6</td><td class="num">+30.17</td><td class="num">25</td><td class="num">&minus;217.00</td><td class="ln">yes (dormant gate)</td></tr>
+<tr class="row-bad"><td><code>capitulation_long</code></td><td class="num">2</td><td class="num">&minus;112.00</td><td class="num">&minus;56.00</td><td class="num">9</td><td class="num">&minus;14.22</td><td class="num">21</td><td class="num">+154.50</td><td class="ln">yes</td></tr>
+<tr><td><strong>ALL FOUR</strong></td><td class="num"><strong>76</strong></td><td class="num"><strong>&minus;1,589.00</strong></td><td class="num"><strong>&minus;20.91</strong></td>
+<td class="num"><strong>65</strong></td><td class="num">&nbsp;</td><td class="num"><strong>140</strong></td><td class="num"><strong>+504.50</strong></td><td class="ln">&nbsp;</td></tr>
+</tbody></table>
+
+<p><strong>Every single fader on this desk loses money firing counter-trend, and all four lose by a similar amount
+&mdash; fifteen to fifty-six dollars a trade.</strong> Seventy-six fires, &minus;$1,589. The router currently
+manages fourteen of those seventy-six. The other sixty-two, worth &minus;$1,097, belong to two gates it is not
+allowed to see &mdash; and one of those two is the busiest live gate on the desk.</p>
+
+<p>The robustness on the actionable one:</p>
+
+<table>
+<thead><tr><th>test</th><th class="num">result</th><th class="ln">reading</th></tr></thead>
+<tbody>
+<tr><td>headline</td><td class="num">26 fires, &minus;$398.50, &minus;$15.33/tr</td><td class="ln">over 8 separate days in 30 days of tape</td></tr>
+<tr class="row-hl"><td>days where the bench would have helped</td><td class="num">7 of 8</td><td class="ln">Not one day carrying it.</td></tr>
+<tr class="row-hl"><td>strip-the-worst-day (drop 08-12, &minus;$166)</td><td class="num">&minus;$232.50</td><td class="ln"><strong>Still clearly negative &mdash; survives.</strong></td></tr>
+<tr class="row-hl"><td>leave-one-day-out, worst fold (drop the only green day, 07-30 +$224.50)</td><td class="num">&minus;$623.00</td><td class="ln">Gets stronger, not weaker.</td></tr>
+<tr><td>the honest caveat</td><td class="num">n=26</td><td class="ln">Thin. This is a SHADOW-grade sample proposed for a LIVE change, and the change is a bench, which is the cheap direction to be wrong in.</td></tr>
+</tbody></table>
+
+<h4 class="r26">The selector, same rollup</h4>
+
+<table>
+<thead><tr><th>Paris day</th><th class="num">n</th><th class="num">optimal picks</th><th class="num">regret $</th>
+<th class="num">selector $</th><th class="num">perfect hindsight $</th><th class="num">always-SCALP $</th><th class="num">always-WIDE $</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>Mon 08-10</td><td class="num">19</td><td class="num">79%</td><td class="num">311</td><td class="num">&minus;170</td><td class="num">+141</td><td class="num">&minus;296</td><td class="num">&minus;375</td></tr>
+<tr class="row-bad"><td>Tue 08-11</td><td class="num">15</td><td class="num">40%</td><td class="num">544</td><td class="num">&minus;79</td><td class="num">+466</td><td class="num">+231</td><td class="num">+180</td></tr>
+<tr><td>Wed 08-12</td><td class="num">31</td><td class="num">68%</td><td class="num">336</td><td class="num">&minus;397</td><td class="num">&minus;61</td><td class="num">&minus;158</td><td class="num">&minus;660</td></tr>
+<tr class="row-bad"><td>Thu 08-13</td><td class="num">14</td><td class="num">29%</td><td class="num">748</td><td class="num">&minus;228</td><td class="num">+520</td><td class="num">+144</td><td class="num">&minus;165</td></tr>
+<tr class="row-bad"><td>Fri 08-14</td><td class="num">38</td><td class="num">61%</td><td class="num">1,140</td><td class="num">&minus;252</td><td class="num">+888</td><td class="num">+220</td><td class="num">+125</td></tr>
+<tr><td><strong>WEEK</strong></td><td class="num"><strong>117</strong></td><td class="num"><strong>59%</strong></td><td class="num"><strong>3,079</strong></td>
+<td class="num"><strong>&minus;1,126</strong></td><td class="num"><strong>+1,954</strong></td><td class="num"><strong>+141</strong></td><td class="num"><strong>&minus;895</strong></td></tr>
+</tbody></table>
+
+<p><strong>The selector lost to a fixed always-SCALP rule on four of five days and by $1,267 on the week.</strong>
+It beat fixed-WIDE, which is something, but the thing it is supposed to be &mdash; an adaptive chooser &mdash; is
+currently worse than picking one exit and never thinking again. And the wrong-pick pattern is completely
+systematic: <strong>on Wednesday all five of the worst picks were <code>exhaustion_short</code> choosing TIGHT when
+SCALP or WIDE was best, and on Friday all five were the same gate doing the same thing.</strong> One gate, one
+mode, one direction of error. That lines up exactly with the exit finding above &mdash; the live exits are too
+tight for the tape once it moves.</p>
+
+<div class="callout"><div class="ct">⚠ THURSDAY&rsquo;S SELECTOR NUMBERS ARE POLLUTED &mdash; the standing bug confirmed again</div>
+<p>Thursday shows 14 trades and $748 of regret. <strong>Five of those fourteen rows are the same day-rider phantom
+counted five times</strong>, at $72.50 of regret each &mdash; $362.50, or <strong>48% of the day&rsquo;s entire
+regret figure</strong>, from one trade that did not exist. Thursday also carries $1,551 of <code>data_quality</code>-flagged
+rows that the P&amp;L module correctly excludes and <code>selector_nightly.py</code> does not. This is the known
+<em>selector-nightly-ignores-data-quality</em> defect, unfixed, and it is still inflating regret. Read Thursday&rsquo;s
+selector row as roughly $385 of regret on 9 real trades, not $748 on 14.</p></div>
+
+<h3>4 &middot; THRESHOLD TUNING &mdash; THE 40-DAY SWEEP</h3>
+
+<p><code>scripts/router_study.py --days 40</code>, both universes, thresholds and timings. The shipped config is
+ER&ge;0.15, |net|&ge;30pt, 30-minute window, 15-minute poll, 2-mark hysteresis, fast-exit off. The fast replay
+validated identical to the live <code>direction_router.replay_marks</code> before anything was swept, so this is the
+real router being measured, not an approximation of it.</p>
+
+<h4 class="r26">Set A &mdash; the LIVE managed set (capitulation_long, rgv_short)</h4>
+
+<p>Baseline with no router at all: &minus;$302. Router as shipped: <strong>+$190, a swing of +$492</strong>, from
+blocking 14 trades (losers &minus;$630, winners +$138).</p>
+
+<table>
+<thead><tr><th>router &Delta; vs no-router</th><th class="num">net&ge;20</th><th class="num">net&ge;30</th><th class="num">net&ge;40</th><th class="num">net&ge;50</th><th class="num">net&ge;60</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td><strong>ER&ge;0.15</strong></td><td class="num">+461</td><td class="num"><strong>+492 &#9733;shipped</strong></td><td class="num">+428</td><td class="num">+316</td><td class="num">+158</td></tr>
+<tr><td>ER&ge;0.20</td><td class="num">+224</td><td class="num">+176</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td></tr>
+<tr><td>ER&ge;0.25</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td></tr>
+<tr><td>ER&ge;0.30</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td></tr>
+<tr><td>ER&ge;0.35</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td><td class="num">+152</td></tr>
+</tbody></table>
+
+<h4 class="r26">Set B &mdash; the FULL historical fader set (+ rgv_long, + exhaustion_short)</h4>
+
+<p>Baseline &minus;$722. Router as shipped: <strong>+$584, a swing of +$1,307</strong>, blocking 57 trades
+(losers &minus;$1,994, winners +$687). Note this set is 2.7&times; the size of the live one &mdash; because it
+includes the two faders the router is not currently allowed to manage.</p>
+
+<table>
+<thead><tr><th>router &Delta; vs no-router</th><th class="num">net&ge;20</th><th class="num">net&ge;30</th><th class="num">net&ge;40</th><th class="num">net&ge;50</th><th class="num">net&ge;60</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td><strong>ER&ge;0.15</strong></td><td class="num">+1,300</td><td class="num"><strong>+1,307 &#9733;shipped</strong></td><td class="num">+1,294</td><td class="num">+1,120</td><td class="num">+858</td></tr>
+<tr><td>ER&ge;0.20</td><td class="num">+1,044</td><td class="num">+995</td><td class="num">+976</td><td class="num">+1,014</td><td class="num">+816</td></tr>
+<tr><td>ER&ge;0.25</td><td class="num">+787</td><td class="num">+787</td><td class="num">+806</td><td class="num">+806</td><td class="num">+744</td></tr>
+<tr><td>ER&ge;0.30</td><td class="num">+334</td><td class="num">+334</td><td class="num">+334</td><td class="num">+334</td><td class="num">+428</td></tr>
+<tr><td>ER&ge;0.35</td><td class="num">+428</td><td class="num">+428</td><td class="num">+428</td><td class="num">+428</td><td class="num">+428</td></tr>
+</tbody></table>
+
+<p><strong>Both grids say the same three things.</strong> One: <strong>ER 0.15 is not a peak, it is a cliff edge
+&mdash; and we are on the right side of it.</strong> Everything at ER 0.20 and above is worth a third to a half as
+much, on both sets independently. Two: <strong>the net threshold barely matters between 20 and 40</strong> &mdash;
+on the full set those three cells are +$1,300 / +$1,307 / +$1,294, thirteen dollars apart across the whole range.
+That is a genuine plateau and 30 sits in the middle of it. Three: <strong>the shipped cell is the best cell on both
+sets.</strong> Whoever set ER 0.15 / net 30 got it right and there is nothing to gain by moving either.</p>
+
+<h4 class="r26">The timing sweep &mdash; where the actual gain is</h4>
+
+<p>900 configurations, thresholds crossed with timings. The joint winner is <strong>the same config on both
+universes</strong>, which is the first thing that made me take it seriously:</p>
+
+<table>
+<thead><tr><th>knob</th><th class="num">shipped</th><th class="num">joint best</th><th class="ln">what the change does in plain terms</th></tr></thead>
+<tbody>
+<tr><td>ER threshold</td><td class="num">0.15</td><td class="num">0.15</td><td class="ln">unchanged</td></tr>
+<tr><td>net threshold</td><td class="num">30pt</td><td class="num">20pt</td><td class="ln">inside the flat plateau &mdash; a $13 difference on the full set. <strong>I would not take this one.</strong></td></tr>
+<tr class="row-hl"><td>lookback window</td><td class="num">30 min</td><td class="num">45 min</td><td class="ln">A longer window is a smoother read. This is the direct fix for the boundary flicker that produced 36 <code>abs_veto_short</code> flips.</td></tr>
+<tr class="row-hl"><td>poll step</td><td class="num">15 min</td><td class="num">5 min</td><td class="ln">Matches the actual systemd tick. The router already <em>runs</em> every 5 minutes; its regime replay pretends it runs every 15.</td></tr>
+<tr class="row-hl"><td>hysteresis hold</td><td class="num">2 marks</td><td class="num">3 marks</td><td class="ln">3&times;5min = <strong>15 minutes of confirmation instead of 30</strong>. Faster to act, on a steadier signal.</td></tr>
+<tr><td>fast_exit</td><td class="num">off</td><td class="num">off</td><td class="ln">unchanged &mdash; still dormant, as it has been since it backtested +$0</td></tr>
+</tbody></table>
+
+<table>
+<thead><tr><th>&nbsp;</th><th class="num">LIVE managed set</th><th class="num">FULL historical set</th></tr></thead>
+<tbody>
+<tr><td>router value, shipped config</td><td class="num">+$190</td><td class="num">+$584</td></tr>
+<tr class="row-hl"><td>router value, joint-best config</td><td class="num">+$692</td><td class="num">+$984</td></tr>
+<tr class="row-hl"><td><strong>improvement</strong></td><td class="num"><strong>+$502</strong></td><td class="num"><strong>+$399</strong></td></tr>
+<tr><td>trades blocked (shipped &rarr; best)</td><td class="num">14 &rarr; 27</td><td class="num">57 &rarr; 70</td></tr>
+<tr><td>days helped / days hurt</td><td class="num">4 / 0</td><td class="num">6 / 1</td></tr>
+<tr class="row-bad"><td>worst single day</td><td class="num">$+0</td><td class="num">&minus;$10</td></tr>
+<tr class="row-bad"><td><strong>days out of 40 that changed at all</strong></td><td class="num"><strong>4</strong></td><td class="num"><strong>7</strong></td></tr>
+</tbody></table>
+
+<p><strong>Now the honesty.</strong> That +$502 rests on <strong>four days out of forty</strong>. Thirty-six days are
+completely unaffected. It never hurt a single day on the live set and hurt one day by ten dollars on the full set,
+which is as clean a robustness profile as you can ask for &mdash; but it is clean because it is <em>rare</em>, not
+because it is <em>reliable</em>. Four positive events is not a proven edge; it is four positive events.</p>
+
+<div class="callout"><div class="ct">THE MODERATE RECOMMENDATION &mdash; and what I deliberately left out</div>
+<p><strong>TAKE:</strong> window 30&rarr;45 min, step 15&rarr;5 min, hold 2&rarr;3 marks. Three reasons, in order of
+weight. <strong>(a)</strong> It is the joint optimum on <em>both</em> universes independently &mdash; the live set
+and a set 2.7&times; larger with two different gates in it. <strong>(b)</strong> It never hurt a day on the live set
+and cost $10 on the worst day of the full set. <strong>(c)</strong> Most importantly, it is not a number found by
+searching &mdash; it is the mechanical fix for two problems this section documents from live evidence and not from
+the grid: a 45-minute window smooths the exact one-point boundary flicker that generated 36 flips on one gate, and
+5-minute steps close the actuation lag that cost &minus;$242 this week. <strong>When a grid search and a ledger
+written by hand arrive at the same answer from opposite directions, that is the strongest signal available here.</strong></p>
+<p><strong>DO NOT TAKE:</strong> net 30&rarr;20. It is worth $13 on the full set and $31 on a live set of 14 trades.
+That is noise, it moves us to the edge of the plateau rather than the middle, and taking a free-looking knob change
+for no reason is how a config gets overfitted one dollar at a time. <strong>Leave ER 0.15 and net 30 exactly where
+they are.</strong></p>
+<p><strong>⚠ SATURDAY, NOT NOW, AND WITH THE CAVEAT WRITTEN DOWN.</strong> The market is shut, so a Saturday deploy
+carries no live risk and gets a full session to be watched from a clean start. And the caveat that must go in the
+commit message: <strong>this was fitted on 40 days that are overwhelmingly ONE regime.</strong> This week alone ran
+84% CHOP. The router is a trend instrument being tuned on a range tape. Re-run this study after the first genuine
+trend week and be ready to revert &mdash; the revert is a three-constant edit.</p></div>
+
+<h4 class="r26">Is it blocking enough? The leak classification</h4>
+
+<table>
+<thead><tr><th>every managed-fader trade, classified</th><th class="num">LIVE set n</th><th class="num">$</th><th class="num">FULL set n</th><th class="num">$</th><th class="ln">whose problem is it?</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>BLOCKED &mdash; the router caught it</td><td class="num">14</td><td class="num">&minus;492</td><td class="num">57</td><td class="num">&minus;1,307</td><td class="ln">working as designed</td></tr>
+<tr class="row-hl"><td>allowed WINNER &mdash; correctly left alone</td><td class="num">21</td><td class="num">+1,456</td><td class="num">63</td><td class="num">+3,813</td><td class="ln">the over-benching test: it is NOT strangling the book</td></tr>
+<tr class="row-bad"><td>LEAK &mdash; counter-trend NEAR-MISS</td><td class="num">15</td><td class="num">&minus;911</td><td class="num">30</td><td class="num">&minus;1,876</td><td class="ln"><strong>the router&rsquo;s own problem</strong> &mdash; the threshold just failed to catch these</td></tr>
+<tr><td>chop loss</td><td class="num">4</td><td class="num">&minus;208</td><td class="num">7</td><td class="num">&minus;355</td><td class="ln">nothing a direction router can do</td></tr>
+<tr><td>trend-FOLLOWING loss</td><td class="num">1</td><td class="num">&minus;147</td><td class="num">16</td><td class="num">&minus;997</td><td class="ln">a gate or exit problem, not the router&rsquo;s</td></tr>
+</tbody></table>
+
+<p><strong>The single biggest bucket of remaining loss is the near-miss leak: 30 trades, &minus;$1,876 on the full
+set.</strong> These are counter-trend fader fires that the threshold missed by a whisker. That is the argument for
+loosening, and the grid answers it directly &mdash; ER 0.15 / net 20 blocks 13 more trades on each set and captures
+part of it, which is where the joint-best config&rsquo;s gain actually comes from. It is also the argument I am
+declining, because the same grid says the money in that change is thirteen dollars on 40 days. <strong>The bigger
+prize is not a lower threshold. It is pointing the existing threshold at <code>exhaustion_short</code>.</strong></p>
+
+<h3>5 &middot; THE UNTRADEABLE-DAY METER, REVIEWED</h3>
+
+<p><code>src/gazbot7/untradeable.py</code>. Three meters &mdash; ROUND-TRIP (does the day go anywhere), GIVE-BACK
+(how much of its own move it hands back), STOP-RATE (what fraction of recent trades stopped) &mdash; blended into a
+0&ndash;100 score. 65 and above is STAY-OUT, 45 and above CAUTION. <strong>Five days is far too few to judge it, so
+I scored all 22 trading days the tape supports</strong> and put each against the money.</p>
+
+<table>
+<thead><tr><th>date</th><th class="num">score</th><th>verdict</th><th class="num">chop</th><th class="num">give-back</th>
+<th class="num">stop-rate</th><th class="num">round-trip</th><th class="num">day $</th><th class="num">n</th></tr></thead>
+<tbody>
+<tr><td>07-16</td><td class="num">29</td><td>TRADEABLE</td><td class="num">27</td><td class="num">19</td><td class="num">53</td><td class="num">0.73</td><td class="num">&minus;535.00</td><td class="num">22</td></tr>
+<tr><td>07-17</td><td class="num">48</td><td>CAUTION</td><td class="num">45</td><td class="num">44</td><td class="num">60</td><td class="num">0.55</td><td class="num">&minus;152.00</td><td class="num">27</td></tr>
+<tr class="row-bad"><td>07-20</td><td class="num">94</td><td>STAY-OUT</td><td class="num">99</td><td class="num">99</td><td class="num">73</td><td class="num">0.01</td><td class="num">&minus;1,732.50</td><td class="num">57</td></tr>
+<tr class="row-hl"><td>07-21</td><td class="num">22</td><td>TRADEABLE</td><td class="num">19</td><td class="num">10</td><td class="num">53</td><td class="num">0.81</td><td class="num">+52.50</td><td class="num">59</td></tr>
+<tr><td>07-22</td><td class="num">53</td><td>CAUTION</td><td class="num">55</td><td class="num">50</td><td class="num">53</td><td class="num">0.45</td><td class="num">&minus;329.50</td><td class="num">23</td></tr>
+<tr><td>07-23</td><td class="num">46</td><td>CAUTION</td><td class="num">51</td><td class="num">38</td><td class="num">53</td><td class="num">0.49</td><td class="num">&minus;398.00</td><td class="num">46</td></tr>
+<tr class="row-bad"><td>07-24</td><td class="num">26</td><td>TRADEABLE</td><td class="num">26</td><td class="num">19</td><td class="num">40</td><td class="num">0.74</td><td class="num">&minus;578.50</td><td class="num">47</td></tr>
+<tr><td>07-27</td><td class="num">47</td><td>CAUTION</td><td class="num">48</td><td class="num">40</td><td class="num">60</td><td class="num">0.52</td><td class="num">&minus;226.50</td><td class="num">40</td></tr>
+<tr><td>07-28</td><td class="num">56</td><td>CAUTION</td><td class="num">62</td><td class="num">62</td><td class="num">33</td><td class="num">0.38</td><td class="num">&minus;54.00</td><td class="num">23</td></tr>
+<tr class="row-hl"><td>07-29</td><td class="num">23</td><td>TRADEABLE</td><td class="num">25</td><td class="num">5</td><td class="num">53</td><td class="num">0.75</td><td class="num">+638.50</td><td class="num">17</td></tr>
+<tr class="row-hl"><td>07-30</td><td class="num">13</td><td>TRADEABLE</td><td class="num">4</td><td class="num">4</td><td class="num">47</td><td class="num">0.96</td><td class="num">+1,172.00</td><td class="num">91</td></tr>
+<tr class="row-bad"><td>07-31</td><td class="num">86</td><td>STAY-OUT</td><td class="num">90</td><td class="num">84</td><td class="num">80</td><td class="num">0.10</td><td class="num">&minus;905.00</td><td class="num">35</td></tr>
+<tr class="row-bad"><td>08-03</td><td class="num">34</td><td>TRADEABLE</td><td class="num">49</td><td class="num">10</td><td class="num">53</td><td class="num">0.51</td><td class="num">&minus;460.50</td><td class="num">32</td></tr>
+<tr class="row-hl"><td>08-04</td><td class="num">22</td><td>TRADEABLE</td><td class="num">23</td><td class="num">15</td><td class="num">33</td><td class="num">0.77</td><td class="num">+330.50</td><td class="num">16</td></tr>
+<tr class="row-bad"><td>08-05</td><td class="num">44</td><td>TRADEABLE</td><td class="num">55</td><td class="num">12</td><td class="num">87</td><td class="num">0.45</td><td class="num">&minus;817.00</td><td class="num">29</td></tr>
+<tr class="row-bad"><td>08-06</td><td class="num">78</td><td>STAY-OUT</td><td class="num">86</td><td class="num">81</td><td class="num">58</td><td class="num">0.14</td><td class="num">&minus;137.50</td><td class="num">10</td></tr>
+<tr class="row-hl"><td>08-07</td><td class="num">15</td><td>TRADEABLE</td><td class="num">16</td><td class="num">5</td><td class="num">33</td><td class="num">0.84</td><td class="num">+227.00</td><td class="num">23</td></tr>
+<tr><td>08-10</td><td class="num">55</td><td>CAUTION</td><td class="num">62</td><td class="num">36</td><td class="num">80</td><td class="num">0.38</td><td class="num">&minus;244.50</td><td class="num">18</td></tr>
+<tr class="row-bad"><td>08-11</td><td class="num">50</td><td>CAUTION</td><td class="num">65</td><td class="num">50</td><td class="num">20</td><td class="num">0.35</td><td class="num">+371.50</td><td class="num">14</td></tr>
+<tr class="row-bad"><td>08-12</td><td class="num">53</td><td>CAUTION</td><td class="num">49</td><td class="num">46</td><td class="num">73</td><td class="num">0.51</td><td class="num">&minus;660.00</td><td class="num">30</td></tr>
+<tr><td>08-13</td><td class="num">21</td><td>TRADEABLE</td><td class="num">20</td><td class="num">14</td><td class="num">36</td><td class="num">0.80</td><td class="num">+37.50</td><td class="num">9</td></tr>
+<tr class="row-bad"><td>08-14</td><td class="num">77</td><td>STAY-OUT</td><td class="num">84</td><td class="num">75</td><td class="num">67</td><td class="num">0.16</td><td class="num">+170.50</td><td class="num">37</td></tr>
+</tbody></table>
+
+<h4 class="r26">Does it discriminate? Yes &mdash; cleanly, and monotonically</h4>
+
+<table>
+<thead><tr><th>verdict</th><th class="num">days</th><th class="num">total $</th><th class="num">$ per day</th><th class="num">trades</th><th class="num">$ per trade</th><th class="num">green days</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>STAY-OUT (&ge;65)</td><td class="num">4</td><td class="num">&minus;2,604.50</td><td class="num">&minus;651.12</td><td class="num">139</td><td class="num">&minus;18.74</td><td class="num">1 of 4</td></tr>
+<tr><td>CAUTION (45&ndash;64)</td><td class="num">8</td><td class="num">&minus;1,693.00</td><td class="num">&minus;211.62</td><td class="num">221</td><td class="num">&minus;7.66</td><td class="num">1 of 8</td></tr>
+<tr class="row-hl"><td>TRADEABLE (&lt;45)</td><td class="num">10</td><td class="num">+67.00</td><td class="num">+6.70</td><td class="num">345</td><td class="num">+0.19</td><td class="num">6 of 10</td></tr>
+</tbody></table>
+
+<p><strong>That is a real instrument.</strong> Every step down the score is a step up in money, on every measure
+&mdash; dollars per day, dollars per trade, and share of green days. A STAY-OUT day costs nineteen dollars a trade;
+a TRADEABLE day breaks even. On the five days of this week alone the relationship looked like pure noise, which is
+exactly why five days was never going to answer the question.</p>
+
+<h4 class="r26">Which of the three meters actually did the work?</h4>
+
+<p>Each meter split at its own median across the 22 days, high half against low half:</p>
+
+<table>
+<thead><tr><th>meter</th><th class="num">weight in the score</th><th class="num">HIGH half $ per day</th><th class="num">LOW half $ per day</th><th class="num">separation</th><th class="ln">verdict</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td><strong>STOP-RATE</strong></td><td class="num">20%, and excluded below n=10</td><td class="num">&minus;522.72</td><td class="num">+36.46</td><td class="num"><strong>$559.18</strong></td><td class="ln">★ <strong>The best discriminator of the three &mdash; and the one the module demotes.</strong></td></tr>
+<tr><td>ROUND-TRIP / chop</td><td class="num">40%</td><td class="num">&minus;407.60</td><td class="num">&minus;12.88</td><td class="num">$394.73</td><td class="ln">Works. Correctly weighted heavily.</td></tr>
+<tr><td>GIVE-BACK</td><td class="num">40%</td><td class="num">&minus;368.45</td><td class="num">&minus;16.14</td><td class="num">$352.32</td><td class="ln">Works, slightly the weakest of the three.</td></tr>
+</tbody></table>
+
+<p><strong>All three discriminate, which is the first real finding &mdash; none of them is dead weight.</strong> The
+second is more awkward: <strong>the STOP-RATE meter separates best and it is the one carrying the least weight.</strong>
+It gets 20% when it votes at all, and since the 2026-08-05 change it is excluded entirely below ten trades &mdash;
+which on this week&rsquo;s volumes means it was excluded on the days with the fewest trades, and the LOW half of its
+split is the only bucket in this entire table that is <em>positive</em>.</p>
+
+<p>I am <strong>not</strong> recommending a re-weight, and the reason is the same n=22 discipline I applied
+everywhere else. The stop-rate meter is the only one of the three that is <em>endogenous</em> &mdash; it measures
+what the desk just did, not what the tape did. On a day the router has already benched everything, the stop-rate
+reads off a tiny sample of whatever was left armed. The 2026-08-05 change that demoted it was made for exactly that
+reason and it was right to make it. What this table justifies is <strong>re-testing</strong> the weight, not
+changing it. <span class="tag r-watch">SHADOW</span></p>
+
+<h4 class="r26">Does the 65 cutoff want tuning? &mdash; the actionable test</h4>
+
+<p>The full-day score is hindsight. The question that matters is the one the router faces live: <strong>at 15:00Z,
+does the meter predict the money still to come?</strong> The router only allows a stay-out past 15:00Z, so this is
+the exact decision. I swept the cutoff against post-15:00Z P&amp;L over all 22 days.</p>
+
+<table>
+<thead><tr><th class="num">cutoff</th><th class="num">days benched</th><th class="num">$ avoided (post-15:00Z, on the benched days)</th><th class="num">days traded</th><th class="num">$ earned on them</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="num">35</td><td class="num">17 of 22</td><td class="num">+1,771.00</td><td class="num">5</td><td class="num">+59.00</td></tr>
+<tr><td class="num">40</td><td class="num">12</td><td class="num">+1,562.50</td><td class="num">10</td><td class="num">&minus;149.50</td></tr>
+<tr><td class="num">45</td><td class="num">10</td><td class="num">+1,642.00</td><td class="num">12</td><td class="num">&minus;70.00</td></tr>
+<tr class="row-hl"><td class="num">50</td><td class="num">6</td><td class="num">+1,279.00</td><td class="num">16</td><td class="num">&minus;433.00</td></tr>
+<tr class="row-hl"><td class="num">55</td><td class="num">6</td><td class="num">+1,279.00</td><td class="num">16</td><td class="num">&minus;433.00</td></tr>
+<tr class="row-hl"><td class="num">60</td><td class="num">6</td><td class="num">+1,279.00</td><td class="num">16</td><td class="num">&minus;433.00</td></tr>
+<tr class="row-hl"><td class="num"><strong>65 &#9733; shipped</strong></td><td class="num">6</td><td class="num">+1,279.00</td><td class="num">16</td><td class="num">&minus;433.00</td></tr>
+<tr class="row-hl"><td class="num">70</td><td class="num">6</td><td class="num">+1,279.00</td><td class="num">16</td><td class="num">&minus;433.00</td></tr>
+<tr class="row-hl"><td class="num">75</td><td class="num">5</td><td class="num">+1,279.00</td><td class="num">17</td><td class="num">&minus;433.00</td></tr>
+<tr><td class="num">80</td><td class="num">3</td><td class="num">+209.00</td><td class="num">19</td><td class="num">&minus;1,503.00</td></tr>
+<tr><td class="num">85&ndash;90</td><td class="num">1</td><td class="num">+282.00</td><td class="num">21</td><td class="num">&minus;1,430.00</td></tr>
+</tbody></table>
+
+<p class="rnote">Baseline &mdash; trade every day after 15:00Z, no meter at all: <strong>&minus;$1,712.00</strong> over 22 days.</p>
+
+<p><strong>The answer is no, and it is a clean no.</strong> <strong>Everything from 50 to 75 gives an identical
+result</strong> &mdash; the same six days benched, the same $1,279 avoided. Sixty-five sits in the dead centre of a
+25-point plateau. That is what a well-set threshold looks like: you can be off by ten in either direction and
+nothing happens. <strong>Leave it.</strong></p>
+
+<p>The grid does show cutoff 35 avoiding more &mdash; $1,771 &mdash; and leave-one-day-out picks 35 in 17 of 22
+folds, which looks like a strong signal until you read what it is actually saying. <strong>Cutoff 35 benches
+seventeen of twenty-two days.</strong> That is not a stay-out rule, that is closing the afternoon desk. And it wins
+for a reason that has nothing to do with the meter: <strong>trading after 15:00Z lost &minus;$1,712 across these 22
+days full stop.</strong> On a sample where the activity is a net loser, <em>any</em> rule that does less of it
+scores well. The LOO test is picking up the base rate, not the instrument. <strong>I am refusing that
+recommendation and naming why.</strong></p>
+
+<div class="callout"><div class="ct">TWO HONEST HOLES IN THE METER, NEITHER OF WHICH CHANGES THE CUTOFF</div>
+<p><strong>(1) It rests on one day.</strong> Of the $1,279 the 65 cutoff avoids, <strong>$1,009 &mdash; 79% &mdash;
+is 2026-07-20 alone.</strong> Strip that single day and the rule is worth $270 across the remaining five. The meter
+is real (the 22-day verdict table is monotone and that is not one day), but <em>the dollar case for the cutoff</em>
+is one day. Say it plainly and do not build on it.</p>
+<p><strong>(2) The module and the router use different numbers.</strong> <code>untradeable.py</code> defines
+STAY-OUT as score &ge;65. The router&rsquo;s live operating trigger, in its own words all week, is <em>&ldquo;two
+consecutive &ge;55, past the 15:00Z cutoff&rdquo;</em>. Two thresholds, ten points apart, for one decision. Because
+50&ndash;75 is a flat plateau <strong>neither is wrong and this has cost nothing</strong> &mdash; but it means the
+dashboard and the router can disagree about whether today is a stay-out day, and nobody would notice.
+<strong>Pick one number and put it in one place.</strong> <span class="tag r-ship">SATURDAY, 10-MINUTE FIX</span></p>
+</div>
+
+<p><strong>This week&rsquo;s two misses, named.</strong> Friday scored <strong>77, STAY-OUT &mdash; and the desk made
++$170.50</strong>, its second-best day. Wednesday scored <strong>53, only CAUTION &mdash; and lost
+&minus;$660.00</strong>, the worst day of the week. Two clean misses in five days, in opposite directions. Against
+the 22-day record I read those as variance rather than a broken instrument, but they are exactly the pair that
+would make you distrust it if this week were all you had.</p>
+
+<h3>6 &middot; THE BENCH-DECISION REVIEW &mdash; grading the week&rsquo;s actual benches</h3>
+
+<p>Thirty-three benches. Eight blocked money (+$611), four gave money away (&minus;$410), twenty-one were free.
+Beyond the arithmetic, four patterns are worth naming because each one is a rule.</p>
+
+<div class="card"><h3>What made a bench GOOD</h3>
+<p><strong>Duration.</strong> Look at the two best calls &mdash; <code>grind_long</code> benched at 08-11 13:40 for
+<strong>48.3 hours</strong> and again at 08-13 15:35 for <strong>31.4 hours</strong>. Between them: 14 blocked
+signals, &minus;$328. <strong>Every single one of the eight good benches ran for at least half an hour and six of them
+ran for over 20 hours.</strong> The good benches are the ones nobody touched. Compare the churn column: twelve
+benches lasted under thirty minutes and exactly <strong>one</strong> of those twelve blocked a single signal.</p></div>
+
+<div class="card"><h3>What made a bench BAD &mdash; and it is one gate, again</h3>
+<p><strong>Three of the four over-benches were <code>exhaustion_short</code>, and together they cost $360.50.</strong>
+The worst was the 08-11 15:00Z stay-out: the meter read 80 after 78, past the cutoff, on a genuinely awful day
+(239pt of range for &minus;6pt of net), and it was a correct call by the written rule &mdash; and it benched the one
+gate that was working for seven hours and gave up $183. That is the meter and the gate disagreeing, and the meter
+winning. <strong>Which is the right outcome to keep, because the same instrument is what stopped Wednesday being
+worse.</strong> I am recording this as the cost of a rule I want kept, not as an error to fix.</p></div>
+
+<div class="card"><h3>The bug that produced both ❌ BAD grades</h3>
+<p>Both bad calls this week are the <em>same</em> mechanism, both on Monday, and it has now fired
+<strong>three times in one day</strong>: <strong>arming a gate because its bench lapsed.</strong> The router&rsquo;s
+own words at 17:45Z &mdash; <em>&ldquo;the 17:15 stay-out that benched exhaustion_short has now lapsed for three
+ticks, so I restore it.&rdquo;</em> Nothing made a case <em>for</em> the gate. The meter merely stopped making the
+case against it. <strong>A lapsed bench returns a gate to benched-by-default, not to armed.</strong> The gate was at
+that moment the day&rsquo;s worst performer at &minus;$137.50 with 4 of 6 lots stopped; it then took four more lots
+and stopped all four, for <strong>&minus;$92.50</strong>. Had the 17:15 bench simply been left alone the window is
+flat. The same shape produced the 08-13 17:50 restore of <code>abs_veto_short</code> for &minus;$139.50.
+<strong>Across the week this one pattern is worth &minus;$232.00.</strong></p></div>
+
+<div class="card"><h3>The bench that finally had a price &mdash; and it was positive</h3>
+<p>Two consecutive ledger entries this week assert that the long-side bench cost &ldquo;exactly $0, zero
+SUPPRESSED-OPEN&rdquo;. Friday afternoon produced <strong>240 of them</strong>, all <code>abs_veto_long</code>, in
+two bursts at 15:46 and 16:01. The structural reason is worth carrying forward because it decides which benches can
+ever be free: <code>deciders.py</code> holds an ATR floor for <code>grind_long</code> (22.0) and
+<code>capitulation_long</code> (10.0) <strong>and for nothing else</strong>. On a tape running 2.6&ndash;12.5pt ATR
+that floor refused <code>grind_long</code> 1,932 times all by itself &mdash; its bench was free because the gate
+could not have fired anyway. <strong><code>abs_veto_long</code> has no floor, so it was eligible the entire time,
+and its bench was the only long-side bench that could have a price.</strong> It priced GOOD: &minus;$310 blocked
+across the week, and roughly $180 of that on Friday alone. <strong>Never assume a bench is free &mdash; price it
+from SUPPRESSED-OPEN per window.</strong></p></div>
+
+<h3>7 &middot; THE DURABLE ROUTER AND ITS ARCHITECTURE</h3>
+
+<h4 class="r26">Did the 5-minute tick manage correctly?</h4>
+
+<table>
+<thead><tr><th>UTC day</th><th class="num">ticks fired</th><th class="num">expected</th><th class="num">service failures</th>
+<th class="num">ticks that made no decision</th><th class="num">%</th><th class="ln">reading</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td>08-11</td><td class="num">288</td><td class="num">288</td><td class="num">0</td><td class="num">9</td><td class="num">3%</td><td class="ln">The 9 are the scheduled CME maintenance-halt skips. Perfect.</td></tr>
+<tr class="row-hl"><td>08-12</td><td class="num">288</td><td class="num">288</td><td class="num">0</td><td class="num">9</td><td class="num">3%</td><td class="ln">Perfect.</td></tr>
+<tr class="row-bad"><td>08-13</td><td class="num">288</td><td class="num">288</td><td class="num">0</td><td class="num"><strong>134</strong></td><td class="num"><strong>47%</strong></td><td class="ln"><strong>See below.</strong></td></tr>
+<tr class="row-hl"><td>08-14</td><td class="num">284</td><td class="num">284</td><td class="num">0</td><td class="num">9</td><td class="num">3%</td><td class="ln">Perfect (partial day to 23:35Z).</td></tr>
+</tbody></table>
+
+<p><strong>On the narrow question the operator asked &mdash; did the timer manage correctly, without thrash &mdash;
+the answer is an unqualified yes.</strong> 1,148 ticks, every single one fired on schedule, <strong>zero service
+failures, zero timeouts, zero non-zero exits</strong>. Median tick 16 seconds against a 280-second timeout. The
+plumbing is not the problem and has not been for weeks.</p>
+
+<div class="callout"><div class="ct">⚠⚠ AND THAT IS EXACTLY WHY THURSDAY IS THE WEEK&rsquo;S MOST IMPORTANT FINDING</div>
+<p><strong>On 2026-08-13, from 02:40:03Z to 13:00:02Z &mdash; ten hours and twenty minutes &mdash; the router made
+no decisions at all.</strong> One hundred and twenty-five consecutive ticks aborted on the same line:</p>
+<pre><code>ABORT: no JSON in output -&gt; no change | raw='Failed to authenticate: OAuth session expired
+and could not be refreshed'</code></pre>
+<p><strong>Every one of those 125 ticks was reported by systemd as a success.</strong> &ldquo;Starting&hellip;
+Deactivated successfully&hellip; Finished&hellip; Consumed 2.5s CPU time.&rdquo; The service health was flawless.
+The service was doing nothing. A 2-second tick against a 16-second median is the only tell there was, and nothing
+was watching for it.</p>
+<p><strong>What it cost: $0 realised.</strong> Zero trades fired in the whole window. The switches froze in the
+state the 02:30Z tick left them, and the only thing that state blocked was <strong>one</strong>
+<code>abs_veto_long</code> signal at 12:31:05Z, which reprices at &minus;$24.50 a lot &mdash; so the frozen bench
+<em>made</em> $49.00 on the two-lot gate.</p>
+<p><strong>⚠ That is luck and must be recorded as luck.</strong> The outage sat almost entirely inside the Asia
+block, where new entries are refused whatever the switches say, and the rest of it was a dead London morning. Run
+the same ten-hour blackout starting at 13:00Z instead of 02:40Z and it covers the US open. <strong>The correct
+reading is not &ldquo;$0, no harm&rdquo; &mdash; it is &ldquo;a ten-hour unmonitored failure of the desk&rsquo;s
+number-one lever, which happened to land in the only ten hours of the day where it was survivable.&rdquo;</strong></p>
+<p><span class="tag r-keep">ALREADY FIXED &mdash; NOT AN ACTION</span> <code>scripts/router_health_check.py</code>
+shipped the <strong>same day</strong> (commit <code>07cf6ef</code>, &ldquo;alarm the one thing nothing was
+watching&rdquo;), with its timer first firing at 15:31:33Z &mdash; two and a half hours after the outage cleared.
+It alarms on an ABORT streak of 3 (≈15 minutes of a frozen router) and on a silent log, pages once on entry and
+re-nags hourly. It has run every two minutes since. <strong>Do not re-recommend this; it is done.</strong> The open
+question it raises is the generalising one: <strong>what else on this desk reports success while doing nothing?</strong></p>
+</div>
+
+<h4 class="r26">The actuation-lag cost, quantified</h4>
+
+<p>The router decides on a 5-minute tick and needs two consecutive confirming marks, so a genuine regime change
+takes up to 30 minutes to reach <code>gate_switches.env</code>. Here is what that delay actually cost, measured as
+what happened in the ten minutes immediately before each flip took effect.</p>
+
+<table>
+<thead><tr><th>when (UTC)</th><th>gate</th><th>flip</th><th class="num">what slipped through</th><th class="num">$</th><th class="ln">reading</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>08-12 13:55</td><td><code>abs_veto_long</code></td><td>BENCH</td><td class="num">2 live trades</td><td class="num">&minus;133.00</td><td class="ln">Both taken in the last 10 minutes before the bench landed.</td></tr>
+<tr class="row-bad"><td>08-13 15:58</td><td><code>abs_veto_short</code></td><td>BENCH</td><td class="num">2 live trades</td><td class="num">&minus;101.00</td><td class="ln">The execution-pathology bench &mdash; the trades were already on by the time it fired.</td></tr>
+<tr class="row-bad"><td>08-14 19:45</td><td><code>exhaustion_short</code></td><td>BENCH</td><td class="num">2 live trades</td><td class="num">&minus;31.00</td><td class="ln">&nbsp;</td></tr>
+<tr><td>08-11 14:10</td><td><code>abs_veto_long</code></td><td>ARM</td><td class="num">1 missed signal</td><td class="num">+65.50</td><td class="ln">Being late DODGED a loser.</td></tr>
+<tr><td>08-12 12:35</td><td><code>abs_veto_long</code></td><td>ARM</td><td class="num">1 missed signal</td><td class="num">+55.00</td><td class="ln">Dodged another.</td></tr>
+<tr class="row-bad"><td>08-12 13:40</td><td><code>abs_veto_short</code></td><td>ARM</td><td class="num">1 missed signal</td><td class="num">&minus;49.50</td><td class="ln">Missed a winner.</td></tr>
+<tr class="row-bad"><td>08-13 13:35</td><td><code>abs_veto_long</code></td><td>ARM</td><td class="num">1 missed signal</td><td class="num">&minus;48.00</td><td class="ln">Missed a winner.</td></tr>
+<tr><td colspan="4"><strong>&#9733; TOTAL ACTUATION-LAG COST FOR THE WEEK</strong></td><td class="num"><strong>&minus;242.00</strong></td>
+<td class="ln"><strong>bench-late &minus;$265.00 &nbsp;·&nbsp; arm-late +$23.00</strong></td></tr>
+</tbody></table>
+
+<p><strong>The lag is asymmetric and the asymmetry is exactly the one the router&rsquo;s own policy assumes.</strong>
+Being late to BENCH cost real money every single time &mdash; three flips, six trades, &minus;$265, no exceptions.
+Being late to ARM was <em>free</em>: four flips, two missed winners worth $97.50 and two dodged losers worth
+$120.50, netting +$23 in the desk&rsquo;s favour. <strong>So the standing rule &mdash; when unsure, sit benched one
+more tick, and re-arm the moment evidence is real &mdash; is now measured, not assumed. It is worth about $242 a
+week to make the bench side faster and roughly nothing to make the arm side faster.</strong> That is a direct,
+independent argument for the step 15&rarr;5 change in section 4, arrived at from live money rather than from a grid.</p>
+
+<h4 class="r26">The architecture question the week keeps asking</h4>
+
+<p>Two of the week&rsquo;s three structural problems are not solvable by tuning the router, because they are not the
+router&rsquo;s decisions. <strong>The 22:00Z reactivation timer</strong> made the two largest armings of the week
+(&minus;$367.50 and +$310.00) and it is a clock, not a judgement &mdash; nothing grades it, and it re-arms gates the
+router benched hours earlier with no memory of why. <strong>The lapsed-bench unwind</strong> (&minus;$232.00 this
+week) is the same defect in a different costume: a bench expiring is treated as an argument for arming.
+<strong>Both are the same bug &mdash; a permission that expires into the wrong default.</strong> The fix is one line
+of policy rather than any new mechanism: <strong>a bench that lapses returns a gate to BENCHED-BY-DEFAULT, and an
+arm needs a positive case made fresh.</strong> The router&rsquo;s prompt already says this in words; the 22:00Z
+timer overrides it in code.</p>
+
+<h3>8 &middot; VERDICT AND SATURDAY RECOMMENDATIONS</h3>
+
+<p><strong>The verdict on the week: the router is doing its job, its job is currently very small, and the biggest
+gains available are in what it is pointed at rather than how it is tuned.</strong> It was worth +$400 by the
+nightly, +$51.50 by direct grading of its 64 decisions, and it did that on a tape that was 84% chop &mdash; the
+regime where a direction router has least to do. It thrashed one gate badly and left the rest alone. Its thresholds
+came out best-in-grid on both test sets. And it spent ten hours dead on Thursday without anyone knowing.</p>
+
+<table>
+<thead><tr><th>#</th><th>recommendation</th><th class="ln">the evidence</th><th>confidence</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">1</td>
+<td><strong>Add <code>exhaustion_short</code> to the router&rsquo;s UP-side managed set</strong> (bench it in confirmed TREND_UP).</td>
+<td class="ln">26 counter-trend fires over 30 days for &minus;$398.50 at &minus;$15.33/trade; <strong>red on 7 of the 8 days it occurred</strong>; survives strip-the-worst-day (&minus;$232.50) and gets stronger dropping the best day (&minus;$623.00). This week alone it leaked 12 fires for &minus;$241.00 while the leakage detector reported zero, because the gate is outside its universe. The same gate makes +$76.50 aligned and is roughly flat in chop &mdash; <strong>the bench is surgical, not a relegation of the short side.</strong></td>
+<td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
+<tr class="row-hl"><td class="num">2</td>
+<td><strong>Router timing: window 30&rarr;45 min, step 15&rarr;5 min, hold 2&rarr;3 marks. Leave ER 0.15 and net 30 alone.</strong></td>
+<td class="ln">Joint optimum on <em>both</em> universes independently: +$502 on the live set, +$399 on the full set. 4 days helped / 0 hurt (live), 6 / 1 (full), worst day &minus;$10. Independently corroborated by the live ledger: a 45-min window is the fix for the 1-point boundary flicker behind 36 flips on one gate, and 5-min steps address the &minus;$242 bench-lag measured in section 7. <strong>⚠ Rests on 4 of 40 days, and fitted on one predominantly RANGE regime &mdash; re-run after a trend week, revert is a three-constant edit.</strong></td>
+<td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
+<tr class="row-hl"><td class="num">3</td>
+<td><strong>Fix the lapsed-bench unwind in code, not in the prompt.</strong> A bench that expires returns a gate to benched-by-default; the 22:00Z reactivate timer must not re-arm a gate the router benched inside the last N hours without a fresh positive case.</td>
+<td class="ln">Both of the week&rsquo;s ❌ BAD grades, &minus;$232.00 across two incidents (08-10 17:45 &minus;$92.50, 08-13 17:50 &minus;$139.50), and the pattern has now fired three times in a single day. The 22:00Z timer separately made the week&rsquo;s two largest armings (&minus;$367.50 / +$310.00) with nothing grading it.</td>
+<td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
+<tr><td class="num">4</td>
+<td><strong>Add a dwell requirement to the direction rule</strong> &mdash; a confirmed direction must hold for a minimum time before the opposite read can flip it back.</td>
+<td class="ln">36 flips on <code>abs_veto_short</code>, 78% of them producing nothing, 16 lasting under 30 minutes; five flips in 50 minutes on Wednesday morning with three of them turning on a single point of net. <strong>⚠ No dollar figure attached &mdash; the churn cost $0 directly this week, so this is a process fix, not a proven money fix.</strong> The 45-minute window in #2 may resolve it on its own; measure before adding a second mechanism.</td>
+<td><span class="tag r-watch">TEST FIRST</span></td></tr>
+<tr><td class="num">5</td>
+<td><strong>Make the untradeable cutoff one number in one place.</strong></td>
+<td class="ln"><code>untradeable.py</code> says STAY-OUT at &ge;65; the router operates on &ldquo;two consecutive &ge;55&rdquo;. The 50&ndash;75 plateau means neither is wrong and this has cost nothing &mdash; but the dashboard and the router can silently disagree about the same day. <strong>Do NOT change the value; only unify it.</strong></td>
+<td><span class="tag r-ship">10-MIN FIX</span></td></tr>
+<tr><td class="num">6</td>
+<td><strong>Give <code>selector_nightly.py</code> the <code>data_quality IS NULL</code> filter and de-duplicate the day-rider rows.</strong></td>
+<td class="ln">Thursday&rsquo;s file counts one phantom day-rider trade <strong>five times</strong> at $72.50 of regret each &mdash; $362.50, 48% of the day&rsquo;s regret, from a trade that did not exist &mdash; and ignores $1,551 of flagged rows that the P&amp;L module correctly excludes. Third consecutive report to carry this. <strong>Every regret figure in section 3 is overstated until it lands.</strong></td>
+<td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
+<tr><td class="num">7</td>
+<td><strong>Do NOT lower the net threshold to 20, and do NOT tighten the router on the exhaustion_short &ldquo;over-bench&rdquo;.</strong></td>
+<td class="ln">Net 20&rarr;30&rarr;40 differ by $13 across 40 days &mdash; noise, and 30 is mid-plateau. The $721 over-bench figure is largely the measuring instrument: repricing 108 real live trades under the nightly&rsquo;s own scalp-2R exit turns &minus;$325.00 into +$459.50, and the gap is +$25.02/trade in TREND_UP against &minus;$0.28 in CHOP. <strong>The nightly&rsquo;s ruler is at its most generous exactly where the router works.</strong></td>
+<td><span class="tag r-keep">HOLD &mdash; NOT AN ACTION</span></td></tr>
+<tr><td class="num">8</td>
+<td><strong>The exits, not the router, are where this week&rsquo;s money went.</strong> Handed to the rehab section.</td>
+<td class="ln">Same 108 entries, same tape: live exits &minus;$325.00, scalp-2R +$459.50. <strong>Zero gap in ordinary chop (&minus;$2.62/tr, live actually better) and +$12&ndash;13/tr in both clean-trend and violent-whipsaw.</strong> The selector agrees from the other side: fixed always-SCALP beat the adaptive selector by $1,267 on the week, and every one of the top-5 worst picks on both Wednesday and Friday was <code>exhaustion_short</code> choosing TIGHT. <strong>Not a router action &mdash; but it is the largest number in this section and it should not be lost.</strong></td>
+<td><span class="tag r-watch">TO REHAB</span></td></tr>
+</tbody></table>
+
+<h3>DISPOSITION TABLE</h3>
+
+<table>
+<thead><tr><th>lead</th><th>verdict</th><th class="ln">basis &mdash; and for PARKED, what would revive it</th></tr></thead>
+<tbody>
+<tr><td>The durable router as a mechanism (5-min systemd tick)</td><td><span class="tag r-keep">LIVE</span></td>
+<td class="ln">1,148 ticks, zero service failures, 95% of ticks change nothing, +$400 nightly / +$51.50 graded on an 84%-chop week. Keep.</td></tr>
+<tr><td>ER&ge;0.15 / |net|&ge;30 thresholds</td><td><span class="tag r-keep">LIVE &mdash; HOLD</span></td>
+<td class="ln">Best cell on both universes independently; net 20&ndash;40 is a $13 plateau. Nothing to gain. <strong>Not an action.</strong></td></tr>
+<tr><td>Timing change: window 45 / step 5 / hold 3</td><td><span class="tag r-ship">LIVE (Saturday deploy)</span></td>
+<td class="ln">+$502 / +$399 on the two sets, 4-and-6 days helped, 0-and-1 hurt. Corroborated independently by the &minus;$242 measured actuation lag and the 36-flip churn. Fitted on one range regime &mdash; re-run after a trend week.</td></tr>
+<tr><td><code>exhaustion_short</code> counter-trend bench</td><td><span class="tag r-ship">LIVE (Saturday deploy)</span></td>
+<td class="ln">n=26 / &minus;$398.50 / &minus;$15.33 per trade over 30 days; red on 7 of 8 days; survives strip-worst and LOO. Thin n, but the error direction is a bench, which is the cheap way to be wrong.</td></tr>
+<tr><td>The untradeable meter, and its 65 cutoff</td><td><span class="tag r-keep">LIVE &mdash; HOLD</span></td>
+<td class="ln">Monotone across 22 days (&minus;$651 / &minus;$212 / +$7 per day). Cutoff sits mid-plateau, 50&ndash;75 identical. <strong>Do not tune.</strong> ⚠ 79% of the cutoff&rsquo;s dollar case is one day (07-20).</td></tr>
+<tr><td>Re-weighting the STOP-RATE meter upward</td><td><span class="tag r-watch">SHADOW</span></td>
+<td class="ln">It is the best of the three discriminators ($559/day separation) and carries the least weight. But it is the only <em>endogenous</em> meter &mdash; it measures the desk, not the tape &mdash; and the 08-05 demotion was made for that reason. Accumulate n; re-test the weight, do not change it now.</td></tr>
+<tr><td>Cutoff 35 (what LOO picks in 17 of 22 folds)</td><td><span class="tag r-ref">REFUTED</span></td>
+<td class="ln"><strong>Named test: base-rate contamination.</strong> Post-15:00Z trading lost &minus;$1,712 across all 22 days, so any rule that trades less scores well. Cutoff 35 benches 17 of 22 days &mdash; it is not a stay-out rule, it is closing the afternoon desk. The LOO is measuring the base rate, not the meter.</td></tr>
+<tr><td>Tightening the router on the $721 <code>exhaustion_short</code> over-bench</td><td><span class="tag r-ref">REFUTED</span></td>
+<td class="ln"><strong>Named test: the scalp-2R control on 108 live trades.</strong> The nightly&rsquo;s exit is +$7.26/trade more generous than the desk&rsquo;s, and +$25.02 in TREND_UP against &minus;$0.28 in CHOP. The over-bench is the ruler, not the router.</td></tr>
+<tr><td>The router&rsquo;s leakage detector as currently scoped</td><td><span class="tag r-park">PARKED</span></td>
+<td class="ln">Reported zero leakage on all four visible days while &minus;$241.00 leaked through a gate outside its universe. <strong>Revives the moment recommendation #1 lands</strong> &mdash; widen <code>LIVE_UP</code>/<code>LIVE_DOWN</code> to every live fader and the detector starts telling the truth on its own.</td></tr>
+<tr><td>A dwell-time requirement on the direction rule</td><td><span class="tag r-park">PARKED</span></td>
+<td class="ln">The churn is real (36 flips, 78% dead, 17 under 30 min) but it cost <strong>$0 directly this week</strong>, so there is no money case yet. <strong>Revive if the 45-minute window in #2 fails to cut the flip count below ~10/day</strong>, or if a churn round-trip is ever measured costing real dollars.</td></tr>
+<tr><td>Monday 08-10 nightly rollup</td><td><span class="tag r-gap">MEASUREMENT GAP</span></td>
+<td class="ln">The systemd journal does not reach past 2026-08-10 23:11Z, so the backfilled file reads $0/$0/$0 because there was nothing to read. <strong>Not a quiet day &mdash; a blind day.</strong> Revives only by persisting SUPPRESSED-OPEN to disk rather than relying on journal retention.</td></tr>
+<tr><td>The 08-13 10h20m OAuth outage</td><td><span class="tag r-keep">FIXED &mdash; NOT AN ACTION</span></td>
+<td class="ln"><code>router_health_check.py</code> shipped the same day (<code>07cf6ef</code>), live since 15:31Z, alarms on a 3-tick ABORT streak. Cost $0, and that was luck &mdash; the blackout landed in the Asia block. Do not re-recommend.</td></tr>
+<tr><td>The 22:00Z reactivate timer as an ungraded arming lever</td><td><span class="tag r-park">PARKED</span></td>
+<td class="ln">It made the week&rsquo;s two biggest armings (&minus;$367.50 and +$310.00) and nothing scores it because it is a clock, not a decision. <strong>Revive as recommendation #3</strong> &mdash; it needs the benched-by-default rule applying to it in code.</td></tr>
+<tr><td>The adaptive exit selector</td><td><span class="tag r-park">PARKED</span></td>
+<td class="ln">Lost to fixed always-SCALP on 4 of 5 days and by $1,267 on the week; 59% optimal picks. <strong>Revive after the data_quality fix (#6)</strong> &mdash; its numbers are provably polluted and it deserves re-judging on clean input before any verdict on the mechanism itself.</td></tr>
+</tbody></table>
+
+<p class="rnote"><strong>The honest frame on all of it.</strong> This is one week, 108 tournament trades, 64 router
+decisions, on a tape that was 84% chop. Every threshold sweep here is fitted on 40 days of overwhelmingly one
+regime and is in-sample to that regime. The two backfilled nightly rollups are tick-honest <em>estimates</em> &mdash;
+a benched gate&rsquo;s trade never ran, so its P&amp;L is a reconstruction, and section 3 shows the reconstruction
+is systematically optimistic in trend. Where a number rests on a single day I have said which day and what it is
+worth without it. <strong>The one recommendation I would still make if you told me half of this was wrong is
+#1</strong> &mdash; a live up-fader firing into confirmed up-trends, red on 7 of 8 days, invisible to the detector
+built to catch exactly that.</p>

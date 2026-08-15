@@ -136,6 +136,12 @@ def main() -> int:
     ap.add_argument("--reserve-min", type=int, default=200,
                     help="minutes held back for assemble+proofread+rev2+final")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--tail-only", action="store_true",
+                    help="skip every body section and run assemble->proofread->rev2->final only. "
+                         "For a RESUME: the sections already on disk are the checkpoint, and the "
+                         "operator is waiting for the proofread, not for one more greenfield lab. "
+                         "(--reserve-min is the wrong lever for this: it starves the body budget "
+                         "but the loop still enters the first phase before it checks.)")
     ap.add_argument("--force", action="store_true", help="re-run phases whose artifact exists")
     ap.add_argument("--since", default="",
                     help="UTC ISO cutoff; artifacts older than this are STALE and get rebuilt. "
@@ -175,6 +181,10 @@ def main() -> int:
               f"body budget {(total - a.reserve_min*60)/3600:.1f}h")
         return 0
 
+    if a.tail_only:
+        log(f"TAIL-ONLY: skipping {len(body)} body section(s); "
+            f"what is on disk is the report")
+        body = []
     built, skipped, failed = [], [], []
     for p in body:
         left = (dl - dt.datetime.now(dt.UTC)).total_seconds() - a.reserve_min * 60

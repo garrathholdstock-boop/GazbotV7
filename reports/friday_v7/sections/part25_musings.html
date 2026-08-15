@@ -1,269 +1,562 @@
-<h2><span class="n">2.5</span> Mid-week musings &mdash; this week's leads, attacked</h2>
+<style>
+/* Part 2.5 pills — everything else inherits from the report shell */
+.tag.p-live{background:#1a7f47;border-color:#125c33;color:#fff}
+.tag.p-shadow{background:#e8f1fb;border-color:#2f6fb0;color:#1d4a78}
+.tag.p-park{background:#f2f2ef;border-color:#a8a396;color:#5a5548}
+.tag.p-ref{background:#fbe3e0;border-color:#c0392b;color:#8a1c10}
+.tag.p-gap{background:#fdf3e0;border-color:#c08a2b;color:#7a5410}
+.tag.p-hold{background:#e6f6ec;border-color:#1a7f47;color:#125c33}
+h4.p25{margin:1.4em 0 .4em;font-size:1em;letter-spacing:.03em;color:#0f2942;text-transform:uppercase}
+.p25note{font-size:.92em;color:#5a6472;margin:.4em 0 0}
+.gold{border-left:4px solid #b8860b;padding-left:14px}
+</style>
 
-<p class="lead">One thing survived everything I threw at it this week, Garrath, and it is <strong>not</strong> the thing that shipped on Thursday night. <strong>Run state is real.</strong> Trades taken with a directional run, on the run's own side, are worth about <strong>$27 a signal</strong>; trades taken in chop are worth about <strong>&minus;$13</strong>. That separation beat 4,000 placebo shuffles, held on twelve sessions of tape it was never fitted to, and held again on Friday. But when I asked <em>where the money actually is</em>, the answer moved. Arming more would have added roughly <strong>$170</strong> this week. Benching the 84 trades the desk took while no run was on would have saved <strong>$584</strong>. And re-pricing the exits &mdash; on the <em>exact same entries the desk already took</em>, changing nothing about routing &mdash; turns the week from <strong>&minus;$772</strong> into <strong>+$1,493</strong>. The run-state lead is right about the variable and wrong about the lever. It is not a routing find. It is an <strong>exit</strong> find wearing a router's coat.</p>
+<h2><span class="n">P2.5</span> MID-WEEK MUSINGS &mdash; the leads, tested hard &middot; week of 10&ndash;14 August 2026</h2>
 
-<div class="callout"><div class="ct">HOW EVERY NUMBER BELOW WAS MADE</div><p>From scratch, this week, nothing quoted from Thursday's write-up. 1-minute bars rebuilt from the raw 5-second tape in <code>capture.db</code> (23,625 minutes, 07-15&rarr;08-07). Runs detected causally &mdash; trailing bars only, recomputed every minute, no look-ahead. Missed entries are the tournament's own <code>SUPPRESSED-OPEN</code> lines (37,404 raw lines 08-03&rarr;08-07), collapsed to distinct episodes and then <strong>raced target-vs-stop on raw ticks, first touch</strong> &mdash; stop 1&times;ATR at entry, 90-minute horizon, $2/pt, $1.50 round-trip. A race, not an MFE count. Live trades use their real booked P&amp;L, <code>data_quality IS NULL</code>. Where a raced figure and a live figure appear side by side they are the <em>same entry</em>, priced two ways.</p></div>
+<p class="lead">Gaz, three things came up mid-week that were worth a night each: <strong>gold</strong>,
+<strong>grind's on/off switch</strong>, and <strong>a measuring instrument this very report leans on</strong>.
+I re-derived every number below from the tape and the ledger tonight &mdash; nothing here is inherited from the
+mid-week chat notes, and where my numbers disagree with those notes I say so and show you which one is right.</p>
 
-<h3 style="margin-top:26px">LEAD 1 &mdash; RUN STATE. What reproduced, what didn't, and what it is actually worth.</h3>
+<p class="lead"><strong>What survived.</strong> Two things, and both are gold. First, the
+<strong>MGC day rider</strong>: pick a direction an hour into the US session and hold it to the 20:40 flat.
+Its threshold grid is a <em>plateau</em> &mdash; all fifteen cells I swept make money, from +$552 to +$1,742
+over sixteen sessions &mdash; and at the loose end it beats the best always-on constant on both hit rate and
+dollars while trading half as often. Second, the <strong>coil bouncer</strong>: 154 trades, a median trade of
+<strong>+$7.75</strong>, beaten by <strong>0 of 12</strong> placebo runs, and its mirror image loses $924. Small
+money, but real shape. On the MNQ side one clean thing survived too, and it is a <em>negative</em>:
+<strong>don't buy a grind long that is fighting the last thirty minutes.</strong> That single veto turns grind's
+tick-honest book from +$2,407 into <strong>+$3,674</strong> on the same 26 days, and it does it while keeping
+<em>every one</em> of the ten best trades.</p>
 
-<div class="card"><h3>First: the re-derivation disagrees with Thursday's write-up on the headline cell</h3>
-<p>The run inventory reproduces almost exactly &mdash; I find <strong>26 runs Mon&ndash;Thu</strong> (31 across the full week), against the 26 in the lead doc. The bucketing does not. Same 89 Mon&ndash;Thu trades, different split, and the cell the whole argument rests on flips sign.</p>
+<div class="callout"><div class="ct">THE ONE-PARAGRAPH VERSION</div>
+<p><strong>GOLD:</strong> its big moves are slow grinds, not thrusts &mdash; median efficiency
+<strong>0.20</strong>, four of the top five ran for <strong>3 to 24 hours</strong>. Boarding them is already
+solved; the money question is which days to show up for. <strong>The day rider is the best shape gold has ever
+shown us</strong> (plateau, not a peak) and goes to shadow. <strong>GRIND:</strong> the "ER&nbsp;0.35 floor" in the
+brief <strong>does not exist</strong> &mdash; it was deleted on 1 August and had been broken since 29 July. What
+actually decides whether grind trades is the open-hour watcher's break-trio, and on 26 days of tape that trio
+would have let grind fire <strong>four times</strong>. The mechanism that works is not a trend confirmation at all,
+it is a counter-trend <em>veto</em>. <strong>DIED:</strong> the ER floor as an enable mechanism &mdash; at 0.35 it
+throws away nine of the ten best trades, its strip-3 is &minus;$1,044, and 182 of 400 random subsets of the same
+size beat it. <strong>BROKEN INSTRUMENT:</strong> <code>selector_nightly.py</code> counted four quarantined
+phantom trades on 13 August, inflating that day's regret by <strong>39%</strong> &mdash; and that file feeds the
+router-value figure in this report.</p></div>
+
+<p class="p25note">Housekeeping for the reader: the full router operation review is its own section (P2.6) and I
+have not repeated it here. Money framing for the week &mdash; the desk booked <strong>+$1,292.50</strong> across
+113 legs from 10&ndash;14 August (day rider +$1,617.50 on 5 legs, tournament &minus;$325.00 on 108), so the leads
+below are being judged against a desk whose engine is currently the rider, not the gates.</p>
+
+<hr>
+
+<div class="gold">
+<h3>PART A &mdash; GOLD. Everything you have not seen yet, from the start.</h3>
+
+<p class="lead">You have never been shown a gold section, so this one starts from nothing. We have been capturing
+<strong>MGC</strong> (COMEX gold, $10.00 a point &mdash; five times MNQ's $2.00) since 4 August, plus an older
+block recovered from the retired V5 desk. That gives me <strong>18 trading days of gold bars and 20 of ticks</strong>,
+spanning 7 July to 14 August with a hole from 18 July to 4 August where nothing was captured. Sixteen of those
+days have a full US session. <strong>Sixteen sessions is thin and I will keep saying so.</strong> Nothing in this
+part is live or proposed for live; it is all shadow-or-nothing.</p>
+
+<h4 class="p25">FIRST, WHY THIS IS NOT JUST ANOTHER SWEEP &mdash; six gold attacks are already dead</h4>
+
+<p>On 5 August six separate attempts to build a gold gate were closed out, each with a named test. That matters
+here because it tells you what <em>not</em> to re-run, and because the two survivors below are a different
+<em>shape</em> of idea, not a re-tune of a dead one.</p>
+
 <table>
-<tr><th>Mon 08-03 &rarr; Thu 08-06</th><th>lead doc said</th><th>re-derived here</th><th></th></tr>
-<tr class="row-bad"><td class="ln">in-run aligned, TAKEN</td><td class="num">n=34 &middot; 50% &middot; +$10.34/tr</td><td class="num">n=46 &middot; 41% &middot; <strong>&minus;$1.83/tr</strong></td><td>does <strong>not</strong> reproduce</td></tr>
-<tr><td class="ln">in-run counter, TAKEN</td><td class="num">n=4 &middot; &minus;$20.38/tr</td><td class="num">n=10 &middot; 0% &middot; &minus;$34.85/tr</td><td>same direction, worse</td></tr>
-<tr><td class="ln">chop, TAKEN</td><td class="num">n=51 &middot; 16% &middot; &minus;$28.43/tr</td><td class="num">n=33 &middot; 18% &middot; &minus;$19.36/tr</td><td>same direction, smaller</td></tr>
-<tr class="row-hl"><td class="ln">in-run aligned, MISSED (raced)</td><td class="num">n=61 &middot; 67% &middot; +$2,141</td><td class="num">n=96 &middot; 59% &middot; <strong>+$2,703</strong></td><td>reproduces</td></tr>
-<tr><td class="ln">in-run counter, MISSED</td><td class="num">n=16 &middot; &minus;$643</td><td class="num">n=30 &middot; 3% &middot; &minus;$1,192</td><td>reproduces</td></tr>
-<tr><td class="ln">chop, MISSED</td><td class="num">n=183 &middot; 27% &middot; &minus;$1,517</td><td class="num">n=194 &middot; 26% &middot; &minus;$2,089</td><td>reproduces</td></tr>
-</table>
-<p><strong>What that changes.</strong> The claim "armed inside an aligned run the desk makes ~$10/trade" is <strong>not supported</strong>. Armed inside a run the desk made <em>nothing</em> &mdash; it lost $1.83 a lot. The genuine spread is between the <em>signals it blocked</em> (+$27/signal aligned) and the <em>chop it traded</em> (&minus;$19/lot), which is about <strong>$17&ndash;$46 a trade depending which pair you compare</strong>, not the flat $39 quoted. And the fact that the desk could sit inside a run, aligned, and still make zero is the single most important number in this section. Hold that thought.</p>
-<p>I could not make the lead's 34/4/51 split come back under any run-span definition I tried (merge gaps 0s, 120s, 300s, 600s, 900s all give the identical 46/10/33 &mdash; the labelling is completely insensitive to that knob; only the run <em>count</em> moves, 30&rarr;26). So the difference is in a definition that was not written down. <strong>Use these numbers, not those.</strong></p>
+<thead><tr><th>the attack</th><th>how it died &mdash; the named test</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">momentum / direction gate</td><td class="ln">5 of 72 cells positive; the best strips to <strong>$16</strong>; plain <em>always SHORT</em> (&minus;$532) BEAT the directed gate (&minus;$1,274)</td></tr>
+<tr class="row-bad"><td class="ln">arm-then-confirm delay</td><td class="ln">the confirmed side is a coinflip &mdash; 48&ndash;50% across 24 cells</td></tr>
+<tr class="row-bad"><td class="ln">router-filtered (live meters)</td><td class="ln">placebo-controlled and beaten by 31&ndash;80% of random removals</td></tr>
+<tr class="row-bad"><td class="ln">L2 book direction / veto</td><td class="ln">NULL and <strong>well powered</strong> &mdash; the edge flips sign across 5 disjoint samples</td></tr>
+<tr class="row-bad"><td class="ln">fader on extension + clock</td><td class="ln">Hurst on our own gold tape is <strong>0.489</strong> &mdash; a random walk, so there is nothing to fade</td></tr>
+<tr class="row-bad"><td class="ln">thrust-continuation</td><td class="ln">catches 22 of 22 runs, but the losers are indistinguishable from the winners (ATR effect size +0.21)</td></tr>
+</tbody></table>
+
+<p class="p25note">The one survivor of that whole round was an <em>oracle</em> day-filter &mdash; given foresight of
+which days contained a run, +$779 with strip-best-day +$356. That is exactly your "let the router switch it off",
+and it is still the live thread. Everything below is downstream of it.</p>
+
+<h4 class="p25">FINDING 1 &mdash; GOLD'S BIG MOVES ARE GRINDS, NOT THRUSTS</h4>
+
+<p>I ran the run-catcher over the last nine days of gold tape tonight. It finds every directional leg worth
+&ge;$300 on one lot that never gave back more than a third of itself while it was alive. Fifteen qualified.
+Here are the five biggest, and the shape of them is the finding:</p>
+
+<table>
+<thead><tr><th>start (UTC)</th><th>dir</th><th class="num">points</th><th class="num">$ 1 lot</th><th class="num">minutes</th><th class="num">efficiency</th><th class="num">pre-60m range</th><th class="num">mins to 20% mark</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">08-05 01:33</td><td>UP</td><td class="num">225.4</td><td class="num">$2,254</td><td class="num">1,474</td><td class="num">0.12</td><td class="num">7.1&times;ATR</td><td class="num">68</td></tr>
+<tr class="row-hl"><td class="ln">08-10 14:09</td><td>UP</td><td class="num">110.4</td><td class="num">$1,104</td><td class="num">726</td><td class="num">0.16</td><td class="num">8.6&times;ATR</td><td class="num">19</td></tr>
+<tr class="row-hl"><td class="ln">08-14 07:31</td><td>UP</td><td class="num">65.2</td><td class="num">$652</td><td class="num">367</td><td class="num">0.20</td><td class="num">6.6&times;ATR</td><td class="num">29</td></tr>
+<tr class="row-hl"><td class="ln">08-11 04:33</td><td>DN</td><td class="num">63.3</td><td class="num">$633</td><td class="num">206</td><td class="num">0.23</td><td class="num">5.1&times;ATR</td><td class="num">16</td></tr>
+<tr><td class="ln">08-07 12:29</td><td>UP</td><td class="num">62.8</td><td class="num">$628</td><td class="num">18</td><td class="num">0.74</td><td class="num">9.1&times;ATR</td><td class="num">1</td></tr>
+</tbody></table>
+
+<p><strong>Read the efficiency column.</strong> A move with efficiency 0.20 travels five times its net distance
+getting where it goes &mdash; up, back, up, back, up. Four of these five ran for between three and
+twenty-four <em>hours</em>. Only one (08-07) is a thrust, and it is the smallest of the five. The median of the
+top five is <strong>efficiency 0.20</strong>, and they all start from tape that is <em>already</em> moving &mdash;
+the hour before ignition is 7&times; a normal ATR, not a quiet coil.</p>
+
+<p><strong>Boarding them is not the problem.</strong> The gate fires inside <strong>5 of the 5</strong>, and price
+reaches the 20% mark of the eventual move in a median of <strong>19 minutes</strong>, leaving roughly $520 gross
+still on the table. We are not missing these because we cannot see them.</p>
+
+<h4 class="p25">AND HERE IS WHERE I HAVE TO CORRECT THE MID-WEEK NOTE</h4>
+
+<p>The mid-week note said the exit was the cap: that switching from a 2.5&times;ATR trail to a wide 5&times;ATR stop
+held eight hours moves the ceiling from about $83 a week to about $346 a week. <strong>I can reproduce the
+direction of that, but only inside the oracle</strong>, and the note did not make that boundary loud enough.
+Here is the matrix, on identical entries, with both columns shown &mdash; ALL is every signal a live gate would
+take, ORACLE is only the signals that landed inside one of the week's top-five runs (labels you can only know
+afterwards):</p>
+
+<table>
+<thead><tr><th>exit</th><th class="num">n</th><th class="num">win%</th><th class="num">ALL net</th><th class="num">median trade</th><th class="num">ORACLE n</th><th class="num">ORACLE net</th></tr></thead>
+<tbody>
+<tr><td class="ln" colspan="7"><em>window A &mdash; 7&ndash;14 August (the mid-week note's own window), 49 signals, ~1.2 weeks</em></td></tr>
+<tr class="row-bad"><td class="ln">2.5&times;ATR trail &middot; 1.5 stop &middot; 3h <em>(baseline)</em></td><td class="num">49</td><td class="num">36.7</td><td class="num">&minus;$275</td><td class="num">&minus;$19.80</td><td class="num">13</td><td class="num">+$143</td></tr>
+<tr class="row-bad"><td class="ln">no trail &middot; 5&times;ATR stop &middot; 3h</td><td class="num">49</td><td class="num">34.7</td><td class="num">&minus;$131</td><td class="num">&minus;$56.50</td><td class="num">13</td><td class="num">+$382</td></tr>
+<tr class="row-bad"><td class="ln">no trail &middot; 5&times;ATR stop &middot; 8h</td><td class="num">49</td><td class="num">22.4</td><td class="num">&minus;$609</td><td class="num">&minus;$75.80</td><td class="num">13</td><td class="num">+$589</td></tr>
+<tr class="row-bad"><td class="ln">no trail &middot; 5&times;ATR stop &middot; 12h</td><td class="num">49</td><td class="num">14.3</td><td class="num">&minus;$2,076</td><td class="num">&minus;$87.90</td><td class="num">13</td><td class="num">&minus;$464</td></tr>
+<tr><td class="ln" colspan="7"><em>window B &mdash; 5&ndash;14 August (two days more tape), 69 signals, ~1.6 weeks</em></td></tr>
+<tr><td class="ln">2.5&times;ATR trail &middot; 1.5 stop &middot; 3h <em>(baseline)</em></td><td class="num">69</td><td class="num">34.8</td><td class="num">&minus;$352</td><td class="num">&minus;$23.70</td><td class="num">21</td><td class="num">+$220</td></tr>
+<tr class="row-hl"><td class="ln">no trail &middot; 5&times;ATR stop &middot; 8h</td><td class="num">69</td><td class="num">26.1</td><td class="num">+$1,336</td><td class="num">&minus;$81.90</td><td class="num">21</td><td class="num">+$3,051</td></tr>
+<tr class="row-hl"><td class="ln">no trail &middot; 5&times;ATR stop &middot; 12h</td><td class="num">69</td><td class="num">20.3</td><td class="num">+$2,611</td><td class="num">&minus;$89.70</td><td class="num">21</td><td class="num">+$4,357</td></tr>
+</tbody></table>
+
+<p><strong>Three honest readings of that table.</strong></p>
+<ol>
+<li><strong>The exit really does matter, and a trail really is wrong for gold.</strong> On the oracle column, in
+both windows, moving off the trail and onto a wide stop held for hours multiplies the take &mdash; +$143 to +$589
+in window A, +$220 to +$3,051 in window B. That part of the mid-week claim stands.</li>
+<li><strong>But the exit alone does not make it a strategy.</strong> On the ALL column in window A, <em>every
+single cell loses money</em>. The wide stop without the day filter takes bigger losses on the ordinary days than
+it wins on the run days. <strong>The exit was <em>a</em> cap, not <em>the</em> cap</strong> &mdash; you still need
+the filter, so the order of the gold problem is unchanged: day selection first.</li>
+<li><strong>The hold cap is not identified at this sample size.</strong> Window A says 12 hours destroys it
+(&minus;$464 even on the oracle); window B says 12 hours is the best cell (+$4,357). The whole difference is one
+run &mdash; the 08-05 move that ran 225 points over 24 hours. <strong>Adding two days of tape flipped the
+conclusion.</strong> That is the clearest statement I can make about how thin this is.</li>
+</ol>
+
+<p>The hold-time curve on window B makes the same point &mdash; it is not a smooth curve, it is a staircase built
+out of a handful of trades:</p>
+
+<table>
+<thead><tr><th class="num">hold cap</th><th class="num">2h</th><th class="num">4h</th><th class="num">6h</th><th class="num">8h</th><th class="num">10h</th><th class="num">12h</th></tr></thead>
+<tbody>
+<tr><td class="ln">net (all 69 signals)</td><td class="num">+$283</td><td class="num">+$517</td><td class="num">+$762</td><td class="num">+$1,336</td><td class="num">+$2,139</td><td class="num">+$2,611</td></tr>
+<tr><td class="ln">win rate</td><td class="num">39.1%</td><td class="num">34.8%</td><td class="num">29.0%</td><td class="num">26.1%</td><td class="num">23.2%</td><td class="num">20.3%</td></tr>
+</tbody></table>
+
+<p class="p25note">Note what holding longer does to the <em>feel</em> of it: the win rate falls from 39% to 20%
+as the money rises. That is a strategy where four trades in five lose and the fifth pays for everything. On our
+own judging rule that is not a disqualification &mdash; expectancy is what counts &mdash; but it is exactly the
+shape you will find hardest to sit through, and you should know that before it ever goes near a live switch.</p>
+
+<h4 class="p25">FINDING 2 &mdash; THE MGC DAY RIDER, AND WHY A PLATEAU IS THE EVIDENCE</h4>
+
+<p>This is the best-shaped thing gold has produced. The rule is simple enough to say in one line: <strong>at
+13:30 UTC start watching; an hour in, ask the live drift detector which way the day has efficiently already
+moved; if it is confirmed, take two lots that way and hold to the 20:40 flat.</strong> One trade a day, never
+overnight, and it finishes inside the session you watch.</p>
+
+<p><strong>The thresholds were derived from gold, not borrowed from MNQ.</strong> You asked for that specifically.
+The method was to find what percentile MNQ's live constants occupy in MNQ's own distribution, then read gold's
+number at the same percentile &mdash; transferring the <em>selectivity</em>, not the number. Tonight's derivation:</p>
+
+<table>
+<thead><tr><th></th><th class="num">efficiency p50</th><th class="num">roundtrip p50</th><th class="num">ATR p50</th><th class="num">sessions</th></tr></thead>
+<tbody>
+<tr><td class="ln">MNQ</td><td class="num">0.110</td><td class="num">0.418</td><td class="num">37.8 pt</td><td class="num">49</td></tr>
+<tr><td class="ln">MGC</td><td class="num">0.124</td><td class="num">0.411</td><td class="num">3.6 pt</td><td class="num">16</td></tr>
+</tbody></table>
+
+<p>MNQ's live ER floor of 0.15 sits at MNQ's 65th percentile; its roundtrip floor of 0.45 sits at the 53rd. Read
+off gold's own distribution those percentiles give <strong>ER 0.155 and RT 0.417</strong> &mdash; within a
+whisker of MNQ's numbers. <strong>Gold's ATR is ten times smaller and the thresholds barely move</strong>, because
+efficiency and roundtrip are ratios and the size cancels out. That had to be measured rather than assumed, and
+it is the answer to "why are you using MNQ thresholds": we are not &mdash; they simply landed in the same place.</p>
+
+<p><strong>Now the grid.</strong> I swept five efficiency floors against three roundtrip floors around that
+derived pair, scoring every cell on the same sixteen sessions, always against the best always-on constant:</p>
+
+<table>
+<thead><tr><th class="num">ER floor</th><th class="num">RT floor</th><th class="num">days fired</th><th class="num">direction held to the flat</th><th class="num">net</th><th class="num">median day</th><th class="num">MFE (watching)</th><th class="num">strip-best-day</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">0.093</td><td class="num">0.417</td><td class="num">8 / 16</td><td class="num">87.5%</td><td class="num">+$1,742</td><td class="num">+$280</td><td class="num">+$3,852</td><td class="num">+$899</td></tr>
+<tr class="row-hl"><td class="num">0.109</td><td class="num">0.417</td><td class="num">8 / 16</td><td class="num">87.5%</td><td class="num">+$1,742</td><td class="num">+$280</td><td class="num">+$3,852</td><td class="num">+$899</td></tr>
+<tr class="row-hl"><td class="num">0.124</td><td class="num">0.417</td><td class="num">8 / 16</td><td class="num">87.5%</td><td class="num">+$1,742</td><td class="num">+$280</td><td class="num">+$3,852</td><td class="num">+$899</td></tr>
+<tr><td class="num">0.093</td><td class="num">0.350</td><td class="num">9 / 16</td><td class="num">77.8%</td><td class="num">+$1,259</td><td class="num">+$279</td><td class="num">+$3,923</td><td class="num">+$416</td></tr>
+<tr><td class="num">0.140</td><td class="num">0.350</td><td class="num">7 / 16</td><td class="num">85.7%</td><td class="num">+$1,395</td><td class="num">+$279</td><td class="num">+$3,327</td><td class="num">+$552</td></tr>
+<tr><td class="num">0.093</td><td class="num">0.480</td><td class="num">7 / 16</td><td class="num">85.7%</td><td class="num">+$899</td><td class="num">+$279</td><td class="num">+$2,921</td><td class="num">+$552</td></tr>
+<tr><td class="num">0.155</td><td class="num">0.480</td><td class="num">6 / 16</td><td class="num">83.3%</td><td class="num">+$552</td><td class="num">+$223</td><td class="num">+$2,396</td><td class="num">+$225</td></tr>
+<tr><td class="ln" colspan="8"><em>&hellip;and the eight cells not shown, which sit between these. <strong>All 15 of 15 cells are positive.</strong> Range: +$552 to +$1,742. Held: 77.8% to 87.5%. Worst single day in every cell: &minus;$619.</em></td></tr>
+<tr><td class="ln"><strong>CONTROL &mdash; best constant (always short)</strong></td><td class="num">&mdash;</td><td class="num">16 / 16</td><td class="num">56.2%</td><td class="num">+$1,520</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+</tbody></table>
+
+<p><strong>Why I am making a fuss about the plateau.</strong> When a swept grid has one good cell surrounded by
+bad ones, you have found a fluke and fitted it. When every cell in the neighbourhood pays, you have found a
+structure and the exact number does not matter much. This is the second kind. <strong>The evidence is the
+plateau, and the peak cell is not the recommendation</strong> &mdash; if this ever ships, it ships from the
+middle of the plateau, not from +$1,742.</p>
+
+<p>And against the control: gold drifted down over this sample, so <em>always short</em> scored +$1,520 with a
+56.2% day-hit-rate. That is the bar, not a coinflip. The loose cells clear it on both counts &mdash;
+<strong>+$1,742 against +$1,520, at 87.5% against 56.2%, while trading on half the days.</strong> Trading half
+as often for more money is the part that makes me take it seriously.</p>
+
+<p><strong>How long to wait before calling the direction</strong> is its own axis, and it has a shape too:</p>
+
+<table>
+<thead><tr><th class="num">decide at</th><th class="num">days fired</th><th class="num">held to the flat</th><th class="num">net</th><th class="num">MFE</th><th class="num">worst adverse</th><th class="num">vs best constant</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="num">+30 min</td><td class="num">9 / 16</td><td class="num">77.8%</td><td class="num">+$1,585</td><td class="num">+$5,175</td><td class="num">&minus;$1,440</td><td class="num">+21.5pp</td></tr>
+<tr><td class="num">+45 min</td><td class="num">10 / 16</td><td class="num">60.0%</td><td class="num">+$826</td><td class="num">+$4,820</td><td class="num">&minus;$860</td><td class="num">+3.8pp</td></tr>
+<tr class="row-hl"><td class="num">+60 min</td><td class="num">6 / 16</td><td class="num">83.3%</td><td class="num">+$552</td><td class="num">+$2,396</td><td class="num">&minus;$936</td><td class="num">+27.1pp</td></tr>
+<tr class="row-bad"><td class="num">+90 min</td><td class="num">5 / 16</td><td class="num">40.0%</td><td class="num">&minus;$845</td><td class="num">+$1,839</td><td class="num">&minus;$1,068</td><td class="num">&minus;28.8pp</td></tr>
+<tr class="row-bad"><td class="num">+120 min</td><td class="num">4 / 16</td><td class="num">25.0%</td><td class="num">&minus;$950</td><td class="num">+$1,006</td><td class="num">&minus;$1,360</td><td class="num">&minus;50.0pp</td></tr>
+</tbody></table>
+
+<p>Waiting too long is fatal &mdash; by 90 minutes in you are buying the end of the move and the direction holds
+only 40% of the time. Between 30 and 60 minutes it works. <strong>The +45 minute cell is the honest warning
+sign</strong>: it dips to 60% held while its neighbours either side are 77.8% and 83.3%. With sixteen sessions,
+one day landing differently moves a cell by six percentage points, so do not read that dip as structure &mdash;
+read it as the noise floor of this sample.</p>
+
+<p><strong>The number you will care about most</strong> is the gap between what the strategy books and what you
+could claim. Median MFE per fired day is <strong>+$453</strong> against a median adverse excursion of
+<strong>&minus;$400</strong>. The profit is genuinely there to be taken, but only behind a wide stop and only if
+someone is watching &mdash; which is what you said you do. An unattended tight version of this gets stopped out
+of the same days.</p>
+
+<h4 class="p25">FINDING 3 &mdash; THE COIL BOUNCER (the strongest standalone gold gate, and it is small)</h4>
+
+<p>Different idea entirely: when gold's 20-minute range squeezes to 0.6&times; its own two-hour median, fade
+whichever edge of the coil price is sitting on, targeting the middle. It trades <em>compression</em>, which is
+why it is not the same thing as the extension-fader that died in the earlier round.</p>
+
+<table>
+<thead><tr><th></th><th class="num">n</th><th class="num">days</th><th class="num">green days</th><th class="num">win%</th><th class="num">$/trade</th><th class="num">net</th><th class="num">strip-best-day</th><th class="num">median trade</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">coil bounce (fade the edge)</td><td class="num">154</td><td class="num">17</td><td class="num">10</td><td class="num">51.9%</td><td class="num">+$3.05</td><td class="num">+$470.42</td><td class="num">+$289.42</td><td class="num">+$7.75</td></tr>
+<tr class="row-bad"><td class="ln">mirror control (break OUT of the coil)</td><td class="num">154</td><td class="num">17</td><td class="num">4</td><td class="num">33.1%</td><td class="num">&minus;$6.00</td><td class="num">&minus;$923.75</td><td class="num">&minus;$1,059.61</td><td class="num">&minus;$12.54</td></tr>
+</tbody></table>
+
+<p>Three things make this the most trustworthy gold result I have, even though it is the smallest:
+<strong>the median trade is positive</strong> (+$7.75 &mdash; it is not one lucky day carrying 153 losers);
+<strong>it survives stripping its best day</strong> (+$289 of the +$470 remains); and
+<strong>a placebo of twelve random-time trade sets with the same count per day has a median of &minus;$214 and
+beat it 0 times out of 12</strong>. On top of that, doing the exact opposite loses $924 &mdash; the mirror
+control is the cleanest evidence that it is the coil doing the work and not the clock. At roughly
+<strong>$137 a week</strong> it is below the bar you have set for going live, and it stays in the shadow book.</p>
+
+<h4 class="p25">FINDING 4 &mdash; THE LONDON-OPEN BREAK FADE (survives its placebo, still fails as a trade)</h4>
+
+<p>Gold's opening-range breaks <em>fail</em>: taking the continuation wins 6.2% / 25.0% / 37.5% of the time
+across the three anchors I tested. So the trade is to fade them. Only one of the three anchors holds up:</p>
+
+<table>
+<thead><tr><th>anchor</th><th class="num">n</th><th class="num">green days</th><th class="num">win%</th><th class="num">$/trade</th><th class="num">net</th><th class="num">strip-best-day</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">LONDON open</td><td class="num">16</td><td class="num">7</td><td class="num">43.8%</td><td class="num">+$31.40</td><td class="num">+$502.42</td><td class="num">+$125.01</td></tr>
+<tr class="row-bad"><td class="ln">RTH open</td><td class="num">16</td><td class="num">6</td><td class="num">37.5%</td><td class="num">&minus;$7.32</td><td class="num">&minus;$117.04</td><td class="num">&minus;$346.83</td></tr>
+<tr class="row-bad"><td class="ln">PM fix</td><td class="num">16</td><td class="num">3</td><td class="num">18.8%</td><td class="num">&minus;$31.88</td><td class="num">&minus;$510.07</td><td class="num">&minus;$587.71</td></tr>
+</tbody></table>
+
+<p>The London cell is beaten by <strong>0 of 7</strong> shifted anchors (the seven fakes score &minus;$325,
+&minus;$112, &minus;$305, +$99, &minus;$156, &minus;$228, &minus;$100) &mdash; so the <em>anchor</em> is carrying
+it, not the general shape of the day. That is a real result. But look at the honest side:
+<strong>nine of the sixteen trades lose, so the median trade is a loss</strong>, and stripping the best day takes
++$502 down to +$125. Sixteen trades is one trade a day for three weeks. It is a lead, not a strategy.</p>
+
+<h4 class="p25">THE THREE TRAPS THAT BIT DURING THIS WORK &mdash; check anything new against them</h4>
+
+<table>
+<thead><tr><th>trap</th><th>what it does</th><th>cost when it bit</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><code>resample</code> labels a bar by its LEFT edge</td><td class="ln">the 10:00&ndash;10:01 bar is stamped 10:00, but its close is only known at 10:01 &mdash; racing from the stamp replays the decision minute with hindsight</td><td class="ln">the coil gate read <strong>+$906.55</strong>; honest, it is <strong>+$470.42</strong></td></tr>
+<tr class="row-bad"><td class="ln"><code>DriftRead.ok</code> is not "fired"</td><td class="ln"><code>ok</code> means "enough data to say anything"; the field that means the signal fired is <code>confirmed</code></td><td class="ln">produced a fake "16 of 16 days fired, +12.5pp edge" on rows showing efficiency 0.01</td></tr>
+<tr class="row-bad"><td class="ln"><code>lake.connect()</code> defaults to MNQ</td><td class="ln">query gold without <code>symbol="MGC"</code> and you get zero rows &mdash; no error, just an empty answer</td><td class="ln">a confident NULL on a question never actually asked</td></tr>
+</tbody></table>
+
+<h4 class="p25">WHAT IT WOULD COST TO FIND OUT &mdash; and the answer is days, not configurations</h4>
+
+<p>Every gold result above is limited by the same thing, and it is not cleverness. It is
+<strong>sixteen sessions</strong>. Look at what that does: adding two days of tape flipped the exit matrix's
+conclusion about hold time; the day rider's grid moves by a whole cell when one day lands differently; the
+London fade rests on sixteen trades. We have already swept the configurations &mdash; fifteen threshold cells,
+five decision times, twelve exit rules, three anchors. <strong>More sweeping on this sample cannot tell us
+anything new; it can only fit it harder.</strong></p>
+
+<p>The good news is that the missing ingredient is the cheap one. Capture is already running for both symbols
+and costs nothing extra. At five sessions a week, gold reaches <strong>n = 40 sessions around the third week of
+September</strong>, which is roughly where a day-rider hit rate of 87.5% stops being a story about eight days.
+Everything above goes in the shadow book now &mdash; free, riskless, and accumulating exactly the thing it
+lacks. The one thing I would <em>build</em> rather than wait for is the causal day filter for the run catcher,
+because that is the piece the whole gold problem still turns on, and it needs to be placebo-controlled against
+discarding the same <em>number</em> of firings at random.</p>
 </div>
 
-<div class="card"><h3>Attack 1 &mdash; PLACEBO. It passes, clearly, twice.</h3>
-<p>Two nulls, 4,000 draws each, on the full week's 114 aligned missed signals (observed <strong>+$26.97/signal</strong>).</p>
+<hr>
+
+<h3>PART B &mdash; THE STANDING GRIND LEAD: which enable-mechanism actually works?</h3>
+
+<p class="lead">The question on the table: what best captures grind's trend-day upside while killing its
+chop-churn &mdash; <strong>(a)</strong> trend-day-only arming, <strong>(b)</strong> its own entry
+trend-confirmation, or <strong>(c)</strong> the current ER-0.35 floor? I built the book to answer it properly:
+every grind_long signal on 26 days of tick-covered tape, fired exactly as the live gate fires it
+(slope 0.4, fast-slope, ATR&nbsp;&ge;&nbsp;22 &mdash; the floor that is genuinely deployed), then
+<strong>exited tick by tick as the live managed slate exits</strong>: Lot A a 2.5R scalp, Lot B the
+loose-then-lock chandelier (3.5 &rarr; 6.0R &rarr; 0.5), both behind the native 1-ATR stop, $1.50 a round trip
+per lot. That is the LIVE/MANAGED grind, not the unmanaged <code>grind_fast</code> shadow, which flatters
+itself and would have sent me the wrong way.</p>
+
+<h4 class="p25">FIRST, A CORRECTION: OPTION (c) DOES NOT EXIST</h4>
+
+<p>There is no ER-0.35 floor on grind. <code>deciders.ER_FLOOR</code> is an <strong>empty dictionary</strong>.
+The floors were deleted on 1 August, and the audit note in the code says they had not blocked a single live
+trade since 29 July anyway, because the dual-slot cutover broke the lookup. When they were re-derived on the
+blocked book, grind's ER&nbsp;&ge;&nbsp;0.35 turned out to have been blocking a <em>profitable</em> population
+(+$2,923 over 173 signals). So the brief's option (c) is a ghost &mdash; and tonight's book says deleting it was
+right, which I will show in a moment.</p>
+
+<p><strong>What actually decides whether grind trades</strong> is two things: the ATR&nbsp;&ge;&nbsp;22 floor
+inside the gate, and the on/off switch outside it. The 0.35 number does still exist &mdash; but in
+<code>open_hour_watch.py</code>, as one leg of the <strong>break trio</strong> that is allowed to arm a benched
+momentum gate: <em>last-hour ER&nbsp;&ge;&nbsp;0.35 AND last-hour ATR&nbsp;&ge;&nbsp;18 AND a new session extreme
+is taken</em>. So the real question (c) is "is the break trio the right arming test", and that is answerable.</p>
+
+<h4 class="p25">THE BOOK ITSELF &mdash; where grind's money actually is</h4>
+
 <table>
-<tr><th>placebo</th><th>what it destroys</th><th>null mean</th><th>null p95</th><th>observed</th><th>beaten by</th></tr>
-<tr class="row-hl"><td class="ln">side shuffle</td><td>keeps the run windows, randomises which side is "aligned"</td><td class="num">+$7.88</td><td class="num">+$19.44</td><td class="num">+$26.97</td><td class="num">0.00%</td></tr>
-<tr class="row-hl"><td class="ln">duty-matched random</td><td>random windows, same 31% duty cycle, same length mix, random side</td><td class="num">&minus;$4.09</td><td class="num">+$9.97</td><td class="num">+$26.97</td><td class="num">0.03%</td></tr>
-</table>
-<p><strong>Read the first row carefully.</strong> A random side inside the real run windows still earns <strong>+$7.88</strong>. So roughly <strong>a third</strong> of the effect is simply "these are the busy, wide-range parts of the tape" &mdash; and <strong>two thirds is the direction call</strong>. That is the honest decomposition, and it is the first time the desk has separated the two.</p>
-<p><span class="tag">PASSED</span> The label carries information. This is not the refuted TREND_UP tag from the 08-01 weekend, which a 20,000-draw placebo said was noise.</p>
-</div>
+<thead><tr><th></th><th class="num">n</th><th class="num">net</th><th class="num">$/trade</th><th class="num">win%</th><th class="num">strip-3-best</th><th class="num">worst leave-one-day-out</th></tr></thead>
+<tbody>
+<tr><td class="ln">grind_long, live-managed, 26 tick-days</td><td class="num">133</td><td class="num">+$2,407</td><td class="num">+$18.10</td><td class="num">31.6%</td><td class="num">+$346</td><td class="num">+$1,368</td></tr>
+</tbody></table>
 
-<div class="card"><h3>Attack 2 &mdash; IT IS LATE. Worse than advertised, and shrinking the window is refuted.</h3>
-<p>The lead doc said the 30-minute window caught 20 of 61 aligned entries (~34%). Re-derived over the full week: it was already armed for <strong>25 of 114 &mdash; 22%</strong>. At the moment a run first declares, a median <strong>83 points has already happened and 22 points are left</strong>. Median detection lag <strong>33 minutes</strong>. Median share of the move still available: <strong>20%</strong>.</p>
-<p>So: should the window be shorter? I swept 96 configurations (window 5&ndash;45 min &times; net 40&ndash;100pt &times; ER 0.25&ndash;0.55) and scored each on <strong>three separate samples</strong> &mdash; Mon&ndash;Thu missed signals (in-sample), Friday's missed signals (never seen), and 489 taken trades across the twelve sessions 07-16&rarr;08-02 (never seen).</p>
+<p>Two facts about that book decide everything else. <strong>It wins under a third of the time and it is
+carried by runners</strong>: 28 trades reached 4R or better and those 28 carry <strong>+$11,991</strong>, meaning
+the other 105 bleed &minus;$9,584. Strip the three best trades and +$2,407 becomes +$346. Any filter that touches
+the runners kills the gate, which is why every mechanism below is scored on "how many of the ten best trades does
+it keep".</p>
+
+<p>Split by regime at entry &mdash; ATR level, efficiency and range position, exactly as the discipline requires
+&mdash; the shape is not what the folklore says:</p>
+
 <table>
-<tr><th>config</th><th>IS Mon&ndash;Thu $/sig</th><th>OOS Friday $/sig</th><th>OOS 12 prior sessions $/tr</th><th>verdict</th></tr>
-<tr class="row-bad"><td class="ln">W=15 &middot; net&ge;40 &middot; ER&ge;0.25 <em>(best in-sample total, +$760)</em></td><td class="num">+$7.60 <span style="opacity:.6">n=100</span></td><td class="num">&minus;$9.60</td><td class="num">&minus;$1.64</td><td>overfit tell</td></tr>
-<tr class="row-bad"><td class="ln">W=5 &middot; net&ge;40 &middot; ER&ge;0.35</td><td class="num">+$17.59 <span style="opacity:.6">n=34</span></td><td class="num">&minus;$15.93</td><td class="num">+$26.57</td><td>fails Friday</td></tr>
-<tr><td class="ln">W=30 &middot; net&ge;80 &middot; ER&ge;0.35 <em>&larr; SHIPPED</em></td><td class="num">+$17.74 <span style="opacity:.6">n=21</span></td><td class="num">+$66.67</td><td class="num">+$10.98 <span style="opacity:.6">n=70</span></td><td>holds everywhere</td></tr>
-<tr class="row-hl"><td class="ln">W=30 &middot; net&ge;60 &middot; <strong>ER&ge;0.45</strong></td><td class="num">+$39.37 <span style="opacity:.6">n=8</span></td><td class="num">+$66.67</td><td class="num">+$30.03 <span style="opacity:.6">n=35</span></td><td>best all three</td></tr>
-<tr class="row-hl"><td class="ln">W=20 &middot; net&ge;60 &middot; <strong>ER&ge;0.45</strong></td><td class="num">+$20.85 <span style="opacity:.6">n=26</span></td><td class="num">+$51.78</td><td class="num">+$13.72 <span style="opacity:.6">n=67</span></td><td>best all three</td></tr>
-</table>
-<p><strong>The verdict is the opposite of the hope.</strong> Every configuration that catches <em>more</em> of the run catches it by lowering the efficiency bar, and every one of those loses money out of sample. The lever that works is not the window length &mdash; it is <strong>ER</strong>. Twenty-four configurations are positive in all three samples and they form a clean plateau at <strong>window 20&ndash;30 minutes, ER 0.45</strong>, with the net-points threshold barely mattering (40, 60 and 80 give identical results once ER binds). That is a real gradient, not a grid corner: ER 0.55 falls off the far side into n&lt;5.</p>
-<p><span class="tag">RECOMMEND</span> a <strong>moderate</strong> move: keep the 30-minute window, lift <code>RUN_ER_START</code> <strong>0.35 &rarr; 0.45</strong> and <code>RUN_ER_HOLD</code> 0.30 &rarr; 0.40. It halves how often the detector says RUN (n=21&rarr;8 in-sample) and roughly doubles the quality of what is left. Since run-state <em>reports state and never flips a switch</em>, this is a prompt-input change, not a switch change &mdash; cheap to try, cheap to revert. Do <strong>not</strong> shorten the window.</p>
-</div>
+<thead><tr><th>regime at entry</th><th class="num">n</th><th class="num">net</th><th class="num">$/trade</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">dead-chop (ER &lt; 0.10)</td><td class="num">40</td><td class="num">&minus;$802</td><td class="num">&minus;$20.00</td></tr>
+<tr class="row-bad"><td class="ln">normal-chop (ER 0.10&ndash;0.20)</td><td class="num">31</td><td class="num">&minus;$358</td><td class="num">&minus;$11.60</td></tr>
+<tr class="row-hl"><td class="ln">in-between / building (ER 0.20&ndash;0.35)</td><td class="num">35</td><td class="num">+$897</td><td class="num">+$25.60</td></tr>
+<tr><td class="ln">clean-trend (ER &ge; 0.35)</td><td class="num">14</td><td class="num">+$262</td><td class="num">+$18.70</td></tr>
+<tr class="row-hl"><td class="ln">violent-whipsaw (top-quartile ATR, ER &lt; 0.15)</td><td class="num">13</td><td class="num">+$2,408</td><td class="num">+$185.20</td></tr>
+</tbody></table>
 
-<div class="card"><h3>Attack 3 &mdash; THE EXITS EAT IT. This is where the section turns.</h3>
-<p>Same entries, two prices: what the desk actually banked, against what a plain 2R / 1&times;ATR race would have banked.</p>
+<p><strong>Grind's money is not in "clean trend".</strong> The 14 clean-trend entries made +$262. The 13
+high-volatility, <em>low</em>-efficiency entries made +$2,408 &mdash; the entire book. That is the chandelier
+catching a big swing on a violent day, and it is the single most important thing in this table, because
+<strong>every mechanism in the brief is a trendiness test, and trendiness is not where the money is.</strong></p>
+
+<h4 class="p25">THE THREE MECHANISMS, SCORED AND SWEPT</h4>
+
+<p>Every threshold is a guess until it is swept, so each mechanism was scanned across its range rather than
+tested at one number. Placebo column = how many of 400 random subsets of the same size beat the real one; if a
+mechanism cannot beat coin-flip removal it has no claim.</p>
+
 <table>
-<tr><th>bucket</th><th>n lots</th><th>LIVE booked</th><th>same entries raced @2R</th><th>capture</th></tr>
-<tr class="row-bad"><td class="ln">in-run aligned &mdash; Mon&ndash;Thu</td><td class="num">46</td><td class="num">&minus;$84.0</td><td class="num">+$777.9</td><td class="num"><strong>&minus;11%</strong></td></tr>
-<tr class="row-bad"><td class="ln">in-run aligned &mdash; full week</td><td class="num">54</td><td class="num">+$246.5</td><td class="num">+$862.7</td><td class="num"><strong>29%</strong></td></tr>
-<tr><td class="ln">chop</td><td class="num">40</td><td class="num">&minus;$650.5</td><td class="num">&minus;$913.9</td><td class="num">71%</td></tr>
-<tr><td class="ln">counter-trend</td><td class="num">14</td><td class="num">&minus;$296.5</td><td class="num">&minus;$828.6</td><td class="num">36%</td></tr>
-</table>
-<p><strong>Look at the asymmetry in that last column.</strong> The live exit ladder takes <strong>71% of the loss</strong> when it is wrong in chop, and <strong>29% of the win</strong> when it is right in a run. On Mon&ndash;Thu it took <em>less than nothing</em>. That is not bad luck; it is a ladder tuned to bank small and bank fast, applied indiscriminately to the one regime where the whole point is to stay in. The exit-reason mix on the week's 54 in-run aligned lots: <strong>29 STOP for &minus;$1,110.50</strong>, <strong>23 TARGET for +$1,277.50</strong>, 2 manual claims +$79.50. Roughly a coin flip on count &mdash; and the targets are too small to pay for the stops.</p>
-<p><span class="tag">CONFIRMED</span> The lead doc's attack #3 was right and if anything understated. The $4,283 two-lot headline is not reachable. See LEAD 2 &mdash; this is the actual finding of the week.</p>
-</div>
+<thead><tr><th>mechanism</th><th class="num">n kept</th><th class="num">net</th><th class="num">$/trade</th><th class="num">strip-3</th><th class="num">top-10 winners kept</th><th class="num">placebo</th></tr></thead>
+<tbody>
+<tr><td class="ln"><strong>BASE</strong> &mdash; deployed, ATR&nbsp;&ge;&nbsp;22 only</td><td class="num">133</td><td class="num">+$2,407</td><td class="num">+$18.10</td><td class="num">+$346</td><td class="num">10 / 10</td><td class="num">&mdash;</td></tr>
+<tr><td class="ln" colspan="7"><em>(a) trend-day-only &mdash; arm once the session so far has proven efficient</em></td></tr>
+<tr><td class="ln">session-ER &ge; 0.02</td><td class="num">96</td><td class="num">+$2,780</td><td class="num">+$29.00</td><td class="num">+$718</td><td class="num">8 / 10</td><td class="num">97 / 400</td></tr>
+<tr><td class="ln">session-ER &ge; 0.05</td><td class="num">45</td><td class="num">+$2,630</td><td class="num">+$58.50</td><td class="num">+$758</td><td class="num">3 / 10</td><td class="num">40 / 400</td></tr>
+<tr class="row-bad"><td class="ln">session-ER &ge; 0.08</td><td class="num">13</td><td class="num">+$10</td><td class="num">+$0.70</td><td class="num">&minus;$834</td><td class="num">0 / 10</td><td class="num">221 / 400</td></tr>
+<tr><td class="ln" colspan="7"><em>(b) entry trend-confirmation &mdash; require a 15-minute impulse our way</em></td></tr>
+<tr class="row-bad"><td class="ln">net15 &ge; 0.20&times;ATR</td><td class="num">118</td><td class="num">+$198</td><td class="num">+$1.70</td><td class="num">&minus;$1,862</td><td class="num">8 / 10</td><td class="num">391 / 400</td></tr>
+<tr class="row-bad"><td class="ln">net15 &ge; 0.50&times;ATR</td><td class="num">109</td><td class="num">+$299</td><td class="num">+$2.70</td><td class="num">&minus;$1,762</td><td class="num">7 / 10</td><td class="num">374 / 400</td></tr>
+<tr class="row-bad"><td class="ln">net15 &ge; 1.00&times;ATR</td><td class="num">96</td><td class="num">+$1,380</td><td class="num">+$14.40</td><td class="num">&minus;$681</td><td class="num">7 / 10</td><td class="num">249 / 400</td></tr>
+<tr><td class="ln" colspan="7"><em>(c) the ER floor at entry &mdash; the mechanism the brief names</em></td></tr>
+<tr class="row-bad"><td class="ln">ER30 &ge; 0.25</td><td class="num">33</td><td class="num">&minus;$558</td><td class="num">&minus;$16.90</td><td class="num">&minus;$2,118</td><td class="num">2 / 10</td><td class="num">331 / 400</td></tr>
+<tr class="row-bad"><td class="ln">ER30 &ge; 0.35</td><td class="num">14</td><td class="num">+$262</td><td class="num">+$18.70</td><td class="num">&minus;$1,044</td><td class="num">1 / 10</td><td class="num">182 / 400</td></tr>
+<tr><td class="ln" colspan="7"><em>the deployed lever for comparison &mdash; raise the ATR floor</em></td></tr>
+<tr><td class="ln">ATR &ge; 24</td><td class="num">107</td><td class="num">+$2,518</td><td class="num">+$23.50</td><td class="num">+$458</td><td class="num">10 / 10</td><td class="num">116 / 400</td></tr>
+<tr><td class="ln">ATR &ge; 34</td><td class="num">33</td><td class="num">+$1,766</td><td class="num">+$53.50</td><td class="num">&minus;$294</td><td class="num">7 / 10</td><td class="num">52 / 400</td></tr>
+</tbody></table>
 
-<div class="card"><h3>Attack 4 &mdash; STRIP TUESDAY. One half survives, the other half dies.</h3>
+<p><strong>(c) is dead, and I will name the tests.</strong> At ER&nbsp;&ge;&nbsp;0.35 it throws away
+<strong>nine of the ten best trades in the book</strong> &mdash; that is the fake-filter rule failing outright.
+Its strip-3 is &minus;$1,044, meaning what is left after removing three trades is a loser. And 182 of 400 random
+removals of the same size beat it, so it is not distinguishable from deleting trades at random. The
+ER&nbsp;&ge;&nbsp;0.25 cell is worse still (&minus;$558, beaten by 331 of 400). This independently confirms the
+1 August decision to delete the floor, on a different population and a different exit model.</p>
+
+<p><strong>(b) is worse than dead &mdash; it is backwards.</strong> Requiring a 15-minute impulse our way takes
++$2,407 down to +$198 and 391 of 400 random subsets beat it. The reason is visible in the trades themselves:
+the ten <em>worst</em> fires had 15-minute impulses of +$113, +$139, +$147, +$192 and +$263 points, which are
+<em>bigger</em> than the winners'. Confirming the impulse means arriving later into the same move and buying the
+part that reverses. This is the "the losers are indistinguishable" pattern showing up on MNQ exactly as it did on
+gold.</p>
+
+<p><strong>(a) is directionally real but noisy.</strong> Requiring the session to have shown some efficiency
+improves things at 0.02 and 0.05 (+$2,780 and +$2,630 against the base's +$2,407, on 96 and 45 trades of the 133),
+but the curve is not monotone &mdash; 0.04 dips to +$1,944, 0.06 falls to +$1,204, 0.08 collapses to +$10.
+That is not a plateau, it is a wobble. And the 0.05 cell keeps only 3 of the 10 best trades, which is the fake
+filter tell again.</p>
+
+<h4 class="p25">AND THE ARMING TEST WE ACTUALLY RUN: THE BREAK TRIO ADMITS ALMOST NOTHING</h4>
+
+<p>Scored the way it is used &mdash; scan the session, the <em>first</em> minute all three legs pass arms the
+gate for the rest of the day &mdash; here is what the trio does to 26 days of grind signals:</p>
+
 <table>
-<tr><th>sample</th><th>in-run aligned TAKEN</th><th>chop TAKEN</th><th>in-run aligned MISSED (raced)</th></tr>
-<tr><td class="ln">all five sessions</td><td class="num">n=54 &nbsp; +$4.56/lot</td><td class="num">n=42 &nbsp; &minus;$17.20/lot</td><td class="num">n=114 &nbsp; +$26.97/sig</td></tr>
-<tr class="row-bad"><td class="ln">Mon&ndash;Thu, <strong>strip Tue 08-04</strong></td><td class="num">n=34 &nbsp; <strong>&minus;$15.88/lot</strong></td><td class="num">n=29 &nbsp; &minus;$17.71/lot</td><td class="num">n=71 &nbsp; <strong>+$29.62/sig</strong></td></tr>
-</table>
-<p>Strip Tuesday and the <em>taken</em> in-run book (&minus;$15.88) becomes <strong>statistically indistinguishable from trading chop</strong> (&minus;$17.71). Everything good the desk did inside a run this week happened on one day, with one gate. Meanwhile the <em>missed</em> book does not care at all &mdash; leave-one-day-out on all five sessions gives <strong>+$25.40 to +$28.16 per signal</strong>, a spread of under $3.</p>
-<p><strong>That contrast is the whole diagnosis in two rows.</strong> The <em>opportunity</em> inside runs is robust and day-independent. The desk's <em>ability to convert it</em> rested entirely on Tuesday. Routing is not the constraint.</p>
-</div>
+<thead><tr><th></th><th class="num">n</th><th class="num">net</th><th class="num">$/trade</th><th class="num">win%</th></tr></thead>
+<tbody>
+<tr><td class="ln">every grind fire</td><td class="num">133</td><td class="num">+$2,407</td><td class="num">+$18.10</td><td class="num">31.6%</td></tr>
+<tr class="row-bad"><td class="ln">armed by the trio (fires after the arm)</td><td class="num">4</td><td class="num">+$100</td><td class="num">+$24.90</td><td class="num">25.0%</td></tr>
+<tr><td class="ln">never armed &mdash; refused</td><td class="num">129</td><td class="num">+$2,308</td><td class="num">+$17.90</td><td class="num">31.8%</td></tr>
+</tbody></table>
 
-<div class="card"><h3>Attack 5 &mdash; THE ASYMMETRY. It only inverts if you fix the exit first.</h3>
+<p>My replication of the trio fired on <strong>3 of 45 tape-days</strong>, and on just one of the 26 days grind
+actually signalled. (The live watcher's version armed once more than mine did &mdash; on 13 August at 13:58 &mdash;
+because it reads its efficiency and its session extremes over slightly different windows than I can reconstruct;
+so treat the "4 fires" as approximate and the <em>order of magnitude</em> as the finding.) The order of magnitude
+is the finding: <strong>the arming test in force is so strict that grind is, in practice, a gate that does not
+trade.</strong> The live ledger agrees without any modelling &mdash; <strong>grind_long has not taken a single
+live trade since 5 August</strong>, seven sessions ago, and the Paris-midnight service now start-benches it every
+night by design ("momentum start-benched per MONDAY #2 &mdash; router arms on evidence").</p>
+
+<p><strong>What that bench has cost, priced honestly:</strong></p>
+
 <table>
-<tr><th>error</th><th>n</th><th>what it cost</th><th>per trade</th></tr>
-<tr><td class="ln">wrongly ARMED &mdash; traded in chop or counter-trend</td><td class="num">56</td><td class="num">&minus;$1,019 realised</td><td class="num">&minus;$18.20</td></tr>
-<tr><td class="ln">wrongly BENCHED &mdash; flat inside an aligned run, <em>at the raced 2R rate</em></td><td class="num">114</td><td class="num">&minus;$3,074 forgone</td><td class="num">&minus;$26.97</td></tr>
-<tr class="row-hl"><td class="ln">wrongly BENCHED &mdash; <em>at the desk's own 29% in-run exit capture</em></td><td class="num">114</td><td class="num">&minus;$891 forgone</td><td class="num"><strong>&minus;$7.82</strong></td></tr>
-<tr><td class="ln">rightly BENCHED &mdash; the chop and counter signals it blocked</td><td class="num">280</td><td class="num">+$4,746 saved</td><td class="num">+$16.95</td></tr>
-</table>
-<p><strong>Here is the quantified answer the lead doc asked for, and it is a "yes, but".</strong> Priced at a competent 2R exit, being wrongly benched inside a run (&minus;$26.97) <em>is</em> worse than being wrongly armed in chop (&minus;$18.20) &mdash; the inversion is real, 1.5&times;. But priced at <strong>the exit ladder the desk is actually running</strong>, wrongly benched costs $7.82 and wrongly armed costs $18.20 &mdash; the old rule <strong>still holds, by 2.3&times;</strong>.</p>
-<p>So the standing guidance in <code>CLAUDE.md</code> &mdash; "inside a detected aligned run, BENCHED is the expensive error" &mdash; is <strong>a promissory note, not a present fact</strong>. It becomes true the day the in-run exit stops giving back 71% of the move. Until then, "when unsure, sit benched one more tick" is still the money-maximising rule <em>even inside a run</em>. That is uncomfortable and it is what the arithmetic says.</p>
-</div>
+<thead><tr><th>window</th><th class="num">grind signals</th><th class="num">tick-honest value if taken</th><th class="num">with the veto below</th></tr></thead>
+<tbody>
+<tr><td class="ln">this report week, 10&ndash;14 Aug</td><td class="num">10</td><td class="num">&minus;$66</td><td class="num">+$64</td></tr>
+<tr><td class="ln">since the bench, 6&ndash;14 Aug</td><td class="num">20</td><td class="num">+$490</td><td class="num">+$912</td></tr>
+<tr><td class="ln">router era, 30 Jul onward</td><td class="num">51</td><td class="num">+$814</td><td class="num">+$1,688</td></tr>
+</tbody></table>
 
-<div class="card"><h3>OUT OF SAMPLE &mdash; twelve prior sessions and Friday</h3>
-<p>Friday 08-07 is genuinely untouched: the thresholds were frozen Thursday night. So are the twelve sessions 07-16&rarr;08-02 (489 taken trades) which pre-date the idea entirely.</p>
+<p>So: <strong>this week the bench cost nothing</strong> &mdash; it saved $66. Over the nine sessions since the
+bench began it cost about <strong>$490</strong>, and almost all of that is two trades: 6 August 13:38 (+$664) and
+13 August 13:41 (+$447). Both are chandelier runners on high-ATR entries. Notice the timing on the second one:
+the open-hour watcher armed grind on 13 August at 13:58 &mdash; <strong>seventeen minutes after that signal
+fired.</strong> The trio was not wrong about the day; it was late. That is grind's real problem in one line: the
+gate lives or dies on two or three runner entries a month, and an arming test that needs a proven trend cannot be
+early enough to catch the entry that starts it.</p>
+
+<h4 class="p25">THE MECHANISM THAT DOES WORK, AND IT IS A VETO</h4>
+
+<p>Since every positive confirmation failed, I swept the negative: rather than requiring proof of trend, refuse
+the entries that are fighting the recent tape. Two cheap conditions at signal time:</p>
+
 <table>
-<tr><th>sample</th><th>ORACLE aligned</th><th>ORACLE counter</th><th>ORACLE chop</th><th>verdict</th></tr>
-<tr class="row-hl"><td class="ln">12 prior sessions, 489 taken trades</td><td class="num">n=228 &nbsp; +$11.46/tr</td><td class="num">n=115 &nbsp; &minus;$29.66/tr</td><td class="num">n=146 &nbsp; &minus;$16.65/tr</td><td>HOLDS</td></tr>
-<tr class="row-hl"><td class="ln">Friday 08-07 taken</td><td class="num">n=8 &nbsp; +$41.31/tr</td><td class="num">n=4 &nbsp; +$13.00/tr</td><td class="num">n=9 &nbsp; &minus;$9.28/tr</td><td>HOLDS (thin)</td></tr>
-<tr class="row-hl"><td class="ln">Friday 08-07 missed (raced)</td><td class="num">n=18 &nbsp; +$20.61/sig</td><td class="num">n=8 &nbsp; &minus;$45.92/sig</td><td class="num">n=48 &nbsp; &minus;$22.86/sig</td><td>HOLDS</td></tr>
-</table>
-<p><strong>The concept is out-of-sample clean.</strong> A ~$28/trade spread between aligned and chop, on 489 trades the idea never saw. That is the strongest thing in this report.</p>
-<p><strong>The live detector is a different story.</strong> Scored on what it would actually have said in real time:</p>
+<thead><tr><th>arm</th><th class="num">n</th><th class="num">net</th><th class="num">$/trade</th><th class="num">win%</th><th class="num">strip-3</th><th class="num">worst LODO</th><th class="num">top-10 kept</th><th class="num">placebo</th></tr></thead>
+<tbody>
+<tr><td class="ln">BASE</td><td class="num">133</td><td class="num">+$2,407</td><td class="num">+$18.10</td><td class="num">31.6%</td><td class="num">+$346</td><td class="num">+$1,368</td><td class="num">10 / 10</td><td class="num">&mdash;</td></tr>
+<tr class="row-hl"><td class="ln">skip if the 30-min net is worse than &minus;1.0&times;ATR</td><td class="num">125</td><td class="num">+$3,134</td><td class="num">+$25.10</td><td class="num">32.8%</td><td class="num">+$1,072</td><td class="num">+$2,094</td><td class="num">10 / 10</td><td class="num">27 / 400</td></tr>
+<tr class="row-hl"><td class="ln">&hellip;and only in the top 40% of the hour's range</td><td class="num">97</td><td class="num">+$3,674</td><td class="num">+$37.90</td><td class="num">35.1%</td><td class="num">+$1,613</td><td class="num">+$2,751</td><td class="num">9 / 10</td><td class="num">16 / 400</td></tr>
+</tbody></table>
+
+<p>The first line is the one I trust. It removes <strong>eight trades spread across seven different days</strong> &mdash; every one of them
+stopped out, seven of them losers &mdash; for a saving of <strong>+$727</strong> &mdash; and it keeps every single one of the ten
+best trades. It reads in plain English as: <em>don't buy a continuation long while price has just fallen more
+than an ATR over the last half hour.</em> The sweep behind it is a genuine plateau &mdash; every threshold from
+&minus;2.0&times;ATR to &minus;0.5&times;ATR improves the book, so nothing hangs on the literal:</p>
+
 <table>
-<tr><th>sample</th><th>detector says RUN</th><th>detector says NO-RUN</th></tr>
-<tr><td class="ln">12 prior sessions (taken trades)</td><td class="num">n=86 &nbsp; +$5.42/tr</td><td class="num">n=374 &nbsp; &minus;$8.62/tr</td></tr>
-<tr class="row-bad"><td class="ln">this week (taken trades)</td><td class="num">n=26 &nbsp; &minus;$7.25/tr</td><td class="num">n=84 &nbsp; &minus;$6.95/tr</td></tr>
-<tr class="row-bad"><td class="ln">Friday only (taken trades)</td><td class="num">n=6 &nbsp; &minus;$16.25/tr</td><td class="num">n=15 &nbsp; +$26.43/tr</td></tr>
-<tr><td class="ln">all 17 sessions, strip-best-day (07-29)</td><td class="num">n=105 &nbsp; <strong>&minus;$4.83/tr</strong></td><td class="num">&mdash;</td><td></td></tr>
-</table>
-<p><strong>The detector's arming signal fails strip-best-day.</strong> Across 17 sessions its RUN book is +$277.50; remove 07-29 alone (+$784.50) and it is &minus;$507 over 105 trades. On the very week it was built from it produced <em>no</em> separation on taken trades, and on Friday it inverted. One consolation: that also means it is not simply in-sample flattery &mdash; if it were fitted to this week it would have looked good on this week, and it did not.</p>
-</div>
+<thead><tr><th>30-min net floor</th><th class="num">&minus;2.0&times;ATR</th><th class="num">&minus;1.5&times;</th><th class="num">&minus;1.25&times;</th><th class="num">&minus;1.0&times;</th><th class="num">&minus;0.75&times;</th><th class="num">&minus;0.5&times;</th></tr></thead>
+<tbody>
+<tr><td class="ln">net (no range condition)</td><td class="num">+$2,636</td><td class="num">+$3,014</td><td class="num">+$3,144</td><td class="num">+$3,362</td><td class="num">+$3,362</td><td class="num">+$3,282</td></tr>
+</tbody></table>
 
-<div class="card"><h3>THE POLICY TEST &mdash; so what is arming actually worth?</h3>
-<p>Policy: arm the aligned side, and only the aligned side, whenever the live detector says RUN; flat otherwise. Priced on this week's real book.</p>
+<p><strong>The second condition is a peak cell and I am flagging it as one.</strong> Requiring price in the top
+40% of the hour's range scores +$3,674 at exactly 0.60, but 0.65 falls to +$2,266 and 0.70 to +$1,008. That is a
+spike with cliffs, i.e. a fitted literal. <strong>Ship the veto, do not ship the 0.60.</strong></p>
+
+<p>Robustness on the veto pair, stated plainly: it improves <em>both</em> halves of the sample when split by date
+(first thirteen days +$965 &rarr; +$1,063; last thirteen +$1,442 &rarr; +$2,611), its worst leave-one-day-out is
++$2,094 (i.e. no single day is holding it up), and 27 of 400 same-sized random removals beat it &mdash; about a
+7% chance of arising by luck, which is suggestive rather than conclusive. And the honest caveat that matters
+most: <strong>the whole effect is eight trades.</strong> Eight. That is why this is a shadow arm and not a
+Saturday deploy.</p>
+
+<div class="callout"><div class="ct">THE ANSWER TO THE GRIND QUESTION, IN ONE PLACE</div>
+<p><strong>(c) the ER-0.35 floor:</strong> it does not exist, and tonight's book says good &mdash; as a filter it
+is <span class="tag p-ref">REFUTED</span> (kills 9 of the 10 best trades; strip-3 &minus;$1,044; beaten by 182 of
+400 random subsets). <strong>(b) entry trend-confirmation:</strong> <span class="tag p-ref">REFUTED</span> &mdash;
+it is backwards; the losers have bigger impulses than the winners, and 391 of 400 random subsets beat it.
+<strong>(a) trend-day-only:</strong> <span class="tag p-park">PARKED</span> &mdash; real but wobbly, and it drops
+the runners; revive it if a genuinely trend-heavy month gives the session-ER measure enough days to show a
+plateau instead of a wobble. <strong>What to do instead:</strong> keep the ATR&nbsp;&ge;&nbsp;22 floor, keep the
+router's on/off, and add the <strong>counter-move veto</strong> as a shadow arm
+<span class="tag p-shadow">SHADOW</span>. And take seriously that the current arming test is so strict grind has
+been a dead gate for nine sessions &mdash; that may be the right call on a chop fortnight, but it is a decision
+being made by a threshold nobody chose for that purpose.</p></div>
+
+<hr>
+
+<h3>PART C &mdash; A BROKEN INSTRUMENT UNDERNEATH THIS REPORT</h3>
+
+<p class="lead">One more lead, and it is the least glamorous but the most immediately actionable:
+<strong>the nightly exit-selector rollup counts quarantined trades</strong>, and this report reads that rollup
+to produce its router-value figure.</p>
+
+<p>On 13 August the day rider's re-booking bug wrote four phantom trades that were flagged
+<code>EXCLUDE:day_rider_phantom_rebook_20260813</code> and deliberately never deleted. The selector's own query
+(<code>scripts/selector_nightly.py</code>) filters on <code>exit_reason</code> but <strong>never filters
+<code>data_quality</code></strong> &mdash; the one filter this desk's P&amp;L rules mandate. So it counted all
+five day-rider rows for that day, and because it reprices every trade off bars they all collapsed to the same
+synthetic row: five identical entries of chosen &minus;$31.50, regret $72.50.</p>
+
 <table>
-<tr><th>component</th><th>n</th><th>$</th></tr>
-<tr class="row-bad"><td class="ln">what the desk actually did</td><td class="num">110 lots</td><td class="num">&minus;$772.50</td></tr>
-<tr><td class="ln">&nbsp;&nbsp;&mdash; of which taken while the detector said RUN</td><td class="num">26</td><td class="num">&minus;$188.50</td></tr>
-<tr class="row-hl"><td class="ln">&nbsp;&nbsp;&mdash; of which taken while the detector said NO-RUN &nbsp;<strong>&larr; the bench prize</strong></td><td class="num">84</td><td class="num"><strong>&minus;$584.00</strong></td></tr>
-<tr><td class="ln">signals the policy would have ADDED, raced @2R, 1 lot</td><td class="num">26</td><td class="num">+$579.20</td></tr>
-<tr class="row-hl"><td class="ln">&nbsp;&nbsp;&mdash; at the desk's own 29% in-run capture &nbsp;<strong>&larr; the arm prize</strong></td><td class="num">26</td><td class="num"><strong>+$168.00</strong></td></tr>
-<tr><td class="ln">POLICY TOTAL</td><td class="num"></td><td class="num">&minus;$20.50 &nbsp;<span style="opacity:.7">(delta +$752)</span></td></tr>
-</table>
-<p><strong>The bench is worth 3.5&times; the arm.</strong> $584 from not trading when nothing is running, against $168 from trading when something is. Almost all of run-state's value this week was in the <em>negative</em>. That answers the scope's open question directly: <strong>run state is a bench instrument, not an arm instrument</strong> &mdash; which is exactly what you would expect from something with a 33-minute detection lag and a 20% capture ratio.</p>
-<p><span class="tag">VERDICT &middot; LIVE</span> Keep it exactly as it is &mdash; state-only, above the untradeable meter, Claude decides. Lift ER to 0.45. Lead with it as a <em>reason to stay out</em>, and treat "RUN, aligned" as permission rather than instruction.</p>
-<p><span class="tag">VERDICT &middot; PARKED</span> Run-state as an <em>arming trigger</em>. It is late (22% capture), it fails strip-best-day on taken trades, and its arm value is $168/week. <strong>What would revive it:</strong> a detection route that is not a trailing window &mdash; and note the run-catcher NULL <code>[[run-catcher-null-all-microstructure]]</code> says front-running the start is dead, so the realistic path is not earlier detection but <em>better conversion once detected</em>, i.e. LEAD 2.</p>
-</div>
+<thead><tr><th>13 August selector file</th><th class="num">as published</th><th class="num">deduped</th><th class="num">error</th></tr></thead>
+<tbody>
+<tr><td class="ln">trades counted</td><td class="num">14</td><td class="num">10</td><td class="num">+4 phantoms</td></tr>
+<tr class="row-bad"><td class="ln">regret</td><td class="num">$748</td><td class="num">$458</td><td class="num">inflated 39%</td></tr>
+<tr class="row-bad"><td class="ln">selector P&amp;L</td><td class="num">&minus;$228</td><td class="num">&minus;$102</td><td class="num">overstated 2.2&times;</td></tr>
+</tbody></table>
 
-<h3 style="margin-top:26px">LEAD 2 &mdash; THE EXIT LADDER. The money is here, and it needs no routing change at all.</h3>
+<p>I checked every one of the eleven selector files against the ledger: <strong>13 August is the only
+contaminated one</strong> (the two quarantined rows from 4 August fall outside that file's window), so the
+week's total regret of $7,903 is overstated by $290 rather than by anything dramatic. But
+<strong>48% of that single day's regret is one trade counted five times</strong>, and any selector tuning done
+off that day is chasing a phantom. Two other things I would fix while in there: the file set is gappy
+(27&ndash;31 July, 3&ndash;7 August, 13 August) because there is <em>no systemd timer for it at all</em> despite
+the name "nightly", and its only consumer is this report.</p>
 
-<p class="lead">This came out of Attack 3 and it is the biggest number in the section. If run state tells you which regime you are in, the obvious use is not "should I be on" &mdash; it is "<strong>how far should I ride</strong>". I raced <strong>every entry the desk had this week &mdash; all 511 of them, 110 taken and 401 missed</strong> &mdash; at six different targets against the same 1&times;ATR stop, segmented by regime. The answer is unambiguous and it points the opposite way in each regime.</p>
+<p class="p25note">Related and worth stating as a rule rather than an incident, because it recurs: a shadow
+variant is only as trustworthy as its pure-reconstruction column. The two-ratchet ledger ships
+<code>recon_pure_usd</code>, so its stop-leak could be measured and turned out to be one trade; the partial
+ledger ships none, so its "exits earlier" delta cannot be falsified at all. The grind-exit ledgers themselves
+belong to the shadow section and I have not re-run them here.</p>
 
-<div class="card"><h3>R-target sweep by regime &mdash; $ per entry, 511 entries, tick first-touch</h3>
+<hr>
+
+<h3>DISPOSITION &mdash; every lead touched tonight</h3>
+
 <table>
-<tr><th>regime</th><th>n</th><th>R=1.0</th><th>R=1.5</th><th>R=2.0</th><th>R=2.5</th><th>R=3.0</th><th>R=4.0</th><th>R=5.0</th><th>R=6.0</th></tr>
-<tr class="row-hl"><td class="ln"><strong>in-run aligned</strong></td><td class="num">168</td><td class="num">+9.52</td><td class="num">+17.30</td><td class="num">+23.43</td><td class="num">+32.10</td><td class="num">+40.02</td><td class="num"><strong>+51.02</strong></td><td class="num">+56.70</td><td class="num">+56.83</td></tr>
-<tr class="row-bad"><td class="ln">chop / no run</td><td class="num">282</td><td class="num"><strong>&minus;6.92</strong></td><td class="num">&minus;10.69</td><td class="num">&minus;14.54</td><td class="num">&minus;17.64</td><td class="num">&minus;19.18</td><td class="num">&minus;19.80</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
-<tr class="row-bad"><td class="ln">counter-trend</td><td class="num">52</td><td class="num"><strong>&minus;24.75</strong></td><td class="num">&minus;33.98</td><td class="num">&minus;45.92</td><td class="num">&minus;45.63</td><td class="num">&minus;45.37</td><td class="num">&minus;44.81</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
-</table>
-<p>Hit rate on the aligned row falls 57% &rarr; 46% &rarr; 38% as you widen from 2R to 6R and the money still goes up the whole way. It <strong>plateaus at 4&ndash;6R</strong> (+$51.02, +$56.70, +$56.83) &mdash; a genuine flat top, not a grid edge. Leave-one-day-out at 4R across the five sessions: <strong>+$43.62, +$46.47, +$53.47, +$53.67, +$56.72</strong>. Every single day positive, none of it resting on one session.</p>
-<p>The chop and counter rows are monotone the other way: the tighter the better, and no target makes them positive. <strong>There is no chop exit that turns chop into money.</strong> Tight only loses less. The chop answer is the bench, not the ladder &mdash; which is exactly what LEAD 1 said.</p>
-</div>
+<thead><tr><th>lead</th><th>verdict</th><th>the evidence, or what would revive it</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln"><strong>MGC day rider</strong> &mdash; direction called +30/60 min into the US session, held to the 20:40 flat</td><td><span class="tag p-shadow">SHADOW</span></td><td class="ln">15 of 15 grid cells positive (+$552 to +$1,742); beats the best constant (+$1,520 / 56.2%) on both dollars and hit rate while trading half the days; median MFE +$453. Thin at 16 sessions &mdash; ship from the middle of the plateau, never the peak cell.</td></tr>
+<tr class="row-hl"><td class="ln"><strong>MGC coil bouncer</strong> &mdash; fade the edge of a compressed 20-min range</td><td><span class="tag p-shadow">SHADOW</span></td><td class="ln">n=154, median trade +$7.75, survives strip-best-day (+$289 of +$470), beaten 0/12 by a same-count placebo, mirror control &minus;$924. About $137/wk &mdash; below the bar for live, ideal for incubation.</td></tr>
+<tr><td class="ln"><strong>MGC run-catcher exit</strong> &mdash; wide stop held for hours instead of a 2.5&times;ATR trail</td><td><span class="tag p-park">PARKED</span></td><td class="ln">Holds inside the oracle in both windows (+$143&rarr;+$589 on 7&ndash;14 Aug), but every ALL-signals cell in that window loses, and shifting the window by two days flips the hold-cap conclusion entirely. Revive when a causal day filter exists, or at n&nbsp;&ge;&nbsp;40 gold sessions &mdash; whichever comes first.</td></tr>
+<tr><td class="ln"><strong>MGC London-open break fade</strong></td><td><span class="tag p-park">PARKED</span></td><td class="ln">Beaten 0/7 by shifted anchors, so the anchor is real &mdash; but 9 of 16 trades lose, the median trade is a loss, and strip-best-day takes +$502 to +$125. Revive at n&nbsp;&ge;&nbsp;40 trades, i.e. roughly two more months of London opens.</td></tr>
+<tr class="row-hl"><td class="ln"><strong>grind counter-move veto</strong> &mdash; skip a long fighting a 30-min fall &gt; 1&times;ATR</td><td><span class="tag p-shadow">SHADOW</span></td><td class="ln">+$2,407 &rarr; +$3,134 over 133 tick-honest fires; keeps 10/10 of the best trades; plateau across the whole &minus;2.0 to &minus;0.5&times;ATR range; both date-halves improve; beaten by 27/400 placebos. But the effect is 8 trades &mdash; incubate, do not deploy.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>grind ER-0.35 floor</strong> as an enable mechanism</td><td><span class="tag p-ref">REFUTED</span></td><td class="ln">Named tests: fake-filter guard (keeps 1 of the 10 best trades), strip-3 (&minus;$1,044), placebo (beaten by 182/400 same-size random removals). Also does not exist in production &mdash; <code>ER_FLOOR</code> is empty.</td></tr>
+<tr class="row-bad"><td class="ln"><strong>grind entry trend-confirmation</strong> (require a 15-min impulse our way)</td><td><span class="tag p-ref">REFUTED</span></td><td class="ln">Named tests: placebo (beaten by 391/400), strip-3 (&minus;$1,862). Mechanism fails for a reason, not by luck &mdash; the losing entries have <em>larger</em> 15-minute impulses than the winning ones.</td></tr>
+<tr><td class="ln"><strong>grind trend-day-only arming</strong> (session efficiency)</td><td><span class="tag p-park">PARKED</span></td><td class="ln">Best cells beat base (+$2,780 / +$2,630) but the curve wobbles rather than plateaus and the tight cells drop the runners. Revive on a trend-heavy month, or if the session-ER measure can be replaced with one that keeps 8+ of the top 10.</td></tr>
+<tr><td class="ln"><strong>the break trio as grind's arming test</strong></td><td><span class="tag p-gap">MEASUREMENT GAP</span></td><td class="ln">Admits ~4 of 133 signals in replication; live grind has taken zero trades in nine sessions; and on 13 Aug it armed 17 minutes <em>after</em> the day's only paying signal. Cannot be graded properly until the watcher logs its own ER/ATR/extreme reads in a machine-readable form so the test can be replayed exactly rather than approximated.</td></tr>
+<tr class="row-bad"><td class="ln"><strong><code>selector_nightly.py</code> ignores <code>data_quality</code></strong></td><td><span class="tag p-gap">FIX ON SATURDAY</span></td><td class="ln">13 Aug regret inflated 39% ($748 &rarr; $458) by one quarantined trade counted five times; feeds this report's router-value figure. One-line filter, then regenerate the historic files. Also: it has no timer despite being called "nightly".</td></tr>
+</tbody></table>
 
-<div class="card"><h3>Re-price the week's exits and nothing else</h3>
-<p>Same entries. Same order of events. Same stop. Only the target changes, keyed on run state at entry.</p>
-<table>
-<tr><th>the 54 in-run aligned lots the desk actually took</th><th>$</th></tr>
-<tr class="row-bad"><td class="ln">what the live ladder banked</td><td class="num">+$246.50</td></tr>
-<tr><td class="ln">the same 54 entries at 2R</td><td class="num">+$862.70</td></tr>
-<tr><td class="ln">the same 54 entries at 3R</td><td class="num">+$1,975</td></tr>
-<tr class="row-hl"><td class="ln">the same 54 entries at 4R</td><td class="num"><strong>+$3,171</strong></td></tr>
-</table>
-<table>
-<tr><th>whole week, run-state-keyed exit, same 110 entries</th><th>week total</th></tr>
-<tr class="row-bad"><td class="ln">as it ran</td><td class="num">&minus;$772.50</td></tr>
-<tr><td class="ln">aligned 2.5R / chop 1.0R</td><td class="num">+$896</td></tr>
-<tr class="row-hl"><td class="ln">aligned 3.0R / chop 1.0R</td><td class="num"><strong>+$1,493</strong></td></tr>
-<tr class="row-hl"><td class="ln">aligned 4.0R / chop 1.0R</td><td class="num"><strong>+$2,689</strong></td></tr>
-</table>
-<p><strong>A $2,266 swing on the exact same trades, with the router untouched.</strong> Two honest hedges before you spend it: (1) this is a single fixed-R race against a live 2-lot scale-out with chandeliers and clips, so it is a config-vs-config comparison, not a drop-in; (2) the chop-at-1R leg reads +$89 on the 40 taken lots but the full 282-entry chop population reads &minus;$6.92 each, so treat the chop leg as "lose less", not "make money" &mdash; on the population rate the same-entries figure lands nearer <strong>+$870</strong>. Either way the sign and the order of magnitude do not move. And the counter-trend lots are the one place the live exits <em>beat</em> the race (&minus;$296.50 live vs &minus;$829 raced) &mdash; the clip is doing its job there.</p>
-</div>
-
-<div class="card"><h3>The quiet-tape clip is keyed on the wrong variable</h3>
-<p>The clip fires on <strong>ATR &lt; 22</strong>. Segment the same 511 entries by ATR-at-entry and that turns out to be nearly orthogonal to where clipping helps.</p>
-<table>
-<tr><th>segment</th><th>n</th><th>R=1.0</th><th>R=2.0</th><th>R=3.0</th><th>R=4.0</th><th>what it wants</th></tr>
-<tr><td class="ln">aligned &middot; ATR &lt; 12</td><td class="num">17</td><td class="num">+10.64</td><td class="num">+24.01</td><td class="num">+34.32</td><td class="num">+41.93</td><td>wide</td></tr>
-<tr><td class="ln">aligned &middot; ATR 12&ndash;20</td><td class="num">79</td><td class="num">+15.44</td><td class="num">+26.62</td><td class="num">+40.11</td><td class="num">+43.32</td><td>wide</td></tr>
-<tr class="row-hl"><td class="ln">aligned &middot; ATR &ge; 20</td><td class="num">72</td><td class="num">+2.77</td><td class="num">+19.80</td><td class="num">+41.26</td><td class="num"><strong>+61.61</strong></td><td><strong>very wide</strong></td></tr>
-<tr><td class="ln">chop &middot; ATR &lt; 12</td><td class="num">77</td><td class="num">&minus;5.17</td><td class="num">&minus;4.62</td><td class="num">&minus;4.87</td><td class="num">&minus;3.47</td><td>doesn't matter</td></tr>
-<tr><td class="ln">chop &middot; ATR 12&ndash;20</td><td class="num">181</td><td class="num">&minus;9.02</td><td class="num">&minus;13.51</td><td class="num">&minus;17.98</td><td class="num">&minus;17.00</td><td>tight</td></tr>
-<tr class="row-bad"><td class="ln">chop &middot; ATR &ge; 20</td><td class="num">76</td><td class="num">&minus;15.88</td><td class="num">&minus;48.52</td><td class="num">&minus;54.44</td><td class="num">&minus;60.11</td><td><strong>tight, urgently</strong></td></tr>
-</table>
-<p><strong>The two cells that most need opposite treatment sit on the same side of the ATR-22 line.</strong> At ATR &ge; 20 the aligned book wants 4R (+$61.61) and the chop book wants 1R (&minus;$15.88 instead of &minus;$48.52) &mdash; and the clip, keyed on ATR alone, treats them identically. At ATR &lt; 12 in chop, where the clip <em>is</em> active, tight versus wide is worth about $1.70 a trade &mdash; nothing. The clip is doing its work in the segment where it barely matters and sitting out the segment where it is worth $45 a trade.</p>
-<p>Time-of-day agrees rather than competes: US session (13:30&ndash;21:00Z) aligned entries want the widest target of all (4R = <strong>+$60.10</strong>, n=102), the overnight/London aligned entries top out earlier (4R = +$36.97, best relative value at 2R = +$27.23, n=66). ATR carries most of that, as the discipline note predicts.</p>
-<p><span class="tag">VERDICT &middot; SHADOW &rarr; SATURDAY BUILD</span> Re-key the exit ladder on <strong>run state</strong>, not ATR. Concretely: RUN + aligned &rarr; Lot A 2.5R, Lot B rides (chandelier, no clip) regardless of ATR; NO-RUN &rarr; both lots clip at 1R-ish; counter &rarr; leave exactly as it is, the current clip is already the best of the three. Against the cheat-sheet's operator guesses, the proven numbers say <strong>trend Lot A 2.5R is about right but Lot B must not clip</strong>, and <strong>fader 0.5/1.5 is right in chop for the wrong reason</strong> &mdash; it wins by shrinking a loss, not by capturing an edge.</p>
-<p>⚠ Caveats stated plainly: one week, 511 entries, 168 of them aligned. First-touch on a fixed 1&times;ATR stop with a 90-minute horizon. Both-touched-in-one-tick is resolved as a stop, so this is the conservative side. And 401 of the 511 entries are counterfactual &mdash; the desk was benched and they never ran.</p>
-</div>
-
-<h3 style="margin-top:26px">LEAD 3 &mdash; GRIND: does it run only on a confirmed trend? (prior week, 2026-07-31)</h3>
-
-<div class="card"><h3>First, the premise doesn't fully reproduce</h3>
-<p>The lead quoted live managed <code>grind_long</code> at <strong>+$440 on the 07-30 trend day</strong> and <strong>&minus;$370 on the 07-31 chop reversal</strong>. Re-derived from the trade table, clean rows only: <strong>07-30 = +$353.50</strong> over 36 lots, <strong>07-31 = &minus;$284.00</strong> over 4 lots (0 wins), and 07-29 = +$263.50. Same story, ~20% smaller both ways. Its full live record across the 17 sessions it has traded: <strong>128 lots, &minus;$958.00, 34% win.</strong> Two green days out of ten.</p>
-</div>
-
-<div class="card"><h3>The three enable-mechanisms, scored on grind's own live lots</h3>
-<table>
-<tr><th>mechanism</th><th>KEEPS</th><th>$/lot kept</th><th>BLOCKS</th><th>worth</th></tr>
-<tr><td class="ln">(0) as it runs today &mdash; no filter</td><td class="num">128 lots &minus;$958.0</td><td class="num">&minus;$7.48</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
-<tr class="row-bad"><td class="ln"><strong>(a)</strong> trend-day only &mdash; session-to-date ER &ge; 0.20 at entry</td><td class="num">10 lots &minus;$174.5</td><td class="num">&minus;$17.45</td><td class="num">118 lots &minus;$783.5</td><td class="num">+$784</td></tr>
-<tr class="row-bad"><td class="ln">(a&prime;) trend-day only &mdash; session ER &ge; 0.35</td><td class="num"><strong>0 lots</strong></td><td class="num">&mdash;</td><td class="num">128 lots</td><td class="num">deletes the gate</td></tr>
-<tr><td class="ln"><strong>(b)</strong> entry confirmation &mdash; run-state ALIGNED at entry</td><td class="num">36 lots &minus;$200.5</td><td class="num">&minus;$5.57</td><td class="num">92 lots &minus;$757.5</td><td class="num">+$758</td></tr>
-<tr><td class="ln"><strong>(c)</strong> 30-min ER floor 0.25 at entry (either side)</td><td class="num">73 lots &minus;$230.5</td><td class="num">&minus;$3.16</td><td class="num">55 lots &minus;$727.5</td><td class="num">+$728</td></tr>
-<tr><td class="ln">(c&prime;) 30-min ER floor 0.35</td><td class="num">16 lots &minus;$124.0</td><td class="num">&minus;$7.75</td><td class="num">112 lots &minus;$834.0</td><td class="num">+$834</td></tr>
-</table>
-<p><strong>(a) is refuted on mechanism, not on sample size, and this is the clean kill.</strong> Grind is a continuation-<em>on-pullback</em> gate: its entries happen precisely when session efficiency is <em>low</em>, because a pullback is what depresses efficiency. On the 07-30 trend day, only <strong>2 of its 36 lots</strong> had session ER &ge; 0.20 at entry, and those two lost &minus;$120. At ER &ge; 0.35 it fires <strong>zero times all year</strong>. A trend-day gate on grind does not focus it &mdash; it switches it off. The prior week's "grind's trend-day upside is proven" reads the day-level P&amp;L and infers an entry-level condition that does not exist.</p>
-<p><strong>(b) blocks the most damage per lot kept but its edge is one day.</strong> Leave-one-day-out on the run-state-aligned book: remove 07-30 and it goes from &minus;$200.50 over 36 lots to <strong>&minus;$846.00 over 28 lots (&minus;$30.21/lot)</strong>. Everything good about mechanism (b) is 07-30 and nothing else. Worth noting separately: grind fired <strong>zero</strong> lots during a detected opposite-side run in 17 sessions &mdash; its own geometry already prevents counter-trend entries, so there is no counter-veto to add.</p>
-<p><strong>No mechanism makes grind positive.</strong> The best of them (c) cuts the loss from &minus;$958 to &minus;$230 and leaves a gate with no edge.</p>
-<p><span class="tag">VERDICT &middot; REFUTED</span> "Grind trend-day-only" &mdash; mechanism (a). Its entries structurally cannot coincide with a high session-ER reading. There is no path; a trend-day filter is a delete button.</p>
-<p><span class="tag">VERDICT &middot; PARKED</span> Grind itself. It stays <strong>off</strong>, but the reason is not the enable-mechanism &mdash; it is that grind wants to buy pullbacks and then exits them like a scalp. <strong>What would revive it:</strong> the LEAD 2 exit re-key (its aligned lots are exactly the population that wants 4R and gets 0.5R), plus the VWAP-extension gap noted below &mdash; it emits nothing at high extension, which is when a run is actually running. Re-test after the exit change with n &ge; 40 aligned lots. Do not re-test it with another entry filter.</p>
-<p>⚠ As instructed, all of the above is <strong>live managed</strong> <code>grind_long</code>, never the <code>grind_fast</code> shadow.</p>
-</div>
-
-<h3 style="margin-top:26px">GATE MECHANICS &mdash; reported separately, because arming would have changed nothing</h3>
-
-<div class="card"><h3>The runs no gate could see</h3>
-<p>Of the 31 runs this week, <strong>2 produced not one aligned signal from any of the eight gates</strong> &mdash; not a suppressed one, not a taken one. Arming the entire roster would have produced zero trades. That belongs to Friday rehab, not to the router.</p>
-<table>
-<tr><th>window</th><th>net</th><th>range</th><th>signals from the whole roster</th><th>trades</th></tr>
-<tr class="row-bad"><td class="ln">08-04 15:41&rarr;19:40 (the afternoon up-legs)</td><td class="num">+264pt</td><td class="num">290pt</td><td><strong>2, and both SHORT</strong> &mdash; abs_veto_short 17:27, exhaustion_short 18:20</td><td class="num">0</td></tr>
-<tr class="row-bad"><td class="ln">08-05 07:06&rarr;07:36</td><td class="num">&minus;76pt</td><td class="num">98pt</td><td><strong>none at all</strong> (grind_long fired a counter LONG at 07:05)</td><td class="num">0</td></tr>
-</table>
-<p>The first row is worse than "silence". Over a four-hour stretch in which MNQ added 264 points, the roster's only two opinions were <strong>against</strong> the move. That is not a routing failure and it is not bad luck &mdash; it is eight gates that between them have no instrument for "price is going up and has been for hours". The related mechanism was flagged on 08-06: grind is a continuation-on-pullback gate and emits nothing at high VWAP extension, so at +6.6 ATR it logged zero suppressed opens for 30+ minutes while an [ACT] watcher demanded five times that it be armed.</p>
-<p>Note this is <em>fewer</em> than the four windows named in the mid-week doc &mdash; 08-04 16:42 and 17:16 sit inside a longer run that did produce signals elsewhere in its span. I have merged them into the single silent stretch above rather than counting them three times.</p>
-<p><span class="tag">HAND OFF</span> To Friday rehab: the desk needs one long-side continuation gate that fires <em>at</em> extension rather than only on a pullback. That is a build, not a switch.</p>
-</div>
-
-<h3 style="margin-top:26px">TWO SMALLER LEADS THE WEEK THREW UP</h3>
-
-<div class="card"><h3>(i) &quot;Arm for periods&quot; vs &quot;wall of STOP &rarr; bench&quot; &mdash; settled, and it's not close</h3>
-<p>These two standing instincts are in direct opposition and 08-04 is the test case. <code>abs_veto_long</code>, armed once at 04:20Z and left alone all day:</p>
-<table>
-<tr><th>entry (UTC)</th><th>result</th><th>running</th></tr>
-<tr class="row-bad"><td class="ln">07:28 &nbsp; 10:46 &nbsp; 11:45 &mdash; three losing entries in a row</td><td class="num">&minus;$173.50</td><td class="num">&minus;$173.50</td></tr>
-<tr class="row-hl"><td class="ln">13:32 &nbsp; 14:07 &nbsp; 15:03 &nbsp; 15:14 &nbsp; 15:40 &mdash; five winning entries in a row</td><td class="num">+$504.00</td><td class="num"><strong>+$330.50</strong></td></tr>
-</table>
-<p>A textbook "three stopped pairs &rarr; bench" rule fires at 11:45 and costs the entire +$504. So I ran the rule properly, per gate, per session, across all 17 sessions:</p>
-<table>
-<tr><th>rule</th><th>17 sessions &mdash; what benching would have saved</th><th>this week &mdash; what it would have saved</th></tr>
-<tr><td class="ln">bench after <strong>2</strong> consecutive losing entries</td><td class="num">+$1,905</td><td class="num">&minus;$414</td></tr>
-<tr><td class="ln">bench after <strong>3</strong></td><td class="num">+$28</td><td class="num">&minus;$610</td></tr>
-<tr><td class="ln">bench after <strong>4</strong></td><td class="num">&minus;$334</td><td class="num">&minus;$776</td></tr>
-<tr><td class="ln">bench after 2, <em>only if run-state says NO-RUN</em></td><td class="num">+$1,752</td><td class="num">&minus;$492</td></tr>
-</table>
-<p><strong>It is an artefact of K.</strong> Moving the threshold by one loss swings the seventeen-session verdict from +$1,905 to &minus;$334, and this week the rule destroys money at every K including the regime-conditioned version. A rule whose sign depends on an arbitrary integer is not a rule.</p>
-<p><span class="tag">VERDICT &middot; REFUTED</span> "Wall of STOP &rarr; bench" as a standing trigger. <span class="tag">VERDICT &middot; LIVE</span> "Arming is a permission window" &mdash; the 08-04 morning losses were the price of the option and the option paid 2.9&times;. The discriminator is the <strong>regime the losses happened in</strong>, and the honest version of that is simply: bench on <em>chop</em>, never on a <em>loss count</em>.</p>
-</div>
-
-<div class="card"><h3>(ii) CHURN &mdash; the desk armed and un-armed 70 times for nine trades</h3>
-<p>From <code>router_trial_log.txt</code>, 1,400 durable ticks across the five sessions:</p>
-<table>
-<tr><th>day</th><th>ticks</th><th>gate flips</th><th>ARM flips</th><th>ARMs that produced a trade</th><th>median arm dwell</th></tr>
-<tr><td class="ln">2026-08-03</td><td class="num">276</td><td class="num">6</td><td class="num">0</td><td class="num">0</td><td class="num">&mdash;</td></tr>
-<tr class="row-bad"><td class="ln">2026-08-04</td><td class="num">276</td><td class="num">17</td><td class="num">7</td><td class="num">2</td><td class="num">35m</td></tr>
-<tr class="row-bad"><td class="ln">2026-08-05</td><td class="num">276</td><td class="num">17</td><td class="num">5</td><td class="num">1</td><td class="num">35m</td></tr>
-<tr><td class="ln">2026-08-06</td><td class="num">276</td><td class="num">13</td><td class="num">3</td><td class="num">1</td><td class="num">15m</td></tr>
-<tr><td class="ln">2026-08-07</td><td class="num">288</td><td class="num">17</td><td class="num">10</td><td class="num">5</td><td class="num">&mdash;</td></tr>
-<tr class="row-hl"><td class="ln"><strong>WEEK</strong></td><td class="num">1,400</td><td class="num"><strong>70</strong></td><td class="num">25</td><td class="num"><strong>9 &nbsp;(36%)</strong></td><td class="num">35m</td></tr>
-</table>
-<p>Of 19 arm windows that closed, <strong>9 lasted 30 minutes or less and 7 lasted 15 minutes or less</strong>. The five shortest were 5, 5, 5, 10 and 15 minutes. The worst single episode: <code>abs_veto_long</code> flipped <strong>on/off/on/off/on/off/on &mdash; seven times in 2h25m &mdash; between 01:55 and 04:20 on 08-04</strong>, overnight, and traded nothing at all until it was finally left alone at 04:20 and went on to make the week's only green day.</p>
-<p>None of those 16 barren flips grades badly on the per-decision scoreboard, because a switch that produces no trade is scored neutral. <strong>The rate is the metric.</strong> A five-minute arm window is arithmetically incapable of catching a signal from a gate that fires a few times a day, so it is a guaranteed $0 with a non-zero chance of catching exactly the wrong one.</p>
-<p><span class="tag">RECOMMEND</span> A <strong>dwell floor</strong>: once a gate is armed it stays armed for a minimum of 30 minutes unless a hard confirmed event fires against it (that exception is the fast-bench path, and it belongs to the router-operation review, not here). Cheap to state, cheap to enforce in the tick prompt, and it would have removed 9 of this week's 19 closed arm windows without touching a single trade &mdash; because none of those 9 produced one.</p>
-</div>
-
-<div class="card"><h3>(iii) One instrument still lying &mdash; check before quoting</h3>
-<p><code>signal_journal.suppressed_by</code> is <strong>NULL in all 702 rows</strong>, verified just now, despite being named in the INSERT. Anything computing <code>COALESCE(suppressed_by,'TAKEN')</code> reports every fire as taken, including on benched gates on a zero-fill day. That is why this section reads suppressed entries out of the tournament journal directly rather than out of the journal table. If a past figure in any report was built on <code>signal_journal</code>, it is suspect.</p>
-</div>
-
-<div class="callout"><div class="ct">WHAT SURVIVED &mdash; the whole section in one table</div></div>
-<table>
-<tr><th>lead</th><th>disposition</th><th>the number behind it</th></tr>
-<tr class="row-hl"><td class="ln">Run state separates aligned from chop</td><td><span class="tag">LIVE</span></td><td class="num">+$27/sig vs &minus;$13/sig; beats 4,000 placebos at p&lt;0.001; holds on 489 out-of-sample trades</td></tr>
-<tr class="row-hl"><td class="ln">Run state is a <strong>bench</strong> instrument</td><td><span class="tag">LIVE</span></td><td class="num">bench prize $584 vs arm prize $168 &mdash; 3.5&times;</td></tr>
-<tr class="row-hl"><td class="ln"><strong>Run-state-keyed exit ladder</strong></td><td><span class="tag">SHADOW &rarr; SATURDAY BUILD</span></td><td class="num">same 110 entries: &minus;$772 &rarr; <strong>+$1,493</strong> (aligned 3R / chop 1R); LOO-clean, 5/5 days</td></tr>
-<tr><td class="ln">Lift RUN_ER_START 0.35 &rarr; 0.45</td><td><span class="tag">DEPLOY, LOW RISK</span></td><td class="num">+$39.37/sig in-sample, +$66.67 Friday, +$30.03 on 12 prior sessions &mdash; positive in all three</td></tr>
-<tr><td class="ln">Dwell floor of 30 min on any arm</td><td><span class="tag">RECOMMEND</span></td><td class="num">9 of the 19 arm windows that closed this week lasted &le;30 min and produced zero trades</td></tr>
-<tr><td class="ln">"Arming is a permission window"</td><td><span class="tag">LIVE</span></td><td class="num">08-04: &minus;$173.50 then +$504.00, one arming decision</td></tr>
-<tr class="row-bad"><td class="ln">Run state as an <strong>arming</strong> trigger</td><td><span class="tag">PARKED</span></td><td class="num">22% capture, 33-min lag, fails strip-best-day (+$2.48 &rarr; &minus;$4.83/tr)</td></tr>
-<tr class="row-bad"><td class="ln">"The bench/arm asymmetry inverts inside runs"</td><td><span class="tag">PARKED</span></td><td class="num">true at 2R (1.5&times;), false at today's exits (0.43&times;) &mdash; becomes true when LEAD 2 ships</td></tr>
-<tr class="row-bad"><td class="ln">Grind runs only on a confirmed trend day</td><td><span class="tag">REFUTED</span></td><td class="num">2 of 36 lots on the trend day pass the filter, and they lost; at ER&ge;0.35 it never fires</td></tr>
-<tr class="row-bad"><td class="ln">Grind itself</td><td><span class="tag">PARKED</span></td><td class="num">&minus;$958 / 128 lots; no filter makes it positive; revive after the exit re-key, n&ge;40</td></tr>
-<tr class="row-bad"><td class="ln">"Wall of STOP &rarr; bench"</td><td><span class="tag">REFUTED</span></td><td class="num">+$1,905 at K=2, &minus;$334 at K=4, negative at every K this week</td></tr>
-<tr class="row-bad"><td class="ln">Shorten the run-state window</td><td><span class="tag">REFUTED</span></td><td class="num">best in-sample config (+$760) loses on both out-of-sample legs</td></tr>
-<tr><td class="ln">Two runs no gate can see</td><td><span class="tag">HAND OFF &mdash; FRIDAY REHAB</span></td><td class="num">08-04 15:41&ndash;19:40, +264pt, roster's only two opinions were both short</td></tr>
-</table>
-
-<div class="callout"><div class="ct">THE HONEST HEALTH WARNING</div><p>One week of live book (110 trades, &minus;$772.50) and 401 counterfactual entries that never ran. The out-of-sample legs are real but thin on the Friday side (n=3&ndash;18) and use taken trades only on the twelve prior sessions. The exit ladder result is the most robust thing here &mdash; five-for-five on days, a genuine plateau, a large effect &mdash; and it is still one week, priced on a race rather than on the live two-lot ladder. Nothing in this section should ship without the Saturday re-validation, and the exit re-key in particular wants a forward A/B rather than a switch flip, because the last three exit cells that looked this good on a replay did not survive one.</p></div>
+<p class="p25note"><strong>The one stone still unturned</strong>, and it is the same stone on both instruments:
+a <em>causal</em> day classifier. Gold's run-catcher and MNQ's grind both live or die on a minority of days, and
+both currently rely on an arming test that either fires too rarely (the break trio) or requires foresight
+(the oracle). Everything else in this section is either incubating or answered.</p>

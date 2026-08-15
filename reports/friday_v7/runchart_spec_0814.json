@@ -1,0 +1,32 @@
+[
+ {
+  "from": "2026-08-10T07:00",
+  "to": "2026-08-10T21:00",
+  "title": "Monday 08-10",
+  "subtitle": "07:00\u201321:00 UTC \u00b7 19 closed lots, 7 green \u00b7 \u2212$205.50 \u00b7 tape -145pt net on a 266pt range"
+ },
+ {
+  "from": "2026-08-11T07:00",
+  "to": "2026-08-11T21:00",
+  "title": "Tuesday 08-11",
+  "subtitle": "07:00\u201321:00 UTC \u00b7 15 closed lots, 12 green \u00b7 +$560.50 \u00b7 tape -108pt net on a 354pt range"
+ },
+ {
+  "from": "2026-08-12T07:00",
+  "to": "2026-08-12T21:00",
+  "title": "Wednesday 08-12",
+  "subtitle": "07:00\u201321:00 UTC \u00b7 31 closed lots, 8 green \u00b7 \u2212$435.50 \u00b7 tape +70pt net on a 274pt range"
+ },
+ {
+  "from": "2026-08-13T07:00",
+  "to": "2026-08-13T21:00",
+  "title": "Thursday 08-13",
+  "subtitle": "07:00\u201321:00 UTC \u00b7 10 closed lots, 5 green \u00b7 +$768.50 \u00b7 tape +328pt net on a 460pt range"
+ },
+ {
+  "from": "2026-08-14T07:00",
+  "to": "2026-08-14T21:00",
+  "title": "Friday 08-14",
+  "subtitle": "07:00\u201321:00 UTC \u00b7 38 closed lots, 19 green \u00b7 +$604.50 \u00b7 tape -18pt net on a 262pt range"
+ }
+]

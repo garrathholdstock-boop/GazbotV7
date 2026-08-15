@@ -1,46 +1,45 @@
 #!/usr/bin/env python3
-"""Assemble the FULL V7 Friday report → light-theme HTML + iPad PDF.
+"""Assemble the FULL V7 Friday report -> light-theme HTML + iPad PDF.
 
-2026-08-08 REVISION 2 BUILD. The 2026-08-08 Rev 1 build was OOM-KILLED mid-run. What it left on
-disk looked finished and was not: titled "Rev 1 — PARTIAL, not proofread", ending mid-sentence at
-"That is Movement 3's job.", with no Movement 3, no Monday playbook, and a PDF that had been
-rendered from an EARLIER copy of the HTML than the one beside it. Three defects made that possible
-and all three are now closed:
+2026-08-14 BUILD. Stitches every pre-baked section fragment into the proven light-theme shell,
+in the report's canonical order, and renders a PDF via weasyprint (system python3):
 
-  * PRE-FLIGHT. Every one of the nine section fragments is checked for existence, non-zero size
-    and a minimum body length BEFORE a single byte is stitched. Any failure aborts and NAMES the
-    offending files. A missing section used to WARN and build anyway — that is precisely how a
-    short report ships looking complete. A named hard failure is always more useful.
+  Front      WHAT TO ACTUALLY DO + honest headline + scorecard  (generated from plays.json
+             and, for the money table, from data/gazbot7.db — never typed into this file)
+  Part 0     are we getting better?  part0_progress.html
+  Part 1     live desk               part1_live.html   + run_charts.html INSIDE it
+  Part 1.5   REHABILITATION          part1_5_rehab.html
+  Part 2     shadow / promotion      part2_shadow.html
+  Part 2.5   mid-week musings        part25_musings.html
+  Part 2.6   ROUTER REVIEW           part2_6_router_review.html
+  M1         run census              movement1_census.html + movement1_census_MGC.html INSIDE it
+  M2         idle-gate lab           movement2_idle_gates.html
+  M3         greenfield lab          movement3_greenfield.html
+
+Three properties this build guarantees, each one closing a failure that actually shipped:
+
+  * NO SILENT OMISSION, AND NO SILENT ABORT. The 08-08 build made a missing fragment a hard
+    failure, which was right for the failure it was written against (a short report that looked
+    complete) and wrong for this week's (two phases overran, four never started). A missing
+    fragment now renders as a LOUD NAMED PLACEHOLDER saying which phase failed and what the
+    reader is not getting — see fragment_or_placeholder(). Absence is fine; silence is not,
+    because "we looked and found nothing" and "nobody looked" are opposite instructions.
+  * NO STALE FRAGMENT. Anything older than CYCLE_START is a previous week's conclusions wearing
+    this week's date, and that DOES abort — it is the one case where the reader cannot possibly
+    tell something is wrong. (It caught run_charts.html this week, which still charted 08-03.)
   * ONE STRING, ONE PASS. The PDF is rendered from the same `doc` value as the HTML, in the same
-    invocation, and is rendered BEFORE the HTML is written — so a PDF failure can never leave a
-    newer orphaned HTML behind claiming to be current. Both mtimes are printed on success.
-  * SELF-DESCRIBING PLAYS. The number/owner/revert behind each play, plus its evidence tier and
-    kill criterion, now live ON the play in reports/friday_v7/plays.json instead of in a
-    hand-maintained dict in this file. The action card and the Monday playbook read the same
-    file, so they cannot drift. An empty plays.json is a hard failure.
+    invocation, and BEFORE the HTML is written — so a PDF failure cannot leave a newer orphaned
+    HTML behind claiming to be current. Both mtimes are printed on success.
 
-Stitches every pre-baked section fragment into the proven light-theme shell, in the report's
-canonical order, and renders a PDF via weasyprint (system python3):
-
-  Front      WHAT TO ACTUALLY DO + honest headline + scorecard  (generated from plays.json)
-  Part 1     live desk            part1_live.html
-  Part 1.5   REHABILITATION       part1_5_rehab.html
-  Part 2     shadow / promotion   part2_shadow.html
-  Part 2.5   mid-week musings     part25_musings.html
-  Part 2.6   ROUTER REVIEW        part2_6_router_review.html
-  Part 2.7   THE DAY RIDER        day_rider.html
-  M1         run census           movement1_census.html
-  M2         idle-gate lab        movement2_idle_gates.html
-  M3         greenfield lab       movement3_greenfield.html
-
-Note on the section directory: one rehab dossier's filename contains a "/" which the writing
-agent turned into a real DIRECTORY. Its content is already folded into part1_5_rehab.html, so this
-script deliberately reads an EXPLICIT list of fragments and never globs the sections dir.
+Note on the section directory: a rehab dossier's filename contains a "/" which the writing agent
+turned into a real DIRECTORY, so a naive rehab_*.md glob returns a path that is not a file and
+read_text() raises IsADirectoryError. This script reads an EXPLICIT list of fragments and never
+globs; scripts/friday_v7_rehab_section.py, which does glob, skips non-files rather than choking.
 
 Build the plays first, then the report, then the playbook:
-  python3 scripts/friday_v7_plays_0808.py
-  python3 scripts/friday_v7_build.py --slug 2026-08-08
-  python3 scripts/friday_v7_monday.py --slug 2026-08-08
+  python3 scripts/friday_v7_plays_0814.py
+  python3 scripts/friday_v7_build.py --slug 2026-08-14
+  python3 /home/alphabot/alphabot2/scripts/friday/build_playbook.py --slug 2026-08-14
 """
 from __future__ import annotations
 
@@ -55,7 +54,8 @@ import sys
 SEC = "/home/alphabot/gazbot7/reports/friday_v7/sections"
 OUT = "/home/alphabot/gazbot7/src/gazbot7/web_static"
 PLAYS = "/home/alphabot/gazbot7/reports/friday_v7/plays.json"
-PLAYBOOK_URL = "/v7/static/monday_2026-08-08.html"
+DESK_DB = "/home/alphabot/gazbot7/data/gazbot7.db"
+PLAYBOOK_URL = "/v7/static/monday_2026-08-14.html"
 CSS_TEMPLATE = "/home/alphabot/alphabot2/alphabot/dashboard/static/weekly_2026-06-26.html"
 
 # supplemental CSS for classes the template may not define
@@ -126,7 +126,24 @@ table.plays .num-cell{font-weight:700;color:#0f2942}
 </style>"""
 
 
-# The full report spine, in order. (label, sub-title, fragment file, anchor)
+# ══════════════════════════════════════════════════════════════════════════════════════
+# ★2026-08-14 SPINE. Three structural changes from the 08-08 build, all of them requested:
+#
+#   1. REHABILITATION IS A HEADLINE LIVE-DESK SECTION. It sits at Part 1.5, directly after
+#      the live desk and before the shadow board — not buried behind the movements. It is
+#      the operator's #1 recurring section and the running order should say so.
+#   2. RUN CHARTS GO INSIDE PART 1, not in an appendix. The charts are visual trade review
+#      of the case-study days Part 1 discusses, so they belong beside that prose. They are
+#      rendered INSIDE Part 1's <section> via the `inserts` field below rather than as a
+#      section of their own — see the stitch loop in main().
+#   3. LAST WEEK'S SECTIONS ARE GONE. The 08-08 spine carried day_rider.html and six Rev2
+#      correction chapters (Part 3.1–3.6). Both are PRIOR-WEEK fragments: nothing regenerated
+#      them this week, and stitching a stale chapter into a fresh report is worse than
+#      omitting it because the reader cannot tell. This week's day-rider work is inside
+#      Part 1 (§2.3 and §6), which is where it was written.
+#
+# (label, sub-title, fragment file, anchor, inserts)
+#   inserts = extra fragments rendered INSIDE this section, each (heading, filename).
 SECTIONS = (
     # ★★2026-08-13 PART 0 GOES FIRST, in the operator's own words: "we never had multiple green days
     # in a week like we having now ... we should almost open with this. gives hope and shows
@@ -137,30 +154,35 @@ SECTIONS = (
     # GENERATED, never written: scripts/friday/progress_page.py rebuilds it from the live trade
     # record each Friday — total desk (tournament + day-rider), data_quality IS NULL — so it cannot
     # drift from the books and nobody has to remember to update it.
-    ("Part 0", "Are we getting better? — every day the desk has traded, green or red", "part0_progress.html", "sec0"),
-    ("Part 1", "The live desk — what the six-gate paper tournament actually did", "part1_live.html", "sec1"),
-    ("Part 1.5", "Live-desk REHABILITATION — never bench a gate at face value", "part1_5_rehab.html", "sec2"),
-    ("Part 2", "The shadow desk, the promotion battery &amp; the regime-flex exit lab", "part2_shadow.html", "sec3"),
-    ("Part 2.5", "Mid-week musings — every lead from the desk chat, tested hard", "part25_musings.html", "sec4"),
-    ("Part 2.6", "ROUTER OPERATION REVIEW — the desk's #1 lever, on the stand", "part2_6_router_review.html", "sec5"),
-    ("Part 2.7", "THE DAY RIDER — the second desk, and how we make it work", "day_rider.html", "secdr"),
-    ("Movement 1", "The census — the biggest runs on MNQ this week, and did we show up", "movement1_census.html", "sec6"),
-    ("Movement 2", "The idle-gate lab — could the gates we own have caught them?", "movement2_idle_gates.html", "sec7"),
-    ("Movement 3", "The greenfield lab — brand-new entries, and the chop-day scalp lab", "movement3_greenfield.html", "sec8"),
-    # ★2026-08-08 REV2 FOLD-IN. These six were written by the self-proofread pass between 10:49
-    # and 11:15 UTC and were NOT in the 10:17 build — the process was OOM-killed at 11:19 before
-    # it could fold them in. Each one patches, withdraws or replaces material above it; the
-    # matching card edits are in scripts/friday_v7_rev2_fold.py. Anchor p3q1 must stay FIRST:
-    # PART3_FIRST keys the Part 3 opener off it.
-    ("Part 3.1", "REV2 &middot; Q0 — the ER30 &ge; 0.35 floor on abs_veto_short: put it in the table and it dies in the table", "rev2_q0.html", "p3q1"),
-    ("Part 3.2", "REV2 &middot; Q1 — is grind_long on or off on Monday? One population, one number", "rev2_q1.html", "p3q2"),
-    ("Part 3.3", "REV2 &middot; Q2 — last Friday's card: did we do those things, and did they work?", "rev2_q2.html", "p3q3"),
-    ("Part 3.4", "REV2 &middot; FIX0 — Saturday #3 is not a chandelier play, and as written it cannot be typed into any file the desk reads", "rev2_fix0.html", "p3f0"),
-    ("Part 3.5", "REV2 &middot; FIX1 — abs_veto_long: resolving HOLD #1 against Part 2 &sect;4, &sect;5 and &sect;9", "rev2_fix1.html", "p3f1"),
-    ("Part 3.6", "REV2 &middot; FIX2 — the ER30 floor through the 54-filter columns it never faced: it keeps 5 of 15 winners", "rev2_fix2.html", "p3f2"),
+    ("Part 0", "Are we getting better? — every day the desk has traded, green or red",
+     "part0_progress.html", "sec0", ()),
+    ("Part 1", "The live desk — what the paper tournament and the day rider actually did",
+     "part1_live.html", "sec1",
+     (("THE RUN CHARTS &mdash; every fill of the week, marked on the day&rsquo;s own price path",
+       "run_charts.html"),)),
+    ("Part 1.5", "Live-desk REHABILITATION — never bench a gate at face value",
+     "part1_5_rehab.html", "sec2", ()),
+    ("Part 2", "The shadow desk, the promotion battery &amp; the regime-flex exit lab",
+     "part2_shadow.html", "sec3", ()),
+    ("Part 2.5", "Mid-week musings — every lead from the desk chat, tested hard",
+     "part25_musings.html", "sec4", ()),
+    ("Part 2.6", "ROUTER OPERATION REVIEW — the desk's #1 lever, on the stand",
+     "part2_6_router_review.html", "sec5", ()),
+    ("Movement 1", "The census — the biggest runs this week, and did we show up",
+     "movement1_census.html", "sec6",
+     (("THE SAME CENSUS ON GOLD &mdash; MGC, the second instrument",
+       "movement1_census_MGC.html"),)),
+    ("Movement 2", "The idle-gate lab — could the gates we own have caught them?",
+     "movement2_idle_gates.html", "sec7", ()),
+    ("Movement 3", "The greenfield lab — the gold book-break hunt, and the hunts that did not run",
+     "movement3_greenfield.html", "sec8", ()),
 )
 
-PART3_FIRST = "p3q1"
+# No Part 3 this week. The 08-08 cycle had a self-proofread pass that reopened six questions
+# AFTER the report rendered, and those became Part 3.1-3.6. Nothing equivalent ran this week,
+# so there is no Part 3 opener to key off. Kept as None rather than deleted: the stitch loop
+# still checks it, and a future cycle that revives the pass only has to set it again.
+PART3_FIRST = None
 
 WINDOWS = (
     # ★2026-08-08 — these three windows are now ordered by EXECUTION LOGIC, not by the size of
@@ -375,6 +397,58 @@ def esc(s: str) -> str:
     return html.escape(s).replace("\n", "<br>")
 
 
+# Anything on disk older than this belongs to a previous report cycle. The serial runner uses
+# the same cutoff to decide what to rebuild (`artifacts older than ... are STALE`).
+CYCLE_START = dt.datetime(2026, 8, 14, 19, 0, tzinfo=dt.UTC).timestamp()
+
+# Why each fragment is absent, and what the reader is NOT getting. Written per-phase rather than
+# generated, because "the phase failed" is not useful and "the phase failed, here is what was in
+# it and here is what it cost you" is.
+WHY_MISSING = {
+    "part1_5_rehab.html": (
+        "the <code>rehab</code> phase hit its 90-minute timeout",
+        "It finished the whole exhaustion_short battery and saved it as JSON before it died, so "
+        "this section was rebuilt from those artifacts by the assembly step. If you are seeing "
+        "this placeholder instead, that rebuild also failed."),
+    "movement3_greenfield.html": (
+        "four of the five greenfield phases never started",
+        "The serial runner ran out of budget (<code>BUDGET: stopping section builds to protect "
+        "the tail</code>). The MNQ cause-cluster hunts — VACUUM, FLOW-LED, OPEN/NEWS — and the "
+        "chop-day scalp lab did not run at all."),
+    "run_charts.html": (
+        "the run-chart generator produced nothing for this week's sessions",
+        "These are the price paths of each session with every fill marked on them. Without them "
+        "the case-study days in Part 1 are prose only."),
+    "movement1_census_MGC.html": (
+        "the gold census did not freeze",
+        "Movement 1's MNQ census is unaffected; what is missing is the same table for MGC."),
+}
+
+
+def fragment_or_placeholder(fname: str, label: str, sub: str) -> str:
+    """Read a fragment, or return a LOUD, NAMED placeholder if it is not fit to stitch.
+
+    ★2026-08-14. The alternative — omitting the section — is the one thing that must not happen:
+    a reader cannot tell the difference between "we looked and found nothing" and "nobody looked",
+    and those two are opposite instructions for next week. So the gap is printed, with the phase
+    that failed and what the section would have contained.
+    """
+    p = pathlib.Path(SEC) / fname
+    if p.is_file() and p.stat().st_size and len(p.read_text().strip()) >= 200:
+        return p.read_text()
+    why, cost = WHY_MISSING.get(
+        fname, ("its phase did not complete", "No further detail was recorded."))
+    return (
+        '<div class="rev3"><div class="ct">★ THIS SECTION IS MISSING &mdash; it did not run</div>'
+        f'<p><strong>{esc(label)} &mdash; {sub}</strong> is not in this report because '
+        f'{why}. The fragment <code>{esc(fname)}</code> was never written.</p>'
+        f'<p>{cost}</p>'
+        '<p><strong>Read this as a GAP, not as a null result.</strong> Nothing here was tested and '
+        'found wanting; it was not tested. Do not treat the absence as evidence in either '
+        'direction, and do not let next week&rsquo;s report inherit a conclusion from it. The '
+        'disposition tables in the sections that DID run name every lead this affects.</p></div>')
+
+
 def play_meta(p: dict) -> tuple[str, str, str]:
     """(the number behind it, owner, revert path).
 
@@ -400,6 +474,31 @@ def tier_pill(tier: str) -> str:
     return f'<span class="tag {TIER_CLASS.get(head, "")}">{esc(tier)}</span>'
 
 
+def top_callout(plays: list[dict]) -> str:
+    """"The ones that matter most" — GENERATED from the card's own top rows.
+
+    ★2026-08-14. This block used to be hand-written above a generated table, and on 08-08 it
+    ended up selling two things the table beneath it had withdrawn. Deriving it from SATURDAY #1
+    and #2 and MONDAY #1 means it cannot disagree with the card: if a re-rank moves a play, this
+    text moves with it.
+    """
+    picks = []
+    for window, rank in (("SATURDAY", 1), ("SATURDAY", 2), ("MONDAY", 1)):
+        hit = [p for p in plays if p.get("window") == window and p.get("rank") == rank]
+        if hit:
+            picks.append((window, rank, hit[0]))
+    body = "".join(
+        f'<p><strong>{i} &middot; {esc(p["topic"])} '
+        f'({w}&nbsp;#{r}).</strong> {esc(p["play"])} '
+        f'<em>{esc(p["number"])}</em></p>'
+        for i, (w, r, p) in enumerate(picks, 1))
+    return ('<div class="callout"><div class="ct">The three that matter most</div>'
+            + body
+            + '<p class="ln">Generated from the top of the card below, so the two cannot drift '
+              'apart. Everything else, including every refuted idea and why it died, is in the '
+              'five windows underneath.</p></div>')
+
+
 def render_plays() -> tuple[str, int]:
     plays = json.loads(pathlib.Path(PLAYS).read_text())
     if not plays:
@@ -415,43 +514,11 @@ def render_plays() -> tuple[str, int]:
         f'{len(plays)} plays, five windows, in the order they need doing. Every play carries its '
         '<strong>evidence tier</strong> and its <strong>kill criterion</strong> — if a play has no way to '
         'be proven wrong it should not be on the card.</p>',
-        # ★2026-08-08 REV2. Item 1 sold the ER30 floor and item 3 sold "ext 2.0 → 3.0"; Part 3
-        # withdraws the first and replaces the second with a deletion. This callout is the most
-        # prominent text in the document — leaving it stale would have contradicted the card
-        # sitting directly beneath it.
-        '<div class="callout"><div class="ct">The three that matter most '
-        '<span class="tag pill-dontarm">REV2-CORRECTED</span></div>'
-        '<p><strong>1 &middot; Sit out the chop (MONDAY&nbsp;#1).</strong> The largest number anywhere in '
-        'this document, and it needs no code at all: chop-regime entries cost &minus;$5,483 over 17 days '
-        'while everything else made +$1,482 &mdash; perfect avoidance turns &minus;$4,001 into +$1,482. '
-        'A perfect chop filter beats every invention in this report by an order of magnitude, and the '
-        'router already owns the lever. This is an architectural principle, not a play: '
-        '<strong>the edge is refusing rubbish trades, not finding more of them.</strong></p>'
-        '<p><strong>2 &middot; abs_veto_short: arm it by default &mdash; and <em>without</em> the ER30 '
-        'floor (SATURDAY&nbsp;#1).</strong> This is the biggest single leak in the report and three '
-        'independent sections found it. The gate was benched for 91% of the week while its shadow twin '
-        'made +$928, and armed for the 9% in which it lost &minus;$559.00 on nine lots without a single '
-        'winner. The signal is +$2,290.50 over 159 fires and 4-of-4 weeks green. The router had it '
-        'backwards on both sides. <strong>The ER30&nbsp;&ge;&nbsp;0.35 arming floor this play originally '
-        'carried is WITHDRAWN as refuted</strong> &mdash; it keeps 5 of 15 winners and discards $1,363 of '
-        'profitable trades (<a href="#p3q1">Part&nbsp;3.1</a>, <a href="#p3f2">Part&nbsp;3.6</a>, '
-        'corroborated independently in <a href="#p3q3">Part&nbsp;3.3</a>). Arm the gate, ship the '
-        'BUILDING&nbsp;&times;&nbsp;US-SESSION veto, leave ER alone. &#9888; Judge the first 15 armed '
-        'fires on the <em>armed book alone</em> &mdash; not blended with the shadow twin. On the live '
-        'week this gate was <strong>0 for 8 at &minus;$523.50</strong>, the worst short gate on the desk; '
-        'the entire case for arming it comes from the continuous book, so the 15-fire review is a hard '
-        'gate and not a formality.</p>'
-        '<p><strong>3 &middot; grind_long: revert the 08-01 floors (SATURDAY&nbsp;#2).</strong> '
-        'ATR&nbsp;10&nbsp;&rarr;&nbsp;22, and <strong>delete</strong> the <code>ext_hi</code> key rather '
-        'than pinning it to 3.0 &mdash; everything from 3.0 up scores identically, so a new literal just '
-        're-fits the thing the revert is undoing (<a href="#p3q2">Part&nbsp;3.2</a>). One literal changes, '
-        'one is removed. Quote the number with its shape attached: <strong>+$4,151</strong> is a delta over '
-        '11 tick-honest sessions and 165 legs, of which <strong>21 runner events are the entire result</strong>. '
-        '&#9888; The week&rsquo;s six live grind fills all fired at ATR&nbsp;&ge;&nbsp;22 and are silent on '
-        'the revert &mdash; do not quote &minus;$172 as support for it. '
-        '&#9888; And <code>grind_long</code> is not in <code>reactivate_gates.py::HOLD</code>, so the '
-        '22:00&nbsp;UTC Sunday timer re-arms it either way: shipping the floor or adding a HOLD entry are '
-        'the only two states available.</p></div>',
+        # ★2026-08-14. This callout is the most prominent text in the document, so it is
+        # GENERATED from the top of the card rather than written — a hand-written summary above a
+        # generated table is the single easiest way for the front page to end up arguing for a
+        # play the card no longer contains, which is exactly what happened on 08-08.
+        top_callout(plays),
     ]
 
     order = {w[0]: i for i, w in enumerate(WINDOWS)}
@@ -476,8 +543,13 @@ def render_plays() -> tuple[str, int]:
                 f'<td class="rk">{p.get("rank", "—")}</td>'
                 f'<td data-l="What to do"><span class="topic">{esc(p["topic"])}{mtag}</span>'
                 f'{tier_pill(p["tier"])} {esc(p["play"])}'
-                f'<span class="why"><strong>Mechanism:</strong> {esc(p["mechanism"])}</span>'
-                f'<span class="why"><strong>Why:</strong> {esc(p["rationale"])}</span>'
+                # Omit an empty field rather than printing a bare label. Where the mechanism
+                # already carries the reasoning, a separate "Why:" line just restates it.
+                + (f'<span class="why"><strong>Mechanism:</strong> {esc(p["mechanism"])}</span>'
+                   if p.get("mechanism") else "")
+                + (f'<span class="why"><strong>Why:</strong> {esc(p["rationale"])}</span>'
+                   if p.get("rationale") else "")
+                +
                 f'<span class="why"><em>Evidence:</em> {esc(p["section_ref"])} '
                 f'&nbsp;·&nbsp; verification: <strong>{esc(p["verification"])}</strong> '
                 f'&nbsp;·&nbsp; mode: {esc(p["suggested_mode"])}</span></td>'
@@ -498,19 +570,24 @@ def render_plays() -> tuple[str, int]:
         'run <strong>1.1&ndash;3.1&times; modelled</strong>. Treat the policy as the edge and the headline '
         'dollar as decoration. Anything on thin n is flagged in-row as a <em>direction</em>, not a '
         'measurement.</p>'
-        '<p><strong>The fee is $1.50 per round trip.</strong> Every greenfield number in Movement 3 was '
-        'originally priced at ~$5/RT and has been re-priced; the correction is exactly linear '
-        '(net@1.50 = net@5.00 + 3.50 &times; n) so it <em>helps</em> everything, winners and losers alike. '
-        'A loser the correction rescues was never killed by cost in the first place, and the one row where '
-        'that happens is flagged in NOT-AN-ACTION #5.</p>'
-        '<p><strong>Three method wounds are still open and they bound everything above.</strong> '
-        'The shadow book leaks past its own stops on 44% of trades (median overshoot 0.56&times;ATR), so '
-        'every shadow result that rewards cutting early is inflated &mdash; BUILD #3. '
-        '<code>signal_journal.suppressed_by</code> is NULL in all 596 rows, so every claim about what a gate '
-        '<em>would</em> have done unrouted is a reconstruction from the tape, not a measurement &mdash; '
-        'BUILD #5. And microstructure sampling noise is large: on exhaustion_short the standard deviation '
-        'across ten polling phases is $418 on a &minus;$880 mean. Anyone quoting a single run of that '
-        'harness is quoting noise.</p></div>')
+        '<p><strong>The fee is $1.50 per round trip and the multipliers are not the same.</strong> '
+        'MNQ is $2.00 a point; <strong>MGC is $10.00</strong>. Every gold number in Movement 3 and in '
+        'Part 2.5 Part A is priced at the gold multiplier &mdash; pricing gold with the Nasdaq one would '
+        'understate it fivefold, and doing the reverse would flatter it fivefold.</p>'
+        '<p><strong>Four method wounds are open and they bound everything above.</strong> '
+        '<code>signal_journal.suppressed_by</code> is NULL in all 222 rows this week, so every claim about '
+        'what a gate <em>would</em> have done unrouted is a reconstruction from the tape rather than a '
+        'measurement &mdash; BUILD&nbsp;#6, and it is the <em>same defect the scope flagged last week</em>. '
+        'The router&rsquo;s leakage detector is scoped to a universe that barely trades, so its zero is an '
+        'empty set and not a clean week &mdash; BUILD&nbsp;#3. The nightly rollup reports $0/$0/$0 when the '
+        'systemd journal has rotated past the day it is backfilling, which is indistinguishable from a day '
+        'with no value &mdash; BUILD&nbsp;#8. And <code>selector_nightly</code> counted a quarantined trade '
+        'five times, inflating one day&rsquo;s regret by 39% &mdash; SATURDAY&nbsp;#3.</p>'
+        '<p><strong>Two sections of this report did not run.</strong> The rehabilitation phase timed out '
+        'and Movement 3&rsquo;s four MNQ hunts never started. Part 1.5 was rebuilt from the artifacts the '
+        'timed-out phase had already saved, and Movement 3 is the one gold hunt that finished; both say so '
+        'at the top. <strong>Nothing on this card rests on a section that is missing</strong>, and the gaps '
+        'are named as gaps rather than reported as nulls &mdash; BUILD&nbsp;#2 is the reschedule.</p></div>')
     _ = order
     return "\n".join(out), len(plays)
 
@@ -562,195 +639,221 @@ def check_xrefs() -> int:
     return 0
 
 
+def desk_numbers() -> dict:
+    """The week's money, COMPUTED from the trade record — never typed into this file.
+
+    ★ The 08-08 front page hard-coded every figure in its headline table. That is how a report
+    ends up asserting a P&L that no longer matches the books after a re-attribution or a
+    quarantine flag lands. These are read at build time from data/gazbot7.db, with
+    `data_quality IS NULL` as the clean-ledger predicate, and the quarantined rows counted
+    separately so the difference between the two totals is visible rather than silent.
+    """
+    import sqlite3
+    con = sqlite3.connect(f"file:{DESK_DB}?mode=ro", uri=True)
+    W = "closed_at >= '2026-08-10' AND closed_at < '2026-08-15'"
+
+    def one(sql):
+        return con.execute(sql).fetchone()
+
+    raw = one(f"SELECT count(*), round(sum(pnl_usd),2) FROM trades WHERE {W}")
+    clean = one(f"SELECT count(*), round(sum(pnl_usd),2) FROM trades WHERE {W} "
+                "AND data_quality IS NULL")
+    rider = one(f"SELECT count(*), round(sum(pnl_usd),2) FROM trades WHERE {W} "
+                "AND data_quality IS NULL AND gate LIKE 'day_rider%'")
+    tour = one(f"SELECT count(*), round(sum(pnl_usd),2) FROM trades WHERE {W} "
+               "AND data_quality IS NULL AND gate NOT LIKE 'day_rider%'")
+    days = con.execute(f"SELECT date(closed_at), round(sum(pnl_usd),2) FROM trades WHERE {W} "
+                       "AND data_quality IS NULL GROUP BY 1 ORDER BY 1").fetchall()
+    gates = con.execute(
+        f"SELECT replace(replace(gate,'_A',''),'_B',''), count(*), round(sum(pnl_usd),2), "
+        f"round(100.0*sum(pnl_usd>0)/count(*),1) FROM trades WHERE {W} "
+        "AND data_quality IS NULL GROUP BY 1 ORDER BY 3").fetchall()
+    con.close()
+    return dict(raw=raw, clean=clean, rider=rider, tour=tour, days=days, gates=gates,
+                green=sum(1 for _, v in days if v > 0))
+
+
+def m(v, dp=2):
+    s = f"{abs(v):,.{dp}f}"
+    return ("&minus;$" + s) if v < 0 else ("$" + s)
+
+
 def render_front(slug: str, n_plays: int) -> str:
+    d = desk_numbers()
+    raw_n, raw_v = d["raw"]
+    cl_n, cl_v = d["clean"]
+    r_n, r_v = d["rider"]
+    t_n, t_v = d["tour"]
+    quar_n, quar_v = raw_n - cl_n, round(raw_v - cl_v, 2)
+    n_sections = len(SECTIONS)
+
+    daily = "".join(
+        f'<tr class="{"row-hl" if v > 0 else "row-bad"}"><td class="ln">{day}</td>'
+        f'<td class="num">{m(v)}</td></tr>' for day, v in d["days"])
+    gaterows = "".join(
+        f'<tr class="{"row-hl" if v > 0 else "row-bad"}"><td class="ln"><code>{g}</code></td>'
+        f'<td class="num">{n}</td><td class="num">{m(v)}</td><td class="num">{w}%</td>'
+        f'<td class="num">{m(v / n)}</td></tr>' for g, n, v, w in d["gates"])
+
     return f"""
 <div class="masthead">
   <h1>GAZBOT V7 &mdash; the Friday report</h1>
-  <p class="dates">Week ending {slug} &nbsp;·&nbsp; Mon 3 &ndash; Fri 7 August 2026 &nbsp;·&nbsp;
-     MNQ-only &nbsp;·&nbsp; PAPER &nbsp;·&nbsp;
-     <strong>REVISION 2</strong>, rebuilt 2026-08-08 &nbsp;·&nbsp; {n_plays} plays &nbsp;·&nbsp;
-     9 sections, complete</p>
+  <p class="dates">Week ending {slug} &nbsp;·&nbsp; Mon 10 &ndash; Fri 14 August 2026 &nbsp;·&nbsp;
+     MNQ-led, MGC now captured &nbsp;·&nbsp; PAPER &nbsp;·&nbsp;
+     {n_plays} plays &nbsp;·&nbsp; {n_sections} sections</p>
 </div>
 
-<div class="rev3ptr"><strong>What Revision 2 is.</strong> Revision 1 was killed mid-build by the machine
-running out of memory. It shipped titled &ldquo;PARTIAL, not proofread&rdquo;, ended mid-sentence at
-&ldquo;That is Movement 3's job.&rdquo;, carried <strong>no Movement 3</strong> and <strong>no Monday
-playbook</strong>, and its PDF had been rendered from an <em>earlier</em> copy of the HTML than the one on
-disk &mdash; so the two artefacts disagreed with each other. Revision 2 replaces all of it. All nine
-sections are stitched, the build now refuses to run at all if any section is missing or empty rather than
-quietly emitting a short report, and the HTML and the PDF are rendered from one string in one pass so they
-cannot diverge again.</div>
+<h2 id="honest"><span class="n">★</span> THE HONEST HEADLINE &mdash; the desk made money, and one
+desk made all of it</h2>
 
-<h2 id="honest"><span class="n">★</span> THE HONEST HEADLINE &mdash; the desk lost money, and it is not
-mysterious</h2>
+<p class="lead">The whole desk booked <strong>{m(cl_v)}</strong> across {cl_n} clean lots, and
+<strong>three of the five days were green</strong> &mdash; which is the thing Part&nbsp;0 exists to
+show, because a year ago a green week was one day. But the money is not spread around, and the
+split is the first thing you should see: <strong>the day rider made {m(r_v)} on {r_n} trades and
+the six-gate tournament lost {m(t_v)} on {t_n}.</strong> Take the rider out and the week is red.
+Read every gate card in this report with that in mind &mdash; the tournament did not have a good
+week, it had a week that a second desk paid for.</p>
 
-<p class="lead">The tournament lost <strong>&minus;$772.50</strong> this week on 110 booked lots. The loss
-is not spread around: the <strong>long book made +$345.50 and the short book lost &minus;$1,022.50</strong>,
-and one gate &mdash; <strong>abs_veto_short</strong> &mdash; lost <strong>&minus;$559.00 on nine lots
-without winning a single one</strong>. Take the shorts away and the week is green.</p>
-
-<p>There is no single honest total, so here are all of them, with what separates each from the next.</p>
+<p>There is no single honest total, so here are all of them, with what separates each from the
+next.</p>
 
 <table>
 <thead><tr><th class="ln">What you are looking at</th><th class="num">Lots</th><th class="num">Net $</th>
 <th class="ln">Why it differs from the row above</th></tr></thead>
 <tbody>
-<tr><td class="ln">Raw <code>trades</code> rows, 08-03 &rarr; 08-07</td><td class="num">112</td>
-    <td class="num">&minus;1,028.00</td>
-    <td class="ln">includes the two corrupt MD_STREAM lots</td></tr>
+<tr><td class="ln">Raw <code>trades</code> rows, 08-10 &rarr; 08-14</td><td class="num">{raw_n}</td>
+    <td class="num">{m(raw_v)}</td>
+    <td class="ln">includes {quar_n} quarantined lots worth {m(quar_v)}</td></tr>
 <tr class="row-hl"><td class="ln"><strong>Clean ledger</strong> (<code>data_quality IS NULL</code>)</td>
-    <td class="num">110</td><td class="num"><strong>&minus;772.50</strong></td>
-    <td class="ln">the desk's real booked money &mdash; this is the number to quote</td></tr>
-<tr><td class="ln">Tournament gates only</td><td class="num">108</td><td class="num">&minus;677.00</td>
-    <td class="ln">strips the day-rider's cross-desk pair (&minus;$95.50), booked to the tournament by
-        Thursday's flatten</td></tr>
-<tr><td class="ln">Gate strategy, defects stripped</td><td class="num">104</td>
-    <td class="num">&minus;607.00</td>
-    <td class="ln">strips the ghost stop and the phantom close &mdash; &minus;$165.50 of the loss was three
-        shared-account defects, not a strategy losing money</td></tr>
+    <td class="num">{cl_n}</td><td class="num"><strong>{m(cl_v)}</strong></td>
+    <td class="ln">the desk&rsquo;s real booked money &mdash; this is the number to quote</td></tr>
+<tr><td class="ln">The day rider alone</td><td class="num">{r_n}</td><td class="num">{m(r_v)}</td>
+    <td class="ln">the second desk. Five trades, five winners &mdash; and it only started writing
+        a ledger at all this week, so treat it as thin, not as proven</td></tr>
+<tr class="row-bad"><td class="ln"><strong>The six-gate tournament alone</strong></td>
+    <td class="num">{t_n}</td><td class="num"><strong>{m(t_v)}</strong></td>
+    <td class="ln">what the gates this report is mostly about actually did</td></tr>
 </tbody>
 </table>
 
-<div class="callout"><div class="ct">Read the week by volatility, not by direction</div>
-<p>Every tape number below is recomputed from <code>capture.db</code> 5-second bars rolled up to one minute,
-not read off a dashboard. <strong>The desk does not lose money on trend days. It loses money on
-high-volatility days that go nowhere.</strong> Monday walked 482 points up in the US session at ER 0.171
-&mdash; a genuinely good day to be long &mdash; and the desk lost $280 on it. Wednesday and Thursday, the
-two days ATR doubled from 12 to 20 points and the tape finished where it started, took
-<strong>&minus;$1,122</strong> out of the desk between them. Thursday travelled <strong>9,964 points over
-the full session to finish eleven points up</strong> &mdash; ER 0.001, the flattest day in the record. With
-n=5 sessions that is an observation, not a law &mdash; but it is the same shape the whole week keeps
-making, and it is why the single largest number in this report is an <em>off switch</em>.</p></div>
+<div class="callout"><div class="ct">The {quar_n} quarantined lots, named</div>
+<p>They are the 13 August day-rider phantom re-book, flagged
+<code>EXCLUDE:day_rider_phantom_rebook_20260813</code>, and they are worth {m(quar_v)} &mdash; more
+than the entire week&rsquo;s clean profit. <strong>That is why the quarantine flag exists and why
+every query in this report carries <code>data_quality IS NULL</code>.</strong> A report that quoted
+the raw table would have led with {m(raw_v)} and been wrong by {m(quar_v)}. Part&nbsp;1 &sect;6.2
+walks the phantom itself.</p></div>
 
 <table>
-<thead><tr><th class="ln">Day</th><th class="num">US net</th><th class="num">US path</th>
-<th class="num">US ER</th><th class="num">US ATR</th><th class="ln">Read</th><th class="num">Lots</th>
-<th class="num">Wins</th><th class="num">Desk net</th></tr></thead>
-<tbody>
-<tr><td class="ln">Mon 08-03</td><td class="num">+482</td><td class="num">2,815</td><td class="num">0.171</td>
-    <td class="num">12.4</td><td class="ln">clean up-trend</td><td class="num">30</td><td class="num">8</td>
-    <td class="num">&minus;280.00</td></tr>
-<tr class="row-hl"><td class="ln">Tue 08-04</td><td class="num">+641</td><td class="num">2,799</td>
-    <td class="num">0.229</td><td class="num">12.6</td><td class="ln">the week's cleanest trend</td>
-    <td class="num">16</td><td class="num">10</td><td class="num">+330.50</td></tr>
-<tr class="row-bad"><td class="ln">Wed 08-05</td><td class="num">&minus;367</td><td class="num">4,095</td>
-    <td class="num">0.090</td><td class="num">20.1</td><td class="ln">whippy down &mdash; ATR doubled</td>
-    <td class="num">29</td><td class="num">4</td><td class="num">&minus;817.00</td></tr>
-<tr class="row-bad"><td class="ln">Thu 08-06</td><td class="num">+161</td><td class="num">4,253</td>
-    <td class="num">0.038</td><td class="num">20.5</td><td class="ln">pure chop at high vol</td>
-    <td class="num">14</td><td class="num">3</td><td class="num">&minus;305.00</td></tr>
-<tr class="row-hl"><td class="ln">Fri 08-07</td><td class="num">+120</td><td class="num">3,676</td>
-    <td class="num">0.033</td><td class="num">14.2</td><td class="ln">chop, but a real London run at 12:30</td>
-    <td class="num">21</td><td class="num">12</td><td class="num">+299.00</td></tr>
-</tbody>
+<thead><tr><th class="ln">Day</th><th class="num">Desk net (clean)</th></tr></thead>
+<tbody>{daily}</tbody>
 </table>
 
-<p>Read that table twice. <strong>The two cleanest trend days produced +$50.50 between them.</strong></p>
+<h2 id="scorecard"><span class="n">★</span> THE SCORECARD &mdash; what survived the week</h2>
 
-<h2 id="scorecard"><span class="n">★</span> THE SCORECARD &mdash; what survived the week, and what did not</h2>
-
-<p class="lead">Six claims went into this week carrying real weight. Here is where each one ended up, with
-the test that decided it. Read this before anything else in the report.</p>
+<p class="lead">Lead with what survived the skeptic, never with the biggest number. Six results
+carried real weight into Saturday; here is where each one landed and the test that decided it.</p>
 
 <table>
-<thead><tr><th class="ln">The claim</th><th class="ln">What it claimed</th>
-<th class="ln">Verdict, and the test that decided it</th><th class="ln">Where</th></tr></thead>
+<thead><tr><th class="ln">The claim</th><th class="ln">Verdict, and the test that decided it</th>
+<th class="ln">Where</th></tr></thead>
 <tbody>
 
 <tr class="row-hl">
-  <td class="ln"><strong>abs_veto_long is the one gate that works</strong></td>
-  <td class="ln">The thrust + 55-second confirm earns its place</td>
-  <td class="ln"><span class="tag pill-live">SURVIVED &mdash; the one number worth weight</span>
-      16 entries, 32 lots, <strong>+$566.00 at 62%</strong>, average winner +$47.60 against an average loser
-      of &minus;$32.20. Still positive if you delete <em>any</em> single day of the week, and still +$363 if
-      you delete its three best lots. Everything else on the desk this week is thin, one-week, or explained
-      by a software defect.</td>
-  <td class="ln"><a href="#sec1">Part 1</a></td></tr>
+  <td class="ln"><strong>The wide profit leg beats the tight one</strong></td>
+  <td class="ln"><span class="tag pill-live">SURVIVED &mdash; the week&rsquo;s best-evidenced result</span>
+      +$331.50 over <strong>50 identical entries</strong> &mdash; same signal, same price, same stop,
+      the only difference being where profit was taken. Placebo p=0.0040, sign test p=0.0235,
+      <strong>all five daily folds positive and all four gate folds positive</strong>. The A/B legs
+      are a scale-out, not an experiment, so the instruction is <em>widen Lot A&rsquo;s target</em>,
+      never drop Lot A.</td>
+  <td class="ln"><a href="#sec1">Part 1 &sect;2.2</a></td></tr>
 
 <tr class="row-hl">
-  <td class="ln"><strong>Never bench a gate at face value</strong></td>
-  <td class="ln">The gates that bled are fixable, not broken</td>
-  <td class="ln"><span class="tag pill-live">CONFIRMED &mdash; four of six rehabilitated</span>
-      <strong>Not one of the six was broken in the way it looked broken from the roster.</strong> grind_long
-      looked like a bad gate and was a bad ATR floor. abs_veto_short looked like a bleeder and was the
-      strongest signal on the desk on a 3.3% leash. MAX_HOLD looked like the worst exit on the desk and was
-      the fire alarm being blamed for the fire. exhaustion_short looked like an arming problem and is a
-      friction problem. nipc_short looked like a wrong-rung problem and is a direction bet. The chandelier
-      looked like a threshold that stopped being reached and had been switched off in code.</td>
+  <td class="ln"><strong>Never bench a gate at face value</strong> &mdash; the standing rule, applied
+      to the one properly red gate</td>
+  <td class="ln"><span class="tag pill-live">CONFIRMED, and it found the opposite of what was expected</span>
+      Every treatment aimed at <code>exhaustion_short</code>&rsquo;s ENTRY failed against a
+      4,000-draw placebo &mdash; 13 cooldown cells, 15 streak-bench cells and 9 flow floors, best of
+      them at the 85th percentile. <strong>The entry was never the problem.</strong> Under a wide
+      stop and a far target the same 87 signals are worth <strong>+$3,459.98 against
+      &minus;$84.50 as traded</strong>, and the entries beat <strong>60 of 60</strong> random-entry
+      controls. Under the live scalp exit those same entries sit at the 47th percentile &mdash;
+      indistinguishable from random. The edge is invisible at the exit the desk uses.</td>
   <td class="ln"><a href="#sec2">Part 1.5</a></td></tr>
 
 <tr class="row-bad">
-  <td class="ln"><strong>RUN STATE is the primary discriminator</strong> &mdash; carried into the week as
-      the desk's headline routing lead</td>
-  <td class="ln">in-run aligned +$10.34/trade against chop &minus;$28.43/trade &mdash; a $39/trade spread
-      that dwarfs gate, side and time-of-day</td>
-  <td class="ln"><span class="tag pill-dontarm">WITHDRAWN AS A ROUTING LEVER</span> The variable is real
-      &mdash; it beat 4,000 placebo shuffles twice and held on twelve unseen sessions. <strong>The headline
-      cell is not.</strong> Re-derived from scratch on the same 89 trades, in-run-aligned TAKEN goes from
-      n=34 &middot; 50% &middot; +$10.34/tr to <strong>n=46 &middot; 41% &middot; &minus;$1.83/tr</strong>,
-      and the 34/4/51 split could not be reproduced under <em>any</em> run-span definition tried. Armed
-      inside an aligned run the desk made nothing. And the lever is in the wrong place: arming more was
-      worth ~$170 this week, but re-pricing the <em>exits</em> on the exact same entries &mdash; changing
-      nothing about routing &mdash; turns the week from &minus;$772 into <strong>+$1,493</strong>.
-      It is an exit find wearing a router's coat.</td>
-  <td class="ln"><a href="#sec4">Part 2.5</a></td></tr>
+  <td class="ln"><strong>&ldquo;A wall of stops means bench the gate&rdquo;</strong></td>
+  <td class="ln"><span class="tag pill-dontarm">REFUTED, on two independent populations</span>
+      Mechanically, on 104 signals, every one of fifteen bench rules loses money and the best sits
+      at the 54th percentile of noise &mdash; benching after two stops cuts <strong>18 winners to
+      avoid 12 losers</strong>. Live, the same rule costs &minus;$172 across the week and forfeits
+      +$356 on Friday alone. <strong>The discriminator is the REGIME the losses happened in, not
+      the count of losses.</strong> &ldquo;Arm for periods&rdquo; wins.</td>
+  <td class="ln"><a href="#sec1">Part 1 &sect;2.4</a>, <a href="#sec2">Part 1.5 &sect;3.2</a></td></tr>
+
+<tr class="row-bad">
+  <td class="ln"><strong>The order book tells you which gold breaks will run</strong></td>
+  <td class="ln"><span class="tag pill-dontarm">REFUTED &mdash; and it is backwards</span>
+      On 397 MGC breaks, &ldquo;the far side is empty&rdquo; loses <strong>&minus;$2,059.50 at the
+      4.8th percentile</strong> of its own placebo: 1,904 of 2,000 random picks did better. The
+      feature carries real information and <strong>the sign is inverted</strong> &mdash; a gold level
+      that breaks into a vacuum is one nobody is defending, and price comes straight back. The
+      reformulation (fade it) is PARKED, not claimed.</td>
+  <td class="ln"><a href="#sec8">Movement 3</a></td></tr>
+
+<tr class="row-bad">
+  <td class="ln"><strong>A better exit would have caught the runs we missed</strong></td>
+  <td class="ln"><span class="tag pill-dontarm">REFUTED &mdash; we are late, not sloppy</span>
+      The timing-decay ladder, n=57 at every rung on this week&rsquo;s tape: perfect entries at the
+      ignition minute pay <strong>+$3,799</strong>, at five minutes +$389.50, and at seven minutes
+      <strong>&minus;$1,073</strong>. Our gates fire minutes after the money has gone. No exit
+      fixes being late. The idle-gate lab is an <strong>honest null</strong>: six mechanical fires
+      for +$15.50, and &minus;$94.50 once the single best is stripped.</td>
+  <td class="ln"><a href="#sec7">Movement 2</a></td></tr>
 
 <tr class="row-hl">
   <td class="ln"><strong>The router is earning its keep</strong></td>
-  <td class="ln">The desk's #1 lever, on the stand</td>
-  <td class="ln"><span class="tag pill-live">YES &mdash; its first clearly positive week</span>
-      <strong>+$2,951</strong> of net value on its own nightly repricing, up from &minus;$1,216 the week
-      before, and without thrashing: 1,393 ticks, 66 switch changes, 95.3% of ticks changed nothing. The
-      independent check agrees &mdash; the two gates it kept benched had shadow twins losing $4,158 over
-      exactly those windows. <strong>The desk still lost $953 on the router's own Paris-day basis, but it
-      lost it through gates the router had ARMED, not gates it failed to bench.</strong></td>
+  <td class="ln"><span class="tag pill-live">YES &mdash; and the gain is in its CLOCK, not its levels</span>
+      1,148 ticks, zero service failures, 95% of ticks change nothing. Its thresholds are already
+      at the best cell on both universes independently &mdash; there is nothing to win there. The
+      timing is a different story: window 45 / step 5 / hold 3 is worth <strong>+$502 and
+      +$399</strong> across the two sets. <strong>Two honest holes:</strong> its leakage detector
+      reported zero leakage while &minus;$241.00 leaked through a gate outside its universe, and a
+      10h20m outage on 13 August was indistinguishable from a calm day in every scoreboard.</td>
   <td class="ln"><a href="#sec5">Part 2.6</a></td></tr>
-
-<tr class="row-bad">
-  <td class="ln"><strong>The day-rider's exit is exit-proof &mdash; holding wins</strong></td>
-  <td class="ln">25 exit variants tested, holding beat every one</td>
-  <td class="ln"><span class="tag pill-dontarm">HALF WRONG</span> Re-run over 38 sessions scoring
-      <strong>114</strong> ways of ending a ride on identical entries: holding still beats every stop, but
-      <strong>its whole edge is three days</strong> &mdash; strip them and $5,410 becomes $379. The seven
-      days that lost $1,000+ lost &minus;$11,195 between them and the trail we shipped last Friday saves
-      <strong>exactly $0.00</strong> on every one, because price never went our way at all. The exit
-      parameter surface is noise (Spearman &minus;0.30 between in- and out-of-sample rank). <strong>The
-      entry is the lever</strong>: efficiency floor 0.15 &rarr; 0.25 takes the same 38 sessions from
-      +$5,410 to +$8,819, 32 of 32 leave-one-out folds positive.</td>
-  <td class="ln"><a href="#secdr">Part 2.7</a></td></tr>
-
-<tr class="row-bad">
-  <td class="ln"><strong>The greenfield lab will find us a new gate</strong></td>
-  <td class="ln">$9,917 of hindsight money sat in 54 runs we sat out &mdash; go build something that
-      catches them</td>
-  <td class="ln"><span class="tag pill-shadow">ONE SURVIVOR, AND IT GOES TO SHADOW</span> Three hunts from
-      a blank sheet; two came back with nothing. The OPEN RIDER &mdash; no trigger at all, just show up
-      every five minutes in the open window facing the way the last fifteen minutes went, with a stop twice
-      the house width &mdash; made money on 36 days including <strong>19 it was never fitted on</strong>
-      (+$30.66/trade out of sample against +$32.29 in, a 5% degradation). Three independent skeptics were
-      told to destroy it; <strong>the vote was 2&ndash;1, not 3&ndash;0</strong>. It goes to the shadow
-      book. <strong>Nothing from this week's greenfield goes live &mdash; 17 in-sample days earns SHADOW at
-      most.</strong></td>
-  <td class="ln"><a href="#sec8">Movement 3</a></td></tr>
 </tbody>
 </table>
 
+<h2><span class="n">&sect;</span> Every gate, this week, on the clean ledger</h2>
+<table>
+<thead><tr><th class="ln">Gate</th><th class="num">Lots</th><th class="num">Net $</th>
+<th class="num">Win %</th><th class="num">$ per lot</th></tr></thead>
+<tbody>{gaterows}</tbody>
+</table>
+<p class="ln">Computed at build time from <code>data/gazbot7.db</code> with
+<code>data_quality IS NULL</code>, not transcribed. Gates are collapsed across their A and B lots;
+the per-lot split is in Part 1 &sect;3, and it is where the wide-leg finding lives.</p>
+
 <div class="callout"><div class="ct">The three things this week actually taught the desk</div>
-<p><strong>1 &middot; The arming is worth more than the exits, and the exits are worth more than the
-entries.</strong> abs_veto_short's signal is +$2,290.50 over 159 fires and the desk had it benched for 91%
-of the week; the same section shows re-pricing exits on entries we already took is worth +$2,265 of swing.
-Every new gate invented from scratch this week is worth less than either.</p>
-<p><strong>2 &middot; We are late, not wrong.</strong> Entered on the ignition minute with an honest racing
-exit, the 52 sat-out runs pay <strong>+$6,846 &mdash; 71% of their hindsight ceiling</strong>. Turn up two
-minutes later and it is +$6,041; five minutes, +$4,090; ten, +$944; fifteen,
-<strong>&minus;$2,068</strong>. Every minute of confirmation costs about $600. That is why the idle-gate lab
-is a null: our gates fire seven to eight minutes before the money.</p>
-<p><strong>3 &middot; Our house stop is the wrong instrument for the open.</strong> Three independent routes
-&mdash; a 45-cell grid, a from-scratch skeptic rebuild, and the oracle &mdash; agree that every cell at a
-1-ATR stop is flat-to-negative and all 27 cells at 2.0&times;ATR or wider are positive. Even a perfect entry
-is shaken out of 14 of 52 runs at 1 ATR, against 0 of 52 at 2 ATR. Checking that on the live gates costs
-nothing.</p></div>
+<p><strong>1 &middot; When a gate is red, check the exit before you touch the entry.</strong>
+Twenty separate entry treatments on <code>exhaustion_short</code> failed to beat a coin. The exit
+turned the same signals from &minus;$84.50 into +$3,459.98. The desk has spent months tuning
+entries; this is the clearest evidence yet that the other half of the trade is where the slack is.
+And the mirror of it is in Movement&nbsp;3: when the ENTRY is a coin flip, no exit saves it &mdash;
+median favourable excursion +3.28&times;ATR against median adverse &minus;3.04&times;ATR is a
+symmetric distribution with nothing to build a stop around.</p>
+<p><strong>2 &middot; A filter that beats a placebo can still be a calendar.</strong> The one
+treatment that cleared its placebo at the 97.6th percentile turned out to be re-discovering a floor
+that is <em>already deployed</em>, and the 17 signals it cut were 12-from-one-era. The placebo is
+necessary and it is not sufficient. Ask what the filter is selecting for, every time.</p>
+<p><strong>3 &middot; Three instruments reported confidently and wrongly this week.</strong> The
+router&rsquo;s leakage detector said zero on a week money leaked; the nightly rollup said
+$0/$0/$0 for a day whose journal had rotated away; <code>selector_nightly</code> counted a
+quarantined trade five times and inflated one day&rsquo;s regret by 39%. None of them errored.
+<strong>A number that arrives without a failure mode is not a measurement.</strong></p></div>
 """
+
 
 
 def main():
@@ -759,7 +862,7 @@ def main():
     ap.add_argument("--prefix", default="weekly",
                     help="output basename prefix: <prefix>_<slug>.html/.pdf (default: weekly)")
     ap.add_argument("--no-pdf", action="store_true")
-    ap.add_argument("--title", default="GAZBOT V7 — Friday report {slug} (Rev 2)",
+    ap.add_argument("--title", default="GAZBOT V7 — Friday report {slug}",
                     help="document <title>; '{slug}' is substituted. Drop any PARTIAL label only "
                          "once the report genuinely is complete.")
     a = ap.parse_args()
@@ -771,37 +874,46 @@ def main():
     m = re.search(r"<style.*?</style>", tpl, re.S | re.I)
     css = m.group(0) if m else "<style>body{font-family:Georgia,serif;max-width:900px;margin:auto}</style>"
 
-    # ★2026-08-08 PRE-FLIGHT. Verify EVERY fragment exists and is non-empty BEFORE stitching
-    # anything. The 08-07 build emitted a short report with no Movement 3 and no Monday playbook
-    # because a missing section only WARNED; silent truncation is the exact failure this replaces.
-    # A named hard failure is always more useful than a quietly short report.
-    problems = []
-    for _label, _sub, name, _anchor in SECTIONS:
-        p = pathlib.Path(SEC) / name
-        if not p.is_file():
-            problems.append(f"MISSING   {name}")
-        elif p.stat().st_size == 0:
-            problems.append(f"EMPTY     {name} (0 bytes)")
-        elif len(p.read_text().strip()) < 200:
-            problems.append(f"TRUNCATED {name} ({p.stat().st_size} bytes — under the 200-char floor)")
-    if problems:
-        print("=" * 72, file=sys.stderr)
-        print(f"FATAL — {len(problems)} of {len(SECTIONS)} sections are not fit to stitch:",
-              file=sys.stderr)
-        for q in problems:
-            print("  " + q, file=sys.stderr)
-        print("Nothing was written. Fix the sections above and re-run — a short report is worse\n"
-              "than no report, because it looks finished.", file=sys.stderr)
-        print("=" * 72, file=sys.stderr)
+    # ★2026-08-14 PRE-FLIGHT, REVISED. The 08-08 build made a missing section a HARD FAILURE,
+    # because the failure it was written against was a short report that looked complete. That
+    # was the right fix for that failure and the wrong one for this week's: two phases (rehab,
+    # gf_MGC) overran their timeout and the greenfield phases never started at all, so an
+    # abort-on-missing would have shipped NOTHING — no report, no playbook, on a week where
+    # seven sections were finished and sitting on disk.
+    #
+    # So: a missing fragment now becomes a VISIBLE, NAMED PLACEHOLDER in the running order.
+    # The original defect stays closed, because the thing that made the 08-08 failure dangerous
+    # was silence, not absence. A section that says in red "this did not run, here is the phase
+    # and here is what would have been in it" cannot be mistaken for a finished section, and it
+    # cannot be mistaken for a null result either.
+    missing, stale = [], []
+    for _l, _s, name, _a, inserts in SECTIONS:
+        for fname in (name, *(f for _h, f in inserts)):
+            p = pathlib.Path(SEC) / fname
+            if not p.is_file() or p.stat().st_size == 0 or len(p.read_text().strip()) < 200:
+                missing.append(fname)
+            elif p.stat().st_mtime < CYCLE_START:
+                stale.append((fname, dt.datetime.fromtimestamp(p.stat().st_mtime)))
+    n_frag = sum(1 + len(i) for *_, i in SECTIONS)
+    if missing:
+        print(f"★ {len(missing)} of {n_frag} fragment(s) MISSING — each gets a named placeholder, "
+              f"not a silent omission: {', '.join(missing)}", file=sys.stderr)
+    if stale:
+        print(f"★ {len(stale)} fragment(s) predate this report cycle and are STALE:", file=sys.stderr)
+        for f, m in stale:
+            print(f"    {f}  ({m:%Y-%m-%d %H:%M})", file=sys.stderr)
+        print("  A stale fragment is last week's conclusions wearing this week's date. Either "
+              "regenerate it or drop it from SECTIONS.", file=sys.stderr)
         return 2
-    print(f"pre-flight OK — {len(SECTIONS)}/{len(SECTIONS)} sections present and non-empty")
+    print(f"pre-flight — {n_frag - len(missing)}/{n_frag} fragments present and fresh, "
+          f"{len(missing)} placeholdered")
 
     # Explicit fragment list — never glob the sections dir (see module docstring).
     frags, toc = [], []
-    for label, sub, name, anchor in SECTIONS:
+    for label, sub, name, anchor, inserts in SECTIONS:
         p = pathlib.Path(SEC) / name
         opener = ""
-        if anchor == PART3_FIRST:
+        if PART3_FIRST and anchor == PART3_FIRST:
             # ★2026-08-08 — this opener previously described the 08-01 cycle's shape (five Rev2
             # answers, three Rev3 re-derivations, one audit). This week's shape is different and
             # the opener must not describe sections that are not in the file.
@@ -822,7 +934,14 @@ def main():
                       '(Q1, FIX0) change <em>what you type</em> rather than whether to act, and one '
                       '(Q2) is the first grading anyone has done of the previous week&rsquo;s card.</p>'
                       '<hr class="frag-sep">')
-        frags.append(f'{opener}<section id="{anchor}">{p.read_text()}</section>')
+        body = fragment_or_placeholder(name, label, sub)
+        for heading, fname in inserts:
+            # Rendered INSIDE this section, not as a section of its own — the run charts belong
+            # beside the case-study days they illustrate, and the gold census belongs beside the
+            # Nasdaq one it mirrors.
+            body += (f'<hr class="frag-sep"><h3 id="{pathlib.Path(fname).stem}">{heading}</h3>'
+                     + fragment_or_placeholder(fname, label, heading))
+        frags.append(f'{opener}<section id="{anchor}">{body}</section>')
         toc.append(f'<li><span class="lab">{label}</span> &mdash; <a href="#{anchor}">{sub}</a></li>')
 
     plays_html, n_plays = render_plays()
@@ -834,20 +953,26 @@ def main():
         + '\n<hr class="frag-sep">\n'
         + '<h2 id="evidence"><span class="n">§</span> The evidence behind those plays</h2>'
         '<p class="lead">Everything from here down is the working. Two halves, one document. '
-        '<strong>The warm half</strong> is what the live paper tournament actually did this week '
-        '(Part 1), then the section that matters most &mdash; <strong>Rehabilitation</strong> (Part 1.5), '
-        'where every red gate and leaky exit is walked through the full six-step wash instead of being '
-        'benched at face value. Then the shadow board and the promotion it did <em>not</em> earn (Part 2), '
-        'the mid-week leads re-run adversarially on the week\'s own data (Part 2.5), the '
-        '<strong>Router Operation Review</strong> (Part 2.6), and <strong>the Day Rider</strong> &mdash; the '
-        'second desk, rebuilt from the raw tape over 38 sessions (Part 2.7). '
-        '<strong>Then the cold, tape-first half</strong>: we ignore everything the desk did and ask, from the '
-        'raw MNQ tape and order book, <strong>where was the money and did we show up?</strong> (M1) &mdash; '
-        'then test whether the gates we already own could have caught the runs we missed (M2), and finally '
-        'build brand-new gates from scratch and backtest them to death, the ones that failed included, that '
-        'is the point (M3). Plain English, honest money, every claim a table &mdash; and every reprice a '
-        'ceiling.</p>'
-        '<div class="v7toc"><h3>What is in here</h3><ol>'
+        'It opens with <strong>Part 0</strong>, which answers the only question that survives past '
+        'Friday &mdash; <em>are we getting better?</em> &mdash; day by day, green or red, straight off '
+        'the books. <strong>Then the warm half</strong>: what the live desk actually did this week '
+        '(Part 1, with <strong>the run charts</strong> inside it &mdash; every fill of the week marked '
+        'on its own session&rsquo;s price path, which is the fastest way to see what the prose is '
+        'describing). Then the section that matters most &mdash; <strong>Rehabilitation</strong> '
+        '(Part 1.5), where the week&rsquo;s one properly red gate is walked through the full wash '
+        'instead of being benched at face value, and where twenty failed treatments are printed by '
+        'name because the failures are the point. Then the shadow board and the promotion battery '
+        '(Part 2), the mid-week leads re-run adversarially on the week\'s own data including the whole '
+        'gold programme (Part 2.5), and the <strong>Router Operation Review</strong> (Part 2.6). '
+        '<strong>Then the cold, tape-first half</strong>: we ignore everything the desk did and ask, '
+        'from the raw tape and order book, <strong>where was the money and did we show up?</strong> '
+        '&mdash; on MNQ <em>and</em> on gold (M1) &mdash; then test whether the gates we already own '
+        'could have caught the runs we missed (M2), and finally build gates from scratch and backtest '
+        'them to death, the ones that failed included, that being the point (M3). '
+        '<strong>Two of those did not fully run this week and both say so at the top of themselves.</strong> '
+        'Plain English, honest money, every claim a table &mdash; and every reprice a ceiling.</p>'
+        '<div class="v7toc" id="contents"><h3>What is in here</h3><ol>'  # id: the ToC is a
+        # link target in its own right (and it is what the publish verifier looks for)
         '<li><span class="lab">Front</span> &mdash; <a href="#honest">the honest headline</a>, '
         '<a href="#scorecard">the scorecard</a>, <a href="#actions">WHAT TO ACTUALLY DO</a></li>'
         + "".join(toc) + '</ol></div>')

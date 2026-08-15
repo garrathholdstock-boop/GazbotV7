@@ -1,0 +1,390 @@
+{
+ "note_tape_gap": {
+  "signals_total": 104,
+  "signals_with_tape": 87,
+  "missing_days": [
+   "2026-07-21",
+   "2026-07-22",
+   "2026-07-23"
+  ],
+  "missing_net": -73.5
+ },
+ "absolute": [
+  {
+   "label": "net_min 400",
+   "n": 70,
+   "net": 556.5,
+   "per_trade": 7.95,
+   "win_pct": 52.9,
+   "cut_n": 17,
+   "cut_pct": 19.5,
+   "cut_winners": 6,
+   "forgone_winner_usd": 163.5,
+   "cut_losers": 11,
+   "avoided_loser_usd": -804.5,
+   "placebo": {
+    "mean": -58.95,
+    "p95": 474.5,
+    "pctile": 97.0
+   }
+  },
+  {
+   "label": "net_min 450",
+   "n": 57,
+   "net": 307.0,
+   "per_trade": 5.39,
+   "win_pct": 52.6,
+   "cut_n": 30,
+   "cut_pct": 34.5,
+   "cut_winners": 13,
+   "forgone_winner_usd": 640.0,
+   "cut_losers": 17,
+   "avoided_loser_usd": -1031.5,
+   "placebo": {
+    "mean": -59.55,
+    "p95": 591.5,
+    "pctile": 81.7
+   }
+  },
+  {
+   "label": "net_min 500",
+   "n": 45,
+   "net": 436.0,
+   "per_trade": 9.69,
+   "win_pct": 55.6,
+   "cut_n": 42,
+   "cut_pct": 48.3,
+   "cut_winners": 18,
+   "forgone_winner_usd": 945.5,
+   "cut_losers": 24,
+   "avoided_loser_usd": -1466.0,
+   "placebo": {
+    "mean": -46.33,
+    "p95": 633.5,
+    "pctile": 87.8
+   }
+  },
+  {
+   "label": "net_min 550",
+   "n": 32,
+   "net": 183.0,
+   "per_trade": 5.72,
+   "win_pct": 53.1,
+   "cut_n": 55,
+   "cut_pct": 63.2,
+   "cut_winners": 26,
+   "forgone_winner_usd": 1592.0,
+   "cut_losers": 29,
+   "avoided_loser_usd": -1859.5,
+   "placebo": {
+    "mean": -31.4,
+    "p95": 643.5,
+    "pctile": 69.9
+   }
+  },
+  {
+   "label": "net_min 600",
+   "n": 27,
+   "net": 389.0,
+   "per_trade": 14.41,
+   "win_pct": 55.6,
+   "cut_n": 60,
+   "cut_pct": 69.0,
+   "cut_winners": 28,
+   "forgone_winner_usd": 1729.5,
+   "cut_losers": 32,
+   "avoided_loser_usd": -2203.0,
+   "placebo": {
+    "mean": -27.35,
+    "p95": 621.5,
+    "pctile": 85.1
+   }
+  },
+  {
+   "label": "net_min 650",
+   "n": 21,
+   "net": 237.5,
+   "per_trade": 11.31,
+   "win_pct": 52.4,
+   "cut_n": 66,
+   "cut_pct": 75.9,
+   "cut_winners": 32,
+   "forgone_winner_usd": 2025.0,
+   "cut_losers": 34,
+   "avoided_loser_usd": -2347.0,
+   "placebo": {
+    "mean": -14.45,
+    "p95": 574.0,
+    "pctile": 75.2
+   }
+  },
+  {
+   "label": "net_min 700",
+   "n": 15,
+   "net": 70.0,
+   "per_trade": 4.67,
+   "win_pct": 46.7,
+   "cut_n": 72,
+   "cut_pct": 82.8,
+   "cut_winners": 36,
+   "forgone_winner_usd": 2319.0,
+   "cut_losers": 36,
+   "avoided_loser_usd": -2473.5,
+   "placebo": {
+    "mean": -9.69,
+    "p95": 519.5,
+    "pctile": 60.9
+   }
+  },
+  {
+   "label": "net_min 800",
+   "n": 7,
+   "net": 12.0,
+   "per_trade": 1.71,
+   "win_pct": 42.9,
+   "cut_n": 80,
+   "cut_pct": 92.0,
+   "cut_winners": 40,
+   "forgone_winner_usd": 2655.0,
+   "cut_losers": 40,
+   "avoided_loser_usd": -2751.5,
+   "placebo": {
+    "mean": -2.58,
+    "p95": 365.5,
+    "pctile": 53.8
+   }
+  },
+  {
+   "label": "net_min 900",
+   "n": 4,
+   "net": 13.0,
+   "per_trade": 3.25,
+   "win_pct": 25.0,
+   "cut_n": 83,
+   "cut_pct": 95.4,
+   "cut_winners": 42,
+   "forgone_winner_usd": 2761.0,
+   "cut_losers": 41,
+   "avoided_loser_usd": -2858.5,
+   "placebo": {
+    "mean": -2.57,
+    "p95": 311.5,
+    "pctile": 55.5
+   }
+  }
+ ],
+ "confound": {
+  "n": 17,
+  "pnl": -641.0,
+  "winners": 6,
+  "median_ticks_in_window": 1221,
+  "median_ticks_rest": 1542.0,
+  "era_single": 12
+ },
+ "baseline_400": {
+  "label": "live 400 floor (baseline)",
+  "n": 70,
+  "net": 556.5,
+  "per_trade": 7.95,
+  "win_pct": 52.9,
+  "cut_n": 0,
+  "cut_pct": 0.0,
+  "cut_winners": 0,
+  "forgone_winner_usd": 0,
+  "cut_losers": 0,
+  "avoided_loser_usd": 0,
+  "placebo": {
+   "pctile": null
+  }
+ },
+ "quantile": [
+  {
+   "label": "keep all (live 400)",
+   "n": 70,
+   "net": 556.5,
+   "per_trade": 7.95,
+   "win_pct": 52.9,
+   "cut_n": 0,
+   "cut_pct": 0.0,
+   "cut_winners": 0,
+   "forgone_winner_usd": 0,
+   "cut_losers": 0,
+   "avoided_loser_usd": 0,
+   "placebo": {
+    "pctile": null
+   },
+   "implied_floor": 405.0
+  },
+  {
+   "label": "cut smallest 20%",
+   "n": 56,
+   "net": 452.0,
+   "per_trade": 8.07,
+   "win_pct": 53.6,
+   "cut_n": 14,
+   "cut_pct": 20.0,
+   "cut_winners": 7,
+   "forgone_winner_usd": 476.5,
+   "cut_losers": 7,
+   "avoided_loser_usd": -372.0,
+   "placebo": {
+    "mean": 447.09,
+    "p95": 954.5,
+    "pctile": 49.9
+   },
+   "implied_floor": 463.0
+  },
+  {
+   "label": "cut smallest 30%",
+   "n": 49,
+   "net": 435.0,
+   "per_trade": 8.88,
+   "win_pct": 53.1,
+   "cut_n": 21,
+   "cut_pct": 30.0,
+   "cut_winners": 11,
+   "forgone_winner_usd": 699.5,
+   "cut_losers": 10,
+   "avoided_loser_usd": -578.0,
+   "placebo": {
+    "mean": 387.71,
+    "p95": 966.5,
+    "pctile": 54.3
+   },
+   "implied_floor": 488.0
+  },
+  {
+   "label": "cut smallest 46% (~net_min 500)",
+   "n": 38,
+   "net": 203.5,
+   "per_trade": 5.36,
+   "win_pct": 50.0,
+   "cut_n": 32,
+   "cut_pct": 45.7,
+   "cut_winners": 18,
+   "forgone_winner_usd": 1136.0,
+   "cut_losers": 14,
+   "avoided_loser_usd": -783.0,
+   "placebo": {
+    "mean": 301.05,
+    "p95": 941.5,
+    "pctile": 39.1
+   },
+   "implied_floor": 526.0
+  },
+  {
+   "label": "cut smallest 58% (~net_min 550)",
+   "n": 29,
+   "net": 366.5,
+   "per_trade": 12.64,
+   "win_pct": 55.2,
+   "cut_n": 41,
+   "cut_pct": 58.6,
+   "cut_winners": 21,
+   "forgone_winner_usd": 1458.0,
+   "cut_losers": 20,
+   "avoided_loser_usd": -1268.0,
+   "placebo": {
+    "mean": 226.59,
+    "p95": 872.5,
+    "pctile": 63.6
+   },
+   "implied_floor": 555.0
+  },
+  {
+   "label": "cut smallest 68% (~net_min 600)",
+   "n": 22,
+   "net": 215.5,
+   "per_trade": 9.8,
+   "win_pct": 50.0,
+   "cut_n": 48,
+   "cut_pct": 68.6,
+   "cut_winners": 26,
+   "forgone_winner_usd": 1861.5,
+   "cut_losers": 22,
+   "avoided_loser_usd": -1520.5,
+   "placebo": {
+    "mean": 183.53,
+    "p95": 803.0,
+    "pctile": 53.9
+   },
+   "implied_floor": 648.0
+  },
+  {
+   "label": "cut smallest 77% (~net_min 700)",
+   "n": 16,
+   "net": 38.0,
+   "per_trade": 2.38,
+   "win_pct": 43.8,
+   "cut_n": 54,
+   "cut_pct": 77.1,
+   "cut_winners": 30,
+   "forgone_winner_usd": 2155.5,
+   "cut_losers": 24,
+   "avoided_loser_usd": -1637.0,
+   "placebo": {
+    "mean": 120.8,
+    "p95": 679.0,
+    "pctile": 40.2
+   },
+   "implied_floor": 699.0
+  }
+ ],
+ "correlation": {
+  "r": 0.059,
+  "n": 70,
+  "t": 0.49
+ },
+ "quintiles": [
+  {
+   "q": 1,
+   "lo": 405,
+   "hi": 451,
+   "n": 14,
+   "net": 104.5,
+   "per_trade": 7.46,
+   "win_pct": 50.0,
+   "stop_pct": 50.0
+  },
+  {
+   "q": 2,
+   "lo": 463,
+   "hi": 511,
+   "n": 14,
+   "net": 295.5,
+   "per_trade": 21.11,
+   "win_pct": 57.1,
+   "stop_pct": 42.9
+  },
+  {
+   "q": 3,
+   "lo": 513,
+   "hi": 555,
+   "n": 14,
+   "net": -340.5,
+   "per_trade": -24.32,
+   "win_pct": 42.9,
+   "stop_pct": 57.1
+  },
+  {
+   "q": 4,
+   "lo": 563,
+   "hi": 701,
+   "n": 14,
+   "net": 575.0,
+   "per_trade": 41.07,
+   "win_pct": 71.4,
+   "stop_pct": 28.6
+  },
+  {
+   "q": 5,
+   "lo": 706,
+   "hi": 1217,
+   "n": 14,
+   "net": -78.0,
+   "per_trade": -5.57,
+   "win_pct": 42.9,
+   "stop_pct": 57.1
+  }
+ ]
+}

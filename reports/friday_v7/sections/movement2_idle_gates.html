@@ -1,277 +1,374 @@
-<h2><span class="n">M2</span> The idle-gate lab &mdash; could the gates we already own have caught the 54 misses?</h2>
+<h2><span class="n">M2</span> The idle-gate lab &mdash; could the six gates we already own have caught the 60 misses?</h2>
 
-<p class="lead">Movement&nbsp;1 froze the tape: 67 big runs on MNQ this week, <strong>54 of them we sat out</strong>, and those 54 carried a hindsight ceiling of <strong>$9,917</strong> on a single lot. This movement asks the only question that matters before we go inventing anything new: <em>we already own six gates &mdash; if we had simply left all six armed, all week, would any of them have been in those runs?</em> So I took every one of the six live gates out of <code>deciders.py</code>, fired them <strong>mechanically</strong> (exactly as the desk runs them &mdash; live parameters, live ATR floors, live 55-second veto, live confirm) and again <strong>ungated</strong> (the raw gate shape with every filter stripped off), in-direction only, anywhere in the ten minutes before each run ignited, and repriced every exit tick-by-tick on this week's real <code>capture.db</code> trade prints under each gate's <em>deployed</em> two-lot exit. <strong>The mechanical answer is $&minus;474 on 7 fires across 53 testable runs.</strong> Ungated it is +$997.50 on 19 fires, but strip the three best trades and that becomes <strong>+$62.50</strong>. This is an <strong>HONEST NULL</strong> &mdash; and, more usefully, I can now tell you exactly <em>why</em> it is a null, with a number rather than a shrug: <strong>the money in these runs lives in the first ninety seconds after ignition, and our gates fire seven to eight minutes before it.</strong></p>
+<p class="lead">Movement&nbsp;1 froze the tape: <strong>68 big runs on MNQ this week</strong>, and we <strong>sat out 60 of them</strong>, carrying a hindsight ceiling of <strong>$8,024</strong> on a single lot. Before anyone invents a new gate, this movement asks the cheaper question: <em>we already own six gates &mdash; if we had simply left all six armed all week, would any of them have been in those runs?</em> So I took all six live tournament gates straight out of <code>deciders.py</code>, fired them <strong>mechanically</strong> (exactly as the desk runs them &mdash; live parameters, live ATR floors, the live 55-second absorption veto, the live 5-second exhaustion confirm and its counter-regime veto) and again <strong>ungated</strong> (the raw gate shape with every filter stripped off), in-direction only, anywhere in the ten minutes before each run ignited, and repriced every exit tick-by-tick on this week's real <code>capture.db</code> trade prints under each gate's <em>deployed</em> two-lot exit. <strong>The mechanical answer is +$15.50 on six fires across 57 testable runs</strong> &mdash; and strip the single best trade and that becomes <strong>&minus;$94.50</strong>. Ungated it is +$379.50 on 27 fires, +$69.50 once you remove the best three. That is an <strong>HONEST NULL</strong>, and this week I can tell you the mechanism in one line with a number behind it: <strong>this week's runs ignited out of unusually quiet tape (median peak ATR in the ten minutes before ignition: 12.0 points), and the desk's two biggest magnitude floors are set at 22 and 20 points &mdash; they are calibrated to stand down in exactly the tape the runs come out of.</strong></p>
 
 <div class="callout"><div class="ct">LEAD WITH WHAT SURVIVED</div>
-<p>Three things came out of this alive and worth acting on, and I want them in front of the null rather than behind it.</p>
+<p>Four things came out of this alive. Three of them are small and one of them is a correction to what this section told you last week, so I want all four in front of the null rather than buried behind it.</p>
 <ol>
-<li><strong>The 55-second wait on abs_veto_short is costing more than the veto saves &mdash; $596.50 vs $169 on this population.</strong> The absorption <em>test</em> is doing its job (it blocked three raw fires, all three losers, saving $169). The problem is the <strong>55-second delay</strong> attached to it: on the two thrusts that survived the test, waiting 55 seconds turned +$97 into &minus;$71 and +$282.50 into &minus;$146. Same signal, same bar, same exit &mdash; only the entry clock differs. Net effect on run tape: <strong>&minus;$427.50</strong>. That is a specific, testable Saturday job: keep the test, shrink the wait.</li>
-<li><strong>The quiet-tape clip (ATR&lt;22 &rarr; Lot A banks $40, Lot B banks $60/1.75R) was live on 35 of the 53 runs and cost $1,202 on run tape.</strong> With identical entries, clip ON returns +$1,696.50 and clip OFF returns +$2,898.50. It is a chop tool doing chop work in the wrong place. A regime carve-out is the obvious fix.</li>
-<li><strong>grind_long's <code>ext_hi 2.0</code> ceiling is the single filter standing between us and these runs.</strong> Ungated, grind fired at 7 of the 22 up-runs for +$742.50; mechanically it fired <strong>once</strong>, for &minus;$130. The ceiling ("don't buy what is already stretched") blocked six of its seven pre-run fires. That is not automatically an argument to remove it &mdash; it was proven on the whole book, and on a sat-out-run population it is being judged on exactly the trades it was designed to skip &mdash; but it is the highest-value knob in this section and it deserves a proper regime-conditional re-derivation.</li>
+<li><strong>The two short FADERS were the only gates that made money, and they were perfect: 3 fires, 3 winners, +$302.50.</strong> <code>exhaustion_short</code> fired twice for <strong>+$192.50</strong> and <code>rgv_short</code> once for <strong>+$110.00</strong>, all three mechanically, all three with both lots reaching target. Every other gate lost. That is three trades, so it is a <span class="tag">SHADOW</span> lead and nothing more &mdash; but it is the first time in this section that the mechanical book has had a green column at all, and it is worth saying that the fade gates fired 9&ndash;10 minutes ahead of ignition and <em>still</em> won, which the timing ladder says should be nearly impossible.</li>
+<li><strong>The 08-08 <code>grind_long</code> ATR&nbsp;10&nbsp;&rarr;&nbsp;22 revert is VINDICATED on run tape.</strong> With no floor at all grind fires 5 times for <strong>&minus;$178</strong>; with the deployed ATR&ge;22 floor it fires once for <strong>&minus;$120</strong>. The floor blocked four runs that were collectively losing money. This section is usually where floors get accused of blocking the good stuff; this week the floor is doing its job.</li>
+<li><strong>Last week's headline &mdash; "<code>grind_long</code>'s ext_hi 2.0 ceiling is the single filter standing between us and these runs" &mdash; does NOT hold on this week's tape.</strong> The ceiling was deleted on 08-08 (it now falls back to 4.0). I re-fired grind under the old cell, the new cell and a 3.0 cell on the same 23 up-runs: <strong>all three produce the identical single fire and the identical &minus;$120</strong>. The binding clause is not the extension ceiling at all &mdash; it is "VWAP slope not up", which killed grind on <strong>14 of its 23</strong> eligible runs. Removing ext_hi bought us nothing here.</li>
+<li><strong><code>capitulation_long</code>'s <code>require_flip</code> is the one live filter that cost real money on this population: +$158.50.</strong> Ungated the gate fired six times for +$116.50; mechanically it fired <strong>zero</strong> times. Three of those six were blocked by the ATR&ge;10 floor (and that floor <em>saved</em> $42 &mdash; two losers and a small winner), but the other three were blocked by <code>require_flip</code>, and two of them were $97 winners. Thin &mdash; three trades &mdash; and <code>require_flip</code> was re-derived on the whole book on 08-02 with an ordering-correct win rate, so this number must not be allowed to overturn it. It is a shadow question, not a change.</li>
 </ol>
 </div>
 
-<div class="card"><h3>How the test was run &mdash; so you can trust the minus sign</h3>
-<p>Everything below comes from one script, <code>scripts/idle_gate_backtest_wk32.py</code>, run once against the frozen census. No number here is carried over from any prior week.</p>
+<div class="card"><h3>How the test was run &mdash; so you can trust the sign</h3>
+<p>Everything below comes from two scripts run once each against the frozen census: <code>scripts/idle_gate_backtest_wk33.py</code> and its companion <code>scripts/idle_gate_timing_decay_wk33.py</code>. No number in this section is carried over from any prior week; where I quote last week it is to contradict it, and the contradiction is computed here.</p>
 <table>
 <tr><th>Component</th><th>Rule</th></tr>
-<tr><td class="ln">Population</td><td>The <strong>54 sat-out runs</strong> of the frozen Movement-1 census, read straight out of the locked census stdout &mdash; not re-derived, not re-filtered.</td></tr>
-<tr><td class="ln">Testable subset</td><td><strong>53 of 54.</strong> <code>capture.db</code> keeps five trading days of ticks (first print 08-03 00:00:00 UTC), so the 08-02 23:52 run (&minus;66pt, $132 ceiling) has no pre-run tape and is excluded rather than faked. The remaining 53 carry <strong>$9,780</strong> of ceiling (the census's $9,917 total is computed on unrounded moves; $9,780 is the sum of the 53 printed moves in the frozen table).</td></tr>
-<tr><td class="ln">Gates</td><td>All six live tournament slots: <code>grind_long</code>, <code>capitulation_long</code>, <code>abs_veto_long</code> (long side) and <code>rgv_short</code>, <code>exhaustion_short</code>, <code>abs_veto_short</code> (short side). The actual decider functions are imported and called &mdash; there is no re-implementation to drift.</td></tr>
-<tr><td class="ln">Direction</td><td><strong>In-direction only.</strong> A long gate is only tested on the 22 up-runs, a short gate only on the 31 down-runs. We are asking "could it have been in the move", not "could it have been anywhere near it".</td></tr>
-<tr><td class="ln">Window</td><td>The <strong>ten minutes before ignition</strong>. Bar gates are tested on each of the ten completed 1-minute bars; the two tape gates (capitulation, exhaustion) are tested every 5 seconds across the whole window. First fire wins.</td></tr>
-<tr><td class="ln">Mechanical mode</td><td>Live params <em>and</em> live filters: grind ATR&ge;10 + ext_hi 2.0; capitulation ATR&ge;10 + require_flip; abs_veto amp_floor 0.0004 + the <strong>55-second absorption veto</strong> (and its 55s entry delay); rgv_short ATR&ge;20; exhaustion + its 5-second confirm-veto.</td></tr>
-<tr><td class="ln">Ungated mode</td><td>The raw gate shape. ATR floors off, amp floor off, ext ceiling back to its 4.0 default, require_flip off, both vetoes off. The gate's core geometry is kept &mdash; this is "filters off", not "a different gate".</td></tr>
-<tr><td class="ln">Exit</td><td>Each gate's <strong>deployed</strong> two-lot exit from <code>data/exit_overrides.json</code> &mdash; Lot A fixed-R, Lot B chandelier or fixed-R, one lot each, plus the quiet-tape clip below 22pt ATR and the native 1&times;ATR protective stop on the loss side. Repriced on every real trade print, 60-minute hold cap.</td></tr>
-<tr><td class="ln">Costs</td><td>$1.50 per lot round-trip, $2.00 per point. Two lots per fire, so $3.00 a fire before anything else.</td></tr>
-<tr><td class="ln">Bars</td><td>1-minute bars built from the 5-second bars with <strong>integer</strong> flooring (<code>bar_ts &minus; bar_ts % 60</code>). This is deliberate &mdash; the report's own instrument-failure list flags the float-division version as a silent no-op that reads 5-second bars as minutes.</td></tr>
+<tr><td class="ln">Population</td><td>The <strong>60 sat-out runs</strong> of the frozen Movement-1 census, read straight out of the locked census stdout &mdash; not re-derived, not re-filtered, not re-run (<code>run_census.py</code> is a multi-minute tick crunch and the whole point of freezing it is that every movement reads the same snapshot).</td></tr>
+<tr><td class="ln">Testable subset</td><td><strong>57 of 60.</strong> <code>capture.db</code> holds five trading days of ticks and its first print this week is <strong>08-10 00:00:00 UTC</strong>. Three runs sit before that or need a pre-window that does &mdash; <code>08-09 22:02</code>, <code>08-09 23:47</code> and <code>08-10 00:02</code> &mdash; and they are excluded rather than faked. I checked the Parquet lake for them too: it has no <code>2026-08-09</code> tick file, so the Sunday-evening reopen genuinely has no tick tape anywhere on this desk. The 57 testable runs carry <strong>$7,619</strong> of the sat-out ceiling and the three dropped runs carry <strong>$406</strong>. (The census headline is $8,024 and the printed per-run ceilings sum to $8,025 &mdash; a dollar of rounding, not a discrepancy.)</td></tr>
+<tr><td class="ln">Why capture.db and not the lake</td><td>The census window is <strong>08-09 &rarr; 08-14</strong>, i.e. this week, which is strictly inside <code>capture.db</code>'s five-trading-day window &mdash; and <code>capture.db</code> is the <em>only</em> source that has Friday 08-14 at all (the lake's last mirrored tick day is 08-13). For a one-week study it is both legal and the more complete source. Anything multi-week would have to go to the lake.</td></tr>
+<tr><td class="ln">Gates</td><td>All six live tournament slots: <code>grind_long</code>, <code>capitulation_long</code>, <code>abs_veto_long</code> on the long side; <code>rgv_short</code>, <code>exhaustion_short</code>, <code>abs_veto_short</code> on the short side. The actual decider functions are imported and called &mdash; there is no re-implementation to drift out of sync. (<code>nipc_long</code>/<code>nipc_short</code> ship benched and are not part of the live six.)</td></tr>
+<tr><td class="ln">Direction</td><td><strong>In-direction only.</strong> A long gate is tested only on the 23 up-runs, a short gate only on the 34 down-runs. We are asking "could it have been <em>in</em> the move", not "could it have been near it".</td></tr>
+<tr><td class="ln">Window</td><td>The <strong>ten minutes before ignition</strong>. The three bar gates are tested on each of the ten completed 1-minute bars; the two tape gates (capitulation, exhaustion) are tested every 5 seconds across the whole window. First fire wins.</td></tr>
+<tr><td class="ln">Mechanical mode</td><td>Live params <em>and</em> live filters, as deployed today: grind ATR&ge;<strong>22</strong> and no ext ceiling (both changed on 08-08); capitulation ATR&ge;10 + <code>require_flip</code>; abs_veto amp_floor 0.0004 plus the <strong>55-second absorption veto</strong> and its 55-second entry delay; rgv_short ATR&ge;20; exhaustion_short plus its 5-second confirm-veto <em>and</em> its <code>veto_counter_regime</code> entry veto (that last one was missing from last week's harness &mdash; it is in now, and it blocked nothing).</td></tr>
+<tr><td class="ln">Ungated mode</td><td>The raw gate shape. ATR floors off, amplitude floor off, extension ceiling off entirely, <code>require_flip</code> off, all three vetoes off. The gate's core geometry is kept &mdash; this is "filters off", not "a different gate".</td></tr>
+<tr><td class="ln">Exit</td><td>Each gate's <strong>deployed</strong> two-lot exit from <code>data/exit_overrides.json</code> &mdash; Lot A fixed-R, Lot B chandelier or fixed-R, one lot each &mdash; plus the quiet-tape clip below 22pt entry ATR and the native 1&times;ATR protective stop on the loss side. Repriced on every real trade print, 60-minute hold cap.</td></tr>
+<tr><td class="ln">Costs</td><td><strong>$1.50 per lot round trip</strong>, <strong>$2.00 per point</strong> (MNQ). Two lots a fire, so $3.00 a fire before anything happens.</td></tr>
+<tr><td class="ln">Bars</td><td>1-minute bars built from the 5-second bars with <strong>integer</strong> flooring (<code>bar_ts &minus; bar_ts % 60</code>) &mdash; deliberately, because the report's own instrument-failure list flags the float-division version as a silent no-op that reads 5-second bars as minutes.</td></tr>
 </table>
-<p>Data actually consumed: <strong>6,761,816 trade ticks</strong> (08-03 00:00:00 &rarr; 08-07 21:00:00 UTC), <strong>16.47 million</strong> level-1 book rows, 6,780 one-minute bars inside the tick window.</p>
+<p>Data actually consumed: <strong>5,172,092 trade ticks</strong> (08-10 00:00:00 &rarr; 08-14 21:00:00 UTC), <strong>13.96 million</strong> level-1 book rows, 6,780 one-minute bars inside the tick window.</p>
 </div>
 
-<h3>The scoreboard &mdash; mechanically, the desk cannot get into these runs</h3>
+<h3>The scoreboard &mdash; mechanically, six gates managed six fires all week</h3>
 
-<p>This is the headline table. "Eligible" is how many sat-out runs that gate could even have traded (its own direction only). Green rows made money, red rows lost it.</p>
+<p>This is the headline table. "Eligible" is how many sat-out runs that gate could even have traded, its own direction only. Green rows made money, red rows lost it.</p>
 
 <table>
 <tr><th>Gate</th><th>Side</th><th>Eligible runs</th><th>Fires</th><th>Net $</th><th>$ / fire</th><th>Win %</th><th>How they ended</th></tr>
-<tr class="row-bad"><td class="ln">grind_long</td><td>LONG</td><td class="num">22</td><td class="num">1</td><td class="num">&minus;130.0</td><td class="num">&minus;130.0</td><td class="num">0%</td><td>both lots stopped</td></tr>
-<tr class="row-hl"><td class="ln">capitulation_long</td><td>LONG</td><td class="num">22</td><td class="num">1</td><td class="num">+97.0</td><td class="num">+97.0</td><td class="num">100%</td><td>both lots hit target</td></tr>
-<tr class="row-bad"><td class="ln">abs_veto_long</td><td>LONG</td><td class="num">22</td><td class="num">2</td><td class="num">&minus;106.0</td><td class="num">&minus;53.0</td><td class="num">0%</td><td>4 of 4 lots stopped</td></tr>
-<tr><td class="ln">rgv_short</td><td>SHORT</td><td class="num">31</td><td class="num">0</td><td class="num">0.0</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td>never fired once</td></tr>
-<tr class="row-bad"><td class="ln">exhaustion_short</td><td>SHORT</td><td class="num">31</td><td class="num">1</td><td class="num">&minus;118.0</td><td class="num">&minus;118.0</td><td class="num">0%</td><td>both lots stopped</td></tr>
-<tr class="row-bad"><td class="ln">abs_veto_short</td><td>SHORT</td><td class="num">31</td><td class="num">2</td><td class="num">&minus;217.0</td><td class="num">&minus;108.5</td><td class="num">0%</td><td>4 of 4 lots stopped</td></tr>
-<tr class="row-bad"><td class="ln"><strong>ALL SIX, mechanical</strong></td><td>&mdash;</td><td class="num">53 runs</td><td class="num">7</td><td class="num">&minus;474.0</td><td class="num">&minus;67.7</td><td class="num">14%</td><td>1 winner in 7</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td>LONG</td><td class="num">23</td><td class="num">1</td><td class="num">&minus;120.00</td><td class="num">&minus;120.00</td><td class="num">0%</td><td>both lots stopped</td></tr>
+<tr><td class="ln">capitulation_long</td><td>LONG</td><td class="num">23</td><td class="num">0</td><td class="num">0.00</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td>never fired once</td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_long</td><td>LONG</td><td class="num">23</td><td class="num">1</td><td class="num">&minus;76.00</td><td class="num">&minus;76.00</td><td class="num">0%</td><td>both lots stopped</td></tr>
+<tr class="row-hl"><td class="ln">rgv_short</td><td>SHORT</td><td class="num">34</td><td class="num">1</td><td class="num">+110.00</td><td class="num">+110.00</td><td class="num">100%</td><td>both lots hit target</td></tr>
+<tr class="row-hl"><td class="ln">exhaustion_short</td><td>SHORT</td><td class="num">34</td><td class="num">2</td><td class="num">+192.50</td><td class="num">+96.25</td><td class="num">100%</td><td>target + target/chandelier</td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_short</td><td>SHORT</td><td class="num">34</td><td class="num">1</td><td class="num">&minus;91.00</td><td class="num">&minus;91.00</td><td class="num">0%</td><td>both lots stopped</td></tr>
+<tr><td class="ln"><strong>ALL SIX, mechanical</strong></td><td>&mdash;</td><td class="num">57 runs</td><td class="num">6</td><td class="num">+15.50</td><td class="num">+2.58</td><td class="num">50%</td><td>3 winners, 3 losers</td></tr>
 </table>
 
-<p>Seven fires across 53 runs. Not seven <em>profitable</em> fires &mdash; seven fires <em>at all</em>, from six gates over a whole week of the biggest moves MNQ printed. Six of the seven lost. The one that won, <code>capitulation_long</code> on the 08-06 19:52 up-run, made $97 on a 72-point move whose hindsight ceiling was $144, and it fired 100 seconds before ignition, which is the only fire in the whole table that landed anywhere near the money.</p>
+<p>Six fires. Not six <em>profitable</em> fires &mdash; six fires <strong>at all</strong>, from six gates, over a whole week of the biggest moves MNQ printed. Here is every one of them, because six is few enough to look at individually and this is exactly the kind of table where an average hides the story.</p>
+
+<table>
+<tr><th>Run (UTC)</th><th>Move</th><th>Gate</th><th>Entry ATR</th><th>Fired this early</th><th>Regime at ignition</th><th>Net $</th><th>Ended</th></tr>
+<tr class="row-hl"><td class="ln">08-11 14:16</td><td class="num">&minus;49pt</td><td>rgv_short</td><td class="num">20.8</td><td class="num">3.0 min</td><td>BUILDING</td><td class="num">+110.00</td><td>both target</td></tr>
+<tr class="row-hl"><td class="ln">08-11 15:22</td><td class="num">&minus;54pt</td><td>exhaustion_short</td><td class="num">16.1</td><td class="num">9.6 min</td><td>BUILDING</td><td class="num">+97.00</td><td>both target</td></tr>
+<tr class="row-hl"><td class="ln">08-10 14:45</td><td class="num">&minus;90pt</td><td>exhaustion_short</td><td class="num">22.9</td><td class="num">9.0 min</td><td>VIOLENT-WHIPSAW</td><td class="num">+95.50</td><td>target / chandelier</td></tr>
+<tr class="row-bad"><td class="ln">08-13 14:20</td><td class="num">+75pt</td><td>abs_veto_long</td><td class="num">18.2</td><td class="num">7.1 min</td><td>NORMAL-CHOP</td><td class="num">&minus;76.00</td><td>both stopped</td></tr>
+<tr class="row-bad"><td class="ln">08-10 15:20</td><td class="num">&minus;62pt</td><td>abs_veto_short</td><td class="num">21.8</td><td class="num">6.1 min</td><td>VIOLENT-WHIPSAW</td><td class="num">&minus;91.00</td><td>both stopped</td></tr>
+<tr class="row-bad"><td class="ln">08-10 13:56</td><td class="num">+109pt</td><td>grind_long</td><td class="num">29.1</td><td class="num">6.0 min</td><td>VIOLENT-WHIPSAW</td><td class="num">&minus;120.00</td><td>both stopped</td></tr>
+</table>
+
+<p>Read that table and the pattern is not subtle. <strong>All three winners are SHORT fades. All three losers are MOMENTUM entries taken in whipsaw or chop.</strong> The three winners also fired 3.0, 9.0 and 9.6 minutes ahead of ignition, which by the decay ladder further down should be dead ground &mdash; a fade that is right about the level does not care much when you took it, because the level is where the money is. The three losers fired 6&ndash;7 minutes early, chasing something that had not started.</p>
 
 <h3>The same six with every filter switched off</h3>
 
-<p>Now strip the ATR floors, the amplitude floor, the extension ceiling, the flip requirement and both vetoes. This is the "leave everything on, damn the filters" book &mdash; the fair upper bound on what the gates we own could physically have done.</p>
+<p>Now strip the ATR floors, the amplitude floor, the extension ceiling, the flip requirement and all three vetoes. This is the "leave everything on, damn the filters" book &mdash; the fair upper bound on what the gates we own could physically have done.</p>
 
 <table>
 <tr><th>Gate</th><th>Eligible</th><th>Fires</th><th>Net $</th><th>$ / fire</th><th>Win %</th><th>vs mechanical</th></tr>
-<tr class="row-hl"><td class="ln">grind_long</td><td class="num">22</td><td class="num">7</td><td class="num">+742.5</td><td class="num">+106.1</td><td class="num">57%</td><td>+6 fires, +$872.50</td></tr>
-<tr class="row-hl"><td class="ln">capitulation_long</td><td class="num">22</td><td class="num">2</td><td class="num">+194.0</td><td class="num">+97.0</td><td class="num">100%</td><td>+1 fire, +$97</td></tr>
-<tr class="row-bad"><td class="ln">abs_veto_long</td><td class="num">22</td><td class="num">2</td><td class="num">&minus;106.0</td><td class="num">&minus;53.0</td><td class="num">0%</td><td>identical &mdash; no filter bit</td></tr>
-<tr class="row-hl"><td class="ln">rgv_short</td><td class="num">31</td><td class="num">1</td><td class="num">+97.0</td><td class="num">+97.0</td><td class="num">100%</td><td>+1 fire (the ATR&ge;20 floor)</td></tr>
-<tr class="row-bad"><td class="ln">exhaustion_short</td><td class="num">31</td><td class="num">2</td><td class="num">&minus;140.5</td><td class="num">&minus;70.2</td><td class="num">0%</td><td>+1 fire, &minus;$22.50</td></tr>
-<tr class="row-hl"><td class="ln">abs_veto_short</td><td class="num">31</td><td class="num">5</td><td class="num">+210.5</td><td class="num">+42.1</td><td class="num">40%</td><td>+3 fires, +$427.50</td></tr>
-<tr class="row-hl"><td class="ln"><strong>ALL SIX, ungated</strong></td><td class="num">53 runs</td><td class="num">19</td><td class="num">+997.5</td><td class="num">+52.5</td><td class="num">47%</td><td>+12 fires, +$1,471.50</td></tr>
+<tr class="row-bad"><td class="ln">grind_long</td><td class="num">23</td><td class="num">7</td><td class="num">&minus;152.00</td><td class="num">&minus;21.70</td><td class="num">29%</td><td>+6 fires, &minus;$32 &mdash; the filters were <em>helping</em></td></tr>
+<tr class="row-hl"><td class="ln">capitulation_long</td><td class="num">23</td><td class="num">6</td><td class="num">+116.50</td><td class="num">+19.40</td><td class="num">50%</td><td>+6 fires, +$116.50 &mdash; the filters took it to zero</td></tr>
+<tr class="row-bad"><td class="ln">abs_veto_long</td><td class="num">23</td><td class="num">3</td><td class="num">&minus;7.00</td><td class="num">&minus;2.30</td><td class="num">33%</td><td>+2 fires, +$69</td></tr>
+<tr class="row-hl"><td class="ln">rgv_short</td><td class="num">34</td><td class="num">2</td><td class="num">+212.50</td><td class="num">+106.25</td><td class="num">100%</td><td>+1 fire, +$102.50 (the ATR&ge;20 floor)</td></tr>
+<tr class="row-hl"><td class="ln">exhaustion_short</td><td class="num">34</td><td class="num">2</td><td class="num">+193.50</td><td class="num">+96.75</td><td class="num">100%</td><td>identical &mdash; no veto bit at all</td></tr>
+<tr class="row-hl"><td class="ln">abs_veto_short</td><td class="num">34</td><td class="num">7</td><td class="num">+16.00</td><td class="num">+2.30</td><td class="num">43%</td><td>+6 fires, +$107</td></tr>
+<tr class="row-hl"><td class="ln"><strong>ALL SIX, ungated</strong></td><td class="num">57 runs</td><td class="num">27</td><td class="num">+379.50</td><td class="num">+14.06</td><td class="num">48%</td><td>+21 fires, +$364</td></tr>
 </table>
 
-<div class="callout"><div class="ct">DO NOT GET EXCITED ABOUT THE +$997.50</div>
-<p>It is three trades. Strip the best <strong>one</strong> and it falls to <strong>+$601</strong>. Strip the best <strong>three</strong> and it falls to <strong>+$62.50</strong> on sixteen remaining fires &mdash; twenty dollars a day, on a hindsight-selected population, in-sample, with no arming rule attached. Day by day it is +$97 / +$430 / +$318 / &minus;$80 / +$234, and leaving out the best day (08-04) still leaves +$568, so it is not a one-session artefact &mdash; but "not a one-session artefact" and "an edge" are different sentences. Cost-stressing to $3.00 a lot round-trip leaves +$940.50 and to $6.00 leaves +$826.50, so costs are not what is wrong with it. <strong>Nineteen fires is what is wrong with it.</strong></p>
+<div class="callout"><div class="ct">DO NOT GET EXCITED ABOUT THE +$379.50</div>
+<p>It is a handful of $97 target-hits. Strip the best <strong>one</strong> and it falls to <strong>+$269.50</strong>; strip the best <strong>three</strong> and it falls to <strong>+$69.50</strong> across 24 remaining fires &mdash; about fourteen dollars a day, on a hindsight-selected population, in-sample, with no arming rule attached to it. Day by day it is +$96.50 / +$373.00 / +$191.00 / &minus;$281.00 / <strong>$0.00</strong>, and leaving out the best day (08-11) drops the whole book to <strong>+$6.50</strong> &mdash; so one Tuesday <em>is</em> the book. Costs are not the problem: stress the fee to $3.00 a lot round trip and it is still +$298.50, to $6.00 and it is still +$136.50. <strong>Twenty-seven fires and a single load-bearing day is the problem.</strong> And note the last day in that list: Friday 08-14 had <strong>six</strong> sat-out runs and drew <strong>zero</strong> fires from six gates with every filter removed.</p>
 </div>
 
 <h3>The money on the table &mdash; reconciled</h3>
 
+<p>Movement 1 said the sat-out runs left $8,024 of one-lot hindsight ceiling lying there. Here is how much of that the gates we already own could actually have touched.</p>
+
 <table>
-<tr><th>Book</th><th>Runs touched</th><th>Fires</th><th>Ceiling of the runs touched</th><th>Honest $ banked</th><th>% of the full $9,780</th><th>Biggest 15 runs caught</th></tr>
-<tr class="row-bad"><td class="ln">Mechanical (as the desk runs)</td><td class="num">7 / 53</td><td class="num">7</td><td class="num">$1,266</td><td class="num">&minus;$474</td><td class="num">&minus;4.8%</td><td class="num">2 / 15</td></tr>
-<tr><td class="ln">Ungated (filters off)</td><td class="num">17 / 53</td><td class="num">19</td><td class="num">$3,256</td><td class="num">+$997.50</td><td class="num">+10.2%</td><td class="num">4 / 15</td></tr>
-<tr><td class="ln">The rest</td><td class="num">36 / 53</td><td class="num">0</td><td class="num">$6,524</td><td class="num">$0</td><td class="num">0%</td><td class="num">11 / 15</td></tr>
+<tr><th>Measure</th><th>Mechanical</th><th>Ungated</th></tr>
+<tr><td class="ln">Sat-out runs in the census</td><td class="num">60</td><td class="num">60</td></tr>
+<tr><td class="ln">Testable (tick tape exists for the pre-window)</td><td class="num">57</td><td class="num">57</td></tr>
+<tr><td class="ln">Ceiling on those 57 runs</td><td class="num">$7,619</td><td class="num">$7,619</td></tr>
+<tr><td class="ln">Runs that drew ANY in-direction fire</td><td class="num">6 of 57</td><td class="num">24 of 57</td></tr>
+<tr><td class="ln">Ceiling of the runs we touched</td><td class="num">$878</td><td class="num">$3,452</td></tr>
+<tr><td class="ln">Of the 15 biggest runs, how many touched</td><td class="num">3 of 15</td><td class="num">6 of 15</td></tr>
+<tr><td class="ln">Of the 25 biggest runs, how many touched</td><td class="num">3 of 25</td><td class="num">9 of 25</td></tr>
+<tr><td class="ln">Fires</td><td class="num">6</td><td class="num">27</td></tr>
+<tr><td class="ln">Net $</td><td class="num">+15.50</td><td class="num">+379.50</td></tr>
+<tr class="row-bad"><td class="ln">Strip the best 1 trade</td><td class="num">&minus;94.50</td><td class="num">+269.50</td></tr>
+<tr class="row-bad"><td class="ln">Strip the best 3 trades</td><td class="num">&minus;287.00</td><td class="num">+69.50</td></tr>
+<tr><td class="ln">Conversion of the ceiling we touched</td><td class="num">1.8%</td><td class="num">11.0%</td></tr>
+<tr class="row-bad"><td class="ln">Conversion of the whole $7,619</td><td class="num">0.2%</td><td class="num">5.0%</td></tr>
 </table>
 
-<p>Read the bottom row twice. <strong>Thirty-six of the 53 runs &mdash; carrying two-thirds of the ceiling &mdash; drew no fire from any of the six gates even with every filter removed.</strong> Eleven of the fifteen biggest runs of the week are in that group. Whatever we do to the thresholds, most of this money is not reachable by these six mechanisms, because the mechanisms are not looking at the thing that precedes these moves.</p>
+<p>The line that matters is the second-to-last pair. Even with <strong>every filter removed</strong>, 33 of the 57 testable runs draw no fire at all &mdash; and those 33 carry <strong>$4,167</strong> of the $7,619. The biggest run of the entire week, the <strong>+236pt monster at 08-13 13:32</strong> with a $472 ceiling, was touched exactly once in this whole study: ungated <code>capitulation_long</code> fired 115 seconds ahead of it and banked <strong>+$18.00</strong>. Eighteen dollars of four hundred and seventy-two.</p>
 
 <h3>Why each gate misses &mdash; the mechanism, clause by clause</h3>
 
-<p>This is the part I actually care about, and it is the part a scoreboard alone can't tell you. For every eligible run I walked the gate's own rule chain in order and recorded <strong>how far it ever got</strong> across the whole ten-minute window &mdash; which clause was the last one standing between it and a fire. Counts are runs, not bars.</p>
+<p>For every eligible run I recorded how far down its own rule chain each gate ever got in the ten-minute window, and kept the deepest reach. This turns "it didn't fire much" into "here is the exact sentence that stopped it".</p>
 
-<div class="card"><h3>grind_long &mdash; the trend was never there to ride</h3>
+<div class="card"><h3>grind_long &mdash; there was no established up-trend to ride, and that is the whole story</h3>
 <table>
-<tr><th>Furthest the gate got (mechanical)</th><th>Runs</th><th>Ungated</th><th>Runs</th></tr>
-<tr class="row-bad"><td>VWAP slope not up &mdash; no established up-trend</td><td class="num">12</td><td>VWAP slope not up</td><td class="num">12</td></tr>
-<tr class="row-bad"><td>Already stretched (ext &gt; 2.0 ATR) &mdash; the <code>ext_hi</code> ceiling</td><td class="num">6</td><td>&mdash;</td><td class="num">&mdash;</td></tr>
-<tr><td>Price not riding above VWAP (ext &lt; 0.3)</td><td class="num">2</td><td>Price not riding above VWAP</td><td class="num">2</td></tr>
-<tr class="row-hl"><td>FIRES</td><td class="num">1</td><td>FIRES</td><td class="num">7</td></tr>
-<tr><td>No bars available</td><td class="num">1</td><td>No bars available</td><td class="num">1</td></tr>
+<tr><th>Where the gate stopped</th><th>Runs (of 23)</th><th>Mode</th></tr>
+<tr><td class="ln">VWAP slope not up &mdash; no established up-trend</td><td class="num">14</td><td>both</td></tr>
+<tr><td class="ln">ATR floor 22pt not met</td><td class="num">4</td><td>mechanical only</td></tr>
+<tr><td class="ln">Price not riding above VWAP (ext &lt; 0.3 ATR)</td><td class="num">2</td><td>both</td></tr>
+<tr><td class="ln">Already stretched (ext &gt; 4.0 ATR)</td><td class="num">2</td><td>mechanical only</td></tr>
+<tr class="row-hl"><td class="ln">FIRES</td><td class="num">1</td><td>mechanical</td></tr>
 </table>
-<p><strong>Mechanism:</strong> grind is a continuation gate. It needs an <em>established</em> VWAP trend it can join. In 12 of the 22 up-runs there simply was no up-trend in the ten minutes before &mdash; these runs ignite out of flat or falling tape, which is precisely why they are runs. Then, on the six occasions where a trend <em>was</em> established, the <code>ext_hi 2.0</code> ceiling blocked entry because price was already more than two ATR above VWAP. Those six are the interesting ones: ungated they are worth +$872.50 relative to the mechanical book. But note honestly what that means &mdash; the ceiling was added on 08-01 to stop grind buying stretched tape, and a sat-out-big-run population is by construction the population where buying stretched tape happens to work. This needs a full-book regime-conditional re-derivation before anyone touches it, not a Movement-2 headline.</p>
+<p>Sixty-one percent of the up-runs never even reached grind's <em>first</em> test. A continuation gate needs a trend to continue; these runs did not have one, they <em>were</em> the trend arriving. That is the census finding restated from inside the gate: big moves rupture flat tape.</p>
 </div>
 
-<div class="card"><h3>abs_veto_long / abs_veto_short &mdash; the thrust just isn't there yet</h3>
+<div class="card"><h3>abs_veto_long / abs_veto_short &mdash; the five-bar thrust simply isn't there yet</h3>
 <table>
-<tr><th>Furthest the gate got</th><th>abs_veto_long (22 up-runs)</th><th>abs_veto_short (31 down-runs)</th></tr>
-<tr class="row-bad"><td>No 5-bar thrust of 1.5 ATR</td><td class="num">10</td><td class="num">13</td></tr>
-<tr class="row-bad"><td>Thrust was the wrong way</td><td class="num">4</td><td class="num">3</td></tr>
-<tr class="row-bad"><td>No volume surge on the thrust bar</td><td class="num">3</td><td class="num">8</td></tr>
-<tr class="row-bad"><td>Amplitude floor: tape too thin (atr% &lt; 0.04%)</td><td class="num">2</td><td class="num">2</td></tr>
-<tr class="row-bad"><td>55-second absorption VETO</td><td class="num">0</td><td class="num">3</td></tr>
-<tr class="row-hl"><td>FIRES</td><td class="num">2</td><td class="num">2</td></tr>
-<tr><td>No bars</td><td class="num">1</td><td class="num">0</td></tr>
+<tr><th>Where the gate stopped</th><th>abs_veto_long (23 up-runs)</th><th>abs_veto_short (34 down-runs)</th></tr>
+<tr><td class="ln">No 5-bar thrust &ge; 1.5 ATR</td><td class="num">16</td><td class="num">18</td></tr>
+<tr><td class="ln">Amplitude floor: tape too thin (atr% &lt; 0.04%)</td><td class="num">5</td><td class="num">6</td></tr>
+<tr><td class="ln">Thrust is the wrong way</td><td class="num">0</td><td class="num">4</td></tr>
+<tr><td class="ln">No volume surge on the thrust bar</td><td class="num">1</td><td class="num">2</td></tr>
+<tr><td class="ln">55-second absorption VETO (burst absorbed)</td><td class="num">0</td><td class="num">3</td></tr>
+<tr class="row-hl"><td class="ln">FIRES</td><td class="num">1</td><td class="num">1</td></tr>
 </table>
-<p><strong>Mechanism:</strong> abs_veto is a 5-minute-thrust gate. It needs the move to have <em>already happened</em> at 1.5 ATR over five bars before it will look at it &mdash; and by definition, in the ten minutes before ignition, the move has not happened yet. In 23 of 53 eligible runs there was no qualifying thrust at any point in the window; in another 7 the thrust pointed the wrong way (price was moving <em>against</em> the run it was about to make, which is a snap-back, not a continuation). Eleven more got a thrust but no volume behind it. This is a structural mismatch, not a threshold problem: <strong>a five-bar-lookback momentum gate is being asked to be early, and it is built to be late.</strong></p>
+<p>Seven in ten up-runs (16 of 23) and just over half the down-runs (18 of 34) never produce a 1.5-ATR five-minute burst <em>in their own direction</em> in the ten minutes before they go. Of course they don't &mdash; the burst <em>is</em> the run. The amplitude floor then removes another 5&ndash;6 each, correctly: the pre-run tape is genuinely thin.</p>
 </div>
 
-<div class="card"><h3>rgv_short &mdash; the ATR floor stands it down, and the stretch never appears</h3>
+<div class="card"><h3>rgv_short &mdash; the ATR floor stands it down on two-thirds of the tape</h3>
 <table>
-<tr><th>Furthest the gate got (mechanical)</th><th>Runs</th><th>Ungated</th><th>Runs</th></tr>
-<tr class="row-bad"><td>ATR floor of 20pt not met</td><td class="num">13</td><td>&mdash;</td><td class="num">&mdash;</td></tr>
-<tr class="row-bad"><td>Not stretched &ge;1.5 ATR above VWAP</td><td class="num">10</td><td>Not stretched above VWAP</td><td class="num">18</td></tr>
-<tr class="row-bad"><td>Regime stand-down (vol too high / slope too steep)</td><td class="num">7</td><td>Regime stand-down</td><td class="num">7</td></tr>
-<tr class="row-bad"><td>No fresh down-turn</td><td class="num">1</td><td>No fresh down-turn</td><td class="num">5</td></tr>
-<tr><td>FIRES</td><td class="num">0</td><td>FIRES</td><td class="num">1</td></tr>
+<tr><th>Where the gate stopped</th><th>Mechanical (34 down-runs)</th><th>Ungated (34 down-runs)</th></tr>
+<tr><td class="ln">ATR floor 20pt not met</td><td class="num">22</td><td class="num">&mdash;</td></tr>
+<tr><td class="ln">Regime stand-down (vol too high / slope too steep)</td><td class="num">9</td><td class="num">9</td></tr>
+<tr><td class="ln">Not stretched &ge; 1.5 ATR above VWAP</td><td class="num">2</td><td class="num">16</td></tr>
+<tr><td class="ln">No fresh down-turn</td><td class="num">0</td><td class="num">7</td></tr>
+<tr class="row-hl"><td class="ln">FIRES</td><td class="num">1</td><td class="num">2</td></tr>
 </table>
-<p><strong>Mechanism:</strong> rgv is a fade. It wants price stretched above VWAP and rolling over &mdash; a spent move it can sell into. Down-runs mostly begin from tape that is <em>not</em> stretched above VWAP (18 of 31 ungated), so the setup never presents. On top of that the ATR&ge;20 floor stands the gate down on 13 runs before it even gets to look at the stretch, which is why it fires zero times mechanically. <strong>Zero fires from a gate on 31 eligible runs is the cleanest possible statement that this is the wrong instrument for this job.</strong></p>
+<p>This is the clearest single number in the section. <strong>The ATR&ge;20 floor stands <code>rgv_short</code> down on 22 of its 34 eligible runs</strong> &mdash; and independently of the gate, I measured the peak ATR reached anywhere in each run's ten-minute pre-window: only <strong>6 of the 34 down-runs</strong> ever get to 20 points at all. Take the floor away and the binding clause simply moves to "not stretched above VWAP" on 16 runs, and the gate still only fires twice. <strong>The floor is not what is stopping rgv_short from catching runs; the geometry is.</strong> Both fires it did get were winners, so nothing here argues for touching it.</p>
 </div>
 
-<div class="card"><h3>capitulation_long and exhaustion_short &mdash; the tape gates barely exist this week</h3>
+<div class="card"><h3>capitulation_long &mdash; the only gate whose live filters cost it money this week</h3>
 <table>
-<tr><th>Furthest the gate got</th><th>capitulation_long (22 up-runs)</th><th>exhaustion_short (31 down-runs)</th></tr>
-<tr class="row-bad"><td>Volume climax never reached (sell &lt; 2.5&times; baseline / flow &lt; 400)</td><td class="num">18</td><td class="num">18</td></tr>
-<tr class="row-bad"><td>Aggression DID move price &gt; 2pt &mdash; so it wasn't absorption</td><td class="num">&mdash;</td><td class="num">8</td></tr>
-<tr class="row-bad"><td>One side not dominant enough / no wall on the hit side</td><td class="num">1</td><td class="num">3</td></tr>
-<tr class="row-bad"><td>Buyers never flipped at the low (require_flip)</td><td class="num">1</td><td>&mdash;</td></tr>
-<tr class="row-bad"><td>5-second confirm-veto: price ran against the fade</td><td>&mdash;</td><td class="num">1</td></tr>
-<tr class="row-hl"><td>FIRES</td><td class="num">1</td><td class="num">1</td></tr>
-<tr><td>No tape</td><td class="num">1</td><td class="num">0</td></tr>
+<tr><th>Where the gate stopped</th><th>Mechanical (23 up-runs)</th><th>Ungated (23 up-runs)</th></tr>
+<tr><td class="ln">Sell volume &lt; 2.5&times; baseline &mdash; no climax</td><td class="num">15</td><td class="num">15</td></tr>
+<tr><td class="ln">Sellers not 60% dominant</td><td class="num">2</td><td class="num">2</td></tr>
+<tr><td class="ln">Buyers never flipped at the low (<code>require_flip</code>)</td><td class="num">3</td><td class="num">&mdash;</td></tr>
+<tr><td class="ln">ATR floor 10pt not met</td><td class="num">3</td><td class="num">&mdash;</td></tr>
+<tr class="row-bad"><td class="ln">FIRES</td><td class="num">0</td><td class="num">6</td></tr>
 </table>
-<p><strong>Mechanism:</strong> both of these want a violent one-sided flush that gets absorbed. In eighteen of the runs there was no volume climax at all in the ten minutes before ignition &mdash; these moves start quietly. For exhaustion specifically there is a second, harder problem: on eight of the runs there <em>was</em> heavy flow, but it <strong>moved price more than 2 points</strong>, which is exactly the condition the gate uses to say "this is not absorption, this is a real move". The gate correctly identified the thing as a genuine move and correctly declined to fade it &mdash; and a genuine move is precisely what we were hoping to catch. <strong>Its rule is doing what it says on the tin; the tin is the wrong shape for run-hunting.</strong></p>
+<p>Six ungated fires, +$116.50, three of them winners. Mechanically: nothing. The two live filters split the six cleanly and pull in opposite directions:</p>
+<table>
+<tr><th>Blocked by</th><th>Run</th><th>Ungated result</th><th>Verdict on the filter</th></tr>
+<tr class="row-bad"><td class="ln"><code>require_flip</code></td><td>08-10 01:01</td><td class="num">+97.50</td><td>blocked a winner</td></tr>
+<tr class="row-bad"><td class="ln"><code>require_flip</code></td><td>08-12 23:59</td><td class="num">+97.00</td><td>blocked a winner</td></tr>
+<tr class="row-hl"><td class="ln"><code>require_flip</code></td><td>08-13 18:27</td><td class="num">&minus;36.00</td><td>blocked a loser</td></tr>
+<tr class="row-hl"><td class="ln">ATR &ge; 10</td><td>08-11 00:02</td><td class="num">&minus;31.00</td><td>blocked a loser</td></tr>
+<tr class="row-hl"><td class="ln">ATR &ge; 10</td><td>08-11 10:13</td><td class="num">&minus;29.00</td><td>blocked a loser</td></tr>
+<tr class="row-bad"><td class="ln">ATR &ge; 10</td><td>08-13 13:32</td><td class="num">+18.00</td><td>blocked a small winner (the +236pt monster)</td></tr>
+<tr class="row-bad"><td class="ln"><strong><code>require_flip</code> total</strong></td><td>&mdash;</td><td class="num">&minus;$158.50 cost</td><td>net harmful here</td></tr>
+<tr class="row-hl"><td class="ln"><strong>ATR &ge; 10 total</strong></td><td>&mdash;</td><td class="num">+$42.00 saved</td><td>net helpful here</td></tr>
+</table>
+<p>Three trades either side. I am not going to pretend that overturns the 08-02 re-derivation, which measured <code>require_flip</code> on the whole book with an ordering-correct win rate and found the loose version (<code>capit_loose</code>) at &minus;$5,250 over 238 fires. What I <em>will</em> say is that on run tape specifically, the flip requirement arrives too late twice out of three, and that is a shadow-book question with a clean shape.</p>
 </div>
 
-<h3>The killer number: the gates fire at chance, near the runs</h3>
+<div class="card"><h3>exhaustion_short &mdash; barely exists, but everything it does is right</h3>
+<table>
+<tr><th>Where the gate stopped</th><th>Runs (of 34)</th></tr>
+<tr><td class="ln">20-second net aggressor flow &lt; 400 &mdash; no aggression to fade</td><td class="num">16</td></tr>
+<tr><td class="ln">The aggression DID move price &gt; 2pt &mdash; that is not absorption</td><td class="num">10</td></tr>
+<tr><td class="ln">No ask wall (hit side not 1.5&times;)</td><td class="num">6</td></tr>
+<tr class="row-hl"><td class="ln">FIRES</td><td class="num">2</td></tr>
+</table>
+<p>Mechanical and ungated are <strong>identical</strong> &mdash; neither the 5-second confirm-veto nor the <code>veto_counter_regime</code> entry veto blocked a single thing on this population, so the gate's two live safety catches cost nothing here. It fired twice and won twice, +$192.50. Note the second row: on ten runs the gate correctly refused because <em>the flow did move price</em>. That is a fade gate declining to fade a real move, which is exactly right &mdash; and it is also the most interesting negative signal in this whole section, because "heavy flow that IS moving price" is a clean, cheap, already-implemented detector of a move that is genuinely underway.</p>
+</div>
 
-<p>Here is the check that turns "they didn't fire much" into "they are not looking at anything predictive". Across the whole tick-covered week I counted every minute (bar gates) or 20-second sample (tape gates) in which each gate's condition was <strong>true</strong>, and then asked what share of those fell inside one of the 53 ten-minute pre-run windows. Those windows cover <strong>8.5%</strong> of the minute bars and <strong>7.8%</strong> of the tape samples &mdash; that is the chance rate. If a gate were telling us anything about imminent runs, its share would be well above that.</p>
+<h3>The killer number: near a run, our gates fire at roughly chance</h3>
+
+<p>Here is the check that turns "they didn't fire much" into "they are not looking at anything predictive". Across the whole tick-covered week I counted every minute (bar gates) or 20-second sample (tape gates) in which each gate's condition was <strong>true</strong>, then asked what share of those fell inside one of the 57 ten-minute pre-run windows. Those windows cover <strong>9.2%</strong> of the minute bars and <strong>8.4%</strong> of the tape samples &mdash; that is the chance rate. A gate that knew something about imminent runs would sit well above it.</p>
 
 <table>
 <tr><th>Gate</th><th>Mode</th><th>Signal-minutes / samples all week</th><th>Inside a pre-run window</th><th>Share</th><th>vs chance</th></tr>
-<tr><td class="ln">grind_long</td><td>mechanical</td><td class="num">374</td><td class="num">38</td><td class="num">10.2%</td><td class="num">1.20&times;</td></tr>
-<tr><td class="ln">grind_long</td><td>ungated</td><td class="num">1,180</td><td class="num">80</td><td class="num">6.8%</td><td class="num">0.80&times;</td></tr>
-<tr><td class="ln">capitulation_long</td><td>mechanical</td><td class="num">7</td><td class="num">1</td><td class="num">14.3%</td><td class="num">1.83&times;</td></tr>
-<tr><td class="ln">capitulation_long</td><td>ungated</td><td class="num">49</td><td class="num">2</td><td class="num">4.1%</td><td class="num">0.53&times;</td></tr>
-<tr><td class="ln">abs_veto_long</td><td>mechanical</td><td class="num">81</td><td class="num">10</td><td class="num">12.3%</td><td class="num">1.45&times;</td></tr>
-<tr><td class="ln">abs_veto_long</td><td>ungated</td><td class="num">201</td><td class="num">11</td><td class="num">5.5%</td><td class="num">0.65&times;</td></tr>
-<tr><td class="ln">rgv_short</td><td>mechanical</td><td class="num">5</td><td class="num">2</td><td class="num">40.0%</td><td class="num">4.7&times; (n=5)</td></tr>
-<tr><td class="ln">rgv_short</td><td>ungated</td><td class="num">115</td><td class="num">6</td><td class="num">5.2%</td><td class="num">0.61&times;</td></tr>
-<tr><td class="ln">exhaustion_short</td><td>either</td><td class="num">4</td><td class="num">1</td><td class="num">25.0%</td><td class="num">3.2&times; (n=4)</td></tr>
-<tr><td class="ln">abs_veto_short</td><td>mechanical</td><td class="num">112</td><td class="num">13</td><td class="num">11.6%</td><td class="num">1.36&times;</td></tr>
-<tr><td class="ln">abs_veto_short</td><td>ungated</td><td class="num">221</td><td class="num">15</td><td class="num">6.8%</td><td class="num">0.80&times;</td></tr>
+<tr><td class="ln">grind_long</td><td>mechanical</td><td class="num">44</td><td class="num">8</td><td class="num">18.2%</td><td class="num">1.97&times; (n=44)</td></tr>
+<tr><td class="ln">grind_long</td><td>ungated</td><td class="num">1,118</td><td class="num">92</td><td class="num">8.2%</td><td class="num">0.89&times;</td></tr>
+<tr><td class="ln">capitulation_long</td><td>mechanical</td><td class="num">19</td><td class="num">3</td><td class="num">15.8%</td><td class="num">1.88&times; (n=19)</td></tr>
+<tr><td class="ln">capitulation_long</td><td>ungated</td><td class="num">79</td><td class="num">8</td><td class="num">10.1%</td><td class="num">1.21&times;</td></tr>
+<tr><td class="ln">abs_veto_long</td><td>mechanical</td><td class="num">25</td><td class="num">4</td><td class="num">16.0%</td><td class="num">1.73&times; (n=25)</td></tr>
+<tr><td class="ln">abs_veto_long</td><td>ungated</td><td class="num">231</td><td class="num">20</td><td class="num">8.7%</td><td class="num">0.94&times;</td></tr>
+<tr><td class="ln">rgv_short</td><td>mechanical</td><td class="num">1</td><td class="num">1</td><td class="num">100%</td><td class="num">10.8&times; (n=1 &mdash; meaningless)</td></tr>
+<tr><td class="ln">rgv_short</td><td>ungated</td><td class="num">122</td><td class="num">5</td><td class="num">4.1%</td><td class="num">0.44&times;</td></tr>
+<tr><td class="ln">exhaustion_short</td><td>either</td><td class="num">8</td><td class="num">1</td><td class="num">12.5%</td><td class="num">1.49&times; (n=8)</td></tr>
+<tr><td class="ln">abs_veto_short</td><td>mechanical</td><td class="num">44</td><td class="num">7</td><td class="num">15.9%</td><td class="num">1.72&times; (n=44)</td></tr>
+<tr><td class="ln">abs_veto_short</td><td>ungated</td><td class="num">252</td><td class="num">15</td><td class="num">6.0%</td><td class="num">0.64&times;</td></tr>
 </table>
 
-<p>Every gate with enough signal to mean anything sits between <strong>0.5&times; and 1.5&times; chance</strong>. The three cells that look impressive &mdash; rgv_short at 4.7&times;, exhaustion at 3.2&times; and capitulation at 1.8&times; &mdash; are 2-of-5, 1-of-4 and 1-of-7 respectively, which is noise wearing a percentage sign. <strong>None of our six gates is meaningfully more likely to be live before a big run than at any random moment of the week.</strong> That is the honest null, stated as a mechanism rather than a P&amp;L.</p>
+<p>Every ungated cell &mdash; the only ones with enough signal to mean anything &mdash; sits between <strong>0.44&times; and 1.21&times; chance</strong>, and four of the five are <em>below</em> chance. The mechanical rows all read 1.7&ndash;2.0&times;, which looks encouraging until you notice they are built on 19&ndash;44 signal-minutes across a whole week &mdash; that is 8, 3, 4 and 7 raw observations landing in the windows. There is a real and slightly hopeful hint in there (the filtered versions <em>are</em> more concentrated near runs than the raw versions, consistently, across four independent gates), and I am flagging it rather than dismissing it &mdash; but at these counts it is one or two coincidences wide. <strong>The honest statement is that none of our six gates is meaningfully more likely to be live before a big run than at a random moment of the week.</strong></p>
 
-<p class="ln"><em>One caveat on that table, stated plainly: these are signal-minutes, not trades. grind_long showing 374 mechanical signal-minutes does not mean 374 entries &mdash; the live desk holds one position per slot and was benched by the router for much of the week, which is why it actually took 3 entries (two lots each) on the live book this week. The column is a measure of how often the condition was true, which is the right measure for this question.</em></p>
+<p class="ln"><em>One caveat stated plainly: these are signal-minutes, not trades. <code>grind_long</code> showing 1,118 ungated signal-minutes does not mean 1,118 entries &mdash; the live desk holds one position per slot and was router-benched for stretches of the week. The column measures how often the condition was TRUE, which is the right measure for this particular question and the wrong one for any other.</em></p>
 
 <h3>Where the money actually is: the timing-decay ladder</h3>
 
-<p>This is the table I would pin on the wall. It takes hindsight completely for granted &mdash; you know which runs, you know the direction &mdash; and asks only <strong>how early you enter</strong>. Same 53 runs, same Lot A 1.5R + Lot B wide-chandelier exit, same tick-honest repricing, entry stepped backwards from the ignition bar.</p>
+<p>This is the table I would pin on the wall. It takes hindsight completely for granted &mdash; you know which runs, you know the direction &mdash; and asks only <strong>how early you enter</strong>. Same 57 runs, same Lot A 1.5R + Lot B wide-chandelier exit, same tick-honest repricing, entry stepped backwards from the ignition bar.</p>
 
 <table>
 <tr><th>Enter this early</th><th>n</th><th>Net $</th><th>$ / run</th><th>Win %</th><th>Strip best 3</th><th>US session $</th><th>Overnight $</th></tr>
-<tr class="row-hl"><td class="ln">at ignition (0s)</td><td class="num">53</td><td class="num">+4,338.50</td><td class="num">+81.9</td><td class="num">74%</td><td class="num">+2,984.00</td><td class="num">+2,511.50</td><td class="num">+1,827.00</td></tr>
-<tr class="row-hl"><td class="ln">30 seconds early</td><td class="num">53</td><td class="num">+2,487.50</td><td class="num">+46.9</td><td class="num">66%</td><td class="num">+1,543.00</td><td class="num">+1,334.00</td><td class="num">+1,153.50</td></tr>
-<tr class="row-hl"><td class="ln">1 minute early</td><td class="num">53</td><td class="num">+1,696.50</td><td class="num">+32.0</td><td class="num">58%</td><td class="num">+736.50</td><td class="num">+839.00</td><td class="num">+857.50</td></tr>
-<tr><td class="ln">2 minutes early</td><td class="num">52</td><td class="num">+338.00</td><td class="num">+6.5</td><td class="num">44%</td><td class="num">&minus;628.50</td><td class="num">&minus;240.00</td><td class="num">+578.00</td></tr>
-<tr class="row-bad"><td class="ln">3 minutes early</td><td class="num">52</td><td class="num">&minus;307.50</td><td class="num">&minus;5.9</td><td class="num">42%</td><td class="num">&minus;865.00</td><td class="num">&minus;905.00</td><td class="num">+597.50</td></tr>
-<tr class="row-bad"><td class="ln">4 minutes early</td><td class="num">52</td><td class="num">&minus;401.50</td><td class="num">&minus;7.7</td><td class="num">33%</td><td class="num">&minus;1,338.00</td><td class="num">&minus;87.00</td><td class="num">&minus;314.50</td></tr>
-<tr><td class="ln">5 minutes early</td><td class="num">52</td><td class="num">+268.00</td><td class="num">+5.2</td><td class="num">38%</td><td class="num">&minus;734.50</td><td class="num">+193.00</td><td class="num">+75.00</td></tr>
-<tr class="row-bad"><td class="ln">7 minutes early</td><td class="num">52</td><td class="num">&minus;1,318.50</td><td class="num">&minus;25.4</td><td class="num">29%</td><td class="num">&minus;2,178.00</td><td class="num">&minus;600.50</td><td class="num">&minus;718.00</td></tr>
-<tr class="row-bad"><td class="ln">9 minutes early</td><td class="num">52</td><td class="num">&minus;475.50</td><td class="num">&minus;9.1</td><td class="num">37%</td><td class="num">&minus;1,423.00</td><td class="num">&minus;139.50</td><td class="num">&minus;336.00</td></tr>
-<tr><td class="ln">10 minutes early</td><td class="num">52</td><td class="num">+56.00</td><td class="num">+1.1</td><td class="num">38%</td><td class="num">&minus;918.00</td><td class="num">+352.00</td><td class="num">&minus;296.00</td></tr>
+<tr class="row-hl"><td class="ln">at ignition (0s)</td><td class="num">57</td><td class="num">+3,799.00</td><td class="num">+66.60</td><td class="num">75%</td><td class="num">+3,162.50</td><td class="num">+2,371.50</td><td class="num">+1,427.50</td></tr>
+<tr class="row-hl"><td class="ln">30 seconds early</td><td class="num">57</td><td class="num">+1,678.00</td><td class="num">+29.40</td><td class="num">54%</td><td class="num">+1,315.50</td><td class="num">+1,063.50</td><td class="num">+614.50</td></tr>
+<tr class="row-hl"><td class="ln">1 minute early</td><td class="num">57</td><td class="num">+1,377.00</td><td class="num">+24.20</td><td class="num">47%</td><td class="num">+796.50</td><td class="num">+1,065.00</td><td class="num">+312.00</td></tr>
+<tr class="row-hl"><td class="ln">2 minutes early</td><td class="num">57</td><td class="num">+1,603.50</td><td class="num">+28.10</td><td class="num">49%</td><td class="num">+1,005.00</td><td class="num">+1,121.00</td><td class="num">+482.50</td></tr>
+<tr><td class="ln">3 minutes early</td><td class="num">57</td><td class="num">+1,010.50</td><td class="num">+17.70</td><td class="num">42%</td><td class="num">+472.00</td><td class="num">+733.00</td><td class="num">+277.50</td></tr>
+<tr><td class="ln">4 minutes early</td><td class="num">57</td><td class="num">+1,235.50</td><td class="num">+21.70</td><td class="num">47%</td><td class="num">+722.50</td><td class="num">+439.00</td><td class="num">+796.50</td></tr>
+<tr><td class="ln">5 minutes early</td><td class="num">57</td><td class="num">+389.50</td><td class="num">+6.80</td><td class="num">40%</td><td class="num">+84.50</td><td class="num">&minus;254.00</td><td class="num">+643.50</td></tr>
+<tr class="row-bad"><td class="ln">7 minutes early</td><td class="num">57</td><td class="num">&minus;1,073.00</td><td class="num">&minus;18.80</td><td class="num">21%</td><td class="num">&minus;1,387.00</td><td class="num">&minus;625.00</td><td class="num">&minus;448.00</td></tr>
+<tr class="row-bad"><td class="ln">9 minutes early</td><td class="num">57</td><td class="num">&minus;140.50</td><td class="num">&minus;2.50</td><td class="num">33%</td><td class="num">&minus;452.50</td><td class="num">+93.00</td><td class="num">&minus;233.50</td></tr>
+<tr class="row-bad"><td class="ln">10 minutes early</td><td class="num">57</td><td class="num">&minus;267.50</td><td class="num">&minus;4.70</td><td class="num">32%</td><td class="num">&minus;776.50</td><td class="num">+47.50</td><td class="num">&minus;315.00</td></tr>
 </table>
 
-<div class="callout"><div class="ct">THE WHOLE SECTION IN TWO SENTENCES</div>
-<p>Enter at the ignition bar with perfect direction and these 54 runs pay <strong>$81.90 each</strong>, 74% of them green. Enter <strong>three minutes earlier</strong> with exactly the same perfect direction and the same exit, and they pay <strong>nothing</strong> &mdash; and from there out to ten minutes early the curve wanders around zero, never once beating the two-minute mark, with strip-best-3 negative in every single row past two minutes.</p>
-<p>Now put the gates on that ladder. When they do fire, they fire a <strong>median of 7.0 minutes early mechanically and 8.0 minutes early ungated</strong>. That is the deepest, deadest part of the curve. <strong>The six gates are not losing at these runs because their exits are wrong or their thresholds are wrong. They are firing in a window where being right about the direction is worth minus twenty-five dollars a trade.</strong></p>
+<div class="callout"><div class="ct">THE WHOLE SECTION IN THREE SENTENCES</div>
+<p>Enter at the ignition bar with perfect direction and these 57 runs pay <strong>$66.60 each</strong>, 75% of them green. The money halves within thirty seconds, holds a soft shelf worth <strong>$18&ndash;$29 a run out to four minutes</strong>, falls to <strong>+$6.80</strong> at five minutes, and is <strong>negative from seven minutes out</strong> &mdash; with strip-best-3 negative in every row past five minutes.</p>
+<p>Now put the gates on that ladder. When they do fire, they fire a <strong>median of 6.6 minutes early mechanically and 6.7 minutes early ungated</strong> (mechanical range 3.0&ndash;9.6 minutes). That is the exact rung where the ladder crosses zero and starts paying &minus;$18.80 a run. <strong>The six gates are not losing at these runs because their exits are wrong or their thresholds are wrong. They are firing in the one part of the window where being right about the direction is worth nothing.</strong></p>
 </div>
+
+<p>One honest difference from the last time this ladder was run: <strong>the shelf out to four minutes is new.</strong> Last week the curve was through zero by two minutes; this week there is real money at two, three and four minutes early (+$28.10, +$17.70, +$21.70 a run). I do not think that is a discovery, I think it is a quieter tape with slower ignitions, and the fact that it moved this much on a one-week sample is itself the caveat &mdash; do not build anything on the exact shape of this curve. What has replicated across both weeks is the two ends: <strong>entering at the ignition bar is worth several times entering a minute before it, and entering seven minutes before it is worth less than nothing.</strong></p>
 
 <h3>Regime segmentation &mdash; scored on home turf, as the discipline requires</h3>
 
-<p>Nothing above should be read as one number sprayed across the whole tape, so here is the same population cut by regime at ignition. Buckets are keyed on the entry ATR and the 30-bar efficiency ratio measured on the last completed bar before the run, plus a 60-minute range-break test &mdash; not on the clock. This week's ATR quartiles across the sat-out runs came out at <strong>12.3pt (p25)</strong> and <strong>25.4pt (p75)</strong>, and those are the cut points.</p>
+<p>Nothing above should be read as one number sprayed across the whole tape, so here is the same population cut by regime at ignition. Buckets key on entry ATR and the 30-bar efficiency ratio measured on the last completed bar before the run, plus a 60-minute range-break test &mdash; not on the clock. This week's ATR quartiles across the sat-out runs came out at <strong>8.3pt (p25)</strong> and <strong>15.1pt (p75)</strong>, and those are the cut points. Both are dramatically lower than last week's 12.3 / 25.4, which tells you the headline fact about this week's tape on its own.</p>
 
 <table>
 <tr><th>Regime</th><th>Definition (at the last bar before ignition)</th><th>Sat-out runs</th><th>UP / DN</th></tr>
-<tr><td class="ln">NORMAL-CHOP</td><td>ER &lt; 0.25, ATR between 12.3 and 25.4pt</td><td class="num">18</td><td class="num">6 / 12</td></tr>
-<tr><td class="ln">BUILDING</td><td>ER 0.25&ndash;0.45 &mdash; direction forming, not proven</td><td class="num">10</td><td class="num">5 / 5</td></tr>
-<tr><td class="ln">DEAD-CHOP</td><td>ER &lt; 0.25 and ATR below 12.3pt</td><td class="num">10</td><td class="num">4 / 6</td></tr>
-<tr><td class="ln">VIOLENT-WHIPSAW</td><td>ER &lt; 0.25 but ATR above 25.4pt &mdash; big range, no progress</td><td class="num">9</td><td class="num">2 / 7</td></tr>
-<tr><td class="ln">TREND (no break)</td><td>ER &ge; 0.45, price still inside the prior hour's range</td><td class="num">5</td><td class="num">3 / 2</td></tr>
-<tr><td class="ln">CLEAN-TREND</td><td>ER &ge; 0.45 <em>and</em> price outside the prior hour's range</td><td class="num">1</td><td class="num">1 / 0</td></tr>
-<tr><td class="ln">UNKNOWN</td><td>insufficient bar history to classify</td><td class="num">1</td><td class="num">1 / 0</td></tr>
+<tr><td class="ln">NORMAL-CHOP</td><td>ER &lt; 0.25, ATR between 8.3 and 15.1pt</td><td class="num">24</td><td class="num">11 / 13</td></tr>
+<tr><td class="ln">VIOLENT-WHIPSAW</td><td>ER &lt; 0.25 but ATR above 15.1pt &mdash; big range, no progress</td><td class="num">11</td><td class="num">3 / 8</td></tr>
+<tr><td class="ln">DEAD-CHOP</td><td>ER &lt; 0.25 and ATR below 8.3pt</td><td class="num">10</td><td class="num">5 / 5</td></tr>
+<tr><td class="ln">BUILDING</td><td>ER 0.25&ndash;0.45 &mdash; direction forming, not proven</td><td class="num">9</td><td class="num">3 / 6</td></tr>
+<tr><td class="ln">TREND (no break)</td><td>ER &ge; 0.45, price still inside the prior hour's range</td><td class="num">2</td><td class="num">1 / 1</td></tr>
+<tr><td class="ln">CLEAN-TREND</td><td>ER &ge; 0.45 <em>and</em> price outside the prior hour's range</td><td class="num">1</td><td class="num">0 / 1</td></tr>
 </table>
 
-<p><strong>The first thing this table says is uncomfortable and important: only one of the 54 big runs this week ignited out of a clean trend.</strong> Twenty-eight of them ignited out of chop &mdash; normal or dead &mdash; and nine out of violent whipsaw. The runs are not the continuation of something we could see; they are ruptures in tape that looked like nothing.</p>
+<p><strong>Only 3 of the 57 big runs ignited out of a proven trend (ER &ge; 0.45), and exactly one out of a clean one.</strong> Forty-five ignited out of chop &mdash; normal or dead &mdash; or violent whipsaw, and the remaining nine out of BUILDING, which is direction forming but not yet proven. That is the same uncomfortable finding as last week, and it is now two weeks old rather than one: the runs are not the continuation of something we could see. They are ruptures in tape that looked like nothing.</p>
 
 <table>
-<tr><th>Regime</th><th>Mech fires</th><th>Mech net $</th><th>Ungated fires</th><th>Ungated net $</th><th>Ungated win %</th></tr>
-<tr class="row-hl"><td class="ln">NORMAL-CHOP</td><td class="num">3</td><td class="num">&minus;29.0</td><td class="num">6</td><td class="num">+278.0</td><td class="num">50%</td></tr>
-<tr class="row-hl"><td class="ln">BUILDING</td><td class="num">3</td><td class="num">&minus;315.0</td><td class="num">7</td><td class="num">+500.0</td><td class="num">43%</td></tr>
-<tr class="row-hl"><td class="ln">DEAD-CHOP</td><td class="num">0</td><td class="num">0.0</td><td class="num">3</td><td class="num">+138.0</td><td class="num">67%</td></tr>
-<tr class="row-bad"><td class="ln">VIOLENT-WHIPSAW</td><td class="num">1</td><td class="num">&minus;130.0</td><td class="num">2</td><td class="num">&minus;152.5</td><td class="num">0%</td></tr>
-<tr class="row-hl"><td class="ln">TREND (no break)</td><td class="num">0</td><td class="num">0.0</td><td class="num">1</td><td class="num">+234.0</td><td class="num">100%</td></tr>
-<tr><td class="ln">CLEAN-TREND</td><td class="num">0</td><td class="num">0.0</td><td class="num">0</td><td class="num">0.0</td><td class="num">&mdash;</td></tr>
+<tr><th>Regime</th><th>Runs</th><th>Mech fires</th><th>Mech net $</th><th>Mech win %</th><th>Ungated fires</th><th>Ungated net $</th><th>Ungated win %</th></tr>
+<tr class="row-hl"><td class="ln">NORMAL-CHOP</td><td class="num">24</td><td class="num">1</td><td class="num">&minus;76.00</td><td class="num">0%</td><td class="num">14</td><td class="num">+255.50</td><td class="num">50%</td></tr>
+<tr class="row-bad"><td class="ln">VIOLENT-WHIPSAW</td><td class="num">11</td><td class="num">3</td><td class="num">&minus;115.50</td><td class="num">33%</td><td class="num">4</td><td class="num">&minus;192.50</td><td class="num">25%</td></tr>
+<tr class="row-hl"><td class="ln">DEAD-CHOP</td><td class="num">10</td><td class="num">0</td><td class="num">0.00</td><td class="num">&mdash;</td><td class="num">5</td><td class="num">+98.00</td><td class="num">40%</td></tr>
+<tr class="row-hl"><td class="ln">BUILDING</td><td class="num">9</td><td class="num">2</td><td class="num">+207.00</td><td class="num">100%</td><td class="num">4</td><td class="num">+218.50</td><td class="num">75%</td></tr>
+<tr><td class="ln">TREND (no break)</td><td class="num">2</td><td class="num">0</td><td class="num">0.00</td><td class="num">&mdash;</td><td class="num">0</td><td class="num">0.00</td><td class="num">&mdash;</td></tr>
+<tr><td class="ln">CLEAN-TREND</td><td class="num">1</td><td class="num">0</td><td class="num">0.00</td><td class="num">&mdash;</td><td class="num">0</td><td class="num">0.00</td><td class="num">&mdash;</td></tr>
 </table>
 
-<p>Three honest reads. <strong>(1)</strong> Every regime bucket is between n=0 and n=7 &mdash; there is no bucket here with enough trades to make a policy from, and I am not going to pretend otherwise. <strong>(2)</strong> The one consistent sign in the table is the negative one: <strong>violent whipsaw loses in both modes with a 0% win rate</strong> &mdash; one mechanical fire at &minus;$130, two ungated fires at &minus;$152.50 &mdash; and it matches the blind ladder, where whipsaw (&minus;$265 on 9 runs) and building (&minus;$156 on 10) are the only two regimes still negative at one minute early. If any regime rule comes out of this section it is a <em>bench</em> rule, not an arm rule. <strong>(3)</strong> The gates never once fired in the two trend buckets, which is where a continuation gate should be earning &mdash; because the trend buckets contain six runs in total.</p>
+<p>Three honest reads. <strong>(1)</strong> Every bucket is between n=0 and n=14, and I am not going to pretend a policy can be built from that. <strong>(2)</strong> The one consistent sign is the negative one: <strong>VIOLENT-WHIPSAW loses in both modes</strong> &mdash; three mechanical fires at &minus;$115.50 and four ungated at &minus;$192.50, and it holds the two worst individual trades in the study (grind &minus;$120 and abs_veto_short &minus;$91). If any regime rule survives this section it is a <em>bench</em> rule, not an arm rule. <strong>(3)</strong> Whipsaw was also the losing bucket last week, which is the one cross-week agreement in the regime table &mdash; but note it is the opposite of what the blind ladder says (below), where whipsaw is the <em>best</em> regime. Those two facts together say something specific: <strong>whipsaw runs are worth a lot if you are in them and expensive if you are guessing at them.</strong> The gates are guessing.</p>
+
+<p>The blind control &mdash; perfect direction, one minute early, same exit &mdash; cut the same way:</p>
+
+<table>
+<tr><th>Regime</th><th>n</th><th>Net $</th><th>$ / run</th><th>Win %</th></tr>
+<tr class="row-hl"><td class="ln">VIOLENT-WHIPSAW</td><td class="num">11</td><td class="num">+620.00</td><td class="num">+56.40</td><td class="num">73%</td></tr>
+<tr class="row-hl"><td class="ln">TREND (no break)</td><td class="num">2</td><td class="num">+282.00</td><td class="num">+141.00</td><td class="num">50%</td></tr>
+<tr class="row-hl"><td class="ln">DEAD-CHOP</td><td class="num">10</td><td class="num">+211.00</td><td class="num">+21.10</td><td class="num">40%</td></tr>
+<tr class="row-hl"><td class="ln">NORMAL-CHOP</td><td class="num">24</td><td class="num">+198.50</td><td class="num">+8.30</td><td class="num">42%</td></tr>
+<tr class="row-hl"><td class="ln">BUILDING</td><td class="num">9</td><td class="num">+98.50</td><td class="num">+10.90</td><td class="num">44%</td></tr>
+<tr class="row-bad"><td class="ln">CLEAN-TREND</td><td class="num">1</td><td class="num">&minus;33.00</td><td class="num">&minus;33.00</td><td class="num">0%</td></tr>
+<tr><td class="ln"><strong>US session (13:30&ndash;20:00)</strong></td><td class="num">26</td><td class="num">+1,065.00</td><td class="num">+41.00</td><td class="num">58%</td></tr>
+<tr><td class="ln"><strong>Overnight / pre-open</strong></td><td class="num">31</td><td class="num">+312.00</td><td class="num">+10.10</td><td class="num">39%</td></tr>
+</table>
+
+<p>Time-of-day is the cleaner split than regime: with perfect direction a US-session run is worth <strong>four times</strong> an overnight one ($41.00 vs $10.10 a run) at more than half again the win rate. That is a real and stable-looking asymmetry and it belongs in Movement 3's design brief.</p>
 
 <h3>The R-target sweep &mdash; and what it says about the cheat-sheet guesses</h3>
 
-<p>The discipline says every R is a guess until it is swept, so I swept it. The gates gave me 7 and 19 fires, which is not a population you can sweep anything on &mdash; so I swept it on the blind one-minute-early book instead (perfect direction, 53 runs), with the quiet-tape clip switched <strong>off</strong>, because with the clip on the R target is a no-op on any entry under 22pt ATR and a sweep would be measuring nothing. Both lots at the same R so the number is readable.</p>
+<p>The discipline says every R is a guess until it is swept, so I swept it. Six and 27 fires is not a population you can sweep anything on, so I swept on the blind one-minute-early book instead (perfect direction, 57 runs), with the quiet-tape clip switched <strong>off</strong> &mdash; with the clip on, the R target is a no-op on any entry under 22pt ATR and the sweep would be measuring nothing. Both lots at the same R so the number reads cleanly.</p>
 
 <table>
-<tr><th>R target</th><th>All 53</th><th>Win %</th><th>US session (26)</th><th>Overnight (27)</th><th>Dead-chop (10)</th><th>Normal-chop (17)</th><th>Whipsaw (9)</th><th>Building (10)</th></tr>
-<tr class="row-bad"><td class="ln">0.5R</td><td class="num">&minus;377</td><td class="num">68%</td><td class="num">&minus;265</td><td class="num">&minus;112</td><td class="num">&minus;3</td><td class="num">+190</td><td class="num">&minus;485</td><td class="num">&minus;236</td></tr>
-<tr class="row-bad"><td class="ln">0.75R</td><td class="num">&minus;300</td><td class="num">62%</td><td class="num">&minus;289</td><td class="num">&minus;11</td><td class="num">+68</td><td class="num">+422</td><td class="num">&minus;537</td><td class="num">&minus;394</td></tr>
-<tr><td class="ln">1.0R</td><td class="num">+165</td><td class="num">60%</td><td class="num">+60</td><td class="num">+105</td><td class="num">+144</td><td class="num">+537</td><td class="num">&minus;435</td><td class="num">&minus;326</td></tr>
-<tr><td class="ln">1.5R</td><td class="num">+1,164</td><td class="num">58%</td><td class="num">+634</td><td class="num">+530</td><td class="num">+292</td><td class="num">+843</td><td class="num">&minus;233</td><td class="num">&minus;189</td></tr>
-<tr><td class="ln">2.0R</td><td class="num">+2,265</td><td class="num">58%</td><td class="num">+1,307</td><td class="num">+958</td><td class="num">+445</td><td class="num">+1,248</td><td class="num">&minus;31</td><td class="num">&minus;55</td></tr>
-<tr><td class="ln">2.5R</td><td class="num">+3,374</td><td class="num">58%</td><td class="num">+1,985</td><td class="num">+1,389</td><td class="num">+597</td><td class="num">+1,655</td><td class="num">+172</td><td class="num">+82</td></tr>
-<tr><td class="ln">3.0R</td><td class="num">+3,874</td><td class="num">57%</td><td class="num">+2,061</td><td class="num">+1,813</td><td class="num">+748</td><td class="num">+2,060</td><td class="num">&minus;224</td><td class="num">+218</td></tr>
-<tr class="row-hl"><td class="ln">4.0R</td><td class="num">+5,491</td><td class="num">55%</td><td class="num">+3,261</td><td class="num">+2,230</td><td class="num">+1,052</td><td class="num">+2,434</td><td class="num">+31</td><td class="num">+488</td></tr>
-<tr class="row-hl"><td class="ln">6.0R</td><td class="num">+5,609</td><td class="num">51%</td><td class="num">+2,575</td><td class="num">+3,034</td><td class="num">+1,657</td><td class="num">+1,908</td><td class="num">+305</td><td class="num">+64</td></tr>
+<tr><th>R target</th><th>All 57</th><th>Win %</th><th>US (26)</th><th>Overnight (31)</th><th>Dead-chop (10)</th><th>Normal-chop (24)</th><th>Whipsaw (11)</th><th>Building (9)</th></tr>
+<tr class="row-bad"><td class="ln">0.5R</td><td class="num">&minus;182</td><td class="num">63%</td><td class="num">+27</td><td class="num">&minus;209</td><td class="num">&minus;67</td><td class="num">&minus;175</td><td class="num">+132</td><td class="num">&minus;48</td></tr>
+<tr><td class="ln">0.75R</td><td class="num">+28</td><td class="num">56%</td><td class="num">+293</td><td class="num">&minus;265</td><td class="num">&minus;110</td><td class="num">&minus;162</td><td class="num">+266</td><td class="num">+24</td></tr>
+<tr><td class="ln">1.0R</td><td class="num">+229</td><td class="num">53%</td><td class="num">+411</td><td class="num">&minus;182</td><td class="num">&minus;84</td><td class="num">&minus;19</td><td class="num">+403</td><td class="num">&minus;115</td></tr>
+<tr><td class="ln">1.5R</td><td class="num">+751</td><td class="num">49%</td><td class="num">+790</td><td class="num">&minus;39</td><td class="num">&minus;33</td><td class="num">+20</td><td class="num">+675</td><td class="num">&minus;24</td></tr>
+<tr><td class="ln">2.0R</td><td class="num">+1,475</td><td class="num">49%</td><td class="num">+1,274</td><td class="num">+201</td><td class="num">+18</td><td class="num">+251</td><td class="num">+956</td><td class="num">+69</td></tr>
+<tr><td class="ln">2.5R</td><td class="num">+2,093</td><td class="num">47%</td><td class="num">+1,781</td><td class="num">+312</td><td class="num">+68</td><td class="num">+355</td><td class="num">+1,258</td><td class="num">+162</td></tr>
+<tr><td class="ln">3.0R</td><td class="num">+2,324</td><td class="num">44%</td><td class="num">+1,953</td><td class="num">+371</td><td class="num">+119</td><td class="num">+405</td><td class="num">+1,229</td><td class="num">+253</td></tr>
+<tr class="row-hl"><td class="ln">4.0R</td><td class="num">+3,585</td><td class="num">44%</td><td class="num">+2,811</td><td class="num">+774</td><td class="num">+220</td><td class="num">+791</td><td class="num">+1,751</td><td class="num">+438</td></tr>
+<tr class="row-hl"><td class="ln">6.0R</td><td class="num">+4,349</td><td class="num">44%</td><td class="num">+3,071</td><td class="num">+1,278</td><td class="num">+424</td><td class="num">+1,103</td><td class="num">+1,928</td><td class="num">+509</td></tr>
 </table>
 
-<p><strong>What is PROVEN here, and what is not.</strong> This is a hindsight-direction population, so it cannot prove an R for a live gate &mdash; nothing here says "set abs_veto_short to 4R". What it <em>can</em> prove, because the entries are the same in every row and only the target moves, is the <strong>shape of the exit that run tape rewards</strong>, and that shape is unambiguous: <strong>the curve rises monotonically from 0.5R to 4.0R and only flattens at 6.0R, with the win rate falling the whole way</strong> (68% &rarr; 51%). There is no plateau anywhere below 4R and no turnover. That is a direct challenge to two of the operator cheat-sheet guesses:</p>
+<p><strong>What is PROVEN here, and what is not.</strong> This is a hindsight-direction population, so it cannot prove an R for a live gate &mdash; nothing here says "set <code>abs_veto_short</code> to 4R". What it <em>can</em> prove, because the entries are identical in every row and only the target moves, is <strong>the shape of exit that run tape rewards</strong>, and that shape is unambiguous: <strong>the curve rises monotonically from 0.5R all the way to 6.0R while the win rate falls from 63% to 44%</strong>. There is no plateau below 4R and no turnover anywhere. Every single regime column is negative at 0.5R except whipsaw, and every single one is positive at 4R. This is the identical finding as last week on a completely different tape, which is the closest thing to replication this section has produced.</p>
 
 <table>
 <tr><th>Cheat-sheet guess</th><th>What run tape says</th><th>Verdict on this population</th></tr>
-<tr class="row-bad"><td class="ln">Faders: Lot A 0.5R / Lot B 1.5R</td><td>0.5R is the <strong>worst cell in the sweep</strong> (&minus;$377 on 53 runs with a 68% win rate &mdash; it wins often and loses money, the classic small-target signature). Even 0.75R is negative.</td><td>Wrong shape for run tape</td></tr>
-<tr><td class="ln">Momentum: Lot A 1.5R / Lot B 2.5R</td><td>+$1,164 and +$3,374 &mdash; both positive, both a long way below the 4R cell.</td><td>Safe but leaving money</td></tr>
-<tr class="row-hl"><td class="ln">Trend: Lot A 2.5R / Lot B wide</td><td>+$3,374 rising to +$5,491 at 4R. The wide half is the correct instinct.</td><td>Directionally right</td></tr>
+<tr class="row-bad"><td class="ln">Faders: Lot A 0.5R / Lot B 1.5R</td><td>0.5R is the <strong>worst cell in the sweep</strong> &mdash; &minus;$182 on 57 runs at a 63% win rate. It wins often and loses money, the classic small-target signature. This is the second consecutive week 0.5R is the worst cell.</td><td>Wrong shape for run tape</td></tr>
+<tr><td class="ln">Momentum: Lot A 1.5R / Lot B 2.5R</td><td>+$751 and +$2,093 &mdash; both positive, both a long way below the 4R cell.</td><td>Safe but leaving money</td></tr>
+<tr class="row-hl"><td class="ln">Trend: Lot A 2.5R / Lot B wide</td><td>+$2,093 rising to +$3,585 at 4R and +$4,349 at 6R. The wide half is the correct instinct.</td><td>Directionally right</td></tr>
 </table>
 
-<p><strong>Robustness on the best cell, stated honestly.</strong> The 6.0R headline of +$5,609 does not survive contact: leave out 08-05 and it drops to <strong>+$2,870</strong>, i.e. a single session carries $2,739 of it. Leave-one-day-out across the five days gives $5,265 / $4,317 / $2,870 / $5,355 / $4,629 &mdash; positive every time, but with a 49% swing. And every cell in the whipsaw column is worthless. <strong>The plateau is at 2.5R&ndash;4.0R and it is real in sign but soft in size; the finding is "small targets are wrong on run tape", not "use 6R".</strong></p>
+<p><strong>Robustness on the best cell, and this one holds up better than last week's.</strong> Leave-one-day-out on the 6.0R headline of +$4,349: without 08-10 <strong>+$2,882</strong>, without 08-11 <strong>+$3,662</strong>, without 08-12 <strong>+$4,204</strong>, without 08-13 <strong>+$3,239</strong>, without 08-14 <strong>+$3,409</strong>. <strong>Positive on all five folds, worst fold still 66% of the headline</strong> &mdash; no single session carries it, which is a genuinely better result than last week's 49% swing. The finding remains "small targets are wrong on run tape", not "use 6R" &mdash; a 6R target on a real gate with a real win rate is a different animal from a 6R target on hindsight-perfect direction.</p>
 
-<h3>Two live filters that are costing money on this population</h3>
+<h3>The three live filters that moved money on this population</h3>
 
-<div class="card"><h3>The 55-second absorption veto &mdash; the test is fine, the wait is not</h3>
-<p>abs_veto's veto does two things at once and I was able to separate them, because mechanical and ungated fire from the identical bar and differ only by the 55-second wait plus the absorption test.</p>
+<div class="card"><h3>grind_long's 08-08 config change &mdash; re-fired under every cell we have shipped</h3>
+<p>Last week this section named <code>ext_hi 2.0</code> as "the single filter standing between us and these runs". The ceiling was deleted on 08-08 and the ATR floor went 10 &rarr; 22 at the same time, so I re-fired grind on this week's 23 up-runs under four cells &mdash; identical entries logic, identical exits &mdash; to see which knob actually binds.</p>
 <table>
-<tr><th>Run</th><th>Move</th><th>Ungated (enter now)</th><th>Mechanical (enter 55s later)</th><th>Delta</th></tr>
-<tr class="row-bad"><td class="ln">08-03 11:46</td><td class="num">&minus;76</td><td class="num">+97.0</td><td class="num">&minus;71.0</td><td class="num">&minus;168.0</td></tr>
-<tr class="row-bad"><td class="ln">08-05 14:39</td><td class="num">&minus;78</td><td class="num">+282.5</td><td class="num">&minus;146.0</td><td class="num">&minus;428.5</td></tr>
-<tr class="row-hl"><td class="ln">08-05 19:51</td><td class="num">&minus;173</td><td class="num">&minus;62.0</td><td class="num">vetoed</td><td class="num">+62.0</td></tr>
-<tr class="row-hl"><td class="ln">08-06 01:11</td><td class="num">&minus;68</td><td class="num">&minus;54.0</td><td class="num">vetoed</td><td class="num">+54.0</td></tr>
-<tr class="row-hl"><td class="ln">08-06 13:17</td><td class="num">&minus;82</td><td class="num">&minus;53.0</td><td class="num">vetoed</td><td class="num">+53.0</td></tr>
-<tr class="row-bad"><td class="ln"><strong>Total</strong></td><td class="num">&mdash;</td><td class="num">+210.5</td><td class="num">&minus;217.0</td><td class="num">&minus;427.5</td></tr>
+<tr><th>Cell</th><th>ext ceiling</th><th>ATR floor</th><th>Fires</th><th>Net $</th><th>Win %</th><th>Runs blocked by the ATR floor</th></tr>
+<tr class="row-hl"><td class="ln"><strong>deployed (08-08)</strong></td><td>none (4.0 default)</td><td class="num">22</td><td class="num">1</td><td class="num">&minus;120.00</td><td class="num">0%</td><td class="num">4</td></tr>
+<tr><td class="ln">wk32 cell (08-01)</td><td class="num">2.0</td><td class="num">10</td><td class="num">1</td><td class="num">&minus;120.00</td><td class="num">0%</td><td class="num">1</td></tr>
+<tr><td class="ln">ext_hi 3.0 candidate</td><td class="num">3.0</td><td class="num">22</td><td class="num">1</td><td class="num">&minus;120.00</td><td class="num">0%</td><td class="num">1</td></tr>
+<tr class="row-bad"><td class="ln">no ATR floor at all</td><td>none (4.0 default)</td><td class="num">0</td><td class="num">5</td><td class="num">&minus;178.00</td><td class="num">20%</td><td class="num">0</td></tr>
 </table>
-<p>The absorption test is <strong>three-for-three</strong> &mdash; every thrust it vetoed was a loser, $169 saved. The 55-second wait is <strong>nought-for-two</strong> &mdash; it took the only two winners in the set and turned them into losers, $596.50 given up. On the long side the veto blocked nothing and the wait changed nothing (both fires were losers either way, &minus;$55 and &minus;$51). <strong>Saturday job: sweep the wait at 0s / 15s / 25s / 40s keeping the absorption test intact, on the full book rather than this population, and see whether the test survives without the delay.</strong> This is thin &mdash; five fires &mdash; so it is a lead to test, not a change to ship.</p>
+<p>Two clean conclusions, and they both go against last week's write-up.</p>
+<ul>
+<li><strong>The extension ceiling is not the binding constraint on run tape.</strong> 2.0, 3.0 and "none" all produce the same single fire and the same &minus;$120. Deleting it bought us <em>nothing</em> on this population. The clause that actually kills grind is "VWAP slope not up", on 14 of 23 runs, and no setting of ext_hi touches that.</li>
+<li><strong>The ATR&ge;22 floor is the only knob doing work, and it is doing GOOD work.</strong> Remove it and grind takes four extra trades &mdash; &minus;$86, &minus;$31, +$97, &minus;$38 &mdash; for a net &minus;$58. The four runs it blocked had entry ATRs of 20.6, 6.8, 9.5 and 8.7 points. That is the floor stopping a trend-continuation gate from buying in dead tape, which is precisely what it was reverted to do on 08-08.</li>
+</ul>
+<p>The one fire that survives every cell is 08-10 13:56 &mdash; a +109pt up-run out of VIOLENT-WHIPSAW at 29.1pt ATR. Grind got in six minutes early and both lots stopped for &minus;$120. Being <em>allowed</em> to trade the biggest whipsaw of the week was not the same as being able to trade it.</p>
 </div>
 
-<div class="card"><h3>The quiet-tape clip &mdash; a chop tool standing in the road</h3>
-<p>Every gate in <code>data/exit_overrides.json</code> carries the 08-02 quiet-tape clip: when entry ATR is below 22 points, Lot A banks a flat $40 and Lot B banks the larger of 1.75R and $60, and nothing else in the exit stack gets to run.</p>
+<div class="card"><h3>The 55-second absorption veto &mdash; a small net positive this week</h3>
+<p>Mechanical and ungated fire from the identical bar and differ only by the 55-second wait plus the absorption test, so the two can be separated.</p>
 <table>
-<tr><th>Measure</th><th>Value</th></tr>
-<tr><td class="ln">Sat-out runs where the clip was active at entry (ATR &lt; 22pt)</td><td class="num">35 of 53</td></tr>
-<tr><td class="ln">Blind one-minute-early book, clip ON (as deployed)</td><td class="num">+$1,696.50</td></tr>
-<tr class="row-hl"><td class="ln">Same entries, same exit, clip OFF</td><td class="num">+$2,898.50</td></tr>
-<tr class="row-bad"><td class="ln">Cost of the clip on run tape</td><td class="num">&minus;$1,202.00</td></tr>
+<tr><th>Run</th><th>Move</th><th>Ungated (enter now)</th><th>Mechanical</th><th>Effect of the veto</th></tr>
+<tr class="row-bad"><td class="ln">08-10 00:22</td><td class="num">&minus;59</td><td class="num">+97.00</td><td>vetoed</td><td class="num">&minus;97.00</td></tr>
+<tr class="row-hl"><td class="ln">08-12 15:30</td><td class="num">&minus;47</td><td class="num">&minus;69.00</td><td>vetoed</td><td class="num">+69.00</td></tr>
+<tr class="row-hl"><td class="ln">08-13 15:43</td><td class="num">&minus;61</td><td class="num">&minus;78.00</td><td>vetoed</td><td class="num">+78.00</td></tr>
+<tr><td class="ln">08-10 15:20</td><td class="num">&minus;62</td><td class="num">&minus;91.00</td><td class="num">&minus;91.00</td><td class="num">0.00 &mdash; the 55s wait changed nothing</td></tr>
+<tr class="row-hl"><td class="ln"><strong>Net effect</strong></td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">+$50.00</td></tr>
 </table>
-<p>Two-thirds of these runs ignite from tape quiet enough to trigger the clip &mdash; which is the whole point of the census finding that runs come out of nothing. So on precisely the trades where a run is about to happen, the desk is wearing an exit that caps Lot A at forty dollars. It is doing what it was built to do; it was just never told that a 12-point-ATR tape can produce a 173-point run. <strong>This is a regime carve-out question, not a delete question</strong> &mdash; and it wants testing against the whole book, where the clip was justified, not against a population selected for big moves.</p>
+<p>Three blocks: two losers and one winner, netting <strong>+$50 saved</strong>. And on the one thrust that survived the test, the 55-second delay cost <strong>exactly nothing</strong> &mdash; both entries stopped for the same &minus;$91. That is a different verdict from last week, where the wait was the villain (it cost $596.50 on two winners). I am flagging the disagreement rather than papering over it: <strong>on four fires in one week the veto is mildly positive, on five fires the week before it was strongly negative, and neither sample can settle it.</strong> The Saturday job is unchanged &mdash; sweep the wait at 0/15/25/40 seconds keeping the absorption test intact, on the FULL book, not on run tape.</p>
 </div>
+
+<div class="card"><h3>The quiet-tape clip &mdash; a chop tool standing in the road, again</h3>
+<p>Every gate in <code>data/exit_overrides.json</code> carries the 08-02 quiet-tape clip: when entry ATR is below 22 points, Lot A banks a flat $40 and Lot B banks the larger of 1.75R and $60, and nothing else in the exit stack gets to run. I priced identical entries with the clip on and off.</p>
+<table>
+<tr><th>Measure</th><th>At ignition</th><th>1 minute early</th><th>5 minutes early</th></tr>
+<tr><td class="ln">Runs where the clip was active at entry (ATR &lt; 22pt)</td><td class="num">55 of 57</td><td class="num">55 of 57</td><td class="num">55 of 57</td></tr>
+<tr><td class="ln">Clip ON (as deployed)</td><td class="num">+$3,799.00</td><td class="num">+$1,377.00</td><td class="num">+$389.50</td></tr>
+<tr class="row-hl"><td class="ln">Same entries, same exit, clip OFF</td><td class="num">+$4,929.50</td><td class="num">+$2,289.00</td><td class="num">+$1,222.00</td></tr>
+<tr class="row-bad"><td class="ln">Cost of the clip on run tape</td><td class="num">&minus;$1,130.50</td><td class="num">&minus;$912.00</td><td class="num">&minus;$832.50</td></tr>
+</table>
+<p><strong>Fifty-five of fifty-seven runs this week ignited from tape quiet enough to trigger the clip</strong> &mdash; up from 35 of 53 last week, because this was a much quieter week (median peak pre-run ATR 12.0pt, against a clip threshold of 22). So on precisely the trades where a run is about to happen, the desk is wearing an exit that caps Lot A at forty dollars. The clip is doing exactly what it was built to do; nobody ever told it that a 12-point-ATR tape can produce a 236-point run. <strong>This is a regime carve-out question, not a delete question</strong> &mdash; the clip earns its keep on the whole book, which is where it was justified, and this population is selected for the one situation that makes it look worst. But it is now the second consecutive week it has cost roughly a thousand dollars on run tape, and that is worth a shadow.</p>
+</div>
+
+<h3>The tape shape &mdash; the number that explains the whole null</h3>
+
+<p>Separately from any gate, I measured what the ten minutes before each run actually looked like: the peak ATR reached, the furthest price ever got from VWAP, the biggest five-bar thrust. This is the honest physical answer to "why didn't anything fire".</p>
+
+<table>
+<tr><th>What the pre-run tape looked like</th><th>Value</th></tr>
+<tr><td class="ln">Peak ATR in the 10 minutes before ignition (median of 57 runs)</td><td class="num">12.0pt</td></tr>
+<tr><td class="ln">&mdash; lowest / highest across the 57</td><td class="num">5.5pt / 37.7pt</td></tr>
+<tr class="row-bad"><td class="ln">Up-runs that EVER reach grind_long's ATR&ge;22 floor</td><td class="num">3 of 23</td></tr>
+<tr class="row-bad"><td class="ln">Down-runs that EVER reach rgv_short's ATR&ge;20 floor</td><td class="num">6 of 34</td></tr>
+<tr><td class="ln">Runs that EVER reach capitulation_long's ATR&ge;10 floor</td><td class="num">35 of 57</td></tr>
+<tr><td class="ln">Runs where a 5-bar thrust EVER reaches 1.5 ATR (abs_veto's trigger, either direction)</td><td class="num">42 of 57</td></tr>
+<tr><td class="ln">Peak distance from VWAP (median)</td><td class="num">2.8 ATR</td></tr>
+</table>
+
+<p>There it is in one line. <strong>Three of the 23 up-runs and six of the 34 down-runs ever get anywhere near the magnitude floors our two floor-carrying gates require.</strong> Those floors were derived on the whole book, where they are right &mdash; the ATR&ge;22 revert alone was worth thousands on the live book, and it blocked losers here too. But on the specific population of "moves we sat out", they are structurally incompatible with the tape: <strong>the runs come out of quiet, and the floors exist to keep us out of quiet.</strong> That is not a bug and it is not a bug to fix by lowering the floors &mdash; the no-floor grind test above shows lowering them loses money. It is the reason a NEW instrument is needed, which is Movement 3's brief.</p>
 
 <h3>The verdict</h3>
 
 <div class="callout"><div class="ct">HONEST NULL &mdash; and here is what it is a null <em>about</em></div>
-<p><strong>DON'T ARM.</strong> There is no version of "leave the six gates on and let them catch the misses" that makes money this week. Mechanically it is <strong>&minus;$474 on 7 fires</strong>, one winner. Ungated it is <strong>+$997.50 on 19 fires</strong>, which is <strong>+$62.50</strong> once you remove three trades, on a hindsight-selected population, in-sample, with no arming rule and no out-of-sample leg. Neither is a book you would put a lot behind.</p>
-<p>But the null is specific, not general, and I want the specific part on the record because it points at next week's work:</p>
+<p><strong>DON'T ARM.</strong> There is no version of "leave the six gates on and let them catch the misses" that makes money this week. Mechanically it is <strong>+$15.50 on six fires</strong> &mdash; nominally green, but strip the single best trade and it is &minus;$94.50, and it rests entirely on one Tuesday (leave 08-11 out and it is &minus;$191.50). Ungated it is <strong>+$379.50 on 27 fires</strong>, which is <strong>+$69.50</strong> once three trades come out and <strong>+$6.50</strong> once 08-11 comes out. Neither is a book you would put a lot behind, and both are in-sample on a hindsight-selected population with no arming rule attached.</p>
+<p>But the null is specific, not general, and the specific part is where next week's work is:</p>
 <ul>
-<li><strong>It is not an exit problem.</strong> Proven by the timing ladder: give the exits perfect entries at the ignition bar and the same 53 runs pay +$4,338.50 at 74% win. The exits are fine. (The one exit finding that <em>is</em> real is the quiet-tape clip, worth $1,202 on this tape.)</li>
-<li><strong>It is not a threshold problem.</strong> Proven by the ungated book: strip every filter off all six gates and 36 of 53 runs still draw no fire at all, carrying $6,524 of the $9,780 ceiling and eleven of the fifteen biggest moves.</li>
-<li><strong>It is a timing-and-mechanism problem.</strong> Proven twice: the gates fire at 0.5&ndash;1.5&times; chance in the pre-run windows, and when they do fire it is a median of 7&ndash;8 minutes early, where the blind ladder pays &minus;$25.40 a run. Our six gates are three continuation gates that need the move to have already happened and three fade gates that need a spent move to sell into. <strong>A big run is neither of those things until it has started.</strong></li>
+<li><strong>It is not an exit problem.</strong> Proven by the timing ladder: give the same exits perfect entries at the ignition bar and these 57 runs pay <strong>+$3,799 at 75% win</strong>. The exits are fine. (The one exit finding that <em>is</em> real is the quiet-tape clip, worth $832&ndash;$1,130 on this tape depending on entry timing.)</li>
+<li><strong>It is not a threshold problem.</strong> Proven by the ungated book: strip every filter off all six gates and <strong>33 of 57 runs still draw no fire at all</strong>, carrying $4,167 of the $7,619 ceiling and nine of the fifteen biggest moves. And the filters we do have were, on balance, <em>helping</em> this week &mdash; grind's ATR floor saved $58, the 55s veto saved $50, capitulation's ATR floor saved $42; only <code>require_flip</code> cost anything ($158.50).</li>
+<li><strong>It is a timing-and-mechanism problem.</strong> Proven three ways: the gates fire at 0.44&ndash;1.21&times; chance in the pre-run windows once you have enough signal to measure, four of five below chance; when they do fire it is a median of 6.6&ndash;6.7 minutes early, where the blind ladder pays &minus;$18.80 a run; and the tape they would have to fire in has a median peak ATR of 12 points against floors of 20 and 22. <strong>Our six gates are three continuation gates that need the move to have already happened and three fade gates that need a spent move to sell into. A big run is neither of those things until it has started.</strong></li>
+<li><strong>The one green thread worth pulling.</strong> The three mechanical winners were all SHORT FADES, all with both lots reaching target, two of them fired 9&ndash;10 minutes early. Fades do not care about timing the way momentum does, because they are aimed at a price rather than at a moment. That is three trades and I will not dress it up &mdash; but it is the only positive mechanism in the section and it points somewhere.</li>
 </ul>
 </div>
 
@@ -279,17 +376,23 @@
 
 <table>
 <tr><th>Lead</th><th>Verdict</th><th>Why / what would revive it</th></tr>
-<tr class="row-bad"><td class="ln">"A better EXIT would have caught the misses"</td><td><span class="tag">REFUTED</span></td><td>Named test: the timing-decay ladder, n=52&ndash;53 per rung, tick-honest. Perfect entries at ignition pay +$4,338.50 / 74% under the <em>existing</em> exits. The exits are not what is missing.</td></tr>
-<tr><td class="ln">Arm all six gates mechanically at the misses</td><td><span class="tag">PARKED</span></td><td>&minus;$474 on 7 fires. Revive only if a mechanism changes &mdash; more n cannot save 7 fires from 53 runs, so what would revive it is a gate that can fire <em>inside</em> the first 90 seconds of a move.</td></tr>
-<tr><td class="ln">Run all six ungated (filters off)</td><td><span class="tag">PARKED</span></td><td>+$997.50 &rarr; +$62.50 stripped of 3. Revive at n&gt;60 fires across at least three weeks, with an out-of-sample leg and a regime rule attached; as it stands there is no policy here, only 19 trades.</td></tr>
-<tr class="row-hl"><td class="ln">abs_veto 55-second WAIT (not the test)</td><td><span class="tag">SHADOW</span></td><td>Best lead in the section. Test kept &minus;$169 of losers; wait cost &minus;$596.50 on two winners. Shadow a 0/15/25/40-second variant on the full book &mdash; free, riskless, and it settles a live knob.</td></tr>
-<tr class="row-hl"><td class="ln">Quiet-tape clip (ATR&lt;22) on run tape</td><td><span class="tag">SHADOW</span></td><td>Active on 35 of 53 runs, costs $1,202 with identical entries. Shadow a version that suspends the clip when the ignition context is a range-break, and read it against the whole book where the clip earns.</td></tr>
-<tr><td class="ln">grind_long <code>ext_hi 2.0</code> ceiling</td><td><span class="tag">PARKED</span></td><td>Blocks 6 of grind's 7 pre-run fires, worth +$872.50 on this population. Revive with a full-book regime-conditional sweep of ext_hi (2.0 / 3.0 / 4.0 / off) split by regime &mdash; a sat-out-run population is structurally biased in favour of removing it, so this number alone must not move it.</td></tr>
-<tr><td class="ln">rgv_short ATR&ge;20 floor</td><td><span class="tag">PARKED</span></td><td>Stands the gate down on 13 of 31 eligible runs; without it the gate still only fires once. Revive only alongside a stretch-condition rethink &mdash; the binding constraint is "never stretched above VWAP" (18 of 31), not the floor.</td></tr>
-<tr><td class="ln">exhaustion_short as a run-catcher</td><td><span class="tag">PARKED</span></td><td>4 signal-samples in the entire week; 8 of its near-misses failed on "the flow DID move price", which is the gate correctly refusing to fade a real move. Revive as a <em>bench</em> instrument (that same clause is a clean "this is a real move" detector) rather than an entry.</td></tr>
-<tr class="row-bad"><td class="ln">VIOLENT-WHIPSAW as a place to arm anything</td><td><span class="tag">PARKED</span></td><td>0% win in both modes (3 fires, &minus;$282.50), and the only regime that is negative on the blind one-minute ladder (&minus;$265 on 9 runs). Thin, so not refuted &mdash; but every sign points the same way. Revive as a bench rule with n&gt;25.</td></tr>
+<tr class="row-bad"><td class="ln">"A better EXIT would have caught the misses"</td><td><span class="tag">REFUTED</span></td><td>Named test: the timing-decay ladder, n=57 at every rung, tick-honest, on this week's tape. Perfect entries at ignition pay +$3,799 / 75% under the <em>existing</em> exits. Second consecutive week this test has returned the same answer. The exits are not what is missing.</td></tr>
+<tr class="row-bad"><td class="ln">"grind_long's <code>ext_hi</code> ceiling is what stands between us and these runs" (last week's claim)</td><td><span class="tag">REFUTED</span></td><td>Named test: the four-cell grind A/B on the same 23 up-runs. ext_hi 2.0, 3.0 and none all give the identical single fire and the identical &minus;$120. The binding clause is "VWAP slope not up" on 14 of 23 runs, which no ext setting touches. Last week's number came from a cell where the ATR floor was 10; with the floor at 22 the ceiling is not reachable in the first place.</td></tr>
+<tr class="row-hl"><td class="ln">grind_long ATR floor 10 &rarr; 22 (the 08-08 revert)</td><td><span class="tag">LIVE</span></td><td>Not an action &mdash; it is already deployed and this is the confirmation. On run tape the floor blocks four trades worth &minus;$58 net at entry ATRs of 20.6 / 6.8 / 9.5 / 8.7pt. HOLD. Note honestly that this is a $58 confirmation on 4 trades, not independent support for the $4,151 full-book number.</td></tr>
+<tr class="row-hl"><td class="ln">The two SHORT FADERS (exhaustion_short, rgv_short) as run-catchers</td><td><span class="tag">SHADOW</span></td><td>3 fires, 3 winners, +$302.50, both lots to target on all three, two of them fired 9&ndash;10 minutes ahead and still won. n=3, so it proves nothing &mdash; but it is free to watch. Shadow: log every mechanical fade fire near a census run and accumulate n. Revive as a real candidate at n&ge;20.</td></tr>
+<tr><td class="ln">Arm all six gates mechanically at the misses</td><td><span class="tag">PARKED</span></td><td>+$15.50 on 6 fires; &minus;$94.50 stripped of one; &minus;$191.50 without 08-11. Revive only if a MECHANISM changes &mdash; more n cannot save six fires from 57 runs. What would revive it: a gate that can fire <em>inside</em> the first two minutes of a move.</td></tr>
+<tr><td class="ln">Run all six ungated (filters off)</td><td><span class="tag">PARKED</span></td><td>+$379.50 &rarr; +$69.50 stripped of 3 &rarr; +$6.50 without 08-11. Revive at n&gt;60 fires across at least three weeks with an out-of-sample leg and a regime rule attached. As it stands there is no policy here, only 27 trades and one good Tuesday.</td></tr>
+<tr class="row-hl"><td class="ln">capitulation_long <code>require_flip</code> on run tape</td><td><span class="tag">SHADOW</span></td><td>Blocked 3 of the gate's 6 ungated pre-run fires, two of them $97 winners &mdash; cost $158.50 here. Does NOT overturn the 08-02 full-book re-derivation (capit_loose &minus;$5,250 / 238 fires, ordering-correct). Shadow a "flip OR 90-second timeout" variant so the gate can still take the flush when buyers are slow to show, and read it against the whole book.</td></tr>
+<tr class="row-hl"><td class="ln">Quiet-tape clip (ATR&lt;22) on run tape</td><td><span class="tag">SHADOW</span></td><td>Active on 55 of 57 runs, costs $832&ndash;$1,130 with identical entries depending on entry lead. Second consecutive week at roughly a grand. Shadow a version that suspends the clip when the ignition context is a range-break, and read it against the whole book where the clip earns.</td></tr>
+<tr><td class="ln">abs_veto 55-second WAIT (as distinct from the test)</td><td><span class="tag">PARKED</span></td><td>Last week: the wait cost $596.50 on two winners. This week: it cost exactly $0 on its one survivor, and the veto as a whole SAVED $50. The two weeks disagree, which means neither is evidence. Revive via the proper test &mdash; sweep 0/15/25/40s on the FULL book, not on run tape.</td></tr>
+<tr><td class="ln">rgv_short ATR&ge;20 floor</td><td><span class="tag">PARKED</span></td><td>Stands the gate down on 22 of 34 eligible runs, and only 6 of those 34 ever reach 20pt ATR at all. But removing it moves the binding clause to "never stretched above VWAP" (16 runs) and the gate still fires only twice, both winners. Revive only alongside a stretch-condition rethink &mdash; the floor is not the constraint, the geometry is.</td></tr>
+<tr><td class="ln">exhaustion_short's "the flow DID move price" clause as a BENCH instrument</td><td><span class="tag">SHADOW</span></td><td>It refused 10 of 34 runs on exactly that test &mdash; heavy aggressor flow that IS moving price. That is a cheap, already-implemented, 20-second detector of "a real move is underway". Useless as an entry (it says don't fade); potentially valuable inverted, as an arm/bench signal. Free to shadow, and it is the same idea Movement 3 needs.</td></tr>
+<tr class="row-bad"><td class="ln">VIOLENT-WHIPSAW as a place to arm anything</td><td><span class="tag">PARKED</span></td><td>Loses in both modes (&minus;$115.50 mech / &minus;$192.50 ungated) and owns the two worst trades in the study. Second consecutive week it is the losing bucket. But the blind ladder says whipsaw is the BEST regime (+$56.40/run, 73%), so the mechanism is "worth being in, not worth guessing at". Thin (11 runs), so parked not refuted. Revive as a bench rule at n&gt;25.</td></tr>
+<tr class="row-bad"><td class="ln">Small R targets (0.5R Lot A) on run tape</td><td><span class="tag">REFUTED</span></td><td>Named test: the 9-cell R sweep on 57 blind entries, clip off, LODO across five days. 0.5R is the worst cell in the sweep at &minus;$182 with a 63% win rate, negative overall and in three of the four regime columns (whipsaw is the only exception). It was also the worst cell last week on a different tape. Wins often, loses money &mdash; the classic small-target signature.</td></tr>
 </table>
 
 <div class="callout"><div class="ct">THE ONE STONE STILL UNTURNED</div>
-<p>Everything in this movement tested entries <strong>before</strong> ignition, because that is what "could we have caught it" normally means. The decay ladder says the highest-paying rung by a distance is the one at zero &mdash; and the second-highest is <strong>thirty seconds in</strong>, at +$2,487.50 / +$46.90 a run / 66% green. We have never built a gate whose job is to arm on the <em>first thirty seconds of a move that has already started</em>, on 5-second bars, with no attempt to predict anything. Every gate we own either wants five minutes of history (abs_veto, grind) or wants the move to be over (rgv, capitulation, exhaustion). The desk has already banked &quot;predicting run STARTS&quot; as a null on 22.6 million ticks (carried in as a prior, not re-derived here); this movement adds the complementary fact that <strong>being late by ninety seconds is nearly as bad as being wrong.</strong> The unturned stone is the narrow band in between &mdash; and it is exactly the shape NIPC found on the news window. That is Movement 3's job.</p>
+<p>Everything in this movement tested entries <strong>before</strong> ignition, because that is what "could we have caught it" normally means. The decay ladder says the highest-paying rung by a distance is the one at zero (+$66.60 a run, 75% green) and that the money is still real at thirty seconds (+$29.40) and holds a shelf out to four minutes. We have never built a gate whose job is to arm on the <strong>first thirty seconds of a move that has already started</strong>, on 5-second bars, with no attempt to predict anything.</p>
+<p>Two things this week added to that. First, <strong>the three winners here were all fades</strong>, and fades were the only entries whose money survived being early &mdash; because a fade aims at a price, not at a moment. Second, <code>exhaustion_short</code> handed us a ready-made ignition detector by accident: it refused ten runs because <em>the aggressive flow WAS moving price</em>. Inverted, that clause is a twenty-second "a real move is underway" test that already runs on this desk's tape, costs nothing, and fires exactly where the ladder says the money is. Combine that with the US-session skew (+$41.00 a run vs +$10.10 overnight) and you have the shape of the thing Movement 3 should be trying to build.</p>
+<p>Honest scope on all of it: <strong>one week, five trading days, 57 runs, in-sample, hindsight-selected, on the quietest tape of the summer.</strong> Nothing in this section is a Saturday deploy.</p>
 </div>

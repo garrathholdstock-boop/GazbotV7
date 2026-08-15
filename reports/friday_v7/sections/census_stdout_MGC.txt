@@ -1,8 +1,8 @@
-═══ MGC RUN CENSUS — last 7d · 72 runs ≥ 1.5×ATR (15-min move ≥ 11pt; typical 15m range = 7pt) ═══
+═══ MGC RUN CENSUS — last 7d · 74 runs ≥ 1.5×ATR (15-min move ≥ 10pt; typical 15m range = 7pt) ═══
 
 time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   book  cluster
-08-09 23:59     UP    +12    124  sat out —                  +0    -34  0.25      —  VACUUM
-08-10 01:03     DN    -15    153  sat out —                  +0    +12  0.28      —  UNCLASS
+08-09 23:59     UP    +12    124  sat out —                  +0     +0  0.25      —  UNCLASS
+08-10 01:03     DN    -15    153  sat out —                  +0    +12  0.28      —  VACUUM
 08-10 01:26     DN    -12    118  sat out —                  +0     +6  0.15      —  UNCLASS
 08-10 04:08     UP    +14    138  sat out —                  +0     +0  0.07      —  UNCLASS
 08-10 05:38     UP    +11    108  sat out —                  +0     +2  0.12      —  UNCLASS
@@ -12,6 +12,7 @@ time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   b
 08-10 15:48     UP    +11    108  sat out —                  +0    +78  0.11      —  FLOW-LED
 08-10 16:29     DN    -11    110  sat out —                  +0     -3  0.05      —  UNCLASS
 08-10 18:23     UP    +18    175  sat out —                  +0     +3  0.04      —  UNCLASS
+08-10 19:15     UP    +11    106  sat out —                  +0    +11  0.05      —  UNCLASS
 08-11 00:47     DN    -18    180  sat out —                  +0    +50  0.25      —  VACUUM
 08-11 01:02     UP    +20    201  sat out —                  +0     -8  0.35      —  VOL-EXPANSION
 08-11 01:41     UP    +12    124  sat out —                  +0     +2  0.14      —  UNCLASS
@@ -21,6 +22,7 @@ time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   b
 08-11 06:18     DN    -13    130  sat out —                  +0     +2  0.17      —  UNCLASS
 08-11 08:21     UP    +12    125  sat out —                  +0     -8  0.11      —  UNCLASS
 08-11 10:58     UP    +12    118  sat out —                  +0     +1  0.05      —  UNCLASS
+08-11 12:01     UP    +11    106  sat out —                  +0     -3  0.07      —  UNCLASS
 08-11 13:45     DN    -16    162  sat out —                  +0    +19  0.13      —  OPEN/NEWS
 08-11 15:04     DN    -12    124  sat out —                  +0    +45  0.12      —  VACUUM
 08-11 15:23     DN    -14    141  sat out —                  +0     +7  0.17      —  UNCLASS
@@ -75,7 +77,7 @@ time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   b
 08-14 15:13     DN    -11    107  sat out —                  +0    +18  0.17      —  VACUUM
 
 ── CLUSTERS ──
-   UNCLASS         39 runs
+   UNCLASS         41 runs
    OPEN/NEWS       15 runs
    VACUUM          10 runs
    FLOW-LED         6 runs
@@ -84,8 +86,8 @@ time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   b
 ── HONEST MONEY (ceiling = hindsight 1-lot; real = what a gate actually banked) ──
    CAUGHT    0 runs · ceiling $     0 · real $    +0  (0% of ceiling)
    FOUGHT    0 runs · ceiling $     0 · real $    +0
-   SAT OUT  72 runs · ceiling $ 10437 · real $     0  ← the money on the table
+   SAT OUT  74 runs · ceiling $ 10649 · real $     0  ← the money on the table
 
 ── real $ by gate (near the runs) ──
 
-Movement-1 HTML → reports/friday_v7/sections/movement1_census_MGC.html (20667 bytes)
+Movement-1 HTML → /home/alphabot/gazbot7/reports/friday_v7/sections/movement1_census_MGC.html (21155 bytes)

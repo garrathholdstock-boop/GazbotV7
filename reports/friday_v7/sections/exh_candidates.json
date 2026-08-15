@@ -1,0 +1,287 @@
+{
+ "baseline": -158.0,
+ "n": 104,
+ "candidates": [
+  {
+   "label": "NO FILTER (live as traded)",
+   "mechanism": "baseline",
+   "n": 104,
+   "net": -158.0,
+   "delta": 0.0,
+   "per_trade": -1.52,
+   "win_pct": 50.0,
+   "cut_n": 0,
+   "cut_winners": 0,
+   "forgone_winner_usd": 0,
+   "placebo": null,
+   "lodo_worst_delta": 0.0,
+   "strip3_delta": 0.0
+  },
+  {
+   "label": "cooldown 5min after a stop",
+   "mechanism": "operator test 1",
+   "n": 87,
+   "net": -94.5,
+   "delta": 63.5,
+   "per_trade": -1.09,
+   "win_pct": 51.7,
+   "cut_n": 17,
+   "cut_winners": 7,
+   "forgone_winner_usd": 508.5,
+   "placebo": {
+    "mean": -127.78,
+    "p95": 406.0,
+    "pctile": 53.4
+   },
+   "lodo_worst_delta": -63.0,
+   "strip3_delta": 243.5
+  },
+  {
+   "label": "cooldown 15min after a stop",
+   "mechanism": "operator test 1",
+   "n": 74,
+   "net": -210.5,
+   "delta": -52.5,
+   "per_trade": -2.84,
+   "win_pct": 47.3,
+   "cut_n": 30,
+   "cut_winners": 17,
+   "forgone_winner_usd": 826.5,
+   "placebo": {
+    "mean": -115.44,
+    "p95": 552.5,
+    "pctile": 41.0
+   },
+   "lodo_worst_delta": -147.0,
+   "strip3_delta": 127.5
+  },
+  {
+   "label": "cooldown 30min after a stop",
+   "mechanism": "operator test 1",
+   "n": 67,
+   "net": -345.0,
+   "delta": -187.0,
+   "per_trade": -5.15,
+   "win_pct": 46.3,
+   "cut_n": 37,
+   "cut_winners": 21,
+   "forgone_winner_usd": 1096.0,
+   "placebo": {
+    "mean": -107.4,
+    "p95": 578.5,
+    "pctile": 28.3
+   },
+   "lodo_worst_delta": -342.5,
+   "strip3_delta": -7.0
+  },
+  {
+   "label": "cooldown 60min after a stop",
+   "mechanism": "operator test 1",
+   "n": 54,
+   "net": -541.5,
+   "delta": -383.5,
+   "per_trade": -10.03,
+   "win_pct": 40.7,
+   "cut_n": 50,
+   "cut_winners": 30,
+   "forgone_winner_usd": 1545.0,
+   "placebo": {
+    "mean": -72.06,
+    "p95": 636.0,
+    "pctile": 14.3
+   },
+   "lodo_worst_delta": -533.5,
+   "strip3_delta": -203.5
+  },
+  {
+   "label": "bench 60min after 2 stops",
+   "mechanism": "operator test 2",
+   "n": 74,
+   "net": -306.5,
+   "delta": -148.5,
+   "per_trade": -4.14,
+   "win_pct": 45.9,
+   "cut_n": 30,
+   "cut_winners": 18,
+   "forgone_winner_usd": 951.0,
+   "placebo": {
+    "mean": -116.01,
+    "p95": 533.5,
+    "pctile": 31.9
+   },
+   "lodo_worst_delta": -307.5,
+   "strip3_delta": -148.5
+  },
+  {
+   "label": "bench rest-of-session after 2 stops",
+   "mechanism": "operator test 2",
+   "n": 42,
+   "net": -210.5,
+   "delta": -52.5,
+   "per_trade": -5.01,
+   "win_pct": 47.6,
+   "cut_n": 62,
+   "cut_winners": 32,
+   "forgone_winner_usd": 1687.5,
+   "placebo": {
+    "mean": -67.67,
+    "p95": 634.5,
+    "pctile": 37.0
+   },
+   "lodo_worst_delta": -286.0,
+   "strip3_delta": -52.5
+  },
+  {
+   "label": "bench rest-of-session after 3 stops",
+   "mechanism": "operator test 2",
+   "n": 75,
+   "net": -78.0,
+   "delta": 80.0,
+   "per_trade": -1.04,
+   "win_pct": 50.7,
+   "cut_n": 29,
+   "cut_winners": 14,
+   "forgone_winner_usd": 647.5,
+   "placebo": {
+    "mean": -109.65,
+    "p95": 528.5,
+    "pctile": 52.9
+   },
+   "lodo_worst_delta": -24.0,
+   "strip3_delta": 80.0
+  },
+  {
+   "label": "net_min 500 (from 400)",
+   "mechanism": "operator test 4",
+   "n": 62,
+   "net": 362.5,
+   "delta": 520.5,
+   "per_trade": 5.85,
+   "win_pct": 54.8,
+   "cut_n": 42,
+   "cut_winners": 18,
+   "forgone_winner_usd": 945.5,
+   "placebo": {
+    "mean": -97.27,
+    "p95": 618.0,
+    "pctile": 85.4
+   },
+   "lodo_worst_delta": 251.5,
+   "strip3_delta": 520.5
+  },
+  {
+   "label": "net_min 600 (from 400)",
+   "mechanism": "operator test 4",
+   "n": 44,
+   "net": 315.5,
+   "delta": 473.5,
+   "per_trade": 7.17,
+   "win_pct": 54.5,
+   "cut_n": 60,
+   "cut_winners": 28,
+   "forgone_winner_usd": 1729.5,
+   "placebo": {
+    "mean": -72.6,
+    "p95": 643.0,
+    "pctile": 81.6
+   },
+   "lodo_worst_delta": 65.0,
+   "strip3_delta": 878.0
+  },
+  {
+   "label": "net_min 700 (from 400)",
+   "mechanism": "operator test 4",
+   "n": 32,
+   "net": -3.5,
+   "delta": 154.5,
+   "per_trade": -0.11,
+   "win_pct": 50.0,
+   "cut_n": 72,
+   "cut_winners": 36,
+   "forgone_winner_usd": 2319.0,
+   "placebo": {
+    "mean": -39.99,
+    "p95": 647.5,
+    "pctile": 53.6
+   },
+   "lodo_worst_delta": -131.0,
+   "strip3_delta": 559.0
+  },
+  {
+   "label": "skip when entry ATR >= 37pt",
+   "mechanism": "from the regime split",
+   "n": 77,
+   "net": 239.5,
+   "delta": 397.5,
+   "per_trade": 3.11,
+   "win_pct": 50.6,
+   "cut_n": 27,
+   "cut_winners": 13,
+   "forgone_winner_usd": 702.0,
+   "placebo": {
+    "mean": -114.4,
+    "p95": 509.0,
+    "pctile": 81.7
+   },
+   "lodo_worst_delta": 218.5,
+   "strip3_delta": 577.5
+  },
+  {
+   "label": "skip when entry ATR >= 27pt",
+   "mechanism": "from the regime split",
+   "n": 53,
+   "net": 100.5,
+   "delta": 258.5,
+   "per_trade": 1.9,
+   "win_pct": 50.9,
+   "cut_n": 51,
+   "cut_winners": 25,
+   "forgone_winner_usd": 1850.0,
+   "placebo": {
+    "mean": -76.85,
+    "p95": 632.5,
+    "pctile": 65.2
+   },
+   "lodo_worst_delta": -4.5,
+   "strip3_delta": 987.5
+  },
+  {
+   "label": "skip when entry ATR < 14pt",
+   "mechanism": "from the regime split",
+   "n": 78,
+   "net": -190.0,
+   "delta": -32.0,
+   "per_trade": -2.44,
+   "win_pct": 51.3,
+   "cut_n": 26,
+   "cut_winners": 12,
+   "forgone_winner_usd": 706.0,
+   "placebo": {
+    "mean": -121.03,
+    "p95": 522.0,
+    "pctile": 43.7
+   },
+   "lodo_worst_delta": -170.5,
+   "strip3_delta": -32.0
+  },
+  {
+   "label": "US session only (>=13:00Z)",
+   "mechanism": "from the time-of-day split",
+   "n": 101,
+   "net": -382.5,
+   "delta": -224.5,
+   "per_trade": -3.79,
+   "win_pct": 48.5,
+   "cut_n": 3,
+   "cut_winners": 3,
+   "forgone_winner_usd": 224.5,
+   "placebo": {
+    "mean": -154.53,
+    "p95": 78.0,
+    "pctile": 6.7
+   },
+   "lodo_worst_delta": -224.5,
+   "strip3_delta": -224.5
+  }
+ ]
+}

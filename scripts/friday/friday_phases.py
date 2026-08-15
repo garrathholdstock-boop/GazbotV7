@@ -17,9 +17,32 @@ Contract for every phase:
 Adding/removing a phase is a data edit here; the driver needs no changes.
 """
 
+import datetime as _dt
+
 GB = "/home/alphabot/gazbot7"
 SEC = f"{GB}/reports/friday_v7/sections"
 WEB = f"{GB}/src/gazbot7/web_static"
+
+# ★★★2026-08-15 THE BUG THAT KILLED THE TAIL ON EVERY RUN. `assemble`'s artifact was declared as
+# f"{WEB}/weekly_{{WEEK}}.html" — doubled braces, so it resolved to the LITERAL filename
+# `weekly_{WEEK}.html`, and NOTHING anywhere substituted WEEK (not friday_phases, not
+# serial_runner). That check could therefore never pass on any week.
+# Consequence, observed 2026-08-14: assemble ran, exited 0, and wrote weekly_2026-08-14.html (746KB)
+# — and the runner declared "artifact=MISSING → TAIL PHASE FAILED → stopping", killing proofread,
+# rev2 and final at 02:20 with 2h55m still on the clock. The report has never been proofread
+# unattended, and this is why: not memory, not time, a filename that cannot exist.
+# WEEK is the report's Friday, resolved the SAME way serial_runner computes its staleness cutoff, so
+# a Saturday-morning resume names the same file the Friday-night run did.
+def _report_week() -> str:
+    now = _dt.datetime.now(_dt.UTC)
+    d = now - _dt.timedelta(days=(now.weekday() - 4) % 7)      # most recent Friday
+    cut = d.replace(hour=22, minute=0, second=0, microsecond=0)
+    if cut > now:
+        cut -= _dt.timedelta(days=7)
+    return f"{cut:%Y-%m-%d}"
+
+
+WEEK = _report_week()
 SCOPE = f"{GB}/docs/FRIDAY_V7_REPORT_SCOPE.md"
 
 STYLE = (
@@ -442,10 +465,10 @@ PHASES = [
          f"subsection from gf_chopscalp.md: can we stop DONATING on chop days? {JUDGE} {GRAVES} {SEGMENT} {STYLE} "
          f"Write to {SEC}/movement3_greenfield.html"),
 
-    dict(key="assemble", artifact=f"{WEB}/weekly_{{WEEK}}.html",
+    dict(key="assemble", artifact=f"{WEB}/weekly_{WEEK}.html",
          deps=["part1_live", "part2_shadow", "part25_musings", "part2_6_router", "movement2_idle", "rehab", "movement3", "run_charts"],
          timeout_s=3600, prompt=PRE +
-         f"Assemble the full V7 report for the completed week (outputs weekly_{{WEEK}}.html/.pdf + monday_{{WEEK}}.html). "
+         f"Assemble the full V7 report for the completed week (outputs weekly_{WEEK}.html/.pdf + monday_{WEEK}.html). "
          f"Sections live in {SEC}: part1_live, part1_5_rehab, part2_shadow, part25_musings, part2_6_router_review, "
          f"movement1_census, movement2_idle_gates, movement3_greenfield, run_charts. Extend scripts/friday_v7_build.py so it stitches ALL of "
          f"them into the light-theme shell in that order (Rehabilitation is a headline live-desk section — right after the live "

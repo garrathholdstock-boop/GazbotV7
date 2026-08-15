@@ -1,0 +1,3029 @@
+{
+ "board": [
+  {
+   "tag": "grind_long",
+   "side": "LONG",
+   "mode": "mech",
+   "elig": 23,
+   "fires": 1,
+   "net": -120.0,
+   "per": -120.0,
+   "win": 0,
+   "exits": "A:STOP/B:STOP:1",
+   "blocked": 10,
+   "trades": [
+    {
+     "run": "08-10 13:56",
+     "move": 109,
+     "net": -120.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 360.0,
+     "atr": 29.12
+    }
+   ]
+  },
+  {
+   "tag": "grind_long",
+   "side": "LONG",
+   "mode": "ungated",
+   "elig": 23,
+   "fires": 7,
+   "net": -152.0,
+   "per": -21.7,
+   "win": 29,
+   "exits": "A:STOP/B:STOP:5 A:TARGET/B:TARGET:2",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-10 13:56",
+     "move": 109,
+     "net": -120.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 360.0,
+     "atr": 29.12
+    },
+    {
+     "run": "08-10 14:25",
+     "move": 46,
+     "net": -86.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "BUILDING",
+     "lead_s": 540.0,
+     "atr": 20.55
+    },
+    {
+     "run": "08-11 10:53",
+     "move": 64,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "DEAD-CHOP",
+     "lead_s": 300.0,
+     "atr": 5.95
+    },
+    {
+     "run": "08-12 00:08",
+     "move": 44,
+     "net": -31.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 540.0,
+     "atr": 6.82
+    },
+    {
+     "run": "08-12 13:08",
+     "move": 52,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 360.0,
+     "atr": 9.5
+    },
+    {
+     "run": "08-13 14:20",
+     "move": 75,
+     "net": -70.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 420.0,
+     "atr": 16.61
+    },
+    {
+     "run": "08-13 16:55",
+     "move": 49,
+     "net": -39.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "DEAD-CHOP",
+     "lead_s": 240.0,
+     "atr": 8.86
+    }
+   ]
+  },
+  {
+   "tag": "capitulation_long",
+   "side": "LONG",
+   "mode": "mech",
+   "elig": 23,
+   "fires": 0,
+   "net": 0,
+   "per": 0,
+   "win": 0,
+   "exits": "",
+   "blocked": 3,
+   "trades": []
+  },
+  {
+   "tag": "capitulation_long",
+   "side": "LONG",
+   "mode": "ungated",
+   "elig": 23,
+   "fires": 6,
+   "net": 116.5,
+   "per": 19.4,
+   "win": 50,
+   "exits": "A:STOP/B:STOP:3 A:TARGET/B:TARGET:2 A:TARGET/B:STOP:1",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-10 01:01",
+     "move": 54,
+     "net": 97.5,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "BUILDING",
+     "lead_s": 270.0,
+     "atr": 13.25
+    },
+    {
+     "run": "08-11 00:02",
+     "move": 74,
+     "net": -31.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 590.0,
+     "atr": 6.88
+    },
+    {
+     "run": "08-11 10:13",
+     "move": 70,
+     "net": -29.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "DEAD-CHOP",
+     "lead_s": 455.0,
+     "atr": 6.3
+    },
+    {
+     "run": "08-12 23:59",
+     "move": 58,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "DEAD-CHOP",
+     "lead_s": 65.0,
+     "atr": 6.57
+    },
+    {
+     "run": "08-13 13:32",
+     "move": 236,
+     "net": 18.0,
+     "why": "A:TARGET/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 115.0,
+     "atr": 9.45
+    },
+    {
+     "run": "08-13 18:27",
+     "move": 45,
+     "net": -36.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 400.0,
+     "atr": 8.05
+    }
+   ]
+  },
+  {
+   "tag": "abs_veto_long",
+   "side": "LONG",
+   "mode": "mech",
+   "elig": 23,
+   "fires": 1,
+   "net": -76.0,
+   "per": -76.0,
+   "win": 0,
+   "exits": "A:STOP/B:STOP:1",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-13 14:20",
+     "move": 75,
+     "net": -76.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 425.0,
+     "atr": 18.21
+    }
+   ]
+  },
+  {
+   "tag": "abs_veto_long",
+   "side": "LONG",
+   "mode": "ungated",
+   "elig": 23,
+   "fires": 3,
+   "net": -7.0,
+   "per": -2.3,
+   "win": 33,
+   "exits": "A:STOP/B:STOP:2 A:TARGET/B:TARGET:1",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-11 10:53",
+     "move": 64,
+     "net": -28.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "DEAD-CHOP",
+     "lead_s": 180.0,
+     "atr": 5.79
+    },
+    {
+     "run": "08-12 12:25",
+     "move": 87,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 0.0,
+     "atr": 8.54
+    },
+    {
+     "run": "08-13 14:20",
+     "move": 75,
+     "net": -76.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 480.0,
+     "atr": 18.21
+    }
+   ]
+  },
+  {
+   "tag": "rgv_short",
+   "side": "SHORT",
+   "mode": "mech",
+   "elig": 34,
+   "fires": 1,
+   "net": 110.0,
+   "per": 110.0,
+   "win": 100,
+   "exits": "A:TARGET/B:TARGET:1",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-11 14:16",
+     "move": -49,
+     "net": 110.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "BUILDING",
+     "lead_s": 180.0,
+     "atr": 20.82
+    }
+   ]
+  },
+  {
+   "tag": "rgv_short",
+   "side": "SHORT",
+   "mode": "ungated",
+   "elig": 34,
+   "fires": 2,
+   "net": 212.5,
+   "per": 106.2,
+   "win": 100,
+   "exits": "A:TARGET/B:TARGET:2",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-10 00:22",
+     "move": -59,
+     "net": 102.5,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 360.0,
+     "atr": 18.62
+    },
+    {
+     "run": "08-11 14:16",
+     "move": -49,
+     "net": 110.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "BUILDING",
+     "lead_s": 180.0,
+     "atr": 20.82
+    }
+   ]
+  },
+  {
+   "tag": "exhaustion_short",
+   "side": "SHORT",
+   "mode": "mech",
+   "elig": 34,
+   "fires": 2,
+   "net": 192.5,
+   "per": 96.2,
+   "win": 100,
+   "exits": "A:TARGET/B:CHANDELIER:1 A:TARGET/B:TARGET:1",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-10 14:45",
+     "move": -90,
+     "net": 95.5,
+     "why": "A:TARGET/B:CHANDELIER",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 540.0,
+     "atr": 22.88
+    },
+    {
+     "run": "08-11 15:22",
+     "move": -54,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "BUILDING",
+     "lead_s": 575.0,
+     "atr": 16.05
+    }
+   ]
+  },
+  {
+   "tag": "exhaustion_short",
+   "side": "SHORT",
+   "mode": "ungated",
+   "elig": 34,
+   "fires": 2,
+   "net": 193.5,
+   "per": 96.8,
+   "win": 100,
+   "exits": "A:TARGET/B:CHANDELIER:1 A:TARGET/B:TARGET:1",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-10 14:45",
+     "move": -90,
+     "net": 96.5,
+     "why": "A:TARGET/B:CHANDELIER",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 545.0,
+     "atr": 22.88
+    },
+    {
+     "run": "08-11 15:22",
+     "move": -54,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "BUILDING",
+     "lead_s": 580.0,
+     "atr": 16.05
+    }
+   ]
+  },
+  {
+   "tag": "abs_veto_short",
+   "side": "SHORT",
+   "mode": "mech",
+   "elig": 34,
+   "fires": 1,
+   "net": -91.0,
+   "per": -91.0,
+   "win": 0,
+   "exits": "A:STOP/B:STOP:1",
+   "blocked": 3,
+   "trades": [
+    {
+     "run": "08-10 15:20",
+     "move": -62,
+     "net": -91.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 365.0,
+     "atr": 21.84
+    }
+   ]
+  },
+  {
+   "tag": "abs_veto_short",
+   "side": "SHORT",
+   "mode": "ungated",
+   "elig": 34,
+   "fires": 7,
+   "net": 16.0,
+   "per": 2.3,
+   "win": 43,
+   "exits": "A:STOP/B:STOP:4 A:TARGET/B:TARGET:3",
+   "blocked": 0,
+   "trades": [
+    {
+     "run": "08-10 00:22",
+     "move": -59,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 0.0,
+     "atr": 14.91
+    },
+    {
+     "run": "08-10 15:20",
+     "move": -62,
+     "net": -91.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 420.0,
+     "atr": 21.84
+    },
+    {
+     "run": "08-11 13:24",
+     "move": -137,
+     "net": -37.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 480.0,
+     "atr": 8.27
+    },
+    {
+     "run": "08-11 16:59",
+     "move": -45,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 120.0,
+     "atr": 9.8
+    },
+    {
+     "run": "08-11 18:15",
+     "move": -59,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 480.0,
+     "atr": 9.68
+    },
+    {
+     "run": "08-12 15:30",
+     "move": -47,
+     "net": -69.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "NORMAL-CHOP",
+     "lead_s": 420.0,
+     "atr": 16.39
+    },
+    {
+     "run": "08-13 15:43",
+     "move": -61,
+     "net": -78.0,
+     "why": "A:STOP/B:STOP",
+     "regime": "VIOLENT-WHIPSAW",
+     "lead_s": 480.0,
+     "atr": 18.68
+    }
+   ]
+  }
+ ],
+ "why": {
+  "grind_long|mech": {
+   "n": 23,
+   "hist": [
+    [
+     "vwap slope not up (no established up-trend)",
+     14
+    ],
+    [
+     "ATR floor 22pt not met",
+     4
+    ],
+    [
+     "price not riding above VWAP (ext<0.3 ATR)",
+     2
+    ],
+    [
+     "already stretched (ext>4.0 ATR)",
+     2
+    ],
+    [
+     "FIRES",
+     1
+    ]
+   ]
+  },
+  "grind_long|ungated": {
+   "n": 23,
+   "hist": [
+    [
+     "vwap slope not up (no established up-trend)",
+     14
+    ],
+    [
+     "FIRES",
+     7
+    ],
+    [
+     "price not riding above VWAP (ext<0.3 ATR)",
+     2
+    ]
+   ]
+  },
+  "capitulation_long|mech": {
+   "n": 23,
+   "hist": [
+    [
+     "sell volume < 2.5x baseline (no climax)",
+     15
+    ],
+    [
+     "buyers never flipped at the low (require_flip)",
+     3
+    ],
+    [
+     "ATR floor 10pt not met",
+     3
+    ],
+    [
+     "sellers not 60% dominant",
+     2
+    ]
+   ]
+  },
+  "capitulation_long|ungated": {
+   "n": 23,
+   "hist": [
+    [
+     "sell volume < 2.5x baseline (no climax)",
+     15
+    ],
+    [
+     "FIRES",
+     6
+    ],
+    [
+     "sellers not 60% dominant",
+     2
+    ]
+   ]
+  },
+  "abs_veto_long|mech": {
+   "n": 23,
+   "hist": [
+    [
+     "no 5-bar thrust >= 1.5 ATR",
+     16
+    ],
+    [
+     "amp floor: tape too thin (atr% < 0.04%)",
+     5
+    ],
+    [
+     "no volume surge on the thrust bar",
+     1
+    ],
+    [
+     "FIRES",
+     1
+    ]
+   ]
+  },
+  "abs_veto_long|ungated": {
+   "n": 23,
+   "hist": [
+    [
+     "no 5-bar thrust >= 1.5 ATR",
+     16
+    ],
+    [
+     "no volume surge on the thrust bar",
+     4
+    ],
+    [
+     "FIRES",
+     3
+    ]
+   ]
+  },
+  "rgv_short|mech": {
+   "n": 34,
+   "hist": [
+    [
+     "ATR floor 20pt not met",
+     22
+    ],
+    [
+     "regime stand-down (vol too high / slope too steep)",
+     9
+    ],
+    [
+     "not stretched >= 1.5 ATR above VWAP",
+     2
+    ],
+    [
+     "FIRES",
+     1
+    ]
+   ]
+  },
+  "rgv_short|ungated": {
+   "n": 34,
+   "hist": [
+    [
+     "not stretched >= 1.5 ATR above VWAP",
+     16
+    ],
+    [
+     "regime stand-down (vol too high / slope too steep)",
+     9
+    ],
+    [
+     "no fresh down-turn",
+     7
+    ],
+    [
+     "FIRES",
+     2
+    ]
+   ]
+  },
+  "exhaustion_short|mech": {
+   "n": 34,
+   "hist": [
+    [
+     "20s net aggressor flow < 400 (no aggression to fade)",
+     16
+    ],
+    [
+     "the aggression DID move price >2pt (not absorption)",
+     10
+    ],
+    [
+     "no ask wall (hit side not 1.5x)",
+     6
+    ],
+    [
+     "FIRES",
+     2
+    ]
+   ]
+  },
+  "exhaustion_short|ungated": {
+   "n": 34,
+   "hist": [
+    [
+     "20s net aggressor flow < 400 (no aggression to fade)",
+     16
+    ],
+    [
+     "the aggression DID move price >2pt (not absorption)",
+     10
+    ],
+    [
+     "no ask wall (hit side not 1.5x)",
+     6
+    ],
+    [
+     "FIRES",
+     2
+    ]
+   ]
+  },
+  "abs_veto_short|mech": {
+   "n": 34,
+   "hist": [
+    [
+     "no 5-bar thrust >= 1.5 ATR",
+     18
+    ],
+    [
+     "amp floor: tape too thin (atr% < 0.04%)",
+     6
+    ],
+    [
+     "thrust is the wrong way",
+     4
+    ],
+    [
+     "55s absorption VETO (burst absorbed)",
+     3
+    ],
+    [
+     "no volume surge on the thrust bar",
+     2
+    ],
+    [
+     "FIRES",
+     1
+    ]
+   ]
+  },
+  "abs_veto_short|ungated": {
+   "n": 34,
+   "hist": [
+    [
+     "no 5-bar thrust >= 1.5 ATR",
+     18
+    ],
+    [
+     "FIRES",
+     7
+    ],
+    [
+     "no volume surge on the thrust bar",
+     5
+    ],
+    [
+     "thrust is the wrong way",
+     4
+    ]
+   ]
+  }
+ },
+ "blocked": {
+  "grind_long|mech": [
+   [
+    "08-10 14:25",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 00:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 00:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 00:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 13:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 13:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 13:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-12 13:08",
+    "ATR floor 22"
+   ],
+   [
+    "08-13 16:55",
+    "ATR floor 22"
+   ],
+   [
+    "08-13 16:55",
+    "ATR floor 22"
+   ]
+  ],
+  "capitulation_long|mech": [
+   [
+    "08-11 00:02",
+    "ATR floor 10"
+   ],
+   [
+    "08-11 10:13",
+    "ATR floor 10"
+   ],
+   [
+    "08-13 13:32",
+    "ATR floor 10"
+   ]
+  ],
+  "abs_veto_short|mech": [
+   [
+    "08-10 00:22",
+    "55s absorption veto"
+   ],
+   [
+    "08-12 15:30",
+    "55s absorption veto"
+   ],
+   [
+    "08-13 15:43",
+    "55s absorption veto"
+   ]
+  ]
+ },
+ "blind": {
+  "ign": {
+   "n": 57,
+   "net": 3799.0,
+   "per": 66.6,
+   "win": 75,
+   "strip3": 3162.5
+  },
+  "t-60": {
+   "n": 57,
+   "net": 1377.0,
+   "per": 24.2,
+   "win": 47,
+   "strip3": 796.5
+  },
+  "t-60_regime": {
+   "BUILDING": {
+    "n": 9,
+    "net": 98.5,
+    "per": 10.9,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "per": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": 211.0,
+    "per": 21.1,
+    "win": 40
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 198.5,
+    "per": 8.3,
+    "win": 42
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 282.0,
+    "per": 141.0,
+    "win": 50
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 620.0,
+    "per": 56.4,
+    "win": 73
+   }
+  },
+  "t-60_tod": {
+   "US session": {
+    "n": 26,
+    "net": 1065.0,
+    "per": 41.0,
+    "win": 58
+   },
+   "overnight": {
+    "n": 31,
+    "net": 312.0,
+    "per": 10.1,
+    "win": 39
+   }
+  },
+  "t-300": {
+   "n": 57,
+   "net": 389.5,
+   "per": 6.8,
+   "win": 40,
+   "strip3": 84.5
+  }
+ },
+ "rsweep": {
+  "0.5": {
+   "ALL": {
+    "n": 57,
+    "net": -182.0,
+    "win": 63
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": -175.0,
+    "win": 62
+   },
+   "ON": {
+    "n": 31,
+    "net": -209.0,
+    "win": 61
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": -48.0,
+    "win": 67
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": -67.0,
+    "win": 60
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 132.0,
+    "win": 73
+   },
+   "US": {
+    "n": 26,
+    "net": 27.0,
+    "win": 65
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 9.0,
+    "win": 50
+   }
+  },
+  "0.75": {
+   "ALL": {
+    "n": 57,
+    "net": 28.0,
+    "win": 56
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": -162.0,
+    "win": 54
+   },
+   "ON": {
+    "n": 31,
+    "net": -265.0,
+    "win": 48
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": 24.0,
+    "win": 67
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": -110.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 266.0,
+    "win": 73
+   },
+   "US": {
+    "n": 26,
+    "net": 293.0,
+    "win": 65
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 43.0,
+    "win": 50
+   }
+  },
+  "1.0": {
+   "ALL": {
+    "n": 57,
+    "net": 229.0,
+    "win": 53
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": -19.0,
+    "win": 54
+   },
+   "ON": {
+    "n": 31,
+    "net": -182.0,
+    "win": 45
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": -115.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": -84.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 403.0,
+    "win": 73
+   },
+   "US": {
+    "n": 26,
+    "net": 411.0,
+    "win": 62
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 77.0,
+    "win": 50
+   }
+  },
+  "1.5": {
+   "ALL": {
+    "n": 57,
+    "net": 751.0,
+    "win": 49
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 20.0,
+    "win": 46
+   },
+   "ON": {
+    "n": 31,
+    "net": -39.0,
+    "win": 42
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": -24.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": -33.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 675.0,
+    "win": 73
+   },
+   "US": {
+    "n": 26,
+    "net": 790.0,
+    "win": 58
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 146.0,
+    "win": 50
+   }
+  },
+  "2.0": {
+   "ALL": {
+    "n": 57,
+    "net": 1475.0,
+    "win": 49
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 251.0,
+    "win": 46
+   },
+   "ON": {
+    "n": 31,
+    "net": 201.0,
+    "win": 42
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": 69.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": 18.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 956.0,
+    "win": 73
+   },
+   "US": {
+    "n": 26,
+    "net": 1274.0,
+    "win": 58
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 214.0,
+    "win": 50
+   }
+  },
+  "2.5": {
+   "ALL": {
+    "n": 57,
+    "net": 2093.0,
+    "win": 47
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 355.0,
+    "win": 42
+   },
+   "ON": {
+    "n": 31,
+    "net": 312.0,
+    "win": 39
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": 162.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": 68.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 1258.0,
+    "win": 73
+   },
+   "US": {
+    "n": 26,
+    "net": 1781.0,
+    "win": 58
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 283.0,
+    "win": 50
+   }
+  },
+  "3.0": {
+   "ALL": {
+    "n": 57,
+    "net": 2324.0,
+    "win": 44
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 405.0,
+    "win": 38
+   },
+   "ON": {
+    "n": 31,
+    "net": 371.0,
+    "win": 35
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": 253.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": 119.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 1229.0,
+    "win": 64
+   },
+   "US": {
+    "n": 26,
+    "net": 1953.0,
+    "win": 54
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 351.0,
+    "win": 50
+   }
+  },
+  "4.0": {
+   "ALL": {
+    "n": 57,
+    "net": 3585.0,
+    "win": 44
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 791.0,
+    "win": 38
+   },
+   "ON": {
+    "n": 31,
+    "net": 774.0,
+    "win": 35
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": 438.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": 220.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 1751.0,
+    "win": 64
+   },
+   "US": {
+    "n": 26,
+    "net": 2811.0,
+    "win": 54
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 418.0,
+    "win": 50
+   }
+  },
+  "6.0": {
+   "ALL": {
+    "n": 57,
+    "net": 4349.0,
+    "win": 44
+   },
+   "NORMAL-CHOP": {
+    "n": 24,
+    "net": 1103.0,
+    "win": 38
+   },
+   "ON": {
+    "n": 31,
+    "net": 1278.0,
+    "win": 35
+   },
+   "BUILDING": {
+    "n": 9,
+    "net": 509.0,
+    "win": 44
+   },
+   "CLEAN-TREND": {
+    "n": 1,
+    "net": -33.0,
+    "win": 0
+   },
+   "DEAD-CHOP": {
+    "n": 10,
+    "net": 424.0,
+    "win": 40
+   },
+   "VIOLENT-WHIPSAW": {
+    "n": 11,
+    "net": 1928.0,
+    "win": 64
+   },
+   "US": {
+    "n": 26,
+    "net": 3071.0,
+    "win": 54
+   },
+   "TREND-NO-BREAK": {
+    "n": 2,
+    "net": 418.0,
+    "win": 50
+   }
+  }
+ },
+ "rsweep_day": {
+  "0.5": {
+   "08-10": {
+    "n": 17,
+    "net": 166.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": -148.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -193.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": -54.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 47.0
+   }
+  },
+  "0.75": {
+   "08-10": {
+    "n": 17,
+    "net": 287.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": -143.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -177.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 15.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 46.0
+   }
+  },
+  "1.0": {
+   "08-10": {
+    "n": 17,
+    "net": 444.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": -236.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -161.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 86.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 96.0
+   }
+  },
+  "1.5": {
+   "08-10": {
+    "n": 17,
+    "net": 754.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": -167.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -131.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 99.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 196.0
+   }
+  },
+  "2.0": {
+   "08-10": {
+    "n": 17,
+    "net": 1074.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": -5.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -101.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 211.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 296.0
+   }
+  },
+  "2.5": {
+   "08-10": {
+    "n": 17,
+    "net": 1415.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": 27.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -70.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 324.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 397.0
+   }
+  },
+  "3.0": {
+   "08-10": {
+    "n": 17,
+    "net": 1260.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": 170.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": -39.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 436.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 497.0
+   }
+  },
+  "4.0": {
+   "08-10": {
+    "n": 17,
+    "net": 1819.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": 387.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": 22.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 660.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 697.0
+   }
+  },
+  "6.0": {
+   "08-10": {
+    "n": 17,
+    "net": 1467.0
+   },
+   "08-11": {
+    "n": 19,
+    "net": 687.0
+   },
+   "08-12": {
+    "n": 6,
+    "net": 145.0
+   },
+   "08-13": {
+    "n": 9,
+    "net": 1110.0
+   },
+   "08-14": {
+    "n": 6,
+    "net": 940.0
+   }
+  }
+ },
+ "rsweep_best": {
+  "R": 6.0,
+  "net": 4349.0,
+  "lodo": {
+   "08-10": 2882.0,
+   "08-11": 3662.0,
+   "08-12": 4204.0,
+   "08-13": 3239.0,
+   "08-14": 3409.0
+  }
+ },
+ "base_rate": {
+  "grind_long": {
+   "all": {
+    "mech": 44,
+    "ungated": 1118
+   },
+   "in_pre": {
+    "mech": 8,
+    "ungated": 92
+   }
+  },
+  "capitulation_long": {
+   "all": {
+    "mech": 19,
+    "ungated": 79
+   },
+   "in_pre": {
+    "mech": 3,
+    "ungated": 8
+   }
+  },
+  "abs_veto_long": {
+   "all": {
+    "mech": 25,
+    "ungated": 231
+   },
+   "in_pre": {
+    "mech": 4,
+    "ungated": 20
+   }
+  },
+  "rgv_short": {
+   "all": {
+    "mech": 1,
+    "ungated": 122
+   },
+   "in_pre": {
+    "mech": 1,
+    "ungated": 5
+   }
+  },
+  "exhaustion_short": {
+   "all": {
+    "mech": 8,
+    "ungated": 8
+   },
+   "in_pre": {
+    "mech": 1,
+    "ungated": 1
+   }
+  },
+  "abs_veto_short": {
+   "all": {
+    "mech": 44,
+    "ungated": 252
+   },
+   "in_pre": {
+    "mech": 7,
+    "ungated": 15
+   }
+  }
+ },
+ "coverage": {
+  "mech": {
+   "runs": 6,
+   "top15": 3,
+   "top25": 3,
+   "fires": 6,
+   "net": 15.5,
+   "ceiling": 878,
+   "runs_list": [
+    "08-10 13:56",
+    "08-10 14:45",
+    "08-10 15:20",
+    "08-11 14:16",
+    "08-11 15:22",
+    "08-13 14:20"
+   ],
+   "strip": {
+    "1": -94.5,
+    "3": -287.0
+   },
+   "cost3.0": -2.5,
+   "cost6.0": -38.5,
+   "days": {
+    "08-10": {
+     "n": 3,
+     "net": -115.5
+    },
+    "08-13": {
+     "n": 1,
+     "net": -76.0
+    },
+    "08-11": {
+     "n": 2,
+     "net": 207.0
+    }
+   },
+   "lodo": {
+    "08-10": 131.0,
+    "08-13": 91.5,
+    "08-11": -191.5
+   }
+  },
+  "ungated": {
+   "runs": 24,
+   "top15": 6,
+   "top25": 9,
+   "fires": 27,
+   "net": 379.5,
+   "ceiling": 3452,
+   "runs_list": [
+    "08-10 00:22",
+    "08-10 01:01",
+    "08-10 13:56",
+    "08-10 14:25",
+    "08-10 14:45",
+    "08-10 15:20",
+    "08-11 00:02",
+    "08-11 10:13",
+    "08-11 10:53",
+    "08-11 13:24",
+    "08-11 14:16",
+    "08-11 15:22",
+    "08-11 16:59",
+    "08-11 18:15",
+    "08-12 00:08",
+    "08-12 12:25",
+    "08-12 13:08",
+    "08-12 15:30",
+    "08-12 23:59",
+    "08-13 13:32",
+    "08-13 14:20",
+    "08-13 15:43",
+    "08-13 16:55",
+    "08-13 18:27"
+   ],
+   "strip": {
+    "1": 269.5,
+    "3": 69.5
+   },
+   "cost3.0": 298.5,
+   "cost6.0": 136.5,
+   "days": {
+    "08-10": {
+     "n": 7,
+     "net": 96.5
+    },
+    "08-11": {
+     "n": 9,
+     "net": 373.0
+    },
+    "08-12": {
+     "n": 5,
+     "net": 191.0
+    },
+    "08-13": {
+     "n": 6,
+     "net": -281.0
+    }
+   },
+   "lodo": {
+    "08-10": 283.0,
+    "08-11": 6.5,
+    "08-12": 188.5,
+    "08-13": 660.5
+   }
+  }
+ },
+ "veto": {
+  "abs_veto_long": {
+   "blocked": 0,
+   "saved": 0,
+   "delay_cost": 0.0,
+   "pairs": [
+    {
+     "run": "08-13 14:20",
+     "ungated": -76.0,
+     "mech": -76.0
+    }
+   ]
+  },
+  "abs_veto_short": {
+   "blocked": 3,
+   "saved": 50.0,
+   "delay_cost": 0.0,
+   "pairs": [
+    {
+     "run": "08-10 15:20",
+     "ungated": -91.0,
+     "mech": -91.0
+    }
+   ]
+  }
+ },
+ "ctx": {
+  "08-09 22:02": {
+   "dir": "DN",
+   "move": -59,
+   "cluster": "UNCLASS",
+   "regime": "TREND-NO-BREAK",
+   "atr": 9.5,
+   "er": 0.546,
+   "rb": false,
+   "us": false,
+   "tape": false
+  },
+  "08-09 23:47": {
+   "dir": "DN",
+   "move": -62,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 8.1,
+   "er": 0.065,
+   "rb": false,
+   "us": false,
+   "tape": false
+  },
+  "08-10 00:02": {
+   "dir": "UP",
+   "move": 82,
+   "cluster": "UNCLASS",
+   "regime": "BUILDING",
+   "atr": 10.7,
+   "er": 0.268,
+   "rb": true,
+   "us": false,
+   "tape": false
+  },
+  "08-10 00:22": {
+   "dir": "DN",
+   "move": -59,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 14.9,
+   "er": 0.033,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-10 01:01": {
+   "dir": "UP",
+   "move": 54,
+   "cluster": "UNCLASS",
+   "regime": "BUILDING",
+   "atr": 14.1,
+   "er": 0.398,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-10 06:13": {
+   "dir": "DN",
+   "move": -50,
+   "cluster": "VACUUM",
+   "regime": "CLEAN-TREND",
+   "atr": 7.3,
+   "er": 0.529,
+   "rb": true,
+   "us": false,
+   "tape": true
+  },
+  "08-10 07:11": {
+   "dir": "UP",
+   "move": 54,
+   "cluster": "VACUUM",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.1,
+   "er": 0.222,
+   "rb": true,
+   "us": false,
+   "tape": true
+  },
+  "08-10 10:57": {
+   "dir": "DN",
+   "move": -66,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 6.5,
+   "er": 0.189,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-10 11:35": {
+   "dir": "DN",
+   "move": -56,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.5,
+   "er": 0.155,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-10 12:09": {
+   "dir": "DN",
+   "move": -67,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 12.4,
+   "er": 0.097,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-10 13:20": {
+   "dir": "DN",
+   "move": -74,
+   "cluster": "OPEN/NEWS",
+   "regime": "NORMAL-CHOP",
+   "atr": 10.2,
+   "er": 0.241,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-10 13:56": {
+   "dir": "UP",
+   "move": 109,
+   "cluster": "OPEN/NEWS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 28.8,
+   "er": 0.131,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 14:25": {
+   "dir": "UP",
+   "move": 46,
+   "cluster": "OPEN/NEWS",
+   "regime": "BUILDING",
+   "atr": 19.8,
+   "er": 0.27,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 14:45": {
+   "dir": "DN",
+   "move": -90,
+   "cluster": "OPEN/NEWS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 19.6,
+   "er": 0.055,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 15:20": {
+   "dir": "DN",
+   "move": -62,
+   "cluster": "UNCLASS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 20.7,
+   "er": 0.21,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 15:40": {
+   "dir": "UP",
+   "move": 76,
+   "cluster": "UNCLASS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 15.7,
+   "er": 0.154,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 16:29": {
+   "dir": "DN",
+   "move": -84,
+   "cluster": "UNCLASS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 15.1,
+   "er": 0.135,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 16:54": {
+   "dir": "UP",
+   "move": 51,
+   "cluster": "UNCLASS",
+   "regime": "BUILDING",
+   "atr": 13.6,
+   "er": 0.433,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 19:44": {
+   "dir": "DN",
+   "move": -52,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 8.3,
+   "er": 0.102,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-10 23:47": {
+   "dir": "DN",
+   "move": -48,
+   "cluster": "VACUUM",
+   "regime": "DEAD-CHOP",
+   "atr": 5.4,
+   "er": 0.141,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 00:02": {
+   "dir": "UP",
+   "move": 74,
+   "cluster": "VACUUM",
+   "regime": "NORMAL-CHOP",
+   "atr": 11.6,
+   "er": 0.21,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 01:09": {
+   "dir": "UP",
+   "move": 63,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.1,
+   "er": 0.033,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 05:16": {
+   "dir": "DN",
+   "move": -46,
+   "cluster": "FLOW-LED",
+   "regime": "DEAD-CHOP",
+   "atr": 5.4,
+   "er": 0.156,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 06:18": {
+   "dir": "DN",
+   "move": -66,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 6.6,
+   "er": 0.075,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 08:03": {
+   "dir": "DN",
+   "move": -72,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.8,
+   "er": 0.177,
+   "rb": true,
+   "us": false,
+   "tape": true
+  },
+  "08-11 10:13": {
+   "dir": "UP",
+   "move": 70,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 6.6,
+   "er": 0.225,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 10:53": {
+   "dir": "UP",
+   "move": 64,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 5.8,
+   "er": 0.183,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 11:08": {
+   "dir": "DN",
+   "move": -51,
+   "cluster": "UNCLASS",
+   "regime": "TREND-NO-BREAK",
+   "atr": 13.3,
+   "er": 0.521,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 12:01": {
+   "dir": "UP",
+   "move": 47,
+   "cluster": "VACUUM",
+   "regime": "DEAD-CHOP",
+   "atr": 7.2,
+   "er": 0.042,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 12:16": {
+   "dir": "DN",
+   "move": -44,
+   "cluster": "UNCLASS",
+   "regime": "BUILDING",
+   "atr": 7.4,
+   "er": 0.312,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 13:24": {
+   "dir": "DN",
+   "move": -137,
+   "cluster": "OPEN/NEWS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.2,
+   "er": 0.088,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-11 13:51": {
+   "dir": "UP",
+   "move": 124,
+   "cluster": "OPEN/NEWS",
+   "regime": "TREND-NO-BREAK",
+   "atr": 34.2,
+   "er": 0.476,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 14:16": {
+   "dir": "DN",
+   "move": -49,
+   "cluster": "OPEN/NEWS",
+   "regime": "BUILDING",
+   "atr": 18.5,
+   "er": 0.35,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 14:40": {
+   "dir": "UP",
+   "move": 55,
+   "cluster": "OPEN/NEWS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 19.6,
+   "er": 0.143,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 14:55": {
+   "dir": "DN",
+   "move": -89,
+   "cluster": "OPEN/NEWS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 17.1,
+   "er": 0.149,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 15:22": {
+   "dir": "DN",
+   "move": -54,
+   "cluster": "UNCLASS",
+   "regime": "BUILDING",
+   "atr": 15.4,
+   "er": 0.342,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 16:59": {
+   "dir": "DN",
+   "move": -45,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.3,
+   "er": 0.14,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 18:15": {
+   "dir": "DN",
+   "move": -59,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.8,
+   "er": 0.202,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-11 20:10": {
+   "dir": "UP",
+   "move": 47,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 12.6,
+   "er": 0.14,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-12 00:08": {
+   "dir": "UP",
+   "move": 44,
+   "cluster": "VACUUM",
+   "regime": "NORMAL-CHOP",
+   "atr": 12.5,
+   "er": 0.093,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-12 12:25": {
+   "dir": "UP",
+   "move": 87,
+   "cluster": "VACUUM",
+   "regime": "NORMAL-CHOP",
+   "atr": 8.5,
+   "er": 0.075,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-12 13:08": {
+   "dir": "UP",
+   "move": 52,
+   "cluster": "OPEN/NEWS",
+   "regime": "NORMAL-CHOP",
+   "atr": 9.5,
+   "er": 0.212,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-12 15:30": {
+   "dir": "DN",
+   "move": -47,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 14.7,
+   "er": 0.015,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-12 20:05": {
+   "dir": "DN",
+   "move": -59,
+   "cluster": "VACUUM",
+   "regime": "NORMAL-CHOP",
+   "atr": 14.8,
+   "er": 0.038,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-12 23:59": {
+   "dir": "UP",
+   "move": 58,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 6.9,
+   "er": 0.029,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-13 11:49": {
+   "dir": "DN",
+   "move": -48,
+   "cluster": "UNCLASS",
+   "regime": "BUILDING",
+   "atr": 5.6,
+   "er": 0.302,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-13 12:50": {
+   "dir": "UP",
+   "move": 57,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 13.8,
+   "er": 0.18,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-13 13:32": {
+   "dir": "UP",
+   "move": 236,
+   "cluster": "OPEN/NEWS",
+   "regime": "NORMAL-CHOP",
+   "atr": 12.0,
+   "er": 0.195,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-13 14:20": {
+   "dir": "UP",
+   "move": 75,
+   "cluster": "OPEN/NEWS",
+   "regime": "NORMAL-CHOP",
+   "atr": 14.8,
+   "er": 0.188,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-13 14:41": {
+   "dir": "DN",
+   "move": -45,
+   "cluster": "OPEN/NEWS",
+   "regime": "BUILDING",
+   "atr": 12.7,
+   "er": 0.332,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-13 15:22": {
+   "dir": "DN",
+   "move": -98,
+   "cluster": "UNCLASS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 15.5,
+   "er": 0.05,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-13 15:43": {
+   "dir": "DN",
+   "move": -61,
+   "cluster": "UNCLASS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 19.0,
+   "er": 0.2,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-13 16:55": {
+   "dir": "UP",
+   "move": 49,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 7.4,
+   "er": 0.02,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-13 18:27": {
+   "dir": "UP",
+   "move": 45,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 8.4,
+   "er": 0.22,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-14 00:03": {
+   "dir": "DN",
+   "move": -47,
+   "cluster": "FLOW-LED",
+   "regime": "BUILDING",
+   "atr": 6.5,
+   "er": 0.389,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-14 00:58": {
+   "dir": "DN",
+   "move": -47,
+   "cluster": "UNCLASS",
+   "regime": "DEAD-CHOP",
+   "atr": 6.6,
+   "er": 0.239,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-14 13:22": {
+   "dir": "DN",
+   "move": -80,
+   "cluster": "OPEN/NEWS",
+   "regime": "NORMAL-CHOP",
+   "atr": 8.4,
+   "er": 0.075,
+   "rb": false,
+   "us": false,
+   "tape": true
+  },
+  "08-14 14:13": {
+   "dir": "DN",
+   "move": -98,
+   "cluster": "OPEN/NEWS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 19.6,
+   "er": 0.032,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-14 14:48": {
+   "dir": "DN",
+   "move": -48,
+   "cluster": "OPEN/NEWS",
+   "regime": "VIOLENT-WHIPSAW",
+   "atr": 16.2,
+   "er": 0.113,
+   "rb": false,
+   "us": true,
+   "tape": true
+  },
+  "08-14 15:11": {
+   "dir": "DN",
+   "move": -73,
+   "cluster": "UNCLASS",
+   "regime": "NORMAL-CHOP",
+   "atr": 14.4,
+   "er": 0.233,
+   "rb": false,
+   "us": true,
+   "tape": true
+  }
+ },
+ "regime_n": {
+  "TREND-NO-BREAK": 3,
+  "DEAD-CHOP": 11,
+  "BUILDING": 10,
+  "NORMAL-CHOP": 24,
+  "CLEAN-TREND": 1,
+  "VIOLENT-WHIPSAW": 11
+ },
+ "atr_cuts": [
+  8.3,
+  15.1
+ ],
+ "n_sat": 60,
+ "n_tape": 57,
+ "no_tape_runs": [
+  "08-09 22:02",
+  "08-09 23:47",
+  "08-10 00:02"
+ ],
+ "shape": {
+  "08-10 00:22": {
+   "atr": 19.88,
+   "ext": 2.35,
+   "ext_signed": 2.35,
+   "slope": 1.29,
+   "thrust": 1.76,
+   "n": 10
+  },
+  "08-10 01:01": {
+   "atr": 14.54,
+   "ext": 3.3,
+   "ext_signed": -3.3,
+   "slope": 0.74,
+   "thrust": 1.55,
+   "n": 10
+  },
+  "08-10 06:13": {
+   "atr": 7.3,
+   "ext": 4.55,
+   "ext_signed": 4.55,
+   "slope": 0.84,
+   "thrust": 2.26,
+   "n": 10
+  },
+  "08-10 07:11": {
+   "atr": 9.2,
+   "ext": 2.86,
+   "ext_signed": -2.86,
+   "slope": 0.18,
+   "thrust": 1.9,
+   "n": 10
+  },
+  "08-10 10:57": {
+   "atr": 6.84,
+   "ext": 2.32,
+   "ext_signed": -2.32,
+   "slope": 0.85,
+   "thrust": 1.68,
+   "n": 10
+  },
+  "08-10 11:35": {
+   "atr": 11.84,
+   "ext": 1.47,
+   "ext_signed": 1.47,
+   "slope": 1.19,
+   "thrust": 2.63,
+   "n": 10
+  },
+  "08-10 12:09": {
+   "atr": 13.04,
+   "ext": 1.38,
+   "ext_signed": -1.38,
+   "slope": 0.31,
+   "thrust": 1.33,
+   "n": 10
+  },
+  "08-10 13:20": {
+   "atr": 11.12,
+   "ext": 1.51,
+   "ext_signed": 1.51,
+   "slope": 0.62,
+   "thrust": 2.0,
+   "n": 10
+  },
+  "08-10 13:56": {
+   "atr": 36.7,
+   "ext": 1.18,
+   "ext_signed": 1.18,
+   "slope": 0.69,
+   "thrust": 1.51,
+   "n": 10
+  },
+  "08-10 14:25": {
+   "atr": 20.55,
+   "ext": 4.14,
+   "ext_signed": 4.14,
+   "slope": 0.83,
+   "thrust": 1.27,
+   "n": 10
+  },
+  "08-10 14:45": {
+   "atr": 22.88,
+   "ext": 3.2,
+   "ext_signed": 3.2,
+   "slope": 0.44,
+   "thrust": 1.1,
+   "n": 10
+  },
+  "08-10 15:20": {
+   "atr": 22.21,
+   "ext": 3.2,
+   "ext_signed": -3.2,
+   "slope": 0.51,
+   "thrust": 2.08,
+   "n": 10
+  },
+  "08-10 15:40": {
+   "atr": 17.54,
+   "ext": 3.75,
+   "ext_signed": -3.75,
+   "slope": 0.6,
+   "thrust": 1.66,
+   "n": 10
+  },
+  "08-10 16:29": {
+   "atr": 15.14,
+   "ext": 2.46,
+   "ext_signed": 2.46,
+   "slope": 0.33,
+   "thrust": 1.74,
+   "n": 10
+  },
+  "08-10 16:54": {
+   "atr": 19.55,
+   "ext": 3.99,
+   "ext_signed": -3.99,
+   "slope": 1.01,
+   "thrust": 1.61,
+   "n": 10
+  },
+  "08-10 19:44": {
+   "atr": 8.38,
+   "ext": 0.94,
+   "ext_signed": 0.94,
+   "slope": 0.47,
+   "thrust": 1.38,
+   "n": 10
+  },
+  "08-10 23:47": {
+   "atr": 5.54,
+   "ext": 2.19,
+   "ext_signed": -2.19,
+   "slope": 0.4,
+   "thrust": 1.22,
+   "n": 10
+  },
+  "08-11 00:02": {
+   "atr": 11.62,
+   "ext": 3.69,
+   "ext_signed": -3.69,
+   "slope": 1.83,
+   "thrust": 3.49,
+   "n": 10
+  },
+  "08-11 01:09": {
+   "atr": 9.11,
+   "ext": 7.58,
+   "ext_signed": 7.58,
+   "slope": 0.96,
+   "thrust": 2.1,
+   "n": 10
+  },
+  "08-11 05:16": {
+   "atr": 5.79,
+   "ext": 2.0,
+   "ext_signed": -2.0,
+   "slope": 0.8,
+   "thrust": 1.99,
+   "n": 10
+  },
+  "08-11 06:18": {
+   "atr": 7.68,
+   "ext": 1.55,
+   "ext_signed": 1.55,
+   "slope": 0.68,
+   "thrust": 2.23,
+   "n": 10
+  },
+  "08-11 08:03": {
+   "atr": 9.77,
+   "ext": 3.03,
+   "ext_signed": 3.03,
+   "slope": 1.04,
+   "thrust": 2.2,
+   "n": 10
+  },
+  "08-11 10:13": {
+   "atr": 6.7,
+   "ext": 0.93,
+   "ext_signed": 0.93,
+   "slope": 0.75,
+   "thrust": 1.48,
+   "n": 10
+  },
+  "08-11 10:53": {
+   "atr": 7.02,
+   "ext": 6.04,
+   "ext_signed": 6.04,
+   "slope": 1.01,
+   "thrust": 1.99,
+   "n": 10
+  },
+  "08-11 11:08": {
+   "atr": 13.34,
+   "ext": 7.23,
+   "ext_signed": 7.23,
+   "slope": 3.53,
+   "thrust": 6.49,
+   "n": 10
+  },
+  "08-11 12:01": {
+   "atr": 8.29,
+   "ext": 3.37,
+   "ext_signed": -3.37,
+   "slope": 0.65,
+   "thrust": 1.83,
+   "n": 10
+  },
+  "08-11 12:16": {
+   "atr": 7.88,
+   "ext": 3.68,
+   "ext_signed": 3.68,
+   "slope": 1.46,
+   "thrust": 2.96,
+   "n": 10
+  },
+  "08-11 13:24": {
+   "atr": 9.23,
+   "ext": 2.52,
+   "ext_signed": -2.52,
+   "slope": 1.51,
+   "thrust": 3.14,
+   "n": 10
+  },
+  "08-11 13:51": {
+   "atr": 37.73,
+   "ext": 2.56,
+   "ext_signed": -2.56,
+   "slope": 0.9,
+   "thrust": 2.43,
+   "n": 10
+  },
+  "08-11 14:16": {
+   "atr": 24.77,
+   "ext": 2.49,
+   "ext_signed": 2.49,
+   "slope": 1.05,
+   "thrust": 1.38,
+   "n": 10
+  },
+  "08-11 14:40": {
+   "atr": 22.95,
+   "ext": 2.1,
+   "ext_signed": 2.1,
+   "slope": 0.12,
+   "thrust": 1.44,
+   "n": 10
+  },
+  "08-11 14:55": {
+   "atr": 17.11,
+   "ext": 2.83,
+   "ext_signed": 2.83,
+   "slope": 1.0,
+   "thrust": 2.39,
+   "n": 10
+  },
+  "08-11 15:22": {
+   "atr": 16.59,
+   "ext": 3.57,
+   "ext_signed": -3.57,
+   "slope": 1.65,
+   "thrust": 1.12,
+   "n": 10
+  },
+  "08-11 16:59": {
+   "atr": 10.23,
+   "ext": 2.73,
+   "ext_signed": -2.73,
+   "slope": 1.33,
+   "thrust": 1.98,
+   "n": 10
+  },
+  "08-11 18:15": {
+   "atr": 10.46,
+   "ext": 1.29,
+   "ext_signed": 1.29,
+   "slope": 0.89,
+   "thrust": 2.68,
+   "n": 10
+  },
+  "08-11 20:10": {
+   "atr": 17.36,
+   "ext": 1.21,
+   "ext_signed": 1.21,
+   "slope": 0.37,
+   "thrust": 0.97,
+   "n": 10
+  },
+  "08-12 00:08": {
+   "atr": 12.46,
+   "ext": 2.22,
+   "ext_signed": 2.22,
+   "slope": 0.98,
+   "thrust": 2.49,
+   "n": 10
+  },
+  "08-12 12:25": {
+   "atr": 8.54,
+   "ext": 1.26,
+   "ext_signed": 1.26,
+   "slope": 0.38,
+   "thrust": 1.52,
+   "n": 10
+  },
+  "08-12 13:08": {
+   "atr": 9.7,
+   "ext": 5.17,
+   "ext_signed": 5.17,
+   "slope": 0.63,
+   "thrust": 1.69,
+   "n": 10
+  },
+  "08-12 15:30": {
+   "atr": 16.43,
+   "ext": 2.5,
+   "ext_signed": -2.5,
+   "slope": 0.71,
+   "thrust": 1.81,
+   "n": 10
+  },
+  "08-12 20:05": {
+   "atr": 16.09,
+   "ext": 2.51,
+   "ext_signed": -2.51,
+   "slope": 0.45,
+   "thrust": 2.18,
+   "n": 10
+  },
+  "08-12 23:59": {
+   "atr": 6.86,
+   "ext": 1.47,
+   "ext_signed": -1.47,
+   "slope": 0.95,
+   "thrust": 2.5,
+   "n": 10
+  },
+  "08-13 11:49": {
+   "atr": 6.68,
+   "ext": 2.79,
+   "ext_signed": 2.79,
+   "slope": 1.31,
+   "thrust": 2.28,
+   "n": 10
+  },
+  "08-13 12:50": {
+   "atr": 20.07,
+   "ext": 0.88,
+   "ext_signed": 0.88,
+   "slope": 0.31,
+   "thrust": 0.89,
+   "n": 10
+  },
+  "08-13 13:32": {
+   "atr": 11.96,
+   "ext": 5.32,
+   "ext_signed": 5.32,
+   "slope": 1.26,
+   "thrust": 3.66,
+   "n": 10
+  },
+  "08-13 14:20": {
+   "atr": 18.21,
+   "ext": 10.0,
+   "ext_signed": 10.0,
+   "slope": 0.95,
+   "thrust": 2.05,
+   "n": 10
+  },
+  "08-13 14:41": {
+   "atr": 14.5,
+   "ext": 10.33,
+   "ext_signed": 10.33,
+   "slope": 1.48,
+   "thrust": 3.03,
+   "n": 10
+  },
+  "08-13 15:22": {
+   "atr": 16.64,
+   "ext": 0.86,
+   "ext_signed": -0.86,
+   "slope": 0.29,
+   "thrust": 1.47,
+   "n": 10
+  },
+  "08-13 15:43": {
+   "atr": 21.18,
+   "ext": 3.72,
+   "ext_signed": -3.72,
+   "slope": 1.26,
+   "thrust": 2.28,
+   "n": 10
+  },
+  "08-13 16:55": {
+   "atr": 10.12,
+   "ext": 4.73,
+   "ext_signed": 4.73,
+   "slope": 0.72,
+   "thrust": 1.48,
+   "n": 10
+  },
+  "08-13 18:27": {
+   "atr": 8.54,
+   "ext": 3.64,
+   "ext_signed": -3.64,
+   "slope": 0.6,
+   "thrust": 1.38,
+   "n": 10
+  },
+  "08-14 00:03": {
+   "atr": 6.52,
+   "ext": 2.93,
+   "ext_signed": 2.93,
+   "slope": 2.16,
+   "thrust": 3.99,
+   "n": 10
+  },
+  "08-14 00:58": {
+   "atr": 7.04,
+   "ext": 4.11,
+   "ext_signed": -4.11,
+   "slope": 0.61,
+   "thrust": 1.48,
+   "n": 10
+  },
+  "08-14 13:22": {
+   "atr": 8.55,
+   "ext": 1.92,
+   "ext_signed": -1.92,
+   "slope": 0.97,
+   "thrust": 2.0,
+   "n": 10
+  },
+  "08-14 14:13": {
+   "atr": 22.73,
+   "ext": 1.41,
+   "ext_signed": 1.41,
+   "slope": 0.73,
+   "thrust": 2.04,
+   "n": 10
+  },
+  "08-14 14:48": {
+   "atr": 20.2,
+   "ext": 3.46,
+   "ext_signed": -3.46,
+   "slope": 0.44,
+   "thrust": 1.53,
+   "n": 10
+  },
+  "08-14 15:11": {
+   "atr": 15.21,
+   "ext": 4.13,
+   "ext_signed": -4.13,
+   "slope": 0.8,
+   "thrust": 1.55,
+   "n": 10
+  }
+ },
+ "grind_variants": {
+  "deployed_0808": {
+   "fires": 1,
+   "net": -120.0,
+   "blocked_by_atr": 10,
+   "per": -120.0,
+   "win": 0,
+   "reach": [
+    [
+     "vwap slope not up (no established up-trend)",
+     14
+    ],
+    [
+     "ATR floor 22pt not met",
+     4
+    ],
+    [
+     "price not riding above VWAP (ext<0.3 ATR)",
+     2
+    ],
+    [
+     "already stretched (ext>4.0 ATR)",
+     2
+    ],
+    [
+     "FIRES",
+     1
+    ]
+   ],
+   "trades": [
+    {
+     "run": "08-10 13:56",
+     "move": 109,
+     "net": -120.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 29.12,
+     "regime": "VIOLENT-WHIPSAW"
+    }
+   ]
+  },
+  "wk32_0801": {
+   "fires": 1,
+   "net": -120.0,
+   "blocked_by_atr": 2,
+   "per": -120.0,
+   "win": 0,
+   "reach": [
+    [
+     "vwap slope not up (no established up-trend)",
+     14
+    ],
+    [
+     "already stretched (ext>2.0 ATR)",
+     5
+    ],
+    [
+     "price not riding above VWAP (ext<0.3 ATR)",
+     2
+    ],
+    [
+     "FIRES",
+     1
+    ],
+    [
+     "ATR floor 10pt not met",
+     1
+    ]
+   ],
+   "trades": [
+    {
+     "run": "08-10 13:56",
+     "move": 109,
+     "net": -120.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 29.12,
+     "regime": "VIOLENT-WHIPSAW"
+    }
+   ]
+  },
+  "no_atr_floor": {
+   "fires": 5,
+   "net": -178.0,
+   "blocked_by_atr": 0,
+   "per": -35.6,
+   "win": 20,
+   "reach": [
+    [
+     "vwap slope not up (no established up-trend)",
+     14
+    ],
+    [
+     "FIRES",
+     5
+    ],
+    [
+     "price not riding above VWAP (ext<0.3 ATR)",
+     2
+    ],
+    [
+     "already stretched (ext>4.0 ATR)",
+     2
+    ]
+   ],
+   "trades": [
+    {
+     "run": "08-10 13:56",
+     "move": 109,
+     "net": -120.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 29.12,
+     "regime": "VIOLENT-WHIPSAW"
+    },
+    {
+     "run": "08-10 14:25",
+     "move": 46,
+     "net": -86.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 20.55,
+     "regime": "BUILDING"
+    },
+    {
+     "run": "08-12 00:08",
+     "move": 44,
+     "net": -31.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 6.82,
+     "regime": "NORMAL-CHOP"
+    },
+    {
+     "run": "08-12 13:08",
+     "move": 52,
+     "net": 97.0,
+     "why": "A:TARGET/B:TARGET",
+     "atr": 9.5,
+     "regime": "NORMAL-CHOP"
+    },
+    {
+     "run": "08-13 16:55",
+     "move": 49,
+     "net": -38.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 8.66,
+     "regime": "DEAD-CHOP"
+    }
+   ]
+  },
+  "ext_hi_3.0": {
+   "fires": 1,
+   "net": -120.0,
+   "blocked_by_atr": 3,
+   "per": -120.0,
+   "win": 0,
+   "reach": [
+    [
+     "vwap slope not up (no established up-trend)",
+     14
+    ],
+    [
+     "already stretched (ext>3.0 ATR)",
+     5
+    ],
+    [
+     "price not riding above VWAP (ext<0.3 ATR)",
+     2
+    ],
+    [
+     "FIRES",
+     1
+    ],
+    [
+     "ATR floor 22pt not met",
+     1
+    ]
+   ],
+   "trades": [
+    {
+     "run": "08-10 13:56",
+     "move": 109,
+     "net": -120.0,
+     "why": "A:STOP/B:STOP",
+     "atr": 29.12,
+     "regime": "VIOLENT-WHIPSAW"
+    }
+   ]
+  }
+ },
+ "tick_window": [
+  "2026-08-10 00:00:00.513000+00:00",
+  "2026-08-14 21:00:00.283000+00:00"
+ ]
+}
