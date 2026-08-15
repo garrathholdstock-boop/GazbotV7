@@ -148,6 +148,13 @@ class ShadowSim:
         self._abs_min_loss = absorption_min_loss_usd  # absorption = catastrophe backstop, not a green-scalp cutter
         self._open: dict[str, dict] = {}  # variant name → open sim position
         self._pending: dict[str, dict] = {}  # variant name → pending entry watching absorption
+        # ★2026-08-15 level-break state (audit fixes #2/#3). `_lb_seen` latches the last bar a
+        # level_break variant was evaluated on, so one completed bar produces at most one decision
+        # however many tape messages arrive. `_lb_cool` holds the bar-ts before which it may not
+        # re-enter, set from the EXIT — the research measures the cooldown from the close
+        # (`busy_until = ts + held + cooldown*60`), not from the entry.
+        self._lb_seen: dict[str, int] = {}
+        self._lb_cool: dict[str, float] = {}
 
     def on_bars(self, bars: list[Bar], *, tape_net: float = 0.0,
                 window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None,
@@ -246,6 +253,31 @@ class ShadowSim:
         elif v.gate == "grind":
             e = gate_grind(f, tape_net=tape_net, **v.params)
         elif v.gate == "level_break":
+            # ★★★2026-08-15 AUDIT FIX #3 — DECIDE ONCE PER BAR, NOT ONCE PER SECOND.
+            # on_bars re-runs on every T_TAPE message (1/s), re-evaluating the SAME newest completed
+            # bar ~60 times. The break condition is a property of that bar and cannot change during
+            # the minute — only the BOOK does. So the effective rule became "was the far side empty
+            # at ANY second while this bar was newest?" instead of the research's "was it empty at
+            # the bar's close?". Measured on real depth: 85.9% of breaks admitted vs the research's
+            # 47.1% — 1.82x the population, and the book cut IS the gate.
+            # It also created a look-ahead: the sim stamps entry at the bar label and the repricer
+            # fills at label+60s, so a decision taken 55s later was booked at a price from before it.
+            # Latching on the bar timestamp makes the decision instant and the fill instant the same.
+            _last = self._lb_seen.get(v.name)
+            if bars and _last == bars[-1].ts:
+                return None
+            if bars:
+                self._lb_seen[v.name] = bars[-1].ts
+            # ★★ AUDIT FIX #2 — THE 45-MINUTE COOLDOWN, which was silently dropped.
+            # The research (gf_mgc_cells.cooldown, cool=45) and every ShadowVariant line in the spec
+            # carry cooldown_min=45. It was omitted here because gate_level_break has no such kwarg,
+            # so passing it would raise. Without it the same rule makes $2.67 a trade instead of
+            # $12.47 — 79% of the edge — and inflates n with correlated re-entries of one move,
+            # which breaks the independence every robustness test assumes.
+            _cool = float(v.params.get("cooldown_min", 45)) * 60.0
+            _until = self._lb_cool.get(v.name)
+            if _until is not None and bars and bars[-1].ts < _until:
+                return None
             # ★2026-08-15 MGC gold. Needs BARS (for the rolling level) and the BOOK, neither of
             # which is on Features. gate_level_break returns None without a book — the book
             # condition IS the gate, and without it this is the plain extension trigger, which
@@ -253,7 +285,8 @@ class ShadowSim:
             bb = bars or []
             side = gate_level_break(
                 [b.high for b in bb], [b.low for b in bb], [b.close for b in bb],
-                f.atr, getattr(self, "_book", None), **v.params) if len(bb) >= 2 else None
+                f.atr, getattr(self, "_book", None),
+                **{k: x for k, x in v.params.items() if k != "cooldown_min"}) if len(bb) >= 2 else None
             e = Entry(side=side, gate="level_break") if side else None
         elif v.gate == "board":
             # ★2026-08-15 the pooled sat-out run-catcher. The clock comes from `ts`, not Features —
@@ -349,6 +382,9 @@ class ShadowSim:
         return _eff_target_r(v, atr, self._vpp)
 
     def _record(self, v, op, exit_price, exit_ts, reason):
+        # ★2026-08-15 start the cooldown at the EXIT, matching the research engine.
+        if v.gate == "level_break":
+            self._lb_cool[v.name] = float(exit_ts) + float(v.params.get("cooldown_min", 45)) * 60.0
         side = op["side"]
         if side == "LONG":
             gross = (exit_price - op["entry_price"]) * v.qty * self._vpp
@@ -761,9 +797,31 @@ def chandelier_params() -> dict[str, tuple[float, float, float]]:
     """{strategy name → (start_k, min_k, tighten)} for every chandelier variant, so
     the repricer replays EACH variant's OWN trail on the tick path instead of the 3.5
     default — otherwise chand_k20/k25 would be scored as if they were the live 3.5 and
-    the whole A/B would be meaningless. min_k is fixed at 0.5 (the tight floor)."""
-    return {v.name: (v.chand_start_k, 0.5, v.chand_tighten)
-            for v in default_slate() if v.chandelier}
+    the whole A/B would be meaningless. min_k is fixed at 0.5 (the tight floor).
+
+
+    ★★2026-08-15 AUDIT FIX #4 — IT REPLAYED THE WRONG EXIT FOR GOLD.
+    This built from default_slate() (MNQ) only, so every MGC name missed and the repricer fell back
+    to (3.5, 0.5, 0.75) — a TIGHTENING trail — while the sim ran exit_chandelier_lock at a CONSTANT
+    2.0xATR. `real_pnl` is the only number this desk trusts, and it was scoring an exit the strategy
+    does not use: wider than 2.0 below peak_r=2, then collapsing to 0.5xATR beyond peak_r=4. The
+    report calls the wide chandelier "the most actionable structural finding in the gold work" — and
+    the number that would confirm or refute it was generated under a different trail.
+
+    ★ HOW A CONSTANT TRAIL IS EXPRESSED HERE: the repricer's width is
+    max(min_k, start_k - tighten*peak_r), so tighten=0.0 with min_k == start_k is a FLAT trail at
+    start_k for all peak_r — exactly what lock_r=99.0 (a lock that never engages) produces in the
+    sim. No repricer change is needed; it simply has to be TOLD.
+    """
+    out = {v.name: (v.chand_start_k, 0.5, v.chand_tighten)
+           for v in default_slate() if v.chandelier}
+    for v in mgc_slate():
+        if v.chandelier:
+            # lock_r >= 99 means the profit lock never engages -> a constant chand_start_k trail.
+            flat = v.chand_lock and v.lock_r >= 99.0
+            out[v.name] = ((v.chand_start_k, v.chand_start_k, 0.0) if flat
+                           else (v.chand_start_k, v.lock_k, v.chand_tighten))
+    return out
 
 
 # ── service entrypoint ────────────────────────────────────────────────────────

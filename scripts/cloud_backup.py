@@ -81,6 +81,11 @@ TIERS = {
         (f"{GB}/data/config_journal.jsonl", False),
         (f"{GB}/data/router_trial_log.txt", False),
         (f"{GB}/data/shadow.db", True),
+        # ★2026-08-15 the GOLD shadow book. It lives in its own store by design (a shared one
+        # would let reprice_pending apply MNQ's $2/pt to gold), and that isolation meant it was
+        # in no backup at all — audit finding #6. "Backblaze is the record, the local disk is a
+        # cache", so an unbacked store is a book that does not really exist.
+        (f"{GB}/data/shadow_mgc.db", True),
     ], 30),
     "archive": ("research tape", [
         (f"{GB}/data/depth.db", True),

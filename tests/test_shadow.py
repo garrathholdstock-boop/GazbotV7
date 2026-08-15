@@ -132,7 +132,18 @@ def test_chandelier_params_cover_every_chandelier_variant():
     assert cp["grind_fast"] == (3.5, 0.5, 0.75)  # existing ride variant unchanged
     # the mechanism this test exists for: EVERY chandelier variant still on the slate is in the map,
     # else the repricer would silently score it at the 3.5 default.
-    assert set(cp) == {v.name for v in default_slate() if v.chandelier}
+    # ★2026-08-15 the map now ALSO carries the MGC gold variants — audit finding #4. Built from
+    # default_slate() alone, every MGC name missed and the repricer silently fell back to the MNQ
+    # (3.5, 0.5, 0.75) TIGHTENING trail while the gold sim runs a CONSTANT 2.0xATR. real_pnl is the
+    # only number this desk trusts, and it was scoring an exit the strategy does not use.
+    from gazbot7.shadow import mgc_slate
+    expected = ({v.name for v in default_slate() if v.chandelier}
+                | {v.name for v in mgc_slate() if v.chandelier})
+    assert set(cp) == expected
+    for v in mgc_slate():
+        if v.chandelier:
+            # lock_r=99 -> the lock never engages -> a FLAT trail, expressed as tighten=0.0
+            assert cp[v.name] == (2.0, 2.0, 0.0), "gold must not inherit the MNQ tightening default"
 
 
 def test_full_slate_with_chandelier_ab_instantiates_and_steps():

@@ -43,6 +43,9 @@ STATUS = f"{GB}/data/data_status.json"
 LOCAL = [
     ("trade record   gazbot7.db", f"{GB}/data/gazbot7.db", 30, False),
     ("shadow book    shadow.db", f"{GB}/data/shadow.db", 30, False),
+    # ★2026-08-15 the gold shadow book. Its own store by design (MGC_SHADOW_SCOPE §4), which is
+    # exactly why it was in no backup, no inventory and no sweep — audit finding #6.
+    ("gold shadow    shadow_mgc.db", f"{GB}/data/shadow_mgc.db", 30, False),
     ("live tape      capture.db", f"{GB}/data/capture.db", 2, True),
     ("L2 depth       depth.db", f"{GB}/data/depth.db", 2, True),
     ("tape manifest  _manifest.json", f"{GB}/data/tape/_manifest.json", 30, False),

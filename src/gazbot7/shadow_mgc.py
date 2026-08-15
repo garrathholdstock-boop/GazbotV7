@@ -45,18 +45,44 @@ import asyncio
 from dataclasses import replace
 
 from .depthfeed import DepthFeed
-from .levelbreak import MGC_FEE_RT, MGC_VPP
+from .levelbreak import MGC_VPP  # noqa: F401
 from .shadow import mgc_slate, run
 
 SYMBOL = "MGC"
 STORE = "data/shadow_mgc.db"
+
+# ★★★2026-08-15 AUDIT FIX #1 — THE GATE COULD NEVER FIRE, AND NOTHING WOULD HAVE SAID SO.
+# RunConfig.bar_lookback defaults to 60 and MinuteBars is a deque with maxlen=60, so bars() returns
+# AT MOST 60 completed bars. detect_break(look_min=60) needs 61: sixty to build the level plus the
+# signal bar that breaks it. `len(closes) < 61` against a hard ceiling of 60 is unsatisfiable —
+# off by exactly one, permanently, silently. shadow_mgc.db would have held zero rows forever, which
+# is failure mode #2 of this build's own scope.
+# 120 gives the 61 the gate needs plus headroom for the ATR-14 warm-up.
+# ⚠ SIDE EFFECT, deliberate and harmless HERE: compute_features' _vwap() spans the WHOLE deque, so
+# vwap / vwap_slope_atr / ext_atr are now computed over 120 bars rather than 60 on this instance.
+# gate_level_break reads only highs/lows/closes and ATR-14 (a tail-14 statistic), so none of the
+# affected fields reach these gates. Do NOT copy this lookback to a VWAP-based gate without
+# re-measuring it.
+BAR_LOOKBACK = 120
+
+# ★★2026-08-15 AUDIT FIX #5 — THE SPREAD WAS BEING CHARGED TWICE.
+# repricer.py fills the entry at the far touch AND exits at the far touch, so the round-trip spread
+# is ALREADY inside `gross` before any fee is applied. Subtracting MGC_FEE_RT ($7.50 = $6.00 of
+# spread + $1.50 commission) then charges the spread a second time: $6.00/trade, which is 31% of the
+# LONG cell's edge and 40% of the SHORT's, in the direction that makes a winner look dead.
+# The research's own `true_pnl` is crossed fills MINUS $1.50, and that is where +$1,387 / +$19.27
+# come from. So the REPRICER gets commission only.
+# ⚠ MGC_FEE_RT ($7.50) remains correct for any harness that fills at the MID and must add the spread
+# itself. The two constants are not interchangeable — which is why they are named apart.
+REPRICER_FEE_RT = 1.50
 
 
 def mgc_cfg(base=None):
     """Gold's config: its own symbol, its own multiplier, its own fee, its own store."""
     from .config import RunConfig
     return replace(base or RunConfig(), symbol=SYMBOL, value_per_point=MGC_VPP,
-                   fee_rt=MGC_FEE_RT, shadow_store_path=STORE)
+                   fee_rt=REPRICER_FEE_RT, shadow_store_path=STORE,
+                   bar_lookback=BAR_LOOKBACK)
 
 
 async def main_async(max_seconds: float | None = None) -> None:
