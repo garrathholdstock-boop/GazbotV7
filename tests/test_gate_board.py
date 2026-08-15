@@ -71,3 +71,43 @@ def test_the_shadow_book_can_actually_express_it():
     assert v.chandelier is False, "every chandelier variant tested RED"
     assert "rvol_min" not in v.params and "atr_pr_min" not in v.params, \
         "floors help w=10 and HURT w=5 ($4,841 -> $2,833) — they must not be copied across"
+
+
+def test_rider_w5_carries_its_backtest_cooldown():
+    """★★2026-08-15. gf_rider_engine.run_trades ran ONE POSITION AT A TIME with a 15-MINUTE cooldown
+    after every exit (`busy_until = r.ts + held + cooldown_min * 60`). That is why 337 signals a
+    session collapse to ~6 trades — and every number quoted for this leg (+$4,841, $19.29/tr) came
+    from the constrained version. Shipped without it, the shadow fires far more often than the thing
+    that was measured, so the forward record would not be testing the strategy at all."""
+    from gazbot7.shadow import default_slate
+    v = [x for x in default_slate() if x.name == "rider_w5"][0]
+    assert v.params.get("cooldown_min") == 15
+
+
+def test_every_gate_with_a_researched_cooldown_declares_it_EXPLICITLY():
+    """★★★ THE REGRESSION GUARD, and it exists because I caused this bug twice in one day.
+
+    Both new gates shipped without the cooldown their backtest ran under, each time because the pure
+    gate function takes no such kwarg so passing it would raise. The fix moved enforcement into
+    ShadowSim._entry, keyed on the variant DECLARING `cooldown_min` — and that refactor immediately
+    dropped the gold cooldown again, because it had been relying on a default.
+
+    So: no defaults. A gate whose research used a cooldown must say so in its own params, where it
+    is visible in the slate and cannot be lost to a refactor."""
+    from gazbot7.shadow import default_slate, mgc_slate
+    need = {"rider_w5": 15, "mgc_holebreak_fade_long": 45, "mgc_holebreak_fade_short": 45}
+    have = {v.name: v.params.get("cooldown_min")
+            for v in list(default_slate()) + list(mgc_slate()) if v.name in need}
+    assert have == need, f"a researched cooldown went missing: {have} != {need}"
+
+
+def test_the_cooldown_is_enforced_centrally_and_armed_at_the_exit():
+    import inspect
+
+    from gazbot7 import shadow
+    entry = inspect.getsource(shadow.ShadowSim._entry)
+    rec = inspect.getsource(shadow.ShadowSim._record)
+    assert "_cool_until" in entry, "not enforced before dispatch"
+    assert "_cool_until" in rec, "not armed at the exit — the research measures it from the CLOSE"
+    # the pure gates must never receive it: they take no such kwarg and would raise
+    assert 'k != "cooldown_min"' in entry

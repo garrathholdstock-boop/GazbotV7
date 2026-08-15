@@ -305,7 +305,7 @@ def test_the_45_minute_cooldown_is_enforced(tmp_path):
     v = [x for x in mgc_slate() if x.side == "SHORT"][0]
     sim, mb, _st = _sim(tmp_path)
     t = _break(mb, _grind(mb, 70))
-    sim._lb_cool[v.name] = float(t) + 45 * 60            # as if a trade had just closed
+    sim._cool_until[v.name] = float(t) + 45 * 60            # as if a trade had just closed
     book = {f"{s}{k}{f}": 0.0 for s in ("bid", "ask") for k in range(1, 11) for f in ("p", "s")}
     book.update(bid1p=3004.0, bid1s=6.0)
     sim.on_bars(mb.bars(), now_ms=t * 1000, book=book)

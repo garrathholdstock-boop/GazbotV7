@@ -154,7 +154,13 @@ class ShadowSim:
         # re-enter, set from the EXIT — the research measures the cooldown from the close
         # (`busy_until = ts + held + cooldown*60`), not from the entry.
         self._lb_seen: dict[str, int] = {}
-        self._lb_cool: dict[str, float] = {}
+        # ★2026-08-15 GENERALISED from level_break to any variant whose params declare
+        # `cooldown_min`. rider_w5 had the identical defect: its backtest ran one position at a time
+        # with a 15-MINUTE cooldown after every exit (gf_rider_engine.run_trades,
+        # `busy_until = r.ts + held + cooldown_min * 60`), which is why 337 signals a session
+        # collapse to ~6 trades. Without it the shadow fires far more often than the thing that was
+        # measured, and every number quoted for it came from the constrained version.
+        self._cool_until: dict[str, float] = {}
 
     def on_bars(self, bars: list[Bar], *, tape_net: float = 0.0,
                 window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None,
@@ -240,6 +246,17 @@ class ShadowSim:
 
     def _entry(self, v: ShadowVariant, f: Features, tape_net: float, in_rth: bool, cap: dict,
                bars: list[Bar] | None = None, ts: int = 0):
+        # ★2026-08-15 THE COOLDOWN, CENTRAL AND BEFORE ANY DISPATCH. Two gates shipped without the
+        # one their backtest ran under (level_break: 45min; board/rider_w5: 15min), each time
+        # because the pure gate function has no such kwarg so passing it would raise. Handling it
+        # here means a variant declares `cooldown_min` in params and it is simply enforced — the
+        # gate never sees it, and the next gate to need one cannot forget.
+        _cd = v.params.get("cooldown_min")
+        if _cd:
+            _until = self._cool_until.get(v.name)
+            _now = bars[-1].ts if bars else (ts or 0)
+            if _until is not None and _now < _until:
+                return None
         if v.gate == "clock_rider":
             return self._rider_entry(v, bars or [], ts)
         if v.gate == "thrust":
@@ -268,16 +285,7 @@ class ShadowSim:
                 return None
             if bars:
                 self._lb_seen[v.name] = bars[-1].ts
-            # ★★ AUDIT FIX #2 — THE 45-MINUTE COOLDOWN, which was silently dropped.
-            # The research (gf_mgc_cells.cooldown, cool=45) and every ShadowVariant line in the spec
-            # carry cooldown_min=45. It was omitted here because gate_level_break has no such kwarg,
-            # so passing it would raise. Without it the same rule makes $2.67 a trade instead of
-            # $12.47 — 79% of the edge — and inflates n with correlated re-entries of one move,
-            # which breaks the independence every robustness test assumes.
-            _cool = float(v.params.get("cooldown_min", 45)) * 60.0
-            _until = self._lb_cool.get(v.name)
-            if _until is not None and bars and bars[-1].ts < _until:
-                return None
+
             # ★2026-08-15 MGC gold. Needs BARS (for the rolling level) and the BOOK, neither of
             # which is on Features. gate_level_break returns None without a book — the book
             # condition IS the gate, and without it this is the plain extension trigger, which
@@ -291,7 +299,8 @@ class ShadowSim:
         elif v.gate == "board":
             # ★2026-08-15 the pooled sat-out run-catcher. The clock comes from `ts`, not Features —
             # Features carries no hour, and gate_board fails CLOSED without one.
-            e = gate_board(f, utc_hour=(ts % 86400) / 3600.0, **v.params)
+            e = gate_board(f, utc_hour=(ts % 86400) / 3600.0,
+                           **{k: x for k, x in v.params.items() if k != "cooldown_min"})
         else:
             e = None
         if e is not None and v.side and e.side != v.side:
@@ -382,9 +391,10 @@ class ShadowSim:
         return _eff_target_r(v, atr, self._vpp)
 
     def _record(self, v, op, exit_price, exit_ts, reason):
-        # ★2026-08-15 start the cooldown at the EXIT, matching the research engine.
-        if v.gate == "level_break":
-            self._lb_cool[v.name] = float(exit_ts) + float(v.params.get("cooldown_min", 45)) * 60.0
+        # ★2026-08-15 start the cooldown at the EXIT, matching both research engines.
+        _cd = v.params.get("cooldown_min")
+        if _cd:
+            self._cool_until[v.name] = float(exit_ts) + float(_cd) * 60.0
         side = op["side"]
         if side == "LONG":
             gross = (exit_price - op["entry_price"]) * v.qty * self._vpp
@@ -457,10 +467,20 @@ def mgc_slate() -> list[ShadowVariant]:
     return [
         ShadowVariant("mgc_holebreak_fade_long", "level_break", symbol="MGC", side="LONG",
                       params={"look_min": 60, "margin_atr": 0.10, "fade": True,
-                              "book_band_pt": 1.0, "obstacle_max": 0}, **MGC_EXIT),
+                              "book_band_pt": 1.0, "obstacle_max": 0,
+                              # ★ EXPLICIT, never a default. The research (gf_mgc_cells, cool=45)
+                              # and every ShadowVariant line in gf_MGC.md §10.2 carry this. A
+                              # silent default is precisely how it went missing the first time,
+                              # and it is worth $12.47/trade against $2.67 without it.
+                              "cooldown_min": 45}, **MGC_EXIT),
         ShadowVariant("mgc_holebreak_fade_short", "level_break", symbol="MGC", side="SHORT",
                       params={"look_min": 60, "margin_atr": 0.10, "fade": True,
-                              "book_band_pt": 1.0, "obstacle_max": 0}, **MGC_EXIT),
+                              "book_band_pt": 1.0, "obstacle_max": 0,
+                              # ★ EXPLICIT, never a default. The research (gf_mgc_cells, cool=45)
+                              # and every ShadowVariant line in gf_MGC.md §10.2 carry this. A
+                              # silent default is precisely how it went missing the first time,
+                              # and it is worth $12.47/trade against $2.67 without it.
+                              "cooldown_min": 45}, **MGC_EXIT),
     ]
 
 
@@ -601,7 +621,12 @@ def default_slate() -> list[ShadowVariant]:
     #   256 trades stop out. That IS the strategy — do not bench it on a wall of stops.
     # ★ chandelier=False: every chandelier variant tested RED. Do not add one.
     slate.append(
-        ShadowVariant("rider_w5", "board", {"k": 2.0, "w": 5, "hh_lo": 13.0, "hh_hi": 20.0},
+        ShadowVariant("rider_w5", "board",
+                      # ★2026-08-15 cooldown_min=15 RESTORED. gf_rider_engine.run_trades ran one
+                      # position at a time with a 15-minute cooldown after every exit — that is why
+                      # 337 signals a session become ~6 trades, and every number quoted for this leg
+                      # (+$4,841, $19.29/tr) came from the constrained version.
+                      {"k": 2.0, "w": 5, "hh_lo": 13.0, "hh_hi": 20.0, "cooldown_min": 15},
                       symbol="MNQ", qty=1.0, stop_atr_mult=3.0, target_r=2.0,
                       adverse_cut_atr=3.0, chandelier=False))
 
