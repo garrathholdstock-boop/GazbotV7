@@ -404,7 +404,19 @@ PHASES = [
          f"PER-CELL VERDICT TABLE (momentum-long / momentum-short / reversion-long / reversion-short) "
          f"and every SHADOW-READY block."),
     # ── Greenfield: one phase per cluster, independent, so a wedge in one cannot cost the others ──
-    *[dict(key=f"gf_{cl}", artifact=f"{SEC}/gf_full_{cl}.md", deps=[], timeout_s=5400, prompt=PRE +
+    # ★★★2026-08-15 THE SYNTHESIS HUNT. Operator: "not just unclass, everything ... BE THE TEAM OF
+    # ANALYSTS THAT DONT GIVE UP." The per-cluster hunts can each die on thin n (34/16/8/2 runs) while
+    # the answer sits ACROSS them, so this pools all 60 sat-out runs and ignores our own labels.
+    dict(key="gf_RIDER_ALL", artifact=f"{SEC}/gf_full_RIDER_ALL.md", deps=[], timeout_s=14400,
+         prompt=PRE + f"GREENFIELD SYNTHESIS — ONE RIDER FOR EVERY SAT-OUT RUN. "
+         f"Read the frozen census {SEC}/census_summary.json and {SEC}/census_stdout.txt (do NOT re-run "
+         f"run_census.py). Backtest tick-honest over the FULL PARQUET LAKE (gazbot7.lake, 2026-07-16 "
+         f"onward) — never capture.db, which is 5 trading days. $1.50/round-trip, MNQ $2.00/point. "
+         f"{"THE ONE THAT MATTERS - CAN A SINGLE RIDER TAKE THIS MONEY? Operator, 2026-08-15: 'not just unclass, everything. run exhaustive hunts on how we can take some of this money. BE THE TEAM OF ANALYSTS THAT DONT GIVE UP.' This phase is the synthesis and it exists because the per-cluster hunts can each fail on thin n while the ANSWER sits across all of them. The census this week: 68 MNQ runs at or above 1.5xATR, we took EIGHT, we sat out SIXTY, worth $8,025 of ceiling against $1,198 on the ones we traded. That is the money. THE QUESTION: build ONE direction-agnostic run-catcher and score it against ALL 60 sat-out runs pooled, ignoring the cluster labels entirely. The labels are a taxonomy WE invented and UNCLASS - 34 runs, $4,097 - means only that our own classifier failed; a rider does not care what we called the run. Pooling is also the only way to get an n worth trusting: per-cluster the buckets are 34/16/8/2 and the small ones can never prove anything alone. METHOD, in this order and do not reorder it: (1) BOARD IT. You do not need to predict a run to ride one - board it LATE, after it has proven itself, and measure how much is left. On gold this week that exact shape fired inside 5 of 5 top runs at a median 19 minutes in with ~80 percent of the move still ahead. Establish the same curve for MNQ: for each of the 60 runs, at what point could we have known, and what remained? Report the distribution, not an average. (2) EXIT IS PROBABLY THE GAME. Three independent results this week - MGC run-catcher, Open Rider stop-width, exhaustion_short rehab - all said a tight or trailing exit is shaken out of a move that grinds, and the SAME entries with a wide stop and far target make money. exhaustion_short went -$158 as traded to +$5,243 on identical entries purely on the exit. So sweep stop x target WIDE (2.5, 3.0, 4.0xATR and beyond, plus a hold-to-time-cap variant) BEFORE concluding any entry fails. An entry that only pays with a wide exit is a finding, not a failure. (3) THEN FILTER. It will fire on ordinary tape too - that is the known failure mode, not a surprise. Cut losers with a CAUSAL rule computed from information available BEFORE entry, and placebo-control every cut against discarding the same NUMBER of fires at random. Report what each cut costs in forgone winners, never only what it saves. (4) THEN ROUTER OFF. Give the survivor its arm/bench rule in the live router's vocabulary (ER / ATR / structure-break / session / untradeable meter) and its expectancy on the home regime only. (5) SIZE THE PRIZE HONESTLY. State what fraction of the $8,025 ceiling a real rider could plausibly have taken, and separate the ORACLE bound (perfect filtering, cheats) from the causal result. The desk has learned that a $1,748/week oracle and a $83/week oracle demand completely different decisions. DO NOT return 'no edge found' as a bare verdict. If the rider loses, say WHICH of the five steps it died at, with the robustness test that killed it named, and what the next attempt would need - a different instrument, more days, or a data source we do not yet capture. Sixty runs a week walking past is not a thing this desk gets to shrug at."} {JUDGE} {GRAVES} {SEGMENT} "
+         f"Write your full working to {SEC}/gf_full_RIDER_ALL.md, ending with an explicit VERDICT line "
+         f"and, for any survivor, a SHADOW-READY ShadowVariant(...) block plus its router rule."),
+
+    *[dict(key=f"gf_{cl}", artifact=f"{SEC}/gf_full_{cl}.md", deps=[], timeout_s=10800, prompt=PRE +
         f"GREENFIELD HUNT — cluster '{cl}'. Read the frozen census {SEC}/census_summary.json (do NOT re-run run_census.py). "
         f"IGNORE the existing gates. INVENT a brand-new entry signal to catch these sat-out runs, with an exact mechanical spec "
         f"(trigger/direction/entry/stop/exit). BACKTEST it tick-honest over the FULL PARQUET LAKE "
@@ -469,7 +481,7 @@ PHASES = [
          f"(if one did, widen its window or fix the timestamps). These are inline self-contained SVG — never an external "
          f"image or JS library."),
 
-    dict(key="movement3", artifact=f"{SEC}/movement3_greenfield.html", deps=["gf_UNCLASS", "gf_VACUUM", "gf_FLOW-LED", "gf_OPEN-NEWS", "gf_chopscalp", "gf_MGC"],
+    dict(key="movement3", artifact=f"{SEC}/movement3_greenfield.html", deps=["gf_RIDER_ALL", "gf_UNCLASS", "gf_VACUUM", "gf_FLOW-LED", "gf_OPEN-NEWS", "gf_chopscalp", "gf_MGC"],
          timeout_s=3600, prompt=PRE +
          f"Read EVERY {SEC}/gf_*.md from this week's hunts. ★ If {SEC}/movement3_greenfield.html already exists it is a STALE "
          f"PRIOR-WEEK file — OVERWRITE it completely and carry over none of its findings. Write the flagship Movement 3 section "

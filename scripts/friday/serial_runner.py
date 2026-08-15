@@ -149,10 +149,18 @@ def main() -> int:
     a = ap.parse_args()
 
     now = dt.datetime.now(dt.UTC)
-    hh, mm = (int(x) for x in a.deadline.split(":"))
-    dl = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-    if dl <= now:
-        dl += dt.timedelta(days=1)
+    # ★2026-08-15 accept a FULL ISO datetime as well as HH:MM. HH:MM silently caps the window at 24h
+    # (it rolls to tomorrow and stops), which is fine for the Friday-night run but cannot express a
+    # weekend-long hunt — the desk is flat from Fri 21:00Z to Sun 22:00Z and that is ~49 usable hours.
+    if "T" in a.deadline or "-" in a.deadline:
+        dl = dt.datetime.fromisoformat(a.deadline)
+        if dl.tzinfo is None:
+            dl = dl.replace(tzinfo=dt.UTC)
+    else:
+        hh, mm = (int(x) for x in a.deadline.split(":"))
+        dl = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        if dl <= now:
+            dl += dt.timedelta(days=1)
     total = (dl - now).total_seconds()
 
     # Everything written BEFORE this instant belongs to a previous week and must be rebuilt.
