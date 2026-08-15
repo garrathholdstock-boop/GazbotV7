@@ -22,6 +22,7 @@ import os
 import time
 from dataclasses import dataclass, field
 
+from .levelbreak import gate_level_break  # noqa: E402
 from .deciders import (
     gate_board,
     REVERSAL_SHORT_VARIANTS,
@@ -150,8 +151,11 @@ class ShadowSim:
 
     def on_bars(self, bars: list[Bar], *, tape_net: float = 0.0,
                 window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None,
-                cap: dict | None = None) -> None:
+                cap: dict | None = None, book: dict | None = None) -> None:
+        # ★2026-08-15 `book` added for the MGC level-break gates. Defaults to None, and every gate
+        # that needs it FAILS CLOSED without one — so the MNQ path is untouched by construction.
         f = compute_features(bars)
+        self._book = book
         ts = bars[-1].ts
         now_ms = now_ms if now_ms is not None else ts * 1000  # wall-clock for the entry delay
         cap = cap or {}
@@ -241,6 +245,16 @@ class ShadowSim:
                                   cap_flip=cap.get("flip", False), **v.params)
         elif v.gate == "grind":
             e = gate_grind(f, tape_net=tape_net, **v.params)
+        elif v.gate == "level_break":
+            # ★2026-08-15 MGC gold. Needs BARS (for the rolling level) and the BOOK, neither of
+            # which is on Features. gate_level_break returns None without a book — the book
+            # condition IS the gate, and without it this is the plain extension trigger, which
+            # loses -$3.60 to -$5.49/trade in every cell at gold's true cost.
+            bb = bars or []
+            side = gate_level_break(
+                [b.high for b in bb], [b.low for b in bb], [b.close for b in bb],
+                f.atr, getattr(self, "_book", None), **v.params) if len(bb) >= 2 else None
+            e = Entry(side=side, gate="level_break") if side else None
         elif v.gate == "board":
             # ★2026-08-15 the pooled sat-out run-catcher. The clock comes from `ts`, not Features —
             # Features carries no hour, and gate_board fails CLOSED without one.
@@ -387,6 +401,33 @@ RETIRED: frozenset = frozenset({
 
 
 # ── the research slate ────────────────────────────────────────────────────────
+MGC_EXIT = dict(stop_atr_mult=3.0, chandelier=True, chand_lock=True,
+                chand_start_k=2.0, lock_r=99.0, lock_k=2.0, time_cap_s=480 * 60)
+# ★★ THE EXIT IS THE FINDING, not a default. All four gold cells want a WIDE CHANDELIER and a
+# SINGLE LOT: the tight scalp is NEGATIVE on both survivors at 1R, the dual slot has Lot A cancel
+# Lot B, and a time cap's headline is a long-drift artefact. This is the OPPOSITE of the live MNQ
+# slot configuration, and it is the most actionable structural result in the gold work.
+# lock_r=99.0 disables the profit lock deliberately — it must never tighten this trail.
+
+
+def mgc_slate() -> list[ShadowVariant]:
+    """The MGC gold book. SHADOW ONLY — never promoted, never routed, never in gate_switches.env.
+
+    ★ Runs in its OWN service instance against its OWN store (data/shadow_mgc.db). That is not
+    tidiness: `reprice_pending()` reprices every unprocessed trade with ONE value_per_point, so two
+    services sharing a store would price gold at MNQ's $2 instead of $10 — and the fee at $1.50
+    instead of $7.50 — depending on which called first. A RACE, silent, and 5x wrong.
+    """
+    return [
+        ShadowVariant("mgc_holebreak_fade_long", "level_break", symbol="MGC", side="LONG",
+                      params={"look_min": 60, "margin_atr": 0.10, "fade": True,
+                              "book_band_pt": 1.0, "obstacle_max": 0}, **MGC_EXIT),
+        ShadowVariant("mgc_holebreak_fade_short", "level_break", symbol="MGC", side="SHORT",
+                      params={"look_min": 60, "margin_atr": 0.10, "fade": True,
+                              "book_band_pt": 1.0, "obstacle_max": 0}, **MGC_EXIT),
+    ]
+
+
 def default_slate() -> list[ShadowVariant]:
     """Thrust threshold A/B (loose 1.5 = the LIVE control vs cont 2.0), amplitude-
     floor A/B (none / 0.0003 / 0.0004 = live), and the reversal-grab short slate —
@@ -727,7 +768,7 @@ def chandelier_params() -> dict[str, tuple[float, float, float]]:
 
 # ── service entrypoint ────────────────────────────────────────────────────────
 async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
-              max_seconds: float | None = None) -> None:
+              max_seconds: float | None = None, depth=None, extras: bool = True) -> None:
     """The shadow desk: subscribe the MD stream, run the variant slate on 1-minute
     bars (same aggregator as the live strategy → no drift), record ceiling trades,
     and periodically reprice closed trades on honest ticks. Touches NO account."""
@@ -752,11 +793,16 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     # durable router supersedes it. Revert: drop "cb_thrust" from RETIRED.
     breaker = (SessionDirectionBreaker(store, symbol=cfg.symbol,
                                        value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
-               if "cb_thrust" not in RETIRED else None)
+               if (extras and "cb_thrust" not in RETIRED) else None)
     # the exhaustion-reversal footprint rides its OWN tick+book loop (not bar-based) —
     # observe-only incubation, reads capture directly, records exhaustion_rev trades.
-    footprint = FootprintShadow(store, cfg.symbol,
-                                value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+    # ★2026-08-15 `extras=False` for the MGC instance. The breaker and the footprint shadow are
+    # MNQ-specific: FootprintShadow reads capture.db's tick+book loop and capture.db has NO MGC
+    # depth at all (gold's L2 only ever lands in depth.db). Running them on gold would not error —
+    # they would silently record nothing, which is the failure mode this whole build guards against.
+    footprint = (FootprintShadow(store, cfg.symbol,
+                                 value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+                 if extras else None)
     # ★2026-08-04 CL sims + signal journal. Opt-in via GAZBOT7_CL_SIMS=1 so it can be switched off
     # without a code change, and constructed inside try/except so a fault here leaves the shadow desk
     # running exactly as before (cl stays None and every call site is guarded).
@@ -794,9 +840,13 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                     bars = mb.bars()
                     if len(bars) >= 6:
                         capft = capitulation_tape(cap, cfg.symbol, now_ms) if now_ms else {}
+                        # ★2026-08-15 the book, for the MGC level-break gates. None on the MNQ
+                        # instance (depth=None); every gate needing it then fails closed.
+                        bk = depth.book_at(now_ms) if (depth is not None and now_ms) else None
                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                     window_price_delta=body.get("win_price_delta", 0.0),
-                                    in_rth=body.get("in_rth", True), now_ms=now_ms, cap=capft)
+                                    in_rth=body.get("in_rth", True), now_ms=now_ms, cap=capft,
+                                    book=bk)
                         if breaker is not None:   # ★2026-08-02 None once cb_thrust is RETIRED
                             breaker.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                             window_price_delta=body.get("win_price_delta", 0.0),
@@ -815,7 +865,7 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                                 log.warning("cl_sims step failed (experiment only, desk unaffected): %s", e)
                     if now_ms:
                         try:
-                            footprint.on_cycle(cap, now_ms)   # observe-only; must never break the loop
+                            footprint and footprint.on_cycle(cap, now_ms)   # observe-only; must never break the loop
                         except Exception:
                             pass
             if time.monotonic() - last_reprice >= reprice_interval_s:

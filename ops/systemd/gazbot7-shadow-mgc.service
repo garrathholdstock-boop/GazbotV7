@@ -1,0 +1,27 @@
+# GAZBOT V7 — the MGC (gold) shadow desk. Observe-only, isolated from the MNQ shadow.
+#
+# ★ SEPARATE STORE IS THE POINT: reprice_pending() applies ONE value_per_point to every unprocessed
+#   trade, so sharing shadow.db would price gold at MNQ's $2 instead of $10 (and $1.50/RT instead of
+#   $7.50) depending on which service called first — a silent, intermittent, 5x error.
+# ★ NOT GAZBOT7_CL_SIMS: the CL sims and the signal journal are MNQ-only.
+[Unit]
+Description=GAZBOT V7 — MGC gold shadow desk (observe-only, level-break gates)
+After=network-online.target gazbot7-md.service
+Wants=gazbot7-md.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -m gazbot7.shadow_mgc
+Restart=always
+RestartSec=10
+# Soft component: it must never be able to starve the desk or the tournament.
+MemoryHigh=700M
+MemoryMax=1G
+OOMScoreAdjust=500
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
