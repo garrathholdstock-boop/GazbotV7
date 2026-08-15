@@ -1,0 +1,192 @@
+{
+ "ORX": {
+  "cfg": "stop1.0|trail1.5/1|to15:00",
+  "real": {
+   "n": 26,
+   "net": 342.5,
+   "win": 34.6,
+   "per": 13.17,
+   "gross": 381.5
+  },
+  "drift_long": {
+   "n": 26,
+   "net": -230.0,
+   "win": 34.6,
+   "per": -8.85,
+   "gross": -191.0
+  },
+  "drift_short": {
+   "n": 26,
+   "net": 347.0,
+   "win": 38.5,
+   "per": 13.35,
+   "gross": 386.0
+  },
+  "coinflip": {
+   "draws": 60,
+   "median": -66.0,
+   "mean": -37.34,
+   "p90": 1253.5,
+   "pct_beating_real": 26.7
+  },
+  "random_clock": {
+   "draws": 60,
+   "median": -236.5,
+   "mean": -243.62,
+   "p90": 331.5,
+   "pct_beating_real": 10.0
+  }
+ },
+ "VPOP": {
+  "cfg": "stop1.0|time-only|to15:00",
+  "real": {
+   "n": 71,
+   "net": 3122.82,
+   "win": 16.9,
+   "per": 43.98,
+   "gross": 3229.32
+  },
+  "drift_long": {
+   "n": 71,
+   "net": 361.39,
+   "win": 8.5,
+   "per": 5.09,
+   "gross": 467.89
+  },
+  "drift_short": {
+   "n": 71,
+   "net": 1825.5,
+   "win": 14.1,
+   "per": 25.71,
+   "gross": 1932.0
+  },
+  "coinflip": {
+   "draws": 60,
+   "median": 954.07,
+   "mean": 1064.76,
+   "p90": 2755.99,
+   "pct_beating_real": 3.3
+  },
+  "random_clock": {
+   "draws": 60,
+   "median": -569.74,
+   "mean": -336.33,
+   "p90": 965.33,
+   "pct_beating_real": 0.0
+  }
+ },
+ "SQZGO": {
+  "cfg": "stop0.5|time-only|to16:00",
+  "real": {
+   "n": 9,
+   "net": 465.5,
+   "win": 22.2,
+   "per": 51.72,
+   "gross": 479.0
+  },
+  "drift_long": {
+   "n": 9,
+   "net": 814.5,
+   "win": 22.2,
+   "per": 90.5,
+   "gross": 828.0
+  },
+  "drift_short": {
+   "n": 9,
+   "net": -387.0,
+   "win": 11.1,
+   "per": -43.0,
+   "gross": -373.5
+  },
+  "coinflip": {
+   "draws": 60,
+   "median": 213.75,
+   "mean": 205.2,
+   "p90": 1133.0,
+   "pct_beating_real": 40.0
+  },
+  "random_clock": {
+   "draws": 60,
+   "median": -78.25,
+   "mean": -14.06,
+   "p90": 506.15,
+   "pct_beating_real": 13.3
+  }
+ },
+ "FBURST": {
+  "cfg": "stop2.0|tgt3R|to15:00",
+  "real": {
+   "n": 78,
+   "net": 539.86,
+   "win": 26.9,
+   "per": 6.92,
+   "gross": 656.86
+  },
+  "drift_long": {
+   "n": 78,
+   "net": -578.36,
+   "win": 25.6,
+   "per": -7.41,
+   "gross": -461.36
+  },
+  "drift_short": {
+   "n": 78,
+   "net": 1203.43,
+   "win": 29.5,
+   "per": 15.43,
+   "gross": 1320.43
+  },
+  "coinflip": {
+   "draws": 60,
+   "median": 379.5,
+   "mean": 408.77,
+   "p90": 1587.65,
+   "pct_beating_real": 43.3
+  },
+  "random_clock": {
+   "draws": 60,
+   "median": 2.57,
+   "mean": -128.57,
+   "p90": 1353.86,
+   "pct_beating_real": 30.0
+  }
+ },
+ "VWRC": {
+  "cfg": "stop2.0|time-only|to16:00",
+  "real": {
+   "n": 38,
+   "net": 3199.36,
+   "win": 26.3,
+   "per": 84.19,
+   "gross": 3256.36
+  },
+  "drift_long": {
+   "n": 38,
+   "net": 1041.86,
+   "win": 18.4,
+   "per": 27.42,
+   "gross": 1098.86
+  },
+  "drift_short": {
+   "n": 38,
+   "net": 1689.36,
+   "win": 21.1,
+   "per": 44.46,
+   "gross": 1746.36
+  },
+  "coinflip": {
+   "draws": 60,
+   "median": 1458.61,
+   "mean": 1324.24,
+   "p90": 2878.63,
+   "pct_beating_real": 6.7
+  },
+  "random_clock": {
+   "draws": 60,
+   "median": -706.58,
+   "mean": -619.01,
+   "p90": 724.62,
+   "pct_beating_real": 0.0
+  }
+ }
+}

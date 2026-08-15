@@ -1,0 +1,10 @@
+{
+ "minutes": 35358,
+ "scorable": 34724,
+ "event_rate": 20.72,
+ "disagree_rate": 51.26,
+ "vacuum_base_rate": 10.62,
+ "runstarts": 6677,
+ "runstart_events": 1697,
+ "runstart_vacuum": 880
+}

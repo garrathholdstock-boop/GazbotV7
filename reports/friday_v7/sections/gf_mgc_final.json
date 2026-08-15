@@ -1,0 +1,1229 @@
+{
+ "split": {
+  "vacuum": 219,
+  "wall": 63,
+  "neither": 167
+ },
+ "REVERSION PAIR \u2014 mgc_vacuum_break_fade  (fade a break into an EMPTY far side)": {
+  "mirror": {
+   "n": 219,
+   "net": -2944.0,
+   "win": 47.9,
+   "per": -13.44,
+   "med": -1.36,
+   "days": 22
+  },
+  "battery": {
+   "POOLED": {
+    "stat": {
+     "n": 219,
+     "net": 2730.0,
+     "win": 61.2,
+     "per": 12.47,
+     "med": 6.29,
+     "days": 22
+    },
+    "strip_best3": 1703.0,
+    "strip_worst3": 3179.0,
+    "loo_worst": 2345.0,
+    "days_green": 72.7,
+    "best_day": "2026-08-13 +385",
+    "worst_day": "2026-08-07 -116",
+    "h1": [
+     115,
+     1039.0
+    ],
+    "h2": [
+     104,
+     1691.0
+    ],
+    "JUL_oos": [
+     124,
+     1196.0
+    ],
+    "AUG_is": [
+     95,
+     1534.0
+    ],
+    "cost": {
+     "desk_$1.50_mid": 3030.0,
+     "true_spread_crossed": 2730.0,
+     "plus_1tick_each_way": 2292.0,
+     "per_tr_true": 12.47,
+     "per_tr_stress": 10.47
+    }
+   },
+   "LONG": {
+    "stat": {
+     "n": 103,
+     "net": 1365.0,
+     "win": 60.2,
+     "per": 13.25,
+     "med": 6.21,
+     "days": 22
+    },
+    "strip_best3": 494.0,
+    "strip_worst3": 1714.0,
+    "loo_worst": 1075.0,
+    "days_green": 63.6,
+    "best_day": "2026-07-22 +289",
+    "worst_day": "2026-07-29 -236",
+    "h1": [
+     52,
+     689.0
+    ],
+    "h2": [
+     51,
+     676.0
+    ],
+    "JUL_oos": [
+     59,
+     794.0
+    ],
+    "AUG_is": [
+     44,
+     571.0
+    ],
+    "cost": {
+     "desk_$1.50_mid": 1532.0,
+     "true_spread_crossed": 1365.0,
+     "plus_1tick_each_way": 1159.0,
+     "per_tr_true": 13.25,
+     "per_tr_stress": 11.25
+    }
+   },
+   "SHORT": {
+    "stat": {
+     "n": 116,
+     "net": 1365.0,
+     "win": 62.1,
+     "per": 11.77,
+     "med": 6.39,
+     "days": 22
+    },
+    "strip_best3": 352.0,
+    "strip_worst3": 1814.0,
+    "loo_worst": 860.0,
+    "days_green": 63.6,
+    "best_day": "2026-07-29 +506",
+    "worst_day": "2026-07-21 -257",
+    "h1": [
+     63,
+     350.0
+    ],
+    "h2": [
+     53,
+     1015.0
+    ],
+    "JUL_oos": [
+     65,
+     402.0
+    ],
+    "AUG_is": [
+     51,
+     964.0
+    ],
+    "cost": {
+     "desk_$1.50_mid": 1498.0,
+     "true_spread_crossed": 1365.0,
+     "plus_1tick_each_way": 1133.0,
+     "per_tr_true": 11.77,
+     "per_tr_stress": 9.77
+    }
+   }
+  },
+  "placebo": {
+   "POOLED": {
+    "runs": 30,
+    "beaten": 0,
+    "real": 2730.0,
+    "mean": -3289.0,
+    "p90": -2348.0,
+    "pctile": 100.0
+   },
+   "LONG": {
+    "runs": 30,
+    "beaten": 0,
+    "real": 1365.0,
+    "mean": -2258.0,
+    "p90": -1529.0,
+    "pctile": 100.0
+   },
+   "SHORT": {
+    "runs": 30,
+    "beaten": 0,
+    "real": 1365.0,
+    "mean": -1358.0,
+    "p90": -752.0,
+    "pctile": 100.0
+   }
+  },
+  "home": {
+   "regime": [
+    {
+     "regime": "BUILDING",
+     "side": "LONG",
+     "n": 12,
+     "net": -121.0,
+     "win": 58.3,
+     "per": -10.07,
+     "med": 1.57,
+     "days": 9
+    },
+    {
+     "regime": "BUILDING",
+     "side": "SHORT",
+     "n": 20,
+     "net": -38.0,
+     "win": 65.0,
+     "per": -1.92,
+     "med": 9.68,
+     "days": 15
+    },
+    {
+     "regime": "CLEAN_TREND",
+     "side": "LONG",
+     "n": 32,
+     "net": 1068.0,
+     "win": 59.4,
+     "per": 33.37,
+     "med": 28.57,
+     "days": 17
+    },
+    {
+     "regime": "CLEAN_TREND",
+     "side": "SHORT",
+     "n": 24,
+     "net": 975.0,
+     "win": 70.8,
+     "per": 40.61,
+     "med": 25.54,
+     "days": 15
+    },
+    {
+     "regime": "DEAD_CHOP",
+     "side": "LONG",
+     "n": 11,
+     "net": 319.0,
+     "win": 72.7,
+     "per": 29.02,
+     "med": 22.71,
+     "days": 8
+    },
+    {
+     "regime": "DEAD_CHOP",
+     "side": "SHORT",
+     "n": 9,
+     "net": 336.0,
+     "win": 100.0,
+     "per": 37.31,
+     "med": 24.43,
+     "days": 8
+    },
+    {
+     "regime": "NORMAL_CHOP",
+     "side": "LONG",
+     "n": 45,
+     "net": 103.0,
+     "win": 57.8,
+     "per": 2.29,
+     "med": 3.93,
+     "days": 17
+    },
+    {
+     "regime": "NORMAL_CHOP",
+     "side": "SHORT",
+     "n": 59,
+     "net": -195.0,
+     "win": 49.2,
+     "per": -3.31,
+     "med": -21.43,
+     "days": 21
+    },
+    {
+     "regime": "VIOLENT_WHIPSAW",
+     "side": "LONG",
+     "n": 3,
+     "net": -5.0,
+     "win": 66.7,
+     "per": -1.54,
+     "med": 7.79,
+     "days": 3
+    },
+    {
+     "regime": "VIOLENT_WHIPSAW",
+     "side": "SHORT",
+     "n": 4,
+     "net": 288.0,
+     "win": 100.0,
+     "per": 72.12,
+     "med": 67.78,
+     "days": 3
+    }
+   ],
+   "session": [
+    {
+     "session": "ASIA",
+     "side": "LONG",
+     "n": 33,
+     "net": 48.0,
+     "win": 57.6,
+     "per": 1.46,
+     "med": 2.86,
+     "days": 16
+    },
+    {
+     "session": "ASIA",
+     "side": "SHORT",
+     "n": 46,
+     "net": 584.0,
+     "win": 67.4,
+     "per": 12.7,
+     "med": 12.75,
+     "days": 19
+    },
+    {
+     "session": "LONDON",
+     "side": "LONG",
+     "n": 35,
+     "net": 516.0,
+     "win": 65.7,
+     "per": 14.73,
+     "med": 17.79,
+     "days": 16
+    },
+    {
+     "session": "LONDON",
+     "side": "SHORT",
+     "n": 37,
+     "net": 252.0,
+     "win": 56.8,
+     "per": 6.82,
+     "med": 3.86,
+     "days": 19
+    },
+    {
+     "session": "US",
+     "side": "LONG",
+     "n": 35,
+     "net": 801.0,
+     "win": 57.1,
+     "per": 22.89,
+     "med": 3.93,
+     "days": 18
+    },
+    {
+     "session": "US",
+     "side": "SHORT",
+     "n": 33,
+     "net": 529.0,
+     "win": 60.6,
+     "per": 16.02,
+     "med": 6.21,
+     "days": 18
+    }
+   ]
+  },
+  "exit_grid": [
+   {
+    "exit": "(a) scalp  tp0.5/sl0.5",
+    "n": 219,
+    "net": -795.0,
+    "win": 37.4,
+    "per": -3.63,
+    "med": -8.16,
+    "days": 22,
+    "LONG$/tr": -4.51,
+    "SHORT$/tr": -2.84,
+    "desk_net": 92.0,
+    "med_mins": 0.3
+   },
+   {
+    "exit": "(a) scalp  tp0.75/sl1.0",
+    "n": 219,
+    "net": -512.0,
+    "win": 52.5,
+    "per": -2.34,
+    "med": 6.67,
+    "days": 22,
+    "LONG$/tr": -2.27,
+    "SHORT$/tr": -2.39,
+    "desk_net": 392.0,
+    "med_mins": 1.1
+   },
+   {
+    "exit": "(a) scalp  tp1.0/sl1.0",
+    "n": 219,
+    "net": -514.0,
+    "win": 47.0,
+    "per": -2.35,
+    "med": -11.68,
+    "days": 22,
+    "LONG$/tr": -1.38,
+    "SHORT$/tr": -3.21,
+    "desk_net": 498.0,
+    "med_mins": 1.4
+   },
+   {
+    "exit": "(a) scalp  tp1.5/sl1.5",
+    "n": 219,
+    "net": -73.0,
+    "win": 50.2,
+    "per": -0.33,
+    "med": 11.89,
+    "days": 22,
+    "LONG$/tr": -0.74,
+    "SHORT$/tr": 0.03,
+    "desk_net": 906.0,
+    "med_mins": 3.4
+   },
+   {
+    "exit": "(a) scalp  tp2.0/sl2.0",
+    "n": 219,
+    "net": 306.0,
+    "win": 52.1,
+    "per": 1.4,
+    "med": 20.29,
+    "days": 22,
+    "LONG$/tr": 1.2,
+    "SHORT$/tr": 1.57,
+    "desk_net": 1464.0,
+    "med_mins": 6.2
+   },
+   {
+    "exit": "(b) chand  stop2/arm2/tr2",
+    "n": 219,
+    "net": 2565.0,
+    "win": 52.1,
+    "per": 11.71,
+    "med": 1.36,
+    "days": 22,
+    "LONG$/tr": 14.63,
+    "SHORT$/tr": 9.12,
+    "desk_net": 2728.0,
+    "med_mins": 9.7
+   },
+   {
+    "exit": "(b) chand  stop2.5/arm2/tr2",
+    "n": 219,
+    "net": 2955.0,
+    "win": 57.5,
+    "per": 13.49,
+    "med": 4.57,
+    "days": 22,
+    "LONG$/tr": 11.5,
+    "SHORT$/tr": 15.26,
+    "desk_net": 3308.0,
+    "med_mins": 12.2
+   },
+   {
+    "exit": "(b) chand  stop3/arm2/tr2",
+    "n": 219,
+    "net": 2730.0,
+    "win": 61.2,
+    "per": 12.47,
+    "med": 6.29,
+    "days": 22,
+    "LONG$/tr": 13.25,
+    "SHORT$/tr": 11.77,
+    "desk_net": 3030.0,
+    "med_mins": 14.5
+   },
+   {
+    "exit": "(b) chand  stop5/arm3/tr3",
+    "n": 219,
+    "net": 3341.0,
+    "win": 62.1,
+    "per": 15.26,
+    "med": 18.07,
+    "days": 22,
+    "LONG$/tr": 25.35,
+    "SHORT$/tr": 6.3,
+    "desk_net": 3716.0,
+    "med_mins": 38.5
+   },
+   {
+    "exit": "(d) timecap sl1.5, 60m",
+    "n": 219,
+    "net": 884.0,
+    "win": 23.7,
+    "per": 4.04,
+    "med": -25.77,
+    "days": 22,
+    "LONG$/tr": 6.38,
+    "SHORT$/tr": 1.96,
+    "desk_net": 1395.0,
+    "med_mins": 10.5
+   },
+   {
+    "exit": "(d) timecap sl1.5, 240m",
+    "n": 219,
+    "net": 328.0,
+    "win": 12.8,
+    "per": 1.5,
+    "med": -27.54,
+    "days": 22,
+    "LONG$/tr": 4.77,
+    "SHORT$/tr": -1.4,
+    "desk_net": 114.0,
+    "med_mins": 10.5
+   },
+   {
+    "exit": "(d) timecap sl3.0, 480m",
+    "n": 219,
+    "net": 3409.0,
+    "win": 21.5,
+    "per": 15.57,
+    "med": -50.04,
+    "days": 22,
+    "LONG$/tr": 27.27,
+    "SHORT$/tr": 5.18,
+    "desk_net": 3056.0,
+    "med_mins": 54.1
+   }
+  ],
+  "dual": {
+   "A": {
+    "n": 219,
+    "net": -514.0,
+    "win": 47.0,
+    "per": -2.35,
+    "med": -11.68,
+    "days": 22
+   },
+   "B": {
+    "n": 219,
+    "net": 2730.0,
+    "win": 61.2,
+    "per": 12.47,
+    "med": 6.29,
+    "days": 22
+   },
+   "combined": 2216.0
+  },
+  "pooled": {
+   "n": 219,
+   "net": 2730.0,
+   "win": 61.2,
+   "per": 12.47,
+   "med": 6.29,
+   "days": 22
+  },
+  "sides": {
+   "LONG": {
+    "n": 103,
+    "net": 1365.0,
+    "win": 60.2,
+    "per": 13.25,
+    "med": 6.21,
+    "days": 22
+   },
+   "SHORT": {
+    "n": 116,
+    "net": 1365.0,
+    "win": 62.1,
+    "per": 11.77,
+    "med": 6.39,
+    "days": 22
+   }
+  }
+ },
+ "MOMENTUM PAIR \u2014 mgc_wall_break_go  (follow a break that ate a DEFENDED level)": {
+  "mirror": {
+   "n": 63,
+   "net": -815.0,
+   "win": 39.7,
+   "per": -12.94,
+   "med": -30.11,
+   "days": 15
+  },
+  "battery": {
+   "POOLED": {
+    "stat": {
+     "n": 63,
+     "net": 746.0,
+     "win": 65.1,
+     "per": 11.84,
+     "med": 6.43,
+     "days": 15
+    },
+    "strip_best3": 301.0,
+    "strip_worst3": 1018.0,
+    "loo_worst": 476.0,
+    "days_green": 53.3,
+    "best_day": "2026-08-05 +270",
+    "worst_day": "2026-08-12 -136",
+    "h1": [
+     22,
+     41.0
+    ],
+    "h2": [
+     41,
+     705.0
+    ],
+    "JUL_oos": [
+     14,
+     -136.0
+    ],
+    "AUG_is": [
+     49,
+     881.0
+    ],
+    "cost": {
+     "desk_$1.50_mid": 840.0,
+     "true_spread_crossed": 746.0,
+     "plus_1tick_each_way": 620.0,
+     "per_tr_true": 11.84,
+     "per_tr_stress": 9.84
+    }
+   },
+   "LONG": {
+    "stat": {
+     "n": 36,
+     "net": 380.0,
+     "win": 69.4,
+     "per": 10.56,
+     "med": 7.71,
+     "days": 13
+    },
+    "strip_best3": 27.0,
+    "strip_worst3": 633.0,
+    "loo_worst": 59.0,
+    "days_green": 53.8,
+    "best_day": "2026-08-05 +321",
+    "worst_day": "2026-08-13 -112",
+    "h1": [
+     14,
+     390.0
+    ],
+    "h2": [
+     22,
+     -9.0
+    ],
+    "JUL_oos": [
+     6,
+     -17.0
+    ],
+    "AUG_is": [
+     30,
+     397.0
+    ],
+    "cost": {
+     "desk_$1.50_mid": 425.0,
+     "true_spread_crossed": 380.0,
+     "plus_1tick_each_way": 308.0,
+     "per_tr_true": 10.56,
+     "per_tr_stress": 8.56
+    }
+   },
+   "SHORT": {
+    "stat": {
+     "n": 27,
+     "net": 365.0,
+     "win": 59.3,
+     "per": 13.53,
+     "med": 6.43,
+     "days": 14
+    },
+    "strip_best3": -14.0,
+    "strip_worst3": 559.0,
+    "loo_worst": 195.0,
+    "days_green": 57.1,
+    "best_day": "2026-08-06 +170",
+    "worst_day": "2026-08-12 -67",
+    "h1": [
+     15,
+     -79.0
+    ],
+    "h2": [
+     12,
+     444.0
+    ],
+    "JUL_oos": [
+     8,
+     -119.0
+    ],
+    "AUG_is": [
+     19,
+     484.0
+    ],
+    "cost": {
+     "desk_$1.50_mid": 416.0,
+     "true_spread_crossed": 365.0,
+     "plus_1tick_each_way": 311.0,
+     "per_tr_true": 13.53,
+     "per_tr_stress": 11.53
+    }
+   }
+  },
+  "placebo": {
+   "POOLED": {
+    "runs": 30,
+    "beaten": 22,
+    "real": 746.0,
+    "mean": 948.0,
+    "p90": 1442.0,
+    "pctile": 26.7
+   },
+   "LONG": {
+    "runs": 30,
+    "beaten": 23,
+    "real": 380.0,
+    "mean": 620.0,
+    "p90": 921.0,
+    "pctile": 23.3
+   },
+   "SHORT": {
+    "runs": 30,
+    "beaten": 12,
+    "real": 365.0,
+    "mean": 345.0,
+    "p90": 731.0,
+    "pctile": 60.0
+   }
+  },
+  "home": {
+   "regime": [
+    {
+     "regime": "BUILDING",
+     "side": "LONG",
+     "n": 5,
+     "net": 27.0,
+     "win": 80.0,
+     "per": 5.46,
+     "med": 10.43,
+     "days": 5
+    },
+    {
+     "regime": "BUILDING",
+     "side": "SHORT",
+     "n": 3,
+     "net": -94.0,
+     "win": 0.0,
+     "per": -31.43,
+     "med": -42.54,
+     "days": 3
+    },
+    {
+     "regime": "CLEAN_TREND",
+     "side": "LONG",
+     "n": 7,
+     "net": 39.0,
+     "win": 57.1,
+     "per": 5.53,
+     "med": 17.86,
+     "days": 5
+    },
+    {
+     "regime": "CLEAN_TREND",
+     "side": "SHORT",
+     "n": 1,
+     "net": 1.0,
+     "win": 100.0,
+     "per": 1.43,
+     "med": 1.43,
+     "days": 1
+    },
+    {
+     "regime": "DEAD_CHOP",
+     "side": "LONG",
+     "n": 13,
+     "net": 279.0,
+     "win": 84.6,
+     "per": 21.43,
+     "med": 12.0,
+     "days": 7
+    },
+    {
+     "regime": "DEAD_CHOP",
+     "side": "SHORT",
+     "n": 8,
+     "net": 177.0,
+     "win": 75.0,
+     "per": 22.11,
+     "med": 29.82,
+     "days": 6
+    },
+    {
+     "regime": "NORMAL_CHOP",
+     "side": "LONG",
+     "n": 11,
+     "net": 36.0,
+     "win": 54.5,
+     "per": 3.25,
+     "med": 3.14,
+     "days": 9
+    },
+    {
+     "regime": "NORMAL_CHOP",
+     "side": "SHORT",
+     "n": 13,
+     "net": 346.0,
+     "win": 61.5,
+     "per": 26.58,
+     "med": 8.79,
+     "days": 9
+    },
+    {
+     "regime": "VIOLENT_WHIPSAW",
+     "side": "SHORT",
+     "n": 2,
+     "net": -64.0,
+     "win": 50.0,
+     "per": -32.11,
+     "med": -32.11,
+     "days": 2
+    }
+   ],
+   "session": [
+    {
+     "session": "ASIA",
+     "side": "LONG",
+     "n": 10,
+     "net": 93.0,
+     "win": 70.0,
+     "per": 9.35,
+     "med": 10.93,
+     "days": 7
+    },
+    {
+     "session": "ASIA",
+     "side": "SHORT",
+     "n": 7,
+     "net": 125.0,
+     "win": 71.4,
+     "per": 17.87,
+     "med": 6.43,
+     "days": 6
+    },
+    {
+     "session": "LONDON",
+     "side": "LONG",
+     "n": 14,
+     "net": 77.0,
+     "win": 64.3,
+     "per": 5.49,
+     "med": 3.68,
+     "days": 9
+    },
+    {
+     "session": "LONDON",
+     "side": "SHORT",
+     "n": 11,
+     "net": 114.0,
+     "win": 45.5,
+     "per": 10.37,
+     "med": -0.64,
+     "days": 8
+    },
+    {
+     "session": "US",
+     "side": "LONG",
+     "n": 12,
+     "net": 210.0,
+     "win": 75.0,
+     "per": 17.5,
+     "med": 17.14,
+     "days": 6
+    },
+    {
+     "session": "US",
+     "side": "SHORT",
+     "n": 9,
+     "net": 126.0,
+     "win": 66.7,
+     "per": 14.02,
+     "med": 8.79,
+     "days": 9
+    }
+   ]
+  },
+  "exit_grid": [
+   {
+    "exit": "(a) scalp  tp0.5/sl0.5",
+    "n": 63,
+    "net": -186.0,
+    "win": 34.9,
+    "per": -2.96,
+    "med": -7.02,
+    "days": 15,
+    "LONG$/tr": -3.1,
+    "SHORT$/tr": -2.76,
+    "desk_net": 35.0,
+    "med_mins": 0.4
+   },
+   {
+    "exit": "(a) scalp  tp0.75/sl1.0",
+    "n": 63,
+    "net": -134.0,
+    "win": 54.0,
+    "per": -2.12,
+    "med": 5.62,
+    "days": 15,
+    "LONG$/tr": -2.97,
+    "SHORT$/tr": -0.99,
+    "desk_net": 126.0,
+    "med_mins": 1.2
+   },
+   {
+    "exit": "(a) scalp  tp1.0/sl1.0",
+    "n": 63,
+    "net": -48.0,
+    "win": 50.8,
+    "per": -0.76,
+    "med": 6.57,
+    "days": 15,
+    "LONG$/tr": -1.56,
+    "SHORT$/tr": 0.3,
+    "desk_net": 182.0,
+    "med_mins": 1.9
+   },
+   {
+    "exit": "(a) scalp  tp1.5/sl1.5",
+    "n": 63,
+    "net": 364.0,
+    "win": 61.9,
+    "per": 5.78,
+    "med": 16.12,
+    "days": 15,
+    "LONG$/tr": 7.09,
+    "SHORT$/tr": 4.04,
+    "desk_net": 602.0,
+    "med_mins": 3.4
+   },
+   {
+    "exit": "(a) scalp  tp2.0/sl2.0",
+    "n": 63,
+    "net": 370.0,
+    "win": 63.5,
+    "per": 5.87,
+    "med": 21.93,
+    "days": 15,
+    "LONG$/tr": 6.48,
+    "SHORT$/tr": 5.06,
+    "desk_net": 557.0,
+    "med_mins": 5.4
+   },
+   {
+    "exit": "(b) chand  stop2/arm2/tr2",
+    "n": 63,
+    "net": 710.0,
+    "win": 57.1,
+    "per": 11.27,
+    "med": 2.36,
+    "days": 15,
+    "LONG$/tr": 11.04,
+    "SHORT$/tr": 11.58,
+    "desk_net": 824.0,
+    "med_mins": 10.2
+   },
+   {
+    "exit": "(b) chand  stop2.5/arm2/tr2",
+    "n": 63,
+    "net": 869.0,
+    "win": 63.5,
+    "per": 13.79,
+    "med": 5.0,
+    "days": 15,
+    "LONG$/tr": 12.26,
+    "SHORT$/tr": 15.83,
+    "desk_net": 966.0,
+    "med_mins": 13.7
+   },
+   {
+    "exit": "(b) chand  stop3/arm2/tr2",
+    "n": 63,
+    "net": 746.0,
+    "win": 65.1,
+    "per": 11.84,
+    "med": 6.43,
+    "days": 15,
+    "LONG$/tr": 10.56,
+    "SHORT$/tr": 13.53,
+    "desk_net": 840.0,
+    "med_mins": 13.8
+   },
+   {
+    "exit": "(b) chand  stop5/arm3/tr3",
+    "n": 63,
+    "net": 806.0,
+    "win": 68.3,
+    "per": 12.8,
+    "med": 18.93,
+    "days": 15,
+    "LONG$/tr": 8.25,
+    "SHORT$/tr": 18.87,
+    "desk_net": 884.0,
+    "med_mins": 27.9
+   },
+   {
+    "exit": "(d) timecap sl1.5, 60m",
+    "n": 63,
+    "net": 365.0,
+    "win": 25.4,
+    "per": 5.79,
+    "med": -20.25,
+    "days": 15,
+    "LONG$/tr": 17.26,
+    "SHORT$/tr": -9.51,
+    "desk_net": 371.0,
+    "med_mins": 17.8
+   },
+   {
+    "exit": "(d) timecap sl1.5, 240m",
+    "n": 63,
+    "net": 2471.0,
+    "win": 19.0,
+    "per": 39.23,
+    "med": -21.43,
+    "days": 15,
+    "LONG$/tr": 80.7,
+    "SHORT$/tr": -16.06,
+    "desk_net": 2499.0,
+    "med_mins": 17.8
+   },
+   {
+    "exit": "(d) timecap sl3.0, 480m",
+    "n": 63,
+    "net": 2380.0,
+    "win": 17.5,
+    "per": 37.78,
+    "med": -39.64,
+    "days": 15,
+    "LONG$/tr": 102.02,
+    "SHORT$/tr": -47.89,
+    "desk_net": 2287.0,
+    "med_mins": 56.4
+   }
+  ],
+  "dual": {
+   "A": {
+    "n": 63,
+    "net": -48.0,
+    "win": 50.8,
+    "per": -0.76,
+    "med": 6.57,
+    "days": 15
+   },
+   "B": {
+    "n": 63,
+    "net": 746.0,
+    "win": 65.1,
+    "per": 11.84,
+    "med": 6.43,
+    "days": 15
+   },
+   "combined": 698.0
+  },
+  "pooled": {
+   "n": 63,
+   "net": 746.0,
+   "win": 65.1,
+   "per": 11.84,
+   "med": 6.43,
+   "days": 15
+  },
+  "sides": {
+   "LONG": {
+    "n": 36,
+    "net": 380.0,
+    "win": 69.4,
+    "per": 10.56,
+    "med": 7.71,
+    "days": 13
+   },
+   "SHORT": {
+    "n": 27,
+    "net": 365.0,
+    "win": 59.3,
+    "per": 13.53,
+    "med": 6.43,
+    "days": 14
+   }
+  }
+ },
+ "middle": {
+  "fade": {
+   "n": 167,
+   "net": 37.0,
+   "win": 55.1,
+   "per": 0.22,
+   "med": 2.43,
+   "days": 22
+  },
+  "follow": {
+   "n": 167,
+   "net": -636.0,
+   "win": 51.5,
+   "per": -3.81,
+   "med": 1.5,
+   "days": 22
+  }
+ },
+ "wall_plateau": [
+  {
+   "wall rule": "obstacle > support (ratio>1)",
+   "n": 63,
+   "net": 746.0,
+   "win": 65.1,
+   "per": 11.84,
+   "med": 6.43,
+   "days": 15,
+   "LONG$/tr": 10.56,
+   "SHORT$/tr": 13.53
+  },
+  {
+   "wall rule": "obstacle >= support+1",
+   "n": 116,
+   "net": 757.0,
+   "win": 58.6,
+   "per": 6.52,
+   "med": 4.39,
+   "days": 16,
+   "LONG$/tr": 7.55,
+   "SHORT$/tr": 5.39
+  },
+  {
+   "wall rule": "obstacle >= support+2",
+   "n": 107,
+   "net": 524.0,
+   "win": 57.0,
+   "per": 4.9,
+   "med": 3.14,
+   "days": 16,
+   "LONG$/tr": 5.98,
+   "SHORT$/tr": 3.8
+  },
+  {
+   "wall rule": "obstacle >= 3 lots",
+   "n": 213,
+   "net": -87.0,
+   "win": 54.5,
+   "per": -0.41,
+   "med": 2.5,
+   "days": 22,
+   "LONG$/tr": -0.22,
+   "SHORT$/tr": -0.6
+  },
+  {
+   "wall rule": "obstacle >= 5 lots",
+   "n": 191,
+   "net": -205.0,
+   "win": 53.4,
+   "per": -1.08,
+   "med": 1.71,
+   "days": 22,
+   "LONG$/tr": -1.02,
+   "SHORT$/tr": -1.13
+  },
+  {
+   "wall rule": "obstacle >= 10 lots",
+   "n": 110,
+   "net": -653.0,
+   "win": 50.9,
+   "per": -5.94,
+   "med": 0.43,
+   "days": 22,
+   "LONG$/tr": -8.89,
+   "SHORT$/tr": -3.38
+  },
+  {
+   "wall rule": "obstacle>=5 AND ratio>1",
+   "n": 58,
+   "net": 573.0,
+   "win": 63.8,
+   "per": 9.88,
+   "med": 4.5,
+   "days": 15,
+   "LONG$/tr": 9.17,
+   "SHORT$/tr": 10.81
+  },
+  {
+   "wall rule": "obstacle>=3 AND ratio>1",
+   "n": 61,
+   "net": 669.0,
+   "win": 63.9,
+   "per": 10.98,
+   "med": 5.0,
+   "days": 15,
+   "LONG$/tr": 10.2,
+   "SHORT$/tr": 12.02
+  }
+ ],
+ "vac_plateau": [
+  {
+   "vacuum rule": "obstacle == 0",
+   "n": 219,
+   "net": 2730.0,
+   "win": 61.2,
+   "per": 12.47,
+   "med": 6.29,
+   "days": 22,
+   "LONG$/tr": 13.25,
+   "SHORT$/tr": 11.77
+  },
+  {
+   "vacuum rule": "obstacle < 2",
+   "n": 227,
+   "net": 2776.0,
+   "win": 61.2,
+   "per": 12.23,
+   "med": 6.43,
+   "days": 22,
+   "LONG$/tr": 13.76,
+   "SHORT$/tr": 10.86
+  },
+  {
+   "vacuum rule": "obstacle < 5",
+   "n": 258,
+   "net": 2711.0,
+   "win": 60.1,
+   "per": 10.51,
+   "med": 6.21,
+   "days": 22,
+   "LONG$/tr": 11.11,
+   "SHORT$/tr": 9.95
+  },
+  {
+   "vacuum rule": "obstacle < 10",
+   "n": 339,
+   "net": 1787.0,
+   "win": 56.6,
+   "per": 5.27,
+   "med": 3.93,
+   "days": 22,
+   "LONG$/tr": 7.68,
+   "SHORT$/tr": 3.07
+  },
+  {
+   "vacuum rule": "obstacle==0 AND depletion>0.5",
+   "n": 157,
+   "net": 1776.0,
+   "win": 61.8,
+   "per": 11.31,
+   "med": 6.21,
+   "days": 22,
+   "LONG$/tr": 6.82,
+   "SHORT$/tr": 15.86
+  },
+  {
+   "vacuum rule": "obstacle==0 AND US session",
+   "n": 68,
+   "net": 1330.0,
+   "win": 58.8,
+   "per": 19.56,
+   "med": 5.07,
+   "days": 22,
+   "LONG$/tr": 22.89,
+   "SHORT$/tr": 16.02
+  }
+ ],
+ "wall_filter_placebo": {
+  "n": 63,
+  "real": 746.0,
+  "random_mean": -389.0,
+  "beaten": 0,
+  "runs": 200,
+  "pctile": 100.0
+ }
+}

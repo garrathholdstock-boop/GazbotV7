@@ -1,577 +1,870 @@
-# GREENFIELD HUNT — census "full" · cluster **OPEN/NEWS**
-
-**Question asked:** forget every gate the desk owns. Invent a brand-new entry signal, from scratch,
-that shows up for the runs the census filed under **OPEN/NEWS**. Spec it mechanically, backtest it
-tick-honest on `capture.db` net of ~$5 a round trip, and then try as hard as possible to kill it.
-
-**Answer up front — this one has a survivor, and it is not the clever one.** Two of the three
-inventions died, and the third only lived once I stripped every filter off it. What is left is
-embarrassingly simple: **during 13:00–15:00 UTC, every five minutes, be positioned in the direction
-of the last fifteen minutes, with a stop two ATRs wide and a 2R target.** No thresholds, no
-efficiency-ratio dial, no book reading. Over **17 trading days** that is **129 trades, +$4,169,
-48.1% winners, +$32.32 a trade, +0.272R a trade**, it survives strip-the-3-best (+$2,931), it is
-positive on **leave-one-day-out for all 17 days**, and it shows up for **11 of the 14 sat-out
-OPEN/NEWS runs** — and for **15 of the 15 biggest** runs on the wider tape.
-
-It also carries one honest wound that I have not been able to dress: **when the day's own drift is
-taken out, its timing skill is negative.** It makes its money by being on the right side of a
-directional two-hour window, not by picking moments inside it. That is stated plainly in §7 and it
-is why the verdict is **SHADOW, not LIVE**.
+# GREENFIELD HUNT — cluster **OPEN/NEWS**
+### Friday report 2026-08-14 · Movement 3 · full working
+*(MNQ · $2.00/point · $1.50 per round trip · parquet lake 2026-06-19 → 2026-08-14 · frozen census `census_summary.json`)*
 
 ---
 
-## 1. What OPEN/NEWS actually is — read this before believing any number below
+## 0. THE SHORT VERSION, BEFORE ANY OF THE MONEY
 
-The census does **not** detect OPEN/NEWS from the tape. It is a **clock label**: `cluster()` in
-`scripts/run_census.py` returns `OPEN/NEWS` for any big run whose 15-minute window *starts* between
-**13:00 and 15:00 UTC**, before it ever looks at flow, amplitude or book. That is the US cash open
-(13:30 UTC = 09:30 ET) plus the half hour in front of it and the 14:00 UTC (10:00 ET) data drop.
+Garrath — I was sent to invent a gate that catches the runs we sat out in the "OPEN/NEWS" bucket.
+I did that, and one of them stands up. But the **biggest thing I found is not a gate at all, it is that
+the cluster label I was sent to hunt does not mean what its name says**, and that finding outranks
+everything else on this page, so it goes first.
 
-Two consequences, and they shape everything:
+Then, in order:
 
-**(a) There is nothing rare about an OPEN/NEWS run.** Cutting the tape into non-overlapping
-15-minute slots:
-
-| Slot location | slots | of which "census big run" (≥65 pt) | rate |
-|---|---|---|---|
-| **13:00–15:00 UTC** | 134 | 52 | **39%** |
-| everywhere else | 1,387 | 100 | 7% |
-
-Four out of every ten quarter-hours in that window is a "big run". The label is not telling you an
-event happened; it is telling you the clock. In-window the median |15-min move| is **50 pt**, the
-75th percentile **87 pt** and the 95th **180 pt**. So "catch the OPEN/NEWS runs" reduces, honestly,
-to **"trade 13:00–15:00 UTC directionally on a quarter-hour horizon"** — which is a much better
-brief than it sounds, because it means the base rate is high and the sample is not starved.
-
-**(b) Because the label is clock-only, the WHOLE bar tape is usable.** This is the single biggest
-difference from the VACUUM hunt, which was welded to the 5 days of aggressor-tagged ticks and could
-never have an out-of-sample leg. OPEN/NEWS needs no tick data to *define* it, so:
-
-| Table | Coverage | Usable for this study |
+| # | finding | one line |
 |---|---|---|
-| `bars` 5s MNQ | 2026-07-15 → 08-07 | **17 trading days with full 13:00–15:00 coverage** |
-| `ticks` (aggressor) | 08-03 → 08-07 | 5 days — used for the tick-honest re-price only |
-| `quotes` (L1 bid/ask) | 08-03 → 08-08 | 5 days — used for real entry prices |
+| 1 | **The label is a clock, not a footprint** | `OPEN/NEWS` is literally `if 13 <= hour < 15`. It is true on **every single bar** in that window and false everywhere else. It says nothing about news and nothing about the run. |
+| 2 | **But the clock itself is real** | 29.4% of all runs happen in 8.87% of the tape — a **3.31× lift**. The bucket is worthless as a *label* and genuinely useful as a *window*. |
+| 3 | **Its right-hand edge is arbitrary** | The run-density decays smoothly: 13h lift 3.52 → 14h 3.10 → 15h 2.04 → 16h 1.69. Cutting at 15:00 splits one continuous phenomenon into two clusters and dumps the 15:00–16:00 half into UNCLASS. |
+| 4 | **Five invented gates, one survivor** | ORX, VPOP, SQZGO, FBURST, VWRC → four dead. VPOP refined into POPGO, POPGO's own null battery produced **POPSAR**, which survives everything I could throw at it in-sample. |
+| 5 | **A 5-second look-ahead was quietly worth $700** | I had a bug. Fixing it turned ORX's "+$582 building-regime edge" into −$112. Reported in full in §5 because it is the kind of thing that ships a fake gate. |
+| 6 | **The escalation DID reveal the footprint — and it is VOLUME, not price** | Pre-run volume separates runs from ordinary minutes with AUC 0.70, rising **monotonically to 0.88 on the top 8 runs**. Pre-run price range is 0.50 — it knows nothing, at any size. |
+| 7 | **But the volume footprint does not convert into a trade** | VSURGE, built directly on it, has no parameter plateau (adjacent cells flip sign) and dies on strip-3. Detection ≠ direction ≠ timing, again. |
+| 8 | **The survivor does not do the job it was hired for** | POPSAR makes **+$5,706 over 54 trades (+$105.66/trade)** — and catches **2 of the 16 sat-out runs**. It is a good trade that is not the trade I was sent to find. I am reporting both halves of that sentence with equal weight. |
 
-**Every signal below is built from 5s bars only, so it runs on all 17 days.** That bought a real
-walk-forward: **DEV = 07-16 … 07-31 (12 days)**, **HOLDOUT = 08-03 … 08-07 (5 days, the census
-week)**. The holdout is the week the target runs live in, which is the right way round — the signal
-never saw them while it was being designed.
+**VERDICT (full statement at the end): POPSAR → SHADOW. The OPEN/NEWS *cluster hunt itself* → NULL,
+with the size-threshold finding as the deliverable.**
 
-**And the drift check that killed half of the VACUUM study passes here.** Over the 17 days the
-13:00–15:00 window's unconditional 15-minute forward return is **−4.58 pt with P(up) = 47.8%** —
-essentially balanced, no melt-up to flatter a long-biased signal. (The census week on its own *was*
-up-biased; the 12 DEV days were down-biased. They cancel, which is exactly why using both matters.)
+---
 
-## 2. The target — the 14 sat-out OPEN/NEWS runs
+## 1. ★ INTERROGATING THE LABEL FIRST
 
-The census (7 days, 67 runs) filed **24 runs** as OPEN/NEWS. Ten were caught by a live gate, three
-were fought, and **14 were sat out**. Those 14 are the scoreboard:
+The brief said to check the cluster label's base rate before trusting anything built on top of it.
+I did that first, and it changed how I read the whole section.
 
-| # | Start (UTC) | Dir | Move | $ 1-lot ceiling |
-|---|---|---|---|---|
-| 1 | 08-07 14:12 | UP | +183 | 366 |
-| 2 | 08-07 13:50 | DN | −143 | 286 |
-| 3 | 08-03 13:18 | DN | −141 | 282 |
-| 4 | 08-05 14:16 | DN | −129 | 258 |
-| 5 | 08-06 14:03 | UP | +152 | 304 |
-| 6 | 08-06 14:46 | UP | +120 | 240 |
-| 7 | 08-07 13:00 | DN | −105 | 210 |
-| 8 | 08-04 13:56 | UP | +100 | 200 |
-| 9 | 08-05 13:25 | UP | +96 | 193 |
-| 10 | 08-07 14:29 | DN | −88 | 176 |
-| 11 | 08-06 13:17 | DN | −82 | 165 |
-| 12 | 08-06 14:24 | DN | −79 | 158 |
-| 13 | 08-05 14:39 | DN | −78 | 156 |
-| 14 | 08-05 14:54 | UP | +73 | 146 |
+Here is the entire rule, from `scripts/run_census.py:52`:
 
-**Total hindsight ceiling: 1,569 points = $3,138 on one lot.** Six up, eight down — nearly balanced,
-which is why the long/short symmetry test below is meaningful rather than decorative.
-
-Widening to the full 17-day tape with the same 65-pt threshold gives **78 OPEN/NEWS-window runs**,
-4–5 a day, every single day, 39 up and 39 down. That is the larger scoreboard used in §8.
-
-## 3. The three inventions, fully specified
-
-All three run inside 13:00–15:00 UTC. Common definitions: `mom15` = close(t) − close(t−15 min);
-`ATR1m` = the mean 1-minute high−low over the trailing 15 minutes (during this window it runs
-**18–34 pt** — the open is fast); `ER30` = |net move| ÷ |path| over the trailing 30 minutes on
-1-minute closes. Costs everywhere: **MNQ 1 lot, $2/point, $5 per round trip**, entries at a 5s bar
-close (already past the level, no limit-fill optimism), and **the stop wins ties** when a 5s bar
-spans both stop and target.
-
-### Invention A — COIL-CRACK (CC)
-> *"The last half hour went nowhere, and then it snapped. That snap is an ignition out of balance —
-> ride it."*
-- **Arm** when `|mom15| ≥ 30 pt` **and** `ER30 < 0.20` (the previous half hour was chop, so this
-  move is new information, not the continuation of something already spent).
-- **Confirm** the bar closes in the top 30% (long) / bottom 30% (short) of its 15-minute range.
-- **Direction** = sign(mom15). **Entry** market at that bar's close. **Stop** k × ATR1m.
-  **Target** RR × stop. **Time cap** 45 min. **Cooldown** 15 min after an exit.
-
-### Invention B — OPEN EXHAUSTION FADE (OXF)
-> *"A near-straight line for thirty minutes into the open is not a trend, it is a finished move.
-> Take the other side."*
-- **Arm** when `ER30 ≥ 0.45` (the last half hour was almost pure directional travel).
-- **Direction** = *against* mom15. Same entry/stop/target/cap machinery.
-- A second, kinder version was also built: **wait for confirmation** — arm on ER30, then enter only
-  when price breaks the low (high) of the last 3/5/10 minutes against the run, so you are not
-  catching the knife.
-
-### Invention C — THE OPEN RIDER (ODR) ← *the survivor*
-> *"Stop trying to be clever about which fifteen minutes matters. During the open, just be
-> positioned with the last fifteen minutes, and give it room."*
-- **Every 5 minutes**, if flat, take a trade. **No arming threshold at all.**
-- **Direction** = sign(mom15).
-- **Entry** market at that 5s bar's close.
-- **Stop** = **2.0 × ATR1m** (floor 4 pt). **Target** = **2R**. **Time cap 45 min.**
-- No re-entry until the previous trade is out.
-
-A/B are the "clever" ones. C is the control that was supposed to lose. It didn't.
-
-## 4. Invention A — COIL-CRACK: the filter does nothing. **REFUTED as a filter.**
-
-The cost-free forward-return scan looked terrific. Sampling every minute of the window across all
-17 days (n = 1,769 observations), the raw 15-minute forward return of a momentum entry sorted
-beautifully by ER30:
-
-| ER30 bucket at entry | n | fwd-15 (raw) | win% |
-|---|---|---|---|
-| < 0.15 (coil) | 355 | **+22.5 pt** | 60.3% |
-| 0.15–0.25 | 259 | +14.0 pt | 55.2% |
-| 0.25–0.35 | 236 | +6.2 pt | 51.3% |
-| 0.35–0.50 | 261 | +4.9 pt | 51.8% |
-| ≥ 0.50 (extended) | 58 | **−58.2 pt** | 35.5% |
-
-That is a clean monotone dial, and it is the same shape as the desk's own abs_veto post-mortem
-("it chased an already-exhausted move"). So I built it, traded it, and then **ablated it** — the
-only test that matters for a filter. Same exits, same window, same everything, with and without the
-ER gate:
-
-| Version | period | n | net | strip-3 | $/trade |
-|---|---|---|---|---|---|
-| RIDE with `ER30 < 0.20` | ALL 17d | 51 | +$2,049 | +$724 | +$40.17 |
-| **RIDE with NO ER filter** | ALL 17d | **58** | **+$2,238** | **+$833** | +$38.58 |
-| RIDE with `ER30 < 0.20` | DEV | 37 | +$1,290 | −$2 | +$34.85 |
-| **RIDE with NO ER filter** | DEV | 41 | **+$1,763** | **+$358** | +$42.99 |
-| RIDE with `ER30 < 0.20` | HOLDOUT | 14 | +$759 | −$303 | +$54.24 |
-| **RIDE with NO ER filter** | HOLDOUT | 17 | +$475 | −$430 | +$27.95 |
-
-**The filter costs money and costs sample.** It is better on the 5-day holdout by $284 and worse on
-the 12-day DEV by $473 and worse on the union — that is noise, not a filter. The same happened to
-the close-location confirm: at clv 0.5 / 0.6 / 0.7 the results were **+$830 / +$830 / +$832** — three
-identical numbers, because a 30-point 15-minute move already closes near its extreme, so the filter
-selects nothing.
-
-The later filter menu (§9) confirms it from the other end: `skip ER ≥ 0.35` on the final spec gives
-+$3,462 against the naked +$4,169. **Every efficiency-ratio gate tested made the OPEN RIDER worse.**
-
-**Why the forward-return table lied:** it is measured on *overlapping* one-minute samples with a
-15-minute forward window, so 1,769 rows is perhaps 120 independent observations, and the ER buckets
-are heavily day-clustered (one quiet day fills the low-ER bucket). Once the same idea is traded with
-a stop and a cooldown, the effective n collapses to 51 and the separation evaporates.
-
-## 5. Invention B — OPEN EXHAUSTION FADE: **REFUTED.** 51 configurations, every one negative.
-
-This is the most seductive failure in the whole study, so it gets its own section.
-
-**Day-demeaned** (see §7 for what that means), the exhaustion fade has the strongest signal I found
-anywhere in this cluster:
-
-| Arm | n | demeaned fwd-15 | win% | t | Long | Short |
-|---|---|---|---|---|---|---|
-| fade `ER30 ≥ 0.40` | 222 | +28.8 pt | 56.3% | +4.40 | +23.8 | +33.3 |
-| fade `ER30 ≥ 0.45` | 117 | **+54.2 pt** | 65.8% | **+5.69** | +54.2 | +54.1 |
-| fade `ER30 ≥ 0.50` | 62 | +81.2 pt | 72.6% | +5.85 | +64.3 | +99.3 |
-| fade `ER30 ≥ 0.55` | 27 | +117.4 pt | 77.8% | +4.93 | +78.7 | +153.3 |
-
-Both sides. Monotone. Huge t-stats. And it **cannot be traded**, because of the path:
-
-| Entry type | median MFE (ATR) | median MAE (ATR) |
-|---|---|---|
-| RIDE (with the move) | 3.69 | 2.55 |
-| **FADE (against the move)** | 3.00 | **4.76** |
-
-The fade goes **further against you than for you before it works**. It is adverse from the first
-tick — the same signature the desk found on abs_veto's four overnight losers. So every stop you can
-afford is hit first. The evidence:
-
-| Family | configs tested | best | worst | win% range |
-|---|---|---|---|---|
-| Immediate fade (stop 1.25–4.0 × ATR × RR 1.5/2.0/3.0) | 15 | **−$775** | −$1,457 | 10–30% |
-| Confirmed fade (wait for a 3/5/10-min break back, stop 1.5–2.5, RR 2.0/3.0, ER 0.40/0.45/0.50) | 36 | **+$10** (n=21) | −$1,886 | 6–38% |
-
-**51 out of 51 negative or zero.** Widening the stop does not help (−$973 at 2.5 ATR, −$1,457 at
-3.0 ATR); waiting for confirmation does not help; the mean R is between **−0.30 and −0.83** in every
-delayed-entry cell. And it caught **0 of the 14** sat-out runs.
-
-**This is a REFUTATION, not a park,** and the named test is the **51-cell exit/entry-timing grid plus
-the MFE/MAE path measurement**: the entry has real 15-minute information (t = +5.69 demeaned) but it
-is delivered *after* a 4.8-ATR excursion against you, and there is no stop, no target and no
-confirmation delay inside the tested space that survives that excursion. The only reformulation left
-would be an options-style payoff or a scale-in against the move, neither of which this desk trades.
-
-## 6. Invention C — THE OPEN RIDER: the survivor
-
-**Full spec, no discretion left in it:**
-
-```
-WINDOW     13:00–15:00 UTC
-CADENCE    every 5 minutes; if FLAT, take a trade
-TRIGGER    none — the clock is the trigger
-DIRECTION  sign( close(t) − close(t − 15 min) )
-ENTRY      market at the close of that 5s bar
-STOP       2.0 × ATR1m   (ATR1m = mean 1-min high−low over the trailing 15 min; floor 4 pt)
-TARGET     2R  (= 4.0 × ATR1m from entry)
-TIME CAP   45 minutes, then out at market
-RE-ENTRY   blocked until the open trade is closed
-COST       $5 round trip, MNQ 1 lot, $2/point
+```python
+def cluster(hour, flow, mv, amp, fz=None):
+    if 13 <= hour < 15:
+        return "OPEN/NEWS"          # ← checked FIRST, before flow, before amplitude
+    ...
 ```
 
-Mean stop distance **54.6 pt = $109 of risk a trade**. That is **four to five times** what the live
-gates risk, and it is the single most uncomfortable fact about this candidate — see §10.
+That is the whole thing. No economic calendar, no release schedule, no volume test, no flow test.
+A run is "OPEN/NEWS" if and only if it started between 13:00 and 15:00 UTC.
 
-### Headline
+### 1.1 Base rate — the label is true on all of its own window
 
-| Period | n | net | win% | $/trade | R/trade | Long | Short |
-|---|---|---|---|---|---|---|---|
-| **ALL 17 days** | **129** | **+$4,169** | **48.1%** | **+$32.32** | **+0.272R** | +$1,475 (58) | +$2,695 (71) |
-| DEV 12d (07-16 → 07-31) | 90 | +$3,447 | 50.0% | +$38.30 | +0.346R | +$896 | +$2,552 |
-| HOLDOUT 5d (08-03 → 08-07) | 39 | +$722 | 43.6% | +$18.51 | +0.102R | +$579 | +$143 |
+| measure | value |
+|---|---:|
+| 5s bars in the lake (2026-07-16 → 08-14) | 356,916 |
+| bars carrying the `OPEN/NEWS` label | 31,674 |
+| **share of the tape wearing the label** | **8.87%** |
+| precision of the label *given the clock* | **1.000** |
 
-Exit mix: **STOP 66 / TARGET 51 / TIME 12**. Total **+35.1R** banked over 17 days, **7.6 trades a
-day**, and — this matters operationally — **it is in the market essentially 100% of the 13:00–15:00
-window** (a five-minute cadence with 45-minute caps means the next trade starts the moment the last
-one ends). It is not a gate that waits for a setup; it is a **two-hour always-in posture that
-re-picks its side every time it gets flat**. Anyone deploying it should read it as a second desk for
-two hours a day, not as a seventh gate in the tournament.
+8.87% sounds discriminating. It isn't. The label is a **deterministic function of the clock** — inside
+13:00–15:00Z it is true on 100% of bars, quiet or violent, trending or dead. It cannot separate a run
+from a non-run because it never looks at either. **A label that is true on every bar in its own domain
+is not a footprint, it is a bucket name.**
 
-A look-ahead audit was run on all 129 trades: every feature index is strictly before the entry bar,
-every exit index strictly after it, and the stored ATR reproduces exactly from past bars only. Zero
-failures.
+### 1.2 The clock, however, is carrying real information
 
-## 7. The robustness battery — including the test that wounds it
+This is the part that saves the exercise. Running the census's own run detector across the whole lake
+(320 runs, 15-min close-to-close ≥ 1.5× the typical 15-min range = 69pt) and binning by hour:
 
-### TEST 1 — parameter sweep: **PASSED, and it is the strongest evidence here**
+| UTC hour | runs | % of runs | % of tape | **lift** | median move |
+|---:|---:|---:|---:|---:|---:|
+| 00 | 18 | 5.62 | 4.44 | 1.27 | 91.5 |
+| 01–12 | 90 | 28.1 | 53.3 | ~0.53 | ~83 |
+| **13** | **50** | **15.62** | 4.44 | **3.52** | **126.5** |
+| **14** | **44** | **13.75** | 4.44 | **3.10** | **99.5** |
+| 15 | 29 | 9.06 | 4.44 | 2.04 | 99.0 |
+| 16 | 24 | 7.50 | 4.44 | 1.69 | 93.2 |
+| 17 | 13 | 4.06 | 4.44 | 0.92 | 83.0 |
+| 18 | 13 | 4.06 | 4.44 | 0.92 | 113.2 |
+| 19 | 21 | 6.56 | 4.44 | 1.48 | 83.8 |
+| 20–23 | 18 | 5.6 | ~11.3 | ~0.50 | ~98 |
 
-The operator's specific worry is *"does the edge only appear as n collapses?"* Here it is the
-opposite. Full grid, `cadence × stop_k × RR`, 100 cells, each shown as **net / net-after-strip-3 / n
-/ mean R**:
+**29.4% of all runs land in 8.87% of the tape — a 3.31× concentration.** And the runs there are bigger:
+median 110.8pt in-window against 87.5pt out. So the *window* is worth hunting in. The *label* is just
+its name, and the name is misleading in two specific ways.
 
-| cadence 5 min | RR 1.0 | RR 1.5 | RR 2.0 | RR 2.5 | RR 3.0 |
-|---|---|---|---|---|---|
-| **stop 1.0×ATR** | −566/−897/349/−0.07 | −692/−1189/302/−0.07 | +1012/+344/264/+0.00 | +2054/+1245/234/+0.09 | +1306/+368/205/+0.04 |
-| **stop 1.5×ATR** | +1275/+795/257/+0.04 | +2392/+1641/200/+0.09 | +1665/+739/174/+0.05 | +1845/+721/148/+0.09 | +2193/+860/140/+0.13 |
-| **stop 2.0×ATR** | +2457/+1788/186/+0.08 | +3469/+2544/141/+0.18 | **+4169/+2931/129/+0.27** | +4161/+2868/107/+0.35 | +5893/+4405/95/+0.55 |
-| **stop 2.5×ATR** | +4397/+3628/144/+0.22 | +4202/+3056/118/+0.24 | +5283/+3990/94/+0.41 | +7029/+5521/86/+0.58 | +4143/+2412/87/+0.37 |
-| **stop 3.0×ATR** | +3033/+2147/119/+0.18 | +4166/+2918/97/+0.28 | +6133/+4683/84/+0.49 | +4196/+2549/80/+0.41 | +3511/+1674/75/+0.42 |
+### 1.3 Misleading way one — there is no "NEWS" in it
 
-The same shape holds at cadence 3, 10 and 15 minutes. **Every cell with stop ≥ 2.0 × ATR is positive
-in net AND positive after stripping its three best trades**, at every cadence and every target — that
-is a 40-cell contiguous plateau, not a spike. The chosen spec (2.0 / 2.0) is deliberately the
-plateau's **bottom-left corner**, not the maximum (2.5 / 2.5 at +$7,029), precisely so the headline
-is not the number the grid was mined for.
+If this bucket were about scheduled releases, run starts would pile up at 13:30Z (08:30 ET, the US data
+slot) and 14:00/15:00Z. They do not. Every in-window run start, binned to 5 minutes:
 
-The tell runs the *right* way: the plateau is where n is **largest** (129–215 trades) and the mess is
-in the narrow-stop cells. **The desk's standard ~1-ATR stop is exactly the wrong stop for this
-signal** — that is a finding in its own right.
+| slot | runs | slot | runs | slot | runs |
+|---|---:|---|---:|---|---:|
+| 13:00 | 3 | 13:45 | 4 | 14:30 | 2 |
+| 13:10 | 1 | 13:50 | 5 | 14:35 | 5 |
+| 13:15 | 4 | 13:55 | 5 | 14:40 | 3 |
+| 13:20 | 5 | 14:00 | 3 | 14:45 | 5 |
+| **13:25** | **9** | 14:05 | 2 | 14:50 | 4 |
+| 13:30 | 7 | 14:10 | 3 | 14:55 | 4 |
+| 13:35 | 3 | **14:15** | **7** | | |
+| 13:40 | 4 | 14:20 | 5 | | |
 
-### TEST 2 — walk-forward, parameters chosen on DEV only: **PASSED**
+The busiest 5-minute slot is **13:25**, not 13:30. There is no release spike anywhere in this
+distribution — it is broad and flat across two hours. What we are actually looking at is **the US cash
+open and the ninety minutes after it**, which is a liquidity and participation phenomenon, not a news
+one. The name "OPEN/NEWS" gets the OPEN half right and invented the NEWS half.
 
-192 cells (`threshold × stop × RR × cooldown`) fitted on the 12 DEV days and scored on the 5
-holdout days:
+### 1.4 Misleading way two — the clock rule STEALS from the other clusters
 
-| | count |
+Because the clock test runs first, any 13:00–15:00Z run is taken before flow or amplitude is ever
+consulted. Re-labelling all 94 in-window lake runs with the clock rule removed:
+
+| what it would have been | runs | share |
+|---|---:|---:|
+| UNCLASS | 52 | 55% |
+| VACUUM | 17 | 18% |
+| FLOW-LED | 14 | 15% |
+| VOL-EXPANSION | 11 | 12% |
+
+**31 of 94 in-window runs had a genuine flow verdict waiting for them and never got it.** Two from this
+week's own census make the point: `08-11 13:51 UP +124` printed −1,145 net aggressor flow *against* the
+move (a textbook VACUUM), and `08-11 14:16 DN −49` printed +1,720 *against* its move (also VACUUM).
+Both are stamped OPEN/NEWS and both are therefore invisible to any vacuum work.
+
+### 1.5 And the 15:00 cut-off has nothing behind it
+
+Hour 15 still carries a 2.04× run lift and hour 16 a 1.69×. The decay from 13:00 is smooth. So the
+boundary at 15:00 is not a regime edge, it is a round number — and it sends real members of the same
+phenomenon into UNCLASS. In this week's own census, `08-13 15:22 DN −98`, `08-13 15:43 DN −61`,
+`08-14 15:11 DN −73`, `08-10 15:20 DN −62`, `08-10 15:40 UP +76` and `08-11 15:22 DN −54` are all
+UNCLASS purely because they started after the hour struck.
+
+> **What I'd change:** rename the cluster **US-OPEN** and make it a *session tag* that runs ALONGSIDE
+> the flow/amplitude taxonomy rather than pre-empting it, with the window extended to 13:00–16:00Z
+> where the lift is still ≥1.69×. That is a one-line change in `cluster()` (move the clock test to
+> last, and return a tuple) and it would give UNCLASS back about a third of its members with real
+> labels attached.
+
+---
+
+## 2. THE TARGET — WHAT THE FROZEN CENSUS ACTUALLY ASKED FOR
+
+From `census_summary.json` and the frozen `census_stdout.txt` (68 runs, 60 sat out, $8,024 of sat-out
+ceiling), the OPEN/NEWS cluster holds **22 runs**: 3 caught, 3 fought, **16 sat out**.
+
+| # | run (UTC) | dir | move | $ ceiling | flow | amp% | book |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 1 | 08-10 13:20 | DN | −74 | 147 | +6 | 0.09 | 0.50 |
+| 2 | 08-10 13:56 | UP | +109 | 218 | −118 | 0.21 | 0.51 |
+| 3 | 08-10 14:25 | UP | +46 | 92 | −438 | 0.22 | 0.50 |
+| 4 | 08-10 14:45 | DN | −90 | 179 | +101 | 0.10 | 0.48 |
+| 5 | 08-11 13:24 | DN | −137 | 274 | +48 | 0.05 | 0.51 |
+| 6 | 08-11 13:51 | UP | +124 | 249 | −1145 | 0.16 | 0.50 |
+| 7 | 08-11 14:16 | DN | −49 | 98 | +1720 | 0.15 | 0.50 |
+| 8 | 08-11 14:40 | UP | +55 | 110 | +543 | 0.13 | 0.51 |
+| 9 | 08-11 14:55 | DN | −89 | 178 | +601 | 0.13 | 0.51 |
+| 10 | 08-12 13:08 | UP | +52 | 105 | +0 | 0.08 | 0.45 |
+| 11 | **08-13 13:32** | **UP** | **+236** | **472** | +73 | 0.19 | 0.50 |
+| 12 | 08-13 14:20 | UP | +75 | 150 | −711 | 0.11 | 0.42 |
+| 13 | 08-13 14:41 | DN | −45 | 90 | +432 | 0.08 | 0.53 |
+| 14 | 08-14 13:22 | DN | −80 | 159 | +144 | 0.05 | 0.48 |
+| 15 | 08-14 14:13 | DN | −98 | 197 | −411 | 0.13 | 0.48 |
+| 16 | 08-14 14:48 | DN | −48 | 96 | +160 | 0.07 | 0.48 |
+
+**16 runs · $2,814 of 1-lot hindsight ceiling** — that is 35% of the whole week's sat-out money coming
+out of 27% of the sat-out runs. Worth the effort.
+
+One thing to hold in mind for everything below: **this was a dead-vol week.** Median in-window 1-min
+ATR ran 14.6–22.3pt Monday to Friday, against 29–41pt for most of July. The census's own run threshold
+was 44pt; run the same detector on the full lake and it is 69pt. So the week we are hunting is the
+quietest in the sample, and a gate tuned to it would be tuned to the exception.
+
+---
+
+## 3. THE TAPE, AND WHAT I ACTUALLY RAN ON
+
+Everything here is the **parquet lake** (`gazbot7.lake.connect`), never `capture.db` on its own.
+
+| tier | stream | span | days |
+|---|---|---|---:|
+| v5 archive | 5s bars | 2026-06-19 → 07-15 | 19 |
+| parquet lake | 5s bars | 2026-07-16 → 08-13 | 21 |
+| hot capture | 5s bars | 2026-08-14 | 1 |
+| v5 archive | trade ticks | 2026-07-05 → 07-17 | 12 |
+| parquet lake | trade ticks | 2026-07-24 → 08-13 | 15 |
+| hot capture | trade ticks | 2026-08-14 | 1 |
+| parquet lake | L2 book (L1–3) | 2026-07-31 → 08-14 | 11 |
+
+- **26 days carry trade ticks** in the 12:30–16:00Z window (17,046,818 ticks cached) → the tick-honest
+  primary backtest.
+- **15 further days carry bars but no ticks** → held back untouched as the out-of-sample leg.
+- **Real hole 07-18 → 07-23** for ticks (the V5→V7 seam). Bars bridge it, ticks do not.
+- ⚠ **A gap I found and am flagging:** Sunday-evening sessions (07-19, 07-26, 08-02, 08-09) exist in
+  `capture.db` but have **no day-file in the parquet lake**, and `connect()` only pulls hot rows for
+  days *after* the lake's last, so those Sunday reopens are missing from any lake query. It does not
+  touch this section (13:00–15:00Z never occurs on a Sunday evening) but it will silently shrink an
+  overnight study, and someone should look at `tape_mirror.py`.
+
+**Costs, asserted in code so they cannot drift:** `VPP = 2.0`, `FEE = 1.50` per round trip, with
+`assert (VPP, FEE) == (2.0, 1.50)` at import of `gf_on_engine.py`. Entry and exit each take **1 tick
+(0.25pt) of adverse slippage** on top. A stop-and-reverse pays **two** full round-trip fees.
+
+**The simulator.** Signals come off 5s or 1-min bars; execution walks **real trade ticks**. Because a
+tick is a single price there is never a "did the stop or the target fill first" fudge. I wrote it
+twice — a plain loop and a vectorised twin — and cross-checked them on **650 randomised simulations
+across all 26 tick days: 0 mismatches** (`scripts/gf_on_verify.py`). That check found a real
+off-by-one: the loop was closing time-stopped trades on the first tick *past* the time stop. Fixed.
+
+---
+
+## 4. THE FIVE INVENTED GATES — LEVEL 1, FULL SAT-OUT SET
+
+Five entries, none ported from a live gate, each built around one claim about why 13:00–15:00Z is
+different.
+
+| gate | the claim |
 |---|---|
-| cells positive on DEV | **181 / 192** |
-| cells positive on HOLDOUT | **179 / 192** |
-| mean HOLDOUT across all 192 cells | **+$582** (median +$609) |
-| mean HOLDOUT of the DEV-top-10 | +$853 |
-| mean HOLDOUT of the DEV-bottom-10 | +$645 |
+| **ORX** | The 13:00–13:30 range is the day's first real auction. The first 5s close beyond it is the ignition. |
+| **VPOP** | The move starts on one bar. Fire on the 1-min bar whose true range clears 2×ATR and closes on its own extreme — aimed straight at the detection-latency problem. |
+| **SQZGO** | ORX, but only on days whose 12:30–13:30 pre-open range is compressed. Fewer, cleaner. |
+| **FBURST** | 60s net-aggressor flow z ≥ 2 with price agreeing. A tape-order signal, not a price one. |
+| **VWRC** | Session VWAP from 13:00; price crosses it and holds 60s with 30-min ER above a floor. |
 
-The gap between picking the DEV-best and picking the DEV-worst is **$208** — i.e. **the selection tax
-is almost nil, because the whole surface works.** That is the opposite of the VACUUM result, where
-the walk-forward policy cost −$1,267 against the blanket best.
+Each got an 80-cell exit grid (4 stop distances × 10 exit shapes × 2 time stops), and the config was
+picked by its **neighbourhood** $/trade, never by the single best cell. Then the full battery.
 
-### TEST 3 — strip the best trades: **PASSED to strip-5, fails at strip-10**
+### 4.1 The scoreboard
 
-| | net | n |
+| gate | signals | chosen config | n | net $ | win% | $/trade | big-moves-caught |
+|---|---:|---|---:|---:|---:|---:|---:|
+| ORX | 26 | stop1.0 · trail1.5/1 · flat 15:00 | 26 | **+343** | 34.6% | +13.17 | 2/16 |
+| VPOP | 71 | stop1.0 · no target · flat 15:00 | 71 | **+3,123** | 16.9% | +43.98 | 2/16 |
+| SQZGO | 9 | stop0.5 · no target · flat 16:00 | 9 | **+466** | 22.2% | +51.72 | 2/16 |
+| FBURST | 78 | stop2.0 · 3R target · flat 15:00 | 78 | **+540** | 26.9% | +6.92 | 3/16 |
+| VWRC | 38 | stop2.0 · no target · flat 16:00 | 38 | **+3,199** | 26.3% | +84.19 | 1/16 |
+
+### 4.2 The battery, and who died of what
+
+| test | ORX | VPOP | SQZGO | FBURST | VWRC |
+|---|---:|---:|---:|---:|---:|
+| grid cells negative | **56/80** | 24/80 | **61/80** | **60/80** | 8/80 |
+| best cell's neighbourhood min $/tr | **−16.32** | +31.13 | +21.19 | +2.27 | +52.70 |
+| strip-best-1 | −708 | +2,429 | −286 | +78 | +2,254 |
+| **strip-best-3** | **−1,599** | +1,155 | **−510** | **−608** | +734 |
+| strip-best-5 | −2,136 | +66 | −393 | −1,128 | **−523** |
+| leave-one-day-out, days negative | **3/26** | 0/25 | **1/9** | 0/26 | 0/20 |
+| halves (1st / 2nd) | +596 / **−254** | +521 / +2,602 | **−371** / +837 | **−366** / +906 | +1,706 / +1,493 |
+| day-shuffle placebo, median | −454 | +460 | +112 | +148 | +1,406 |
+| — % of shuffles beating the real signal | 25.0% | 0.0% | 16.7% | **41.7%** | 8.3% |
+| coin-flip on the same clock, median | −66 | +954 | +214 | +380 | +1,459 |
+| — % of flips beating the real signal | **26.7%** | 3.3% | **40.0%** | **43.3%** | 6.7% |
+| forced all-LONG | −230 | +361 | +815 | −578 | +1,042 |
+| forced all-SHORT | +347 | +1,826 | −387 | +1,203 | +1,689 |
+
+### 4.3 Cause of death, one line each
+
+**ORX — REFUTED by the parameter-plateau test.** Its headline number is a single-cell spike. The best
+cell (`stop1.0 · trail1/1 · flat 16:00`, +$1,132) has a neighbourhood whose worst member is
+**−$16.32/trade**, and 56 of 80 cells in the grid are negative. On top of that it goes to **−$1,599 on
+strip-the-3-best**, loses money in the second half, and a quarter of coin flips beat it. There is
+nothing here: the opening-range break, on this tape, is noise with a good story attached.
+
+**SQZGO — PARKED on sample size.** n = 9. It is the only gate whose *shape* I still half-believe —
+compressed pre-open then break is a real pattern in the literature and its chosen cell's neighbourhood
+holds up (+$21.19/trade worst neighbour). But 40% of coin flips beat it, its first half is −$371, and
+nine trades cannot carry a verdict either way. **Revive when n ≥ 40** — that is roughly a full quarter
+of tape at the current compression threshold, or sooner if the threshold is loosened from the 33rd
+percentile to the median (which would roughly double the fire rate; worth a run next week).
+
+**FBURST — REFUTED by the placebo.** **41.7% of day-shuffles and 43.3% of coin flips beat it.** That is
+the definition of no signal: shuffle the days, flip the direction, and you do just as well. It also
+posts 60/80 negative grid cells, −$608 on strip-3, and a −$366 first half. Note the forced-direction
+row — all-SHORT makes +$1,203 while the real signal makes +$540, so the flow-agreement rule is actively
+*worse* than ignoring flow and always shorting. Net aggressor flow, standardised or not, does not
+predict the next fifteen minutes here.
+
+**VWRC — REFUTED by strip-the-best.** This one hurt, because it looked the best of the five on the
+headline (+$3,199, +$84/trade, 8/80 negative cells, both halves green, zero negative LOO days). But
+**strip the 5 best trades and it is −$523** — five trades out of 38 carry more than the entire net. And
+its exit breakdown is the tell: **28 stop-outs for −$1,885 (0% win), 10 clock-exits for +$5,084 (100%
+win)**. Combined with a coin-flip median of +$1,459 — 46% of its money available to a coin toss on the
+same clock — there is not enough of a signal left underneath. **REFUTED as an outright directional
+gate**; its underlying mechanism reappears, properly handled, in §6.
+
+**VPOP — SURVIVES level 1, and goes forward.** 0% of day-shuffles beat it, 3.3% of coin flips, zero
+negative LOO days, second half stronger than first, and — critically — it has a **genuine plateau**:
+`time-only` wins at every stop distance from 0.75 to 2.0×ATR ($2,210 / $3,123 / $3,137 / $2,203) and
+`tgt4R` is next. Tight targets (1.5R, 2R) sit at zero. **The shape is unambiguous: the money is
+entirely in the tail, and capping it kills the gate.** That is exactly what a run-catching gate should
+look like, and it is why VPOP earned a second round rather than a headstone.
+
+---
+
+## 5. ⚠ THE BUG I SHIPPED INTO MY OWN FIRST PASS
+
+I am putting this in the body, not a footnote, because it changed a conclusion.
+
+My first run of the five gates produced **ORX +$582 over 11 trades in the building regime, +$52.91 a
+trade** — a clean, plausible, regime-specific edge. It was fake. Three separate look-aheads:
+
+1. **5s bars are START-labelled.** A bar stamped 13:35:00 covers 13:35:00–13:35:05, so its *close* is
+   not knowable until 13:35:05. I was entering at the first tick after 13:35:00 — a five-second peek,
+   and on an ignition bar five seconds is precisely where the money is.
+2. **ATR and ER read from the live minute.** The minute bar starting at 13:35:00 does not close until
+   13:36:00, so its ATR cannot size a stop at 13:35:05. I was reading it anyway.
+3. (found by the twin-simulator check) the **time-stop off-by-one** described in §3.
+
+| | ORX blanket | ORX "building" regime | VWRC blanket |
+|---|---:|---:|---:|
+| with the look-ahead | −$244 | **+$582 (+$52.91/tr)** | +$712 |
+| after the fix | +$34 | **−$112 (−$28.06/tr)** | +$326 |
+
+**A five-second peek was worth roughly $700 across the candidate set and manufactured an entire
+regime-specific edge that does not exist.** Every number elsewhere in this section is post-fix. If you
+want one operational takeaway from this page it is this: *any* backtest on this desk that reads a bar's
+close, ATR or ER at the bar's own start timestamp is producing fiction, and it will look like a good
+gate rather than like a bug.
+
+---
+
+## 6. LEVEL 2 — REFINING THE SURVIVOR, AND WHAT THE NULLS FORCED
+
+### 6.1 POPGO — VPOP with the padding removed
+
+VPOP's own time-of-day split told me half of it was dead weight:
+
+| slot | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| 13:00–13:30 (pre-open) | 34 | +249 | 5.9% | **+7.31** |
+| 13:30–14:00 (open drive) | 37 | +2,874 | 27.0% | **+77.68** |
+
+And the shift-placebo confirmed it from the other side: the −30min shift "beat" the real signal
+(+$3,587 on 37 trades) **only because shifting 30 minutes earlier pushes the pre-open half out of the
+window entirely and keeps the good half.** That is not a placebo win, it is a filter I had not written
+down yet. So **POPGO = VPOP, restricted to 13:30–15:00Z.**
+
+**POPGO spec** — trigger: a 1-min bar at or after 13:30Z whose true range ≥ 2.0 × ATR14(1-min) and
+whose close sits in the extreme 70% of its own range · direction: that bar's direction · entry: first
+trade tick after the bar closes, +1 tick adverse · stop: 1.0 × ATR14 · exit: no target, flat 15:00Z ·
+max 3 a day.
+
+**POPGO: n = 54 · net +$2,103 · win 20.4% · +$38.94/trade.**
+
+Entry-parameter grid (45 cells, k × close-fraction × trades-per-day, exit held fixed): **7 negative,
+median +$20.93/trade** — a real plateau, not a spike.
+
+But the battery is unkind:
+
+| test | result |
+|---|---:|
+| coin flip on the same clock, median | **+$1,206 — and 22% of 200 flips beat the real signal** |
+| forced all-LONG / all-SHORT | +$813 / +$1,419 — **both sides positive** |
+| strip-best-3 | **+$245** (from +$2,103) |
+| strip-best-5 | **−$756** |
+| halves | +$43 / +$2,059 |
+| LOO | 0/24 days negative, worst +$1,466 |
+| exits | 42 stops −$2,117 (0% win) · 12 clock-exits +$4,220 (92% win) |
+
+### 6.2 The thing the nulls were actually telling me
+
+**Both directions profitable from the same entries is impossible for a directional edge.** If you enter
+long and short at the same tick with the same exit, the two P&Ls cancel to minus costs. Getting
++$813 *and* +$1,419 means the money is not in the direction call — it is in the **shape**: a tight stop
+truncates the loser while the winner runs unbounded to the clock. That is a straddle. It pays when the
+tape makes a big directional move either way, and loses when it round-trips ±1 ATR.
+
+And the random-clock null nails it down: **random times in the same window, random direction, same
+rules → median −$170, and only 3% beat the real signal.** So the *moment* POPGO picks is worth real
+money and the *side* it picks is close to worthless. POPGO detects a volatility expansion, not a
+direction.
+
+We cannot buy a straddle — this desk trades outright MNQ futures. **The one-instrument equivalent of a
+straddle is stop-and-reverse.** So I built it.
+
+### 6.3 POPSAR — the candidate the null battery asked for
+
+**POPSAR spec** — trigger, direction, entry and stop identical to POPGO · **on the stop, flip: enter the
+opposite side at the stop price, same 1.0 × ATR stop, at most one reversal** · flat 15:00Z · **$1.50
+round trip PER LEG** — a reversed trade pays $3.00 in total, charged honestly.
+
+| | n | fee-paying legs | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|---:|
+| **POPSAR** | **54** | **96** | **+5,706** | **40.7%** | **+105.66** |
+| POPGO (same signals, no reverse) | 54 | 54 | +2,103 | 20.4% | +38.94 |
+
+The reversal is where the improvement is, and it is not subtle:
+
+| leg count | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| 1 leg — never stopped, rode the clock | 12 | +4,220 | 92% | +351.62 |
+| 2 legs — stopped, reversed | 42 | +1,486 | 26% | +35.39 |
+
+Those same 42 trades were **−$2,117** for POPGO. Turning round after the stop is worth **+$3,603**, net
+of the extra 42 round-trip fees. In plain English: *when a 2×ATR pop fails and gives back a full ATR,
+it usually keeps going the other way — and this desk currently has nothing that trades that.*
+
+### 6.4 The full grid — 20 cells, every one positive
+
+| | rev 0 | rev 1 | rev 2 | rev 3 |
+|---|---:|---:|---:|---:|
+| **stop 0.50×ATR** | +719 | +1,613 | +1,631 | +1,421 |
+| **stop 0.75×ATR** | +1,541 | +2,912 | +3,742 | +3,504 |
+| **stop 1.00×ATR** | +2,103 | **+5,706** | +6,729 | +6,231 |
+| **stop 1.50×ATR** | +2,171 | +5,568 | +6,496 | +6,448 |
+| **stop 2.00×ATR** | +1,290 | +4,364 | +4,982 | +4,087 |
+
+**Zero negative cells, and the surface is smooth in both directions** — it climbs to a broad ridge
+around stop 1.0–1.5 × ATR with 1–3 reversals and falls away gently at the edges. That is a plateau, not
+a fit. I deliberately report the **1-reversal** column as the headline rather than the better
+2-reversal one, because one flip is the simplest structure that expresses the idea and I would rather
+under-claim.
+
+### 6.5 The battery on POPSAR
+
+| test | result | read |
+|---|---:|---|
+| **random-clock placebo** (same structure, random times in 13:30–15:00Z, 200 draws) | median **−$376**, p90 +$1,128, p95 +$1,607 · **0/200 beat +$5,706** | passes hard |
+| **direction coin flip** (200 draws on the starting side) | median **+$2,973**, p90 +$4,066 · **0/200 beat it** | passes hard |
+| start on the **wrong** side | **+$251** | direction is worth ~$2,733 |
+| strip-best-1 / 3 / 5 / 8 | +4,937 / **+3,506** / +2,205 / +441 | passes strip-3 comfortably |
+| strip best **day** / 2 days / 3 days | +4,248 / +3,010 / **+1,964** | not carried by one session |
+| leave-one-day-out | **0/24 days negative**, worst +$4,248 | passes |
+| halves (1st 12 days / last 12) | +$1,008 / +$4,698 | both green |
+| positive days | 13/24 | |
+| long / short | LONG 23 tr +$1,694 (+$73.66) · SHORT 31 tr +$4,012 (+$129.41) | **both sides pay** |
+| cost stress 2× / 4× slippage | +$6,229 / +$5,274 | not fragile |
+| shift placebo, $/trade | −20m +48 · −10m +18 · −5m +25 · **real +106** · +5m +72 · +10m +3 · +20m +2 · +30m −24 | real is the peak |
+
+**On the direction question I need to correct my own §6.2 reading.** The coin-flip test on POPGO's
+outright form was inconclusive (22% of flips beat it) and I took that to mean the side did not matter.
+On the SAR form the same test is decisive: **the pop's own direction is worth +$2,733 and not one of 200
+coin flips beat it.** The reason is variance, not contradiction — the outright form's wrong-direction
+branch is a catastrophic loss that swamps the measurement, while the SAR structure caps that branch and
+lets the directional information show through. The moment *and* the side both carry information; the
+outright form just could not measure the side.
+
+Two honest scratches. The **+5min shift keeps 68% of the edge**, so the exact trigger minute is not
+sacred — this is a signal about a *moment in the session*, not a precise price level. And **2× slippage
+scores higher than 1×**, which is path noise at n=54 rather than a free lunch; it tells me the result is
+not slippage-sensitive, and it tells me not to read the third significant figure of anything here.
+
+### 6.6 POPFADE — the reversal leg on its own
+
+If the reversal carries +$3,603, does it stand alone as a cheaper gate — one fee, not two? Wait for the
+pop, wait for it to fail by 1 ATR, then take the other side only.
+
+**POPFADE: n = 42 · net +$3,615 · win 28.6% · +$86.08/trade · 0/20 grid cells negative · random-clock
+placebo 0/200 beat it · LOO 0/22 negative.**
+
+Genuinely good — and it dies anyway:
+
+| test | result |
+|---|---:|
+| strip-best-1 | +$2,795 |
+| strip-best-3 | +$1,248 |
+| **strip-best-5** | **−$29** |
+| exits | 30 stops −$1,456 (0% win) · 12 clock-exits +$5,072 (100% win) |
+
+**PARKED, killed by strip-the-best-5.** Five trades out of 42 are the entire strategy. It is not
+refuted — the mechanism is the same one that makes POPSAR work, and POPSAR spreads its money far better
+(strip-5 still +$2,205) because the ride-the-clock leg and the fade leg pay on *different* days.
+**Revive if n ≥ 100, or if a second instrument (MGC) shows the same fade shape** — two uncorrelated
+sources of the same edge would fix the concentration that killed it here.
+
+---
+
+## 7. THE ESCALATION — AND THE SIZE THRESHOLD, WHICH IS THE REAL DELIVERABLE
+
+The brief said: if the full set fails, narrow to the biggest runs, because a stronger footprint may
+separate there — and report the size at which a footprint becomes tradeable.
+
+I did that as a **measurement** rather than as five more backtests, which I think is the more honest
+form of the question. ⚠ Note the detector here is *not* the one in §1.2: this one runs on 1-minute
+bars over the whole lake including the v5 tier (2026-06-19 →), and sets its bar at 1.5× the median
+in-window run, which lands at **130pt** rather than §1.2's 69pt. Different span, different grid,
+deliberately stricter — so the two run counts (320 all-day / 78 in-window) are not subsets of each
+other and should not be compared directly.
+
+For every in-window run on the full lake (78 at that 130pt threshold) and for
+**2,847 matched in-window NON-run windows**, I measured what the 10 minutes *before* looked like, then
+asked how well each feature separates the two — and whether that separation sharpens as the size bar
+rises. AUC 0.50 means the 10 minutes before a run look exactly like any other 10 minutes.
+
+| level | n runs | min move | pre-run **volume** | pre-run **ER** | pre-run **abs drift** | 1-min TR mean | 1-min TR max | 10-min range |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| ALL runs | 78 | 131pt | **0.703** | 0.560 | 0.508 | 0.600 | 0.536 | 0.519 |
+| top 25 | 25 | 205pt | **0.769** | 0.603 | 0.682 | 0.734 | 0.568 | 0.617 |
+| top 15 | 15 | 235pt | **0.848** | 0.675 | 0.668 | 0.713 | 0.490 | 0.535 |
+| top 8 | 8 | 265pt | **0.883** | 0.721 | 0.779 | 0.741 | 0.522 | 0.709 |
+
+**This is the finding the escalation was supposed to produce, and it did produce it:**
+
+1. **There IS a pre-run footprint, and it is VOLUME.** Traded volume in the 10 minutes before a run
+   separates it from ordinary tape at AUC 0.70 across all runs, rising **monotonically to 0.88 on the
+   top 8**. Efficiency ratio does the same, more weakly (0.56 → 0.72).
+2. **It is NOT price.** Pre-run 1-min true range sits at 0.49–0.57 at every size level — it knows
+   nothing. Neither does the 10-minute price range until you get to the very top (0.71 on the top 8,
+   n = 8, which I would not lean on).
+3. **The size threshold at which the footprint becomes properly readable is ≈ 235 points** (AUC ≥ 0.85,
+   the top-15 bar). Below that it is a 0.70–0.77 hint. The lake produced **15 such runs in 30 trading
+   days** — but this week produced exactly **one** (the 08-13 +236pt). In a dead-vol week the tradeable
+   tier is essentially empty.
+4. **And here is the uncomfortable part: my survivor triggers on the wrong column.** POPGO/POPSAR fire
+   on a price-range pop — the flat 0.50 line. That is precisely why POPSAR earns well and catches
+   almost none of the runs I was sent to find.
+
+### 7.1 So I built the gate the footprint asked for — VSURGE — and it failed
+
+**VSURGE spec** — at or after 13:00Z, the last 10 minutes' volume ≥ v × the per-minute mean of the
+previous 60 minutes, and 30-min ER ≥ er_min · direction = the sign of the last 10 minutes' drift ·
+stop 1.0 × ATR · flat 15:00Z · 10-minute cooldown.
+
+| cfg | n | outright net | $/tr | SAR net | $/tr | big-moves-caught |
+|---|---:|---:|---:|---:|---:|---:|
+| v1.4 er0.0 | 78 | +2,073 | +26.57 | +1,384 | +17.74 | 2/16 |
+| v1.4 er0.2 | 73 | +227 | +3.11 | **−1,167** | −15.98 | 3/16 |
+| v1.4 er0.3 | 61 | −335 | −5.49 | +546 | +8.96 | 3/16 |
+| v1.6 er0.0 | 78 | +4 | +0.05 | **−2,909** | −37.29 | 4/16 |
+| v1.6 er0.2 | 70 | −434 | −6.20 | **−2,339** | −33.41 | 3/16 |
+| v1.6 er0.3 | 54 | −385 | −7.13 | +523 | +9.68 | 3/16 |
+| v1.8 er0.0 | 78 | +606 | +7.77 | +504 | +6.46 | 4/16 |
+| v1.8 er0.2 | 69 | +1,307 | +18.94 | +1,597 | +23.15 | 3/16 |
+| v1.8 er0.3 | 52 | +112 | +2.16 | +2,415 | +46.45 | 3/16 |
+| v2.2 er0.0 | 77 | +2,207 | +28.67 | +839 | +10.90 | 4/16 |
+| v2.2 er0.2 | 59 | +977 | +16.55 | **−458** | −7.76 | 3/16 |
+| v2.2 er0.3 | 44 | −170 | −3.87 | +1,257 | +28.56 | 3/16 |
+| v2.6 er0.0 | 74 | +1,772 | +23.95 | +2,260 | +30.54 | 4/16 |
+| v2.6 er0.2 | 57 | +1,423 | +24.97 | +2,001 | +35.11 | 3/16 |
+| v2.6 er0.3 | 41 | +407 | +9.93 | +2,124 | +51.80 | 3/16 |
+
+**VSURGE — REFUTED by the parameter-plateau test.** Look at the SAR column going down: +1,384, −1,167,
++546, −2,909, −2,339, +523, +504, +1,597, +2,415, +839, −458, +1,257… **the sign flips between adjacent
+cells.** There is no ridge anywhere in this surface. Confirmed by strip-the-best — the best cell I would
+have picked (`v1.8 er0.2`) goes **+$1,307 → −$441 on strip-3** outright and +$1,597 → −$469 on the SAR
+form — and by the coin flip, which 18.5% of the time beats it.
+
+**Why the detector does not become a trade.** The volume surge tells you *that* a move is coming with
+AUC 0.70–0.88. It does not tell you *which way* (the drift-sign direction rule adds nothing — 18.5% of
+coin flips beat it) and it does not tell you *when* (by the time 10 minutes of volume have accumulated,
+the run is frequently under way). This is the same wall the desk already hit on run-start prediction
+over 22.6M ticks, arrived at from a completely different direction. **The footprint is real and the
+trade is not — that is the honest state of the OPEN/NEWS hunt.**
+
+### 7.2 The 16 sat-out runs, one at a time
+
+The mission's actual scoreboard. For each census run I checked whether POPSAR fired within
+[start − 5min, start + 15min] and, when it did not, which clause refused it.
+
+| run (UTC) | move | fired | net $ | why |
+|---|---:|:--:|---:|---|
+| 08-10 13:20 | −74 | yes | −68 | fired, but the first leg took the wrong side |
+| 08-10 13:56 | +109 | no | 0 | no trigger — no 1-min bar cleared 2×ATR closing on its extreme |
+| 08-10 14:25 | +46 | no | 0 | trigger existed; the 3-a-day cap was already spent |
+| 08-10 14:45 | −90 | no | 0 | no trigger |
+| 08-11 13:24 | −137 | yes | −60 | fired, correct side, stopped and the reversal stopped too |
+| 08-11 13:51 | +124 | no | 0 | no trigger |
+| 08-11 14:16 | −49 | no | 0 | no trigger |
+| 08-11 14:40 | +55 | no | 0 | no trigger |
+| 08-11 14:55 | −89 | no | 0 | no trigger |
+| 08-12 13:08 | +52 | no | 0 | **refused — starts before 13:30Z** |
+| **08-13 13:32** | **+236** | **yes** | **+1,005** | fired; first leg wrong side, the reversal caught the run |
+| 08-13 14:20 | +75 | no | 0 | no trigger |
+| 08-13 14:41 | −45 | no | 0 | no trigger |
+| 08-14 13:22 | −80 | no | 0 | **refused — starts before 13:30Z** |
+| 08-14 14:13 | −98 | no | 0 | no trigger |
+| 08-14 14:48 | −48 | no | 0 | no trigger |
+
+**Big-moves-caught: 2/16 on the strict measure (fired AND on the run's side), 3/16 if you count any
+fire. +$877 total.**
+
+The dominant refusal is **"no trigger" — 11 of 16.** These runs simply did not open with a 2×ATR
+one-minute bar closing on its extreme; they ground out over fifteen minutes without a single ignition
+bar. That is a real property of a dead-vol week, and it is the same thing the AUC table says: on
+sub-235pt runs there is no footprint big enough to trip a mechanical trigger.
+
+Two more were refused by the 13:30 window start, and one by the trades-per-day cap. Lifting the cap:
+
+| max trades/day | n | net $ | $/trade | big-moves-caught |
+|---:|---:|---:|---:|---:|
+| 3 | 54 | +5,706 | +105.66 | 2/16 |
+| 5 | 59 | +6,293 | +106.66 | 3/16 |
+| 8 | 59 | +6,293 | +106.66 | 3/16 |
+| unlimited | 59 | +6,293 | +106.66 | 3/16 |
+
+The cap is not binding in practice — the trigger is rare enough that raising it from 3 to 5 adds five
+trades and one caught run, at no cost to $/trade. **I would ship max_trades = 5**, but I am reporting
+the 3 numbers as the headline because that is what the battery was run on.
+
+The one it caught is the big one, and it caught it the interesting way. On **08-13** POPSAR fired three
+times inside the +236pt run's window, for **+$1,005 between them**:
+
+| trigger | first leg | outcome | net $ |
+|---|---|---|---:|
+| 13:32 | **SHORT** — the wrong side of a +236pt up-move | stopped, **reversed to LONG**, rode the clock | **+595** |
+| 13:35 | LONG | never stopped, rode the clock | +506 |
+| 13:37 | LONG | stopped, reversed, reversal stopped too | −96 |
+
+So the structure did exactly what it was built to do: the first read was **wrong**, the stop paid for
+being wrong, and the flip caught the run anyway. That single sequence is the clearest argument on this
+page for the reversal leg.
+
+### 7.3 The escalation levels, stated plainly
+
+| level | what I hunted | outcome |
 |---|---|---|
-| full | +$4,169 | 129 |
-| strip best 1 | +$3,701 | 128 |
-| **strip best 3** | **+$2,931** | 126 |
-| strip best 5 | +$2,188 | 124 |
-| strip best 10 | +$468 | 119 |
-| (strip *worst* 3) | +$4,779 | 126 |
+| **Full sat-out set (16 runs)** | ORX, VPOP, SQZGO, FBURST, VWRC | 4 dead, 1 (VPOP) forward |
+| **Refinement** | POPGO → POPSAR, POPFADE | POPSAR survives, POPFADE parked |
+| **Top-25 / top-15 / top-8 by size** | the pre-run footprint measurement | **footprint found, and it sharpens monotonically** — volume AUC 0.703 → 0.769 → 0.848 → 0.883 |
+| **Footprint → gate** | VSURGE | refuted on plateau + strip-3 |
 
-70% of the net survives removing the three best trades; 11% survives removing ten. **Ten trades out
-of 129 carry 89% of the money.** That is concentration, and it is honest to call it a weakness — but
-it is also the arithmetic of a 2R system with a 48% hit rate, where winners are 2× losers and the
-tail is where trend lives. The plateau's strip-3 column (above) shows this is not one lucky cell.
+**The size-threshold answer, which is what the brief actually asked for: a footprint becomes readable
+at roughly 235 points of 15-minute move (AUC ≥ 0.85), and it is a VOLUME footprint. Below ~130 points
+there is nothing to read at all. But readable is not tradeable — at 235pt+ the lake holds 15 events in
+30 days, and the one gate I could build on the footprint fell over on plateau and concentration.**
 
-### TEST 4 — leave-one-day-out and both halves: **PASSED / MIXED**
+---
 
-Leave-one-day-out is **positive on all 17 drops**, from **+$3,282** (dropping 07-30, the best day) to
-+$4,726. **12 of 17 days green.** Both halves are positive but wildly uneven: first half
-**+$323 on 51 trades**, second half **+$3,846 on 78 trades**. The first eight sessions were a
-grind — that is a real warning about how long a flat stretch can run.
+## 8. THE ROUTER — AND WHY I AM NOT PROPOSING ONE
 
-### TEST 5 — long/short symmetry: **PASSED**
+The scope is explicit that the router is part of the deliverable, so I swept the arm condition for
+POPSAR in the live router's own vocabulary. The result is not what I expected.
 
-**Long +$1,475 (58 trades, 46.6%) · Short +$2,695 (71 trades, 49.3%).** Both sides positive over the
-17 days, on a tape whose in-window drift was −4.58 pt (mildly short-favouring, which explains the
-tilt). Per-period the sides split with the period's drift (DEV: L +$896 / S +$2,552 on a down-biased
-stretch; HOLDOUT: L +$579 / S +$143 on an up-biased week) — the union is what makes it symmetric,
-and that is exactly the point of using both.
+### 8.1 One condition at a time
 
-### TEST 6 — placebo null and the direction controls: **PASSED, decisively**
+| arm condition | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| **(none — the clock alone)** | **54** | **+5,706** | 41% | **+105.66** |
+| ER ≥ 0.15 | 40 | +4,815 | 45% | +120.38 |
+| ER ≥ 0.20 | 33 | +3,464 | 42% | +104.96 |
+| ER ≥ 0.25 | 28 | +3,769 | 46% | +134.62 |
+| ER ≥ 0.30 | 21 | +3,272 | 48% | +155.80 |
+| ER ≥ 0.40 | 9 | +2,105 | 56% | +233.94 |
+| ATR ≥ 15pt | 51 | +4,984 | 39% | +97.73 |
+| ATR ≥ 20pt | 42 | +5,086 | 45% | +121.10 |
+| ATR ≥ 25pt | 21 | +3,046 | 52% | +145.04 |
+| ATR ≥ 30pt | 12 | +1,946 | 58% | +162.18 |
 
-Same 129 entry bars, same stop and target geometry, **direction chosen at random**, 400 draws:
+### 8.2 Two conditions
 
-| | net |
-|---|---|
-| placebo mean | **+$7** (sd $1,850) |
-| **the strategy** | **+$4,169** → **z = +2.25, one-sided p = 0.018** |
-| the strategy REVERSED (fade instead of ride) | **−$4,975** (−0.353R) |
-| always LONG at the same bars | −$1,981 (−0.122R) |
-| always SHORT at the same bars | +$527 (+0.000R) |
-| alternating direction every 10 min (null) | −$1,269 (−0.113R) |
+| arm condition | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| ER ≥ 0.20 & ATR ≥ 15 | 31 | +3,337 | 42% | +107.65 |
+| ER ≥ 0.20 & ATR ≥ 20 | 26 | +3,709 | 50% | +142.64 |
+| ER ≥ 0.25 & ATR ≥ 15 | 26 | +3,643 | 46% | +140.12 |
+| ER ≥ 0.25 & ATR ≥ 20 | 22 | +3,946 | 54% | +179.38 |
 
-The placebo lands on zero, which validates the cost model — random direction with a 2R target and a
-$5 cost is a fair coin. **Ride and reverse are $9,144 apart on the same 129 bars**, and neither
-constant-direction control explains it. The direction rule is doing the work.
+### 8.3 Every one of these is a fake win
 
-### TEST 7 — **the day-drift test: FAILED. This is the wound.**
+The $/trade column climbs and the win% climbs, and it is an illusion — **every filter reduces total
+net, because the trades it benches were making money.** Take the most plausible one,
+`ER ≥ 0.20 & ATR ≥ 15pt`:
 
-Here is the test I could not get it past, and it is the same one that decides the VACUUM report.
+| | n | net $ | $/trade |
+|---|---:|---:|---:|
+| armed (home) | 31 | +3,337 | +107.65 |
+| **benched** | **23** | **+2,368** | **+102.96** |
 
-Subtract, from every forward return, the **mean forward return of that same day's window**. What is
-left is pure *timing skill within the day* — did you pick better moments than a blindfolded constant
-position on that day would have?
+The bench refuses 23 trades that between them made **+$2,368 at +$102.96 a trade** — statistically
+indistinguishable from the ones it keeps. This is precisely the 15/17-winners trap the scope warns
+about: a filter that "wins" by dropping the target winners is a fake win, and I am rejecting it and
+saying so.
 
-| momentum entries, `|mom15| ≥ 30 pt`, n = 1,314 | RAW forward | **DAY-DEMEANED** | t |
-|---|---|---|---|
-| 15 min ahead | +11.08 pt (57.5%) | **−0.70 pt** (51.4%) | −0.30 |
-| 30 min ahead | +8.54 pt (53.9%) | **−14.39 pt** (47.5%) | −4.61 |
-| 45 min ahead | +13.95 pt (55.2%) | **−18.94 pt** (45.6%) | **−5.35** |
-| 60 min ahead | +11.13 pt (52.9%) | **−28.95 pt** (40.0%) | −7.82 |
+Nor is the pattern monotone — ER ≥ 0.15 gives +$120/trade, ER ≥ 0.20 gives +$105, ER ≥ 0.25 gives
++$135. That wobble at n = 28–40 is noise, not a threshold.
 
-**Every raw number is positive; every demeaned number is negative, on both sides, and it gets worse
-the longer you hold.** In plain English: the entries have *no* skill at picking moments. All of the
-raw positive is that the momentum rule ends up on the side the whole two-hour window went. Two
-corroborations:
+**So the router rule I am proposing is: there isn't one beyond the clock.**
 
-- Correlation between **|the day's 13:00–15:00 net move|** and **that day's strategy P&L: +0.597.**
-  Days where the window moved ≥120 pt net: **+$209 a day** (13 days). Days where it moved less:
-  **−$119 a day** (4 days).
-- A duty-matched control that replaces the 15-minute momentum with the crudest imaginable rule —
-  *"is price above where it was at 13:00?"* — scores **+$2,627 on 97 trades** against the momentum
-  version's **+$2,576 on 101**. **Identical.** The fifteen-minute lookback is not the signal. "Which
-  way has today gone" is the signal.
+> **ROUTER SPEC (POPSAR):**
+> **ARM** — every session, 13:30:00Z to 15:00:00Z. Nothing else.
+> **BENCH** — outside that window. Flat everything at 15:00:00Z regardless of state.
+> **Explicitly NOT gated on** ER, ATR, structure-break or the untradeable meter: all four were swept,
+> all four bench profitable trades, none is monotone.
 
-**So what is the OPEN RIDER, honestly?** It is a **mechanically unbiased way to be long the
-directionality of the US-open window**, harvested through a 2R payoff with a wide stop. That is a
-real thing to own — the open *is* the most directional two hours of the session (39% big-run rate
-against 7% elsewhere) — but it is not a timing edge, and its P&L will track how trendy the open is,
-week to week, with nothing in the signal to warn you when that stops.
+That is an unusual answer for this desk, and I want to be plain about what it costs: **a gate with no
+regime condition has no defence when the regime turns against it.** The mitigation here is structural
+rather than routed — the stop-and-reverse *is* the regime adaptation, because it flips side when the
+first read is wrong. Over 24 days that produced 13 green days and zero negative leave-one-day-out. Over
+a genuinely hostile stretch it is untested, and that is the main reason this goes to SHADOW rather than
+LIVE.
 
-One thing does survive demeaning: forcing an **equal number of longs and shorts within each day**
-(which removes day direction by construction) still leaves **+$1,418 on 72 trades, +$19.69 a trade**
-— 55% of the money. So it is not *purely* a direction bet; the 2R-with-a-wide-stop payoff shape is
-harvesting the genuine right-skew of open-window moves (median MFE 3.69 ATR vs median MAE 2.55 ATR).
-But the majority of the headline is day direction.
+**The instrument I would want but do not have:** a *forward-looking* participation measure — the
+footprint work says pre-run VOLUME carries the information (AUC up to 0.88), but the desk's router
+reads ER, ATR and structure-break, none of which is a volume measure. **A rolling volume-vs-baseline z,
+computed on the same 1-minute grid the router already uses, is the missing instrument.** It would not
+have saved VSURGE as an entry, but it is the only candidate arm-condition on this page with measured
+separation behind it, and it is cheap to build.
 
-### TEST 8 — tick-honest re-price: **PASSED on mechanics, FAILED on size**
+### 8.4 The regime split, reported because the discipline requires it
 
-On the only 5 days with tick and quote data, every trade was re-priced properly: **entry at the live
-quote you would actually pay** (ask if long, bid if short — you cross the spread), and stop/target
-checked against **every trade print in sequence** rather than against 5s bar extremes.
+| regime | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| building (ER 0.25–0.45) | 23 | +2,763 | 48% | +120.13 |
+| clean-trend (ER ≥ 0.45) | 5 | +1,006 | 40% | +201.28 |
+| dead-chop (low ATR, ER < 0.25) | 8 | +789 | 38% | +98.63 |
+| normal-chop | 16 | +613 | 31% | +38.31 |
+| violent-whipsaw (high ATR, ER < 0.25) | 2 | +534 | 50% | +267.18 |
 
-| Holdout week 08-03 → 08-07 | n | net | win% | STOP / TARGET / TIME |
-|---|---|---|---|---|
-| 5s-bar model | 39 | +$722 | 43.6% | 22 / 13 / 4 |
-| **tick + quote honest** | 39 | **+$238** | 43.6% | 22 / 11 / 6 |
+**Green in all five buckets.** That is unusual and it is consistent with the stop-and-reverse story: the
+structure does not need the regime to be favourable, it needs the *tape to move*, and 13:30–15:00Z is
+where it moves. The weakest bucket is normal-chop at +$38/trade, which is still above costs.
 
-Mean quoted spread at entry **0.615 pt ($1.23 of the $5 allowance)**. First the reassuring part: on
-600 sampled 5s bars the bar highs and lows agree with the tick prints to **+0.04 pt and +0.05 pt on
-average** — the bars are faithful, and with a 2-ATR stop the intrabar path assumption is irrelevant
-(the earlier ER-filtered variant re-priced to within **$7 on 17 trades**).
+### 8.5 Long/short symmetry
 
-Now the unflattering part. Only **6 of 39** trades moved by more than $1, and **two of them account
-for $478 of the $484**:
+| side | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| LONG | 23 | +1,694 | 35% | +73.66 |
+| SHORT | 31 | +4,012 | 45% | +129.41 |
 
-| Trade | 5s model | tick-honest | why |
-|---|---|---|---|
-| 08-06 long | +$378 TARGET | **+$224 TIME** | entry 0.50 pt worse → target missed, timed out |
-| 08-07 short | +$393 TARGET | **+$70 TIME** | entry 0.50 pt worse → target missed, timed out |
-| 08-03 long | +$313 TIME | +$311 TIME | quote 2.50 pt off the bar close (a wide-spread instant) |
-| other 3 | — | −$2 to −$4 each | half a spread |
+Both sides pay, so it passes symmetry. The short lean is real but I would not tune on it at n = 23/31 —
+the sample straddles a stretch of tape that leaned down, and the desk has been burned before by
+mirroring one side's optimum onto the other.
 
-So this is **not** a systematic 33% haircut; it is **two knife-edge trades whose 2R target was
-grazed by under half a point**. That is still a real cost — those coin flips will land against you as
-often as for you — and the honest way to carry it is a blanket entry-slippage assumption. Half a
-point of entry slippage applied to all 17 days pulls the headline from **+$4,169 to +$3,491**
-(**+0.229R a trade**, n=128), and reproduces the holdout at +$204 against the tick truth of +$238.
-**+$3,491 / +0.229R is the number to plan against.**
+---
 
-## 8. Big moves caught — and the operator's narrowing hypothesis, **confirmed**
+## 9. THE 250ms L2 READ
 
-Aligned direction, a trade opened within ±15 minutes of the run start.
+Book data (`capture.db.book`, 41ms event-driven, L1–3) covers 11 of the 26 tick days, so this is
+**23 of 54 POPSAR trades** and it is thin. Far-side share of L1–3 depth in the 30 seconds before entry —
+"far side" being the side price is about to run into, so a low number means the book was depleted and
+supposedly telegraphing the move:
 
-| Configuration | sat-out runs caught | net on the hits | also hit the already-caught 10 |
-|---|---|---|---|
-| **OPEN RIDER cad 5 / 2.0 / 2R** | **11 / 14** | +$549 | 8 / 10 |
-| OPEN RIDER cad 3 / 2.0 / 2R | 11 / 14 | +$243 | 7 / 10 |
-| OPEN RIDER cad 5 / 2.5 / 2.5R | 10 / 14 | +$766 | 6 / 10 |
-| COIL-CRACK (ER < 0.20) | 2 / 14 | −$15 | 5 / 10 |
-| OPEN EXHAUSTION FADE | **0 / 14** | — | 1 / 10 |
+| book state at entry | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| far side **THIN** (depleted, share < 0.508) | 11 | +2,569 | 46% | +233.56 |
+| far side **THICK** (share ≥ 0.508) | 12 | +1,846 | 42% | +153.85 |
 
-The three misses are **08-05 14:54 (+73)**, **08-06 14:03 (+152)** and **08-06 14:46 (+120)** — all
-three are runs that began while the RIDER was already in an open position facing the other way, so
-the cooldown, not the signal, missed them. Cadence 3 recovers 08-06 14:03.
+The sign is in the right direction — a depleted far side does better — but **11 against 12 trades cannot
+support a filter**, and the median far-side share across all these entries is 0.508, i.e. dead neutral.
+The book is not telegraphing these entries in any way I can measure at this n. **Honest null, revisit
+when the book lake has a full quarter.**
 
-**And the operator's specific hypothesis — that narrowing to the biggest runs may reveal a stronger
-footprint — is CONFIRMED here, which is the opposite of what VACUUM found:**
+---
 
-| Cut (census week, 14 sat-out) | caught | rate |
+## 10. THE RUN CHARTS
+
+`gf_on_charts.svg.html` — inline self-contained SVG, no CDN, no JS, built from the lake's own 5s closes
+and the backtest's **real simulated fills**. Two panels:
+
+- **2026-08-13** — the census's three sat-out OPEN/NEWS runs marked on the price path (orange dashed),
+  with POPSAR's actual entries and exits on top. You can see the +236pt run at 13:32, the first leg
+  going the wrong way, the stop, and the reversal riding the move for +$1,005.
+- **2026-08-14** — a day with three sat-out runs where POPSAR **never fired at all**. I put it in
+  deliberately: the misses should be as visible as the hit, and this panel is what "no trigger — 11 of
+  16" looks like on a chart.
+
+---
+
+## 11. EVERY ATTEMPT, INCLUDING THE GRAVES
+
+Nothing here was quietly dropped. Nine named candidates across three escalation levels.
+
+| # | candidate | level | n | net $ | $/trade | verdict | cause of death / revival condition |
+|---:|---|---|---:|---:|---:|---|---|
+| 1 | **ORX** opening-range expansion | full set | 26 | +343 | +13.17 | **REFUTED** | **Parameter plateau** — best cell's worst neighbour −$16.32/tr, 56/80 cells negative; strip-3 −$1,599; 3/26 LOO days negative. Its earlier "+$582 building edge" was a 5-second look-ahead. |
+| 2 | **VPOP** volatility pop | full set | 71 | +3,123 | +43.98 | **PROMOTED → POPGO** | Survived: 0% of day-shuffles beat it, genuine time-only plateau across all four stop distances. Refined by dropping the dead pre-open half. |
+| 3 | **SQZGO** compressed pre-open → break | full set | 9 | +466 | +51.72 | **PARKED** | n = 9. 40% of coin flips beat it; first half −$371. Neighbourhood holds (+$21.19/tr). **Revive at n ≥ 40** — loosen the compression cut from the 33rd percentile to the median and re-run next week. |
+| 4 | **FBURST** 60s flow-burst z ≥ 2 | full set | 78 | +540 | +6.92 | **REFUTED** | **Placebo** — 41.7% of day-shuffles and 43.3% of coin flips beat it; 60/80 cells negative; forced all-SHORT (+$1,203) beats the real signal, so the flow-agreement rule is worse than ignoring flow. |
+| 5 | **VWRC** VWAP reclaim drive | full set | 38 | +3,199 | +84.19 | **REFUTED** | **Strip-the-best-5 → −$523.** 5 of 38 trades carry more than the whole net; 28 stops −$1,885 / 10 clock-exits +$5,084; coin-flip median +$1,459 is 46% of its money. |
+| 6 | **POPGO** VPOP after 13:30 only | refinement | 54 | +2,103 | +38.94 | **PARKED — superseded** | Strip-3 → +$245, strip-5 → −$756; 22% of coin flips beat it. Not dead, just strictly dominated by POPSAR on identical signals. **Revive only if the reversal leg proves unexecutable live.** |
+| 7 | **POPSAR** pop, stop-and-reverse | refinement | 54 | **+5,706** | **+105.66** | **★ SHADOW** | Survived the whole battery. Held back from LIVE by the OOS concentration in §12. |
+| 8 | **POPFADE** the reversal leg alone | refinement | 42 | +3,615 | +86.08 | **PARKED** | **Strip-the-best-5 → −$29.** 5 of 42 trades are the strategy. **Revive at n ≥ 100, or if MGC shows the same fade shape** — a second uncorrelated source would fix the concentration. |
+| 9 | **VSURGE** pre-run volume surge | escalation | 69 | +1,307 | +18.94 | **REFUTED** | **Parameter plateau** — sign flips between adjacent grid cells with no ridge anywhere; strip-3 → −$441; 18.5% of coin flips beat it. The footprint it is built on is real (AUC 0.88); the trade is not. |
+
+---
+
+## 12. THE SKEPTIC'S PASS ON MY OWN SURVIVOR
+
+POPSAR makes +$5,706 over 24 days on one lot. The live six-gate desk made **+$625** this week. I am
+claiming a single invented gate that out-earns the entire desk by roughly 3×, and that claim deserves
+to be attacked, not celebrated. Here is everything I can find wrong with it.
+
+**1. The out-of-sample leg is carried by two days.** This is the serious one. On the 15 days that have
+bars but no ticks — genuinely untouched by any fitting — bar-executed with the stop winning every tie:
+
+| | n | net $ | win% | $/trade |
+|---|---:|---:|---:|---:|
+| OOS, all 14 trading days with fires | 37 | +1,807 | 32.4% | +48.85 |
+
+Per day: `06-22 −294 · 06-23 +132 · 06-24 −75 · 06-25 +1,660 · 06-26 +64 · 06-29 −259 · 06-30 +1,202 ·
+07-01 −407 · 07-02 −312 · 07-03 −52 · 07-20 +290 · 07-21 −255 · 07-22 +138 · 07-23 −24`
+
+**Only 6 of 14 OOS days are green, and stripping the best two (06-25 and 06-30) leaves −$1,055.**
+The in-sample set is far better behaved (13/24 green, strip-best-3-days still +$1,964), but in-sample
+good behaviour is worth less than out-of-sample good behaviour, and this is the number that keeps
+POPSAR out of the LIVE column. **It is not a refutation** — the OOS days are a different, much
+higher-ATR regime (June ran 27–54pt 1-min ATR against August's 15–22), the execution is bar-based
+rather than tick-based, and the sample is 37 trades. But it is the honest reason to incubate rather
+than deploy.
+
+**2. Twelve trades are 74% of the money.** The 12 single-leg trades that rode to the clock make +$4,220
+of the +$5,706. Strip-3 (+$3,506) and strip-5 (+$2,205) hold up, and strip-best-3-*days* holds up
+(+$1,964), so it is not one session — but this is a lottery-ticket payoff shape and Garrath should
+expect long dry stretches. **Win rate 40.7% is fine** (the desk's own best days run ~40%); the point is
+the *distribution*, not the win rate.
+
+**3. The exit is a hard clock.** Flat at 15:00Z, no target, no trail. That is not how any live gate on
+this desk exits, and it means POPSAR gives back everything after 15:00 by construction. I tried
+targets and trails — the grid in §4.2 shows tight targets take VPOP from +$3,123 to +$22. **The tail is
+the edge and any exit that caps it kills the gate.** That is a genuine operational constraint, not a
+preference.
+
+**4. It does not do its job.** 2 of 16. Everything above is money made *somewhere else in the same
+window*. If the objective is literally "catch the runs the census says we sat out", **this section is a
+null** and I am saying so in the verdict.
+
+**5. Parameters were chosen on the same 26 days that scored them.** The entry grid is a plateau (7/45
+cells negative, median +$20.93/trade) and the exit grid is a plateau (0/20 cells negative), which is
+the best defence available, but it is not the same as a held-out fit.
+
+**6. Two soft results I am not hiding.** The +5min shift keeps 68% of the edge — the trigger minute is
+not sacred. And 2× slippage scored *higher* than 1×, which is path noise at n = 54 and a reminder not
+to read the last significant figure of anything here.
+
+---
+
+## 13. DISPOSITION TABLE
+
+| lead | verdict | required next step |
 |---|---|---|
-| top-5 biggest | 4 / 5 (5/5 at cadence 3) | 80–100% |
-| top-8 biggest | 6 / 8 (7/8 at cadence 3) | 75–88% |
-| all 14 | 11 / 14 | 79% |
+| **The `OPEN/NEWS` label itself** | **REFUTED as a footprint** — it is `13 <= hour < 15`, true on 100% of its own window, with no news structure in the run-start distribution and an arbitrary 15:00 edge. | Rename to **US-OPEN**, move the clock test to LAST in `cluster()` so it stops pre-empting flow (31 of 94 in-window runs had a real flow verdict waiting), and extend the window to 16:00Z where lift is still 1.69×. |
+| **The 13:00–15:00Z window** | **HELD** — 3.31× run lift, median run 110.8pt vs 87.5pt outside. | Keep hunting here. It is the right place. |
+| **POPSAR** | **★ SHADOW** | Ship to the shadow book at max_trades = 5. Watch specifically: (a) does the reversal leg fill in live conditions, (b) does the OOS two-day concentration repeat, (c) how it behaves on a high-ATR week. **Promote at n ≥ 120 with strip-best-3-days still positive.** |
+| **POPFADE** | **PARKED** | Revive at n ≥ 100, or if MGC shows the same failed-pop fade shape. Killed by strip-best-5 (−$29). |
+| **POPGO** | **PARKED — superseded** | Revive only if the SAR's reversal leg turns out to be unexecutable live. |
+| **SQZGO** | **PARKED** | Revive at n ≥ 40 — loosen the compression cut from the 33rd percentile to the median and re-run. |
+| **ORX** | **REFUTED** | Parameter plateau (best cell's worst neighbour −$16.32/tr, 56/80 negative) + strip-3 (−$1,599). No reformulation of an opening-range break survives that surface. |
+| **FBURST** | **REFUTED** | Placebo — 43.3% of coin flips beat it, and always-short beats it outright. |
+| **VWRC** | **REFUTED** | Strip-best-5 → −$523. |
+| **VSURGE** | **REFUTED** | Parameter plateau — sign flips between adjacent cells, no ridge; strip-3 → −$441. |
+| **Pre-run VOLUME as a footprint** | **HELD — and it is the section's best raw finding** | AUC 0.703 → 0.769 → 0.848 → 0.883 as runs get bigger, monotone. Build a **rolling volume-vs-baseline z on the router's 1-minute grid** — it is the one measured-separation instrument the router does not have. |
+| **Pre-run price range as a footprint** | **REFUTED** | AUC 0.49–0.57 at every size level. It knows nothing. |
+| **A router condition for POPSAR** | **REFUTED for now** | Every ER and ATR arm condition benches profitable trades (+$2,368 at +$102.96/tr refused by the best one) and none is monotone. The clock is the arm condition. |
+| **The 5s-bar look-ahead class of bug** | **ACTION, not a lead** | Audit every backtest on this desk that reads a bar's close/ATR/ER at the bar's own start timestamp. It was worth ~$700 and a fake regime edge in this section alone. |
+| **Missing Sunday sessions in the parquet lake** | **ACTION** | 07-19, 07-26, 08-02, 08-09 have `capture.db` rows and no lake day-file, and `connect()` cannot reach them. Check `tape_mirror.py`. Harmless here, silently wrong for any overnight study. |
 
-| Cut (17-day tape, all 78 OPEN/NEWS runs) | caught | rate |
-|---|---|---|
-| **top-15 biggest** | **15 / 15** | **100%** |
-| top-25 biggest | 23 / 25 | 92% |
-| all 78 | 62 / 78 | 79% |
+### The one stone still unturned
 
-**The OPEN RIDER is on every one of the fifteen biggest OPEN/NEWS runs of the last seventeen
-sessions.** It is a participation machine — which is precisely the hole the census identified (54
-sat-out runs, $9,917 of ceiling, of which OPEN/NEWS sat-outs were $3,138).
+**The 15:00–16:00Z hour.** It carries a 2.04× and 1.69× run lift, it is where six of this week's runs
+landed, and it is in UNCLASS purely because of a round number — so **no greenfield phase has ever
+hunted it, in this report or any previous one.** POPSAR's own grid already prefers the 16:00 time stop
+on several cells. That is where I would send next week's OPEN/NEWS agent first.
 
-## 9. The regime work — per-segment scores and a walk-forwarded policy
+---
 
-Per the standing discipline, nothing here is a blanket number. Regimes are assigned **at entry, from
-past-only data**: ER30 ≥ 0.35 → CLEAN-TREND; 0.20–0.35 → BUILDING; below that, ATR1m terciles
-(<18.4 / 18.4–33.8 / ≥33.8 pt) split DEAD-CHOP / NORMAL-CHOP / VIOLENT-WHIPSAW.
+## VERDICT
 
-| Regime | n | net | win% | $/trade | R/trade | strip-3 | Long | Short |
-|---|---|---|---|---|---|---|---|---|
-| **VIOLENT-WHIPSAW** | 24 | **+$2,036** | 58.3% | +$84.85 | **+0.454R** | +$888 | +$957 | +$1,080 |
-| BUILDING | 40 | +$1,342 | 50.0% | +$33.56 | +0.289R | +$270 | −$109 | +$1,451 |
-| DEAD-CHOP | 20 | +$494 | 50.0% | +$24.68 | +0.399R | +$134 | +$318 | +$175 |
-| **CLEAN-TREND** | 26 | +$154 | 42.3% | +$5.93 | +0.151R | **−$826** | −$3 | +$158 |
-| **NORMAL-CHOP** | 19 | +$143 | 36.8% | +$7.52 | +0.038R | **−$550** | +$312 | −$169 |
+**The cluster hunt: NULL.** No invented gate catches the runs the census says we sat out in the
+OPEN/NEWS bucket. The best of nine candidates catches **2 of 16**, and the reason is now measured
+rather than guessed: **11 of the 16 never produced an ignition bar at all**, because on a dead-vol week
+the pre-run footprint is too weak to trip a mechanical trigger. The escalation to the biggest runs did
+what the scope hoped and **found the footprint — pre-run VOLUME, AUC 0.703 across all runs rising
+monotonically to 0.883 on the top 8 — establishing the size threshold at roughly 235 points of 15-minute
+move.** But the one gate built directly on that footprint, VSURGE, was **killed by the parameter-plateau
+test** (sign flips between adjacent grid cells, no ridge) and by strip-the-3-best (−$441). Detection is
+real; direction and timing are not.
 
-| Time-of-day segment | n | net | win% | $/trade | R/trade |
-|---|---|---|---|---|---|
-| PRE-OPEN 13:00–13:30 | 39 | +$822 | 51.3% | +$21.09 | +0.439R |
-| **OPEN-DRIVE 13:30–14:00** | 48 | **+$3,207** | 50.0% | **+$66.82** | +0.380R |
-| POST-OPEN 14:00–14:30 | 20 | +$464 | 50.0% | +$23.18 | +0.098R |
-| **LATE 14:30–15:00** | 22 | **−$324** | 36.4% | −$14.73 | −0.101R |
+**One candidate survives, for a different job than the one it was hired for: POPSAR → SHADOW.**
+54 trades, **+$5,706, +$105.66/trade, 40.7% win**, tick-honest on the parquet lake at $1.50/round-trip
+per leg. It passed every kill test I have: 0 of 200 random-clock placebos beat it, 0 of 200 direction
+coin flips beat it, all 20 cells of its stop × reversal grid are positive, strip-the-3-best leaves
++$3,506, strip-the-best-three-*days* leaves +$1,964, leave-one-day-out is negative on 0 of 24 days,
+both halves are green, both sides pay, and it survives 4× slippage. It is held at SHADOW rather than
+LIVE for one named reason: **its only true out-of-sample leg (15 untouched days) is +$1,807 but goes to
+−$1,055 when its best two days are removed, with only 6 of 14 days green.**
 
-**Two things worth saying out loud.** First, **CLEAN-TREND is the second-worst bucket and goes
-negative on strip-3** — a momentum system that does badly when the last half hour was a clean trend.
-That is the exhaustion effect again, arriving from a third direction, and it is why the ER filter in
-§4 kept failing: by the time ER is high the move is late. Second, **VIOLENT-WHIPSAW is the best
-bucket** at +0.454R — the wide stop is what makes that possible, and it is exactly where a 1-ATR stop
-would be shredded.
-
-### The R-ladder, swept rather than guessed
-
-The desk's cheat-sheet Rs (faders 0.5/1.5, momentum 1.5/2.5, trend 2.5/wide) are an operator prior.
-Swept per segment at stop 2.0 × ATR (net / n / mean R):
-
-| Segment | RR 1.0 | RR 1.5 | RR 2.0 | RR 2.5 | RR 3.0 | RR 4.0 | **proven best** | vs the guess |
-|---|---|---|---|---|---|---|---|---|
-| PRE-OPEN | +253/51/+0.08 | +823/39/+0.38 | +822/39/+0.44 | +840/32/+0.54 | **+1238/29/+0.83** | +1068/27/+0.83 | **3.0R** | wider than the 1.5–2.5 guess |
-| OPEN-DRIVE | +2192/69/+0.20 | +2466/56/+0.20 | **+3207/48/+0.38** | +2651/43/+0.37 | +2879/41/+0.41 | +2174/33/+0.32 | **2.0–3.0R** | matches "momentum 1.5/2.5", edge to wider |
-| POST-OPEN | +558/36/+0.07 | +299/26/+0.05 | +464/20/+0.10 | +374/14/+0.13 | +1252/9/+1.01 | +726/13/+0.47 | **inconclusive (n=9–36)** | no verdict |
-| LATE | −546/30/−0.17 | −119/20/−0.05 | −324/22/−0.10 | +296/18/+0.11 | +523/16/+0.16 | −404/18/−0.22 | **stand down** | — |
-
-And the stop is the bigger lever than the target: at RR 2.0, PRE-OPEN goes **+$196 → +$1,699** as the
-stop widens from 1.0 to 3.0 ATR (+0.07R → +0.85R), and POST-OPEN goes **−$119 → +$1,782**. **The
-proven answer is "give it room", in every segment.**
-
-### The policy, walk-forwarded honestly
-
-Segments and their R chosen **on the 12 DEV days only**, then applied blind to the holdout:
-
-| Segment | DEV says | DEV result | HOLDOUT result |
-|---|---|---|---|
-| PRE-OPEN | RR 3.0 | +$1,170 (n=19) | +$68 (n=10) |
-| OPEN-DRIVE | RR 2.0 | +$2,542 (n=34) | +$665 (n=14) |
-| POST-OPEN | RR 3.0 | +$942 (n=7) | +$310 (n=2) |
-| LATE | RR 3.0 | +$541 (n=12) | −$18 (n=4) |
-| **POLICY total on HOLDOUT** | | | **+$1,025 on 30 trades** |
-| blanket 2.0/2R on HOLDOUT | | | +$722 on 39 trades |
-
-**The regime-conditional policy beats the blanket by $303 out of sample on 9 fewer trades** — a
-+$34.17/trade policy against +$18.51/trade blanket. It is a small, thin-n win, but it points the same
-way the discipline predicts, and unlike VACUUM (where the policy cost $1,267) here it earns its keep.
-
-### Filters tested against the naked spec — one improves it
-
-| Filter on the OPEN RIDER | ALL n | ALL net | R/trade | strip-3 | DEV | HOLDOUT |
-|---|---|---|---|---|---|---|
-| **none (the spec)** | 129 | +$4,169 | +0.272 | +$2,931 | +$3,447 | +$722 |
-| **inside the pre-open range (12:00–13:30 hi/lo)** | 73 | +$3,692 | **+0.446** | +$2,485 | +$2,569 | **+$1,123** |
-| outside the pre-open range | 61 | +$1,132 | +0.080 | −$52 | +$656 | +$475 |
-| stand down 14:30–15:00 | 107 | **+$4,493** | +0.349 | +$3,255 | +$3,800 | +$693 |
-| stand down after 14:00 | 87 | +$4,030 | +0.407 | +$2,791 | +$3,419 | +$611 |
-| skip ER30 ≥ 0.35 | 112 | +$3,462 | +0.248 | +$2,223 | +$2,749 | +$713 |
-| ATR1m ≥ 25 pt floor | 71 | +$3,655 | +0.310 | +$2,414 | +$2,919 | +$736 |
-| `|mom15| ≥ 1 × ATR1m` | 110 | +$2,818 | +0.213 | +$1,632 | +$2,596 | +$222 |
-
-**The one filter that improves risk-adjusted return *and* the holdout is "only trade while price is
-still inside the pre-open range".** +0.446R against +0.272R, and it nearly doubles the holdout. Its
-mirror loses (outside the range: +0.080R, strip-3 negative). That is the **don't-chase-the-extension**
-rule the desk already believes from abs_veto, arriving independently. It halves the sample (129 → 73)
-and it was picked from a menu of ten, so it is a **shadow refinement, not part of the headline spec**.
-
-## 10. Disposition table
-
-| Lead | Verdict | The named test that decided it / what would revive it |
-|---|---|---|
-| **C. THE OPEN RIDER** — 5-min cadence, direction = last 15 min, 2.0×ATR stop, 2R, 45-min cap, 13:00–15:00 UTC | **SHADOW** | Survived: a 40-cell contiguous parameter plateau (all positive net **and** positive after strip-3); a 192-cell DEV→HOLDOUT walk-forward with 179/192 cells positive out of sample and a near-zero selection tax; strip-3 (+$2,931 of +$4,169); LOO positive on all 17 days; long/short both positive; placebo z=+2.25, p=0.018; reversal −$4,975. **Not LIVE because of three things:** (1) the **day-demeaned timing test fails** — all of the raw edge is "the open window went somewhere", none is moment-picking (t = −5.35 at 45 min); (2) the **tick-honest re-price is worse** than the 5s model ($722 → $238 on the holdout week, driven by two knife-edge target misses), so plan on **+$3,491 / +0.229R** not +$4,169; (3) it risks **$109 a trade**, 4–5× the live gates. **PROMOTE TO LIVE IF:** it clears **+0.15R a trade over 200 shadow trades (~30 sessions)** including at least one demonstrably **non-trending open week** — that is the exact regime the demeaned test says will hurt it. |
-| **A. COIL-CRACK** — momentum ignition out of a quiet 30 minutes (ER30 < 0.20) | **REFUTED as a filter** (the underlying momentum entry lives on inside C) | **Direct ablation**, the only test that decides a filter: with the ER gate +$2,049 / n=51 / strip-3 +$724; **without it +$2,238 / n=58 / strip-3 +$833**. It costs money and sample. Confirmed from the other side on the final spec (`skip ER ≥ 0.35` → +$3,462 vs +$4,169). The close-location confirm was worse than useless — clv 0.5 / 0.6 / 0.7 returned +$830 / +$830 / +$832, i.e. it selected nothing. The beautiful monotone ER table that motivated it is an artefact of **overlapping one-minute sampling** (1,769 rows ≈ 120 independent observations, heavily day-clustered). No reformulation: a filter that removes trades and money has nothing to reformulate. |
-| **B. OPEN EXHAUSTION FADE** — fade a straight-line 30 minutes (ER30 ≥ 0.45) | **REFUTED** | **51 configurations, every one negative or zero**: 15 immediate-entry cells (−$775 to −$1,457, 10–30% win) and 36 confirmed-entry cells (best +$10 at n=21, worst −$1,886, mean R −0.30 to −0.83). The mechanism is disproven by the **path measurement**: median MAE **4.76 ATR** against median MFE **3.00 ATR** — it is adverse from the first tick, so the 15-minute information it genuinely carries (demeaned +54.2 pt, t = +5.69) is delivered only after an excursion no affordable stop survives. Caught **0 / 14** of the target runs. Widening the stop to 3–4 ATR and delaying entry by 10 minutes both fail, which closes the two obvious reformulations. |
-| **D. The regime-conditional policy** (segment → R, walk-forwarded) | **SHADOW** | The only regime work in this cluster that paid: DEV-chosen segments and Rs scored **+$1,025 on 30 holdout trades vs +$722 on 39** for the blanket — **+$34.17/trade vs +$18.51/trade**. But per-segment n is **19–48** and two buckets (CLEAN-TREND, NORMAL-CHOP) go negative on strip-3. **REVIVE/PROMOTE IF:** each segment reaches **n ≥ 60** — about 25 more sessions of shadow — at which point the LATE (14:30–15:00) stand-down and the PRE-OPEN wide-R rung are the two rungs worth deploying first. |
-| **E. Pre-open-range containment** ("only trade while price is still inside the 12:00–13:30 range") | **SHADOW** | Best filter found: **+0.446R vs +0.272R**, holdout **+$1,123 vs +$722**, and its mirror loses (+0.080R, strip-3 −$52), which is the sign of a real asymmetry rather than a coin. Independently reproduces the desk's own abs_veto **"don't chase the extension"** finding. Held out of the headline spec because it **halves the sample (129 → 73)** and was **selected from a menu of ten filters** — the multiple-comparison tax is unpaid. **PROMOTE IF:** it holds at +0.40R over the next 60 shadow trades. |
-| **F. The 15-minute momentum trigger itself** (any threshold: 20 / 25 / 30 / 40 / 50 pt) | **REFUTED as a trigger** | Thresholding **always cost money**: no threshold +$4,142 on 102 trades vs thr-20 +$2,576 and thr-50 +$1,366 at the same cadence. Worse, a **duty-matched control** replacing the 15-minute lookback with *"is price above the 13:00 print?"* scored **+$2,627 / 97** against momentum's **+$2,576 / 101** — statistically the same. **The lookback is not the signal; being positioned with the window's direction is.** No path: there is nothing to tune in a parameter that does not matter. |
-| **G. Narrow (≈1 ATR) stops — the desk's house style** | **REFUTED for this cluster** | Across the 100-cell grid, **every** stop ≤ 1.5 × ATR1m is flat-to-negative on mean R (−0.09 to +0.13) while **every** stop ≥ 2.0 × ATR1m is positive (+0.18 to +0.58), at every cadence and target. The median MAE of a with-the-move entry in this window is **2.55 ATR** — a 1-ATR stop is inside the noise by construction. Named test: the mean-R plateau, which is risk-normalised and therefore not a leverage illusion. |
-| **H. "Regime label picks the trade"** (the 5-state ATR×ER×range-break classifier as an on/off switch) | **PARKED** | The labels behaved **backwards**: CLEAN-TREND was the second-worst bucket (+0.151R, strip-3 −$826) and VIOLENT-WHIPSAW the best (+0.454R). Either the classifier is mislabelling, or the true structure is "already-trending = already-late", which is what every other test in this report also said. n per bucket is 19–40, far too thin to deploy an on/off switch. **REVIVE IF:** re-cut the classifier on **forward-looking realised trendiness measured over the hold**, not on trailing ER — and only once each bucket has n ≥ 60. |
-
-**★ The one stone still unturned.** Everything here is built from 5-second bars, because that is the
-only representation that spans 17 days. The **L2 book (82M rows) and the aggressor tape are never
-used** in this cluster — and the one question they could answer is the one the day-drift test raises:
-**can you tell, at 13:30 UTC, whether this open is going to trend or chop?** If that is knowable at
-all it will be in the opening auction's depth and the first minutes' aggressor imbalance, not in the
-bars. That is a five-day study today and a proper one in three weeks. It is the only thing that would
-turn the OPEN RIDER from a directional harvest into an edge.
-
-## 11. What to take away
-
-1. **OPEN/NEWS is not an event cluster, it is the clock.** 39% of quarter-hours in 13:00–15:00 UTC
-   are "big runs" against 7% everywhere else. The census is right that we sit out the money; it is
-   not right that anything unusual is happening when we do.
-2. **The simplest thing beat both clever things, and the gap was not close.** Two hand-built
-   footprint signals lost $2,000–$5,000 between them; the control that just shows up every five
-   minutes with a wide stop made +$4,169 and caught 15 of the 15 biggest runs.
-3. **The stop, not the entry, was the lever.** Every filter tested made it worse; every widening of
-   the stop made it better, on a risk-normalised basis. **The desk's ~1-ATR house stop is the wrong
-   instrument for the US open** — that finding is transferable to the live gates immediately and
-   costs nothing to check.
-4. **The day-demeaning test should become standard on this desk.** It is what separated a real
-   payoff-shape edge from a directional bet in this study, and it is what should have been run on
-   the momentum-continuation number (+13.4 pt, 58.9% win) before anyone got excited — that number is
-   entirely the day's drift and demeans to **−0.70 pt**.
-5. **17 days of 5s bars is worth more than 5 days of ticks.** The single reason this hunt has a
-   survivor and the VACUUM hunt does not is that a clock-defined cluster can be studied on the whole
-   bar tape and therefore can have a walk-forward. Where a study can be built bars-only, build it
-   bars-only.
-
-*Working: `/home/alphabot/gazbot7/scratchpad/gf_on/` — `core.py` (data + census run detector),
-`feats.py` (ATR / ER / forward-return scan), `dial.py` (COIL-CRACK + EXHAUSTION-FADE engine),
-`rider.py` (the OPEN RIDER + battery), `tickcheck.py` (tick + quote honest re-price).
-Data: `data/capture.db`, read-only, DuckDB.*
+**And the finding that outranks all of it: the `OPEN/NEWS` label is not a footprint. It is
+`if 13 <= hour < 15`, evaluated before anything else, true on 100% of the bars inside its own window,
+with no news structure in the run-start distribution (busiest slot 13:25, not 13:30) and an arbitrary
+right-hand edge that dumps six of this week's runs into UNCLASS. The window is real — 3.31× run lift —
+the label is just its name, and it has been stealing 31 of 94 in-window runs from VACUUM and FLOW-LED
+since it was written.** Fixing that one line is worth more to next week's hunt than any gate on this
+page.

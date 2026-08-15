@@ -1,0 +1,57 @@
+
+======================================================================================================================
+  4 · THE ARM / BENCH RULE — swept, not guessed. Each floor is causal (trailing only).
+======================================================================================================================
+  rule                                   n      net$     $/tr   win%   strip3$  placebo p95  verdict
+  no floor (session only)              256     8,560    33.44   45.7     6,758        33.44  fails placebo
+  ATR >= 8pt                           252     8,177    32.45   45.2     6,374        35.23  fails placebo
+  ATR >= 10pt                          238     8,217    34.53   46.2     6,415        35.37  fails placebo
+  ATR >= 12pt                          213     7,475    35.09   45.1     5,673        33.50  BEATS placebo
+  ATR >= 14pt                          203     7,033    34.65   45.8     5,267        35.91  fails placebo
+  ATR >= 16pt                          182     2,857    15.70   42.3     1,091        34.43  fails placebo
+  atr_pr >= 0.40                       204     9,362    45.89   51.0     7,559        33.42  BEATS placebo
+  atr_pr >= 0.50                       180     6,256    34.76   47.2     4,454        29.88  BEATS placebo
+  atr_pr >= 0.60                       152     2,907    19.12   44.1     1,207        32.31  fails placebo
+  rvol >= 1.0                          242     9,141    37.77   46.7     7,181        30.43  BEATS placebo
+  rvol >= 1.2                          238     5,557    23.35   42.9     3,780        30.40  fails placebo
+  rvol>=1.0 & atr_pr>=0.40             189     8,606    45.53   51.9     6,803        28.21  BEATS placebo
+  rvol>=1.0 & ATR>=10pt                224    10,006    44.67   48.7     8,047        28.29  BEATS placebo
+
+======================================================================================================================
+  LEAVE-ONE-WEEK-OUT — a 9-week study with one bad week has to survive losing ANY week
+======================================================================================================================
+  chosen rule: US session + rvol>=1.0 + atr_pr>=0.40 n= 189  net=$   8,606   51.9%w  $  45.53/tr  med=$   8.00  pf= 1.70  strip3=$6,803
+
+    week  n  week_net  without  per_without
+2026-W31 25    2245.0   6361.0        38.78
+2026-W30 25    2019.0   6587.0        40.16
+2026-W32 19    1855.0   6751.0        39.71
+2026-W27 20    1243.0   7363.0        43.57
+2026-W29 24     724.0   7882.0        47.77
+2026-W28 24     644.0   7962.0        48.25
+2026-W25  2      91.0   8515.0        45.53
+2026-W33 22     -11.0   8617.0        51.60
+2026-W26 28    -204.0   8810.0        54.72
+
+  worst leave-one-week-out net = $6,361 (still GREEN); green weeks 7 of 9
+
+  by regime — the HOME segment, which is where the expectancy is quoted:
+                  k  n    net  win   per    med  best  worst   pf
+    violent-whipsaw 39 3176.0 56.4 81.44  91.00 575.0 -268.0 2.18
+        normal-chop 52 2712.0 55.8 52.16  26.25 406.0 -212.0 2.21
+        clean-trend 27 1461.0 51.9 54.10  23.50 567.0 -339.0 1.80
+in-between-building 71 1256.0 46.5 17.70 -53.65 661.0 -333.0 1.23
+  
+  HOME (violent-whipsaw + clean-trend) n=  66  net=$   4,637   54.5%w  $  70.26/tr  med=$  53.50  pf= 2.03  strip3=$2,964
+    AWAY (the three chop buckets)    n= 123  net=$   3,969   50.4%w  $  32.27/tr  med=$   7.00  pf= 1.51  
+
+======================================================================================================================
+  VALIDATION — re-price three trades by hand off RAW TICKS. The racer must not flatter itself.
+======================================================================================================================
+  2026-06-29 14.20  side=-1  — no tick tape for this day (5s bars only); cannot hand-check
+  2026-08-13 16.42 side=+1 atr= 13.1  5s-racer: TIME_CAP  $    8.00   tick-truth: TIME_CAP  $    8.50   MATCH
+  2026-07-02 14.77  side=-1  — no tick tape for this day (5s bars only); cannot hand-check
+
+  racer verdict: consistent with the raw ticks
+
+→ /home/alphabot/gazbot7/reports/friday_v7/sections/gf_rider_router.json

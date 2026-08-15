@@ -48,13 +48,33 @@ def cluster(hour, flow, mv, amp, fz=None):
 
     `flow` is still used for its SIGN (does flow agree with the move); `fz` carries the magnitude
     test. fz=None (insufficient history) means "no flow verdict" and falls through, which is correct
-    — better UNCLASS than a fake label. Revert: drop fz, restore `abs(flow) > 50`."""
-    if 13 <= hour < 15:
-        return "OPEN/NEWS"
+    — better UNCLASS than a fake label. Revert: drop fz, restore `abs(flow) > 50`.
+
+    ★★2026-08-15 FIX — THE SESSION WINDOW IS A FALLBACK, NOT A FOOTPRINT, AND IT USED TO GO FIRST.
+
+    `if 13 <= hour < 15: return "OPEN/NEWS"` was the FIRST test, so it pre-empted every footprint
+    test beneath it. That is not a classifier, it is a clock with a misleading name: it is true on
+    100% of the bars inside its own window, and the greenfield hunt measured it STEALING 31 of 94
+    in-window runs from VACUUM and FLOW-LED. Those two labels describe what the TAPE did (did
+    aggressor flow agree with the move, or fight it); OPEN/NEWS describes only when the clock said.
+    A run that is a textbook VACUUM at 13:40 was being filed as OPEN/NEWS and never reached the
+    hunt that could have caught it.
+
+    The window itself is REAL and worth keeping — 3.31x run lift, the densest ignition window on the
+    tape — so it stays as the fallback for a run with NO footprint, where "it happened at the US
+    open" is genuinely the most informative thing we can say. It just no longer outranks evidence.
+
+    ⚠ STILL OPEN, and deliberately not guessed at here: the right-hand edge of 15:00 is arbitrary.
+    The hunt found the busiest ignition slot is 13:25 (not 13:30, so it is not a news-release
+    footprint either) and that the 15:00 cut dumps six of this week's runs into UNCLASS. Widening it
+    needs its own measurement, not a nicer-looking number.
+    """
     if flow is not None and fz is not None and abs(fz) >= FLOW_Z:
         return "FLOW-LED" if (flow > 0) == (mv > 0) else "VACUUM"
     if amp is not None and amp > 0.30:
         return "VOL-EXPANSION"
+    if 13 <= hour < 15:
+        return "OPEN/NEWS"          # no footprint, but the densest window — say so
     return "UNCLASS"
 
 

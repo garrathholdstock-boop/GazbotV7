@@ -1,0 +1,271 @@
+{
+ "router_rules": [
+  {
+   "rule": "no floor (session only)",
+   "n": 256,
+   "net": 8560.0,
+   "win": 45.7,
+   "per": 33.44,
+   "med": -48.03,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.52,
+   "strip3": 6758.0,
+   "plac_p95": 33.44,
+   "beats": "False"
+  },
+  {
+   "rule": "ATR >= 8pt",
+   "n": 252,
+   "net": 8177.0,
+   "win": 45.2,
+   "per": 32.45,
+   "med": -52.7,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.5,
+   "strip3": 6374.0,
+   "plac_p95": 35.23,
+   "beats": "False"
+  },
+  {
+   "rule": "ATR >= 10pt",
+   "n": 238,
+   "net": 8217.0,
+   "win": 46.2,
+   "per": 34.53,
+   "med": -62.95,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.51,
+   "strip3": 6415.0,
+   "plac_p95": 35.37,
+   "beats": "False"
+  },
+  {
+   "rule": "ATR >= 12pt",
+   "n": 213,
+   "net": 7475.0,
+   "win": 45.1,
+   "per": 35.09,
+   "med": -74.3,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.5,
+   "strip3": 5673.0,
+   "plac_p95": 33.5,
+   "beats": "True"
+  },
+  {
+   "rule": "ATR >= 14pt",
+   "n": 203,
+   "net": 7033.0,
+   "win": 45.8,
+   "per": 34.65,
+   "med": -86.85,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.45,
+   "strip3": 5267.0,
+   "plac_p95": 35.91,
+   "beats": "False"
+  },
+  {
+   "rule": "ATR >= 16pt",
+   "n": 182,
+   "net": 2857.0,
+   "win": 42.3,
+   "per": 15.7,
+   "med": -100.03,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.18,
+   "strip3": 1091.0,
+   "plac_p95": 34.43,
+   "beats": "False"
+  },
+  {
+   "rule": "atr_pr >= 0.40",
+   "n": 204,
+   "net": 9362.0,
+   "win": 51.0,
+   "per": 45.89,
+   "med": 9.75,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.69,
+   "strip3": 7559.0,
+   "plac_p95": 33.42,
+   "beats": "True"
+  },
+  {
+   "rule": "atr_pr >= 0.50",
+   "n": 180,
+   "net": 6256.0,
+   "win": 47.2,
+   "per": 34.76,
+   "med": -50.5,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.45,
+   "strip3": 4454.0,
+   "plac_p95": 29.88,
+   "beats": "True"
+  },
+  {
+   "rule": "atr_pr >= 0.60",
+   "n": 152,
+   "net": 2907.0,
+   "win": 44.1,
+   "per": 19.12,
+   "med": -79.67,
+   "best": 661.0,
+   "worst": -334.0,
+   "pf": 1.22,
+   "strip3": 1207.0,
+   "plac_p95": 32.31,
+   "beats": "False"
+  },
+  {
+   "rule": "rvol >= 1.0",
+   "n": 242,
+   "net": 9141.0,
+   "win": 46.7,
+   "per": 37.77,
+   "med": -39.05,
+   "best": 661.0,
+   "worst": -333.0,
+   "pf": 1.61,
+   "strip3": 7181.0,
+   "plac_p95": 30.43,
+   "beats": "True"
+  },
+  {
+   "rule": "rvol >= 1.2",
+   "n": 238,
+   "net": 5557.0,
+   "win": 42.9,
+   "per": 23.35,
+   "med": -51.35,
+   "best": 640.0,
+   "worst": -312.0,
+   "pf": 1.37,
+   "strip3": 3780.0,
+   "plac_p95": 30.4,
+   "beats": "False"
+  },
+  {
+   "rule": "rvol>=1.0 & atr_pr>=0.40",
+   "n": 189,
+   "net": 8606.0,
+   "win": 51.9,
+   "per": 45.53,
+   "med": 8.0,
+   "best": 661.0,
+   "worst": -339.0,
+   "pf": 1.7,
+   "strip3": 6803.0,
+   "plac_p95": 28.21,
+   "beats": "True"
+  },
+  {
+   "rule": "rvol>=1.0 & ATR>=10pt",
+   "n": 224,
+   "net": 10006.0,
+   "win": 48.7,
+   "per": 44.67,
+   "med": -15.5,
+   "best": 661.0,
+   "worst": -333.0,
+   "pf": 1.72,
+   "strip3": 8047.0,
+   "plac_p95": 28.29,
+   "beats": "True"
+  }
+ ],
+ "loo_week": [
+  {
+   "week": "2026-W31",
+   "n": 25,
+   "week_net": 2245.0,
+   "without": 6361.0,
+   "per_without": 38.78
+  },
+  {
+   "week": "2026-W30",
+   "n": 25,
+   "week_net": 2019.0,
+   "without": 6587.0,
+   "per_without": 40.16
+  },
+  {
+   "week": "2026-W32",
+   "n": 19,
+   "week_net": 1855.0,
+   "without": 6751.0,
+   "per_without": 39.71
+  },
+  {
+   "week": "2026-W27",
+   "n": 20,
+   "week_net": 1243.0,
+   "without": 7363.0,
+   "per_without": 43.57
+  },
+  {
+   "week": "2026-W29",
+   "n": 24,
+   "week_net": 724.0,
+   "without": 7882.0,
+   "per_without": 47.77
+  },
+  {
+   "week": "2026-W28",
+   "n": 24,
+   "week_net": 644.0,
+   "without": 7962.0,
+   "per_without": 48.25
+  },
+  {
+   "week": "2026-W25",
+   "n": 2,
+   "week_net": 91.0,
+   "without": 8515.0,
+   "per_without": 45.53
+  },
+  {
+   "week": "2026-W33",
+   "n": 22,
+   "week_net": -11.0,
+   "without": 8617.0,
+   "per_without": 51.6
+  },
+  {
+   "week": "2026-W26",
+   "n": 28,
+   "week_net": -204.0,
+   "without": 8810.0,
+   "per_without": 54.72
+  }
+ ],
+ "home": {
+  "n": 66,
+  "net": 4637.0,
+  "win": 54.5,
+  "per": 70.26,
+  "med": 53.5,
+  "best": 575.0,
+  "worst": -339.0,
+  "pf": 2.03
+ },
+ "away": {
+  "n": 123,
+  "net": 3969.0,
+  "win": 50.4,
+  "per": 32.27,
+  "med": 7.0,
+  "best": 661.0,
+  "worst": -333.0,
+  "pf": 1.51
+ }
+}

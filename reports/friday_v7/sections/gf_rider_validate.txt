@@ -1,0 +1,18 @@
+═══ VALIDATION · re-racing every trade on RAW TICKS where the tick lake reaches ═══
+
+  trades re-priced on ticks: 173 of 256 (the rest are on 5s-bar-only sessions)
+  exit-reason agreement: 100.0%
+  5s-bar net over those trades: $    4,887
+  raw-tick net over those trades: $    4,922
+  difference: $       35  ($0.20/trade) — the 5s racer is CONSERVATIVE
+
+  disagreements:
+    none
+
+  chart built: MNQ 2026-08-13 — the week's biggest sat-out run (+236pt from...
+
+  chart built: MNQ 2026-08-14 — the -98pt 14:13Z run the rider DID catch...
+
+  chart built: MNQ 2026-07-31 — a typical winning session for the rider...
+
+→ /home/alphabot/gazbot7/reports/friday_v7/sections/gf_rider_charts.svg.html

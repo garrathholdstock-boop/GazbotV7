@@ -1,0 +1,29 @@
+{
+ "n_minutes": 6820,
+ "base_rate": {
+  "UNCLASS": {
+   "n": 5109,
+   "pct": 74.91
+  },
+  "OPEN/NEWS": {
+   "n": 600,
+   "pct": 8.8
+  },
+  "FLOW-LED": {
+   "n": 577,
+   "pct": 8.46
+  },
+  "VACUUM": {
+   "n": 532,
+   "pct": 7.8
+  },
+  "VOL-EXPANSION": {
+   "n": 2,
+   "pct": 0.03
+  }
+ },
+ "validation_match": "59/68",
+ "unclass_no_flow_verdict_pct": 2.9,
+ "satout_unclass_runs": 34,
+ "satout_unclass_no_verdict": 4
+}

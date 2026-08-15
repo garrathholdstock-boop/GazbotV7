@@ -1,0 +1,459 @@
+{
+ "escalation": {
+  "ALL runs": {
+   "n_runs": 78,
+   "min_move": 131.0,
+   "tr_max": {
+    "run_median": 1.58,
+    "ctrl_median": 1.566,
+    "auc": 0.536
+   },
+   "tr_mean": {
+    "run_median": 1.024,
+    "ctrl_median": 0.995,
+    "auc": 0.6
+   },
+   "rng10_atr": {
+    "run_median": 3.103,
+    "ctrl_median": 2.913,
+    "auc": 0.519
+   },
+   "vol_ratio": {
+    "run_median": 1.51,
+    "ctrl_median": 1.053,
+    "auc": 0.703
+   },
+   "er": {
+    "run_median": 0.23,
+    "ctrl_median": 0.175,
+    "auc": 0.56
+   },
+   "absdrift10_atr": {
+    "run_median": 1.095,
+    "ctrl_median": 1.172,
+    "auc": 0.508
+   }
+  },
+  "top 25": {
+   "n_runs": 25,
+   "min_move": 205.0,
+   "tr_max": {
+    "run_median": 1.586,
+    "ctrl_median": 1.566,
+    "auc": 0.568
+   },
+   "tr_mean": {
+    "run_median": 1.057,
+    "ctrl_median": 0.995,
+    "auc": 0.734
+   },
+   "rng10_atr": {
+    "run_median": 3.282,
+    "ctrl_median": 2.913,
+    "auc": 0.617
+   },
+   "vol_ratio": {
+    "run_median": 2.874,
+    "ctrl_median": 1.053,
+    "auc": 0.769
+   },
+   "er": {
+    "run_median": 0.231,
+    "ctrl_median": 0.175,
+    "auc": 0.603
+   },
+   "absdrift10_atr": {
+    "run_median": 1.711,
+    "ctrl_median": 1.172,
+    "auc": 0.682
+   }
+  },
+  "top 15": {
+   "n_runs": 15,
+   "min_move": 235.2,
+   "tr_max": {
+    "run_median": 1.538,
+    "ctrl_median": 1.566,
+    "auc": 0.49
+   },
+   "tr_mean": {
+    "run_median": 1.043,
+    "ctrl_median": 0.995,
+    "auc": 0.713
+   },
+   "rng10_atr": {
+    "run_median": 3.234,
+    "ctrl_median": 2.913,
+    "auc": 0.535
+   },
+   "vol_ratio": {
+    "run_median": 3.412,
+    "ctrl_median": 1.053,
+    "auc": 0.848
+   },
+   "er": {
+    "run_median": 0.285,
+    "ctrl_median": 0.175,
+    "auc": 0.675
+   },
+   "absdrift10_atr": {
+    "run_median": 1.464,
+    "ctrl_median": 1.172,
+    "auc": 0.668
+   }
+  },
+  "top 8": {
+   "n_runs": 8,
+   "min_move": 265.2,
+   "tr_max": {
+    "run_median": 1.619,
+    "ctrl_median": 1.566,
+    "auc": 0.522
+   },
+   "tr_mean": {
+    "run_median": 1.068,
+    "ctrl_median": 0.995,
+    "auc": 0.741
+   },
+   "rng10_atr": {
+    "run_median": 4.24,
+    "ctrl_median": 2.913,
+    "auc": 0.709
+   },
+   "vol_ratio": {
+    "run_median": 3.429,
+    "ctrl_median": 1.053,
+    "auc": 0.883
+   },
+   "er": {
+    "run_median": 0.419,
+    "ctrl_median": 0.175,
+    "auc": 0.721
+   },
+   "absdrift10_atr": {
+    "run_median": 2.827,
+    "ctrl_median": 1.172,
+    "auc": 0.779
+   }
+  }
+ },
+ "census_walk": [
+  {
+   "day": "2026-08-10",
+   "time": "13:20",
+   "move": -74,
+   "fired": true,
+   "net": -68.21,
+   "dir_ok": false,
+   "why": "FIRED \u2014 but the FIRST leg took the wrong side"
+  },
+  {
+   "day": "2026-08-10",
+   "time": "13:56",
+   "move": 109,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-10",
+   "time": "14:25",
+   "move": 46,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "trigger existed but the 3-trades-a-day cap had already been spent (1 raw)"
+  },
+  {
+   "day": "2026-08-10",
+   "time": "14:45",
+   "move": -90,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-11",
+   "time": "13:24",
+   "move": -137,
+   "fired": true,
+   "net": -59.64,
+   "dir_ok": true,
+   "why": "FIRED"
+  },
+  {
+   "day": "2026-08-11",
+   "time": "13:51",
+   "move": 124,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-11",
+   "time": "14:16",
+   "move": -49,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-11",
+   "time": "14:40",
+   "move": 55,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-11",
+   "time": "14:55",
+   "move": -89,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-12",
+   "time": "13:08",
+   "move": 52,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "REFUSED \u2014 run starts before 13:30Z, outside POPGO's window"
+  },
+  {
+   "day": "2026-08-13",
+   "time": "13:32",
+   "move": 236,
+   "fired": true,
+   "net": 1005.0,
+   "dir_ok": false,
+   "why": "FIRED \u2014 but the FIRST leg took the wrong side"
+  },
+  {
+   "day": "2026-08-13",
+   "time": "14:20",
+   "move": 75,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-13",
+   "time": "14:41",
+   "move": -45,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-14",
+   "time": "13:22",
+   "move": -80,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "REFUSED \u2014 run starts before 13:30Z, outside POPGO's window"
+  },
+  {
+   "day": "2026-08-14",
+   "time": "14:13",
+   "move": -98,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  },
+  {
+   "day": "2026-08-14",
+   "time": "14:48",
+   "move": -48,
+   "fired": false,
+   "net": 0,
+   "dir_ok": false,
+   "why": "no trigger \u2014 no 1-min bar in the run's first 15 min cleared 2xATR closing on its extreme"
+  }
+ ],
+ "cap_sweep": {
+  "max_trades=3": {
+   "score": {
+    "n": 54,
+    "net": 5705.71,
+    "win": 40.7,
+    "per": 105.66,
+    "gross": 5849.71
+   },
+   "bmc": "2/16",
+   "bmc_net": 350.29
+  },
+  "max_trades=5": {
+   "score": {
+    "n": 59,
+    "net": 6292.86,
+    "win": 42.4,
+    "per": 106.66,
+    "gross": 6447.36
+   },
+   "bmc": "3/16",
+   "bmc_net": 382.79
+  },
+  "max_trades=8": {
+   "score": {
+    "n": 59,
+    "net": 6292.86,
+    "win": 42.4,
+    "per": 106.66,
+    "gross": 6447.36
+   },
+   "bmc": "3/16",
+   "bmc_net": 382.79
+  },
+  "max_trades=99": {
+   "score": {
+    "n": 59,
+    "net": 6292.86,
+    "win": 42.4,
+    "per": 106.66,
+    "gross": 6447.36
+   },
+   "bmc": "3/16",
+   "bmc_net": 382.79
+  }
+ },
+ "oos_bars": {
+  "days": 15,
+  "day_list": [
+   "2026-06-19",
+   "2026-06-22",
+   "2026-06-23",
+   "2026-06-24",
+   "2026-06-25",
+   "2026-06-26",
+   "2026-06-29",
+   "2026-06-30",
+   "2026-07-01",
+   "2026-07-02",
+   "2026-07-03",
+   "2026-07-20",
+   "2026-07-21",
+   "2026-07-22",
+   "2026-07-23"
+  ],
+  "score": {
+   "n": 37,
+   "net": 1807.29,
+   "win": 32.4,
+   "per": 48.85,
+   "gross": 1906.29
+  },
+  "by_day": {
+   "2026-06-22": {
+    "n": 3,
+    "net": -294.43,
+    "win": 0.0,
+    "per": -98.14,
+    "gross": -285.43
+   },
+   "2026-06-23": {
+    "n": 2,
+    "net": 131.5,
+    "win": 50.0,
+    "per": 65.75,
+    "gross": 137.5
+   },
+   "2026-06-24": {
+    "n": 3,
+    "net": -75.21,
+    "win": 33.3,
+    "per": -25.07,
+    "gross": -67.71
+   },
+   "2026-06-25": {
+    "n": 3,
+    "net": 1660.21,
+    "win": 66.7,
+    "per": 553.4,
+    "gross": 1666.21
+   },
+   "2026-06-26": {
+    "n": 3,
+    "net": 63.61,
+    "win": 33.3,
+    "per": 21.2,
+    "gross": 72.61
+   },
+   "2026-06-29": {
+    "n": 2,
+    "net": -258.64,
+    "win": 0.0,
+    "per": -129.32,
+    "gross": -252.64
+   },
+   "2026-06-30": {
+    "n": 3,
+    "net": 1202.0,
+    "win": 100.0,
+    "per": 400.67,
+    "gross": 1206.5
+   },
+   "2026-07-01": {
+    "n": 3,
+    "net": -407.0,
+    "win": 0.0,
+    "per": -135.67,
+    "gross": -398.0
+   },
+   "2026-07-02": {
+    "n": 2,
+    "net": -312.14,
+    "win": 0.0,
+    "per": -156.07,
+    "gross": -306.14
+   },
+   "2026-07-03": {
+    "n": 3,
+    "net": -52.0,
+    "win": 33.3,
+    "per": -17.33,
+    "gross": -44.5
+   },
+   "2026-07-20": {
+    "n": 2,
+    "net": 290.36,
+    "win": 50.0,
+    "per": 145.18,
+    "gross": 296.36
+   },
+   "2026-07-21": {
+    "n": 3,
+    "net": -254.79,
+    "win": 0.0,
+    "per": -84.93,
+    "gross": -245.79
+   },
+   "2026-07-22": {
+    "n": 3,
+    "net": 137.5,
+    "win": 33.3,
+    "per": 45.83,
+    "gross": 145.0
+   },
+   "2026-07-23": {
+    "n": 2,
+    "net": -23.68,
+    "win": 50.0,
+    "per": -11.84,
+    "gross": -17.68
+   }
+  }
+ }
+}

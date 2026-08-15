@@ -1,0 +1,200 @@
+[
+{
+"entry": 29798.25,
+"entry_sod": 49001,
+"exit": 29857.5,
+"exit_sod": 49027,
+"dir": -1,
+"pts": -59.25,
+"net": -120.0,
+"mfe": 1.75,
+"reason": "STOP",
+"held_s": 26,
+"day": "2026-07-06",
+"regime": "normal-chop",
+"atr": 33.55357142857143,
+"er": 0.08209538702111024,
+"stop_pt": 59.0,
+"sig_sod": 49000,
+"meta": {
+"rng": 118.0,
+"lvl": 29820.25
+}
+},
+{
+"entry": 29867.25,
+"entry_sod": 48651,
+"exit": 29927.5,
+"exit_sod": 49009,
+"dir": 1,
+"pts": 60.25,
+"net": 119.0,
+"mfe": 60.5,
+"reason": "TARGET",
+"held_s": 358,
+"day": "2026-07-10",
+"regime": "dead-chop",
+"atr": 14.75,
+"er": 0.16824644549763032,
+"stop_pt": 30.25,
+"sig_sod": 48650,
+"meta": {
+"rng": 60.5,
+"lvl": 29850.5
+}
+},
+{
+"entry": 28671.5,
+"entry_sod": 48691,
+"exit": 28629.125,
+"exit_sod": 48768,
+"dir": 1,
+"pts": -42.375,
+"net": -86.25,
+"mfe": 14.0,
+"reason": "STOP",
+"held_s": 77,
+"day": "2026-07-17",
+"regime": "normal-chop",
+"atr": 24.696428571428573,
+"er": 0.0507399577167019,
+"stop_pt": 42.125,
+"sig_sod": 48690,
+"meta": {
+"rng": 84.25,
+"lvl": 28665.75
+}
+},
+{
+"entry": 28375.25,
+"entry_sod": 48651,
+"exit": 28425.75,
+"exit_sod": 48919,
+"dir": -1,
+"pts": -50.5,
+"net": -102.5,
+"mfe": 62.25,
+"reason": "STOP",
+"held_s": 268,
+"day": "2026-08-03",
+"regime": "dead-chop",
+"atr": 19.571428571428573,
+"er": 0.15555555555555556,
+"stop_pt": 50.25,
+"sig_sod": 48650,
+"meta": {
+"rng": 100.5,
+"lvl": 28396.0
+}
+},
+{
+"entry": 29294.75,
+"entry_sod": 48646,
+"exit": 29393.5,
+"exit_sod": 48909,
+"dir": 1,
+"pts": 98.75,
+"net": 196.0,
+"mfe": 99.0,
+"reason": "TARGET",
+"held_s": 263,
+"day": "2026-08-04",
+"regime": "dead-chop",
+"atr": 19.214285714285715,
+"er": 0.17326057298772168,
+"stop_pt": 49.5,
+"sig_sod": 48645,
+"meta": {
+"rng": 99.0,
+"lvl": 29284.0
+}
+},
+{
+"entry": 29991.25,
+"entry_sod": 48621,
+"exit": 29949.75,
+"exit_sod": 48649,
+"dir": 1,
+"pts": -41.5,
+"net": -84.5,
+"mfe": 0.75,
+"reason": "STOP",
+"held_s": 28,
+"day": "2026-08-05",
+"regime": "building",
+"atr": 13.642857142857142,
+"er": 0.3164218958611482,
+"stop_pt": 41.25,
+"sig_sod": 48620,
+"meta": {
+"rng": 82.5,
+"lvl": 29978.25
+}
+},
+{
+"entry": 29829.75,
+"entry_sod": 48786,
+"exit": 29803.625,
+"exit_sod": 48840,
+"dir": 1,
+"pts": -26.125,
+"net": -53.75,
+"mfe": 11.5,
+"reason": "STOP",
+"held_s": 54,
+"day": "2026-08-10",
+"regime": "dead-chop",
+"atr": 19.357142857142858,
+"er": 0.16154873164218958,
+"stop_pt": 25.875,
+"sig_sod": 48785,
+"meta": {
+"rng": 51.75,
+"lvl": 29823.5
+}
+},
+{
+"entry": 29803.0,
+"entry_sod": 48606,
+"exit": 29764.25,
+"exit_sod": 48676,
+"dir": -1,
+"pts": 38.75,
+"net": 76.0,
+"mfe": 39.0,
+"reason": "TARGET",
+"held_s": 70,
+"day": "2026-08-11",
+"regime": "dead-chop",
+"atr": 9.25,
+"er": 0.0528169014084507,
+"stop_pt": 19.5,
+"sig_sod": 48605,
+"meta": {
+"rng": 39.0,
+"lvl": 29813.0
+}
+},
+{
+"entry": 30225.25,
+"entry_sod": 48791,
+"exit": 30173.5,
+"exit_sod": 49069,
+"dir": -1,
+"pts": 51.75,
+"net": 102.0,
+"mfe": 52.0,
+"reason": "TARGET",
+"held_s": 278,
+"day": "2026-08-14",
+"regime": "dead-chop",
+"atr": 15.982142857142858,
+"er": 0.1893687707641196,
+"stop_pt": 26.0,
+"sig_sod": 48790,
+"meta": {
+"rng": 52.0,
+"lvl": 30235.25
+}
+}
+]
