@@ -143,7 +143,9 @@ def test_chandelier_params_cover_every_chandelier_variant():
     for v in mgc_slate():
         if v.chandelier:
             # lock_r=99 -> the lock never engages -> a FLAT trail, expressed as tighten=0.0
-            assert cp[v.name] == (2.0, 2.0, 0.0), "gold must not inherit the MNQ tightening default"
+            # 4th element = the arm threshold (audit #13); MNQ variants stay 3-tuples.
+            assert cp[v.name] == (2.0, 2.0, 0.0, 2.0), \
+                "gold must not inherit the MNQ tightening default"
 
 
 def test_full_slate_with_chandelier_ab_instantiates_and_steps():

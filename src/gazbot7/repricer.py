@@ -29,7 +29,7 @@ class Quote(NamedTuple):
 
 
 def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float,
-            chand: tuple[float, float, float] | None = None):
+            chand: tuple[float, ...] | None = None):
     """Return (real_pnl, fill_status). ``trade`` is a shadow_trades row/dict with
     side, entry_atr, target_r, stop_atr_mult, qty. ``quotes`` span entry→exit.
     ``chand`` = (start_k, min_k, tighten) for the chandelier leg — each variant's own
@@ -49,7 +49,11 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
     stop = entry - r if side == "LONG" else entry + r
     chandelier = tr <= 0  # target_r=0 sentinel → ride the tightening chandelier, not a fixed target
     target = None if chandelier else (entry + tr * r if side == "LONG" else entry - tr * r)
-    sk, mk, tt = chand if chand is not None else (3.5, 0.5, 0.75)
+    # ★2026-08-15 (audit #13) chand may carry a 4th element, the arm threshold in ATR. Unpacked
+    # defensively so the MNQ 3-tuples are untouched: absent -> 0.0 -> arm immediately, as before.
+    _cp = chand if chand is not None else (3.5, 0.5, 0.75)
+    sk, mk, tt = _cp[0], _cp[1], _cp[2]
+    arm_k = _cp[3] if len(_cp) > 3 else 0.0
 
     peak = 0.0
     exit_px = None
@@ -62,7 +66,11 @@ def reprice(trade, quotes: list[Quote], *, value_per_point: float, fee_rt: float
             exit_px = q.bid if side == "LONG" else q.ask
             break
         if chandelier:
-            if _exit_chandelier(_Pos(side, entry, atr, peak), mid, start_k=sk, min_k=mk, tighten=tt):
+            # ★ the trail does not exist until the peak has earned it (audit #13). arm_k = 0.0 on
+            # every MNQ variant, so this is a no-op there.
+            armed = arm_k <= 0.0 or (atr > 0 and peak / atr >= arm_k)
+            if armed and _exit_chandelier(_Pos(side, entry, atr, peak), mid,
+                                          start_k=sk, min_k=mk, tighten=tt):
                 exit_px = q.bid if side == "LONG" else q.ask
                 break
         else:
@@ -94,7 +102,7 @@ def _quotes_for(cap_conn, symbol: str, lo_ms: int, hi_ms: int) -> list[Quote]:
 
 def reprice_pending(store, cap_conn, *, value_per_point: float, fee_rt: float,
                     tail_ms: int = 120_000, bar_s: int = 60,
-                    chand_params: dict[str, tuple[float, float, float]] | None = None) -> int:
+                    chand_params: dict[str, tuple[float, ...]] | None = None) -> int:
     """Reprice every shadow_trade not yet in shadow_real, using captured quotes.
     Returns how many were newly repriced.
 

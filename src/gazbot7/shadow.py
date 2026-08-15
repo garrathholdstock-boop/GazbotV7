@@ -66,6 +66,11 @@ class ShadowVariant:
     # chand_lock: use the loose-THEN-LOCK chandelier (exit_chandelier_lock) instead of the tightening
     # one. Needed for fidelity: live grind_long_B runs exit="chandelier_lock", and mirroring it with the
     # tightening chandelier would model a different desk.
+    # ★2026-08-15 (audit #13). gf_MGC.md: "mine requires the peak to reach 2.0 ATR before the trail
+    # arms at all, whereas exit_chandelier_lock effectively arms as soon as the peak clears the
+    # give-back ... if you want an exact mirror the ShadowVariant needs one new field — chand_arm_k".
+    # 0.0 = arm immediately, which is the existing behaviour for every MNQ variant.
+    chand_arm_k: float = 0.0
     chand_lock: bool = False
     lock_r: float = 6.0
     lock_k: float = 0.5
@@ -352,10 +357,17 @@ class ShadowSim:
         # desk + the backtest) — the early risk cuts would choke the ride, so they only
         # apply to the fixed-R-target variants.
         if v.chandelier:
-            fired = (exit_chandelier_lock(pos, f.price, start_k=v.chand_start_k,
-                                          lock_r=v.lock_r, lock_k=v.lock_k) if v.chand_lock
-                     else exit_chandelier(pos, f.price, start_k=v.chand_start_k,
-                                          min_k=0.5, tighten=v.chand_tighten))
+            # ★2026-08-15 (audit #13) THE ARM THRESHOLD. gf_MGC's exit does not trail at all until
+            # the peak has reached chand_arm_k x ATR; exit_chandelier_lock would otherwise start
+            # trailing the moment the peak clears the give-back. Default 0.0 = arm immediately, so
+            # every MNQ variant behaves exactly as before.
+            armed = (v.chand_arm_k <= 0.0
+                     or (op["entry_atr"] > 0
+                         and op["peak"] / op["entry_atr"] >= v.chand_arm_k))
+            fired = armed and (exit_chandelier_lock(pos, f.price, start_k=v.chand_start_k,
+                                                    lock_r=v.lock_r, lock_k=v.lock_k) if v.chand_lock
+                               else exit_chandelier(pos, f.price, start_k=v.chand_start_k,
+                                                    min_k=0.5, tighten=v.chand_tighten))
             reason = "CHANDELIER" if fired else exit_scalp(
                 pos, f.price, target_r=99.0, stop_atr_mult=v.stop_atr_mult)  # target off; STOP only
         else:
@@ -448,7 +460,8 @@ RETIRED: frozenset = frozenset({
 
 # ── the research slate ────────────────────────────────────────────────────────
 MGC_EXIT = dict(stop_atr_mult=3.0, chandelier=True, chand_lock=True,
-                chand_start_k=2.0, lock_r=99.0, lock_k=2.0, time_cap_s=480 * 60)
+                chand_start_k=2.0, chand_arm_k=2.0, lock_r=99.0, lock_k=2.0,
+                time_cap_s=480 * 60)
 # ★★ THE EXIT IS THE FINDING, not a default. All four gold cells want a WIDE CHANDELIER and a
 # SINGLE LOT: the tight scalp is NEGATIVE on both survivors at 1R, the dual slot has Lot A cancel
 # Lot B, and a time cap's headline is a long-drift artefact. This is the OPPOSITE of the live MNQ
@@ -465,6 +478,16 @@ def mgc_slate() -> list[ShadowVariant]:
     instead of $7.50 — depending on which called first. A RACE, silent, and 5x wrong.
     """
     return [
+        # ★★2026-08-15 (audit #12) THE CONTROL ARM, which the spec ships and I had omitted:
+        # gf_MGC.md — "without it the book cut cannot be attributed, and attributing a filter to
+        # itself is how the router-filtered gold attack fooled us in August." Same trigger, same
+        # exit, NO book condition. If the two hole arms do not beat this one, the book is decorative
+        # and the whole thesis is wrong. It is also the arm that would have exposed the 1.82x
+        # over-admission the audit found in #3.
+        ShadowVariant("mgc_break_fade_nobook", "level_break", symbol="MGC", side="",
+                      params={"look_min": 60, "margin_atr": 0.10, "fade": True,
+                              "book_band_pt": 1.0, "require_book": False,
+                              "cooldown_min": 45}, **MGC_EXIT),
         ShadowVariant("mgc_holebreak_fade_long", "level_break", symbol="MGC", side="LONG",
                       params={"look_min": 60, "margin_atr": 0.10, "fade": True,
                               "book_band_pt": 1.0, "obstacle_max": 0,
@@ -844,8 +867,11 @@ def chandelier_params() -> dict[str, tuple[float, float, float]]:
         if v.chandelier:
             # lock_r >= 99 means the profit lock never engages -> a constant chand_start_k trail.
             flat = v.chand_lock and v.lock_r >= 99.0
-            out[v.name] = ((v.chand_start_k, v.chand_start_k, 0.0) if flat
-                           else (v.chand_start_k, v.lock_k, v.chand_tighten))
+            base = ((v.chand_start_k, v.chand_start_k, 0.0) if flat
+                    else (v.chand_start_k, v.lock_k, v.chand_tighten))
+            # ★ 4th element = the arm threshold (audit #13). Appended rather than inserted so every
+            # existing 3-tuple caller keeps working; the repricer unpacks defensively.
+            out[v.name] = base + (v.chand_arm_k,) if v.chand_arm_k > 0 else base
     return out
 
 
@@ -917,7 +943,20 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                     # A/B arms built today — were being fed corrupt features from 17:30 onward.
                     if body.get("symbol") != cfg.symbol:
                         continue
+                    _n_before = len(mb.bars())
                     mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
+                    # ★★2026-08-15 (audit #10) DRIVE OFF OUR OWN BARS WHEN WE HAVE A BOOK.
+                    # md publishes T_TAPE tagged with ITS OWN symbol (MNQ) and shadow.py never
+                    # filtered it, so gold's decision clock was MNQ's tape: an MNQ-only tape outage
+                    # froze the gold shadow silently while MGC bars kept arriving. When a depth feed
+                    # is attached we step on OUR completed bars instead, which is also the natural
+                    # cadence now that level_break decides once per bar.
+                    if depth is not None and len(mb.bars()) > _n_before:
+                        _bs = mb.bars()
+                        if len(_bs) >= 6:
+                            _t = _bs[-1].ts * 1000
+                            sim.on_bars(_bs, now_ms=_t, in_rth=True,
+                                        book=depth.book_at(_t))
                 elif topic == T_TAPE:
                     now_ms = body.get("ts_ms")
                     bars = mb.bars()
@@ -925,7 +964,9 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                         capft = capitulation_tape(cap, cfg.symbol, now_ms) if now_ms else {}
                         # ★2026-08-15 the book, for the MGC level-break gates. None on the MNQ
                         # instance (depth=None); every gate needing it then fails closed.
-                        bk = depth.book_at(now_ms) if (depth is not None and now_ms) else None
+                        if depth is not None:
+                            continue          # gold steps on its own bars above, not on MNQ's tape
+                        bk = None
                         sim.on_bars(bars, tape_net=body.get("net_flow", 0.0),
                                     window_price_delta=body.get("win_price_delta", 0.0),
                                     in_rth=body.get("in_rth", True), now_ms=now_ms, cap=capft,

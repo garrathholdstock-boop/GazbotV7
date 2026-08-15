@@ -131,7 +131,11 @@ def test_NO_BOOK_MEANS_NO_TRADE():
 def test_gold_costs_are_not_MNQs():
     """$7.50/RT, not $1.50 — gold crosses the spread on BOTH legs. Applying the true cost killed the
     coil bouncer outright (+$470 -> -$454)."""
-    assert (MGC_VPP, MGC_FEE_RT) == (10.0, 7.50)
+    # ★2026-08-15 corrected 7.50 -> 4.50 (audit #9). A round trip crosses the 0.30pt spread ONCE
+    # (0.15 out of mid each leg) = $3.00, + $1.50 commission. The old 0.30 x 2 x $10 double-counted
+    # it, and that error is what made the coil bouncer read as dead. This value is for MID-priced
+    # harnesses only; the repricer already crosses and takes REPRICER_FEE_RT = 1.50.
+    assert (MGC_VPP, MGC_FEE_RT) == (10.0, 4.50)
 
 
 # ── the depth feed ───────────────────────────────────────────────────────────
@@ -193,8 +197,15 @@ def test_the_wrong_symbol_returns_nothing(tmp_path):
 def test_the_mgc_slate_is_two_gates_with_the_gold_exit():
     from gazbot7.shadow import mgc_slate
     sl = mgc_slate()
-    assert [v.name for v in sl] == ["mgc_holebreak_fade_long", "mgc_holebreak_fade_short"]
-    for v in sl:
+    # The no-book CONTROL arm ships alongside the two candidates (audit #12): without it the book
+    # cut cannot be attributed, and attributing a filter to itself is how the router-filtered gold
+    # attack fooled us. It is expected to LOSE — that is the point of it.
+    assert [v.name for v in sl] == ["mgc_break_fade_nobook",
+                                    "mgc_holebreak_fade_long", "mgc_holebreak_fade_short"]
+    ctl = [v for v in sl if v.name == "mgc_break_fade_nobook"]
+    assert len(ctl) == 1 and ctl[0].params["require_book"] is False
+    assert "obstacle_max" not in ctl[0].params, "the control must NOT carry the book cut"
+    for v in [v for v in sl if v.name != "mgc_break_fade_nobook"]:
         assert v.symbol == "MGC" and v.gate == "level_break"
         # the exit IS the finding: wide chandelier, single lot, no profit lock
         assert v.chandelier is True and v.qty == 1.0 and v.stop_atr_mult == 3.0
@@ -290,10 +301,13 @@ def test_one_decision_per_BAR_not_per_tape_message(tmp_path):
     walled = {f"{s}{k}{f}": 0.0 for s in ("bid", "ask") for k in range(1, 11) for f in ("p", "s")}
     walled.update(ask1p=3001.0, ask1s=50.0, bid1p=3004.0, bid1s=6.0)   # a WALL: no trade
     sim.on_bars(mb.bars(), now_ms=t * 1000, book=walled)
-    assert not sim._open
+    # The no-book CONTROL arm trades the bare trigger and is SUPPOSED to enter here — that is what
+    # makes it a control. Only the hole arms must refuse a WALL.
+    assert not [k for k in sim._open if k != "mgc_break_fade_nobook"]
     empty = dict(walled); empty.update(ask1p=0.0, ask1s=0.0)           # book clears 30s later
     sim.on_bars(mb.bars(), now_ms=t * 1000 + 30_000, book=empty)
-    assert not sim._open, "re-decided the same bar on a later book — finding #3 is back"
+    assert not [k for k in sim._open if k != "mgc_break_fade_nobook"], \
+        "re-decided the same bar on a later book — finding #3 is back"
 
 
 def test_the_45_minute_cooldown_is_enforced(tmp_path):
@@ -309,7 +323,8 @@ def test_the_45_minute_cooldown_is_enforced(tmp_path):
     book = {f"{s}{k}{f}": 0.0 for s in ("bid", "ask") for k in range(1, 11) for f in ("p", "s")}
     book.update(bid1p=3004.0, bid1s=6.0)
     sim.on_bars(mb.bars(), now_ms=t * 1000, book=book)
-    assert not sim._open, "entered inside the 45-minute cooldown"
+    assert not [k for k in sim._open if k != "mgc_break_fade_nobook"], \
+        "entered inside the 45-minute cooldown"
     assert v.params.get("cooldown_min", 45) == 45
 
 
@@ -322,7 +337,8 @@ def test_the_repricer_replays_the_GOLD_trail(tmp_path):
     p = chandelier_params()
     for n in ("mgc_holebreak_fade_long", "mgc_holebreak_fade_short"):
         assert n in p, "MGC missing -> repricer silently uses the MNQ 3.5 tightening default"
-        start_k, min_k, tighten = p[n]
+        start_k, min_k, tighten = p[n][:3]
+        assert p[n][3] == 2.0, "the gold trail must not arm before peak >= 2 ATR (audit #13)"
         assert (start_k, min_k, tighten) == (2.0, 2.0, 0.0), "must be a FLAT 2.0xATR trail"
 
 
@@ -334,7 +350,10 @@ def test_the_repricer_is_not_charged_the_spread_twice():
     from gazbot7.levelbreak import MGC_FEE_RT
     from gazbot7.shadow_mgc import REPRICER_FEE_RT, mgc_cfg
     assert REPRICER_FEE_RT == 1.50 and mgc_cfg().fee_rt == 1.50
-    assert MGC_FEE_RT == 7.50, "the mid-priced constant stays 7.50 — they are not interchangeable"
+    # ★ corrected 7.50 -> 4.50 (audit #9): a round trip crosses the 0.30pt spread ONCE, not twice.
+    # The point this test defends is unchanged — the two constants are NOT interchangeable, because
+    # the repricer has already crossed and MGC_FEE_RT is for mid-priced harnesses only.
+    assert MGC_FEE_RT == 4.50 and MGC_FEE_RT != REPRICER_FEE_RT
 
 
 def test_the_gold_store_is_backed_up_and_inventoried():
@@ -343,3 +362,39 @@ def test_the_gold_store_is_backed_up_and_inventoried():
     really exist, and an empty table pages nobody."""
     assert "shadow_mgc.db" in open("scripts/cloud_backup.py").read()
     assert "shadow_mgc.db" in open("scripts/data_inventory.py").read()
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# AUDIT #12 / #13 — the control arm, and the chandelier arm threshold
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+def test_the_control_arm_TRADES_where_the_hole_arms_refuse():
+    """The whole value of `mgc_break_fade_nobook` is that it fires on breaks the book cut REJECTS.
+
+    If it silently inherited the book condition it would produce the same trades as the candidates
+    and the comparison would be a filter vouching for itself — which is precisely how the
+    router-filtered gold attack fooled us. So this asserts DIVERGENCE, not merely that it runs.
+    """
+    from gazbot7.levelbreak import gate_level_break
+
+    hi = [100.0] * 60 + [104.0]
+    lo = [99.0] * 60 + [103.0]
+    cl = [100.0] * 60 + [104.0]            # closes above its own 60-bar extreme -> UP break
+    wall = {f"{s}{k}{f}": 0.0 for s in ("bid", "ask") for k in range(1, 11) for f in ("p", "s")}
+    wall.update(ask1p=100.5, ask1s=40.0)   # size sitting IN THE PATH -> not a hole
+
+    assert gate_level_break(hi, lo, cl, 1.0, wall, obstacle_max=0) is None
+    assert gate_level_break(hi, lo, cl, 1.0, wall, require_book=False) == "SHORT"
+    # and with no book at all it must still take the fade, where a candidate fails closed
+    assert gate_level_break(hi, lo, cl, 1.0, None, obstacle_max=0) is None
+    assert gate_level_break(hi, lo, cl, 1.0, None, require_book=False) == "SHORT"
+
+
+def test_chand_arm_k_holds_the_trail_until_the_peak_earns_it():
+    """gf_MGC's exit requires peak >= 2.0 ATR BEFORE the trail arms; exit_chandelier_lock arms as
+    soon as the peak clears the give-back. The spec's own remedy was a `chand_arm_k` field, so this
+    pins that the field is carried and is what the MGC slate ships."""
+    from gazbot7.shadow import ShadowVariant, mgc_slate
+
+    assert all(v.chand_arm_k == 2.0 for v in mgc_slate()), "the gold exit must not arm early"
+    assert ShadowVariant("x", "level_break").chand_arm_k == 0.0, \
+        "MNQ variants must be unaffected — 0.0 is arm-immediately, the pre-existing behaviour"

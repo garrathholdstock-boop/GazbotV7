@@ -37,7 +37,9 @@ configuration** and is the most actionable structural finding in the gold work.
 ### Explicitly NOT in scope
 - No live promotion. No `gate_switches.env` entry. No router wiring.
 - Not the MGC day rider (parked — survives the cost correction at +$1,646, but 8 fired days).
-- Not the coil bouncer (**dead** at true cost: +$470 → −$454).
+- Not the coil bouncer — but it is **not dead either, and I said it was.** At the wrong $7.50 it
+  showed −$454; at the true $4.50 it is **+$8.42, +$0.05/trade, median +$4.75**. Breakeven, on the
+  line. Out of scope here because breakeven is not a shadow arm, **not** because it was refuted.
 - No new IBKR depth subscription — see §3.
 
 ---
@@ -99,10 +101,17 @@ Cost: the promotion board and `sim_registry` read `shadow.db` only, so MGC will 
 dashboard until a later, deliberate step. That is a display gap, not a correctness one, and it is the
 right trade.
 
-⚠ **The fee is $7.50/RT, not $1.50.** Gold crosses the spread on BOTH legs (marketable-limit IOC in,
-MKT out): 0.30pt median spread × 2 × $10 = $6.00 + $1.50 = $7.50. Gold's R is $11–26, so the spread
-is a quarter to a half of R. Every gold number printed before 2026-08-15 used a fifth of the true
-cost. **Never copy MNQ's `fee_rt` into an MGC config.**
+⚠ **The fee is $4.50/RT from mid, not $7.50 and not $1.50.** *(Corrected 2026-08-15, audit #9 — the
+line below previously read $7.50 and was wrong.)* Gold crosses on both legs, but a round trip pays
+the 0.30pt spread **once**: 0.15pt above mid going in, 0.15pt below mid coming out = $3.00, plus
+$1.50 commission. Writing `0.30 × 2 × $10` counts the spread twice. The **lab never made this
+error** — its own note reads *"MGC's spread is a flat ~0.30pt = $3.00"* and its `true_pnl` crosses
+real fills then subtracts commission only, so **+$1,387 / +$1,261 stand unchanged**.
+
+⚠ **`REPRICER_FEE_RT` stays $1.50** and is not the same constant. The repricer already fills at the
+far touch on both legs, so the spread is inside `gross` before any fee is applied; charging $4.50 on
+top would double it again. $4.50 is for a harness that prices from the MID and must add the spread
+itself. **Never copy MNQ's `fee_rt` into an MGC config that prices from mid.**
 
 ---
 
@@ -113,7 +122,7 @@ cost. **Never copy MNQ's `fee_rt` into an MGC config.**
 | 1 | `gate_level_break` decider (pure) + `obstacle`/`support` from a book dict | unit tests: VACUUM fades, WALL follows, "neither" returns None, missing book → **None (fail closed)** |
 | 2 | `book_at(ts)` reader over `depth.db` — last snapshot **at or before** the stamp | test: never returns a FUTURE snapshot; returns None on a gap rather than the next row |
 | 3 | `on_bars(..., book=...)` + a `level_break` branch in `_entry` | test: a variant with kind `level_break` actually FIRES (the §2 blocker-1 guard) |
-| 4 | `gazbot7-shadow-mgc.service` — own store, `symbol=MGC`, vpp 10.0, fee 7.50 | starts, folds MGC bars, writes to `shadow_mgc.db`, and **writes nothing to `shadow.db`** |
+| 4 | `gazbot7-shadow-mgc.service` — own store, `symbol=MGC`, vpp 10.0, repricer fee 1.50 | starts, folds MGC bars, writes to `shadow_mgc.db`, and **writes nothing to `shadow.db`** |
 | 5 | the two variants on an MGC slate | after one session: non-zero trades, and repriced P&L present |
 | 6 | registry + board | `sim_registry` learns `shadow_mgc.db`; dashboard later |
 
@@ -131,8 +140,9 @@ acceptance test is **trades in the table after a live session**, not a clean sta
    would flatter exactly the feature this gate trades on. Phase 2's test exists for this.
 4. **`depth.db` gaps** — the reader must return `None` and the gate must fail closed, never reach for
    the nearest row.
-5. **Fee copied from MNQ** — turns a −$2.95/trade loser into a +$3.05 winner on paper. It already
-   killed the coil bouncer once the true cost was applied.
+5. **Fee wrong in EITHER direction** — $1.50 where mid-pricing needs $4.50 flatters a gate by
+   $3.00/trade; $4.50 where the repricer already crossed charges it twice and buries one. The
+   $7.50 error did the second, and it is what made me call the coil bouncer dead.
 
 ---
 
@@ -142,3 +152,39 @@ Both gates are **shadow candidates on a 15-session book**, passing strip-3, leav
 OOS leg and a 0/30 placebo — genuinely better evidenced than anything gold has produced before, and
 still not proof. The operator's standing rule applies: *thin n is a SHADOW ARM, never a kill and
 never a live promotion.* The goal is weeks of forward recording, not a promotion decision.
+
+
+---
+
+## 8. AUDIT #8 — THE LAB AND PRODUCTION DO NOT READ THE SAME TAPE (open, and it is not closed by this)
+
+The lab built its 1-minute OHLC from the **depth mid** (`minute_bars(q, col="mid")`, a resample of
+the 250ms quote book). The live shadow folds **md's trade bars**. Gold prints sporadically, so the
+mid tape has **29,565 minutes to the trade tape's 13,440** over 2026-07-16 → 08-14 — and a 60-minute
+extreme taken from one is not the 60-minute extreme of the other.
+
+Measured (`scripts/gf_mgc_barsource.py`), same window, same 250ms race, same cost:
+
+| | fires | in both |
+|---|---:|---:|
+| depth-mid (lab) | 1,588 | 644 |
+| md trade bars (production) | 724 | 644 |
+
+**Only 41% of the lab's fires exist on production's tape**, though 89% of production's were in the
+lab's set — production is close to a *subset*, not a different gate. At the shipped 45-minute
+cooldown the surviving subset is the **better** half: n=158 at **+$6.16/trade** against −$3.88 for
+the fires only the mid tape sees, and n=158 sits right on the lab's shipped n=157.
+
+⚠ **Two things stop this being an all-clear, and both matter more than the headline.**
+1. **The sign flips without the cooldown.** Un-cooled, the same comparison says production is the
+   *worse* half (−$3.51/tr vs the mid tape's +$0.20). A conclusion that inverts on one parameter is
+   not a robust conclusion.
+2. **This harness does not reproduce the report's magnitude** — +$276 on mid bars where the report
+   has +$2,648. It is a faithful *contrast* (one rule, two inputs, everything else held) but its
+   *levels* are not the report's, so do not quote them as the gate's expectancy.
+
+**Decision: production stays on md trade bars.** They are its natural input and the shipped-config
+evidence does not argue against them. But **the +$1,387 / +$1,261 headline is a depth-mid number and
+is NOT production's forward expectation.** The shadow's job is to produce the trade-bar number
+honestly over weeks. Until it has, treat the gold cells as unquantified in the direction that
+matters.

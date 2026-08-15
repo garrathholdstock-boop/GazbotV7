@@ -26,11 +26,12 @@ That last row is a finding, not a gap: both directions lose when the book has no
 break level is ONE LOT. A break either clears what is there or it does not. In MNQ depth the same
 mechanic washes out.
 
-⚠ COST. A gold round trip is $7.50, not $1.50: the desk enters marketable-limit IOC (crosses) and
-exits MKT (crosses again), so BOTH legs pay the 0.30pt median spread — 0.30 x 2 x $10 + $1.50. Gold's
-R is $11-26, so the spread is a quarter to a half of R. Every gold number printed before 2026-08-15
-used a fifth of the true cost, and applying it killed the coil bouncer outright (+$470 -> -$454).
-NEVER copy MNQ's $1.50 into a gold config.
+⚠ COST. A gold round trip is $4.50 from mid, not $1.50: the desk enters marketable-limit IOC
+(crosses) and exits MKT (crosses again), so the round trip pays the 0.30pt median spread ONCE —
+0.15pt above mid in, 0.15pt below mid out = $3.00 — plus $1.50 commission. Gold's
+R is $11-26, so the spread is a fifth to a quarter of R. Every gold number printed before 2026-08-15
+used commission only, which understates the true cost by $3.00 a trade.
+NEVER copy MNQ's $1.50 into a gold config that prices from mid.
 
 ⚠ RESOLUTION. This was built ON `depth.db`, a 250ms sample — MGC has no 41ms feed and there is no
 free IBKR depth subscription. So shadow tests whether it holds FORWARD IN TIME; it cannot test
@@ -43,7 +44,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 MGC_VPP = 10.0          # $ per point. NOT MNQ's 2.0.
-MGC_FEE_RT = 7.50       # $ per round trip, spread-inclusive. NOT MNQ's 1.50.
+# ★★2026-08-15 CORRECTED 7.50 -> 4.50 (audit #9). Crossing a 0.30pt spread costs 0.30pt PER ROUND
+# TRIP — 0.15 above mid entering, 0.15 below mid exiting — i.e. $3.00, not $6.00. The report and the
+# first scope wrote 0.30 x 2 x $10 and counted the spread twice. The LAB never made this error: its
+# own note reads "MGC's spread is a flat ~0.30pt = $3.00", and its true_pnl crosses real fills and
+# then subtracts commission only, which is why +$1,387 / +$1,261 are unaffected.
+# ⚠ CONSEQUENCE OF THE ERROR: the coil bouncer was declared DEAD at $7.50 (-$454). At the true $4.50
+# it is +$8.42, +$0.05/trade — breakeven, on the line, not refuted.
+MGC_FEE_RT = 4.50       # $ per round trip from MID: $3.00 of spread + $1.50 commission.
 LEVELS = 10             # depth_snap carries bid1..bid10 / ask1..ask10
 
 
@@ -123,7 +131,8 @@ def gate_level_break(highs, lows, closes, atr: float, book: dict | None, *,
                      look_min: int = 60, margin_atr: float = 0.10, fade: bool = True,
                      book_band_pt: float = 1.0, obstacle_max: float | None = None,
                      support_max: float | None = None,
-                     require_obstacle_gt_support: bool = False) -> str | None:
+                     require_obstacle_gt_support: bool = False,
+                     require_book: bool = True) -> str | None:
     """Return "LONG" / "SHORT" to trade, or None.
 
     `fade=True` trades AGAINST the break (the two surviving reversion cells); `fade=False` with it
@@ -133,13 +142,23 @@ def gate_level_break(highs, lows, closes, atr: float, book: dict | None, *,
     decision. The book condition IS the gate: without it the same trigger is the plain extension
     trigger, which loses -$3.60 to -$5.49 a trade in EVERY cell and BOTH directions at the true cost.
     Failing open here would silently convert a tested edge into a known loser.
+
+    `require_book=False` is the ONE exception and it exists for exactly one caller: the
+    `mgc_break_fade_nobook` CONTROL arm, which must trade the bare trigger so the book cut can be
+    ATTRIBUTED rather than assumed. It is a measuring instrument, not a candidate — it is expected to
+    lose, and the two hole arms failing to beat it would refute the whole thesis. Never set it on a
+    variant intended for promotion.
     """
     hit = detect_break(highs, lows, closes, atr, look_min=look_min, margin_atr=margin_atr)
     if hit is None:
         return None
     brk, level = hit
     if book is None:
-        return None
+        # The control arm still needs the trigger's direction, so it skips the book rather than
+        # failing closed. Every other caller stops here.
+        return ("LONG" if (-brk if fade else brk) > 0 else "SHORT") if not require_book else None
+    if not require_book:
+        return "LONG" if (-brk if fade else brk) > 0 else "SHORT"
     b = read_book(book, brk, level, book_band_pt)
     if obstacle_max is not None and b.obstacle > obstacle_max:
         return None

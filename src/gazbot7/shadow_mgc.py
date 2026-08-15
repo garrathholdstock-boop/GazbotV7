@@ -33,10 +33,19 @@ against a silent 5x pricing error.
   3. `extras=False` — the session breaker and FootprintShadow are MNQ-specific (the footprint reads
      capture.db's tick+book loop, which has no MGC depth at all).
 
-★ COSTS ARE GOLD'S, NOT MNQ'S: $10.00/point and $7.50 per round trip. The fee is spread-inclusive —
-the desk crosses on BOTH legs (marketable-limit IOC in, MKT out) at a 0.30pt median spread. Gold's R
-is $11-26, so the spread is a quarter to a half of R. Every gold number printed before 2026-08-15
-used a fifth of the true cost; applying it killed the coil bouncer outright (+$470 -> -$454).
+★ COSTS ARE GOLD'S, NOT MNQ'S: $10.00/point, and TWO different fee constants that are not
+interchangeable. `MGC_FEE_RT` = $4.50 is the all-in cost FROM MID ($3.00 of spread + $1.50
+commission) for a harness that fills at the mid. `REPRICER_FEE_RT` = $1.50 is commission ONLY,
+because repricer.py already fills at the far touch on both legs and the spread is inside `gross`.
+⚠ Both were wrong on 2026-08-15 before the audit: MGC_FEE_RT read $7.50, which counted the 0.30pt
+spread twice (a round trip crosses it ONCE — 0.15 out of mid each leg). That error is what made me
+report the coil bouncer as dead (-$454); at the true cost it is +$8.42, i.e. breakeven.
+
+⚠⚠ THE HEADLINE NUMBERS ARE NOT THIS SERVICE'S EXPECTATION. The lab measured on 1-min bars built
+from the DEPTH MID; this service folds md's TRADE bars, and gold prints sparsely enough that only
+41% of the lab's break fires exist on the trade tape at all. See MGC_SHADOW_SCOPE.md 8. Trade bars
+are the right input and the shipped-config evidence mildly favours them, but +$1,387 / +$1,261 are
+depth-mid numbers. The whole point of this service is to produce the trade-bar number.
 """
 
 from __future__ import annotations
@@ -72,8 +81,8 @@ BAR_LOOKBACK = 120
 # LONG cell's edge and 40% of the SHORT's, in the direction that makes a winner look dead.
 # The research's own `true_pnl` is crossed fills MINUS $1.50, and that is where +$1,387 / +$19.27
 # come from. So the REPRICER gets commission only.
-# ⚠ MGC_FEE_RT ($7.50) remains correct for any harness that fills at the MID and must add the spread
-# itself. The two constants are not interchangeable — which is why they are named apart.
+# ⚠ MGC_FEE_RT ($4.50, corrected from $7.50) remains correct for any harness that fills at the MID
+# and must add the spread itself. The two constants are not interchangeable — hence the names.
 REPRICER_FEE_RT = 1.50
 
 

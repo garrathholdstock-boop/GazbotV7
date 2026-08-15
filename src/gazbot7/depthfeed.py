@@ -56,11 +56,18 @@ class DepthFeed:
         if c is None:
             return None
         try:
-            row = c.execute(
+            # ★2026-08-15 (audit #11) TAKE THE LAST *CLEAN* SNAPSHOT, not merely the last one.
+            # The research query filtered `bid1p>0 AND ask1p>0 AND ask1p-bid1p BETWEEN 0 AND 5` in
+            # SQL, so a torn newest row was skipped and the previous good one used. Returning None
+            # on a torn row instead would drop 0.16% of decisions the research kept — a small,
+            # one-directional divergence from the measured population, and free to remove.
+            rows = c.execute(
                 f"SELECT ts_ms, {self._cols} FROM depth_snap "
-                f"WHERE symbol=? AND ts_ms<=? ORDER BY ts_ms DESC LIMIT 1",
-                (self._symbol, int(ts_ms)),
-            ).fetchone()
+                f"WHERE symbol=? AND ts_ms<=? AND bid1p>0 AND ask1p>0 "
+                f"AND ask1p-bid1p BETWEEN 0 AND ? ORDER BY ts_ms DESC LIMIT 1",
+                (self._symbol, int(ts_ms), MAX_SPREAD_PT),
+            ).fetchall()
+            row = rows[0] if rows else None
         except Exception:
             return None
         if row is None:
