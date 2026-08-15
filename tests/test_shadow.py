@@ -148,7 +148,10 @@ def test_full_slate_with_chandelier_ab_instantiates_and_steps():
     assert "capit_live_mirror" in names               # live capitulation has a twin again
     # a variant whose gate has no ShadowSim._entry branch would silently NEVER FIRE — guard it
     # ★2026-08-08 + "clock_rider": the Open Rider, the first variant here with no signal at all.
-    assert {v.gate for v in slate} <= {"thrust", "reversal_grab", "capitulation", "grind",
+    # ★2026-08-15 + "board": the pooled sat-out run-catcher (rider_w5). This set is the guard
+    # against a variant naming a kind ShadowSim._entry cannot dispatch — its `else: e = None`
+    # would make such a variant a permanent SILENT no-op.
+    assert {v.gate for v in slate} <= {"thrust", "reversal_grab", "capitulation", "grind", "board",
                                        "clock_rider"}
     # ★2026-08-08 the four Open Rider arms (cadence x stop width, shadow only). Drop one and it has
     # been silently retired, at which point the 2x2 is no longer a comparison.

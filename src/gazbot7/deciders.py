@@ -482,6 +482,41 @@ NIPC_DEAD_ER15 = 0.35
 NIPC_ER15_BARS = 15               # ER over the trailing 15 one-minute closes
 
 
+
+# ── GF RIDER — board a move already underway (2026-08-15) ─────────────────────────────────────
+# From the weekend's pooled sat-out hunt. The census found 68 MNQ runs >=1.5xATR in the week to
+# 08-14; we were on EIGHT and sat out SIXTY worth $8,025 of one-lot ceiling. This is the entry that
+# boards them: 59 of the 60 were boardable a median SEVEN MINUTES in with 93% of the move still
+# ahead, so detection was never the problem.
+#
+# ★ IT PREDICTS NOTHING. If the last w minutes have covered >= k*ATR net in one direction, take that
+# direction. Two-sided, direction-agnostic, cluster-blind. It fires ~337 times a session — roughly
+# 25x more often than a run happens — and that is BY DESIGN: the money comes from the wide stop and
+# the session window, not from being selective.
+#
+# ★★ THE SESSION WINDOW IS NOT A TUNING PARAMETER, IT IS THE STRATEGY. Unfiltered the edge is
+# $2.15/trade and strips to -$4; inside 13:00-20:00Z it is $33.44/trade, PF 1.52, strip-3 +$6,758.
+# Overnight is an edge VACUUM: -$197 over 603 fires. A same-size random cut scores $1.19/trade
+# (p95 $5.89) against the real cut's $33.44 — so it is the clock, not luck.
+#
+# ⚠ DO NOT add an ER / structure-break / extension filter. All three FAIL their placebo, and the ER
+# floors alone discard $18,668-$23,448 of winners.
+def gate_board(f: Features, *, k: float = 2.0, w: int = 5,
+               hh_lo: float = 13.0, hh_hi: float = 20.0, utc_hour: float = -1.0) -> Entry | None:
+    """Board a move already underway. `utc_hour` MUST be supplied by the caller.
+
+    ⚠ utc_hour defaults to -1.0 (never inside any window) ON PURPOSE. The session filter carries the
+    entire edge, so a caller that forgets to pass the clock must trade NOTHING rather than trade
+    around it — fail closed, never open.
+    """
+    net = f.net_atr_2 if w == 2 else f.net_atr_5
+    if abs(net) < k:
+        return None
+    if not (hh_lo <= utc_hour < hh_hi):
+        return None
+    return Entry(side="LONG" if net > 0 else "SHORT", gate="board")
+
+
 def nipc_in_window(ts_ms: int) -> bool:
     """True inside the 13:00–15:00 UTC news window (the only time NIPC arms)."""
     sod = (ts_ms // 1000) % 86400

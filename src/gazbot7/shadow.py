@@ -23,6 +23,7 @@ import time
 from dataclasses import dataclass, field
 
 from .deciders import (
+    gate_board,
     REVERSAL_SHORT_VARIANTS,
     Bar,
     Entry,
@@ -240,6 +241,10 @@ class ShadowSim:
                                   cap_flip=cap.get("flip", False), **v.params)
         elif v.gate == "grind":
             e = gate_grind(f, tape_net=tape_net, **v.params)
+        elif v.gate == "board":
+            # ★2026-08-15 the pooled sat-out run-catcher. The clock comes from `ts`, not Features —
+            # Features carries no hour, and gate_board fails CLOSED without one.
+            e = gate_board(f, utc_hour=(ts % 86400) / 3600.0, **v.params)
         else:
             e = None
         if e is not None and v.side and e.side != v.side:
@@ -507,6 +512,22 @@ def default_slate() -> list[ShadowVariant]:
     slate += _stop_width_ab()
     slate += _clip_ab()
     slate += _open_rider()
+    # ── GF RIDER (2026-08-15, operator: "shadow arm rider_w5") ────────────────────────────────
+    # The pooled sat-out run-catcher. This is LEG 3 of the lab's slate — the one that ships with no
+    # new feature, because it reads the existing net_atr_5. Legs 1-2 (rider_all / rider_open) need a
+    # `net_atr_10` on Features and are NOT armed here.
+    #   backtest: +$4,841, $19.29/tr — half the headline edge, but it was the ONE leg that was GREEN
+    #   in the census week itself (+$340).
+    # ★ FLOORS DELIBERATELY OFF (rvol_min / atr_pr_min absent). They help w=10 and HURT w=5
+    #   ($4,841 -> $2,833). They are not a general truth and must not be copied across.
+    # ★ stop 3.0xATR is WIDE ON PURPOSE: the median adverse excursion is 3.00R by design, and 129 of
+    #   256 trades stop out. That IS the strategy — do not bench it on a wall of stops.
+    # ★ chandelier=False: every chandelier variant tested RED. Do not add one.
+    slate.append(
+        ShadowVariant("rider_w5", "board", {"k": 2.0, "w": 5, "hh_lo": 13.0, "hh_hi": 20.0},
+                      symbol="MNQ", qty=1.0, stop_atr_mult=3.0, target_r=2.0,
+                      adverse_cut_atr=3.0, chandelier=False))
+
     return [v for v in slate if v.name not in RETIRED]
 
 
