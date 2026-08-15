@@ -23,7 +23,8 @@ def test_roster_promotion():
     tags = [s.tag for s in tournament_slots()]
     assert tags.count("abs_veto_long") == 1 and tags.count("abs_veto_short") == 1
     assert "rgv_long" not in tags and "thrust_short" not in tags and "exhaustion_short" in tags  # rgv_long swapped back OUT 07-25 for the rehabbed exhaustion
-    assert len(tags) == 8   # ★2026-08-01: + nipc_long / nipc_short
+    assert len(tags) == 6   # ★2026-08-15: nipc retired from the roster (was 8)
+    assert not [t for t in tags if t.startswith("nipc")], "nipc must not be back on the roster"
     by = {s.tag: s for s in tournament_slots()}
     for t, side in (("abs_veto_long", "LONG"), ("abs_veto_short", "SHORT")):
         assert by[t].kind == "thrust" and by[t].side == side

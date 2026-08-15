@@ -33,16 +33,15 @@ def test_grind_long_short_slots_shape():
     assert [s.side for s in specs] == ["LONG", "SHORT"]
 
 
-def test_tournament_slate_is_four_long_four_short_distinct():
-    # ★2026-08-01: + nipc_long / nipc_short (news-impulse pullback), so 4 a side, not 3.
+def test_tournament_slate_is_three_long_three_short_distinct():
+    # ★2026-08-15 nipc RETIRED from the roster (operator) — back to 3 a side, not 4.
     specs = tournament_slots()
     assert [s.tag for s in specs] == ["grind_long", "capitulation_long", "abs_veto_long",
-                                      "rgv_short", "exhaustion_short", "abs_veto_short",
-                                      "nipc_long", "nipc_short"]
-    assert sum(s.side == "LONG" for s in specs) == 4
-    assert sum(s.side == "SHORT" for s in specs) == 4
+                                      "rgv_short", "exhaustion_short", "abs_veto_short"]
+    assert sum(s.side == "LONG" for s in specs) == 3
+    assert sum(s.side == "SHORT" for s in specs) == 3
     assert {s.kind for s in specs} == {"reversal_grab", "grind", "thrust", "capitulation",
-                                       "exhaustion", "nipc"}
+                                       "exhaustion"}   # ★2026-08-15 nipc retired
 
 
 def test_live_run_coerces_cfg_place_live():

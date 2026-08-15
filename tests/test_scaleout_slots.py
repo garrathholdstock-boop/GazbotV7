@@ -36,7 +36,10 @@ def defaults(monkeypatch):
 
 def test_slate_is_12_sub_slots_two_per_base_gate():
     specs = scaleout_slots()
-    assert len(specs) == 16   # ★2026-08-01: 8 base gates × 2 sub-slots (+ nipc_long / nipc_short)
+    # ★2026-08-15 16 -> 12: nipc retired from the roster, so 6 base gates x 2 sub-slots.
+    # (The function name said 12 while the assertion said 16 — it had been stale since nipc
+    # shipped on 08-01, which is exactly how a roster change goes unnoticed.)
+    assert len(specs) == 12
     tags = {s.tag for s in specs}
     for base in _BASES:
         assert f"{base}_A" in tags and f"{base}_B" in tags
@@ -57,29 +60,30 @@ def test_fader_gates_A_is_1p5R_scalp_B_is_tight_k1p5_chandelier(defaults):
         assert b.exit == "chandelier" and b.chandelier_start_k == 1.5 and b.vol_adaptive_chandelier is False
 
 
-def test_nipc_falls_back_to_its_PROVEN_pair_not_the_BIG_RUN_or_FADER_default(defaults):
-    # ★2026-08-01: nipc is in NEITHER _BIG_RUN nor the fader default, so without _FIXED_PAIR a
-    # missing/corrupt override file would silently give it A@1.5R + a TIGHT CHANDELIER Lot B —
-    # and the lab explicitly falsified a trailing Lot B here. Assert the fail-safe floor holds.
-    for base in ("nipc_long", "nipc_short"):
-        a, b = defaults[f"{base}_A"], defaults[f"{base}_B"]
-        assert (a.exit, a.target_r) == ("scalp", 2.0)
-        assert (b.exit, b.target_r) == ("scalp", 2.5)   # fixed R, NOT a chandelier
+def test_nipc_is_retired_from_the_slate(defaults):
+    """★2026-08-15 nipc RETIRED (operator: "delete nipc gates theyve never done anything").
+
+    This test used to assert nipc's fail-safe exit pair (A@2.0R / B@2.5R fixed, never a chandelier —
+    the lab falsified a trailing Lot B). That knowledge is preserved in `_FIXED_PAIR`, which is kept
+    deliberately so a revival restores the PROVEN pair rather than silently inheriting the fader
+    default. What is asserted now is the retirement itself: no nipc sub-slot may reappear on the
+    slate without someone changing this test on purpose."""
+    assert not [t for t in defaults if t.startswith("nipc")], \
+        "nipc is retired — a nipc sub-slot back on the slate is a roster regression"
+    from gazbot7.slot_strategy import _FIXED_PAIR
+    assert _FIXED_PAIR["nipc_long"] == (2.0, 2.5), "keep the proven pair for any revival"
 
 
-def test_nipc_time_rails_survive_the_scaleout_rewrite():
-    # ★2026-08-01: max_hold_s / flat_by_utc_s are new SlotSpec fields — the scale-out slate rewrites
-    # Lot A/B via `replace`, and a field it forgot to carry would silently drop NIPC's 20-min cap and
-    # its 15:30 UTC flat. (target_r on the capitulation base IS silently dropped that way.)
+def test_no_gate_carries_a_time_rail_now_that_nipc_is_retired():
+    # ★2026-08-01 this asserted that the scale-out rewrite CARRIED nipc's 20-min cap and 15:30 UTC
+    # flat through `replace` (a field the rewrite forgot would silently drop them — target_r on the
+    # capitulation base IS dropped that way). ★2026-08-15 nipc is retired, so the surviving half of
+    # the invariant is the important one: no OTHER gate may quietly acquire a time rail, which would
+    # force-flatten it on a clock nobody chose.
     d = _by_tag()
-    for tag in ("nipc_long_A", "nipc_long_B", "nipc_short_A", "nipc_short_B"):
-        assert d[tag].max_hold_s == NIPC_HOLD_CAP_S == 1200
-        assert d[tag].flat_by_utc_s == NIPC_FLAT_BY_S == 55800   # 15:30 UTC
-        assert d[tag].kind == "nipc" and d[tag].base_size == 1 and d[tag].risk_budget_usd == 0.0
-    # and no OTHER gate picked up a time rail
     for tag, s in d.items():
-        if s.kind != "nipc":
-            assert s.max_hold_s == 0.0 and s.flat_by_utc_s == 0.0
+        assert s.max_hold_s == 0.0, f"{tag} acquired a max-hold rail"
+        assert s.flat_by_utc_s == 0.0, f"{tag} acquired a flat-by clock"
 
 
 def test_live_exit_overrides_produce_the_intended_slate():
@@ -94,8 +98,6 @@ def test_live_exit_overrides_produce_the_intended_slate():
         "exhaustion_short_A": ("scalp", 0.75), "exhaustion_short_B": ("chandelier", None),
         "abs_veto_long_A": ("scalp", 1.0), "abs_veto_long_B": ("scalp", 1.5),
         "abs_veto_short_A": ("scalp", 1.5), "abs_veto_short_B": ("scalp", 2.5),
-        "nipc_long_A": ("scalp", 2.0), "nipc_long_B": ("scalp", 2.5),
-        "nipc_short_A": ("scalp", 2.0), "nipc_short_B": ("scalp", 2.5),
         # no override → built-in BIG-RUN default
         "grind_long_A": ("scalp", 2.5), "grind_long_B": ("chandelier_lock", None),
         "rgv_short_A": ("scalp", 1.5), "rgv_short_B": ("chandelier", None),

@@ -127,30 +127,34 @@ def test_short_side_is_the_mirror():
 
 
 # ── desk wiring ───────────────────────────────────────────────────────────────
-def test_nipc_slots_are_on_the_roster_with_the_proven_exit_pair():
-    from gazbot7.deciders import NIPC_FLAT_BY_S, NIPC_HOLD_CAP_S
+def test_nipc_is_retired_from_the_live_roster():
+    """★★2026-08-15 NIPC RETIRED. Operator: "delete nipc gates theyve never done anything."
+
+    It hit his -$400 kill criterion (n=47, 26% win), then sat PINNED OFF and held out of the 22:00
+    reactivation, so it last traded 2026-08-06. Whole live record: 49 lots, -$434.50, 08-03..08-06.
+
+    Removing the SlotSpecs is what retires it — no spec means no slot, no intents, no switch to
+    manage. This test is the guard: nipc must not reappear on the roster by accident (a revert, a
+    merge, a helpful edit). Reviving it is a deliberate act that changes this test.
+
+    ⚠ What is NOT deleted, and deliberately: the deciders, the NipcTracker, `_FIXED_PAIR`, and the
+    rest of this file. A refuted lead is archived, not erased — and its 49 historical trades stay in
+    the ledger untouched, because deleting them to tidy a roster would corrupt the P&L record."""
     from gazbot7.slot_strategy import scaleout_slots, tournament_slots
-    base = {s.tag: s for s in tournament_slots()}
-    for tag, side in (("nipc_long", "LONG"), ("nipc_short", "SHORT")):
-        s = base[tag]
-        assert s.kind == "nipc" and s.side == side and s.base_size == 1
-        assert s.exit == "scalp" and s.stop_atr_mult == 1.0
-        assert s.adaptive_exit is False          # the regime-3 chandelier is falsified here
-        assert s.giveback_enabled is False
-        assert s.max_hold_s == NIPC_HOLD_CAP_S and s.flat_by_utc_s == NIPC_FLAT_BY_S
-    sub = {s.tag: s for s in scaleout_slots()}
-    assert sub["nipc_long_A"].target_r == 2.0 and sub["nipc_long_B"].target_r == 2.5
-    assert sub["nipc_short_A"].target_r == 2.0 and sub["nipc_short_B"].target_r == 2.5
-    for t in ("nipc_long_A", "nipc_long_B", "nipc_short_A", "nipc_short_B"):
-        assert sub[t].exit == "scalp"            # Lot B is FIXED 2.5R, never a trail
+    assert not [s for s in tournament_slots() if s.kind == "nipc" or s.tag.startswith("nipc")]
+    assert not [s for s in scaleout_slots() if s.tag.startswith("nipc")]
 
 
-def test_fixed_pair_survives_a_missing_exit_overrides_file(monkeypatch):
+def test_the_proven_pair_is_kept_for_a_revival(monkeypatch):
+    """nipc is retired, but `_FIXED_PAIR` stays. It is the reason a revival would get the PROVEN
+    2.0R/2.5R pair back rather than silently inheriting the fader default (A@1.5R + a TIGHT
+    CHANDELIER Lot B) — and the lab explicitly falsified a trailing Lot B for this gate. Deleting the
+    constant along with the roster entry is how a revived gate comes back subtly wrong."""
     import gazbot7.slot_strategy as SS
     monkeypatch.setattr(SS, "_EXIT_OVERRIDES_PATH", "/nonexistent/exit_overrides.json")
-    sub = {s.tag: s for s in SS.scaleout_slots()}
-    assert sub["nipc_long_A"].target_r == 2.0 and sub["nipc_long_B"].target_r == 2.5
-    assert sub["nipc_long_B"].exit == "scalp"
+    assert SS._FIXED_PAIR["nipc_long"] == (2.0, 2.5)
+    assert SS._FIXED_PAIR["nipc_short"] == (2.0, 2.5)
+    assert not [s for s in SS.scaleout_slots() if s.tag.startswith("nipc")]
 
 
 def test_time_cap_and_flat_clock_exits():

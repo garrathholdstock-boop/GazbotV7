@@ -1,0 +1,3115 @@
+{
+ "runs": 344,
+ "phases_per_run": 12,
+ "unanimous_runs": 164,
+ "unanimous_pct": 47.7,
+ "runs_that_flip_FLOWLED_vs_VACUUM": 23,
+ "flip_pct": 6.7,
+ "label_share_across_all_phases": {
+  "FLOW-LED": 11.1,
+  "VACUUM": 15.8,
+  "OTHER": 73.1
+ },
+ "detector": {
+  "typ_15m_range_pt": 48.8,
+  "threshold_pt": 73.1
+ },
+ "rows": [
+  {
+   "time": "07-05 23:46",
+   "move": -73.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-06 00:15",
+   "move": -117.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-06 00:33",
+   "move": 84.2,
+   "labels": {
+    "FLOW-LED": 8,
+    "VACUUM": 0,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-06 01:13",
+   "move": -85.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-06 02:56",
+   "move": 76.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-06 03:39",
+   "move": -85.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-06 06:22",
+   "move": 75.5,
+   "labels": {
+    "FLOW-LED": 8,
+    "VACUUM": 0,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-06 13:19",
+   "move": 84.0,
+   "labels": {
+    "FLOW-LED": 12,
+    "VACUUM": 0,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-06 13:36",
+   "move": 172.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-06 14:00",
+   "move": 94.0,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 1,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-06 15:01",
+   "move": -78.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 4,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-06 15:16",
+   "move": 113.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-06 17:27",
+   "move": -89.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-06 19:46",
+   "move": -93.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-06 22:41",
+   "move": -73.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-07 00:25",
+   "move": -94.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-07 01:12",
+   "move": -75.2,
+   "labels": {
+    "FLOW-LED": 6,
+    "VACUUM": 0,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-07 03:14",
+   "move": -74.0,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-07 05:27",
+   "move": 98.8,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-07 11:53",
+   "move": 79.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-07 13:23",
+   "move": -117.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-07 13:40",
+   "move": -152.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-07 14:09",
+   "move": -151.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-07 15:39",
+   "move": 108.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-07 16:08",
+   "move": 113.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 1,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-07 18:38",
+   "move": -106.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-07 19:03",
+   "move": -91.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-07 19:18",
+   "move": 84.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 6,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-07 19:47",
+   "move": 91.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-07 23:45",
+   "move": -80.5,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 5,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-08 00:00",
+   "move": 154.5,
+   "labels": {
+    "FLOW-LED": 8,
+    "VACUUM": 0,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-08 00:35",
+   "move": 117.5,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-08 01:23",
+   "move": -81.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-08 01:47",
+   "move": -74.2,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 0,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-08 07:17",
+   "move": 95.8,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-08 08:15",
+   "move": -349.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 10,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-08 08:38",
+   "move": 92.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 4,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-08 08:53",
+   "move": -132.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 10:13",
+   "move": 85.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 11:29",
+   "move": 104.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-08 11:52",
+   "move": 100.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 13:25",
+   "move": 201.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-08 14:00",
+   "move": -116.2,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-08 14:34",
+   "move": -134.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-08 15:10",
+   "move": -152.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 15:26",
+   "move": 88.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 15:52",
+   "move": 87.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 16:08",
+   "move": 136.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 16:38",
+   "move": 107.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 17:14",
+   "move": 103.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-08 17:33",
+   "move": -89.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-08 17:56",
+   "move": 81.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-08 19:42",
+   "move": 87.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-08 23:30",
+   "move": 83.8,
+   "labels": {
+    "FLOW-LED": 7,
+    "VACUUM": 0,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-09 00:49",
+   "move": -82.0,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-09 01:47",
+   "move": -91.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-09 02:06",
+   "move": 106.0,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 0,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-09 02:31",
+   "move": -80.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-09 03:18",
+   "move": 92.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 9,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "07-09 05:15",
+   "move": -76.2,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 0,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-09 05:43",
+   "move": 78.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-09 10:38",
+   "move": -88.2,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 4,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-09 13:30",
+   "move": 189.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 9,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "07-09 14:08",
+   "move": -191.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-09 14:53",
+   "move": 106.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-09 23:56",
+   "move": -94.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-10 13:17",
+   "move": 102.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-10 13:40",
+   "move": 114.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-10 14:17",
+   "move": -184.8,
+   "labels": {
+    "FLOW-LED": 7,
+    "VACUUM": 0,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-10 14:32",
+   "move": 115.8,
+   "labels": {
+    "FLOW-LED": 7,
+    "VACUUM": 0,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-10 14:49",
+   "move": -94.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-10 15:05",
+   "move": 140.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-10 15:27",
+   "move": -139.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-10 15:45",
+   "move": 107.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-12 22:00",
+   "move": -93.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-12 23:55",
+   "move": 151.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 00:26",
+   "move": -129.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 00:45",
+   "move": -78.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 01:40",
+   "move": -91.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 05:12",
+   "move": -106.0,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 0,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-13 13:30",
+   "move": -167.5,
+   "labels": {
+    "FLOW-LED": 12,
+    "VACUUM": 0,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-13 13:45",
+   "move": 111.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-13 14:18",
+   "move": 142.2,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 0,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-13 14:45",
+   "move": 128.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 15:00",
+   "move": -80.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-13 15:33",
+   "move": -81.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 16:20",
+   "move": -93.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-13 19:37",
+   "move": 84.8,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 0,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-13 23:45",
+   "move": 99.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 00:07",
+   "move": 98.5,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-14 00:43",
+   "move": 116.5,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 0,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-14 02:07",
+   "move": -87.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 02:49",
+   "move": -79.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 03:43",
+   "move": 79.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-14 05:12",
+   "move": 84.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 11:10",
+   "move": 105.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-14 12:15",
+   "move": 313.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 12:33",
+   "move": -102.0,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-14 13:27",
+   "move": -100.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 14:00",
+   "move": -166.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 14:19",
+   "move": 142.2,
+   "labels": {
+    "FLOW-LED": 6,
+    "VACUUM": 0,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-14 14:35",
+   "move": -92.2,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 2,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-14 14:50",
+   "move": 124.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-14 15:48",
+   "move": -120.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-14 23:17",
+   "move": 80.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 00:05",
+   "move": 84.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 4,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-15 00:43",
+   "move": 80.2,
+   "labels": {
+    "FLOW-LED": 6,
+    "VACUUM": 0,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-15 07:11",
+   "move": -94.8,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 0,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-15 07:59",
+   "move": -78.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 12:27",
+   "move": 96.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 13:34",
+   "move": -174.5,
+   "labels": {
+    "FLOW-LED": 6,
+    "VACUUM": 4,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-15 13:51",
+   "move": 124.2,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 3,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-15 14:10",
+   "move": -194.5,
+   "labels": {
+    "FLOW-LED": 7,
+    "VACUUM": 0,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-15 14:27",
+   "move": -144.8,
+   "labels": {
+    "FLOW-LED": 6,
+    "VACUUM": 0,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-15 15:08",
+   "move": -90.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 15:23",
+   "move": 90.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 15:42",
+   "move": -73.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 15:59",
+   "move": -106.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 16:37",
+   "move": 99.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 16:55",
+   "move": 79.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 17:42",
+   "move": 78.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-15 18:37",
+   "move": -89.0,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 0,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-15 19:48",
+   "move": 86.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 00:14",
+   "move": -85.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-16 05:25",
+   "move": -89.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-16 06:20",
+   "move": -73.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 11:34",
+   "move": -80.5,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-16 13:31",
+   "move": -210.8,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 1,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-16 13:55",
+   "move": 187.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-16 14:37",
+   "move": -93.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 1,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-16 15:00",
+   "move": -90.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 15:16",
+   "move": 77.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 15:59",
+   "move": -96.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 17:30",
+   "move": -102.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-16 18:26",
+   "move": -80.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 19:02",
+   "move": -85.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-16 19:48",
+   "move": 119.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-17 00:48",
+   "move": 78.2,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-17 01:03",
+   "move": -75.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-17 03:49",
+   "move": -75.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-17 06:09",
+   "move": 75.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 06:31",
+   "move": -77.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 08:02",
+   "move": -136.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-17 08:42",
+   "move": 75.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 9,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "07-17 10:24",
+   "move": 73.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-17 13:30",
+   "move": -195.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-17 13:45",
+   "move": 291.2,
+   "labels": {
+    "FLOW-LED": 12,
+    "VACUUM": 0,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-17 14:04",
+   "move": 136.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 10,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-17 14:39",
+   "move": -135.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-17 14:55",
+   "move": -85.2,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 1,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-17 15:23",
+   "move": 130.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 15:45",
+   "move": 165.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-17 16:37",
+   "move": 99.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 17:29",
+   "move": -84.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 17:45",
+   "move": -75.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 18:03",
+   "move": -90.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-17 18:43",
+   "move": 73.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-17 19:01",
+   "move": -108.0,
+   "labels": {
+    "FLOW-LED": 10,
+    "VACUUM": 0,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-17 19:16",
+   "move": 82.0,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 1,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-17 19:51",
+   "move": -117.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-24 06:57",
+   "move": 103.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 13:24",
+   "move": -76.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 13:39",
+   "move": -182.2,
+   "labels": {
+    "FLOW-LED": 8,
+    "VACUUM": 0,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-24 13:55",
+   "move": 96.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 14:23",
+   "move": -109.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-24 14:45",
+   "move": 202.2,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 4,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-24 15:09",
+   "move": 140.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 15:49",
+   "move": 88.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 16:25",
+   "move": -74.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 18:18",
+   "move": -110.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-24 18:56",
+   "move": -90.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 01:01",
+   "move": -76.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-27 13:27",
+   "move": -157.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-27 13:51",
+   "move": -195.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-27 14:21",
+   "move": -235.0,
+   "labels": {
+    "FLOW-LED": 10,
+    "VACUUM": 0,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-27 14:44",
+   "move": 210.8,
+   "labels": {
+    "FLOW-LED": 12,
+    "VACUUM": 0,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-27 15:00",
+   "move": -76.2,
+   "labels": {
+    "FLOW-LED": 9,
+    "VACUUM": 0,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "07-27 15:22",
+   "move": -137.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 15:49",
+   "move": 111.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 16:16",
+   "move": 137.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 16:40",
+   "move": -140.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 17:45",
+   "move": 76.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 18:40",
+   "move": 159.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-27 19:31",
+   "move": -80.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 00:03",
+   "move": -82.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-28 00:57",
+   "move": -104.5,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-28 01:19",
+   "move": 87.0,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-28 01:49",
+   "move": -95.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 03:10",
+   "move": 92.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-28 03:30",
+   "move": 89.0,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 1,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-28 08:14",
+   "move": 107.8,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 0,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-28 11:43",
+   "move": 95.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 13:30",
+   "move": -241.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-28 14:05",
+   "move": -150.0,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 0,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-28 14:34",
+   "move": 170.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-28 14:53",
+   "move": -76.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 15:11",
+   "move": 178.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-28 15:31",
+   "move": 85.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 16:36",
+   "move": 89.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 16:56",
+   "move": -82.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-28 19:54",
+   "move": -75.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-28 22:08",
+   "move": -88.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-28 22:43",
+   "move": -109.2,
+   "labels": {
+    "FLOW-LED": 9,
+    "VACUUM": 0,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "07-28 23:09",
+   "move": 127.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-28 23:42",
+   "move": 195.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-29 00:21",
+   "move": -110.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 01:03",
+   "move": -121.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 01:38",
+   "move": -131.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 02:17",
+   "move": 104.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-29 03:10",
+   "move": -77.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-29 03:45",
+   "move": -87.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 04:48",
+   "move": 111.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 05:50",
+   "move": -86.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 06:22",
+   "move": 130.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 08:28",
+   "move": 90.0,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 0,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-29 08:59",
+   "move": 74.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 09:36",
+   "move": 85.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 12:01",
+   "move": -110.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 6,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "07-29 13:20",
+   "move": 112.0,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-29 13:41",
+   "move": -206.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-29 14:11",
+   "move": -174.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-29 14:33",
+   "move": -95.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 14:48",
+   "move": 97.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-29 15:04",
+   "move": -77.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 15:50",
+   "move": -114.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 16:16",
+   "move": 142.8,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 0,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-29 16:44",
+   "move": 98.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 16:59",
+   "move": 132.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 17:21",
+   "move": -100.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "07-29 17:46",
+   "move": 203.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 18:06",
+   "move": -128.0,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-29 18:35",
+   "move": 291.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-29 18:55",
+   "move": -215.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 19:11",
+   "move": -241.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-29 19:30",
+   "move": -271.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 19:49",
+   "move": -247.2,
+   "labels": {
+    "FLOW-LED": 7,
+    "VACUUM": 0,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "07-29 20:15",
+   "move": -90.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 20:30",
+   "move": 91.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-29 22:01",
+   "move": 155.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 8,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-29 22:53",
+   "move": 82.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 8,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-29 23:16",
+   "move": 73.5,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 0,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-30 00:03",
+   "move": 107.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-30 00:29",
+   "move": -85.2,
+   "labels": {
+    "FLOW-LED": 12,
+    "VACUUM": 0,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-30 00:51",
+   "move": 114.5,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "07-30 01:20",
+   "move": 96.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 02:55",
+   "move": -87.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 06:47",
+   "move": 79.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-30 07:06",
+   "move": -98.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-30 07:48",
+   "move": -86.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 08:03",
+   "move": 102.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-30 10:04",
+   "move": 90.0,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-30 13:40",
+   "move": 249.8,
+   "labels": {
+    "FLOW-LED": 8,
+    "VACUUM": 0,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "07-30 14:13",
+   "move": 133.2,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 10,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "07-30 14:41",
+   "move": -193.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 15:09",
+   "move": -84.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 10,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-30 15:30",
+   "move": 103.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 16:00",
+   "move": 109.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 16:27",
+   "move": -94.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 16:50",
+   "move": 86.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 18:57",
+   "move": 126.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-30 20:00",
+   "move": 121.5,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 9,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-31 00:54",
+   "move": 83.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-31 06:28",
+   "move": -114.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-31 13:01",
+   "move": 77.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-31 13:20",
+   "move": 170.8,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 0,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-31 13:35",
+   "move": -356.0,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 9,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "07-31 13:57",
+   "move": -234.0,
+   "labels": {
+    "FLOW-LED": 8,
+    "VACUUM": 1,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "07-31 14:16",
+   "move": 136.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 12,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "07-31 14:34",
+   "move": 92.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-31 14:56",
+   "move": -80.8,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 0,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "07-31 15:15",
+   "move": -153.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "07-31 15:42",
+   "move": 103.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-31 16:16",
+   "move": 91.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-31 17:22",
+   "move": 85.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "07-31 19:49",
+   "move": -147.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "07-31 20:45",
+   "move": -101.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 6,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "08-03 08:15",
+   "move": -75.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 7,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "08-03 13:18",
+   "move": -129.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 4,
+    "OTHER": 8
+   }
+  },
+  {
+   "time": "08-03 13:43",
+   "move": 163.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "08-03 14:14",
+   "move": 109.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-03 14:44",
+   "move": 96.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-04 01:39",
+   "move": 133.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-04 02:01",
+   "move": -79.2,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "08-04 11:40",
+   "move": 89.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-04 13:27",
+   "move": 210.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "08-04 13:57",
+   "move": 94.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "08-04 14:58",
+   "move": 90.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-04 17:33",
+   "move": 80.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-04 19:45",
+   "move": -87.5,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 1,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "08-04 20:05",
+   "move": -139.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "08-05 08:07",
+   "move": -74.2,
+   "labels": {
+    "FLOW-LED": 7,
+    "VACUUM": 0,
+    "OTHER": 5
+   }
+  },
+  {
+   "time": "08-05 13:24",
+   "move": 94.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-05 13:47",
+   "move": -108.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-05 14:08",
+   "move": -74.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-05 14:25",
+   "move": -125.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "08-05 15:42",
+   "move": -104.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-05 16:13",
+   "move": 101.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-05 19:51",
+   "move": -175.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 2,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "08-05 22:18",
+   "move": 75.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "08-06 05:59",
+   "move": -73.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "08-06 10:51",
+   "move": -106.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-06 11:06",
+   "move": 76.2,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 9,
+    "OTHER": 2
+   }
+  },
+  {
+   "time": "08-06 13:17",
+   "move": -86.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-06 13:32",
+   "move": 248.8,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-06 14:03",
+   "move": 153.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "08-06 14:24",
+   "move": -80.5,
+   "labels": {
+    "FLOW-LED": 12,
+    "VACUUM": 0,
+    "OTHER": 0
+   }
+  },
+  {
+   "time": "08-06 14:46",
+   "move": 117.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 6,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "08-06 15:10",
+   "move": -96.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 8,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "08-06 15:30",
+   "move": -80.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 9,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "08-06 15:48",
+   "move": -112.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 6,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "08-06 16:46",
+   "move": 90.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-06 22:00",
+   "move": 76.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 00:05",
+   "move": -104.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "08-07 01:05",
+   "move": -82.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "08-07 12:27",
+   "move": 148.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 3,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "08-07 12:59",
+   "move": -103.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 13:28",
+   "move": 81.5,
+   "labels": {
+    "FLOW-LED": 1,
+    "VACUUM": 1,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "08-07 13:49",
+   "move": -154.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "08-07 14:14",
+   "move": 179.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 14:29",
+   "move": -89.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 14:53",
+   "move": 87.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 15:17",
+   "move": 101.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 16:16",
+   "move": -134.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-07 16:31",
+   "move": 85.5,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 3,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "08-07 18:56",
+   "move": 116.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 5,
+    "OTHER": 7
+   }
+  },
+  {
+   "time": "08-10 00:01",
+   "move": 81.2,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-10 13:19",
+   "move": -75.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-10 13:34",
+   "move": 79.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-10 13:55",
+   "move": 121.5,
+   "labels": {
+    "FLOW-LED": 3,
+    "VACUUM": 0,
+    "OTHER": 9
+   }
+  },
+  {
+   "time": "08-10 14:45",
+   "move": -106.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-10 15:39",
+   "move": 84.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-10 16:28",
+   "move": -82.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-11 08:03",
+   "move": -77.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "08-11 13:21",
+   "move": -131.0,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-11 13:50",
+   "move": 125.8,
+   "labels": {
+    "FLOW-LED": 2,
+    "VACUUM": 0,
+    "OTHER": 10
+   }
+  },
+  {
+   "time": "08-11 15:03",
+   "move": -83.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-12 12:25",
+   "move": 91.5,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 1,
+    "OTHER": 11
+   }
+  },
+  {
+   "time": "08-12 13:25",
+   "move": -97.2,
+   "labels": {
+    "FLOW-LED": 11,
+    "VACUUM": 0,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-12 13:49",
+   "move": -103.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 11,
+    "OTHER": 1
+   }
+  },
+  {
+   "time": "08-13 13:33",
+   "move": 224.8,
+   "labels": {
+    "FLOW-LED": 5,
+    "VACUUM": 3,
+    "OTHER": 4
+   }
+  },
+  {
+   "time": "08-13 15:21",
+   "move": -93.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 6,
+    "OTHER": 6
+   }
+  },
+  {
+   "time": "08-14 13:21",
+   "move": -78.2,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  },
+  {
+   "time": "08-14 13:36",
+   "move": 79.8,
+   "labels": {
+    "FLOW-LED": 4,
+    "VACUUM": 5,
+    "OTHER": 3
+   }
+  },
+  {
+   "time": "08-14 14:07",
+   "move": -98.8,
+   "labels": {
+    "FLOW-LED": 0,
+    "VACUUM": 0,
+    "OTHER": 12
+   }
+  }
+ ]
+}

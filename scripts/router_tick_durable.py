@@ -17,8 +17,11 @@ SW = f"{GB}/data/gate_switches.env"
 LOG = f"{GB}/data/router_trial_log.txt"
 HLOG = f"{GB}/data/router_headless.log"
 PY = f"{GB}/.venv/bin/python"
-GATES = ["grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short", "abs_veto_short", "rgv_short",
-         "nipc_long", "nipc_short"]   # ★2026-08-01: + nipc (news-impulse pullback), ships BENCHED
+# ★2026-08-15 nipc REMOVED — retired from the live roster (slot_strategy has no nipc SlotSpec), so
+# there is no slot to arm and nothing to manage. Listing a gate the desk cannot trade made the
+# router look like it managed 8 gates when it could only ever act on 6.
+GATES = ["grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short",
+         "abs_veto_short", "rgv_short"]
 # ★ 2026-08-01 (operator: "frozenset") — FULL ROUTER CONTROL RESTORED. No gate is pinned.
 #
 # History: the 07-31 "enable all gates, US OPEN" override pinned ALL SIX gates. Because apply-time

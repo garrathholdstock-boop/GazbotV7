@@ -51,7 +51,9 @@ SWITCH = "/home/alphabot/gazbot7/data/gate_switches.env"
 # review. The 22:00 job re-armed it once already tonight because the warning was written as a COMMENT
 # in gate_switches.env and nothing reads comments. Holding it here is the only mechanism that works.
 # Remove once the divergence is diagnosed and the replay reproduces live within a stated tolerance.
-HOLD: frozenset = frozenset({"nipc_long", "nipc_short", "rgv_short"})
+# ★2026-08-15 nipc dropped from HOLD — it is retired from the roster entirely now, so there is no
+# switch to re-arm and nothing to hold back. rgv_short stays: it is still a live spec.
+HOLD: frozenset = frozenset({"rgv_short"})
 
 # ★★2026-08-09 — rgv_short ADDED TO HOLD. This reverses the 08-01 release noted above, which moved
 # its bench from here into the router's standing guidance. That was the right call at the time and

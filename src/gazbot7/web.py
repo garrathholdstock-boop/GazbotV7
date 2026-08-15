@@ -639,8 +639,13 @@ _ROUTER_META = {  # gate → (family, mechanism, side)
     # you cannot notice the state of something you are never shown. Same failure as the truncated
     # shadow block that hid a 9-of-9 green thrust family from the router.
     # This map is the ONLY place gates are enumerated for the panel, so it must track the live roster.
-    "nipc_long": ("news", "impulse-pullback", "LONG"),
-    "nipc_short": ("news", "impulse-pullback", "SHORT"),
+    # ★2026-08-15 nipc REMOVED from the panel — retired from the roster (operator). This map is the
+    # only place gates are enumerated for the router board, and the 08-05 note above is still the
+    # rule: it must TRACK THE LIVE ROSTER. A retired gate shown benched implies the router might
+    # re-arm it, which is exactly the misleading label that note warns about.
+    # ⚠ This removes it from the BOARD only. Its 49 historical trades (08-03..08-06, -$434.50) are
+    # untouched in the ledger and still render in the blotter, which reads gate strings from the
+    # trades table and does not consult this map.
 }
 
 

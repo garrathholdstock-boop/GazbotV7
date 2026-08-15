@@ -208,12 +208,17 @@ def tournament_slots() -> list[SlotSpec]:
         # 1-lot headline config; under the scaleout slate it becomes Lot A 2.0R / Lot B 2.5R (the PROVEN
         # pair — fixed 2.5R on Lot B beats the trail by $1,285 here, so Lot B must NOT be a chandelier).
         # base_size=1: promotion-ladder first live week. NEW GATE — ships benched (gate_switches.env=off).
-        SlotSpec("nipc_long", "nipc", "LONG", params={}, sizing="flat", base_size=1,
-                 exit="scalp", target_r=2.5, stop_atr_mult=1.0, giveback_enabled=False,
-                 risk_budget_usd=0.0, max_hold_s=NIPC_HOLD_CAP_S, flat_by_utc_s=NIPC_FLAT_BY_S),
-        SlotSpec("nipc_short", "nipc", "SHORT", params={}, sizing="flat", base_size=1,
-                 exit="scalp", target_r=2.5, stop_atr_mult=1.0, giveback_enabled=False,
-                 risk_budget_usd=0.0, max_hold_s=NIPC_HOLD_CAP_S, flat_by_utc_s=NIPC_FLAT_BY_S),
+        # ★★2026-08-15 NIPC RETIRED FROM THE LIVE ROSTER (operator: "delete nipc gates theyve never
+        # done anything"). It hit the operator's -$400 kill criterion (n=47, 26% win), then sat PINNED
+        # OFF and held out of the 22:00 reactivation, so it has not traded since 2026-08-06. Its whole
+        # live record is 49 lots for -$434.50 across 08-03..08-06.
+        # Removing the SlotSpecs is what actually retires it: no spec means no slot, no intents, no
+        # switch to manage. The deciders (nipc_in_window / nipc_past_flat_clock / nipc_dead_chop), the
+        # NipcTracker and tests/test_nipc.py are DELIBERATELY KEPT — they are the record of how it
+        # worked and cost nothing dark, and [[never-kill-a-lead-that-has-a-glimmer]] says a refuted
+        # lead is archived, not erased. Its 49 historical trades stay in the ledger untouched; deleting
+        # them would corrupt the P&L record to tidy a roster.
+        # Revive: restore the two SlotSpecs below from git history (this commit).
     ]
     for s in specs:            # ★2026-07-27: regime-3-exit selector LIVE roster-wide (revert: set False)
         if s.kind != "nipc":   # ★2026-08-01: NIPC is exempt — its exit is a PROVEN fixed 2.0R/2.5R pair

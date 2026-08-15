@@ -75,7 +75,20 @@ HOLD = 2            # consecutive agreeing marks to flip the effective state (hy
 STALE_S = 200       # newest 1-min bar older than this → market closed / feed gap → HOLD
 
 DOWN_OFF = frozenset({"capitulation_long"})   # long-faders — bench in a down-trend. ★2026-07-25: rgv_long REMOVED — it carries its OWN per-entry net30-depth floor in gate_reversal_grab, which dominates this coarse day-level bench (the router nuked rgv_long to −$9 by dropping 60% of its winners).
-UP_OFF = frozenset({"rgv_short"})      # short-faders — bench in an up-trend. ★2026-07-25: exhaustion_short REMOVED (retired from roster, replaced by rgv_long).
+UP_OFF = frozenset({"rgv_short", "exhaustion_short"})   # short-faders — bench in a PROVEN up-trend.
+# ★★2026-08-15 exhaustion_short RESTORED. It was dropped on 07-25 "(retired from roster, replaced by
+# rgv_long)" — correct when written, wrong the moment it came back. It has been live and UNMANAGED
+# for three weeks and is the desk's busiest gate: 71 of the 108 trades in the week to 08-14, of which
+# 12 fired straight into a CONFIRMED TREND_UP for -$241.00 (-$20.08/trade). Over 30 days: 26
+# counter-trend fires, -$398.50, red on 7 of the 8 days it happened, surviving strip-worst-day and
+# leave-one-day-out. The router was "managing an empty room" — its only other UP-side member,
+# rgv_short, is in reactivate_gates.HOLD and never fires.
+# ⚠ THIS DOES NOT BREACH THE 2026-08-07 CARVE-OUT, and the distinction is the whole point. That
+# carve-out removed ONE trigger — day-bias SIGN — because benching a FADER because the day is up
+# removes it exactly when its setup forms. It explicitly PRESERVED the tested fader bench: "bench
+# exhaustion_short when a TREND/RUN is genuinely running against a fade (+$810 non-overlap, n=25)".
+# TREND_UP here is that case, not day-bias sign: it needs ER >= ER_TREND and |net| >= NET_MIN and
+# must survive HYSTERESIS. Revert: drop "exhaustion_short" from this frozenset.
 CHOP_OFF = frozenset({"grind_long", "abs_veto_long", "abs_veto_short"})   # MOMENTUM gates — bench in CHOP.
 # ★2026-07-27 (operator): the symmetric completion — faders off in trends (above), momentum off in chop. Momentum
 # gates fire on short bursts that revert in choppy tape; validated on realised trades 07-20..27: the momentum book
