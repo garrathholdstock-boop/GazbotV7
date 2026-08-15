@@ -507,6 +507,84 @@ def mgc_slate() -> list[ShadowVariant]:
     ]
 
 
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# ★★★2026-08-15 THE TRIM — 47 arms -> 20. Operator: "there are tons of shadow sims that lose all the
+# time. trim the shadow desk down to the best 20 first. kill the rest."
+#
+# Definitions stay in source and are filtered out at the end of default_slate() alongside RETIRED:
+# registry numbers are permanent, a retired sim keeps its number, and the history stays in shadow.db.
+# Re-arming one is deleting a line from this dict.
+#
+# ⚠⚠ THIS IS NOT A P&L SORT AND MUST NEVER BECOME ONE. The PROTECTED list above this one exists
+# because the biggest losers are often CONTROLS doing their job:
+#   · capit_loose (-$11,292, the worst number on the desk) is the NO-FLIP CONTROL. It is supposed to
+#     lose — it is the evidence that require_flip=True is worth having. Killing it would delete the
+#     justification for a LIVE config while leaving the config in place.
+#   · thrust_loose (-$43 on n=611) is the un-vetoed BASE the abs_veto +$2,537.50 claim is measured
+#     against, and is HARD-CODED in three shipped scripts, which would break.
+#   · chand_k35 IS the live desk exit · thrust_short_raw is the raw arm proving the 55s filter adds
+#     +$11.20/trade · rg_long_fast_v is the only long-reversion coverage left · abs_veto_60s is the
+#     upper flank proving 55s is a peak and not a floor · capit_live_mirror is the counterfactual for
+#     a live gate.
+# That is EIGHT of the twenty slots spent on arms that are not trying to win. It is the right spend:
+# an experiment with no control is an anecdote.
+#
+# ⚠ AND THIN n IS NOT EVIDENCE. The odr (Open Rider) arms fire about once a day, so small n is
+# expected rather than damning. They are cut on a REASON — s30 beats s20 on all four paired
+# comparisons — never on sample size.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+RETIRED_2026_08_15: dict[str, str] = {
+    # ── ANSWERED, and the answer is "this loses". Unprotected, large n, clearly negative. ───────
+    "grind_fast":   "n=1,407 at -$1.23/trade — the largest sample on the desk says no edge",
+    "thrust_aligned": "n=349 at +$1.01 — inside noise, and thrust_cont dominates it on the same tape",
+    # ── capit_mid / capit_ride: the 08-02 note kept them because their disqualifying reason had
+    #    evaporated (the roster re-adopted require_flip). That made them VALID tests, not winning
+    #    ones. They have since reached n=40 and both read about -$12.50/trade. The test ran and
+    #    returned an answer, so now they retire — on the result, not on the old objection.
+    "capit_mid":  "n=41 at -$12.74; the test the 08-02 note preserved has now returned its answer",
+    "capit_ride": "n=40 at -$12.49; same",
+    # ── THE WHOLE rgv-SHORT FAMILY, control included. flow50 +$168, raw -$4, flow25 -$24 on n=52-67:
+    #    every arm sits inside noise, so there is nothing left for the control to control. Retiring
+    #    the family and keeping its baseline would be the expensive half of the trade.
+    "rg_short_025_flow50": "family answered: all three arms inside noise on n=52-67",
+    "rg_short_025_flow25": "family answered",
+    "rg_short_025_raw":    "the family's CONTROL — retired WITH its family, never on its own",
+    # ── ANSWERED AS AN EXPERIMENT: stop width does not rescue grind. Six rungs, n=54-227, every one
+    #    negative. The question the family was built to ask has an answer. It is NOT retired for
+    #    "grind loses" — these hold ext_hi=2.0 deliberately to freeze the entry population.
+    "sw_grind_A_k10": "stop-width on grind: answered — every rung negative",
+    "sw_grind_A_k20": "stop-width on grind: answered — every rung negative",
+    "sw_grind_A_k30": "stop-width on grind: answered — every rung negative",
+    "sw_grind_B_k10": "stop-width on grind: answered — every rung negative",
+    "sw_grind_B_k20": "stop-width on grind: answered — every rung negative",
+    "sw_grind_B_k30": "stop-width on grind: answered — every rung negative",
+    # ── STALLED, not answered: n=36-40 after weeks, spread +$184 to -$40. abs_veto's LONG side does
+    #    not fire often enough to settle this. The SHORT quartet asks the same question, fires as
+    #    often and is strongly positive, so it is kept and this one is dropped as a duplicate.
+    "sw_absL_A_k10": "abs_veto LONG side too slow to settle; the short quartet answers the same question",
+    "sw_absL_A_k20": "abs_veto LONG side too slow to settle",
+    "sw_absL_B_k10": "abs_veto LONG side too slow to settle",
+    "sw_absL_B_k20": "abs_veto LONG side too slow to settle",
+    # ── CLIP PAIRS, cut TOGETHER — half an A/B is not a result. ─────────────────────────────────
+    "cx_absSB_clip": "clip and live differ by $16 on n=37: the clip does nothing on this gate",
+    "cx_absSB_live": "pair of cx_absSB_clip",
+    "cx_absLA_clip": "n=31 at -$6.39, not accumulating toward a decision",
+    "cx_absLA_live": "pair of cx_absLA_clip",
+    # ── THE s20 AXIS IS REFUTED on four independent Open Rider pairs: s30 beats s20 every time
+    #    (+263/-390, -17/-335, -79/-142, +226/-142). Cut on that pattern, not on n.
+    "odr_c5_s20":    "s30 beats s20 on every paired comparison",
+    "odr_c10_s20":   "s30 beats s20 on every paired comparison",
+    "odr_c5_s20_g":  "s30 beats s20 on every paired comparison",
+    "odr_c10_s20_g": "s30 beats s20 on every paired comparison",
+    # ⚠ THE GATED s30 PAIR IS **NOT** RETIRED, and cutting it was my first answer. test_shadow's own
+    #    guard refused it, correctly: "an unpaired gated arm confounds the gate with whichever cadence
+    #    or stop cell it sits in". Keeping c5_s30/c10_s30 while dropping their _g twins would leave a
+    #    2x2 that cannot separate the DRIFT GATE from cadence — which is the live question the
+    #    operator wants answered weekly. So the family keeps a clean 2x2 (cadence x gate) at the
+    #    winning stop, and the slate lands at 22 rather than 20. Two slots for a working factorial is
+    #    the right trade; a broken factorial is worth zero slots.
+}
+
 def default_slate() -> list[ShadowVariant]:
     """Thrust threshold A/B (loose 1.5 = the LIVE control vs cont 2.0), amplitude-
     floor A/B (none / 0.0003 / 0.0004 = live), and the reversal-grab short slate —
@@ -653,7 +731,9 @@ def default_slate() -> list[ShadowVariant]:
                       symbol="MNQ", qty=1.0, stop_atr_mult=3.0, target_r=2.0,
                       adverse_cut_atr=3.0, chandelier=False))
 
-    return [v for v in slate if v.name not in RETIRED]
+    # ★2026-08-15 the trim rides alongside the older RETIRED set — see RETIRED_2026_08_15.
+    return [v for v in slate
+            if v.name not in RETIRED and v.name not in RETIRED_2026_08_15]
 
 
 def _open_rider() -> list[ShadowVariant]:

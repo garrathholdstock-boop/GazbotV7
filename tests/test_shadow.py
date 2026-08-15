@@ -129,7 +129,11 @@ def test_chandelier_params_cover_every_chandelier_variant():
     from gazbot7.shadow import RETIRED
     assert {"chand_k25", "chand_k20"} <= RETIRED
     assert "chand_k25" not in cp and "chand_k20" not in cp
-    assert cp["grind_fast"] == (3.5, 0.5, 0.75)  # existing ride variant unchanged
+    # ★2026-08-15 grind_fast RETIRED in the trim (n=1,407 at -$1.23 — the biggest sample on the
+    # desk saying no edge), so it is no longer in chandelier_params. capit_live_mirror is the
+    # surviving untouched 3.5/0.5/0.75 ride variant and takes over the assertion.
+    assert "grind_fast" not in cp
+    assert cp["chand_k35"] == (3.5, 0.5, 0.75)   # the LIVE desk exit, and the sweep's control
     # the mechanism this test exists for: EVERY chandelier variant still on the slate is in the map,
     # else the repricer would silently score it at the 3.5 default.
     # ★2026-08-15 the map now ALSO carries the MGC gold variants — audit finding #4. Built from
@@ -172,12 +176,24 @@ def test_full_slate_with_chandelier_ab_instantiates_and_steps():
     # assertion is the real guard — an unpaired gated arm confounds the gate with whichever cadence
     # or stop cell it sits in, and the backtest cannot separate those (per-trade SD ~$160).
     riders = [v for v in slate if v.gate == "clock_rider"]
-    assert len(riders) == 8, [v.name for v in riders]
+    # ★2026-08-15 THE TRIM cut the s20 axis (s30 beat it on all four paired comparisons), so this is
+    # no longer a count of 8. The invariant that actually mattered was never the COUNT — it was the
+    # PAIRING, so that is what is asserted now: every gated arm keeps its ungated twin, and an
+    # unpaired arm (which would confound the gate with its cadence cell) still fails here.
+    assert len(riders) == 4, [v.name for v in riders]
+    gated = {v.name.removesuffix("_g") for v in riders if v.name.endswith("_g")}
+    plain = {v.name for v in riders if not v.name.endswith("_g")}
+    assert gated == plain, f"unpaired Open Rider arm: {gated ^ plain}"
     assert {v.rider_cadence_min for v in riders} == {5, 10}
-    assert {v.stop_atr_mult for v in riders} == {2.0, 3.0}
+    # ★2026-08-15 the s20 (2.0xATR) axis was retired — s30 beat it on all four paired comparisons —
+    # so the surviving factorial varies CADENCE x DRIFT GATE at a fixed 3.0xATR stop. If a second
+    # stop width is ever re-armed this must go back to a two-element set.
+    assert {v.stop_atr_mult for v in riders} == {3.0}
     gated = {v.name for v in riders if v.rider_gate_drift}
     plain = {v.name for v in riders if not v.rider_gate_drift}
-    assert len(gated) == len(plain) == 4, (gated, plain)
+    # ★2026-08-15 two each, not four: the s20 axis is gone. The guard that matters is that the two
+    # halves stay BALANCED — an unpaired gated arm cannot be told apart from its cadence cell.
+    assert len(gated) == len(plain) == 2, (gated, plain)
     assert gated == {n + "_g" for n in plain}, "every gated arm needs its exact ungated twin"
     # Every rider MUST carry a time cap. The sim has no other way out of a trade that neither
     # stops nor targets, so an uncapped rider would sit open until the feed stopped.

@@ -13,7 +13,11 @@ from gazbot7.deciders import Position, exit_scalp
 from gazbot7.shadow import ShadowVariant, _eff_target_r, default_slate
 
 VPP = 2.0
-PAIRS = ["grind_A", "grind_B", "absL_A", "absL_B", "absS_A", "absS_B"]
+# ★2026-08-15 THE TRIM retired sw_grind_* (stop width on grind: answered, every rung negative) and
+# sw_absL_* (too slow to settle). These invariants now guard the arms that SURVIVED — the abs_veto
+# short quartet. Do not re-add a name here without re-arming it in default_slate: the parametrisation
+# is derived from the live slate below precisely so the two cannot drift apart again.
+PAIRS = ["absS_A", "absS_B"]
 
 
 def _slate():
@@ -88,7 +92,9 @@ def test_clip_applies_below_split_only():
 
 
 # ── CLIP A/B (★2026-08-04) ──────────────────────────────────────────────────────────────────────
-CLIP_PAIRS = ["grindA", "absLA", "absSB"]
+# ★2026-08-15 cx_absLA and cx_absSB retired (see RETIRED_2026_08_15); the grindA pair survives
+# because it validates the LIVE quiet-tape clip.
+CLIP_PAIRS = ["grindA"]
 
 
 @pytest.mark.parametrize("pair", CLIP_PAIRS)
@@ -129,3 +135,25 @@ def test_atr_max_is_opt_in_so_legacy_variants_are_unrestricted():
     for v in default_slate():
         if not v.name.startswith("cx_"):
             assert v.atr_max == 0.0, f"{v.name} unexpectedly regime-restricted"
+
+
+
+def test_the_parametrisation_matches_the_LIVE_slate():
+    """The invariants above are only worth anything if they cover what is actually armed.
+
+    These lists were hand-written and the slate was trimmed underneath them, which is how a suite
+    ends up asserting hard about arms that no longer exist — and, worse, silently NOT asserting
+    about arms that do. This test is the interlock: if someone re-arms or retires a stop-width or
+    clip arm without touching PAIRS/CLIP_PAIRS, it fails here rather than going unnoticed.
+    """
+    from gazbot7.shadow import default_slate
+
+    live = {v.name for v in default_slate()}
+    assert {f"sw_{p}_k{k}" for p in PAIRS for k in (10, 20)} <= live, \
+        "PAIRS names an arm that is no longer in the slate"
+    assert {f"cx_{p}_{s}" for p in CLIP_PAIRS for s in ("clip", "live")} <= live, \
+        "CLIP_PAIRS names an arm that is no longer in the slate"
+    # and nothing armed is left unguarded
+    armed_sw = {v.name.rsplit("_k", 1)[0].removeprefix("sw_")
+                for v in default_slate() if v.name.startswith("sw_")}
+    assert armed_sw == set(PAIRS), f"stop-width arms not covered by PAIRS: {armed_sw ^ set(PAIRS)}"

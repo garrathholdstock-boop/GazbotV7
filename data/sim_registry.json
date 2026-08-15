@@ -24,6 +24,9 @@
   "cx_grindA_live": 22,
   "exhaustion_rev": 23,
   "grind_fast": 24,
+  "mgc_break_fade_nobook": 64,
+  "mgc_holebreak_fade_long": 65,
+  "mgc_holebreak_fade_short": 66,
   "odr_c10_s20": 54,
   "odr_c10_s20_g": 60,
   "odr_c10_s30": 55,
@@ -43,6 +46,7 @@
   "rg_short_025_flow50_rth": 33,
   "rg_short_025_raw": 34,
   "rg_short_050": 35,
+  "rider_w5": 67,
   "sw_absL_A_k10": 36,
   "sw_absL_A_k20": 37,
   "sw_absL_B_k10": 38,
@@ -64,5 +68,5 @@
   "thrust_short_absveto55": 52,
   "thrust_short_raw": 53
  },
- "next": 64
+ "next": 68
 }
