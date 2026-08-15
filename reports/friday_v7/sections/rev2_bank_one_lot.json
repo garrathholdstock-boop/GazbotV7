@@ -1,0 +1,189 @@
+{
+ "n_signals": 57,
+ "n_win": 25,
+ "n_los": 32,
+ "live_net": -325.0,
+ "cells": [
+  {
+   "bank_pt": 8,
+   "net": -292.0,
+   "delta": 33.0,
+   "banked": 37,
+   "delta_losers": 664.5,
+   "delta_winners": -631.5,
+   "winners_kept": 24,
+   "lodo_worst_delta": -193.0,
+   "strip_best3_delta": -210.0,
+   "per_day_delta": {
+    "2026-08-10": 117.0,
+    "2026-08-11": -103.5,
+    "2026-08-12": 226.0,
+    "2026-08-13": 27.0,
+    "2026-08-14": -233.5
+   },
+   "placebo_median": -666.5,
+   "placebo_p95": -537.0,
+   "placebo_pctile": 100.0
+  },
+  {
+   "bank_pt": 10,
+   "net": -244.5,
+   "delta": 80.5,
+   "banked": 35,
+   "delta_losers": 612.0,
+   "delta_winners": -531.5,
+   "winners_kept": 24,
+   "lodo_worst_delta": -185.5,
+   "strip_best3_delta": -174.5,
+   "per_day_delta": {
+    "2026-08-10": 141.0,
+    "2026-08-11": -124.5,
+    "2026-08-12": 266.0,
+    "2026-08-13": -8.5,
+    "2026-08-14": -193.5
+   },
+   "placebo_median": -717.5,
+   "placebo_p95": -579.5,
+   "placebo_pctile": 100.0
+  },
+  {
+   "bank_pt": 12,
+   "net": -193.5,
+   "delta": 131.5,
+   "banked": 34,
+   "delta_losers": 563.0,
+   "delta_winners": -431.5,
+   "winners_kept": 24,
+   "lodo_worst_delta": -85.5,
+   "strip_best3_delta": -124.5,
+   "per_day_delta": {
+    "2026-08-10": 165.0,
+    "2026-08-11": -100.5,
+    "2026-08-12": 217.0,
+    "2026-08-13": 3.5,
+    "2026-08-14": -153.5
+   },
+   "placebo_median": -756.5,
+   "placebo_p95": -623.75,
+   "placebo_pctile": 100.0
+  },
+  {
+   "bank_pt": 15,
+   "net": -198.5,
+   "delta": 126.5,
+   "banked": 30,
+   "delta_losers": 394.5,
+   "delta_winners": -268.0,
+   "winners_kept": 25,
+   "lodo_worst_delta": -74.5,
+   "strip_best3_delta": -114.0,
+   "per_day_delta": {
+    "2026-08-10": 201.0,
+    "2026-08-11": -51.0,
+    "2026-08-12": 114.0,
+    "2026-08-13": -44.0,
+    "2026-08-14": -93.5
+   },
+   "placebo_median": -850.0,
+   "placebo_p95": -700.75,
+   "placebo_pctile": 100.0
+  },
+  {
+   "bank_pt": 20,
+   "net": -105.5,
+   "delta": 219.5,
+   "banked": 12,
+   "delta_losers": 264.5,
+   "delta_winners": -45.0,
+   "winners_kept": 25,
+   "lodo_worst_delta": 48.5,
+   "strip_best3_delta": -45.0,
+   "per_day_delta": {
+    "2026-08-10": 171.0,
+    "2026-08-11": -1.5,
+    "2026-08-12": 75.5,
+    "2026-08-13": -24.0,
+    "2026-08-14": -1.5
+   },
+   "placebo_median": -485.75,
+   "placebo_p95": -393.75,
+   "placebo_pctile": 100.0
+  },
+  {
+   "bank_pt": 25,
+   "net": -207.5,
+   "delta": 117.5,
+   "banked": 4,
+   "delta_losers": 121.0,
+   "delta_winners": -3.5,
+   "winners_kept": 25,
+   "lodo_worst_delta": -14.0,
+   "strip_best3_delta": -14.0,
+   "per_day_delta": {
+    "2026-08-10": 131.5,
+    "2026-08-11": 0.0,
+    "2026-08-12": -8.5,
+    "2026-08-13": -5.5,
+    "2026-08-14": 0.0
+   },
+   "placebo_median": -370.25,
+   "placebo_p95": -299.25,
+   "placebo_pctile": 100.0
+  },
+  {
+   "bank_pt": 30,
+   "net": -325.0,
+   "delta": 0.0,
+   "banked": 0,
+   "delta_losers": 0.0,
+   "delta_winners": 0.0,
+   "winners_kept": 25,
+   "lodo_worst_delta": 0.0,
+   "strip_best3_delta": 0.0,
+   "per_day_delta": {
+    "2026-08-10": 0.0,
+    "2026-08-11": 0.0,
+    "2026-08-12": 0.0,
+    "2026-08-13": 0.0,
+    "2026-08-14": 0.0
+   },
+   "placebo_median": -325.0,
+   "placebo_p95": -325.0,
+   "placebo_pctile": 0.0
+  },
+  {
+   "bank_pt": 40,
+   "net": -325.0,
+   "delta": 0.0,
+   "banked": 0,
+   "delta_losers": 0.0,
+   "delta_winners": 0.0,
+   "winners_kept": 25,
+   "lodo_worst_delta": 0.0,
+   "strip_best3_delta": 0.0,
+   "per_day_delta": {
+    "2026-08-10": 0.0,
+    "2026-08-11": 0.0,
+    "2026-08-12": 0.0,
+    "2026-08-13": 0.0,
+    "2026-08-14": 0.0
+   },
+   "placebo_median": -325.0,
+   "placebo_p95": -325.0,
+   "placebo_pctile": 0.0
+  }
+ ],
+ "exit_fault": {
+  "n": 3,
+  "live_net": -298.5,
+  "median_best_pt": 22.2,
+  "bank_8": -106.0,
+  "bank_10": -94.0,
+  "bank_12": -82.0,
+  "bank_15": -64.0,
+  "bank_20": -34.0,
+  "bank_25": -177.5,
+  "bank_30": -298.5,
+  "bank_40": -298.5
+ }
+}

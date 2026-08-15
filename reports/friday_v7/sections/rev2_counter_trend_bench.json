@@ -1,0 +1,1223 @@
+{
+ "days": 30,
+ "gate": "exhaustion_short",
+ "n": 146,
+ "by_regime": {
+  "TREND_UP": {
+   "legs": 26,
+   "live": -398.5,
+   "live_per_leg": -15.33,
+   "scalp2r_legs": 26,
+   "scalp2r": -168.93,
+   "scalp2r_per_leg": -6.5,
+   "ruler_gap_per_leg": 8.83
+  },
+  "CHOP": {
+   "legs": 72,
+   "live": 575.5,
+   "live_per_leg": 7.99,
+   "scalp2r_legs": 72,
+   "scalp2r": -603.71,
+   "scalp2r_per_leg": -8.38,
+   "ruler_gap_per_leg": -16.38
+  },
+  "TREND_DOWN": {
+   "legs": 48,
+   "live": -335.0,
+   "live_per_leg": -6.98,
+   "scalp2r_legs": 48,
+   "scalp2r": 451.21,
+   "scalp2r_per_leg": 9.4,
+   "ruler_gap_per_leg": 16.38
+  }
+ },
+ "counter_trend": {
+  "legs": 26,
+  "live": -398.5,
+  "live_per_leg": -15.33,
+  "days": 8,
+  "days_negative": 7,
+  "strip_worst_day": -232.5,
+  "lodo_worst": -623.0,
+  "per_day": {
+   "07-21": -30.0,
+   "07-27": -14.5,
+   "07-28": -72.0,
+   "07-29": -166.0,
+   "07-30": 224.5,
+   "07-31": -99.5,
+   "08-10": -75.0,
+   "08-12": -166.0
+  }
+ },
+ "legs": [
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 79.5,
+   "atr": 17.18,
+   "scalp2r": 67.2142857142826
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": -67.5,
+   "atr": 18.21,
+   "scalp2r": -37.92857142857247
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": -63.0,
+   "atr": 29.84,
+   "scalp2r": -61.17857142857247
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 16.0,
+   "atr": 36.45,
+   "scalp2r": -74.39285714285506
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 65.0,
+   "atr": 34.16,
+   "scalp2r": -69.82142857142753
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 62.5,
+   "atr": 31.36,
+   "scalp2r": -64.2142857142826
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 89.5,
+   "atr": 21.5,
+   "scalp2r": 84.5
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": -70.5,
+   "atr": 20.77,
+   "scalp2r": -43.035714285717404
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 13.0,
+   "atr": 13.5,
+   "scalp2r": -28.5
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": 14.5,
+   "atr": 8.7,
+   "scalp2r": -18.892857142855064
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": -44.5,
+   "atr": 9.66,
+   "scalp2r": -20.821428571427532
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": -43.5,
+   "atr": 10.46,
+   "scalp2r": -22.428571428572468
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": -107.0,
+   "atr": 10.36,
+   "scalp2r": -22.214285714282596
+  },
+  {
+   "day": "07-21",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 42.0,
+   "atr": 11.88,
+   "scalp2r": 46.0
+  },
+  {
+   "day": "07-22",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 88.5,
+   "atr": 11.8,
+   "scalp2r": -25.107142857144936
+  },
+  {
+   "day": "07-23",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -92.0,
+   "atr": 40.21,
+   "scalp2r": -81.92857142857247
+  },
+  {
+   "day": "07-23",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -56.0,
+   "atr": 26.52,
+   "scalp2r": -54.535714285717404
+  },
+  {
+   "day": "07-24",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 22.5,
+   "atr": 12.48,
+   "scalp2r": 48.42857142857247
+  },
+  {
+   "day": "07-24",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -84.0,
+   "atr": 39.18,
+   "scalp2r": -79.85714285714494
+  },
+  {
+   "day": "07-24",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 6.0,
+   "atr": 37.71,
+   "scalp2r": 149.35714285714494
+  },
+  {
+   "day": "07-24",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 35.0,
+   "atr": 23.95,
+   "scalp2r": -49.392857142855064
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 44.5,
+   "atr": 10.21,
+   "scalp2r": 39.357142857144936
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -52.5,
+   "atr": 17.77,
+   "scalp2r": -37.035714285717404
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 30.0,
+   "atr": 39.46,
+   "scalp2r": 156.35714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 24.5,
+   "atr": 42.46,
+   "scalp2r": 168.35714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -16.5,
+   "atr": 43.62,
+   "scalp2r": 173.0
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -19.0,
+   "atr": 47.89,
+   "scalp2r": -97.2857142857174
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -28.5,
+   "atr": 45.34,
+   "scalp2r": 179.85714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 20.5,
+   "atr": 40.32,
+   "scalp2r": 159.7857142857174
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -30.5,
+   "atr": 36.7,
+   "scalp2r": 145.2857142857174
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -20.0,
+   "atr": 37.41,
+   "scalp2r": -76.32142857142753
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 20.0,
+   "atr": 37.7,
+   "scalp2r": -76.89285714285506
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 29.5,
+   "atr": 37.14,
+   "scalp2r": 147.07142857142753
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 26.0,
+   "atr": 43.23,
+   "scalp2r": -87.9642857142826
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -17.0,
+   "atr": 44.3,
+   "scalp2r": -90.10714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 24.0,
+   "atr": 43.57,
+   "scalp2r": -88.64285714285506
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 29.5,
+   "atr": 44.8,
+   "scalp2r": -91.10714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 26.5,
+   "atr": 36.34,
+   "scalp2r": 143.85714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -18.5,
+   "atr": 35.8,
+   "scalp2r": -73.10714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": -32.5,
+   "atr": 35.55,
+   "scalp2r": -72.60714285714494
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": -22.0,
+   "atr": 34.7,
+   "scalp2r": 137.2857142857174
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": 18.5,
+   "atr": 34.75,
+   "scalp2r": 137.5
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": -44.0,
+   "atr": 21.12,
+   "scalp2r": -43.75
+  },
+  {
+   "day": "07-27",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": 21.5,
+   "atr": 15.91,
+   "scalp2r": -33.32142857142753
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 57.0,
+   "atr": 26.64,
+   "scalp2r": 105.07142857142753
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 324.5,
+   "atr": 27.95,
+   "scalp2r": 110.2857142857174
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -103.0,
+   "atr": 52.04,
+   "scalp2r": -105.57142857142753
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -94.5,
+   "atr": 47.59,
+   "scalp2r": -96.67857142857247
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 18.5,
+   "atr": 42.66,
+   "scalp2r": -86.82142857142753
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 18.0,
+   "atr": 32.36,
+   "scalp2r": 127.92857142857247
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "TREND_UP",
+   "live": -72.0,
+   "atr": 34.82,
+   "scalp2r": -71.14285714285506
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -121.0,
+   "atr": 18.32,
+   "scalp2r": -38.142857142855064
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 28.5,
+   "atr": 20.05,
+   "scalp2r": -41.607142857144936
+  },
+  {
+   "day": "07-28",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 34.0,
+   "atr": 21.16,
+   "scalp2r": 83.14285714285506
+  },
+  {
+   "day": "07-29",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 36.5,
+   "atr": 21.89,
+   "scalp2r": 86.07142857142753
+  },
+  {
+   "day": "07-29",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": -101.0,
+   "atr": 51.7,
+   "scalp2r": -104.89285714285506
+  },
+  {
+   "day": "07-29",
+   "gate": "exhaustion_short",
+   "regime": "TREND_DOWN",
+   "live": 180.0,
+   "atr": 47.66,
+   "scalp2r": 189.14285714285506
+  },
+  {
+   "day": "07-29",
+   "gate": "exhaustion_short",
+   "regime": "CHOP",
+   "live": 145.5,
+   "atr": 40.39,
+   "scalp2r": -82.2857142857174
+  },
+  {
+   "day": "07-29",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": -80.5,
+   "atr": 44.05,
+   "scalp2r": -89.60714285714494
+  },
+  {
+   "day": "07-29",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": -85.5,
+   "atr": 44.05,
+   "scalp2r": -89.60714285714494
+  },
+  {
+   "day": "07-30",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": 107.5,
+   "atr": 35.29,
+   "scalp2r": 139.64285714285506
+  },
+  {
+   "day": "07-30",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": 117.0,
+   "atr": 35.29,
+   "scalp2r": 139.64285714285506
+  },
+  {
+   "day": "07-30",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": 38.5,
+   "atr": 37.43,
+   "scalp2r": 148.2142857142826
+  },
+  {
+   "day": "07-30",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": 109.5,
+   "atr": 37.43,
+   "scalp2r": 148.2142857142826
+  },
+  {
+   "day": "07-30",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": -100.5,
+   "atr": 29.41,
+   "scalp2r": -60.32142857142753
+  },
+  {
+   "day": "07-30",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": -55.0,
+   "atr": 29.41,
+   "scalp2r": -60.32142857142753
+  },
+  {
+   "day": "07-31",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": 51.5,
+   "atr": 61.71,
+   "scalp2r": -124.92857142857247
+  },
+  {
+   "day": "07-31",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": -123.5,
+   "atr": 61.71,
+   "scalp2r": -124.92857142857247
+  },
+  {
+   "day": "07-31",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": -27.5,
+   "atr": 12.61,
+   "scalp2r": -26.714285714282596
+  },
+  {
+   "day": "08-05",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -70.5,
+   "atr": 37.43,
+   "scalp2r": -76.35714285714494
+  },
+  {
+   "day": "08-05",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -70.5,
+   "atr": 37.43,
+   "scalp2r": -76.35714285714494
+  },
+  {
+   "day": "08-07",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": -47.0,
+   "atr": 21.21,
+   "scalp2r": -43.92857142857247
+  },
+  {
+   "day": "08-07",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": -78.0,
+   "atr": 21.21,
+   "scalp2r": -43.92857142857247
+  },
+  {
+   "day": "08-07",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 54.0,
+   "atr": 32.86,
+   "scalp2r": -67.2142857142826
+  },
+  {
+   "day": "08-07",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 50.0,
+   "atr": 32.86,
+   "scalp2r": -67.2142857142826
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 38.0,
+   "atr": 31.84,
+   "scalp2r": -65.17857142857247
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 44.5,
+   "atr": 31.84,
+   "scalp2r": -65.17857142857247
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -72.5,
+   "atr": 37.29,
+   "scalp2r": -76.07142857142753
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -72.5,
+   "atr": 37.29,
+   "scalp2r": -76.07142857142753
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": -37.5,
+   "atr": 19.14,
+   "scalp2r": -39.785714285717404
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": -37.5,
+   "atr": 19.14,
+   "scalp2r": -39.785714285717404
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": -21.0,
+   "atr": 9.38,
+   "scalp2r": -20.25
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": -21.0,
+   "atr": 9.38,
+   "scalp2r": -20.25
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -24.0,
+   "atr": 12.82,
+   "scalp2r": -27.142857142855064
+  },
+  {
+   "day": "08-10",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -26.5,
+   "atr": 12.82,
+   "scalp2r": -27.142857142855064
+  },
+  {
+   "day": "08-11",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 42.5,
+   "atr": 20.07,
+   "scalp2r": 78.7857142857174
+  },
+  {
+   "day": "08-11",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 65.5,
+   "atr": 20.07,
+   "scalp2r": 78.7857142857174
+  },
+  {
+   "day": "08-11",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 40.0,
+   "atr": 27.5,
+   "scalp2r": -56.5
+  },
+  {
+   "day": "08-11",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 43.0,
+   "atr": 27.5,
+   "scalp2r": -56.5
+  },
+  {
+   "day": "08-11",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": -61.0,
+   "atr": 28.66,
+   "scalp2r": -58.82142857142753
+  },
+  {
+   "day": "08-11",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": -61.0,
+   "atr": 28.66,
+   "scalp2r": -58.82142857142753
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": -66.5,
+   "atr": 35.34,
+   "scalp2r": -72.17857142857247
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": -67.5,
+   "atr": 35.34,
+   "scalp2r": -72.17857142857247
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": -66.0,
+   "atr": 32.32,
+   "scalp2r": -66.14285714285506
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": -64.5,
+   "atr": 32.32,
+   "scalp2r": -66.14285714285506
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": 50.0,
+   "atr": 29.36,
+   "scalp2r": 115.92857142857247
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": 73.0,
+   "atr": 29.36,
+   "scalp2r": 115.92857142857247
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": -60.5,
+   "atr": 29.84,
+   "scalp2r": -61.17857142857247
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": -61.0,
+   "atr": 29.84,
+   "scalp2r": -61.17857142857247
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_UP",
+   "live": 39.5,
+   "atr": 24.91,
+   "scalp2r": 98.14285714285506
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_UP",
+   "live": 57.5,
+   "atr": 24.91,
+   "scalp2r": 98.14285714285506
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -45.5,
+   "atr": 21.75,
+   "scalp2r": -45.0
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -45.5,
+   "atr": 21.75,
+   "scalp2r": -45.0
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -51.5,
+   "atr": 21.95,
+   "scalp2r": -45.392857142855064
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -50.5,
+   "atr": 21.95,
+   "scalp2r": -45.392857142855064
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 42.0,
+   "atr": 26.3,
+   "scalp2r": 103.7142857142826
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 70.5,
+   "atr": 26.3,
+   "scalp2r": 103.7142857142826
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -39.5,
+   "atr": 18.98,
+   "scalp2r": -39.464285714282596
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 57.0,
+   "atr": 19.34,
+   "scalp2r": 75.85714285714494
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -22.0,
+   "atr": 10.59,
+   "scalp2r": -22.678571428572468
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -22.0,
+   "atr": 10.59,
+   "scalp2r": -22.678571428572468
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -24.0,
+   "atr": 10.89,
+   "scalp2r": -23.285714285717404
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -24.0,
+   "atr": 10.89,
+   "scalp2r": -23.285714285717404
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -23.5,
+   "atr": 10.55,
+   "scalp2r": -22.607142857144936
+  },
+  {
+   "day": "08-12",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -23.0,
+   "atr": 10.55,
+   "scalp2r": -22.607142857144936
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 40.5,
+   "atr": 7.0,
+   "scalp2r": 26.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 59.0,
+   "atr": 7.0,
+   "scalp2r": 26.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 32.0,
+   "atr": 7.32,
+   "scalp2r": -16.142857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 17.0,
+   "atr": 7.32,
+   "scalp2r": -16.142857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -44.0,
+   "atr": 22.82,
+   "scalp2r": -47.142857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -43.5,
+   "atr": 22.82,
+   "scalp2r": -47.142857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -53.5,
+   "atr": 28.29,
+   "scalp2r": -58.07142857142753
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -53.5,
+   "atr": 28.29,
+   "scalp2r": -58.07142857142753
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 40.0,
+   "atr": 20.18,
+   "scalp2r": 79.2142857142826
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 69.0,
+   "atr": 20.18,
+   "scalp2r": 79.2142857142826
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 40.5,
+   "atr": 20.54,
+   "scalp2r": -42.57142857142753
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": 38.5,
+   "atr": 14.25,
+   "scalp2r": 55.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": 56.0,
+   "atr": 14.25,
+   "scalp2r": 55.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": 39.0,
+   "atr": 13.45,
+   "scalp2r": 52.285714285717404
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": 63.5,
+   "atr": 13.45,
+   "scalp2r": 52.285714285717404
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": 36.0,
+   "atr": 12.95,
+   "scalp2r": 50.285714285717404
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": 61.5,
+   "atr": 12.95,
+   "scalp2r": 50.285714285717404
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "TREND_DOWN",
+   "live": -27.0,
+   "atr": 13.57,
+   "scalp2r": -28.642857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "TREND_DOWN",
+   "live": -27.0,
+   "atr": 13.57,
+   "scalp2r": -28.642857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -16.5,
+   "atr": 8.5,
+   "scalp2r": -18.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -16.5,
+   "atr": 8.5,
+   "scalp2r": -18.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 37.0,
+   "atr": 9.34,
+   "scalp2r": 35.857142857144936
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 45.5,
+   "atr": 9.34,
+   "scalp2r": 35.857142857144936
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": 37.0,
+   "atr": 8.75,
+   "scalp2r": 33.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": 13.0,
+   "atr": 8.75,
+   "scalp2r": 33.5
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -55.5,
+   "atr": 6.95,
+   "scalp2r": -15.392857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -15.0,
+   "atr": 6.95,
+   "scalp2r": -15.392857142855064
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -16.0,
+   "atr": 6.86,
+   "scalp2r": -15.214285714282596
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -16.0,
+   "atr": 6.86,
+   "scalp2r": -15.214285714282596
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_A",
+   "regime": "CHOP",
+   "live": -15.0,
+   "atr": 7.16,
+   "scalp2r": -15.821428571427532
+  },
+  {
+   "day": "08-14",
+   "gate": "exhaustion_short_B",
+   "regime": "CHOP",
+   "live": -16.0,
+   "atr": 7.16,
+   "scalp2r": -15.821428571427532
+  }
+ ]
+}

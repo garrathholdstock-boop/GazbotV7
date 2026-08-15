@@ -54,9 +54,15 @@ def main():
         # toggle that reads as "do this".
         if p["window"] in ("HOLD", "NOT-AN-ACTION"):
             default = "skip"
-        # The picker renders `rationale` as the card's body and has no field for the test, so
-        # fold the mechanism and the test into it rather than losing the test entirely.
+        # The picker renders `rationale` as the card's body and has no field for the test, the
+        # evidence number or the report's own scope notes — so fold them all in rather than
+        # losing them. Overwriting `rationale` with `mechanism` alone silently dropped every
+        # "★ REV2" correction on 2026-08-15: the Rev-2 pass records WHY a play was re-scoped or
+        # its money restated in `rationale`/`number`, and the operator acts off this card.
         body = p.get("mechanism", "")
+        for label, key in (("", "rationale"), ("The number: ", "number")):
+            if p.get(key):
+                body = f"{body}  ·  {label}{p[key]}"
         if p.get("verification"):
             body = f"{body}  ·  Proven wrong by: {p['verification']}"
         out.append({**p,

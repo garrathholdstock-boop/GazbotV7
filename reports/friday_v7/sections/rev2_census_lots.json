@@ -1,0 +1,93 @@
+[
+ {
+  "time": "08-10 13:35",
+  "dir": "UP",
+  "kind": "FOUGHT",
+  "lots": 2,
+  "real": 82.5,
+  "gates": [
+   "exhaustion_short_A",
+   "exhaustion_short_B"
+  ]
+ },
+ {
+  "time": "08-12 13:28",
+  "dir": "DN",
+  "kind": "FOUGHT",
+  "lots": 2,
+  "real": -48.0,
+  "gates": [
+   "capitulation_long_A",
+   "capitulation_long_B"
+  ]
+ },
+ {
+  "time": "08-12 13:50",
+  "dir": "DN",
+  "kind": "caught",
+  "lots": 4,
+  "real": -7.5,
+  "gates": [
+   "exhaustion_short_A",
+   "exhaustion_short_B"
+  ]
+ },
+ {
+  "time": "08-12 14:40",
+  "dir": "DN",
+  "kind": "caught",
+  "lots": 2,
+  "real": 112.5,
+  "gates": [
+   "exhaustion_short_A",
+   "exhaustion_short_B"
+  ]
+ },
+ {
+  "time": "08-12 16:36",
+  "dir": "UP",
+  "kind": "FOUGHT",
+  "lots": 2,
+  "real": -46.5,
+  "gates": [
+   "exhaustion_short_A",
+   "exhaustion_short_B"
+  ]
+ },
+ {
+  "time": "08-13 13:56",
+  "dir": "UP",
+  "kind": "caught",
+  "lots": 2,
+  "real": 132.0,
+  "gates": [
+   "abs_veto_long_A",
+   "abs_veto_long_B"
+  ]
+ },
+ {
+  "time": "08-13 16:18",
+  "dir": "UP",
+  "kind": "FOUGHT",
+  "lots": 2,
+  "real": -66.5,
+  "gates": [
+   "abs_veto_short_A",
+   "abs_veto_short_B"
+  ]
+ },
+ {
+  "time": "08-14 13:37",
+  "dir": "UP",
+  "kind": "FOUGHT",
+  "lots": 5,
+  "real": 277.0,
+  "gates": [
+   "abs_veto_short_A",
+   "abs_veto_short_B",
+   "day_rider",
+   "exhaustion_short_A",
+   "exhaustion_short_B"
+  ]
+ }
+]

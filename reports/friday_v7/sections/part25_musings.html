@@ -513,7 +513,7 @@ to produce its router-value figure.</p>
 (<code>scripts/selector_nightly.py</code>) filters on <code>exit_reason</code> but <strong>never filters
 <code>data_quality</code></strong> &mdash; the one filter this desk's P&amp;L rules mandate. So it counted all
 five day-rider rows for that day, and because it reprices every trade off bars they all collapsed to the same
-synthetic row: five identical entries of chosen &minus;$31.50, regret $72.50.</p>
+synthetic row: five identical entries of chosen &minus;$31.50, regret $72.50. <strong>&#9733; REV2 &mdash; and only FOUR of those five rows are phantoms.</strong> The trade ids flagged <code>EXCLUDE:day_rider_phantom_rebook_20260813</code> are 673, 674, 675 and 678. The fifth day-rider row on that date is id&nbsp;668 &mdash; the genuine 13:38&nbsp;LONG that Garrath claimed at 14:26 for +$731.00 &mdash; and it is not quarantined and must not be deleted. So the phantom is <strong>4 &times; $72.50 = $290.00</strong>, the corrected regret is <strong>$457.50</strong> and the corrected trade count is <strong>10</strong>.</p>
 
 <table>
 <thead><tr><th>13 August selector file</th><th class="num">as published</th><th class="num">deduped</th><th class="num">error</th></tr></thead>
@@ -526,8 +526,12 @@ synthetic row: five identical entries of chosen &minus;$31.50, regret $72.50.</p
 <p>I checked every one of the eleven selector files against the ledger: <strong>13 August is the only
 contaminated one</strong> (the two quarantined rows from 4 August fall outside that file's window), so the
 week's total regret of $7,903 is overstated by $290 rather than by anything dramatic. But
-<strong>48% of that single day's regret is one trade counted five times</strong>, and any selector tuning done
-off that day is chasing a phantom. Two other things I would fix while in there: the file set is gappy
+<strong>39% of that single day's regret &mdash; $290.00 of $747.50 &mdash; is one dead trade counted four extra
+times</strong>, and any selector tuning done off that day is chasing a phantom.
+<span class="was">48% of that single day's regret</span> &#9733;&nbsp;REV2: the 48% figure counted <em>five</em>
+rows as phantom and so deleted the real +$731 claim along with them. <strong>$290 phantom / $457.50 corrected /
+10 real trades</strong> is the arithmetic, and it is the arithmetic SATURDAY&nbsp;#3's verification criterion
+("confirm regret drops from $748 to $458") is written against. Two other things I would fix while in there: the file set is gappy
 (27&ndash;31 July, 3&ndash;7 August, 13 August) because there is <em>no systemd timer for it at all</em> despite
 the name "nightly", and its only consumer is this report.</p>
 

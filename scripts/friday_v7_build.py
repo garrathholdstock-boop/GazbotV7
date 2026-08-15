@@ -176,6 +176,13 @@ SECTIONS = (
      "movement2_idle_gates.html", "sec7", ()),
     ("Movement 3", "The greenfield lab — the gold book-break hunt, and the hunts that did not run",
      "movement3_greenfield.html", "sec8", ()),
+    # ★2026-08-15 REVISION 2. The self-proofread pass reopened eight questions and fourteen
+    # contradictions AFTER the report rendered. The fourteen are fixed in place, each tagged
+    # ★REV2 where it sits, so nobody has to hold two numbers in their head. The eight are new
+    # work and they get their own part rather than being scattered — several of them change a
+    # play, and one of them withdraws a claim this report made about its own books.
+    ("Part 3", "REVISION 2 — the eight open questions, answered on real data",
+     "rev2_answers.html", "sec9", ()),
 )
 
 # No Part 3 this week. The 08-08 cycle had a self-proofread pass that reopened six questions
@@ -193,8 +200,11 @@ WINDOWS = (
      "headline size</strong>. <strong>#1 and #2 are forced</strong>: "
      "<code>gazbot7-gate-reactivate.timer</code> arms every <code>=off</code> gate at 22:00 UTC "
      "Sunday, so for both of them &ldquo;decide later&rdquo; is not one of the available states. "
-     "#3&ndash;#6 are safety and measurement, and they come before the two experiments at the "
-     "bottom because those experiments cannot be judged without them."),
+     "<strong>#3 is a correctness fix</strong> (one WHERE clause, no experiment attached) and "
+     "<strong>#4 is an in-code veto</strong> that has to go in with the restart or wait a week. "
+     "&#9733;&nbsp;REV2: #1 now carries its regime split &mdash; the +$502 is entirely non-trend-day "
+     "money and the change is mildly NEGATIVE on the trending eighth of its own sample; #2 now "
+     "carries both rulers."),
     ("MONDAY", "w-mon", "AT THE DESK — switch-file and exit-cell changes, all reversible",
      "No code deploy in this window at all. Every row is <code>gate_switches.env</code>, "
      "<code>exit_overrides.json</code> or a router constant, and comes back in five minutes. "
@@ -511,6 +521,12 @@ def render_plays() -> tuple[str, int]:
         'is at the front. Every row below mirrors <code>reports/friday_v7/plays.json</code>, which is the '
         'reconciled source of truth for this week; the same file drives the '
         f'<a href="{PLAYBOOK_URL}"><strong>Monday playbook</strong></a>, so the two cannot drift apart. '
+        f'<strong>&#9733; REV2 &mdash; the card grew from 38 rows to {len(plays)}.</strong> Seven SHADOW verdicts in the '
+        'body of the report never became plays, including the one Part&nbsp;2 calls &ldquo;the week&rsquo;s main '
+        'proposal&rdquo;, and a shadow slate costs nothing and needs no Saturday deploy, so a SHADOW verdict that '
+        'produces no action is a lost week of incubation. They are BUILD&nbsp;#11&ndash;#18. One play moved the other '
+        'way: the Open&nbsp;Rider stop width was a live MONDAY row on the strength of a section that forbids one, and '
+        'it is now a shadow arm. '
         f'{len(plays)} plays, five windows, in the order they need doing. Every play carries its '
         '<strong>evidence tier</strong> and its <strong>kill criterion</strong> — if a play has no way to '
         'be proven wrong it should not be on the card.</p>',
@@ -582,7 +598,7 @@ def render_plays() -> tuple[str, int]:
         'empty set and not a clean week &mdash; BUILD&nbsp;#3. The nightly rollup reports $0/$0/$0 when the '
         'systemd journal has rotated past the day it is backfilling, which is indistinguishable from a day '
         'with no value &mdash; BUILD&nbsp;#8. And <code>selector_nightly</code> counted a quarantined trade '
-        'five times, inflating one day&rsquo;s regret by 39% &mdash; SATURDAY&nbsp;#3.</p>'
+        'four extra times, inflating one day&rsquo;s regret by 39% ($747.50 &rarr; $457.50 on 10 real trades) &mdash; SATURDAY&nbsp;#3. &#9733; REV2: the phantom is FOUR rows worth $290.00, not five worth $362.50 &mdash; the fifth day-rider row that day is the genuine claimed trade and must survive the fix.</p>'
         '<p><strong>Two sections of this report did not run.</strong> The rehabilitation phase timed out '
         'and Movement 3&rsquo;s four MNQ hunts never started. Part 1.5 was rebuilt from the artifacts the '
         'timed-out phase had already saved, and Movement 3 is the one gold hunt that finished; both say so '
@@ -710,7 +726,12 @@ desk made all of it</h2>
 <strong>three of the five days were green</strong> &mdash; which is the thing Part&nbsp;0 exists to
 show, because a year ago a green week was one day. But the money is not spread around, and the
 split is the first thing you should see: <strong>the day rider made {m(r_v)} on {r_n} trades and
-the six-gate tournament lost {m(t_v)} on {t_n}.</strong> Take the rider out and the week is red.
+the tournament lost {m(t_v)} on {t_n}.</strong> Take the rider out and the week is red.
+(&#9733;&nbsp;REV2 &mdash; one naming fix, used consistently from here on: the tournament is
+<strong>eight base gates filling six live slots</strong>. The scope doc still calls it
+&ldquo;the six-gate tournament&rdquo;; <code>rgv_long</code> and <code>thrust_short</code> were
+retired and replaced by <code>exhaustion_short</code> and the two <code>abs_veto</code> sides, so
+the roster is eight and the slate is six &mdash; see Part&nbsp;1&nbsp;&sect;3.)
 Read every gate card in this report with that in mind &mdash; the tournament did not have a good
 week, it had a week that a second desk paid for.</p>
 
@@ -730,7 +751,7 @@ next.</p>
 <tr><td class="ln">The day rider alone</td><td class="num">{r_n}</td><td class="num">{m(r_v)}</td>
     <td class="ln">the second desk. Five trades, five winners &mdash; and it only started writing
         a ledger at all this week, so treat it as thin, not as proven</td></tr>
-<tr class="row-bad"><td class="ln"><strong>The six-gate tournament alone</strong></td>
+<tr class="row-bad"><td class="ln"><strong>The tournament alone</strong> (eight base gates, six live slots)</td>
     <td class="num">{t_n}</td><td class="num"><strong>{m(t_v)}</strong></td>
     <td class="ln">what the gates this report is mostly about actually did</td></tr>
 </tbody>
@@ -762,11 +783,19 @@ carried real weight into Saturday; here is where each one landed and the test th
 <tr class="row-hl">
   <td class="ln"><strong>The wide profit leg beats the tight one</strong></td>
   <td class="ln"><span class="tag pill-live">SURVIVED &mdash; the week&rsquo;s best-evidenced result</span>
-      +$331.50 over <strong>50 identical entries</strong> &mdash; same signal, same price, same stop,
+      +$331.50 over <strong>51 identical entries</strong> &mdash; same signal, same price, same stop,
       the only difference being where profit was taken. Placebo p=0.0040, sign test p=0.0235,
       <strong>all five daily folds positive and all four gate folds positive</strong>. The A/B legs
       are a scale-out, not an experiment, so the instruction is <em>widen Lot A&rsquo;s target</em>,
-      never drop Lot A.</td>
+      never drop Lot A.
+      <br><strong>&#9733;&nbsp;REV2 &mdash; but it is ONE gate that carries it, so the play is scoped.</strong>
+      Unpooled: <code>exhaustion_short</code> +$225.50 on 34 pairs and it survives its own battery
+      (strip-best-3 +$127.50, worst leave-one-day-out +$101.00, 4 of 4 days green, sign test
+      p=0.035), while <code>abs_veto_short</code>&rsquo;s +$65.00 on 12 pairs turns
+      <strong>&minus;$34.00 once its best three are stripped</strong>, at 6 wins from 12.
+      So MONDAY&nbsp;#1 widens <code>exhaustion_short</code> only and
+      <strong>explicitly excludes <code>abs_veto_short</code></strong>, whose ladder is going the
+      other way as BUILD&nbsp;#12 &mdash; see Part&nbsp;2&nbsp;&sect;3.</td>
   <td class="ln"><a href="#sec1">Part 1 &sect;2.2</a></td></tr>
 
 <tr class="row-hl">
@@ -815,12 +844,19 @@ carried real weight into Saturday; here is where each one landed and the test th
 <tr class="row-hl">
   <td class="ln"><strong>The router is earning its keep</strong></td>
   <td class="ln"><span class="tag pill-live">YES &mdash; and the gain is in its CLOCK, not its levels</span>
-      1,148 ticks, zero service failures, 95% of ticks change nothing. Its thresholds are already
-      at the best cell on both universes independently &mdash; there is nothing to win there. The
-      timing is a different story: window 45 / step 5 / hold 3 is worth <strong>+$502 and
-      +$399</strong> across the two sets. <strong>Two honest holes:</strong> its leakage detector
-      reported zero leakage while &minus;$241.00 leaked through a gate outside its universe, and a
-      10h20m outage on 13 August was indistinguishable from a calm day in every scoreboard.</td>
+      <strong>1,148 ticks Tue&ndash;Fri</strong> (Monday is unverifiable &mdash; the systemd journal
+      does not reach back past 08-10 23:11Z), <strong>zero systemd failures</strong> but
+      <strong>125 aborted decisions</strong> in one unbroken 10h20m block on 13 August, and 95% of
+      ticks change nothing. Its thresholds are already at the best cell on both universes
+      independently &mdash; there is nothing to win there. The timing is a different story: window
+      45 / step 5 / hold 3 is worth <strong>+$502 and +$399</strong> across the two sets.
+      <strong>&#9733; REV2 &mdash; and that gain is not where the router works.</strong> Rank the
+      40 days by session efficiency, hold out the trending eighth, and 45/5/3 scores
+      <strong>&minus;$13.50 and &minus;$46.50</strong> on those 8 days; every dollar of the +$502
+      comes from the flat 32. Take it for the mechanism (it smooths the boundary flicker), not for
+      the number. <strong>Two honest holes:</strong> its leakage detector
+      reported zero leakage while &minus;$241.00 leaked through a gate outside its universe, and
+      that 10h20m outage was indistinguishable from a calm day in every scoreboard.</td>
   <td class="ln"><a href="#sec5">Part 2.6</a></td></tr>
 </tbody>
 </table>
@@ -850,7 +886,7 @@ necessary and it is not sufficient. Ask what the filter is selecting for, every 
 <p><strong>3 &middot; Three instruments reported confidently and wrongly this week.</strong> The
 router&rsquo;s leakage detector said zero on a week money leaked; the nightly rollup said
 $0/$0/$0 for a day whose journal had rotated away; <code>selector_nightly</code> counted a
-quarantined trade five times and inflated one day&rsquo;s regret by 39%. None of them errored.
+quarantined trade four extra times and inflated one day&rsquo;s regret by 39%. None of them errored. &#9733; REV2 adds a fourth: <code>two_ratchet_shadow_watch</code>&rsquo;s rMFE column stops measuring at the first 1-ATR adverse tick, so it read 0.81R on a trade that ran 87.5 points &mdash; and this report used that number to accuse its own live book of carrying mis-attributed fills. 0 of 26 trades fail the real test.
 <strong>A number that arrives without a failure mode is not a measurement.</strong></p></div>
 """
 

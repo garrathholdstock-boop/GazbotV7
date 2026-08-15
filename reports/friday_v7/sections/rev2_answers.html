@@ -1,0 +1,603 @@
+<h2 id="rev2"><span class="n">P3</span> REVISION 2 &mdash; the eight questions the report left open, answered on real data</h2>
+
+<p class="lead">Gaz &mdash; the self-proofread pass read the finished report back and found eight places where it
+raised something and then walked away from it, plus fourteen places where two sections disagreed. The fourteen are
+fixed in the sections themselves, each one tagged <strong>&#9733;&nbsp;REV2</strong> where it sits, so you never have
+to hold two numbers in your head. This part is the eight questions, each one re-run from the tape, the trade table
+and the shadow book. <strong>Every number below is a computation I ran tonight, not a restatement.</strong></p>
+
+<div class="callout"><div class="ct">Lead with what survived &mdash; the six that changed something</div>
+<p><strong>1 &middot; The wide stop won the exhaustion_short head-to-head outright, so only ONE exit goes in the
+shadow book.</strong> On the gate&rsquo;s own 87 signals the wide stop pays <strong>+$3,459.98</strong> and the tight
+chandelier pays <strong>&minus;$339.06</strong>. The chandelier sits at the 58th percentile of its own random-entry
+control &mdash; a coin. Its two rows come out of <code>exit_overrides_proposed.json</code>.</p>
+<p><strong>2 &middot; The abs_veto_short gap is the LADDER, not the fills, and now it is measured rather than
+inferred.</strong> Across 46 live legs the desk fills a median <strong>0.60 points BETTER</strong> than the repricer
+assumes. The forward A/B is testing the right thing.</p>
+<p><strong>3 &middot; The router timing change is worth +$502 and every dollar of it is on non-trend days.</strong>
+Hold out the trending eighth and 45/5/3 is <strong>&minus;$13.50</strong>. Ship it for the mechanism; do not quote
+the number.</p>
+<p><strong>4 &middot; The day rider&rsquo;s $1,617.50 is not inflated by your hands &mdash; if anything they cost
+$254.</strong> The rider&rsquo;s own rule, replayed on the same five entries, pays <strong>$1,871.79</strong>. But
+<strong>zero of the five legs has a venue execution record</strong>, which is worse than the &ldquo;four of five&rdquo;
+Part&nbsp;1 reported.</p>
+<p><strong>5 &middot; The grind book is clean.</strong> The &ldquo;+$159 on a 0.81R excursion&rdquo; alarm was a false
+positive from a truncated statistic. <strong>0 of 26</strong> trades book more than their own tape could pay. That
+allegation is withdrawn.</p>
+<p><strong>6 &middot; Banking one lot at +20 points is real but thin.</strong> +$219.50, all 25 winners kept, every
+fold positive &mdash; and <strong>&minus;$45.00 once you strip its best three trades</strong>. SHADOW, and the cause
+of death for a deploy is named.</p>
+<p class="ln">The two that changed nothing but needed saying: the counter-trend bench figure was already on the
+harsh ruler (Q6), and the OPEN/NEWS hunt cannot be fixed by reordering a queue (Q7).</p></div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q1 &middot; The biggest bucket of loss had no action against it. Now it does &mdash; and the diagnosis was wrong.</h3>
+
+<p>Part&nbsp;1&nbsp;&sect;4 found the week&rsquo;s largest single bucket of loss: <strong>$1,058 across 11 signals
+that were up a median 39 points and still went the whole way to the stop</strong>. It named the untested fix &mdash;
+bank one of the two lots at a fixed points-onside and let the other run &mdash; called it &ldquo;the first thing I
+would test next week&rdquo;, and then it never reached the plays card. So the report&rsquo;s own largest diagnosed
+loss had nothing pointed at it.</p>
+
+<p><strong>First, the diagnosis, because it turned out to be the more important half.</strong> That 39-point figure
+is measured over a <strong>fifteen-minute window from entry</strong>. The median hold on those eleven signals was
+<strong>92 seconds</strong>. Re-measure over the window that actually matters &mdash; the time we were in the
+position &mdash; and it collapses:</p>
+
+<table>
+<thead><tr><th class="ln">The 11 &ldquo;exit fault&rdquo; signals</th><th class="num">15 minutes from entry</th>
+<th class="num">While we actually held it</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">Median favourable move</td><td class="num">39.2pt</td><td class="num"><strong>7.25pt</strong></td></tr>
+<tr class="row-bad"><td class="ln">Reached 20pt+ onside</td><td class="num">11 of 11</td><td class="num"><strong>2 of 11</strong></td></tr>
+<tr class="row-bad"><td class="ln">Reached 12pt+ onside</td><td class="num">11 of 11</td><td class="num">4 of 11</td></tr>
+<tr><td class="ln">Median hold</td><td class="num">&mdash;</td><td class="num">92 seconds</td></tr>
+</tbody></table>
+
+<p><strong>Nine of the eleven made their 39-point move after our stop had already taken us out.</strong> So this is
+not &ldquo;we had the money and gave every penny back&rdquo;; for nine of them the money arrived when we were flat.
+That makes it a <strong>stop-width</strong> problem, which is the same answer Part&nbsp;1.5&nbsp;&sect;7 reaches on a
+different gate-week and a different sample. Two independent routes to &ldquo;the stop is too tight&rdquo; is the
+strongest thing either section has.</p>
+
+<p><strong>Now the test itself.</strong> All 57 paired signals of the week, <em>winners included</em> &mdash; that is
+the &sect;9.2 apply-to-all-lots honesty rule, and it is the rule that killed the break-even stop. 5-second bars folded
+from <code>capture.db</code>. The favourable touch has to happen in a bar <strong>strictly earlier</strong> than the
+bar Lot&nbsp;A actually exited in, so the rule can never be awarded money on the bar the trade died in. Lot&nbsp;B is
+untouched. Costs are the real $1.50 round trip at $2.00 a point.</p>
+
+<table>
+<thead><tr><th class="ln">Bank Lot A at</th><th class="num">Week net</th><th class="num">vs the &minus;$325.00 we booked</th>
+<th class="num">Signals it fires on</th><th class="num">Gained on losers</th><th class="num">Given up on winners</th>
+<th class="num">Winners kept green</th><th class="num">Worst leave-one-day-out</th><th class="num">Strip its best 3</th>
+<th class="num">vs 400 random-time controls</th></tr></thead>
+<tbody>
+<tr><td class="ln">+8pt</td><td class="num">&minus;$292.00</td><td class="num">+$33.00</td><td class="num">37</td><td class="num">+$664.50</td><td class="num">&minus;$631.50</td><td class="num">24/25</td><td class="num">&minus;$193.00</td><td class="num">&minus;$210.00</td><td class="num">100th</td></tr>
+<tr><td class="ln">+10pt</td><td class="num">&minus;$244.50</td><td class="num">+$80.50</td><td class="num">35</td><td class="num">+$612.00</td><td class="num">&minus;$531.50</td><td class="num">24/25</td><td class="num">&minus;$185.50</td><td class="num">&minus;$174.50</td><td class="num">100th</td></tr>
+<tr><td class="ln">+12pt</td><td class="num">&minus;$193.50</td><td class="num">+$131.50</td><td class="num">34</td><td class="num">+$563.00</td><td class="num">&minus;$431.50</td><td class="num">24/25</td><td class="num">&minus;$85.50</td><td class="num">&minus;$124.50</td><td class="num">100th</td></tr>
+<tr><td class="ln">+15pt</td><td class="num">&minus;$198.50</td><td class="num">+$126.50</td><td class="num">30</td><td class="num">+$394.50</td><td class="num">&minus;$268.00</td><td class="num">25/25</td><td class="num">&minus;$74.50</td><td class="num">&minus;$114.00</td><td class="num">100th</td></tr>
+<tr class="row-hl"><td class="ln"><strong>+20pt</strong></td><td class="num"><strong>&minus;$105.50</strong></td><td class="num"><strong>+$219.50</strong></td><td class="num">12</td><td class="num">+$264.50</td><td class="num">&minus;$45.00</td><td class="num"><strong>25/25</strong></td><td class="num"><strong>+$48.50</strong></td><td class="num">&minus;$45.00</td><td class="num"><strong>100th</strong></td></tr>
+<tr><td class="ln">+25pt</td><td class="num">&minus;$207.50</td><td class="num">+$117.50</td><td class="num">4</td><td class="num">+$121.00</td><td class="num">&minus;$3.50</td><td class="num">25/25</td><td class="num">&minus;$14.00</td><td class="num">&minus;$14.00</td><td class="num">100th</td></tr>
+<tr><td class="ln">+30pt / +40pt</td><td class="num">&minus;$325.00</td><td class="num">$0.00</td><td class="num">0</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">25/25</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+</tbody></table>
+
+<p class="ln">I added the +25 / +30 / +40 rungs because the best cell of the grid you asked for sat on its top edge,
+and a best-on-the-boundary is the standing curve-fit tell. With them in, you can see the shape: nothing at all reaches
++30 points before its exit bar.</p>
+
+<p><strong>What the placebo does here is worth a sentence, because it is the test that matters.</strong> The control
+keeps exactly the same set of banked lots and the same trade durations, but banks Lot&nbsp;A at a <em>random</em> bar
+inside the trade instead of at the +X touch. If &ldquo;get out sooner&rdquo; were the whole story, random timing would
+do as well. It does not: banking at a random moment is worth <strong>&minus;$485 to &minus;$850</strong> across the
+week against the live exit&rsquo;s &minus;$325, and the real rule beat <strong>400 of 400</strong> draws at every
+rung. The gain is in the +X trigger, not in leaving early.</p>
+
+<div class="callout"><div class="ct">The verdict, and the test that decides it</div>
+<p><strong>SHADOW, not deploy, and the cause of death for a deploy is STRIP-THE-BEST-THREE.</strong> At +20 the rule
+takes the week from &minus;$325.00 to &minus;$105.50, keeps every one of the 25 winning signals green, is positive on
+all five leave-one-day-out folds and beats every random control. But it fires on <strong>12 of 57</strong> signals,
+<strong>+$171 of the +$219.50 is Monday alone</strong>, and deleting its best three trades leaves
+<strong>&minus;$45.00</strong>. It is also a one-cell spike rather than a plateau &mdash; +25 is worth half and +30 is
+worth nothing. A shadow slate settles all of that for free and costs no Saturday. It is <strong>BUILD&nbsp;#18</strong>.</p>
+<p><strong>And note what it does NOT do.</strong> On the eleven signals that started this whole question, banking at
++20 recovers &minus;$1,058&nbsp;&rarr;&nbsp;&minus;$34 &mdash; but only because two of them genuinely went 20 points
+our way. The other nine are untouched by any in-trade rule, because we were not in the trade when the move happened.
+<strong>The real fix for that bucket is stop width, and after that, re-entry.</strong></p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q2 &middot; Two studies, two exits, same gate &mdash; which one goes in the shadow book?</h3>
+
+<p>Part&nbsp;1.5&nbsp;&sect;7 concludes the fix for <code>exhaustion_short</code> is a <strong>1.5&times;ATR stop with
+a 3.0&times;ATR target</strong> and a 15-minute cap, and BUILD&nbsp;#1 shadow-slates it. Part&nbsp;2&nbsp;&sect;8d
+concludes the fix is a <strong>tight chandelier on both lots</strong> for the trend rungs, and writes it to
+<code>data/exit_overrides_proposed.json</code> as the deliverable. Two different exit families for the same gate, and
+neither section graded itself against the other. Only one of them was on the card.</p>
+
+<p>They were measured on different populations with different engines, so &ldquo;+$3,459.98&rdquo; and
+&ldquo;+$22.8 a signal&rdquo; were never comparable numbers. Both have now been run on <strong>the same 87
+tape-backed signals</strong> &mdash; the live gate&rsquo;s own entries &mdash; on the same stored tick paths, under
+the same 15-minute cap, split by the &sect;8b rung (1-minute ER(30): BIG-TREND at 0.50+, MED-TREND 0.30&ndash;0.50,
+and ATR&nbsp;&ge;&nbsp;22 inside chop is the STAY-OUT bucket the ladder measures but does not trade).</p>
+
+<table>
+<thead><tr><th class="ln">Rung</th><th class="num">Signals</th>
+<th class="num">WIDE &mdash; 1.5&times;ATR stop / 3.0&times;ATR target</th>
+<th class="num">TIGHT CHANDELIER &times;2 &mdash; 1.0&times;ATR stop, 1.5&times;ATR trail</th></tr></thead>
+<tbody>
+<tr><td class="ln">BIG-TREND</td><td class="num">4</td><td class="num">&minus;$82.56 &nbsp;(&minus;$20.6/sig)</td><td class="num">&minus;$65.02 &nbsp;(&minus;$16.3/sig)</td></tr>
+<tr class="row-hl"><td class="ln">MED-TREND</td><td class="num">19</td><td class="num"><strong>+$2,018.44 &nbsp;(+$106.2/sig)</strong></td><td class="num">&minus;$27.80 &nbsp;(&minus;$1.5/sig)</td></tr>
+<tr class="row-hl"><td class="ln">SCALP-CHOP</td><td class="num">29</td><td class="num"><strong>+$533.64 &nbsp;(+$18.4/sig)</strong></td><td class="num">&minus;$38.27 &nbsp;(&minus;$1.3/sig)</td></tr>
+<tr class="row-hl"><td class="ln">STAY-OUT (ATR&nbsp;&ge;&nbsp;22 in chop)</td><td class="num">35</td><td class="num"><strong>+$990.46 &nbsp;(+$28.3/sig)</strong></td><td class="num">&minus;$207.97 &nbsp;(&minus;$5.9/sig)</td></tr>
+<tr><td class="ln"><strong>All 87</strong></td><td class="num">87</td><td class="num"><strong>+$3,459.98</strong></td><td class="num"><strong>&minus;$339.06</strong></td></tr>
+<tr><td class="ln">Win rate <span class="tag">not a kill criterion</span></td><td class="num">&nbsp;</td><td class="num">54.0%</td><td class="num">40.2%</td></tr>
+<tr><td class="ln">Strip the best 3</td><td class="num">&nbsp;</td><td class="num">+$2,046.14</td><td class="num">&minus;$1,176.06</td></tr>
+<tr><td class="ln">Worst leave-one-day-out</td><td class="num">&nbsp;</td><td class="num">+$1,626.49</td><td class="num">&minus;$954.68</td></tr>
+<tr><td class="ln">Days green</td><td class="num">&nbsp;</td><td class="num">9 of 12</td><td class="num">5 of 12</td></tr>
+<tr class="row-hl"><td class="ln"><strong>The same paired random-entry control</strong></td><td class="num">60 draws</td>
+<td class="num"><strong>100th percentile</strong>, entry alpha +$3,433.27</td>
+<td class="num"><strong>58th percentile</strong>, entry alpha +$69.37</td></tr>
+</tbody></table>
+
+<p><strong>The wide stop wins every rung that has any n behind it, and the chandelier does not survive its own
+control.</strong> At the 58th percentile against paired random entries the chandelier is indistinguishable from firing
+at random on this population &mdash; the same failure the live scalp exit shows at 47. The one cell where the
+chandelier is nominally ahead is BIG-TREND, on <strong>four signals</strong>, where both policies lose money.</p>
+
+<p><strong>And it is not the 15-minute cap doing it</strong>, which was the obvious objection since a chandelier is
+built to ride and &sect;8b gave it sixty minutes. Run both on the 5-second tape at three horizons:</p>
+
+<table>
+<thead><tr><th class="ln">Horizon</th><th class="num">WIDE, per signal</th><th class="num">TIGHT CHANDELIER, per signal</th></tr></thead>
+<tbody>
+<tr><td class="ln">15 minutes</td><td class="num">+$40.21</td><td class="num">&minus;$3.60</td></tr>
+<tr><td class="ln">30 minutes</td><td class="num">+$47.30</td><td class="num">&minus;$6.02</td></tr>
+<tr><td class="ln">60 minutes &mdash; &sect;8b&rsquo;s own horizon</td><td class="num">+$45.96</td><td class="num">&minus;$6.45</td></tr>
+</tbody></table>
+
+<p><strong>A longer leash makes the chandelier worse, not better.</strong></p>
+
+<div class="callout"><div class="ct">The answer: ONE proposal, and it is the wide stop</div>
+<p><strong>The wide stop goes in the shadow book. The two <code>exhaustion_short</code> rows in
+<code>data/exit_overrides_proposed.json</code> should be removed</strong> &mdash; they are now
+NOT-AN-ACTION&nbsp;#14, with the random-entry control named as the test that killed them.</p>
+<p><strong>To be fair to &sect;8d:</strong> its cells were scored on the 716-entry <code>exhaustion_rev</code> shadow
+board, a much larger and different population, and I am not calling it wrong there. But a deploy acts on the LIVE
+gate, and on the live gate&rsquo;s own entries this policy is negative on every rung at every horizon and cannot beat
+a coin. That is the population that decides it.</p>
+<p><strong>The rung boundary question is answered too, and the answer is that there isn&rsquo;t one.</strong> The wide
+stop is not a trend policy that happens to survive chop &mdash; it is positive on MED-TREND, SCALP-CHOP and STAY-OUT
+alike. There is nothing to make rung-conditional. Ship the simpler thing. <strong>The <code>grind_long</code>
+MED-TREND row in the same proposal file is untouched by this</strong> &mdash; different gate, not tested here, and it
+is now BUILD&nbsp;#13 in its own right.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q3 &middot; Is the abs_veto_short gap the exit ladder, or is it just worse fills?</h3>
+
+<p>Part&nbsp;2&nbsp;&sect;3 diagnoses a two-thousand-dollar live-versus-shadow gap on the short side as
+&ldquo;the exit ladder is too wide&rdquo;, and it infers that <em>entirely</em> from the exit-reason mix: same winner
+size, a third bigger losers. But this desk&rsquo;s own standing finding is that live losses run
+<strong>1.1&ndash;3.1&times; modelled</strong>, and &ldquo;we get filled worse than the repricer assumes&rdquo;
+produces exactly that same table. Nothing in the section measured a single fill.</p>
+
+<p>So I measured every measurable leg against the price it was supposed to fill at. Getting the level right is the
+whole job here, and it needed three things done properly:</p>
+
+<table>
+<thead><tr><th class="ln">What had to be reconstructed</th><th class="ln">How, and why it matters</th></tr></thead>
+<tbody>
+<tr><td class="ln">R, the stop distance</td><td class="ln"><code>stop_atr_mult</code>&nbsp;(=1.0) &times; the ATR-14 the gate would have read at the entry minute, recomputed with <code>deciders._atr</code>&rsquo;s own <strong>halt-aware</strong> rule on 1-minute bars folded from the 5-second tape. Using a naive ATR would mis-size every level after a session break.</td></tr>
+<tr><td class="ln">Which ladder was running</td><td class="ln">Plain 1.5R/2.5R before 2 August; the <strong>quiet-tape clip</strong> after it (ATR&nbsp;&lt;&nbsp;22 &rarr; Lot&nbsp;A takes a flat $40, Lot&nbsp;B takes max(1.75R, $60)). Modelling one ladder across the whole window manufactures about nine points of fake target slippage on every quiet-tape leg &mdash; I did exactly that on the first pass and it produced a completely wrong answer.</td></tr>
+<tr><td class="ln">The sign convention</td><td class="ln">Slippage = fill &minus; level, so on a SHORT a <strong>positive number is adverse</strong>.</td></tr>
+</tbody></table>
+
+<table>
+<thead><tr><th class="ln">Exit</th><th class="num">Legs</th><th class="num">Measurable</th><th class="num">Median slip</th>
+<th class="num">Mean slip</th><th class="num">p90</th><th class="num">Worst</th><th class="num">$ cost</th></tr></thead>
+<tbody>
+<tr><td class="ln">STOP</td><td class="num">35</td><td class="num">35</td><td class="num">&minus;0.95pt</td><td class="num">+0.68pt</td><td class="num">+10.80pt</td><td class="num">+19.84pt</td><td class="num">&minus;$47.32</td></tr>
+<tr><td class="ln">TARGET</td><td class="num">11</td><td class="num">11</td><td class="num">&minus;0.25pt</td><td class="num">&minus;4.32pt</td><td class="num">+2.25pt</td><td class="num">+3.25pt</td><td class="num">+$95.11</td></tr>
+<tr class="row-hl"><td class="ln"><strong>Every measurable leg</strong></td><td class="num">46</td><td class="num">46</td>
+<td class="num"><strong>&minus;0.60pt</strong></td><td class="num"><strong>&minus;0.52pt</strong></td><td class="num">&nbsp;</td><td class="num">&nbsp;</td>
+<td class="num"><strong>+$47.78 in our favour</strong></td></tr>
+</tbody></table>
+
+<p><strong>We fill a median 0.60 points BETTER than the repricer assumes.</strong> 24 of the 46 legs filled at their
+level or better. The tail the standing finding warns about is real but small: <strong>12 stop legs filled more than a
+point beyond their stop and cost &minus;$194.18 between them</strong>, and the other 23 handed $146.86 back, for a net
+stop cost of &minus;$47.32.</p>
+
+<p>Then the decisive step &mdash; re-run the shadow twin with that measured slippage applied to its own stops and
+targets, and see whether the gap closes:</p>
+
+<table>
+<thead><tr><th class="ln">abs_veto_55s SHORT, the shadow twin, 118 trades</th><th class="num">Net</th></tr></thead>
+<tbody>
+<tr><td class="ln">As scored</td><td class="num">+$1,828.50</td></tr>
+<tr class="row-hl"><td class="ln"><strong>With the measured slippage applied</strong></td><td class="num"><strong>+$1,965.84</strong></td></tr>
+<tr class="row-bad"><td class="ln">The live short side (clean ledger, 61 legs)</td><td class="num">&minus;$265.00</td></tr>
+<tr><td class="ln">Gap before &rarr; gap after</td><td class="num">$2,093.50 &rarr; <strong>$2,230.84</strong></td></tr>
+</tbody></table>
+
+<div class="callout"><div class="ct">The answer: it is the ladder. The A/B is testing the right thing.</div>
+<p>Fills explain <strong>none</strong> of the gap &mdash; applying them makes it marginally wider, because our fills
+are marginally better than modelled. &ldquo;The ladder is too wide&rdquo; and &ldquo;we get filled worse&rdquo; do
+produce the same table, and this one is the ladder. The tighter-ladder shadow A/B is now
+<strong>BUILD&nbsp;#12</strong>.</p>
+<p><strong>One correction while I was in there.</strong> The headline &ldquo;63 legs / &minus;$520.50&rdquo; includes
+<strong>two quarantined rows</strong> (<code>EXCLUDE:md_stream_atr_corruption_20260804</code>, the two MAX_HOLD legs,
+&minus;$255.50). On the clean ledger the live short side is <strong>&minus;$265.00 over 61 legs</strong> and the gap
+is <strong>$2,093.50</strong>, not $2,349. The section&rsquo;s own normalisation already strips those legs, so its
+&minus;$159.00 strategy-only figure was right either way &mdash; it was only the headline that quoted rows the rest of
+the report excludes.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q4 &middot; How much of the day rider&rsquo;s $1,617.50 survives a venue-verified accounting?</h3>
+
+<p>The rider produced $1,617.50 of the desk&rsquo;s $1,292.50 &mdash; take it out and the week is red &mdash; and
+Part&nbsp;1 says plainly that most of its trades have no venue execution record and two are hand-reconstructed with
+an exit reason (<code>CLOCK_FLAT_RECON</code>) that no code in this repo emits. It never asks the follow-on: what is
+the rider&rsquo;s actual edge as opposed to its booked one?</p>
+
+<p>Three separate questions, because they have three different answers.</p>
+
+<h4>First, the venue. It is worse than the report said.</h4>
+
+<table>
+<thead><tr><th class="ln">Day</th><th class="ln">Side</th><th class="ln">Booked exit</th><th class="num">Booked $</th>
+<th class="ln">Execution id?</th><th class="ln">A size-2 fill at that price?</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">08-10</td><td class="ln">SHORT</td><td class="ln"><code>CLOCK_FLAT_RECON</code></td><td class="num">+$39.00</td><td class="ln">no</td><td class="ln">no</td></tr>
+<tr class="row-bad"><td class="ln">08-11</td><td class="ln">SHORT</td><td class="ln"><code>MANUAL_CLAIM</code></td><td class="num">+$189.00</td><td class="ln">no</td><td class="ln">no</td></tr>
+<tr class="row-bad"><td class="ln">08-12</td><td class="ln">SHORT</td><td class="ln"><code>CLOCK_FLAT_RECON</code></td><td class="num">+$224.50</td><td class="ln">no</td><td class="ln">no</td></tr>
+<tr class="row-bad"><td class="ln">08-13</td><td class="ln">LONG</td><td class="ln"><code>MANUAL_CLAIM</code></td><td class="num">+$731.00</td><td class="ln">no</td><td class="ln">no</td></tr>
+<tr class="row-bad"><td class="ln">08-14</td><td class="ln">SHORT</td><td class="ln"><code>TRAIL</code></td><td class="num">+$434.00</td><td class="ln">no</td><td class="ln">no</td></tr>
+</tbody></table>
+
+<p><strong>Zero of five legs carries an <code>entry_exec_id</code> or an <code>exit_exec_id</code>, and zero has a
+matching size-2 execution in <code>fills</code> at the booked exit price.</strong> Part&nbsp;1 says &ldquo;four of
+five have no venue execution record&rdquo; and reports the fills gap as closing on 08-14; on the clean ledger it is
+five of five, and the 08-14 <code>TRAIL</code> row is no better evidenced than the others. <strong>$0 of the
+$1,617.50 is venue-verified.</strong> That is a measurement gap, not an allegation &mdash; but it is a bigger one than
+the report claimed, and the re-check next Friday needs to be &ldquo;5 of 5&rdquo;, not &ldquo;1 of 5&rdquo;.</p>
+
+<h4>Second, the tape. The reconstruction is honest.</h4>
+
+<p>The two <code>CLOCK_FLAT_RECON</code> rows are a script&rsquo;s best guess at what the 20:40Z flat was worth. Both
+check out against the tape: on 08-10 the tape closed the 20:40 minute at 29,750.50 against a booked exit of 29,749.00,
+and on 08-12 at 29,818.75 against 29,819.25. <strong>The $263.50 of reconstructed P&amp;L is accurate to within about
+$4 net</strong> of what the tape says that flat was worth. Flag it as unverified at the venue, by all means; it is not
+invented.</p>
+
+<h4>Third, and this is the real question: the RULE versus the HANDS.</h4>
+
+<p>The rider&rsquo;s own deterministic exit is the ATR-scaled trail &mdash; arm at 4&times;ATR ahead, then trail
+2&times;ATR off the peak (<code>ARM_ATR_MULT</code> and <code>TRAIL_ATR_MULT</code>, read from
+<code>day_rider.py</code>, not guessed) &mdash; with the 20:40Z hard flat as the backstop. Replay that from the same
+five entries on the 5-second tape and compare with what was booked:</p>
+
+<table>
+<thead><tr><th class="ln">Day</th><th class="ln">Booked as</th><th class="num">Booked $</th><th class="ln">The rule&rsquo;s exit</th>
+<th class="num">The rule&rsquo;s $</th><th class="num">Booked &minus; rule</th></tr></thead>
+<tbody>
+<tr><td class="ln">08-10</td><td class="ln">CLOCK_FLAT_RECON</td><td class="num">+$39.00</td><td class="ln">CLOCK_FLAT</td><td class="num">+$33.00</td><td class="num">+$6.00</td></tr>
+<tr class="row-bad"><td class="ln">08-11</td><td class="ln">MANUAL_CLAIM</td><td class="num">+$189.00</td><td class="ln">TRAIL</td><td class="num">+$347.57</td><td class="num">&minus;$158.57</td></tr>
+<tr><td class="ln">08-12</td><td class="ln">CLOCK_FLAT_RECON</td><td class="num">+$224.50</td><td class="ln">CLOCK_FLAT</td><td class="num">+$226.50</td><td class="num">&minus;$2.00</td></tr>
+<tr class="row-bad"><td class="ln">08-13</td><td class="ln">MANUAL_CLAIM</td><td class="num">+$731.00</td><td class="ln">TRAIL</td><td class="num">+$773.29</td><td class="num">&minus;$42.29</td></tr>
+<tr class="row-bad"><td class="ln">08-14</td><td class="ln">TRAIL</td><td class="num">+$434.00</td><td class="ln">TRAIL</td><td class="num">+$491.43</td><td class="num">&minus;$57.43</td></tr>
+<tr class="row-hl"><td class="ln"><strong>WEEK</strong></td><td class="ln">&nbsp;</td><td class="num"><strong>+$1,617.50</strong></td><td class="ln">&nbsp;</td><td class="num"><strong>+$1,871.79</strong></td><td class="num"><strong>&minus;$254.29</strong></td></tr>
+</tbody></table>
+
+<table>
+<thead><tr><th class="ln">Where the booked $1,617.50 actually comes from</th><th class="num">Legs</th><th class="num">$</th><th class="num">Share</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><code>MANUAL_CLAIM</code> &mdash; your hands, not the rule</td><td class="num">2</td><td class="num">$920.00</td><td class="num">57%</td></tr>
+<tr class="row-bad"><td class="ln"><code>*_RECON</code> &mdash; a script&rsquo;s backfill; no code path emits this reason</td><td class="num">2</td><td class="num">$263.50</td><td class="num">16%</td></tr>
+<tr><td class="ln">A code-emitted exit</td><td class="num">1</td><td class="num">$434.00</td><td class="num">27%</td></tr>
+</tbody></table>
+
+<div class="callout"><div class="ct">The answer: the booked number UNDERSTATES the rider, and the claims cost money this week</div>
+<p><strong>Only 27% of the rider&rsquo;s week is an exit its own code chose.</strong> But the answer to
+&ldquo;is the booked number flattered by discretion?&rdquo; is <strong>no, the opposite</strong>: the rule, replayed on
+the same entries, pays <strong>$1,871.79</strong> against $1,617.50 booked. The two manual claims came
+<strong>&minus;$200.86</strong> early between them, and the 08-14 trail booked $57.43 below the replay&rsquo;s trail.
+So the rider&rsquo;s edge is not an artefact of your hands.</p>
+<p><strong>Hold that lightly.</strong> It is five trades, the replay is on 5-second bars with fills modelled at the
+exact level and no slippage &mdash; a ceiling, like every reprice in this report &mdash; and every one of those five
+entries is itself unverified at the venue. <strong>Nothing here promotes the rider.</strong> It says the discretion is
+not what made the money, and it says the fills-gap fix has to cover 5 of 5 before any number from this desk is quoted
+as proven.</p>
+<p class="ln">One thing this could NOT do as asked: the proofread suggested scoring the five trades against the
+41-day Open Rider replay. That replay is a different strategy &mdash; a clock rider that re-enters every few minutes
+between 13:00 and 14:45Z with a 45-minute cap &mdash; so its days are not the live rider&rsquo;s trades. Building the
+live rider&rsquo;s own replay, which is what the table above is, answers the question the proofread was actually
+asking. See Q&nbsp;on the Open Rider in the fixes list for why the two must never be treated as one engine.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q5 &middot; Does the router&rsquo;s 45/5/3 timing change survive on the days the router exists for?</h3>
+
+<p>SATURDAY&nbsp;#1 is worth +$502 on the live managed set and +$399 on the full historical set. It rests on
+<strong>4 of 40 days</strong>, on a window Part&nbsp;2.6&nbsp;&sect;4 itself calls &ldquo;overwhelmingly ONE
+regime&rdquo;, with this week running 84% chop &mdash; and the router is a trend instrument. The section flags that
+and does not test it.</p>
+
+<p>So: rank all 40 Paris days by <strong>session efficiency</strong> (|close &minus; open| over the sum of the
+1-minute moves across the router&rsquo;s own trading window, which is the same quantity its threshold reads), hold out
+the top eight, and score the shipped config against 45/5/3 on those eight alone. Everything is run through
+<code>scripts/router_study.py</code>&rsquo;s own replay engine, which that section validated as byte-identical to the
+shipped <code>direction_router.replay_marks</code>, so this is the real router being measured.</p>
+
+<table>
+<thead><tr><th class="ln">Universe / slice</th><th class="num">Days</th><th class="num">No router</th>
+<th class="num">Shipped</th><th class="num">45/5/3</th><th class="num">Improvement</th></tr></thead>
+<tbody>
+<tr><td class="ln"><strong>LIVE managed set</strong> &mdash; all 40 days</td><td class="num">40</td><td class="num">&minus;$302.50</td><td class="num">+$189.50</td><td class="num">+$691.50</td><td class="num"><strong>+$502.00</strong></td></tr>
+<tr class="row-bad"><td class="ln">&nbsp;&nbsp;&mdash; the trending eighth</td><td class="num">8</td><td class="num">+$2.50</td><td class="num">+$160.50</td><td class="num">+$147.00</td><td class="num"><strong>&minus;$13.50</strong></td></tr>
+<tr class="row-hl"><td class="ln">&nbsp;&nbsp;&mdash; the other 32</td><td class="num">32</td><td class="num">&minus;$305.00</td><td class="num">+$29.00</td><td class="num">+$544.50</td><td class="num">+$515.50</td></tr>
+<tr><td class="ln"><strong>FULL historical fader set</strong> &mdash; all 40 days</td><td class="num">40</td><td class="num">&minus;$722.50</td><td class="num">+$584.50</td><td class="num">+$983.50</td><td class="num"><strong>+$399.00</strong></td></tr>
+<tr class="row-bad"><td class="ln">&nbsp;&nbsp;&mdash; the trending eighth</td><td class="num">8</td><td class="num">+$410.50</td><td class="num">+$613.00</td><td class="num">+$566.50</td><td class="num"><strong>&minus;$46.50</strong></td></tr>
+<tr class="row-hl"><td class="ln">&nbsp;&nbsp;&mdash; the other 32</td><td class="num">32</td><td class="num">&minus;$1,133.00</td><td class="num">&minus;$28.50</td><td class="num">+$417.00</td><td class="num">+$445.50</td></tr>
+</tbody></table>
+
+<p>And here are the days that actually move, which is the question underneath the question. Only four of forty change
+at all on the live set:</p>
+
+<table>
+<thead><tr><th class="ln">Day</th><th class="num">Session ER</th><th class="ln">In the trending eighth?</th>
+<th class="num">Shipped</th><th class="num">45/5/3</th><th class="num">Delta</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">07-24</td><td class="num">0.036</td><td class="ln">no</td><td class="num">&minus;$115.50</td><td class="num">+$235.00</td><td class="num">+$350.50</td></tr>
+<tr class="row-hl"><td class="ln">07-23</td><td class="num">0.033</td><td class="ln">no</td><td class="num">+$234.50</td><td class="num">+$351.00</td><td class="num">+$116.50</td></tr>
+<tr class="row-hl"><td class="ln">07-28</td><td class="num">0.021</td><td class="ln">no</td><td class="num">&minus;$90.00</td><td class="num">&minus;$41.50</td><td class="num">+$48.50</td></tr>
+<tr class="row-bad"><td class="ln">07-21</td><td class="num">0.067</td><td class="ln"><strong>YES</strong></td><td class="num">+$128.50</td><td class="num">+$115.00</td><td class="num"><strong>&minus;$13.50</strong></td></tr>
+</tbody></table>
+
+<p class="ln">On the full set seven days move; the two large positives are the same non-trend days (07-24 +$393.50,
+07-23 +$161.50), and the two trending-eighth days that move are +$8.00 and &minus;$54.50.</p>
+
+<div class="callout"><div class="ct">The answer: the caveat becomes a scoping rule, not a blocker</div>
+<p><strong>Every dollar of the +$502 is non-trend-day money, and on the trending eighth the change is mildly
+negative.</strong> The three days carrying it run session ER 0.036, 0.033 and 0.021 &mdash; the flat part of a flat
+sample. The one trending day that moves goes the wrong way.</p>
+<p><strong>I would still ship it, and I want to be precise about why, because the dollar figure is now off the
+table.</strong> The section&rsquo;s third argument was always the strongest and it is untouched by this: 45/5/3 is not
+a number found by searching, it is the <strong>mechanical fix for two problems measured from the live ledger rather
+than from the grid</strong> &mdash; a 45-minute window smooths the exact one-point boundary flicker that produced 36
+flips on one gate, and 5-minute steps close the actuation lag that cost &minus;$242 this week. When a grid search and
+a hand-written ledger arrive at the same three constants from opposite directions, that is the evidence.</p>
+<p><strong>What changes on the card:</strong> the play now carries the regime split in its own number column, its
+verification requires the trend-day split to be reported separately, and its kill criterion adds &ldquo;one genuine
+trend week where it is negative&rdquo;. Do not quote +$502 as what this buys.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q6 &middot; Is the counter-trend bench priced with the generous ruler or the honest one?</h3>
+
+<p>The objection was sharp and it deserved a straight answer. SATURDAY&nbsp;#2 is quoted at
+<strong>n=26 / &minus;$398.50</strong>, and Part&nbsp;2.6&nbsp;&sect;3 proves the nightly&rsquo;s scalp-2R ruler is
+$7.26 a trade more generous than the desk overall and <strong>+$25.02 a trade more generous specifically in
+TREND_UP</strong> &mdash; which is exactly the regime those 26 fires sit in. The report uses that ruler to refuse the
+exhaustion_short over-bench figure and then appears to use it to justify the bench. Both cannot be right.</p>
+
+<p>They are not both right, and the resolution is that the premise is wrong: <strong>the &minus;$398.50 was never on
+the nightly&rsquo;s ruler.</strong> It is realised <code>pnl_usd</code> &mdash; what the desk actually banked on its
+own fills under the live two-lot exit. I re-derived it from scratch to be sure: every clean
+<code>exhaustion_short</code> leg over the last 30 Paris days, labelled with the router&rsquo;s own regime at the
+moment of entry, and then priced BOTH ways.</p>
+
+<table>
+<thead><tr><th class="ln">Regime at entry</th><th class="num">Legs</th><th class="num">LIVE two-lot exit</th>
+<th class="num">$/leg</th><th class="num">Nightly scalp-2R ruler</th><th class="num">$/leg</th>
+<th class="num">Ruler gap per leg</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln"><strong>TREND_UP</strong> &mdash; counter-trend, the bench case</td><td class="num">26</td>
+<td class="num"><strong>&minus;$398.50</strong></td><td class="num"><strong>&minus;$15.33</strong></td>
+<td class="num">&minus;$168.93</td><td class="num">&minus;$6.50</td><td class="num">+$8.83</td></tr>
+<tr><td class="ln">CHOP</td><td class="num">72</td><td class="num">+$575.50</td><td class="num">+$7.99</td><td class="num">&minus;$603.71</td><td class="num">&minus;$8.38</td><td class="num">&minus;$16.38</td></tr>
+<tr><td class="ln">TREND_DOWN &mdash; aligned</td><td class="num">48</td><td class="num">&minus;$335.00</td><td class="num">&minus;$6.98</td><td class="num">+$451.21</td><td class="num">+$9.40</td><td class="num">+$16.38</td></tr>
+</tbody></table>
+
+<p><strong>The nightly&rsquo;s ruler would price the same 26 legs at only &minus;$168.93.</strong> It is $8.83 a leg
+MORE generous here &mdash; so using it would <em>weaken</em> the case for this bench by more than half, not inflate
+it. The report&rsquo;s figure is the conservative one.</p>
+
+<p>The two uses of the ruler are therefore consistent rather than contradictory: <strong>scalp-2R flatters trend and
+punishes chop</strong> (+$8.83 a leg in TREND_UP, +$16.38 in TREND_DOWN, &minus;$16.38 in CHOP). That is precisely
+why the &ldquo;$721 exhaustion_short over-bench&rdquo; figure was refused &mdash; it was a trend-regime wins-missed
+number computed on the flattering ruler &mdash; and equally why the bench case, which is realised money, needs no
+discount.</p>
+
+<p>The rest of the robustness reproduced exactly, on the live ruler: 26 legs across 8 days, negative on 7 of the 8,
+strip the worst day and it is still <strong>&minus;$232.50</strong>, and leave-one-day-out gets
+<em>stronger</em> at <strong>&minus;$623.00</strong> when the only green day (07-30, +$224.50) is dropped.</p>
+
+<div class="callout"><div class="ct">The answer: the bench stands, on the ruler the desk actually trades</div>
+<p><strong>&minus;$398.50 over 26 legs is the live figure and it is the one on the card.</strong> The honest caveat is
+the one the section already gives: n=26 is a SHADOW-grade sample being used for a LIVE change &mdash; but the change
+is a <em>bench</em>, which is the cheap direction to be wrong in, and it is red on 7 of 8 days with both robustness
+legs surviving. Review the first 15 benched episodes before treating it as settled.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q7 &middot; What actually stops the OPEN/NEWS hunt running &mdash; and is BUILD&nbsp;#2 enough?</h3>
+
+<p>The OPEN/NEWS cluster is <strong>22 of this week&rsquo;s 68 runs</strong> and roughly $2,596 of the $8,024
+ceiling, no gate on this desk has ever been built for it, and its hunt has now been scheduled and not run.
+BUILD&nbsp;#2 moves it to the front of the queue. <strong>That is not enough, and the arithmetic says so plainly.</strong></p>
+
+<table>
+<thead><tr><th class="ln">The 14 August run, from <code>data/friday_durable.log</code></th><th class="num">Minutes</th></tr></thead>
+<tbody>
+<tr><td class="ln">Window opened 22:07Z against a 05:15Z deadline</td><td class="num">428</td></tr>
+<tr><td class="ln">Census freeze + gold census + progress page, before the runner started</td><td class="num">10</td></tr>
+<tr><td class="ln">Reserved for the tail (assemble &rarr; proofread &rarr; rev2 &rarr; final)</td><td class="num">200</td></tr>
+<tr class="row-hl"><td class="ln"><strong>= BODY BUDGET</strong></td><td class="num"><strong>220</strong></td></tr>
+<tr><td class="ln">part1_live 22.0 + part2_shadow 27.9 + part25_musings 25.1 + part2_6_router 24.0 + movement2_idle 15.4</td><td class="num">114.4</td></tr>
+<tr class="row-bad"><td class="ln"><code>rehab</code> &mdash; took its FULL cap and returned no artifact</td><td class="num">90.0</td></tr>
+<tr class="row-bad"><td class="ln"><code>gf_MGC</code> &mdash; died at 13.2 minutes, no artifact</td><td class="num">13.2</td></tr>
+<tr class="row-bad"><td class="ln"><strong>&ldquo;BUDGET: stopping section builds to protect the tail (0m left)&rdquo;, 01:54:59Z &mdash; 8 sections missing</strong></td><td class="num"><strong>217.6 spent</strong></td></tr>
+</tbody></table>
+
+<p><strong>Now the part that makes reordering pointless.</strong> The four MNQ hunts are capped at
+<strong>90 minutes each</strong> in <code>friday_phases.py</code>:</p>
+
+<table>
+<thead><tr><th class="ln">What has to fit</th><th class="num">Minutes</th><th class="num">As a share of the 220-minute body budget</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="ln">gf_VACUUM + gf_FLOW-LED + gf_OPEN-NEWS + gf_chopscalp, at their caps</td><td class="num">360</td><td class="num"><strong>164%</strong></td></tr>
+<tr class="row-bad"><td class="ln">Every body phase at its cap</td><td class="num">915</td><td class="num">416%</td></tr>
+<tr><td class="ln">The tail&rsquo;s own caps, against a 200-minute reserve</td><td class="num">255</td><td class="num">128% &mdash; the reserve is 55 minutes short before anything goes wrong</td></tr>
+</tbody></table>
+
+<p><strong>The OPEN/NEWS hunt has never fitted, in any ordering.</strong> Put it first and it consumes 41% of the
+entire body budget on its own, and the five sections that DID run this week &mdash; and produced the report&rsquo;s
+best material &mdash; would be the ones dropped instead. That is a worse trade, not a better one.</p>
+
+<h4>And there is a second, independent failure that reordering does not touch</h4>
+
+<p>Even after the body budget ran out, the tail should have completed. It did not: <code>assemble</code> returned
+rc=0 after 25.6 minutes and the runner logged <strong>&ldquo;assemble: rc=0 25.6m artifact=MISSING&rdquo;</strong>
+followed by <strong>&ldquo;TAIL PHASE FAILED: assemble &mdash; stopping (downstream depends on it)&rdquo;</strong>.
+The artifact path contained a doubled-brace <code>{WEEK}</code> placeholder that resolved to a literal filename which
+cannot exist, so a phase that had genuinely succeeded was recorded as a failure and the proofread never ran on the
+night. That is fixed in commit <code>8df7eff</code> &mdash; and it is why the proofread this revision answers is dated
+06:06Z on Saturday rather than 02:20Z on Friday.</p>
+
+<div class="callout"><div class="ct">The answer: BUILD&nbsp;#2 needs a budget change attached, and it now has one</div>
+<p><strong>A scheduling promise without a budget change is the same promise that failed this week.</strong> Three
+options, any one of which works, in the order I would take them:</p>
+<p><strong>(a) Cap the rehab phase at 45 minutes.</strong> It took its full 90 and produced no artifact; the section
+that shipped was rebuilt by <code>assemble</code> from the JSON the phase had already written before it died. Ninety
+minutes bought nothing that forty-five would not have.</p>
+<p><strong>(b) Move the deadline out.</strong> A 22:07Z start needs roughly 11:30Z, not 05:15Z, to hold one
+greenfield hunt on top of the body.</p>
+<p><strong>(c) Split the greenfield hunts into their own run</strong> &mdash; a separate Saturday job with its own
+window, which is the only option that scales to all four.</p>
+<p>BUILD&nbsp;#2 now carries this arithmetic in its own number column and its verification says to change the budget
+<em>before</em> the ordering. <strong>The two causes are separate and both have to be closed:</strong> the budget, and
+the <code>{WEEK}</code> plumbing bug that killed the tail on every run until today.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<div class="card">
+<h3>Q8 &middot; Is the live grind book carrying mis-attributed fills?</h3>
+
+<p>Part&nbsp;2&nbsp;&sect;6 records a <code>grind_long</code> trade that books <strong>+$159 live while its
+maximum favourable excursion was 0.81R</strong> &mdash; about $23 a lot at ATR 14.1 &mdash; and calls that
+&ldquo;not physically reachable on the tape&rdquo;, pointing at the known <code>_stop_seq</code> fill
+mis-attribution mechanism. That is not a shadow-tool problem. <strong>It is an allegation that the live P&amp;L is
+wrong</strong>, and it was parked in a footnote.</p>
+
+<p>So every one of the 26 <code>grind_long</code> trades in that window has been scored against its own
+<strong>full-life</strong> excursion: the highest price the tape printed between that trade&rsquo;s own recorded entry
+and its own recorded exit. That is deliberately the most generous ceiling available &mdash; it ignores the stop
+entirely, so a trade that dipped through its stop and rallied still gets credit for the rally. A booked P&amp;L above
+THAT cannot have come from the position&rsquo;s own price path under any exit rule.</p>
+
+<table>
+<thead><tr><th class="ln">Trades checked</th><th class="num">Book more than their own tape could pay</th>
+<th class="num">$ of &ldquo;impossible&rdquo; P&amp;L</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">26</td><td class="num"><strong>0</strong></td><td class="num"><strong>$0.00</strong></td></tr>
+</tbody></table>
+
+<p><strong>Nothing in the grind book is unreachable, and the three that looked worst are the three that check out
+best:</strong></p>
+
+<table>
+<thead><tr><th class="ln">Trade</th><th class="num">ATR</th><th class="num">Watch&rsquo;s rMFE</th>
+<th class="num">Full-life MFE</th><th class="num">Booked</th><th class="num">Physical ceiling</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">07-30 11:11:57 <code>CHANDELIER</code></td><td class="num">14.1</td><td class="num">0.81R (11.4pt)</td><td class="num"><strong>87.50pt</strong></td><td class="num">+$159.00</td><td class="num">+$173.50</td></tr>
+<tr class="row-hl"><td class="ln">07-30 12:43:05 <code>MANUAL_CLAIM</code></td><td class="num">28.5</td><td class="num">0.18R (5.1pt)</td><td class="num"><strong>101.00pt</strong></td><td class="num">+$156.50</td><td class="num">+$200.50</td></tr>
+<tr class="row-hl"><td class="ln">07-29 22:06:13 <code>CHANDELIER</code></td><td class="num">27.2</td><td class="num">3.72R</td><td class="num">170.50pt</td><td class="num">+$305.00</td><td class="num">+$339.50</td></tr>
+</tbody></table>
+
+<h4>Why the alarm fired, and it is a proper instrument note</h4>
+
+<p><code>two_ratchet_shadow_watch.rmfe()</code> <strong>stops measuring at the first tick that is a full ATR against
+the entry</strong>. It is a <em>pre-stop</em> excursion by design &mdash; the excursion a trade could reach before its
+1-ATR stop would have fired &mdash; and it is the right statistic for the question that watch asks. It is completely
+the wrong statistic for &ldquo;how far did this trade go&rdquo;. The 11:11 trade dipped an ATR against us early, then
+ran 87.5 points.</p>
+
+<p><strong>And the exit reconciles to the deployed rule to within a fifth of a point.</strong> It entered at 27,670.00
+and the tape printed 27,757.50 while we held it. A peak of 87.5pt at ATR 14.1 is <strong>6.21R</strong>, past the
+pure-6.0 chandelier&rsquo;s lock, so the trail firms from <code>start_k</code>&nbsp;3.5 to
+<code>lock_k</code>&nbsp;0.5&nbsp;&times;&nbsp;ATR&nbsp;=&nbsp;7.05 points. 27,757.50 &minus; 7.05 = 27,750.45, and we
+exited at <strong>27,750.25</strong>. That is not a mis-attributed fill; that is the exit doing exactly what it was
+built to do on a 6.2R runner.</p>
+
+<div class="callout"><div class="ct">The answer: no integrity problem. The allegation is withdrawn.</div>
+<p><strong>0 of 26. There is no measurement gap to put on the card</strong>, and <code>grind_long</code>&rsquo;s
+all-time <strong>&minus;$454.00 over 98 lots</strong> on the clean ledger stands as reported.</p>
+<p>What there IS is an instrument note with teeth, and it is the more useful finding: <strong>the watch&rsquo;s rMFE
+column is truncated by construction and must never be read as a trade&rsquo;s excursion.</strong> Part&nbsp;2
+&sect;6 and its instrument-notes table now say so, and the &ldquo;not physically reachable&rdquo; sentence is gone.
+The wider lesson is the one this desk keeps relearning: <em>a number that arrives without a failure mode is not a
+measurement</em> &mdash; and that applies to the numbers we use to accuse our own books, not just to the ones we use
+to promote a gate.</p></div>
+</div>
+
+<hr class="frag-sep">
+
+<h3>What Revision 2 changed, in one table</h3>
+
+<table>
+<thead><tr><th class="ln">Question</th><th class="ln">Answer</th><th class="ln">What moved</th></tr></thead>
+<tbody>
+<tr class="row-hl"><td class="ln">Q1 &mdash; bank one lot at a fixed points-onside</td>
+<td class="ln"><span class="tag pill-shadow">SHADOW</span> +$219.50 at +20pt, 25/25 winners kept, every fold positive, 400/400 controls beaten &mdash; but <strong>&minus;$45.00 stripped of its best three</strong></td>
+<td class="ln">New BUILD&nbsp;#18. And a correction to Part&nbsp;1&nbsp;&sect;4: the 39-point median was a 15-minute window, not ours to bank</td></tr>
+<tr class="row-hl"><td class="ln">Q2 &mdash; which exhaustion_short exit</td>
+<td class="ln"><span class="tag pill-shadow">WIDE STOP</span> +$3,459.98 vs &minus;$339.06 on the same 87 signals; the chandelier sits at the 58th percentile of its own control</td>
+<td class="ln">BUILD&nbsp;#1 confirmed; the two chandelier rows become NOT-AN-ACTION&nbsp;#14 and come out of the proposal file</td></tr>
+<tr class="row-hl"><td class="ln">Q3 &mdash; ladder or fills</td>
+<td class="ln"><span class="tag pill-live">LADDER</span> median slippage &minus;0.60pt, i.e. we fill $47.78 BETTER than modelled over 46 legs</td>
+<td class="ln">New BUILD&nbsp;#12 &mdash; the tighter-ladder A/B, which Part&nbsp;2 calls the week&rsquo;s main proposal and Rev&nbsp;1 left off the card</td></tr>
+<tr class="row-bad"><td class="ln">Q4 &mdash; the day rider&rsquo;s $1,617.50</td>
+<td class="ln"><span class="tag pill-parked">MEASUREMENT GAP, WIDER</span> $0 venue-verified, 0 of 5 legs with an execution id. The rule replay pays $1,871.79 &mdash; the hands cost $254</td>
+<td class="ln">Part&nbsp;1&rsquo;s &ldquo;4 of 5&rdquo; and &ldquo;the fix covered 08-14&rdquo; are corrected to 5 of 5 still open</td></tr>
+<tr class="row-bad"><td class="ln">Q5 &mdash; router timing on trend days</td>
+<td class="ln"><span class="tag pill-parked">SCOPED</span> &minus;$13.50 / &minus;$46.50 on the trending eighth; 100% of the gain is the flat 32 days</td>
+<td class="ln">SATURDAY&nbsp;#1 still ships, on the mechanism argument, with the split in its number and a new kill criterion</td></tr>
+<tr class="row-hl"><td class="ln">Q6 &mdash; the bench ruler</td>
+<td class="ln"><span class="tag pill-live">ALREADY THE HARSH ONE</span> &minus;$398.50 is realised live money; the nightly&rsquo;s ruler would say only &minus;$168.93</td>
+<td class="ln">SATURDAY&nbsp;#2 unchanged in substance; both columns now printed so nobody re-opens it</td></tr>
+<tr class="row-bad"><td class="ln">Q7 &mdash; the OPEN/NEWS hunt</td>
+<td class="ln"><span class="tag pill-dontarm">REORDERING CANNOT WORK</span> 360 minutes of hunts against a 220-minute body budget</td>
+<td class="ln">BUILD&nbsp;#2 now carries the arithmetic and requires a budget change before the ordering</td></tr>
+<tr class="row-hl"><td class="ln">Q8 &mdash; grind fill integrity</td>
+<td class="ln"><span class="tag pill-live">CLEAN</span> 0 of 26 trades exceed their full-life ceiling; the exit reconciles to 0.20 of a point</td>
+<td class="ln">The &ldquo;not physically reachable&rdquo; claim is withdrawn; the truncated-rMFE instrument note replaces it</td></tr>
+</tbody></table>
+
+<div class="callout"><div class="ct">Standing caveats on everything above</div>
+<p><strong>Every reprice is a ceiling.</strong> Q1, Q2, Q4 and Q5 all model fills at the exact level with no
+slippage. Q3 is the one place in this part where real fills were measured, and it says our execution is fine
+<em>on this gate, on 46 legs</em> &mdash; do not generalise that to the wide-stop policy in Q2, which would be filled
+at a 1.5&times;ATR stop in exactly the moves where a wide stop is thin.</p>
+<p><strong>Thin n, named.</strong> Q1 fires on 12 signals; Q2&rsquo;s BIG-TREND rung is 4; Q4 is 5 trades; Q5&rsquo;s
+whole result turns on 4 days out of 40. Nothing here is promoted to live on this revision&rsquo;s evidence &mdash;
+the only card changes are shadow slates, a scoping, and one withdrawal.</p>
+<p><strong>Win rate is nowhere in any verdict above</strong>, per the standing rule. Every kill in this part is named:
+strip-the-best-three (Q1), a paired random-entry control (Q2), a leave-out-the-regime holdout (Q5), and a physical
+ceiling (Q8).</p></div>

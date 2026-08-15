@@ -1,0 +1,138 @@
+FINAL CHECK — GAZBOT V7 Friday report, week ending 2026-08-14
+Run 2026-08-15 ~07:05Z, against the PUBLISHED artefacts (not the fragments).
+
+================================================================================
+VERDICT: PASS, after three material fixes made and re-rendered during this check.
+================================================================================
+
+  MISSION      PASS   The V7 scope shape is all there: Part 0 progress, Part 1 live desk,
+                      Part 1.5 rehabilitation, Part 2 shadow/promotion, Part 2.5 musings,
+                      Part 2.6 router review, Movements 1 (MNQ + MGC census), 2 (idle-gate
+                      lab), 3 (greenfield), plus Part 3 = the Rev-2 answers. Two-symbol
+                      (MNQ-led, MGC censused at $10/pt), $1.50/RT, tick-honest real_pnl.
+  READS-WELL   PASS   Plain English to Garrath, numbers inside sentences, 191 fact tables,
+                      9 inline run-chart SVGs (the operator's "where we jumped and where we
+                      exited" charts). Leads with what SURVIVED, not the biggest number.
+                      PDF renders clean — no escaping artefacts, no placeholders.
+  THOROUGH     PASS   70,566 words / 192 PDF pages / 16 <h2> + 91 <h3> sections against a
+                      >=20-section, >=25k-word floor. Every claim carries n / net$ / win% /
+                      $-per-trade. Robustness legs present throughout (placebo, strip-best-3,
+                      LODO, per-day, cross-regime, out-of-sample).
+  MAKES-SENSE  PASS   All 16 proofread issues and all 8 unanswered questions closed. Every
+                      internal play cross-reference now resolves. No surviving contradiction
+                      between the front page, the body and the action card.
+
+================================================================================
+WHAT I FIXED IN THIS PASS (the Rev-2 pass had not caught these)
+================================================================================
+
+1. THE MONDAY PLAYBOOK WAS THE REV-1 CARD.  ** the most serious of the three **
+   monday_2026-08-14.html was built 02:17Z, before the 06:54Z Rev-2 rebuild, so it carried
+   38 plays against a reconciled 46-play plays.json. It still told Garrath to widen Lot A
+   desk-wide (the un-rescoped MONDAY #1, which Rev 2 had explicitly scoped to
+   exhaustion_short and excluded abs_veto_short from), still carried the discredited
+   "16 of 21 days green" that the report's own instrument note retracts, still listed the
+   Open Rider stop change as an at-the-desk MONDAY row, and was missing all eight new
+   BUILD rows including the one Part 2 calls "the week's main proposal".
+   This is a NAMED failure mode: friday_v7_maxdepth.workflow.js:205 — "A playbook built
+   from pre-Rev2 plays is a WRONG playbook — the operator acts off that page." It was
+   missed on 2026-07-31 and it was missed again this week.
+   FIXED: regenerated via scripts/friday_v7_playbook_adapt.py -> build_playbook.py.
+   Now 46 cards, windows matching plays.json exactly (SAT 4 / MON 2 / BUILD 18 / HOLD 8 /
+   NOT-AN-ACTION 14). Rev-1 card kept at monday_2026-08-14.html.pre-rev2-0815.
+
+2. THE ADAPTER SILENTLY DROPPED EVERY REV-2 CORRECTION.
+   scripts/friday_v7_playbook_adapt.py overwrote `rationale` with `mechanism`, and Rev 2
+   records WHY a play was re-scoped or its money restated in `rationale` and `number`.
+   Rebuilding without fixing this would have produced a 46-play card with none of the
+   Rev-2 reasoning on it — e.g. MONDAY #1 would have lost "cause of death for the wider
+   scope: STRIP-THE-BEST-3", and SATURDAY #1 would have lost "ALL of it is non-trend-day
+   money". FIXED: the adapter now folds rationale + number + the test into the card body.
+   16 "REV2" notes now reach the operator's card.
+
+3. TWO NUMERIC/REFERENCE DEFECTS IN THE REPORT ITSELF.
+   (a) The front SCORECARD — the one page most people actually read — still said the
+       wide-leg result was "+$331.50 over 50 identical entries", pooled and unqualified,
+       while Rev 2 had corrected the count to 51 and established that ONE gate carries it.
+       Verified independently from rev2_pairs_by_gate.json: 34 + 12 + 4 + 1 = 51 pairs
+       summing to exactly $331.50. Fixed to 51 in all three places (front scorecard in
+       scripts/friday_v7_build.py, part1_live.html, plays.json), and the scorecard row now
+       carries the scoping caveat: exhaustion_short +$225.50/34 pairs survives its battery;
+       abs_veto_short's +$65.00/12 pairs goes NEGATIVE (-$34.00) on strip-best-3, so
+       MONDAY #1 excludes it and BUILD #12 takes that ladder the other way.
+       Without this the front page and the action card disagreed on the same trade.
+   (b) rev2_answers.html pointed twice at "NOT-AN-ACTION #15"; the withdrawn
+       exhaustion_short tight-chandelier row is NOT-AN-ACTION #14 (there are only 14).
+       Fixed in the source fragment. All 17 distinct play references now resolve.
+
+================================================================================
+WHAT SURVIVED THE SKEPTIC (the three that carry the week)
+================================================================================
+
+* exhaustion_short is an EXIT problem, not an entry problem. Every entry treatment failed
+  a 4,000-draw placebo (best at the 85th percentile), but the same 87 signals under a
+  1.5xATR stop / 3.0xATR target are +$3,459.98 against -$84.50 as traded, and the entries
+  beat 60 of 60 random-entry controls. Under the live scalp exit those same entries sit at
+  the 47th percentile — the edge is invisible at the exit the desk uses. Head-to-head
+  against the competing tight-chandelier proposal (+/- the same 87 signals, same control),
+  the chandelier lands at -$339.06 and the 58th percentile — a coin — so it is WITHDRAWN
+  and one proposal goes to shadow, not two.
+
+* The wide profit leg beats the tight one — but it is ONE gate. +$331.50 over 51 paired
+  entries, placebo p=0.0040; unpooled, exhaustion_short carries +$225.50 on 34 pairs and
+  survives strip-best-3, LODO and a sign test, while abs_veto_short's +$65 on 12 pairs is
+  -$34 once its best three go. Widen exhaustion_short; leave abs_veto_short alone.
+
+* The router earns its keep in its CLOCK, not its levels — and the honest version of that
+  claim is smaller than it looked. 1,148 ticks Tue-Fri, zero systemd failures, 95% of ticks
+  change nothing; the 45/5/3 timing change is +$502 / +$399 across two universes, but hold
+  out the trending eighth and ALL of it is non-trend-day money (-$13.50 / -$46.50 there).
+  It ships on the mechanism argument, with the dollar claim withdrawn and a kill criterion
+  of "one genuine trend week where it is negative".
+
+Counterweight the report is honest about: the desk booked $1,292.50 on 113 clean lots, but
+the day rider made $1,617.50 of it on 5 trades and the tournament lost -$325.00 on 108.
+Take the rider out and the week is red — and $0 of the rider's $1,617.50 is venue-verified
+(0 of 5 legs carry an exec_id), so it is thin, not proven.
+
+Biggest REFUTED: the MGC order-book read is BACKWARDS. On 397 gold breaks "the far side is
+empty" loses -$2,059.50 at the 4.8th percentile of its own placebo — 1,904 of 2,000 random
+picks did better. The feature carries real information with an inverted sign; the fade
+reformulation is PARKED, not claimed.
+
+================================================================================
+DISPOSITIONS — every grave visible
+================================================================================
+27 disposition tables. LIVE 51 / SHADOW 66 / PARKED 45 / REFUTED 39 mentions across the
+document; 14 NOT-AN-ACTION rows carried so nothing gets re-proposed next week. The retired
+word "graveyard" appears 0 times. Every PARKED row names its revival condition and every
+REFUTED row names the test that killed it.
+
+================================================================================
+ARTEFACTS (all three exist and are mutually consistent)
+================================================================================
+  src/gazbot7/web_static/weekly_2026-08-14.html   858,361 bytes   70,566 words
+  src/gazbot7/web_static/weekly_2026-08-14.pdf  1,067,202 bytes   192 pages (A4, 71,510 words)
+  src/gazbot7/web_static/monday_2026-08-14.html   90,614 bytes    46 play cards
+
+  16 <h2> + 91 <h3> sections · 191 tables · 9 inline run-chart SVGs · 0 broken play refs
+  · 0 double-escaped entities · 0 stale "50 identical entries" / "16 of 21 days green".
+  The reports index (/v7/reports) builds its list by scanning web_static, so all three are
+  linked automatically — no index edit needed.
+
+================================================================================
+THE ONE THING STILL OPEN — and it is not a report defect
+================================================================================
+THERE IS NO WORKING V7 PUBLISH GATE. scripts/friday/publish_report.py does not exist in
+this repo; the only verifier on the box is the RETIRED V5 desk's at
+/home/alphabot/alphabot2/scripts/friday/publish_report.py. Run read-only it fails this
+document on three checks, and all three are stale V5 shape checks: it counts a V5 numbered-
+section pattern (reports 0 against 16 <h2> + 91 <h3>), it looks for the V5 shadow spine's
+chapter names ("The Winners" / "The Bleeders") which do not exist in the V7 shape, and it
+enforces a >=15 chart floor the operator RETIRED on 2026-08-01. The one current floor,
+>=25k words, passes at ~71k. It was correctly NOT forced — forcing writes a reports row
+into the retired desk's database.
+ACTION FOR SATURDAY: port the gate — a V7 verify_report with V7 floors (>=20 h2/h3
+sections, >=25k words, the V7 spine, no chart floor) writing to the V7 reports table.
+Until it exists the V7 report has no automated publish gate, which is why this manual final
+check found three things a gate should have caught.

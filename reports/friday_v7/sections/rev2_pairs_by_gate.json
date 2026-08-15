@@ -1,0 +1,46 @@
+{
+ "exhaustion_short": {
+  "pairs": 34,
+  "total": 225.5,
+  "strip3": 127.5,
+  "lodo_worst": 101.0,
+  "days_green": 4,
+  "days": 4,
+  "pos": 17,
+  "nonzero": 23,
+  "sign_p": 0.0347
+ },
+ "abs_veto_short": {
+  "pairs": 12,
+  "total": 65.0,
+  "strip3": -34.0,
+  "lodo_worst": 7.5,
+  "days_green": 3,
+  "days": 5,
+  "pos": 6,
+  "nonzero": 11,
+  "sign_p": 1.0
+ },
+ "abs_veto_long": {
+  "pairs": 4,
+  "total": 42.0,
+  "strip3": 0.0,
+  "lodo_worst": 18.0,
+  "days_green": 2,
+  "days": 4,
+  "pos": 2,
+  "nonzero": 2,
+  "sign_p": 0.5
+ },
+ "capitulation_long": {
+  "pairs": 1,
+  "total": -1.0,
+  "strip3": 0.0,
+  "lodo_worst": 0.0,
+  "days_green": 0,
+  "days": 1,
+  "pos": 0,
+  "nonzero": 1,
+  "sign_p": 2.0
+ }
+}

@@ -427,12 +427,19 @@ mode, one direction of error. That lines up exactly with the exit finding above 
 tight for the tape once it moves.</p>
 
 <div class="callout"><div class="ct">⚠ THURSDAY&rsquo;S SELECTOR NUMBERS ARE POLLUTED &mdash; the standing bug confirmed again</div>
-<p>Thursday shows 14 trades and $748 of regret. <strong>Five of those fourteen rows are the same day-rider phantom
-counted five times</strong>, at $72.50 of regret each &mdash; $362.50, or <strong>48% of the day&rsquo;s entire
-regret figure</strong>, from one trade that did not exist. Thursday also carries $1,551 of <code>data_quality</code>-flagged
-rows that the P&amp;L module correctly excludes and <code>selector_nightly.py</code> does not. This is the known
-<em>selector-nightly-ignores-data-quality</em> defect, unfixed, and it is still inflating regret. Read Thursday&rsquo;s
-selector row as roughly $385 of regret on 9 real trades, not $748 on 14.</p></div>
+<p>Thursday shows 14 trades and $747.50 of regret. <strong>Five rows carry the same day-rider decision at $72.50 of
+regret each &mdash; and FOUR of the five are phantoms.</strong> The rows flagged
+<code>EXCLUDE:day_rider_phantom_rebook_20260813</code> are ids 673, 674, 675 and 678; the fifth, id&nbsp;668, is the real
+13:38 LONG that was claimed at 14:26 for +$731.00. So the phantom is <strong>4 &times; $72.50 = $290.00</strong>, which is
+<strong>39% of the day&rsquo;s regret</strong>. Thursday also carries $1,551 of <code>data_quality</code>-flagged rows
+that the P&amp;L module correctly excludes and <code>selector_nightly.py</code> does not. This is the known
+<em>selector-nightly-ignores-data-quality</em> defect, unfixed, and it is still inflating regret. <strong>Read
+Thursday&rsquo;s selector row as $457.50 of regret on 10 real trades, not $747.50 on 14.</strong></p>
+<p class="ln">&#9733; REV2: this paragraph previously said &ldquo;$362.50, 48% of the day&rsquo;s regret&hellip; roughly
+$385 on 9 real trades&rdquo;. That counted the genuine claimed trade as a phantom too. $290 / $457.50 / 10 is the
+arithmetic, it agrees with Part&nbsp;2.5 Part&nbsp;C, and it is what SATURDAY&nbsp;#3&rsquo;s verification
+(&ldquo;confirm regret drops from $748 to $458&rdquo;) will actually produce once the fix lands. On the old 48%
+restatement that check would have FAILED.</p></div>
 
 <h3>4 &middot; THRESHOLD TUNING &mdash; THE 40-DAY SWEEP</h3>
 
@@ -822,11 +829,11 @@ came out best-in-grid on both test sets. And it spent ten hours dead on Thursday
 <tbody>
 <tr class="row-hl"><td class="num">1</td>
 <td><strong>Add <code>exhaustion_short</code> to the router&rsquo;s UP-side managed set</strong> (bench it in confirmed TREND_UP).</td>
-<td class="ln">26 counter-trend fires over 30 days for &minus;$398.50 at &minus;$15.33/trade; <strong>red on 7 of the 8 days it occurred</strong>; survives strip-the-worst-day (&minus;$232.50) and gets stronger dropping the best day (&minus;$623.00). This week alone it leaked 12 fires for &minus;$241.00 while the leakage detector reported zero, because the gate is outside its universe. The same gate makes +$76.50 aligned and is roughly flat in chop &mdash; <strong>the bench is surgical, not a relegation of the short side.</strong></td>
+<td class="ln">26 counter-trend fires over 30 days for &minus;$398.50 at &minus;$15.33/trade; <strong>red on 7 of the 8 days it occurred</strong>; survives strip-the-worst-day (&minus;$232.50) and gets stronger dropping the best day (&minus;$623.00). This week alone it leaked 12 fires for &minus;$241.00 while the leakage detector reported zero, because the gate is outside its universe. The same gate makes +$76.50 aligned and is roughly flat in chop &mdash; <strong>the bench is surgical, not a relegation of the short side.</strong> &#9733; <strong>REV2 &mdash; and that &minus;$398.50 is the LIVE two-lot ruler, not the nightly&rsquo;s.</strong> It is realised <code>pnl_usd</code> on the desk&rsquo;s own fills, re-derived leg by leg with the router&rsquo;s own regime label at entry (26 legs, 8 days, 7 red, strip-worst-day &minus;$232.50, worst leave-one-out &minus;$623.00 &mdash; all reproduced exactly). Priced instead under the nightly&rsquo;s scalp-2R / 1-ATR ruler the same 26 legs come to only <strong>&minus;$168.93, or &minus;$6.50 a leg</strong> &mdash; that ruler is $8.83 a leg MORE generous here, so using it would <em>weaken</em> this case, not inflate it. The two uses of the ruler in this section are therefore consistent: it flatters trend (+$8.83 a leg in TREND_UP, +$16.38 in TREND_DOWN) and punishes chop (&minus;$16.38), which is exactly why the &ldquo;$721 over-bench&rdquo; figure was refused. Both columns in Part&nbsp;3&nbsp;Q6.</td>
 <td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
 <tr class="row-hl"><td class="num">2</td>
 <td><strong>Router timing: window 30&rarr;45 min, step 15&rarr;5 min, hold 2&rarr;3 marks. Leave ER 0.15 and net 30 alone.</strong></td>
-<td class="ln">Joint optimum on <em>both</em> universes independently: +$502 on the live set, +$399 on the full set. 4 days helped / 0 hurt (live), 6 / 1 (full), worst day &minus;$10. Independently corroborated by the live ledger: a 45-min window is the fix for the 1-point boundary flicker behind 36 flips on one gate, and 5-min steps address the &minus;$242 bench-lag measured in section 7. <strong>⚠ Rests on 4 of 40 days, and fitted on one predominantly RANGE regime &mdash; re-run after a trend week, revert is a three-constant edit.</strong></td>
+<td class="ln">Joint optimum on <em>both</em> universes independently: +$502 on the live set, +$399 on the full set. 4 days helped / 0 hurt (live), 6 / 1 (full), worst day &minus;$10. Independently corroborated by the live ledger: a 45-min window is the fix for the 1-point boundary flicker behind 36 flips on one gate, and 5-min steps address the &minus;$242 bench-lag measured in section 7. <strong>&#9733; <strong>REV2 &mdash; that caveat is now measured, and it is a blocker on the dollar claim.</strong> Rank the 40 days by session efficiency and hold out the trending eighth: on those 8 days 45/5/3 scores <strong>&minus;$13.50</strong> (live set) and <strong>&minus;$46.50</strong> (full set); on the other 32 it scores +$515.50 and +$445.50. <strong>Every dollar of the +$502 is non-trend-day money.</strong> The four days that move on the live set are 07-24 (+$350.50, session ER 0.036), 07-23 (+$116.50, 0.033) and 07-28 (+$48.50, 0.021) &mdash; none in the trending eighth &mdash; plus 07-21 (0.067), which IS in it and is <strong>negative</strong>. Take the change for the MECHANISM (a 45-minute window smooths the one-point boundary flicker; 5-minute steps close the &minus;$242 actuation lag), not for the number, and grade it on the first genuine trend week. Revert is a three-constant edit. Part&nbsp;3&nbsp;Q5.</strong></td>
 <td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
 <tr class="row-hl"><td class="num">3</td>
 <td><strong>Fix the lapsed-bench unwind in code, not in the prompt.</strong> A bench that expires returns a gate to benched-by-default; the 22:00Z reactivate timer must not re-arm a gate the router benched inside the last N hours without a fresh positive case.</td>
@@ -842,7 +849,7 @@ came out best-in-grid on both test sets. And it spent ten hours dead on Thursday
 <td><span class="tag r-ship">10-MIN FIX</span></td></tr>
 <tr><td class="num">6</td>
 <td><strong>Give <code>selector_nightly.py</code> the <code>data_quality IS NULL</code> filter and de-duplicate the day-rider rows.</strong></td>
-<td class="ln">Thursday&rsquo;s file counts one phantom day-rider trade <strong>five times</strong> at $72.50 of regret each &mdash; $362.50, 48% of the day&rsquo;s regret, from a trade that did not exist &mdash; and ignores $1,551 of flagged rows that the P&amp;L module correctly excludes. Third consecutive report to carry this. <strong>Every regret figure in section 3 is overstated until it lands.</strong></td>
+<td class="ln">Thursday&rsquo;s file counts a day-rider decision <strong>five times</strong> at $72.50 each, of which <strong>four are phantoms</strong> &mdash; $290.00, 39% of the day&rsquo;s regret (&#9733;&nbsp;REV2: was &ldquo;$362.50, 48%&rdquo;, which counted the genuine claimed trade as phantom) &mdash; and ignores $1,551 of flagged rows that the P&amp;L module correctly excludes. Third consecutive report to carry this. <strong>Every regret figure in section 3 is overstated until it lands.</strong></td>
 <td><span class="tag r-ship">SHIP SATURDAY</span></td></tr>
 <tr><td class="num">7</td>
 <td><strong>Do NOT lower the net threshold to 20, and do NOT tighten the router on the exhaustion_short &ldquo;over-bench&rdquo;.</strong></td>

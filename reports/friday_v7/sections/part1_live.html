@@ -162,6 +162,8 @@ something certain. What it says is that <strong>A&rsquo;s targets are set too ti
 is the single biggest contributor to the gap. The specific, testable recommendation for Saturday is to widen the A targets
 one notch and re-measure, and the natural place to run that properly is the rehab section, not here.</p></div>
 
+<div class="rev3"><div class="ct">&#9733; REV2 &mdash; this result and Part&nbsp;2&nbsp;&sect;3 point OPPOSITE ways on abs_veto_short. Here is which one governs.</div><p>Part&nbsp;2&nbsp;&sect;3 looks at the same gate and proposes bringing its ladder <em>IN</em>, from 1.5R/2.5R to 1.0R/1.5R, because the wide target &ldquo;converts winners into stop-outs&rdquo;. Rev&nbsp;1 turned the table above into a desk-wide instruction to widen Lot&nbsp;A. Follow both and you widen abs_veto_short on Monday while the shadow section is asking for it tightened. So I ran the same nine-test battery <strong>per gate</strong> instead of pooled:</p><table><thead><tr><th class="ln">gate</th><th class="num">pairs</th><th class="num">B &minus; A</th><th class="num">strip its best 3</th><th class="num">worst leave-one-day-out</th><th class="num">days green</th><th class="num">sign test</th></tr></thead><tbody><tr class="row-hl"><td class="ln"><code>exhaustion_short</code></td><td class="num">34</td><td class="num"><strong>+$225.50</strong></td><td class="num"><strong>+$127.50</strong></td><td class="num"><strong>+$101.00</strong></td><td class="num">4 of 4</td><td class="num"><strong>p = 0.035</strong></td></tr><tr class="row-bad"><td class="ln"><code>abs_veto_short</code></td><td class="num">12</td><td class="num">+$65.00</td><td class="num"><strong>&minus;$34.00</strong></td><td class="num">+$7.50</td><td class="num">3 of 5</td><td class="num"><strong>p = 1.00</strong> (6 of 12)</td></tr><tr class="row-bad"><td class="ln"><code>abs_veto_long</code></td><td class="num">4</td><td class="num">+$42.00</td><td class="num"><strong>$0.00</strong></td><td class="num">+$18.00</td><td class="num">2 of 4</td><td class="num">p = 0.50</td></tr><tr><td class="ln"><code>capitulation_long</code></td><td class="num">1</td><td class="num">&minus;$1.00</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">0 of 1</td><td class="num">n=1</td></tr></tbody></table><p><strong>Pooled, the result is real. Per gate, only ONE gate carries it.</strong> <code>exhaustion_short</code> survives strip-best-3 with +$127.50 still on the table, is positive on every fold and clears a sign test. <code>abs_veto_short</code>&rsquo;s $65 is <strong>three trades</strong> &mdash; strip its best three and it is &minus;$34.00 &mdash; and the wide leg won 6 of its 12 pairs, which is a coin. <code>abs_veto_long</code>&rsquo;s entire $42 is its best three pairs.</p><p><strong>So Part&nbsp;2&nbsp;&sect;3 governs on abs_veto_short and this table governs on exhaustion_short.</strong> There is no conflict once the pooled number is unpooled: the paired test has nothing to say about abs_veto_short (it dies on strip-best-3, which is the named cause of death), while &sect;3&rsquo;s case there is a fifteen-day live-versus-shadow divergence over 61 legs with a mechanism attached and, as of this revision, a fill measurement that rules out the alternative explanation. <strong>MONDAY&nbsp;#1 is now scoped to the gates the paired evidence actually supports</strong> &mdash; <code>exhaustion_short</code>, and abs_veto_long only if it ever reaches n&nbsp;&ge;&nbsp;20 &mdash; and it explicitly excludes abs_veto_short, whose ladder is going the other way as a forward A/B.</p><p class="ln">Two bookkeeping notes: this splits <strong>51</strong> paired signals, not 50 (one pair differs by exactly $0.00 and was dropped from the original count); the totals are identical at +$331.50 either way. And &ldquo;33 pairs&rdquo; for exhaustion_short in the table above is 34 on the same pairing rule.</p></div>
+
 <h4 class="p1">2.3 &nbsp; The day rider had its first proper week &mdash; with two caveats</h4>
 
 <p>Last week the rider had <strong>no ledger at all</strong> &mdash; it had never written a trade row in its life, and the
@@ -307,6 +309,28 @@ problem from an exit problem, and it splits this week almost perfectly into thir
 39 points and still travelled the whole way to a full stop.</strong> On MNQ 39 points is $78 a lot. Eleven signals, twenty-two
 lots, and not one of them had any mechanism that could bank a partial or protect an entry price, because <code>giveback</code> is
 forced off on both lots by the scale-out config.</p>
+
+<div class="rev3"><div class="ct">&#9733; REV2 CORRECTION &mdash; that 39 points was mostly NOT ours to bank</div>
+<p>The table above measures the favourable move over a <strong>fifteen-minute window from entry</strong>, and I flagged that
+choice at the bottom of this section. Re-measuring the same eleven signals over the window that actually matters &mdash; the
+time we were <em>in the position</em> &mdash; changes the diagnosis. The median in-trade favourable move is
+<strong>7.25 points, not 39.2</strong>, and only <strong>2 of the 11</strong> ever went 20 points our way while we still held
+it. The median hold on these eleven was <strong>92 seconds</strong>. Nine of the eleven made their 39-point move
+<em>after</em> our stop had already taken us out.</p>
+<table>
+<thead><tr><th class="ln">The 11 &ldquo;exit fault&rdquo; signals</th><th class="num">15-min window</th>
+<th class="num">While we held it</th></tr></thead>
+<tbody>
+<tr><td class="ln">Median favourable move</td><td class="num">39.2pt</td><td class="num"><strong>7.25pt</strong></td></tr>
+<tr><td class="ln">Reached 20pt+ onside</td><td class="num">11 of 11</td><td class="num"><strong>2 of 11</strong></td></tr>
+<tr><td class="ln">Reached 12pt+ onside</td><td class="num">11 of 11</td><td class="num">4 of 11</td></tr>
+</tbody></table>
+<p><strong>So this bucket is not &ldquo;we had the money and gave every penny back&rdquo;.</strong> For nine of the eleven the
+money arrived after we were flat. That makes it a <strong>stop-width</strong> problem, not a partial-banking one &mdash; and it
+is the same answer Part&nbsp;1.5&nbsp;&sect;7 reaches from a completely different direction on a completely different sample
+(a 1.5&times;ATR stop turns the same gate&rsquo;s 87 signals from &minus;$84.50 into +$3,459.98). Two independent routes to
+&ldquo;the stop is too tight&rdquo; is the strongest thing in this section.
+The partial-banking test the old closing note called for has now been run &mdash; <strong>Part&nbsp;3&nbsp;Q1</strong>.</p></div>
 
 <h4 class="p1">And the winners are leaving money on the table too</h4>
 
@@ -650,14 +674,32 @@ Thursday.</strong> From <strong>02:40:03Z to 13:00:02Z</strong>, 125 consecutive
 scoreboard &mdash; each tick logged as &ldquo;no change,&rdquo; which is exactly what a healthy quiet tick looks like.</p>
 
 <table>
-<thead><tr><th>Router health, this week</th><th class="num">Ticks</th><th>Note</th></tr></thead>
+<thead><tr><th>Router health, this week &mdash; Mon&ndash;Fri, ROUTER LOG ONLY</th><th class="num">Ticks</th><th>Note</th></tr></thead>
 <tbody>
-<tr><td class="ln">Total ticks</td><td class="num">1,440</td><td>Five-minute cadence, all five days</td></tr>
-<tr><td class="ln">Genuine &ldquo;no change&rdquo;</td><td class="num">1,210</td><td>84%</td></tr>
+<tr><td class="ln">Total ticks</td><td class="num">1,440</td><td>Five-minute cadence, all five days (5&times;288)</td></tr>
+<tr><td class="ln">Genuine &ldquo;no change&rdquo;</td><td class="num">1,210</td><td>84% of all five days &mdash; 95% of the 1,148 Tue&ndash;Fri ticks the front page quotes</td></tr>
 <tr class="row-bad"><td class="ln"><strong>ABORT &mdash; produced no decision at all</strong></td><td class="num"><strong>125</strong></td><td><strong>All on 08-13, one unbroken 10h20m block</strong></td></tr>
 <tr><td class="ln">Scheduled skips (CME halt / maintenance)</td><td class="num">45</td><td>9 a day, expected</td></tr>
-<tr class="row-hl"><td class="ln">Switch changes actually applied</td><td class="num">60</td><td>67 individual gate flips</td></tr>
+<tr class="row-hl"><td class="ln">Switch changes actually applied</td><td class="num">60</td><td>67 individual gate flips &mdash; <strong>router log only, see the correction below</strong></td></tr>
 </tbody></table>
+
+<div class="rev3"><div class="ct">&#9733; REV2 &mdash; which instrument these tick and switch counts came from</div>
+<p>Two things in that table need labelling, because a later section counts the same events a different way and the two
+never pointed at each other.</p>
+<p><strong>The ticks are all five days; the front page&rsquo;s are four.</strong> 1,440 is Monday&ndash;Friday. The scorecard
+at the front says <strong>1,148 ticks Tue&ndash;Fri</strong>, because the systemd journal does not reach back past
+2026-08-10&nbsp;23:11&nbsp;UTC, so Monday cannot be verified the second way and Part&nbsp;2.6&nbsp;&sect;1 starts its
+reconciliation on Tuesday. Both numbers are right for their own window; neither is the week on its own.
+&ldquo;Zero service failures&rdquo; on the front page means <em>zero systemd failures</em> &mdash; the 125 aborted decisions
+in this table are the same event, counted honestly, and the front page now says both.</p>
+<p><strong>The switch counts here are the router&rsquo;s own log, which under-reports.</strong> Its <code>changed:</code>
+field only records what the ROUTER changed, so the 22:00Z reactivation timer moves gates while every router tick that hour
+says &ldquo;changed: none&rdquo;. Part&nbsp;2.6&nbsp;&sect;1 does the three-way reconciliation this desk&rsquo;s standing
+lesson demands (router log under-reports, systemd journal over-reports, the modification time on
+<code>gate_switches.env</code> is the arbiter) and lands on <strong>56 true switch events and 64 gate transitions for
+Tue&ndash;Fri</strong> &mdash; roughly <strong>73 gate flips</strong> once Monday&rsquo;s router-log 9 are added.
+<strong>Use Part&nbsp;2.6&nbsp;&sect;1&rsquo;s numbers.</strong> The 60/67 above is what one instrument saw, kept because
+the churn narrative in &sect;8.2 is built on that same log and re-basing half of it would make the two disagree in a new way.</p></div>
 
 <p><strong>We got lucky on the timing.</strong> It recovered at 13:05:28Z, twenty-five minutes before the cash open and
 before the day&rsquo;s big hour. Had it stayed down another forty minutes it would have been asleep through the only real trend
@@ -892,8 +934,13 @@ it &check;&nbsp;GOOD for exactly that reason.</p>
 
 <h3 id="p1-router">8 &middot; THE DIRECTION ROUTER &mdash; the full trial read</h3>
 
-<p>The router made <strong>60 switch changes</strong> this week, touching <strong>67 individual gate keys</strong>. Here is
-what those changes bought.</p>
+<p>The router&rsquo;s own log records <strong>60 switch changes</strong> this week, touching <strong>67 individual gate
+keys</strong>. <strong>&#9733; REV2 &mdash; that is one instrument and it is the one that under-reports.</strong> The
+reconciled figure, arbitrated on <code>gate_switches.env</code>&rsquo;s modification time, is <strong>56 true switch events
+and 64 gate transitions across Tue&ndash;Fri</strong>, or about <strong>73 gate flips</strong> for the week once
+Monday&rsquo;s unverifiable 9 are added &mdash; Part&nbsp;2.6&nbsp;&sect;1 has the full three-way table. Everything below is
+computed off the router log, so read it as the log&rsquo;s view of its own behaviour, not as the count of what the
+tournament actually read. Here is what those changes bought.</p>
 
 <h4 class="p1">8.1 &nbsp; Did the arming produce anything?</h4>
 
@@ -903,7 +950,7 @@ the honest measure of whether the router is doing work or just moving a file.</p
 <table>
 <thead><tr><th>Metric</th><th class="num">Value</th><th>Read</th></tr></thead>
 <tbody>
-<tr><td class="ln">Arm events</td><td class="num">28</td><td>&mdash;</td></tr>
+<tr><td class="ln">Arm events</td><td class="num">28</td><td><strong>Router log, Mon&ndash;Fri.</strong> The reconciled Tue&ndash;Fri count in Part&nbsp;2.6&nbsp;&sect;1 is <strong>31 arms and 33 benches</strong>; the arbiter is <code>gate_switches.env</code>&rsquo;s mtime, not this log</td></tr>
 <tr class="row-hl"><td class="ln">Arms that produced at least one trade</td><td class="num"><strong>11 (39%)</strong></td><td>For comparison, on 08-07 only 4 of 20 <em>switch changes</em> led to a trade &mdash; a related but not identical measure</td></tr>
 <tr class="row-bad"><td class="ln">Arms that produced <strong>nothing at all</strong></td><td class="num">17</td><td>Longest was <strong>10.7 hours</strong> of <code>abs_veto_short</code> armed for zero fires</td></tr>
 <tr><td class="ln">Trades taken inside an arm window</td><td class="num">41 lots</td><td class="num">&minus;$188.00</td></tr>
@@ -1044,7 +1091,7 @@ picked the one that flatters us least.</li>
 <thead><tr><th>Lead</th><th>Verdict</th><th>The evidence, or the condition</th></tr></thead>
 <tbody>
 <tr class="row-hl"><td class="ln"><strong>The stop-fill fix</strong> (resting stop on a concrete future)</td><td><span class="tag p-live">LIVE &mdash; CONFIRMED</span></td><td>62 of 62 stops filled this week; 393 trades and 17 days since the last <code>STOP_UNFILLED</code>. Nothing further needed.</td></tr>
-<tr class="row-hl"><td class="ln"><strong>Wide profit-taking beats tight</strong> (Lot B over Lot A)</td><td><span class="tag p-live">SURVIVED THE BATTERY</span></td><td>+$331.50 over 50 identical entries. Placebo p=0.0040, sign test p=0.0235, all 5 daily folds positive, all 4 gate folds positive, +$163 after deleting its best five. <strong>Action: widen the A targets one notch and re-measure &mdash; hand to the rehab section.</strong></td></tr>
+<tr class="row-hl"><td class="ln"><strong>Wide profit-taking beats tight</strong> (Lot B over Lot A)</td><td><span class="tag p-live">SURVIVED THE BATTERY</span></td><td>+$331.50 over 51 identical entries. Placebo p=0.0040, sign test p=0.0235, all 5 daily folds positive, all 4 gate folds positive, +$163 after deleting its best five. <strong>Action: widen the A targets one notch and re-measure &mdash; hand to the rehab section.</strong></td></tr>
 <tr class="row-hl"><td class="ln"><strong>&ldquo;Arm for periods&rdquo; over &ldquo;bench on losses&rdquo;</strong></td><td><span class="tag p-hold">HOLD &mdash; CONFIRMED LIVE</span></td><td>Bench-on-2-stops costs <strong>&minus;$172</strong> across the week; Friday alone forfeits +$356. The discriminator is the regime the losses occur in, not the losses.</td></tr>
 <tr class="row-hl"><td class="ln"><strong>The day rider</strong></td><td><span class="tag p-live">LIVE &mdash; thin</span></td><td>5 trades, +$1,617.50, 5&ndash;0. Now writes a ledger; venue fills arrived 08-14. Needs weeks, not tests.</td></tr>
 <tr><td class="ln"><code>exhaustion_short</code> as a standalone gate</td><td><span class="tag p-hold">HOLD &mdash; regime-dependent</span></td><td>&minus;$218.50 over 38 signals, but leave-one-day-out swings from +$149 to &minus;$528 &mdash; it is Friday and Wednesday, nothing else. Not robust either way on one week. Its B leg is already profitable.</td></tr>
@@ -1058,9 +1105,17 @@ picked the one that flatters us least.</li>
 <tr class="row-bad"><td class="ln"><code>capitulation_long</code> arm/bench tug-of-war</td><td><span class="tag p-park">PARKED &mdash; unexplained</span></td><td>Router wrote <code>off</code> five times and <code>on</code> never; the file reads <code>on</code>. <em>Revive/resolve by:</em> finding the other writer. $0 cost this week.</td></tr>
 </tbody></table>
 
-<div class="callout"><div class="ct">THE ONE STONE STILL UNTURNED</div>
-<p>We now know <em>where</em> the money goes &mdash; $1,058 of it into trades that were up 39 points and gave it all back. We know
-the naive fix for that (a break-even stop) is a mirage. <strong>What we have not tested is a partial:</strong> banking one lot of
-the two at a fixed points-onside and letting the other run its existing exit. The scale-out already gives us two lots for free, so
-it costs nothing structurally, and unlike a break-even stop it does not require being right about where the pullback ends. That is
-the first thing I would test next week, and it is the natural bridge from this section into the rehab work.</p></div>
+<div class="callout"><div class="ct">THE ONE STONE STILL UNTURNED &mdash; &#9733; REV2: turned over, and it is on the card</div>
+<p>We now know <em>where</em> the money goes. <strong>What had not been tested was a partial:</strong> banking one lot of
+the two at a fixed points-onside and letting the other run its existing exit. The scale-out already gives us two lots for free,
+so it costs nothing structurally, and unlike a break-even stop it does not require being right about where the pullback ends.</p>
+<p><strong>It has now been run</strong> &mdash; all 57 signals, winners included, on 5-second bars, with the favourable touch
+required in a strictly earlier bar than the exit bar. Banking Lot&nbsp;A at <strong>+20 points</strong> takes the week from
+&minus;$325.00 to &minus;$105.50 (<strong>+$219.50</strong>), keeps <strong>25 of 25</strong> winning signals green, is
+positive on every leave-one-day-out fold, and beats 400 of 400 random-time controls. It also fires on only 12 of 57 signals,
+78% of the gain is Monday, and <strong>strip its best three trades and the gain goes to &minus;$45.00</strong>. That is a
+SHADOW, not a deploy, and it is now BUILD&nbsp;#11 on the card. The full working, including why the +20 cell is a spike and
+not a plateau, is <strong>Part&nbsp;3&nbsp;Q1</strong>.</p>
+<p><strong>The new stone:</strong> nine of the eleven &ldquo;exit fault&rdquo; signals made their move after our stop had
+taken us out (see the correction in &sect;4). Nothing in this report has priced a <em>re-entry</em> rule &mdash; the same
+signal, taken again, after the stop. That is next week&rsquo;s question.</p></div>

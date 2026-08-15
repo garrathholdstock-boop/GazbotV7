@@ -1,0 +1,359 @@
+REV1 -> REV2 CHANGELOG — GAZBOT V7 Friday report, week ending 2026-08-14
+Written 2026-08-15. Source: reports/friday_v7/sections/proofread.json (8 unanswered, 14 issues).
+
+Everything below was recomputed from the trade table, the shadow book, the tick/5s tape and the
+runner logs. No figure was carried over, restated or estimated. Every fix is tagged "★ REV2" in the
+fragment where it sits, so a reader never has to hold two numbers in their head.
+
+Rebuild: python3 scripts/friday_v7_build.py --slug 2026-08-14
+  HTML 856,149 bytes · PDF 1,066,458 bytes · 10 sections · 46 plays · 73,235 words · 191 tables
+  · 9 inline run-chart SVGs · same `doc` string, one pass, mtimes identical.
+
+
+================================================================================
+PART A — THE EIGHT UNANSWERED QUESTIONS. All eight answered. New fragment:
+          reports/friday_v7/sections/rev2_answers.html, stitched as PART 3 (anchor sec9).
+================================================================================
+
+Q1  "Bank one lot at a fixed points-onside" — the fix for the week's biggest diagnosed loss
+    ($1,058), named in Part 1 §11 and absent from the card.
+    ANSWERED. scripts/rev2_bank_one_lot.py -> sections/rev2_bank_one_lot.json
+    All 57 paired signals, winners included (the §9.2 apply-to-all-lots rule), 5s bars, the
+    favourable touch required in a STRICTLY EARLIER bar than the exit bar, Lot B untouched,
+    $1.50/RT at $2.00/pt.
+      +8 / +10 / +12 / +15 / +20 / +25 pt  ->  +$33.00 / +$80.50 / +$131.50 / +$126.50 /
+      +$219.50 / +$117.50 against the booked -$325.00.
+      Best cell +20pt: week -$325.00 -> -$105.50; fires on 12 of 57; keeps 25/25 winning signals
+      green; every leave-one-day-out fold positive (worst +$48.50); beats 400 of 400 paired
+      random-TIME controls (which score -$485 to -$850, so the edge is the +X trigger, not
+      "exit sooner").
+      KILLED FOR DEPLOY BY STRIP-THE-BEST-THREE: the +$219.50 becomes -$45.00. +$171 of it is
+      Monday. Grid extended to +25/+30/+40 because the asked-for grid's best cell sat on its top
+      edge; nothing reaches +30 before its exit bar, so +20 is a one-cell spike, not a plateau.
+      VERDICT: SHADOW -> new BUILD #18.
+    ★ AND IT FORCED A CORRECTION TO PART 1 §4 (not in the proofread, found while answering):
+      the "$1,058 of trades up a median 39 points" is measured over a 15-MINUTE WINDOW FROM ENTRY.
+      Median hold on those 11 signals is 92 seconds. In-trade median favourable move is 7.25pt,
+      not 39.2, and only 2 of 11 ever reached 20pt onside while we held the position. NINE OF
+      ELEVEN made the move after our stop had taken us out. So the bucket is a STOP-WIDTH problem,
+      not a partial-banking one — the same conclusion Part 1.5 §7 reaches independently.
+
+Q2  Which exhaustion_short exit goes in the shadow book — the wide stop (BUILD #1) or the tight
+    chandelier (Part 2 §8d, already written to data/exit_overrides_proposed.json)?
+    ANSWERED. scripts/rev2_exh_exit_headtohead.py -> sections/rev2_exh_headtohead.json
+    Both repriced on the SAME 87 tape-backed signals, same tick paths, same cap, split by the
+    §8b rung, with the SAME paired random-entry control applied to each.
+      WIDE 1.5xATR stop / 3.0xATR target : +$3,459.98  (54.0% win, strip3 +$2,046.14,
+        LODO-worst +$1,626.49, 9/12 days green, 100th percentile vs 60 controls, alpha +$3,433.27)
+      TIGHT CHANDELIER x2                : -$339.06   (40.2% win, strip3 -$1,176.06,
+        LODO-worst -$954.68, 5/12 days green, 58th PERCENTILE — a coin, alpha +$69.37)
+      Per rung ($/signal, wide vs chandelier): BIG-TREND n=4 -20.6 / -16.3 · MED-TREND n=19
+      +106.2 / -1.5 · SCALP-CHOP n=29 +18.4 / -1.3 · STAY-OUT n=35 +28.3 / -5.9.
+      NOT a cap artefact: on the 5s tape at 15/30/60 min the wide stop pays +$40.21/+$47.30/+$45.96
+      a signal and the chandelier -$3.60/-$6.02/-$6.45 — a longer leash makes it WORSE.
+      VERDICT: ONE proposal, the wide stop. No rung boundary is needed (the wide stop is positive
+      on MED-TREND, SCALP-CHOP and STAY-OUT alike). The two exhaustion_short rows in
+      exit_overrides_proposed.json are WITHDRAWN -> new NOT-AN-ACTION #15, cause of death named
+      (the paired random-entry control). Stated fairly: §8b scored them on the 716-entry
+      exhaustion_rev shadow board, a different population; a deploy acts on the live gate.
+
+Q3  Is the abs_veto_short live-vs-shadow gap the exit ladder or is it fills?
+    ANSWERED. scripts/rev2_absveto_slippage.py -> sections/rev2_absveto_slippage.json
+    Every live leg since 26 July compared with the level it should have filled at. R = 1.0 x the
+    ATR-14 the gate would have read at the entry minute, recomputed with deciders._atr's
+    HALT-AWARE rule; the ladder that was genuinely running (plain 1.5R/2.5R before 2 August, the
+    quiet-tape clip — Lot A a flat $40, Lot B max(1.75R,$60) — after it). Sign: + is adverse.
+      STOP  35 legs: median -0.95pt, mean +0.68, p90 +10.80, worst +19.84 -> -$47.32
+      TARGET 11 legs: median -0.25pt, mean -4.32                        -> +$95.11
+      ALL 46 legs: median -0.60pt -> WE FILL $47.78 BETTER THAN MODELLED. 24 of 46 at or better.
+      Tail is real but small: 12 stop legs filled >1pt beyond their stop cost -$194.18; the other
+      23 gave $146.86 back.
+      Shadow twin re-run with the measured slippage: +$1,828.50 -> +$1,965.84. The gap WIDENS
+      ($2,093.50 -> $2,230.84). VERDICT: it is the LADDER. The A/B tests the right thing.
+    ★ AND A CORRECTION: the headline "63 legs / -$520.50" includes TWO QUARANTINED ROWS
+      (EXCLUDE:md_stream_atr_corruption_20260804, the two MAX_HOLD legs, -$255.50). Clean ledger:
+      -$265.00 over 61 legs; the gap is $2,093.50, not $2,349. §3's own normalisation already
+      strips them, so its -$159.00 strategy-only figure was right either way.
+
+Q4  How much of the day rider's $1,617.50 survives a venue-verified accounting, and what is the
+    rider's edge as opposed to its booked number?
+    ANSWERED. scripts/rev2_day_rider_audit.py -> sections/rev2_day_rider_audit.json
+      VENUE: 0 of 5 legs carry an entry_exec_id or exit_exec_id, and 0 of 5 has a matching size-2
+      execution in `fills` at the booked exit price. $0 of $1,617.50 is venue-verified. That is
+      WORSE than Part 1's "four of five", and the 08-14 TRAIL row is no better evidenced than the
+      rest — the re-check next Friday must be 5 of 5, not 1 of 5.
+      TAPE: the two CLOCK_FLAT_RECON rows check out — 08-10 tape close at 20:40 = 29,750.50 vs
+      booked 29,749.00; 08-12 = 29,818.75 vs 29,819.25. The $263.50 of backfill is accurate to
+      about $4 net.
+      RULE vs HANDS: replaying the rider's OWN exit (ATR trail, arm 4xATR / trail 2xATR off peak,
+      constants read from day_rider.py, with the 20:40Z hard flat) from the same five entries:
+        08-10 +$39.00 vs +$33.00 · 08-11 +$189.00 vs +$347.57 · 08-12 +$224.50 vs +$226.50
+        08-13 +$731.00 vs +$773.29 · 08-14 +$434.00 vs +$491.43
+        WEEK booked $1,617.50 vs RULE $1,871.79 -> the hands and the backfill cost -$254.29.
+      Composition of the booked number: MANUAL_CLAIM 2 legs $920.00 (57%), *_RECON 2 legs $263.50
+      (16%), code-emitted exit 1 leg $434.00 (27%).
+      VERDICT: the booked figure UNDERSTATES the rule; the discretion is not what made the money.
+      Nothing is promoted — n=5, 5s bars, no slippage, and every entry is itself unverified.
+    NOTE ON THE ASKED METHOD: scoring against the 41-day Open Rider replay was not possible as
+      framed — the Open Rider is a different strategy (see Q on MONDAY #2 below). Building the
+      LIVE rider's own replay answers the question that was actually being asked.
+
+Q5  Does the router's 45/5/3 timing change survive on trending days?
+    ANSWERED. scripts/rev2_router_timing_by_regime.py -> sections/rev2_router_timing_regime.json
+    40 Paris days ranked by session efficiency, top 8 held out, scored through router_study.py's
+    own replay engine (the one §4 validated as identical to the shipped direction_router).
+      LIVE managed set : all 40 +$502.00 · trending 8 -$13.50 · other 32 +$515.50
+      FULL fader set   : all 40 +$399.00 · trending 8 -$46.50 · other 32 +$445.50
+      The four days that move on the live set: 07-24 +$350.50 (session ER 0.036), 07-23 +$116.50
+      (0.033), 07-28 +$48.50 (0.021) — none in the trending eighth — and 07-21 (0.067), which IS
+      and is NEGATIVE. On the full set 7 days move; both trending-eighth days are +$8.00/-$54.50.
+      VERDICT: every dollar is non-trend-day money. STILL SHIP, on the MECHANISM argument only
+      (45-min window smooths the 1-point boundary flicker behind 36 flips; 5-min steps close the
+      -$242 actuation lag — both measured from the live ledger, not the grid). The dollar figure
+      comes off the claim. Play updated: regime split in its number column, trend-day split
+      required in verification, new kill criterion "one genuine trend week where it is negative".
+
+Q6  Is SATURDAY #2 priced with the nightly's generous ruler?
+    ANSWERED — and the premise was wrong. scripts/rev2_counter_trend_bench.py ->
+    sections/rev2_counter_trend_bench.json
+    146 clean exhaustion_short legs over 30 Paris days, labelled with the router's own regime at
+    entry, priced BOTH ways:
+      TREND_UP (the bench case) n=26: LIVE -$398.50 (-$15.33/leg) · scalp-2R -$168.93 (-$6.50/leg)
+      CHOP n=72:                      LIVE +$575.50 (+$7.99)     · scalp-2R -$603.71 (-$8.38)
+      TREND_DOWN n=48:                LIVE -$335.00 (-$6.98)     · scalp-2R +$451.21 (+$9.40)
+      THE -$398.50 WAS ALREADY THE LIVE RULER — realised pnl_usd on our own fills. The nightly's
+      ruler is $8.83 a leg MORE generous here, so it would WEAKEN this case, not inflate it. The
+      two uses of the ruler are consistent: it flatters trend and punishes chop.
+      Robustness reproduced exactly: 8 days, red on 7, strip-worst-day -$232.50, LODO-worst
+      -$623.00. Bench stands. Both columns now printed so nobody reopens it.
+
+Q7  What actually stops the OPEN/NEWS hunt running, and is BUILD #2 enough?
+    ANSWERED — it is NOT enough. From data/friday_durable.log and scripts/friday/friday_phases.py:
+      Window 22:07Z -> 05:15Z = 428 min. Census freeze etc. 10 min. Tail reserve 200 min.
+      BODY BUDGET = 220 min.
+      Spent: part1_live 22.0 + part2_shadow 27.9 + part25_musings 25.1 + part2_6_router 24.0 +
+      movement2_idle 15.4 = 114.4; rehab took its FULL 90.0 cap and returned NO artifact; gf_MGC
+      13.2 and no artifact -> 217.6. "BUDGET: stopping section builds to protect the tail
+      (0m left)" at 01:54:59Z, 8 sections missing.
+      The four MNQ hunts are capped at 90 MINUTES EACH = 360 min = 164% of the entire body budget.
+      Sum of all body caps = 915 min = 416%. The tail's own caps total 255 min against a 200-min
+      reserve, i.e. 55 min short before anything goes wrong.
+      SECOND, INDEPENDENT CAUSE: the tail then died anyway — "assemble: rc=0 25.6m artifact=MISSING"
+      / "TAIL PHASE FAILED: assemble" — on the doubled-brace {WEEK} placeholder resolving to a
+      literal filename. Fixed in commit 8df7eff.
+      BUILD #2 now carries this arithmetic and requires ONE of: cap rehab at 45 min, move the
+      deadline to ~11:30Z, or split the greenfield hunts into their own run.
+
+Q8  Is the live grind book carrying mis-attributed fills?
+    ANSWERED — NO, and the allegation is withdrawn. scripts/rev2_grind_mfe_integrity.py ->
+    sections/rev2_grind_mfe_integrity.json
+    All 26 grind_long trades in the watch window scored against their FULL-LIFE excursion (highest
+    price the tape printed between that trade's own entry and its own exit — the most generous
+    ceiling there is, ignoring the stop entirely).
+      0 OF 26 book more than their own tape could pay.
+      The named trade: 07-30 11:11:57, entry 27,670.00, tape printed 27,757.50 while we held it =
+      87.50pt, ceiling +$173.50, booked +$159.00. The watch's rMFE reads 0.81R because
+      two_ratchet_shadow_watch.rmfe() STOPS MEASURING at the first 1-ATR adverse tick — it is a
+      pre-stop excursion by design. And the exit reconciles to the deployed rule: peak 87.5pt at
+      ATR 14.1 = 6.21R, past the pure-6.0 lock, so trail = lock_k 0.5 x ATR = 7.05pt;
+      27,757.50 - 7.05 = 27,750.45 against an actual exit of 27,750.25.
+      The other two large books check out the same way (+$156.50 vs $200.50; +$305.00 vs $339.50).
+      grind_long all-time on the clean ledger stands at n=98, -$454.00.
+      Replaced by a real instrument note: the rMFE column is truncated by construction and must
+      never be read as a trade's excursion.
+
+
+================================================================================
+PART B — THE FOURTEEN ISSUES. All fourteen fixed in the SOURCE FRAGMENTS (and, where the text is
+          generated, in scripts/friday_v7_build.py). The built HTML was never edited.
+================================================================================
+
+ 1. plays.json / "WHAT TO ACTUALLY DO" — seven SHADOW dispositions produced no play.
+    FIXED. Card grows 38 -> 46 plays. All seven now carried:
+      BUILD #12 abs_veto_short exit ladder 1.5R/2.5R -> 1.0R/1.5R  (Part 2's "week's main proposal")
+      BUILD #13 grind_long MED-TREND A0.5/B1.0 (from exit_overrides_proposed.json)
+      BUILD #14 the two short faders as run-catchers (M2)
+      BUILD #15 capitulation_long "require_flip OR 90-second timeout" (M2)
+      BUILD #16 quiet-tape clip suspended on a range-break ignition (M2)
+      BUILD #17 exhaustion_short's "the flow DID move price" clause inverted as a bench (M2)
+      NOT-AN-ACTION #15 exhaustion_short tight chandelier — WITHDRAWN, not shadowed (see Q2)
+    Plus BUILD #18 (Q1, bank one lot at +20pt). Pointer blocks added in Part 2 §10 and the
+    Movement 2 disposition so the reader can see where each verdict went. Lead paragraph on the
+    card explains the growth.
+
+ 2. Part 1 §2.2 vs Part 2 §3 vs MONDAY #1 — direct contradiction on abs_veto_short's ladder.
+    FIXED, by unpooling the paired test per gate and re-running its own battery:
+      exhaustion_short 34 pairs +$225.50 · strip-3 +$127.50 · LODO-worst +$101.00 · 4/4 days
+        green · sign test p=0.035
+      abs_veto_short  12 pairs  +$65.00 · strip-3 -$34.00 (NEGATIVE) · 6 of 12 wins · p=1.00
+      abs_veto_long    4 pairs  +$42.00 · strip-3  $0.00
+      capitulation_long 1 pair   -$1.00
+    So Part 2 §3 governs on abs_veto_short (the paired test dies there on STRIP-BEST-3) and the
+    paired test governs on exhaustion_short. MONDAY #1 re-scoped to exhaustion_short and now
+    EXPLICITLY EXCLUDES abs_veto_short, whose ladder is going the other way as BUILD #12.
+    Bookkeeping: it is 51 paired signals, not 50 (one pair differs by exactly $0.00); total
+    unchanged at +$331.50.
+
+ 3. Part 1.5 §7-§8 vs Part 2 §8d — two exits for one gate, never graded against each other.
+    FIXED. Head-to-head run (Q2). Rung-conditional shipping is NOT needed and the report now says
+    so: the wide stop wins MED-TREND, SCALP-CHOP and STAY-OUT alike. Correction blocks added to
+    BOTH sections, each pointing at the other and at Part 3 Q2.
+
+ 4. Part 2.5 Part C vs Part 2.6 §3 vs SATURDAY #3 — the selector phantom priced two ways.
+    FIXED. Verified from data/selector_nightly/2026-08-13.json: 14 rows, $747.50 total regret,
+    five identical day_rider rows at $72.50 — but only FOUR underlying trades are quarantined
+    (ids 673/674/675/678). The fifth, id 668, is the genuine 13:38 LONG claimed at 14:26 for
+    +$731.00. So: $290.00 phantom / $457.50 corrected / 10 real trades / 39%, everywhere.
+    The 48% figure is REMOVED from Part 2.6 §3 and its instrument table (it counted the real
+    trade as phantom and would have made SATURDAY #3's verification criterion FAIL). Part 2.5
+    Part C's internal 39%-vs-48% disagreement resolved to 39%. Front-page callout and "three
+    things this week taught the desk" corrected in the build script.
+
+ 5. Part 1 §6.1/§8 vs Part 2.6 §1 — switch changes counted two ways, never reconciled.
+    FIXED. Part 1's 60 changes / 67 gate keys / 28 arms are now LABELLED "router log only,
+    Mon-Fri" in three places (the health table, the §8 opener, the arm-events row), each with a
+    pointer to Part 2.6 §1's three-way reconciliation and its numbers: 56 true switch events /
+    64 gate transitions Tue-Fri, ~73 gate flips once Monday's unverifiable 9 are added, 31 arms
+    and 33 benches. The arbiter is gate_switches.env's mtime, per the standing lesson. Part 1's
+    log-based figures are kept rather than re-based because §8.2's churn narrative is built on
+    that same log.
+
+ 6. Front scorecard vs Part 1 §6.1 — "1,148 ticks, zero service failures" vs 1,440 / 125 ABORTs.
+    FIXED in scripts/friday_v7_build.py: the scorecard now reads "1,148 ticks Tue-Fri (Monday
+    unverifiable — journal retention), zero SYSTEMD failures but 125 aborted decisions in one
+    unbroken 10h20m block on 13 August, 95% of ticks change nothing." Part 1's table header says
+    "Mon-Fri, ROUTER LOG ONLY", its 84% row names the 95%/1,148 relationship, and a correction
+    block explains why the two windows differ.
+
+ 7. Movement 1 (MNQ census) — the closing sentence contradicted its own table.
+    FIXED, and it goes further than the proofread asked. Recomputed from the trade table: the
+    five FOUGHT runs total +$91.50 — but +$434.00 of that is the DAY RIDER, a different desk that
+    happened to be short inside one window. Tournament-only, the fading around the runs is
+    -$342.50 on 5 runs. Both figures now printed. The intro's "the bleed is the fading" and the
+    closing "the runs made money and the fading gave it back" are replaced with what the table
+    says: the money is the 60 sat-out runs and their $8,024 ceiling — a not-showing-up problem.
+
+ 8. Movement 1 (MGC census) — MNQ template prose on an instrument the desk has never traded.
+    FIXED. Gold gets its own two paragraphs: no MNQ gate is eligible on MGC (they are wired to
+    the Nasdaq slate and the scope forbids porting), so 100% of the $10,649 single-lot ceiling is
+    on the table by construction and there is no fading to give anything back. The honest question
+    is restated as "which of the 74 runs would the Part 2.5 gold candidates (MGC day rider, coil
+    bouncer — BUILD #5) have been in?" The $10.00/point multiplier is restated where it is read.
+
+ 9. Movement 1 (MGC census) — the book column was em-dash on all 74 rows.
+    FIXED. scripts/rev2_mgc_census_book.py populates it from depth.db.depth_snap (levels 1-3, the
+    30 seconds before each run, median 75 snapshots per window) — run_census.py reads
+    capture.db.book, which is MNQ-only. 74 of 74 rows now carry a value.
+    WHAT IT SAYS: median far-side share 0.505 (dead centre); thin (<0.50) before 30 of 74 runs
+    (41%); 16 of 36 up-runs, 14 of 38 down-runs. The gold book does not telegraph a run at 250ms.
+    Column header now states the instrument difference (capture.db.book is 41ms event-driven,
+    depth.db is a 250ms SAMPLE) and points at Movement 3's inverted-sign result.
+
+10. Part 1.5 §4 — the net_min autopsy repeated the baseline error it exists to expose.
+    FIXED. Three INCREMENTAL columns added, measured from the deployed 400 floor (n=70), beside
+    the from-87 ones: e.g. net_min 450 cuts +13 more signals and forgoes $476.5 of winners to
+    dodge $227.0 of losers, not "30 / $640.0". The closing sentence is restated with the
+    incremental pair: by net_min 900 the floor throws away $2,597.5 of winning signals ON TOP of
+    what the live floor already cuts, to dodge $2,054.0 more — 66 extra signals cut to leave n=4,
+    forgoing $543.5 more than it saves, which is exactly the $556.5 -> $13.0 collapse in the net
+    column. The verdict (every higher floor is worse) is unchanged on both baselines.
+
+11. Part 1.5 §7 vs §7.2 — the load-bearing control did not tie to the headline.
+    FIXED, and the cause identified. They are the SAME policy: 2.0R of a 1.5xATR stop IS 3.0xATR.
+    The control table now labels both legs in ATR. The $5.50 gap (six cents a signal) is the ENTRY
+    PRICE: a paired control must enter the real book the way it enters its random books — at the
+    TAPE price at the signal's timestamp — while §7 enters at the live recorded fill. Proof that
+    this is the whole difference: both runs exit the identical 87 signals identically, 22 target /
+    31 stop / 34 time-out. $3,459.98 is the number to quote; entry alpha on the live-fill basis is
+    $3,462.28 against the control's $3,467.78. The finding (60 of 60) is untouched.
+
+12. MONDAY #2 (Open Rider stop width) vs Part 2 §5 — a live change its own section forbids.
+    FIXED, two ways. (a) Moved MONDAY #2 -> BUILD #11 as a THIRD SHADOW ARM at 3.0xATR beside the
+    existing 2.0x; nothing live changes. (b) The more serious half: the Open Rider (odr_*) is NOT
+    the live day rider. Open Rider = shadow family, re-enters every N minutes 13:00-14:45Z on the
+    sign of the last 15 minutes, 2.0x/3.0xATR stop, coupled 2R target, 45-min cap, 87 shadow
+    trades this week. Live day rider = ONE position a session on the drift detector, no stop of
+    that kind, exits on the ATR trail (arm 4xATR / trail 2xATR) or the 20:40Z hard flat, 5 live
+    trades. Rev 1's owner field said "day rider config", which would have changed the desk's only
+    profitable engine on another strategy's shadow evidence. Correction block added to §5.
+    MONDAY renumbered: keep-both-abs-veto-sides moves #3 -> #2. No cross-reference was broken
+    (the card carries no id-anchored references; the build's checker passes at 0).
+
+13. Part 2 §2 Leg 2 / §10 / HOLD #4 — a discredited figure quoted three times.
+    FIXED. "16 of 21 days green" replaced with "18 of 25 days green" in the one-paragraph version
+    (§2), the §10 disposition row and HOLD #4's verification field, each carrying the instrument
+    note. Independently re-derived from shadow.db: 25 sessions, 18 green, best +$791.00, worst
+    -$198.00, 342 trades, +$4,022.00 — which reconciles exactly to Leg 2's own table.
+
+14. Movement 1 (MNQ census) — the "real $" column did not tie to Part 1's per-signal money.
+    FIXED, and the mechanism is not the one alleged. The column is NOT a Lot-A-only figure: it
+    already sums every lot. What it actually is — verified by re-running the matching rule — is
+    the sum of EVERY lot, both legs, from EVERY same-direction signal opening inside a +/-5-minute
+    window, INCLUDING THE DAY RIDER. The Gate column names only the FIRST of them, which is what
+    made it look like one _A leg. Worked example now in the header: the 08-12 13:50 row is -$8
+    because the window also contains the losing 13:47 signal, while Part 1 §5.2 correctly books
+    the 13:50 signal itself at +$123.00. The 08-14 13:37 row's +$170 contains the day rider's
+    +$434.00 net of -$264 of tournament lots — which is what drives fix #7.
+
+15. "WHAT TO ACTUALLY DO" — SATURDAY window: stale prose ("#3-#6", "two experiments at the
+    bottom") against four rows. FIXED in scripts/friday_v7_build.py: rewritten to the four rows
+    that exist (#1 and #2 forced by the 22:00Z reactivate timer, #3 a correctness fix, #4 an
+    in-code veto), plus the REV2 scoping notes on #1 and #2.
+
+16. Movement 3 front matter — "21 sessions" against a table of 22, and roster naming.
+    FIXED. 21 -> 22 (independently checked: the 22 daily break counts sum to exactly 397).
+    Roster: "the six-gate tournament" -> "eight base gates filling six live slots", stated once on
+    the front page with the reason (rgv_long and thrust_short retired, replaced by
+    exhaustion_short and the two abs_veto sides) and used consistently.
+
+
+================================================================================
+PART C — NEW ARTEFACTS
+================================================================================
+scripts/rev2_bank_one_lot.py            -> sections/rev2_bank_one_lot.json, rev2_exitfault_11.json
+scripts/rev2_exh_exit_headtohead.py     -> sections/rev2_exh_headtohead.json
+scripts/rev2_absveto_slippage.py        -> sections/rev2_absveto_slippage.json
+scripts/rev2_day_rider_audit.py         -> sections/rev2_day_rider_audit.json
+scripts/rev2_router_timing_by_regime.py -> sections/rev2_router_timing_regime.json
+scripts/rev2_counter_trend_bench.py     -> sections/rev2_counter_trend_bench.json
+scripts/rev2_grind_mfe_integrity.py     -> sections/rev2_grind_mfe_integrity.json
+scripts/rev2_mgc_census_book.py         -> sections/rev2_mgc_book.json (and patches the census)
+                                           sections/rev2_netmin_incremental.json
+                                           sections/rev2_pairs_by_gate.json
+                                           sections/rev2_census_lots.json
+sections/rev2_answers.html              -> the new PART 3
+reports/friday_v7/plays.json.pre-rev2-0815 -> the Rev 1 card, kept
+
+
+================================================================================
+PART D — THE PUBLISH GATE. RUN, NOT PASSED, AND NOT FORCED. READ THIS.
+================================================================================
+scripts/publish_report.py does not exist in this repo. The only publish gate on the box is
+/home/alphabot/alphabot2/scripts/friday/publish_report.py — the RETIRED V5 desk's. I ran its
+verifier read-only against the V7 artefacts rather than publishing, because that script writes a
+reports row into alphabot2/data/alphabot.db and reads from alphabot2's static directory, i.e. it
+would register this report on the wrong desk.
+
+  scripts.friday.verify_report.check(weekly_2026-08-14.html, .pdf)
+  STATS: bytes 855,895 · words 72,797 · sections 0 · charts 0
+  FAILS: "0 numbered §-sections — under the 20 floor"
+         "chapter dividers missing — neither the shadow spine (missing ['The Winners',
+          'The Bleeders']) nor the live spine is complete"
+         "0 inline chart SVGs — under the 15 floor"
+
+All three failures are V5-shape checks, and all three are stale for V7:
+  * "0 sections" — it counts a V5 numbered-§ pattern. This document has 16 <h2> and 91 <h3>,
+    against the V7 scope's own floor of >= 20 sections.
+  * "chapter dividers" — it is looking for the V5 shadow spine's chapter names ("The Winners",
+    "The Bleeders"). Those chapters do not exist in the V7 shape and are not supposed to.
+  * "0 inline chart SVGs" — the document contains 9 inline SVG run charts, and in any case the
+    blanket >= 15 charts gate was RETIRED by the operator on 2026-08-01: "he does NOT want generic
+    statistical figures ... a proofreader must NEVER flag 'no charts' as a defect."
+  * The one floor that IS current — >= 25k words — passes at 72,797.
+
+I did not use --force: forcing writes a row into the retired desk's database, which is an
+outward-facing action nobody asked for. THE ACTION FOR SATURDAY IS TO PORT THE GATE: a V7
+verify_report with V7 floors (>= 20 h2/h3 sections, >= 25k words, the V7 spine, no chart floor)
+writing to the V7 reports table. Until that exists the V7 report has no working publish gate, and
+saying so is more useful than a green tick from an instrument measuring the wrong document — which
+is, precisely, the lesson three of this week's other findings are about.

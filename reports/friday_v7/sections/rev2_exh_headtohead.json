@@ -1,0 +1,140 @@
+{
+ "n": 87,
+ "live_net": -84.5,
+ "by_rung": {
+  "BIG-TREND": {
+   "WIDE 1.5xATR stop / 3.0xATR target": {
+    "n": 4,
+    "net": -82.56,
+    "per_sig": -20.64
+   },
+   "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+    "n": 4,
+    "net": -65.02,
+    "per_sig": -16.25
+   }
+  },
+  "MED-TREND": {
+   "WIDE 1.5xATR stop / 3.0xATR target": {
+    "n": 19,
+    "net": 2018.44,
+    "per_sig": 106.23
+   },
+   "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+    "n": 19,
+    "net": -27.8,
+    "per_sig": -1.46
+   }
+  },
+  "SCALP-CHOP": {
+   "WIDE 1.5xATR stop / 3.0xATR target": {
+    "n": 29,
+    "net": 533.64,
+    "per_sig": 18.4
+   },
+   "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+    "n": 29,
+    "net": -38.27,
+    "per_sig": -1.32
+   }
+  },
+  "STAY-OUT": {
+   "WIDE 1.5xATR stop / 3.0xATR target": {
+    "n": 35,
+    "net": 990.46,
+    "per_sig": 28.3
+   },
+   "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+    "n": 35,
+    "net": -207.97,
+    "per_sig": -5.94
+   }
+  }
+ },
+ "overall": {
+  "WIDE 1.5xATR stop / 3.0xATR target": {
+   "n": 87,
+   "net": 3459.98,
+   "per_sig": 39.77,
+   "win_pct": 54.0,
+   "strip3": 2046.14,
+   "lodo_worst": 1626.49,
+   "days_green": 9,
+   "days": 12,
+   "exits": {
+    "TARGET": 22,
+    "TIME": 34,
+    "STOP": 31
+   }
+  },
+  "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+   "n": 87,
+   "net": -339.06,
+   "per_sig": -3.9,
+   "win_pct": 40.2,
+   "strip3": -1176.06,
+   "lodo_worst": -954.68,
+   "days_green": 5,
+   "days": 12,
+   "exits": {
+    "CHANDELIER": 26,
+    "STOP": 49,
+    "TIME": 12
+   }
+  }
+ },
+ "control": {
+  "WIDE 1.5xATR stop / 3.0xATR target": {
+   "real_on_bars": 3497.98,
+   "random_mean": 64.71,
+   "random_p95": 2565.68,
+   "random_max": 2783.48,
+   "real_pctile": 100.0,
+   "entry_alpha": 3433.27
+  },
+  "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+   "real_on_bars": -313.56,
+   "random_mean": -382.93,
+   "random_p95": 1180.17,
+   "random_max": 1632.18,
+   "real_pctile": 58.3,
+   "entry_alpha": 69.37
+  }
+ },
+ "horizon": {
+  "WIDE 1.5xATR stop / 3.0xATR target": {
+   "15min": {
+    "n": 87,
+    "net": 3497.98,
+    "per_sig": 40.21
+   },
+   "30min": {
+    "n": 87,
+    "net": 4114.89,
+    "per_sig": 47.3
+   },
+   "60min": {
+    "n": 87,
+    "net": 3998.44,
+    "per_sig": 45.96
+   }
+  },
+  "TIGHT CHANDELIER x2 (1.0xATR stop, 1.5xATR trail)": {
+   "15min": {
+    "n": 87,
+    "net": -313.56,
+    "per_sig": -3.6
+   },
+   "30min": {
+    "n": 87,
+    "net": -523.56,
+    "per_sig": -6.02
+   },
+   "60min": {
+    "n": 87,
+    "net": -561.06,
+    "per_sig": -6.45
+   }
+  }
+ }
+}
