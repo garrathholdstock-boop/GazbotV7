@@ -1,0 +1,358 @@
+{
+ "n_breaks": 449,
+ "pct_empty": 48.8,
+ "book_cuts": {
+  "TIGHT SCALP (tp 1.0 / sl 1.0 ATR, 120m)": [
+   {
+    "book cut": "far side EMPTY (obstacle = 0)",
+    "n": 219,
+    "FADE net": -514.0,
+    "FADE $/tr": -2.35,
+    "FADE win": 47.0,
+    "FOLLOW $/tr": -7.86,
+    "L$/tr": -1.38,
+    "S$/tr": -3.21
+   },
+   {
+    "book cut": "far side THIN (< 5 lots)",
+    "n": 258,
+    "FADE net": -723.0,
+    "FADE $/tr": -2.8,
+    "FADE win": 46.1,
+    "FOLLOW $/tr": -7.63,
+    "L$/tr": -2.09,
+    "S$/tr": -3.47
+   },
+   {
+    "book cut": "far side DEFENDED (>= 5 lots)",
+    "n": 191,
+    "FADE net": -1142.0,
+    "FADE $/tr": -5.98,
+    "FADE win": 35.1,
+    "FOLLOW $/tr": -3.29,
+    "L$/tr": -5.87,
+    "S$/tr": -6.08
+   },
+   {
+    "book cut": "wall EATEN in the last 60s (depletion > 0.5)",
+    "n": 225,
+    "FADE net": -804.0,
+    "FADE $/tr": -3.57,
+    "FADE win": 43.1,
+    "FOLLOW $/tr": -7.37,
+    "L$/tr": -3.32,
+    "S$/tr": -3.84
+   },
+   {
+    "book cut": "wall INTACT (depletion <= 0)",
+    "n": 88,
+    "FADE net": -525.0,
+    "FADE $/tr": -5.96,
+    "FADE win": 36.4,
+    "FOLLOW $/tr": -3.83,
+    "L$/tr": -5.64,
+    "S$/tr": -6.24
+   },
+   {
+    "book cut": "more in the way than behind (ratio > 1)",
+    "n": 63,
+    "FADE net": -523.0,
+    "FADE $/tr": -8.3,
+    "FADE win": 27.0,
+    "FOLLOW $/tr": -0.76,
+    "L$/tr": -7.56,
+    "S$/tr": -8.86
+   },
+   {
+    "book cut": "more behind than in the way (ratio < 1)",
+    "n": 169,
+    "FADE net": -462.0,
+    "FADE $/tr": -2.74,
+    "FADE win": 46.2,
+    "FOLLOW $/tr": -5.11,
+    "L$/tr": -2.48,
+    "S$/tr": -3.03
+   },
+   {
+    "book cut": "book leaning WITH the break (imb > 0.10)",
+    "n": 98,
+    "FADE net": -109.0,
+    "FADE $/tr": -1.11,
+    "FADE win": 49.0,
+    "FOLLOW $/tr": -6.08,
+    "L$/tr": 3.28,
+    "S$/tr": -4.4
+   },
+   {
+    "book cut": "book leaning AGAINST the break (imb < -0.10)",
+    "n": 169,
+    "FADE net": -724.0,
+    "FADE $/tr": -4.28,
+    "FADE win": 39.6,
+    "FOLLOW $/tr": -7.62,
+    "L$/tr": -3.43,
+    "S$/tr": -5.31
+   }
+  ],
+  "WIDE CHANDELIER (stop 3 / arm 2 / trail 2 ATR, 480m)": [
+   {
+    "book cut": "far side EMPTY (obstacle = 0)",
+    "n": 219,
+    "FADE net": 2730.0,
+    "FADE $/tr": 12.47,
+    "FADE win": 61.2,
+    "FOLLOW $/tr": -13.44,
+    "L$/tr": 13.25,
+    "S$/tr": 11.77
+   },
+   {
+    "book cut": "far side THIN (< 5 lots)",
+    "n": 258,
+    "FADE net": 2711.0,
+    "FADE $/tr": 10.51,
+    "FADE win": 60.1,
+    "FOLLOW $/tr": -10.19,
+    "L$/tr": 11.11,
+    "S$/tr": 9.95
+   },
+   {
+    "book cut": "far side DEFENDED (>= 5 lots)",
+    "n": 191,
+    "FADE net": -759.0,
+    "FADE $/tr": -3.98,
+    "FADE win": 50.3,
+    "FOLLOW $/tr": -1.08,
+    "L$/tr": -5.48,
+    "S$/tr": -2.45
+   },
+   {
+    "book cut": "wall EATEN in the last 60s (depletion > 0.5)",
+    "n": 225,
+    "FADE net": 1514.0,
+    "FADE $/tr": 6.73,
+    "FADE win": 59.6,
+    "FOLLOW $/tr": -8.2,
+    "L$/tr": 3.08,
+    "S$/tr": 10.61
+   },
+   {
+    "book cut": "wall INTACT (depletion <= 0)",
+    "n": 88,
+    "FADE net": 15.0,
+    "FADE $/tr": 0.17,
+    "FADE win": 52.3,
+    "FOLLOW $/tr": 0.41,
+    "L$/tr": 5.55,
+    "S$/tr": -4.52
+   },
+   {
+    "book cut": "more in the way than behind (ratio > 1)",
+    "n": 63,
+    "FADE net": -815.0,
+    "FADE $/tr": -12.94,
+    "FADE win": 39.7,
+    "FOLLOW $/tr": 11.84,
+    "L$/tr": -15.26,
+    "S$/tr": -11.2
+   },
+   {
+    "book cut": "more behind than in the way (ratio < 1)",
+    "n": 169,
+    "FADE net": -326.0,
+    "FADE $/tr": -1.93,
+    "FADE win": 52.7,
+    "FOLLOW $/tr": -8.03,
+    "L$/tr": -8.68,
+    "S$/tr": 5.95
+   },
+   {
+    "book cut": "book leaning WITH the break (imb > 0.10)",
+    "n": 98,
+    "FADE net": 774.0,
+    "FADE $/tr": 7.9,
+    "FADE win": 60.2,
+    "FOLLOW $/tr": -5.71,
+    "L$/tr": 16.39,
+    "S$/tr": 1.53
+   },
+   {
+    "book cut": "book leaning AGAINST the break (imb < -0.10)",
+    "n": 169,
+    "FADE net": 721.0,
+    "FADE $/tr": 4.27,
+    "FADE win": 55.6,
+    "FOLLOW $/tr": -6.8,
+    "L$/tr": 4.81,
+    "S$/tr": 3.62
+   }
+  ]
+ },
+ "escalation": {
+  "FULL population": {
+   "all": {
+    "n": 449,
+    "net": 1952.0,
+    "win": 55.9,
+    "per": 4.35,
+    "med": 3.71,
+    "days": 22
+   },
+   "sides": {
+    "LONG": {
+     "n": 221,
+     "net": 863.0,
+     "win": 54.3,
+     "per": 3.9,
+     "med": 2.86,
+     "days": 22
+    },
+    "SHORT": {
+     "n": 228,
+     "net": 1090.0,
+     "win": 57.5,
+     "per": 4.78,
+     "med": 4.14,
+     "days": 22
+    }
+   }
+  },
+  "top 25 by ATR at the break": {
+   "all": {
+    "n": 25,
+    "net": 746.0,
+    "win": 72.0,
+    "per": 29.85,
+    "med": 22.36,
+    "days": 14
+   },
+   "sides": {
+    "LONG": {
+     "n": 10,
+     "net": 228.0,
+     "win": 70.0,
+     "per": 22.82,
+     "med": 39.86,
+     "days": 6
+    },
+    "SHORT": {
+     "n": 15,
+     "net": 518.0,
+     "win": 73.3,
+     "per": 34.53,
+     "med": 20.86,
+     "days": 11
+    }
+   }
+  },
+  "top 15 by ATR at the break": {
+   "all": {
+    "n": 15,
+    "net": 339.0,
+    "win": 60.0,
+    "per": 22.62,
+    "med": 17.79,
+    "days": 11
+   },
+   "sides": {
+    "LONG": {
+     "n": 6,
+     "net": 167.0,
+     "win": 66.7,
+     "per": 27.81,
+     "med": 53.39,
+     "days": 5
+    },
+    "SHORT": {
+     "n": 9,
+     "net": 172.0,
+     "win": 55.6,
+     "per": 19.16,
+     "med": 3.5,
+     "days": 8
+    }
+   }
+  },
+  "empty far side only": {
+   "all": {
+    "n": 219,
+    "net": 2730.0,
+    "win": 61.2,
+    "per": 12.47,
+    "med": 6.29,
+    "days": 22
+   },
+   "sides": {
+    "LONG": {
+     "n": 103,
+     "net": 1365.0,
+     "win": 60.2,
+     "per": 13.25,
+     "med": 6.21,
+     "days": 22
+    },
+    "SHORT": {
+     "n": 116,
+     "net": 1365.0,
+     "win": 62.1,
+     "per": 11.77,
+     "med": 6.39,
+     "days": 22
+    }
+   }
+  },
+  "empty far side + top half by ATR": {
+   "all": {
+    "n": 141,
+    "net": 2397.0,
+    "win": 61.7,
+    "per": 17.0,
+    "med": 15.0,
+    "days": 22
+   },
+   "sides": {
+    "LONG": {
+     "n": 66,
+     "net": 1319.0,
+     "win": 62.1,
+     "per": 19.98,
+     "med": 16.96,
+     "days": 21
+    },
+    "SHORT": {
+     "n": 75,
+     "net": 1078.0,
+     "win": 61.3,
+     "per": 14.37,
+     "med": 12.86,
+     "days": 22
+    }
+   }
+  }
+ },
+ "filter_placebo": {
+  "far side EMPTY": {
+   "n": 219,
+   "real": 2730.0,
+   "random_mean": 965.0,
+   "beaten": 2,
+   "runs": 200,
+   "pctile": 99.0
+  },
+  "far side THIN (<5)": {
+   "n": 258,
+   "real": 2711.0,
+   "random_mean": 1110.0,
+   "beaten": 6,
+   "runs": 200,
+   "pctile": 97.0
+  },
+  "book AGAINST the break": {
+   "n": 169,
+   "real": 721.0,
+   "random_mean": 645.0,
+   "beaten": 101,
+   "runs": 200,
+   "pctile": 49.5
+  }
+ }
+}
