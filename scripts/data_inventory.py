@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import datetime as dt
 import os
 import subprocess
 import sys
@@ -37,13 +38,57 @@ GB = "/home/alphabot/gazbot7"
 STATUS = f"{GB}/data/data_status.json"
 
 # (label, path, max_age_h or None if it never changes)
+# (label, path, max_age_h, market_clock) — market_clock=True measures staleness against the last
+# instant the MARKET WAS OPEN rather than wall-clock. See _last_market_ts().
 LOCAL = [
-    ("trade record   gazbot7.db", f"{GB}/data/gazbot7.db", 30),
-    ("shadow book    shadow.db", f"{GB}/data/shadow.db", 30),
-    ("live tape      capture.db", f"{GB}/data/capture.db", 2),
-    ("L2 depth       depth.db", f"{GB}/data/depth.db", 2),
-    ("tape manifest  _manifest.json", f"{GB}/data/tape/_manifest.json", 30),
+    ("trade record   gazbot7.db", f"{GB}/data/gazbot7.db", 30, False),
+    ("shadow book    shadow.db", f"{GB}/data/shadow.db", 30, False),
+    ("live tape      capture.db", f"{GB}/data/capture.db", 2, True),
+    ("L2 depth       depth.db", f"{GB}/data/depth.db", 2, True),
+    ("tape manifest  _manifest.json", f"{GB}/data/tape/_manifest.json", 30, False),
 ]
+
+
+def _last_market_ts(now: float) -> float:
+    """The most recent instant the CME was trading, at or before `now`.
+
+    ★★2026-08-15 WHY THIS EXISTS. capture.db and depth.db are written by the TAPE. When the market is
+    shut there is no tape, so a flat "expect < 2h" is guaranteed to fire — every weekend, for two
+    days, on the same Telegram channel that carries naked-position alarms. It did exactly that this
+    Saturday: "capture.db not written for 9h | depth.db not written for 15h", with all four capture
+    services ACTIVE and depth.db's last write 12 minutes after the Friday close. Nothing was wrong.
+
+    An alarm that fires on schedule when nothing is wrong is not a safety net, it is training to
+    ignore the channel — the same fault as the day-rider's every-tick "standing down" message.
+
+    ⚠ THE FIX IS NOT TO SUPPRESS IT. It re-bases the clock onto MARKET time, so a genuine death is
+    still caught: if capture stopped at Friday 10:00, this still reports 11h stale on Saturday,
+    because it measures to the Friday 21:00 close, not to Saturday lunchtime. Only the hours the
+    market was SHUT are forgiven.
+
+    CME (MNQ/MGC): closed Fri 21:00Z -> Sun 22:00Z, and daily 21:00-22:00Z Mon-Thu.
+    """
+    t = dt.datetime.fromtimestamp(now, dt.UTC)
+    for _ in range(8):                       # walk back at most a week; loop is bounded by design
+        wd, hh = t.weekday(), t.hour         # Mon=0 .. Sun=6
+        open_now = not (
+            (wd == 5)                                        # all Saturday
+            or (wd == 6 and hh < 22)                         # Sunday before the 22:00 reopen
+            or (wd == 4 and hh >= 21)                        # Friday after the 21:00 close
+            or (wd <= 3 and hh == 21)                        # the Mon-Thu daily halt
+        )
+        if open_now:
+            return t.timestamp()
+        # step back to the last second before this closed window began
+        if wd == 6 and hh < 22:
+            t = t.replace(hour=0, minute=0, second=0) - dt.timedelta(seconds=1)   # -> Sat, still shut
+        elif wd == 5:
+            t = t.replace(hour=0, minute=0, second=0) - dt.timedelta(seconds=1)   # -> Fri 23:59:59
+        elif wd == 4 and hh >= 21:
+            t = t.replace(hour=21, minute=0, second=0) - dt.timedelta(seconds=1)  # -> Fri 20:59:59
+        else:
+            t = t.replace(hour=21, minute=0, second=0) - dt.timedelta(seconds=1)  # -> daily halt start
+    return t.timestamp()
 
 # (label, remote, max_age_h) — freshness comes from the newest object's timestamp
 REMOTE = [
@@ -71,10 +116,12 @@ def scan() -> dict:
     out = {"ts": time.time(), "local": [], "remote": [], "faults": []}
     now = time.time()
 
-    for label, path, max_h in LOCAL:
+    for label, path, max_h, market_clock in LOCAL:
         try:
             st = os.stat(path)
-            age_h = (now - st.st_mtime) / 3600
+            # ★ tape files age on MARKET time — the hours the venue was shut are not staleness.
+            ref = _last_market_ts(now) if market_clock else now
+            age_h = max(0.0, (ref - st.st_mtime) / 3600)
             row = {"label": label, "path": path, "mb": round(st.st_size / 1e6, 1),
                    "age_h": round(age_h, 1), "ok": True}
             if st.st_size == 0:

@@ -5,381 +5,397 @@
   "stop_k": 1.5,
   "targ_k": 3.0,
   "hold": 60,
-  "filters": {
-   "session": "US"
-  }
+  "filters": {}
  },
  "headline": {
   "label": "FBREAK",
-  "n": 191,
-  "net": 4668.6,
-  "win_pct": 40.8,
-  "per_trade": 24.44,
-  "median": -34.0,
+  "n": 572,
+  "net": 3487.2,
+  "win_pct": 35.1,
+  "per_trade": 6.1,
+  "median": -29.0,
   "best": 323.8,
   "worst": -151.5,
-  "strip3": 3759.8,
-  "gross_pts": 2477.55,
-  "signals": 287,
-  "skipped_overlap": 96
+  "strip3": 2578.4,
+  "gross_pts": 2172.6,
+  "signals": 796,
+  "skipped_overlap": 224
  },
  "per_day": {
+  "2026-07-05": [
+   1,
+   -30.5
+  ],
   "2026-07-06": [
-   9,
-   39.4
+   21,
+   3.0
   ],
   "2026-07-07": [
-   7,
-   443.6
+   28,
+   462.1
   ],
   "2026-07-08": [
-   7,
-   82.2
+   22,
+   125.6
   ],
   "2026-07-09": [
-   8,
-   -4.9
+   19,
+   -108.3
   ],
   "2026-07-10": [
-   4,
-   -391.5
+   18,
+   -370.1
+  ],
+  "2026-07-12": [
+   2,
+   -62.5
   ],
   "2026-07-13": [
-   7,
-   -68.1
+   19,
+   338.6
   ],
   "2026-07-14": [
-   5,
-   379.5
+   13,
+   257.9
   ],
   "2026-07-15": [
-   8,
-   201.7
+   25,
+   223.0
   ],
   "2026-07-16": [
-   9,
-   -221.2
+   23,
+   -355.9
   ],
   "2026-07-17": [
-   6,
-   120.4
+   21,
+   505.7
   ],
   "2026-07-24": [
-   6,
-   309.4
+   18,
+   80.2
   ],
   "2026-07-27": [
-   6,
-   698.9
+   16,
+   612.0
   ],
   "2026-07-28": [
-   5,
-   636.4
+   18,
+   693.6
   ],
   "2026-07-29": [
-   9,
-   1015.5
+   17,
+   1490.3
   ],
   "2026-07-30": [
-   7,
-   189.4
+   24,
+   -678.3
   ],
   "2026-07-31": [
-   7,
-   703.3
+   27,
+   782.3
   ],
   "2026-08-03": [
-   6,
-   153.2
+   23,
+   59.0
   ],
   "2026-08-04": [
-   10,
-   404.2
+   28,
+   375.4
   ],
   "2026-08-05": [
-   8,
-   -181.8
+   23,
+   -137.3
   ],
   "2026-08-06": [
-   6,
-   168.5
+   24,
+   235.6
   ],
   "2026-08-07": [
-   6,
-   99.2
+   21,
+   -293.2
   ],
   "2026-08-10": [
-   6,
-   -281.0
+   20,
+   -251.7
   ],
   "2026-08-11": [
-   9,
-   164.5
+   23,
+   -90.8
   ],
   "2026-08-12": [
-   9,
-   -363.8
+   25,
+   -456.4
   ],
   "2026-08-13": [
-   13,
-   302.2
+   32,
+   21.8
   ],
   "2026-08-14": [
-   8,
-   69.4
+   21,
+   56.1
   ]
  },
  "strip": {
-  "strip1": 4344.8,
-  "strip3": 3759.8,
-  "strip5": 3204.2,
-  "strip3_per_trade": 20.0,
-  "top3_share_of_net": 19.5
+  "strip1": 3163.4,
+  "strip3": 2578.4,
+  "strip5": 2022.8,
+  "strip3_per_trade": 4.53,
+  "top3_share_of_net": 26.1
  },
  "leave_one_day_out": {
+  "2026-07-05": {
+   "n": 571,
+   "net": 3517.7,
+   "per_trade": 6.16
+  },
   "2026-07-06": {
-   "n": 182,
-   "net": 4629.2,
-   "per_trade": 25.44
+   "n": 551,
+   "net": 3484.2,
+   "per_trade": 6.32
   },
   "2026-07-07": {
-   "n": 184,
-   "net": 4225.0,
-   "per_trade": 22.96
+   "n": 544,
+   "net": 3025.1,
+   "per_trade": 5.56
   },
   "2026-07-08": {
-   "n": 184,
-   "net": 4586.4,
-   "per_trade": 24.93
+   "n": 550,
+   "net": 3361.6,
+   "per_trade": 6.11
   },
   "2026-07-09": {
-   "n": 183,
-   "net": 4673.5,
-   "per_trade": 25.54
+   "n": 553,
+   "net": 3595.5,
+   "per_trade": 6.5
   },
   "2026-07-10": {
-   "n": 187,
-   "net": 5060.1,
-   "per_trade": 27.06
+   "n": 554,
+   "net": 3857.3,
+   "per_trade": 6.96
+  },
+  "2026-07-12": {
+   "n": 570,
+   "net": 3549.7,
+   "per_trade": 6.23
   },
   "2026-07-13": {
-   "n": 184,
-   "net": 4736.7,
-   "per_trade": 25.74
+   "n": 553,
+   "net": 3148.6,
+   "per_trade": 5.69
   },
   "2026-07-14": {
-   "n": 186,
-   "net": 4289.1,
-   "per_trade": 23.06
+   "n": 559,
+   "net": 3229.3,
+   "per_trade": 5.78
   },
   "2026-07-15": {
-   "n": 183,
-   "net": 4466.9,
-   "per_trade": 24.41
+   "n": 547,
+   "net": 3264.2,
+   "per_trade": 5.97
   },
   "2026-07-16": {
-   "n": 182,
-   "net": 4889.8,
-   "per_trade": 26.87
+   "n": 549,
+   "net": 3843.1,
+   "per_trade": 7.0
   },
   "2026-07-17": {
-   "n": 185,
-   "net": 4548.2,
-   "per_trade": 24.58
+   "n": 551,
+   "net": 2981.5,
+   "per_trade": 5.41
   },
   "2026-07-24": {
-   "n": 185,
-   "net": 4359.2,
-   "per_trade": 23.56
+   "n": 554,
+   "net": 3407.0,
+   "per_trade": 6.15
   },
   "2026-07-27": {
-   "n": 185,
-   "net": 3969.7,
-   "per_trade": 21.46
+   "n": 556,
+   "net": 2875.2,
+   "per_trade": 5.17
   },
   "2026-07-28": {
-   "n": 186,
-   "net": 4032.2,
-   "per_trade": 21.68
+   "n": 554,
+   "net": 2793.6,
+   "per_trade": 5.04
   },
   "2026-07-29": {
-   "n": 182,
-   "net": 3653.1,
-   "per_trade": 20.07
+   "n": 555,
+   "net": 1996.9,
+   "per_trade": 3.6
   },
   "2026-07-30": {
-   "n": 184,
-   "net": 4479.2,
-   "per_trade": 24.34
+   "n": 548,
+   "net": 4165.5,
+   "per_trade": 7.6
   },
   "2026-07-31": {
-   "n": 184,
-   "net": 3965.3,
-   "per_trade": 21.55
+   "n": 545,
+   "net": 2704.9,
+   "per_trade": 4.96
   },
   "2026-08-03": {
-   "n": 185,
-   "net": 4515.4,
-   "per_trade": 24.41
+   "n": 549,
+   "net": 3428.2,
+   "per_trade": 6.24
   },
   "2026-08-04": {
-   "n": 181,
-   "net": 4264.4,
-   "per_trade": 23.56
+   "n": 544,
+   "net": 3111.8,
+   "per_trade": 5.72
   },
   "2026-08-05": {
-   "n": 183,
-   "net": 4850.4,
-   "per_trade": 26.5
+   "n": 549,
+   "net": 3624.5,
+   "per_trade": 6.6
   },
   "2026-08-06": {
-   "n": 185,
-   "net": 4500.1,
-   "per_trade": 24.32
+   "n": 548,
+   "net": 3251.6,
+   "per_trade": 5.93
   },
   "2026-08-07": {
-   "n": 185,
-   "net": 4569.4,
-   "per_trade": 24.7
+   "n": 551,
+   "net": 3780.4,
+   "per_trade": 6.86
   },
   "2026-08-10": {
-   "n": 185,
-   "net": 4949.6,
-   "per_trade": 26.75
+   "n": 552,
+   "net": 3738.9,
+   "per_trade": 6.77
   },
   "2026-08-11": {
-   "n": 182,
-   "net": 4504.1,
-   "per_trade": 24.75
+   "n": 549,
+   "net": 3578.0,
+   "per_trade": 6.52
   },
   "2026-08-12": {
-   "n": 182,
-   "net": 5032.4,
-   "per_trade": 27.65
+   "n": 547,
+   "net": 3943.6,
+   "per_trade": 7.21
   },
   "2026-08-13": {
-   "n": 178,
-   "net": 4366.4,
-   "per_trade": 24.53
+   "n": 540,
+   "net": 3465.4,
+   "per_trade": 6.42
   },
   "2026-08-14": {
-   "n": 183,
-   "net": 4599.2,
-   "per_trade": 25.13
+   "n": 551,
+   "net": 3431.1,
+   "per_trade": 6.23
   }
  },
  "loo_summary": {
-  "worst_per_trade": 20.07,
-  "best_per_trade": 27.65,
-  "days_where_still_positive": 26,
-  "days": 26
+  "worst_per_trade": 3.6,
+  "best_per_trade": 7.6,
+  "days_where_still_positive": 28,
+  "days": 28
  },
  "oos": {
   "first_half": {
    "label": "first_half",
-   "n": 87,
-   "net": 2225.8,
-   "win_pct": 40.2,
-   "per_trade": 25.58,
-   "median": -44.0,
-   "best": 268.8,
+   "n": 246,
+   "net": 1680.8,
+   "win_pct": 37.0,
+   "per_trade": 6.83,
+   "median": -32.5,
+   "best": 271.0,
    "worst": -151.5,
-   "strip3": 1423.8,
-   "gross_pts": 1178.15
+   "strip3": 881.0,
+   "gross_pts": 1024.9
   },
   "second_half": {
    "label": "second_half",
-   "n": 104,
-   "net": 2442.8,
-   "win_pct": 41.3,
-   "per_trade": 23.49,
-   "median": -27.0,
-   "best": 323.8,
-   "worst": -128.0,
-   "strip3": 1534.0,
-   "gross_pts": 1299.4
-  },
-  "v5_era_0705_0717": {
-   "label": "v5_era",
-   "n": 70,
-   "net": 581.1,
-   "win_pct": 35.7,
-   "per_trade": 8.3,
-   "median": -46.75,
-   "best": 260.0,
-   "worst": -151.5,
-   "strip3": -137.7,
-   "gross_pts": 343.05
-  },
-  "v7_era_0724_0814": {
-   "label": "v7_era",
-   "n": 121,
-   "net": 4087.5,
-   "win_pct": 43.8,
-   "per_trade": 33.78,
+   "n": 326,
+   "net": 1806.4,
+   "win_pct": 33.7,
+   "per_trade": 5.54,
    "median": -26.0,
    "best": 323.8,
    "worst": -128.0,
-   "strip3": 3178.7,
-   "gross_pts": 2134.5
+   "strip3": 897.6,
+   "gross_pts": 1147.7
   },
-  "split_day": "2026-07-29"
+  "v5_era_0705_0717": {
+   "label": "v5_era",
+   "n": 212,
+   "net": 988.6,
+   "win_pct": 37.3,
+   "per_trade": 4.66,
+   "median": -32.5,
+   "best": 271.0,
+   "worst": -151.5,
+   "strip3": 218.1,
+   "gross_pts": 653.3
+  },
+  "v7_era_0724_0814": {
+   "label": "v7_era",
+   "n": 360,
+   "net": 2498.6,
+   "win_pct": 33.9,
+   "per_trade": 6.94,
+   "median": -26.0,
+   "best": 323.8,
+   "worst": -128.0,
+   "strip3": 1589.8,
+   "gross_pts": 1519.3
+  },
+  "split_day": "2026-07-28"
  },
  "symmetry": {
   "long": {
    "label": "long",
-   "n": 92,
-   "net": 2256.2,
-   "win_pct": 45.7,
-   "per_trade": 24.52,
-   "median": -25.0,
+   "n": 268,
+   "net": 62.0,
+   "win_pct": 33.6,
+   "per_trade": 0.23,
+   "median": -28.25,
    "best": 273.1,
    "worst": -151.5,
-   "strip3": 1447.4,
-   "gross_pts": 1197.1
+   "strip3": -746.8,
+   "gross_pts": 232.0
   },
   "short": {
    "label": "short",
-   "n": 99,
-   "net": 2412.4,
-   "win_pct": 36.4,
-   "per_trade": 24.37,
-   "median": -37.5,
+   "n": 304,
+   "net": 3425.2,
+   "win_pct": 36.5,
+   "per_trade": 11.27,
+   "median": -29.0,
    "best": 323.8,
    "worst": -132.5,
-   "strip3": 1503.6,
-   "gross_pts": 1280.45
+   "strip3": 2516.4,
+   "gross_pts": 1940.6
   }
  },
  "cost_stress": {
-  "as_traded_fee_1.50_slip_1tick": 4668.6,
-  "fee_2.50": 4477.6,
-  "slip_2_ticks": 4477.6,
-  "both": 4286.6,
+  "as_traded_fee_1.50_slip_1tick": 3487.2,
+  "fee_2.50": 2915.2,
+  "slip_2_ticks": 2915.2,
+  "both": 2343.2,
   "note": "one extra tick of slippage on entry+exit is $1.00 a trade at $2.00/pt; the fee stress adds another $1.00. A gate whose whole edge is under $2/trade dies here."
  },
  "placebo_time_shift": {
   "draws": 200,
-  "real_net": 4668.6,
-  "real_per_trade": 24.44,
-  "fake_net_mean": 57.76,
-  "fake_net_median": -113.0,
-  "fake_per_trade_mean": 0.03,
-  "fake_pct_positive": 45.5,
-  "pctile_of_real": 96.5,
-  "p_value_one_sided": 0.035
+  "real_net": 3487.2,
+  "real_per_trade": 6.1,
+  "fake_net_mean": -275.11,
+  "fake_net_median": -567.95,
+  "fake_per_trade_mean": -0.52,
+  "fake_pct_positive": 41.0,
+  "pctile_of_real": 91.5,
+  "p_value_one_sided": 0.085
  },
  "placebo_direction_shuffle": {
   "draws": 100,
-  "fake_net_mean": 649.32,
-  "fake_net_median": 626.8,
-  "pctile_of_real": 100.0,
-  "p_value_one_sided": 0.0
+  "fake_net_mean": -199.66,
+  "fake_net_median": -468.4,
+  "pctile_of_real": 99.0,
+  "p_value_one_sided": 0.01
  },
  "big_moves_caught": {
-  "all_runs": "95/344",
-  "top25": "18/25",
-  "top15": "11/15",
+  "all_runs": "159/344",
+  "top25": "20/25",
+  "top15": "13/15",
   "run_threshold_pt": 73.1
  }
 }

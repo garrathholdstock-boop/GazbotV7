@@ -146,7 +146,10 @@ def simulate(signals, stop_pt, targ_pt=None, max_hold_min=30, trail_pt=None, tra
         row.update(entry=round(float(entry), 2), exit=round(exit_px, 2), pts=round(float(pts), 2),
                    net=round(float(pts) * VPP - FEE, 2), reason=reason,
                    held_min=round((exit_ts - ts[i0]) / 60000, 1),
-                   mfe=round(float(d * (run_best[-1] - entry)), 2))
+                   # ⚠ MFE is capped at the EXIT index, not the end of the hold window. Measuring
+                   # run_best[-1] counts favourable movement that happened after we were flat — the
+                   # desk has been bitten by exactly that before.
+                   mfe=round(float(d * (run_best[min(k, len(run_best) - 1)] - entry)), 2))
         out.append(row)
         busy_until = exit_ts // 1000 + cooldown_min * 60
     return out, skipped

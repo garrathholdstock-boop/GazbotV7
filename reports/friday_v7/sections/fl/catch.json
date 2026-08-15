@@ -1,0 +1,519 @@
+{
+ "run_threshold_pt": 73.1,
+ "tables": [
+  {
+   "set": "ALL RUNS",
+   "runs": 344,
+   "caught_full": "159/344",
+   "caught_us": "95/344",
+   "ceiling_$": 78558.0,
+   "net_on_caught_full_$": 8030.1,
+   "net_on_caught_us_$": 6661.1
+  },
+  {
+   "set": "FLOW-LED labelled",
+   "runs": 29,
+   "caught_full": "17/29",
+   "caught_us": "15/29",
+   "ceiling_$": 7920.0,
+   "net_on_caught_full_$": 1312.2,
+   "net_on_caught_us_$": 1216.7
+  },
+  {
+   "set": "VACUUM labelled",
+   "runs": 64,
+   "caught_full": "34/64",
+   "caught_us": "19/64",
+   "ceiling_$": 15716.0,
+   "net_on_caught_full_$": 1731.0,
+   "net_on_caught_us_$": 1236.6
+  },
+  {
+   "set": "unlabelled",
+   "runs": 251,
+   "caught_full": "108/251",
+   "caught_us": "61/251",
+   "ceiling_$": 54922.0,
+   "net_on_caught_full_$": 4986.9,
+   "net_on_caught_us_$": 4207.8
+  },
+  {
+   "set": "TOP 25 by size",
+   "runs": 25,
+   "caught_full": "20/25",
+   "caught_us": "18/25",
+   "ceiling_$": 12087.0,
+   "net_on_caught_full_$": 3855.0,
+   "net_on_caught_us_$": 3584.5
+  },
+  {
+   "set": "TOP 15 by size",
+   "runs": 15,
+   "caught_full": "13/15",
+   "caught_us": "11/15",
+   "ceiling_$": 8024.0,
+   "net_on_caught_full_$": 3161.2,
+   "net_on_caught_us_$": 2890.7
+  }
+ ],
+ "top15_rows": [
+  {
+   "time": "07-31 13:35",
+   "move": -356.0,
+   "label": "OTHER",
+   "caught_full_book": true,
+   "net_full": 292.7,
+   "caught_us_book": true,
+   "net_us": 292.7,
+   "ceiling_1lot": 712.0
+  },
+  {
+   "time": "07-08 08:15",
+   "move": -349.0,
+   "label": "VACUUM",
+   "caught_full_book": true,
+   "net_full": 421.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 698.0
+  },
+  {
+   "time": "07-14 12:15",
+   "move": 313.8,
+   "label": "OTHER",
+   "caught_full_book": true,
+   "net_full": -96.5,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 628.0
+  },
+  {
+   "time": "07-29 18:35",
+   "move": 291.5,
+   "label": "OTHER",
+   "caught_full_book": true,
+   "net_full": 271.2,
+   "caught_us_book": true,
+   "net_us": 271.2,
+   "ceiling_1lot": 583.0
+  },
+  {
+   "time": "07-17 13:45",
+   "move": 291.2,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 260.0,
+   "caught_us_book": true,
+   "net_us": 260.0,
+   "ceiling_1lot": 582.0
+  },
+  {
+   "time": "07-29 19:30",
+   "move": -271.2,
+   "label": "OTHER",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 542.0
+  },
+  {
+   "time": "07-30 13:40",
+   "move": 249.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 273.1,
+   "caught_us_book": true,
+   "net_us": 273.1,
+   "ceiling_1lot": 500.0
+  },
+  {
+   "time": "08-06 13:32",
+   "move": 248.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 207.0,
+   "caught_us_book": true,
+   "net_us": 207.0,
+   "ceiling_1lot": 498.0
+  },
+  {
+   "time": "07-29 19:49",
+   "move": -247.2,
+   "label": "OTHER",
+   "caught_full_book": true,
+   "net_full": 262.1,
+   "caught_us_book": true,
+   "net_us": 262.1,
+   "ceiling_1lot": 494.0
+  },
+  {
+   "time": "07-28 13:30",
+   "move": -241.8,
+   "label": "VACUUM",
+   "caught_full_book": true,
+   "net_full": 214.7,
+   "caught_us_book": true,
+   "net_us": 268.7,
+   "ceiling_1lot": 484.0
+  },
+  {
+   "time": "07-29 19:11",
+   "move": -241.8,
+   "label": "VACUUM",
+   "caught_full_book": true,
+   "net_full": 282.5,
+   "caught_us_book": true,
+   "net_us": 282.5,
+   "ceiling_1lot": 484.0
+  },
+  {
+   "time": "07-27 14:21",
+   "move": -235.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 227.5,
+   "caught_us_book": true,
+   "net_us": 227.5,
+   "ceiling_1lot": 470.0
+  },
+  {
+   "time": "07-31 13:57",
+   "move": -234.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 323.8,
+   "caught_us_book": true,
+   "net_us": 323.8,
+   "ceiling_1lot": 468.0
+  },
+  {
+   "time": "08-13 13:33",
+   "move": 224.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 222.1,
+   "caught_us_book": true,
+   "net_us": 222.1,
+   "ceiling_1lot": 450.0
+  },
+  {
+   "time": "07-29 18:55",
+   "move": -215.5,
+   "label": "OTHER",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 431.0
+  }
+ ],
+ "flow_led_rows": [
+  {
+   "time": "07-17 13:45",
+   "move": 291.2,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 260.0,
+   "caught_us_book": true,
+   "net_us": 260.0,
+   "ceiling_1lot": 582.0
+  },
+  {
+   "time": "07-30 13:40",
+   "move": 249.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 273.1,
+   "caught_us_book": true,
+   "net_us": 273.1,
+   "ceiling_1lot": 500.0
+  },
+  {
+   "time": "08-06 13:32",
+   "move": 248.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 207.0,
+   "caught_us_book": true,
+   "net_us": 207.0,
+   "ceiling_1lot": 498.0
+  },
+  {
+   "time": "07-27 14:21",
+   "move": -235.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 227.5,
+   "caught_us_book": true,
+   "net_us": 227.5,
+   "ceiling_1lot": 470.0
+  },
+  {
+   "time": "07-31 13:57",
+   "move": -234.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 323.8,
+   "caught_us_book": true,
+   "net_us": 323.8,
+   "ceiling_1lot": 468.0
+  },
+  {
+   "time": "08-13 13:33",
+   "move": 224.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 222.1,
+   "caught_us_book": true,
+   "net_us": 222.1,
+   "ceiling_1lot": 450.0
+  },
+  {
+   "time": "07-27 14:44",
+   "move": 210.8,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 422.0
+  },
+  {
+   "time": "07-24 13:39",
+   "move": -182.2,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 227.3,
+   "caught_us_book": true,
+   "net_us": 227.3,
+   "ceiling_1lot": 364.0
+  },
+  {
+   "time": "07-13 13:30",
+   "move": -167.5,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 33.9,
+   "caught_us_book": true,
+   "net_us": 33.9,
+   "ceiling_1lot": 335.0
+  },
+  {
+   "time": "07-14 14:19",
+   "move": 142.2,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 284.0
+  },
+  {
+   "time": "07-15 13:51",
+   "move": 124.2,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -98.5,
+   "caught_us_book": true,
+   "net_us": -98.5,
+   "ceiling_1lot": 248.0
+  },
+  {
+   "time": "07-08 14:00",
+   "move": -116.2,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -110.5,
+   "caught_us_book": true,
+   "net_us": -110.5,
+   "ceiling_1lot": 232.0
+  },
+  {
+   "time": "07-29 13:20",
+   "move": 112.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -102.5,
+   "caught_us_book": true,
+   "net_us": -102.5,
+   "ceiling_1lot": 224.0
+  },
+  {
+   "time": "08-06 10:51",
+   "move": -106.5,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 213.0
+  },
+  {
+   "time": "07-28 00:57",
+   "move": -104.5,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 209.0
+  },
+  {
+   "time": "07-07 05:27",
+   "move": 98.8,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 198.0
+  },
+  {
+   "time": "07-14 00:07",
+   "move": 98.5,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 197.0
+  },
+  {
+   "time": "08-12 13:25",
+   "move": -97.2,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 194.0
+  },
+  {
+   "time": "07-08 07:17",
+   "move": 95.8,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 192.0
+  },
+  {
+   "time": "08-04 19:45",
+   "move": -87.5,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -50.0,
+   "caught_us_book": true,
+   "net_us": -50.0,
+   "ceiling_1lot": 175.0
+  },
+  {
+   "time": "07-30 00:29",
+   "move": -85.2,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 170.0
+  },
+  {
+   "time": "07-13 19:37",
+   "move": 84.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -49.5,
+   "caught_us_book": true,
+   "net_us": -49.5,
+   "ceiling_1lot": 170.0
+  },
+  {
+   "time": "07-06 13:19",
+   "move": 84.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -83.0,
+   "caught_us_book": true,
+   "net_us": -83.0,
+   "ceiling_1lot": 168.0
+  },
+  {
+   "time": "07-08 23:30",
+   "move": 83.8,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -45.5,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 168.0
+  },
+  {
+   "time": "07-09 00:49",
+   "move": -82.0,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 164.0
+  },
+  {
+   "time": "07-17 19:16",
+   "move": 82.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": -64.0,
+   "caught_us_book": true,
+   "net_us": -64.0,
+   "ceiling_1lot": 164.0
+  },
+  {
+   "time": "08-06 14:24",
+   "move": -80.5,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 161.0
+  },
+  {
+   "time": "07-27 15:00",
+   "move": -76.2,
+   "label": "FLOW-LED",
+   "caught_full_book": false,
+   "net_full": 0.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 152.0
+  },
+  {
+   "time": "07-07 03:14",
+   "move": -74.0,
+   "label": "FLOW-LED",
+   "caught_full_book": true,
+   "net_full": 141.0,
+   "caught_us_book": false,
+   "net_us": 0.0,
+   "ceiling_1lot": 148.0
+  }
+ ],
+ "frozen_census_flow_led_members": [
+  {
+   "time": "2026-08-11 05:16",
+   "move": -46,
+   "caught_full_book": true,
+   "net": 36.2,
+   "session": "OVERNIGHT/PRE-OPEN \u2014 outside the gate's armed window"
+  },
+  {
+   "time": "2026-08-14 00:03",
+   "move": -47,
+   "caught_full_book": true,
+   "net": 67.7,
+   "session": "OVERNIGHT/PRE-OPEN \u2014 outside the gate's armed window"
+  }
+ ]
+}
