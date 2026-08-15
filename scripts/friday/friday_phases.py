@@ -419,9 +419,24 @@ PHASES = [
         f"strip-the-3-best, long/short symmetry, leave-one-day-out, OOS leg, and big-moves-caught X/N. ★ ALSO interrogate the "
         f"CLUSTER LABEL itself before trusting it — check its base rate on all bars; a label that is true on most of the tape is "
         f"not a footprint, it is noise, and that finding outranks any signal you build on top of it. {JUDGE} {GRAVES} "
-        f"{SEGMENT} Write your full working to {SEC}/gf_full_{cl}.md, ending with an explicit VERDICT line stating "
+        f"{SEGMENT} "
+        # ★★2026-08-15 OPERATOR: "use the router to keep gate off until conditions are ripe."
+        f"★★ THE ROUTER IS PART OF THE DELIVERABLE, NOT AN AFTERTHOUGHT. Do NOT score a candidate "
+        f"blanket across all tape and kill it on the average — every gate here will be ROUTED, so it "
+        f"only has to work in the regime it is ARMED for. For any signal that survives, state: the "
+        f"HOME REGIME it needs, the exact ROUTER RULE that should arm and bench it in the same "
+        f"vocabulary the live router uses (ER / ATR / structure-break / session / untradeable meter), "
+        f"and its expectancy ON THAT HOME REGIME ONLY — with the blanket number alongside as context, "
+        f"never as the verdict. A gate that is only viable behind a router condition we cannot yet "
+        f"MEASURE is a finding, not a failure: say which instrument we would need. "
+        f"{"UNCLASS IS THE JOB, AND 'WE COULD NOT CLASSIFY IT' IS A BANNED VERDICT. Operator, 2026-08-15: 'i feel like unclass gives you the right to say oh well we cant identify so we move on. NO! find a way to RIDE them! then filter and router off.' He is right, and the label has been doing exactly that work: UNCLASS is 34 of the 60 sat-out runs and $4,097 of the $8,025 ceiling we watched go past in ONE week - the BIGGEST bucket, and the only one with no hunt against it, purely because the census could not name it. THE ORDER OF WORK IS HIS AND IT IS NOT THE USUAL ORDER. (1) RIDE FIRST. You do NOT need to know WHY a run happened to get on it - classification is not a prerequisite for riding, and assuming it is, is the mistake that left this bucket untouched. Build a DIRECTION-AGNOSTIC run-catcher: something already moving, boarded late and deliberately, sized to survive noise. The boarding half is already proven solvable - on gold THIS WEEK a thrust-continuation fired inside 5 of 5 top runs at a median 19 minutes in, with ~80 percent of the move still ahead. Do the same on MNQ. (2) THEN FILTER. Expect it to fire on ordinary tape too; that is the known failure mode, not a surprise. Cut the losers with a CAUSAL rule and placebo-control every cut against discarding the same NUMBER of fires at random. (3) THEN ROUTER OFF. Whatever survives gets the arm/bench rule that keeps it dark until conditions are ripe. THE EXIT IS PROBABLY THE WHOLE GAME, so test it before concluding anything about the entry: three independent results this week - the MGC run-catcher, the Open Rider stop-width axis, and the exhaustion_short rehab - all landed on the same finding, that a TIGHT or TRAILING exit is shaken out of a move that grinds while the SAME entries with a WIDE stop and FAR target make money. exhaustion_short went from -$158 as traded to +$5,243 on identical entries, purely on the exit. Sweep stop x target WIDE (2.5-3.0xATR and beyond) before you decide a run-catcher entry does not work. Cluster the members yourself anyway (time-of-day, ATR regime, direction, flow sign, book imbalance, what preceded them) - but as a way to FILTER in step 2, never as a gate on whether to attempt step 1. If it splits into real shapes, NAME them so the census can classify them next week; that renaming is a deliverable. If it is genuinely heterogeneous, that is an argument FOR a direction-agnostic rider and AGAINST a shape-specific gate - it is not permission to stop. The ONLY acceptable null here is a rider that was built, ridden, filtered, routed and STILL lost, with the robustness test that killed it named." if cl == 'UNCLASS' else ''}"
+        f"Write your full working to {SEC}/gf_full_{cl}.md, ending with an explicit VERDICT line stating "
         f"whether it survived and, if not, WHICH robustness test killed it.")
-      for cl in ("VACUUM", "FLOW-LED", "OPEN-NEWS")],
+      # ★2026-08-15 ORDERED BY THE CEILING EACH CLUSTER LEFT ON THE TABLE, because the budget cuts
+      # from the BOTTOM: UNCLASS $4,097 (34 runs) · OPEN/NEWS $2,814 (16) · VACUUM $928 (8) ·
+      # FLOW-LED $186 (2). UNCLASS had NO phase at all until now — the largest bucket of sat-out
+      # runs was the one nobody hunted.
+      for cl in ("UNCLASS", "OPEN-NEWS", "VACUUM", "FLOW-LED")],
     dict(key="gf_chopscalp", artifact=f"{SEC}/gf_chopscalp.md", deps=[], timeout_s=5400, prompt=PRE +
          f"CHOP-DAY SCALP GREENFIELD — operator's explicit focus. The week's chop days BLED or broke even with the CURRENT "
          f"gates — but 'untradeable' is only true for THOSE gates. The trend days already carry most of the week's profit, so "
@@ -454,7 +469,7 @@ PHASES = [
          f"(if one did, widen its window or fix the timestamps). These are inline self-contained SVG — never an external "
          f"image or JS library."),
 
-    dict(key="movement3", artifact=f"{SEC}/movement3_greenfield.html", deps=["gf_VACUUM", "gf_FLOW-LED", "gf_OPEN-NEWS", "gf_chopscalp", "gf_MGC"],
+    dict(key="movement3", artifact=f"{SEC}/movement3_greenfield.html", deps=["gf_UNCLASS", "gf_VACUUM", "gf_FLOW-LED", "gf_OPEN-NEWS", "gf_chopscalp", "gf_MGC"],
          timeout_s=3600, prompt=PRE +
          f"Read EVERY {SEC}/gf_*.md from this week's hunts. ★ If {SEC}/movement3_greenfield.html already exists it is a STALE "
          f"PRIOR-WEEK file — OVERWRITE it completely and carry over none of its findings. Write the flagship Movement 3 section "
