@@ -70,14 +70,32 @@ def sessions(m: pd.DataFrame):
             yield str(day), w
 
 
-def detect(win: pd.DataFrame, upto: int):
-    """The LIVE detector, on the first `upto` minutes. Gate on `confirmed`, never `ok`."""
-    head = win.iloc[:upto]
-    if len(head) < 15:
-        return None
-    bars = [(int(ts.value // 10**9), r["high"], r["low"], r["close"]) for ts, r in head.iterrows()]
-    r = drift.compute(bars)
-    return r if (r.confirmed and r.direction) else None
+ENTRY_CUTOFF_MIN = 90       # live: no new entry after 15:00 UTC (= +90 from the 13:30 open)
+
+
+def detect(win: pd.DataFrame, upto: int = ENTRY_CUTOFF_MIN):
+    """FIRST CONFIRMATION, scanning minute by minute — because that is what the live rider does.
+
+    ★★2026-08-15 THIS WAS WRONG AND IT INVERTED THE RESULT. The first version sampled the detector
+    ONCE at +60min. The live service polls every minute from the 13:30 open and enters on the FIRST
+    confirmation, which CLAUDE.md records as 13:38-14:09 across 31 validated sessions — i.e. 20-50
+    MINUTES EARLIER than a +60 snapshot, on a different price.
+
+    Worse, efficiency OSCILLATES across the 0.15 floor (0.157 -> 0.114 -> 0.150 -> 0.158 inside 8
+    minutes is recorded in day_rider.py), so a single late snapshot MISSES sessions the live rider
+    caught and then dropped below the floor. That is why the snapshot version found 15 fires where
+    the desk's own 35-session study found 35, and why it scored the armed trail BELOW hold when the
+    validated measurement has it ABOVE ($7,341 vs $6,544).
+
+    Returns (DriftRead, index-into-win) so the caller enters at the price the rider entered at.
+    """
+    for i in range(15, min(len(win), upto) + 1):
+        bars = [(int(ts.value // 10**9), r["high"], r["low"], r["close"])
+                for ts, r in win.iloc[:i].iterrows()]
+        r = drift.compute(bars)
+        if r.confirmed and r.direction:
+            return r, i - 1
+    return None
 
 
 def outcome(win: pd.DataFrame, i: int, side: int) -> dict:
@@ -96,9 +114,9 @@ def outcome(win: pd.DataFrame, i: int, side: int) -> dict:
 def study(m: pd.DataFrame, upto: int = 60) -> pd.DataFrame:
     rows = []
     for day, win in sessions(m):
-        r = detect(win, upto)
-        i = min(upto, len(win) - 1)
-        row = {"day": day, "fired": r is not None}
+        hit = detect(win)
+        r, i = (hit if hit else (None, 0))
+        row = {"day": day, "fired": r is not None, "entry_min": i}
         if r is not None:
             sd = 1 if r.direction == "UP" else -1
             row.update({"dir": sd, "eff": round(r.efficiency, 3), "rt": round(r.roundtrip, 3),
@@ -176,11 +194,11 @@ def main() -> int:
         m2 = m
         rows = []
         for day, win in sessions(m2):
-            r = detect(win, 60)
-            if r is None:
+            hit = detect(win)
+            if hit is None:
                 continue
+            r, i = hit
             sd = 1 if r.direction == "UP" else -1
-            i = min(60, len(win) - 1)
             seg = win.iloc[i:]
             e = float(seg["close"].iloc[0])
             atr = max(r.atr, 1e-9)

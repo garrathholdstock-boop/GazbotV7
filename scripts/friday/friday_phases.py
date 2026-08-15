@@ -121,6 +121,16 @@ PHASES = [
          f"example, not this week's finding). Find the most instructive live session(s) of THIS week and write them up "
          f"as the flagship case study, every number computed from the data. {JUDGE} {STYLE} Write to {SEC}/part1_live.html"),
 
+    # ★★2026-08-15 STANDING SECTION. Operator: "each week we need to analyse its performance,
+    # where it entered, are our thresholds OK? etc." The desk's only profitable book had no
+    # chapter, no monitor and no tuning surface until now.
+    dict(key="day_rider", artifact=f"{SEC}/part1_6_day_rider.html", deps=[], timeout_s=3600,
+         prompt=PRE + f"DAY RIDER — THE WEEKLY PERFORMANCE REVIEW. Operator, 2026-08-15: 'each week we need to analyse its performance, where it entered, are our thresholds OK? etc.' This is a STANDING section from now on. The rider is the desk's second book and in the week to 08-14 it made +$1,617.50 on 5 trades while the six-gate tournament lost -$325.00 on 108 - take it out and the week is red - so it gets its own chapter, not a paragraph inside someone else's. ANSWER THESE FOUR, in this order, for the completed week: (1) DID WE ENTER OK? For every trade: minutes after the 13:30 open that it confirmed, the entry price, how far the move had ALREADY travelled before we boarded, and the MFE that remained after entry. The validated window is 13:38-14:09; flag anything outside it. (2) ARE THE THRESHOLDS OK? Print the ER and RT the detector actually read at confirmation and their MARGIN over the live floors (ER 0.15 / RT 0.45). A fire that scrapes in by +0.00 is the interesting one - say whether raising the floor would have missed a WINNER, and by how much. Do not recommend a change on one week; report the margin distribution and let it accumulate. (3) WHICH EXIT CAPTURED IT? Per trade give MFE-available, taken, and CAPTURE % - and group by exit reason (TRAIL / MANUAL_CLAIM / CLOCK_FLAT / operator claim). The operator watches the US session and claims by hand, so his claims are a first-class exit and must be scored alongside the mechanical ones. (4) NAME THE WEAK DAY and say why. Distinguish a day the STRATEGY did badly on from a day the TAPE gave nothing - 08-10 took $39 of a $147 opportunity, which is a quiet tape, not a fault. METHOD, and these are traps this desk has already paid for: enter on FIRST CONFIRMATION scanning minute by minute from the open - the live service polls every minute and a single snapshot at +60min enters 20-50 minutes late on a different price, misses sessions because efficiency oscillates across the floor, and INVERTS the result (it scored 33% held / worse-than-constant where first-confirmation scores 64.3% held / +13.2pp better than constant). Gate on DriftRead.confirmed, NEVER .ok. direction is a STRING. Score against the best CONSTANT (always-long / always-short), never a coinflip. Report MAE beside MFE. MNQ is $2.00/pt, $1.50/RT. DO NOT RE-RUN THE EXIT VARIANT BATTERY. CLAUDE.md: 'the exit is essentially exit-proof - 25 variants tested, holding beat every one; only the armed trail improved on it. Don't re-run these.' The rider deliberately has NO tradeable stop (the 600pt venue stop is insurance, priced at ~zero on the sample) - it runs a very wide chandelier or the operator claims. That is settled; report what the exits DID this week, do not re-litigate the design. Tool: scripts/day_rider_lab.py (live record, detection, threshold margins). Write the section for a reader who has not seen the working, money first, clear tables, and say plainly if the answer is 'nothing to change this week'. "
+         f"Light-theme HTML FRAGMENT (a stitch-in, not a full page) using the report shell classes: "
+         f"h2>span.n, p.lead, div.card>h3, div.callout>div.ct, table with td.num/td.ln, "
+         f"tr.row-hl / tr.row-bad, span.tag verdict pills. Every number from a REAL computation you "
+         f"ran. Write to {SEC}/part1_6_day_rider.html"),
+
     dict(key="part2_shadow", artifact=f"{SEC}/part2_shadow.html", deps=[], timeout_s=3600, prompt=PRE +
          # ★★2026-08-14 OPERATOR: "open rider best shadow again. if we can figure out how to switch
          # it on and off could be a good one." Measured before the run so the phase starts from
@@ -507,7 +517,7 @@ PHASES = [
          f"CSS; no external assets."),
 
     dict(key="assemble", artifact=f"{WEB}/weekly_{WEEK}.html",
-         deps=["part1_live", "part2_shadow", "part25_musings", "part2_6_router", "movement2_idle", "rehab", "movement3", "run_charts"],
+         deps=["part1_live", "day_rider", "part2_shadow", "part25_musings", "part2_6_router", "movement2_idle", "rehab", "movement3", "run_charts"],
          timeout_s=3600, prompt=PRE +
          f"Assemble the full V7 report for the completed week (outputs weekly_{WEEK}.html/.pdf + monday_{WEEK}.html). "
          f"Sections live in {SEC}: part1_live, part1_5_rehab, part2_shadow, part25_musings, part2_6_router_review, "
