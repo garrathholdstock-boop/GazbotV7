@@ -81,8 +81,16 @@ def main():
     con = duckdb.connect()
     con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
     con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
+    # ★★2026-08-16 SATURDAY #3 — QUARANTINED TRADES MUST NOT BE SCORED.
+    # `data_quality` flags rows the desk knows are not real — the 08-13 day-rider bug alone booked
+    # $1,551 of profit from trades that never happened. This query had no filter, so every selector
+    # verdict since the flag existed was computed over a book containing phantom fills.
+    # ⚠ THIS IS THE SECOND TIME FOR THIS FIELD. `pnl.py` filtered it and six `web.py` queries did
+    # not, putting a correct header above a fabricated blotter. When you add a flag, AUDIT EVERY
+    # CONSUMER — a right number beside a wrong one is worse than either alone.
     trades = con.execute(f"""SELECT gate, side, entry_price, pnl_usd, exit_reason,
-        epoch(opened_at::TIMESTAMPTZ) t0 FROM g.trades WHERE symbol='MNQ'
+        epoch(opened_at::TIMESTAMPTZ) t0 FROM g.trades
+        WHERE symbol='MNQ' AND data_quality IS NULL
         AND epoch(opened_at::TIMESTAMPTZ)>={ds} AND epoch(opened_at::TIMESTAMPTZ)<{ds+86400}
         AND exit_reason NOT IN ('ADOPT_FLATTEN','RECONCILED_CLOSE') ORDER BY opened_at""").fetchall()
 

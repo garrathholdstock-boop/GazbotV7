@@ -400,7 +400,7 @@ def gate_capitulation(f: Features, *, cap_sell: float = 0.0, cap_buy: float = 0.
 
 def gate_grind(f: Features, *, tape_net: float = 0.0, slope_min: float = 0.5,
                ext_lo: float = 0.3, ext_hi: float = 4.0, flow_min: float = 0.0,
-               fast_slope: bool = False) -> Entry | None:
+               fast_slope: bool = False, counter_veto_atr: float | None = None) -> Entry | None:
     """Trend CONTINUATION — ride an established VWAP trend while price is riding WITH
     it (above VWAP in an up-trend) but not yet exhausted (``ext_lo..ext_hi``). For the
     sustained grinds that thrust (a 5-bar burst gate) misses entirely. Chandelier-
@@ -409,10 +409,26 @@ def gate_grind(f: Features, *, tape_net: float = 0.0, slope_min: float = 0.5,
     flush (the capitulation gate owns that) — UNLESS fast_slope, the short-window slope
     that flips within minutes of a reversal. Down-grind is the mirror."""
     slope = f.vwap_slope_fast if fast_slope else f.vwap_slope_atr
+    # ★★2026-08-16 SATURDAY #4 — THE COUNTER-MOVE VETO. Refuse an entry that is fighting the last
+    # 30 minutes: a LONG when the tape has fallen more than `counter_veto_atr` x ATR over that
+    # window, and the mirror for a SHORT. `vwap_slope_atr` is a 60-bar measure and therefore LAGS,
+    # so the gate can still read "established up-trend" while the last half hour has been a slide —
+    # that is precisely the trade this vetoes.
+    # ⚠ The report's Part 2.5 Part B result is that THE MECHANISM THAT WORKS IS A VETO, not a
+    # filter. It is SHADOW-only: `counter_veto_atr=None` is the default, so the live grind_long is
+    # unchanged and only `grind_long_cveto` in the shadow slate carries it.
+    # ⚠ net30_pt is a 30-BAR measure, so it is only meaningful once the deque holds 31 bars;
+    # features.py returns 0.0 before that, which vetoes nothing. That fails OPEN by design — an
+    # unwarmed veto must not silently block every entry of the session.
+    def _fights(direction: int) -> bool:
+        if counter_veto_atr is None or f.atr <= 0:
+            return False
+        return direction * f.net30_pt < -counter_veto_atr * f.atr
+
     if slope >= slope_min and ext_lo <= f.ext_atr <= ext_hi and tape_net >= flow_min:
-        return Entry(side="LONG", gate="grind")
+        return None if _fights(1) else Entry(side="LONG", gate="grind")
     if slope <= -slope_min and -ext_hi <= f.ext_atr <= -ext_lo and tape_net <= -flow_min:
-        return Entry(side="SHORT", gate="grind")
+        return None if _fights(-1) else Entry(side="SHORT", gate="grind")
     return None
 
 

@@ -823,6 +823,21 @@ def _clip_ab() -> list[ShadowVariant]:
     A_CLIP = dict(clip_atr_split=22.0, clip_a_usd=40.0)
     B_CLIP = dict(clip_atr_split=22.0, clip_b_r=1.75, clip_b_floor_usd=60.0)
     return [
+        # ★★2026-08-16 SATURDAY #4 — the counter-move veto, as a SHADOW PAIR.
+        # "The mechanism that does work, and it is a veto" (Part 2.5 Part B): refuse a grind LONG
+        # when the last 30 minutes have fallen more than 1x ATR. `vwap_slope_atr` is a 60-bar
+        # measure and LAGS, so the gate reads "established up-trend" while the last half hour slides.
+        # ⚠ IT SHIPS WITH ITS OWN CONTROL. cx_grindA_live is the identical arm WITHOUT the veto and
+        # already runs beside it, so the veto's effect is ATTRIBUTABLE rather than assumed — the
+        # rule that the gold work had to learn twice. Do NOT retire one without the other.
+        # Live grind_long is UNCHANGED (counter_veto_atr defaults to None).
+        # ⚠ NAMED cx_ DELIBERATELY. It shares `base` with cx_grindA_live — same atr_max=22 regime
+        # restriction, same decoupling — because a control is only a control if it differs in
+        # exactly ONE thing. Two slate invariants ("only sw_/cx_ may decouple", "only cx_ may be
+        # regime-restricted") caught this when it was called grind_long_cveto, and they were right:
+        # the name implied a plain grind arm while the config was a clip-family one.
+        ShadowVariant("cx_grindA_cveto", "grind", GRIND | {"counter_veto_atr": 1.0},
+                      side="LONG", target_r=2.5, **base),
         ShadowVariant("cx_grindA_live", "grind", GRIND, side="LONG", target_r=2.5, **base),
         ShadowVariant("cx_grindA_clip", "grind", GRIND, side="LONG", target_r=2.5, **base, **A_CLIP),
         ShadowVariant("cx_absLA_live", "thrust", THRUST, side="LONG", confirm_s=55,
