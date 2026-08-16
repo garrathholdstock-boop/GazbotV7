@@ -89,6 +89,23 @@ class ShadowVariant:
     # while doubling the row count. Restricting both arms to the regime under test keeps the comparison
     # about the clip and nothing else. 0 = no ceiling (every pre-existing variant).
     atr_max: float = 0.0
+    # ★2026-08-16 BUILD #13 — ER band at entry, so a per-RUNG proposal can be shadowed as the rung it
+    # was measured on. The rungs are ER30 thresholds (exit_ladder_lab_v2: >=0.50 BIG-TREND,
+    # >=0.30 MED-TREND), so MED-TREND is [0.30, 0.50). 0.0 on either side = unbounded, which is every
+    # pre-existing variant. ⚠ An arm carrying a rung's numbers WITHOUT its band is not that rung — it
+    # is the proposal averaged over regimes it was never graded in.
+    er_min: float = 0.0
+    er_max: float = 0.0
+    # ★2026-08-16 BUILD #18 — a FIXED-POINTS target ("bank Lot A at +20 points onside"). R-multiples
+    # scale with ATR; this deliberately does not, which is the whole hypothesis. Points, not dollars,
+    # so it is instrument-agnostic. 0.0 = use target_r as before.
+    target_pt: float = 0.0
+    # ★2026-08-16 BUILD #15 — "require_flip OR a 90-second timeout". The gate is PURE and stateless:
+    # it sees a rolling tape window and cannot know how long a climax has been waiting for a flip.
+    # That state lives here. >0 = take a climax that has held this many seconds WITHOUT a flip.
+    # The play: take the flush when buyers are slow to show, instead of waiting for a flip that
+    # never comes. 0 = off, which is every other variant.
+    flip_timeout_s: int = 0
     clip_atr_split: float = 0.0
     clip_a_usd: float = 0.0
     clip_b_r: float = 0.0
@@ -128,6 +145,14 @@ def _eff_target_r(v: ShadowVariant, atr: float, vpp: float) -> float:
        (Lot A) or a floored R (Lot B). Both arms must share it or the A/B compares stop widths across
        two different profit ladders.
     """
+    # ★2026-08-16 BUILD #18 — a FIXED-POINTS target, checked FIRST and independent of decoupling.
+    # "Bank Lot A at +20 points onside" is a claim that the right exit does NOT scale with volatility,
+    # so it must not be expressed as an R-multiple: exit_scalp puts the target at
+    # target_r * stop_atr_mult * atr, and dividing back out is exactly how a fixed distance is
+    # recovered. If ATR is unusable there is no honest conversion, so it falls back rather than
+    # inventing one.
+    if v.target_pt and atr > 0 and v.stop_atr_mult > 0:
+        return v.target_pt / (v.stop_atr_mult * atr)
     if not v.decouple_target:
         return v.target_r                      # untouched legacy behaviour
     if atr <= 0:
@@ -166,6 +191,8 @@ class ShadowSim:
         # collapse to ~6 trades. Without it the shadow fires far more often than the thing that was
         # measured, and every number quoted for it came from the constrained version.
         self._cool_until: dict[str, float] = {}
+        # BUILD #15: variant -> ts a flip-less climax was FIRST seen (the timeout clock)
+        self._flip_wait: dict[str, int] = {}
 
     def on_bars(self, bars: list[Bar], *, tape_net: float = 0.0,
                 window_price_delta: float = 0.0, in_rth: bool = True, now_ms: int | None = None,
@@ -312,6 +339,39 @@ class ShadowSim:
             return None   # side-constrained variant (e.g. thrust_short) — drop the wrong direction
         if e is not None and v.atr_max and f.atr >= v.atr_max:
             return None   # regime-restricted variant (the clip A/B runs only where the clip is live)
+        # ★2026-08-16 BUILD #15 — the flip TIMEOUT, which only this sim can supply.
+        # A climax with require_flip=True and no flip returns None from the gate. We remember when
+        # that pairing was FIRST seen and, once it has stood for flip_timeout_s, admit the entry
+        # anyway. The latch clears the moment the climax stops holding, so a fresh flush starts a
+        # fresh clock — otherwise an old, unrelated climax would authorise a much later entry.
+        if e is None and v.flip_timeout_s and v.gate == "capitulation" and ts:
+            # ⚠ mirror the real dispatch EXACTLY — `cap` is keyed sell/buy/base/dpx/flip, not by
+            # the gate's parameter names, and the gate takes `f` positionally. My first version
+            # splatted `cap` straight in, which would have raised on every capitulation tick.
+            loose = gate_capitulation(
+                f, cap_sell=cap.get("sell", 0.0), cap_buy=cap.get("buy", 0.0),
+                cap_base=cap.get("base", 0.0), cap_dpx=cap.get("dpx", 0.0),
+                cap_flip=cap.get("flip", False),
+                **{k: x for k, x in v.params.items() if k != "require_flip"}) if cap else None
+            if loose is not None:
+                first = self._flip_wait.setdefault(v.name, ts)
+                if ts - first >= v.flip_timeout_s:
+                    self._flip_wait.pop(v.name, None)
+                    e = loose
+            else:
+                self._flip_wait.pop(v.name, None)
+        elif v.flip_timeout_s:
+            self._flip_wait.pop(v.name, None)
+
+        # ★2026-08-16 BUILD #13 — the ER band. Computed only when a variant asks for one, so this
+        # costs nothing for the 20-odd arms that do not. Uses the SAME ER30 the rung classifier does.
+        if e is not None and (v.er_min or v.er_max):
+            from .sizing import efficiency_ratio      # local: shadow.py does not import it globally
+            er = efficiency_ratio(bars, 30) if bars else 0.0
+            if v.er_min and er < v.er_min:
+                return None
+            if v.er_max and er >= v.er_max:
+                return None
         return e
 
     def _absorbed(self, v, side, tape_net, wpd) -> bool:
@@ -930,6 +990,49 @@ def _stop_width_ab() -> list[ShadowVariant]:
     out += [
         ShadowVariant("lad_absS_A_10", target_r=1.0, **lad, **_A_CLIP),
         ShadowVariant("lad_absS_B_15", target_r=1.5, **lad, **_B_CLIP),
+    ]
+
+    # ★★2026-08-16 BUILD #13 — grind_long MED-TREND rung, A 0.5R / B 1.0R.
+    # The only cell of the per-rung deliverable REV2 did NOT withdraw (n=161, +$8.25/signal,
+    # strip3 +$160, loo_worst +$5.52 in data/exit_overrides_proposed.json).
+    # ⚠ IT RUNS ONLY IN ITS OWN RUNG. The rungs are ER30 bands (exit_ladder_lab_v2: >=0.50 BIG-TREND,
+    # >=0.30 MED-TREND), so MED-TREND is [0.30, 0.50) — hence er_min/er_max. An arm carrying a rung's
+    # numbers WITHOUT its band is not that rung; it is the proposal averaged over regimes it was
+    # never graded in, which is how a per-regime result gets quietly converted into a blanket one.
+    # ★ ITS CONTROL IS THE SAME BAND AT THE LIVE LADDER, so the rung and the ladder are not confounded.
+    _rung = dict(gate="grind", params=GRIND, side="LONG", stop_atr_mult=1.0, qty=1.0,
+                 decouple_target=True, er_min=0.30, er_max=0.50)
+    out += [
+        ShadowVariant("rung_grindA_med_05", target_r=0.5, **_rung),
+        ShadowVariant("rung_grindB_med_10", target_r=1.0, **_rung),
+        ShadowVariant("rung_grindA_med_live", target_r=2.5, **_rung),   # control: live Lot A, same band
+    ]
+
+    # ★★2026-08-16 BUILD #18 — bank Lot A at a FIXED +20 POINTS onside.
+    # Part 1 §11 called this "the first thing I would test next week" and Rev 1's card carried nothing
+    # against the week's largest diagnosed loss. REV2 measured it at +$219.50 with all 25 winners kept
+    # and every fold positive — but -$45.00 once stripped of its best three, which is why it is a
+    # SHADOW arm and not a deploy, and why it needs forward n rather than another pass at the same days.
+    # ⚠ POINTS, DELIBERATELY. The hypothesis is that the right bank does NOT scale with volatility; an
+    # R-multiple would smuggle ATR back in and test something else. Lot B is untouched by design —
+    # the play is "bank A, leave B riding".
+    # ★★2026-08-16 BUILD #15 — capitulation_long: require_flip OR a 90-SECOND TIMEOUT.
+    # "Take the flush when buyers are slow to show, instead of waiting for a flip that never comes."
+    # The live gate runs require_flip=True (the 07-25 rehab found the flip IS the edge — the loose
+    # version was fading the climax itself). This does not dispute that; it asks whether the flip is
+    # worth waiting for INDEFINITELY, which is a different question and the one nobody has measured.
+    # ★ THE PAIR IS THE POINT: capit_flip_live is the live rule, capit_flip_t90 is the same rule with
+    # a patience limit. Any difference is the timeout, because nothing else differs.
+    _capit = dict(gate="capitulation", side="LONG", stop_atr_mult=1.0, qty=1.0, target_r=1.5)
+    out += [
+        ShadowVariant("capit_flip_live", params={"require_flip": True}, **_capit),
+        ShadowVariant("capit_flip_t90", params={"require_flip": True}, flip_timeout_s=90, **_capit),
+    ]
+
+    _bank = dict(gate="grind", params=GRIND, side="LONG", stop_atr_mult=1.0, qty=1.0)
+    out += [
+        ShadowVariant("bank20_grindA", target_pt=20.0, **_bank),
+        ShadowVariant("bank20_grindA_ctl", target_r=2.5, decouple_target=True, **_bank),
     ]
     # ★2026-08-08 THE k30 THIRD RUNG — grind ONLY, and only grind.
     # The 08-08 open-window read on the 512 tick-repriced trades already running here says wide

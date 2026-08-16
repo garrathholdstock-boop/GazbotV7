@@ -80,7 +80,7 @@ def test_decouple_is_opt_in_so_legacy_variants_are_untouched():
     # ⚠ Adding a prefix here is a DELIBERATE act. If an EXISTING arm ever needs decoupling, that is a
     # different question and this test should fail loudly rather than be widened to accommodate it.
     for v in default_slate():
-        if not v.name.startswith(("sw_", "cx_", "lad_")):
+        if not v.name.startswith(("sw_", "cx_", "lad_", "rung_", "bank20")):
             assert v.decouple_target is False, f"{v.name} unexpectedly decoupled"
             assert _eff_target_r(v, 17.0, VPP) == v.target_r
 
