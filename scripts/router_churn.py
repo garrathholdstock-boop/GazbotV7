@@ -107,7 +107,26 @@ def main() -> int:
               f"{c / len(rows):.1f} changes/day · "
               f"{(c / t) if t else float('nan'):.2f} changes per trade")
 
-    summarise(pre, "BEFORE (window 60 / hold 2)")
+    # ★2026-08-16 (audit) FREEZE THE BASELINE. It was recomputed from a GROWING log on every run, so
+    # the "before" number the AFTER gets judged against was not reproducible — it drifted every time
+    # anyone looked. Written once, then read; delete the file to re-baseline deliberately.
+    import json as _j
+    frozen = os.path.join(GB, "data", "router_churn_baseline.json")
+    if pre and not os.path.exists(frozen):
+        c, t = sum(r[0] for r in pre), sum(r[1] for r in pre)
+        with open(frozen, "w") as f:
+            _j.dump({"frozen_on": days[-1], "days": len(pre), "changes": c, "trades": t,
+                     "per_day": round(c / len(pre), 2),
+                     "per_trade": round(c / t, 3) if t else None,
+                     "era": "window 60 / hold 2",
+                     "_note": "Frozen so the AFTER comparison is against a fixed number. Delete to "
+                              "re-baseline; do not let it recompute silently."}, f, indent=2)
+        print(f"\n  BASELINE FROZEN -> {frozen}")
+    if os.path.exists(frozen):
+        b = _j.load(open(frozen))
+        print(f"\n  BEFORE (FROZEN {b['frozen_on']}, {b['era']}): {b['days']} days · "
+              f"{b['changes']} changes · {b['per_day']} /day · {b['per_trade']} per trade")
+    summarise(pre, "BEFORE recomputed now (drifts as the log grows — use the FROZEN row above)")
     summarise(post, "AFTER  (window 45 / hold 3)")
     print("\n  ⚠ The AFTER row is not a verdict until it spans several trading days — and REV2's own "
           "\n    caveat on this change stands: its +$502 was ALL on non-trend days, and holding out "
