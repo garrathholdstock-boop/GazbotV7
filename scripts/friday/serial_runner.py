@@ -72,6 +72,28 @@ def notify(m: str, crit: bool = False) -> None:
         pass
 
 
+# ★★★2026-08-16 GREENFIELD CLUSTER ROTATION — the list has to fit the night.
+# Seven greenfield clusters declare 1,140m of the 1,755m body list, against a 228m budget. Running
+# all seven every week is why 8 sections went unbuilt on 08-14: they cannot all fit, so which ones
+# get built was decided by clock order rather than by value. Two run each week, chosen by ISO week
+# so the cycle is deterministic and every cluster comes round in under a month.
+# ⚠ ROTATED-OUT CLUSTERS ARE LOGGED, NEVER SILENT. CLAUDE.md: "if a workflow bounds coverage, log
+# what was dropped — silent truncation reads as 'covered everything' when it didn't."
+ROTATING = ["gf_RIDER_ALL", "gf_UNCLASS", "gf_OPEN-NEWS", "gf_VACUUM", "gf_FLOW-LED", "gf_chopscalp"]
+PER_WEEK = 2
+
+
+def rotate(phases, week_iso: int):
+    """Keep every non-rotating phase; admit only PER_WEEK clusters, cycling by ISO week."""
+    pool = [k for k in ROTATING if any(p["key"] == k for p in phases)]
+    if not pool:
+        return phases, []
+    start = (week_iso * PER_WEEK) % len(pool)
+    picked = {pool[(start + i) % len(pool)] for i in range(min(PER_WEEK, len(pool)))}
+    dropped = [k for k in pool if k not in picked]
+    return [p for p in phases if p["key"] not in dropped], dropped
+
+
 def order(phases):
     """Dependency order, stable. Phases with no deps keep their declared order, which is roughly
     cheapest-and-most-valuable first."""
@@ -100,6 +122,12 @@ def fresh(path: str, since: float) -> bool:
         return os.path.getmtime(path) >= since
     except OSError:
         return False
+
+
+# ★2026-08-16 Below this a headless section produces nothing at all — measured: gf_MGC was handed
+# 13.2m on 08-14 and returned an empty artifact, which is worse than skipping because it also
+# consumed the budget. Observed pace for a section that DOES finish is 15-28m.
+MIN_SLICE_S = 20 * 60
 
 
 def run_phase(p, budget_s: float) -> bool:
@@ -176,9 +204,29 @@ def main() -> int:
         f"reserve {a.reserve_min}m for the tail, "
         f"artifacts older than {dt.datetime.fromtimestamp(since, dt.UTC):%Y-%m-%dT%H:%MZ} are STALE ===")
 
-    phases = order(PHASES)
+    week_iso = dl.isocalendar().week
+    rotated, dropped = rotate(PHASES, week_iso)
+    if dropped:
+        log(f"ROTATION (ISO week {week_iso}): running {PER_WEEK} of {len(ROTATING)} greenfield "
+            f"clusters. NOT run this week: {', '.join(dropped)}")
+    phases = order(rotated)
     body = [p for p in phases if p["key"] not in TAIL]
     tail = [p for p in phases if p["key"] in TAIL]
+
+    # ★★★2026-08-16 THE SCHEDULE WAS NEVER SATISFIABLE, AND NOTHING SAID SO.
+    # 2026-08-14's run: 17 body phases declaring 1,755m of timeouts against a 228m body budget —
+    # 7.7x over. `rehab` then took its full declared 90m cap (40% of the ENTIRE budget), produced
+    # nothing, and starved everything downstream: gf_MGC got 13.2m of an intended 90 and also died,
+    # then the budget hit zero with 8 sections unbuilt. That is not a phase misbehaving, it is a
+    # wish-list being run as a plan. This block makes the arithmetic VISIBLE before the run commits
+    # to it — the classic "instrument that reports healthy about something it never checks".
+    body_cap = sum(q["timeout_s"] for q in body) / 60.0
+    body_budget = (total - a.reserve_min * 60) / 60.0
+    log(f"PREFLIGHT: {len(body)} body phases declare {body_cap:.0f}m of timeouts against a "
+        f"{body_budget:.0f}m budget ({body_cap / max(body_budget, 1):.1f}x)")
+    if body_cap > body_budget * 1.5:
+        log(f"PREFLIGHT ⚠ the section list CANNOT fit — at the observed ~23m/section pace about "
+            f"{int(body_budget // 23)} of {len(body)} will finish. Fair-share capping is ON.")
 
     if a.dry_run:
         for p in body + tail:
@@ -206,7 +254,20 @@ def main() -> int:
             failed.extend(q["key"] for q in body[body.index(p):]
                           if not fresh(q["artifact"], since))
             break
-        (built if run_phase(p, left) else failed).append(p["key"])
+        # ★ FAIR SHARE, not first-come-first-served. Previously a phase was handed ALL remaining
+        # budget and could spend 40% of the night producing nothing. Each phase now gets at most
+        # 1.6x the even split of what is left, so an over-runner is truncated instead of the
+        # sections behind it. And a phase that would get less than MIN_SLICE is SKIPPED rather than
+        # handed a useless sliver — 13 minutes bought exactly nothing on 08-14, twice.
+        todo = [q for q in body[body.index(p):] if not fresh(q["artifact"], since) or a.force]
+        share = left / max(len(todo), 1) * 1.6
+        cap = min(left, share)
+        if cap < MIN_SLICE_S:
+            log(f"SKIP {p['key']} — fair share is {cap/60:.0f}m, below the {MIN_SLICE_S//60}m "
+                f"minimum a section needs to produce anything")
+            failed.append(p["key"])
+            continue
+        (built if run_phase(p, cap) else failed).append(p["key"])
 
     log(f"sections: {len(built)} built, {len(skipped)} already had, {len(failed)} missing")
     if failed:
