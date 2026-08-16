@@ -161,6 +161,36 @@ def append_log(msg):
         pass
 
 
+def seg_confirm(prev: dict | None, raw: str, fresh: bool, hold: int) -> dict:
+    """The direction-confirmation state machine, as a PURE function so it can be tested.
+
+    ★2026-08-16 extracted from the tick body when SEG_HOLD became tunable. It was inline and
+    therefore unpinned, which on this desk is how a hysteresis rule quietly becomes something else —
+    the 08-11 flicker bug lived here and was found in production, not in a test.
+
+    `prev` is the persisted state (dir/conf/dissent/agree) or None. `fresh` says the previous tick is
+    recent enough to chain from. Returns the new state plus `held`, true when a dissenting tick was
+    absorbed rather than acted on.
+
+    SYMMETRY IS THE POINT: entering a direction costs `hold` consecutive agreeing ticks, and leaving
+    a confirmed one costs `hold` consecutive dissenting ticks. An asymmetric version benched
+    abs_veto_short at 01:00 and re-armed it at 01:30 on a single marginal read.
+    """
+    p = prev or {}
+    prev_dir = p.get("dir")
+    prev_conf = bool(p.get("conf"))
+    prev_dis = int(p.get("dissent", 0))
+    prev_agree = int(p.get("agree", 0)) if fresh else 0
+
+    if (prev_conf and prev_dir not in (None, "FLAT") and raw != prev_dir
+            and fresh and prev_dis < hold - 1):
+        return {"dir": prev_dir, "conf": True, "dissent": prev_dis + 1,
+                "agree": prev_agree, "held": True}
+    agree = (prev_agree + 1) if (fresh and prev_dir == raw) else 1
+    return {"dir": raw, "conf": raw != "FLAT" and agree >= hold,
+            "dissent": 0, "agree": agree, "held": False}
+
+
 def main():
     # skip during the maintenance halt (desk frozen; nothing to decide)
     # ★2026-08-09 MONDAY #2, second half — "move the 21:00-22:00Z maintenance gap so the hour before
@@ -252,6 +282,25 @@ def main():
     # So the segment reading carries a TWO-CONSECUTIVE-TICK confirmation, exactly as the untradeable
     # meter got, with the previous reading persisted. Shortening the window without the dwell would
     # make the churn worse, not better.
+    # ★★★2026-08-16 SATURDAY #1 — ROUTER TIMING IS TUNED HERE, IN THE DURABLE TICK.
+    # The report filed this as "one constant block in the router service; restart required" and
+    # pointed at direction_router.py's WINDOW/STEP/HOLD. Those are DEAD — that timer is disabled and
+    # this file does not import them. The LIVE parameters are these, and because each tick is a fresh
+    # process an edit takes effect on the NEXT TICK with NO RESTART.
+    #   window  60 -> 45 min   the segment the direction read is taken over
+    #   step        = 5 min    already the timer cadence (*:0/5); nothing to change
+    #   hold     2 -> 3 ticks  consecutive agreeing ticks to flip the effective direction
+    # ⚠ THE TRADE-OFF, and it is not free: hold=3 at a 5-min cadence means 15 MINUTES to confirm a
+    # direction change, both ways. Leaving a direction slower is GOOD (it re-arms, and wrongly-armed
+    # is the expensive error). Entering slower is mildly BAD (it benches, which is cheap and safe).
+    # Symmetric 3 is what the 40-day sweep asked for; if the bench side proves too slow, the knob to
+    # split is SEG_HOLD_ENTER/SEG_HOLD_LEAVE, not a return to 2.
+    # REVERT: SEG_WINDOW_MIN = 60, SEG_HOLD = 2. No restart needed either way.
+    SEG_WINDOW_MIN = 45          # was 60
+    SEG_HOLD = 3                 # was 2 (symmetric since 2026-08-11)
+    SEG_NET_MIN = 40.0           # ⚠ NOT direction_router.NET_MIN (30.0) — that module is dead
+    SEG_ER_FLOOR = 0.20
+    SEG_MIN_BARS = 15            # was 20 of 60; same density over a 45-min window
     seg_txt = "(unavailable)"
     try:
         import json as _sj
@@ -261,9 +310,9 @@ def main():
         _now = int(datetime.now(timezone.utc).timestamp())
         _rows = _sc.execute(
             "SELECT (bar_ts-bar_ts%60) m, arg_max(close,bar_ts) cl FROM sc.bars "
-            f"WHERE symbol='MNQ' AND bar_ts>={_now - 60*60} GROUP BY 1 ORDER BY 1").fetchall()
+            f"WHERE symbol='MNQ' AND bar_ts>={_now - SEG_WINDOW_MIN*60} GROUP BY 1 ORDER BY 1").fetchall()
         _sc.close()
-        if len(_rows) >= 20:
+        if len(_rows) >= SEG_MIN_BARS:
             _o, _l = _rows[0][1], _rows[-1][1]
             _net = _l - _o
             _path = sum(abs(_rows[i][1] - _rows[i - 1][1]) for i in range(1, len(_rows))) or 1.0
@@ -275,8 +324,7 @@ def main():
             # tape: the real 12:00-12:41 break ran ER 0.311, the morning chop 0.031, the 179pt
             # retrace 0.115. A 0.20 floor calls the break and stays FLAT through both the chop and
             # the bounce, which is exactly the discrimination the rule is for.
-            SEG_ER_FLOOR = 0.20
-            if abs(_net) > 40 and _er >= SEG_ER_FLOOR:
+            if abs(_net) > SEG_NET_MIN and _er >= SEG_ER_FLOOR:
                 _raw = "DOWN" if _net < 0 else "UP"
             else:
                 _raw = "FLAT"
@@ -311,12 +359,14 @@ def main():
                 fast_txt = ""
             _sp = f"{GB}/data/router_segment_state.json"
             _prev_dir, _prev_conf, _prev_dis, _age = None, False, 0, 10 ** 9
+            _prev_agree_raw = 0
             try:
                 with open(_sp) as _f:
                     _p = _sj.load(_f)
                 _prev_dir = _p.get("dir")
                 _prev_conf = bool(_p.get("conf"))
                 _prev_dis = int(_p.get("dissent", 0))
+                _prev_agree_raw = int(_p.get("agree", 0))
                 _age = _now - int(_p.get("ts", 0))
             except Exception:
                 pass
@@ -328,22 +378,20 @@ def main():
             # A first dissenting tick against a CONFIRMED direction now HOLDS that direction and is
             # recorded as dissent 1; a second consecutive dissent releases it. Leaving costs two
             # ticks exactly as entering does.
-            _held = False
-            if (_prev_conf and _prev_dir not in (None, "FLAT") and _raw != _prev_dir
-                    and _age <= 900 and _prev_dis < 1):
-                _dir, _conf, _dis, _held = _prev_dir, True, _prev_dis + 1, True
-            else:
-                _dir = _raw
-                _conf = (_prev_dir == _raw and _age <= 900 and _raw != "FLAT")
-                _dis = 0
+            # ★2026-08-16 the state machine is seg_confirm() — a pure, TESTED function.
+            _st = seg_confirm({"dir": _prev_dir, "conf": _prev_conf, "dissent": _prev_dis,
+                               "agree": _prev_agree_raw}, _raw, _age <= 900, SEG_HOLD)
+            _dir, _conf, _dis = _st["dir"], _st["conf"], _st["dissent"]
+            _agree, _held = _st["agree"], _st["held"]
             # ER is printed to 3dp because the test is `_er >= 0.20` on the RAW value: at 2dp a raw
             # 0.1996 printed as "0.20" and read FLAT, so the log contradicted its own stated floor
             # and cost real audit time. Never round a number across the threshold it is judged on.
             _hold_txt = (f"  ⚠ HELD: raw read is {_raw} but the previous tick's {_prev_dir} was "
                         f"CONFIRMED, so this is dissent 1 of 2 — the direction does NOT flip until a "
                         f"second consecutive dissent. Treat {_prev_dir} as still in force." if _held else "")
-            seg_txt = (f"last 60min: {_dir}  net {_net:+.0f}pt  ER {_er:.3f} "
-                       f"(needs |net|>40 AND ER>=0.20 to be directional)  "
+            seg_txt = (f"last {SEG_WINDOW_MIN}min: {_dir}  net {_net:+.0f}pt  ER {_er:.3f} "
+                       f"(needs |net|>{SEG_NET_MIN:.0f} AND ER>={SEG_ER_FLOOR:.2f} to be directional; "
+                       f"agreeing ticks {_agree}/{SEG_HOLD})  "
                        f"({len(_rows)} bars, path {_path:.0f}pt) | previous tick: "
                        f"{_prev_dir or 'none'} -> confirmation {'MET' if _conf else 'UNMET'}"
                        f"{_hold_txt}{fast_txt}")
@@ -351,12 +399,14 @@ def main():
                 _t = _sp + ".tmp"
                 with open(_t, "w") as _f:
                     _sj.dump({"dir": _dir, "net": _net, "er": round(_er, 3), "ts": _now,
-                              "conf": bool(_conf), "dissent": int(_dis), "raw": _raw}, _f)
+                              "conf": bool(_conf), "dissent": int(_dis), "raw": _raw,
+                              "agree": int(_agree)}, _f)
                 os.replace(_t, _sp)
             except Exception:
                 pass
         else:
-            seg_txt = f"(only {len(_rows)} bars in the last hour — no segment read)"
+            seg_txt = (f"(only {len(_rows)} bars in the last {SEG_WINDOW_MIN}min, "
+                       f"need {SEG_MIN_BARS} — no segment read)")
     except Exception as e:
         seg_txt = f"(unavailable: {e})"
 
