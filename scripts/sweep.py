@@ -572,6 +572,52 @@ _LIVE_BEHAVIOUR_PATHS = (
     "src/gazbot7/slot_strategy.py",   # the slate: gates, entry params, sizing
     "src/gazbot7/multislot_core.py",  # the order path and every safety branch
 )
+# ★2026-08-16 how long a local-only commit may sit before it is a finding. A commit-then-push in the
+# same breath is the desk's normal flow, so anything still unpushed a DAY later was not "in progress".
+_UNPUSHED_GRACE_H = 24.0
+
+
+def _ahead_of_remote(repo: str) -> dict:
+    """★2026-08-16 Commits made HERE that were never pushed. **Deliberately makes no network call.**
+
+    Found the hard way: `refactor/three-service` was **207 commits / 18 days** ahead of origin — the
+    router being made permanent, the 08-06 shared-account fixes, the whole 08-13 "the books lied"
+    order-path rework and DECISION §362 existed on this box ONLY. B2 backs up `gazbot7.db`,
+    `shadow.db` and configs; it does not back up the source tree. On a 7.5GB box with three logged
+    OOM kills, that is the entire desk one disk away from gone. `check_config_committed` read OK
+    green throughout, because it asked "is it committed?" and never "did it leave the building?"
+    ([[an-instrument-that-reports-healthy-about-something-it-does-not-check]]).
+
+    `@{u}` is the LOCAL remote-tracking ref, which git advances on a successful push — so this
+    measures "committed on this box, never pushed from it" with no fetch. A network call in a check
+    that runs 8x/day is a hang risk, and the failure being guarded is local by construction.
+    ⚠ It cannot see a push made from ANOTHER machine (the ref would be stale). On a single-box desk
+    that can only over-report, never under-report — the safe direction for an alarm to be wrong in.
+    """
+    def _git(*a):
+        return subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True, timeout=10)
+    up = _git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+    if up.returncode != 0:
+        br = _git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip() or "?"
+        # No upstream is WORSE than being ahead, not better: nothing on this branch can ever leave.
+        return {"ahead": None, "upstream": None,
+                "detail": f"branch '{br}' has NO UPSTREAM — nothing committed here can be pushed"}
+    upstream = up.stdout.strip()
+    rev = _git("rev-list", "--count", "@{u}..HEAD")
+    if rev.returncode != 0:
+        return {"ahead": None, "upstream": upstream,
+                "detail": f"ahead-count failed: {rev.stderr.strip()[:100]}"}
+    ahead = int(rev.stdout.strip() or 0)
+    if ahead == 0:
+        return {"ahead": 0, "upstream": upstream, "oldest_h": 0.0}
+    # Age of the OLDEST unpushed commit. The NEWEST would reset the clock on every commit, so the
+    # alarm would never fire on a branch worked on daily — which is exactly this branch.
+    # ⚠ min(), NOT the last line of `git log`. Log order is the DAG, and commit dates are not
+    # monotonic along it: one rebase, cherry-pick or amended date puts an old commit on top of a new
+    # one and the last line is then not the oldest. Caught by the 18-day fixture, which read 2.0h.
+    stamps = [int(s) for s in _git("log", "--format=%ct", "@{u}..HEAD").stdout.split()]
+    oldest_h = ((datetime.now(UTC).timestamp() - min(stamps)) / 3600.0) if stamps else 0.0
+    return {"ahead": ahead, "upstream": upstream, "oldest_h": round(oldest_h, 1)}
 
 
 def check_config_committed(repo: str = "/home/alphabot/gazbot7") -> dict:
@@ -596,14 +642,36 @@ def check_config_committed(repo: str = "/home/alphabot/gazbot7") -> dict:
             return {"status": WARN, "dirty": None,
                     "detail": f"git status failed: {out.stderr.strip()[:120]}"}
         dirty = [ln[3:].strip() for ln in out.stdout.splitlines() if ln.strip()]
-        if not dirty:
-            return {"status": OK, "dirty": [], "head": head,
-                    "detail": f"live-behaviour files all committed @ {head}"}
-        return {"status": WARN, "dirty": dirty, "head": head,
-                "detail": (f"{len(dirty)} live-behaviour file(s) UNCOMMITTED @ {head}: "
-                           f"{', '.join(dirty)} — cannot be diffed, reverted or attributed")}
+
+        # ★2026-08-16 committed is only half of safe — see _ahead_of_remote.
+        push = _ahead_of_remote(repo)
+        n, age = push.get("ahead"), push.get("oldest_h") or 0.0
+        if n is None:
+            push_bad = push.get("detail", "push state unknown")
+        elif n and age >= _UNPUSHED_GRACE_H:
+            push_bad = (f"{n} commit(s) COMMITTED BUT NEVER PUSHED to {push['upstream']}, oldest "
+                        f"{age / 24:.1f}d — this box is the only copy of them")
+        else:
+            push_bad = None
+
+        base = {"dirty": dirty, "head": head, "ahead_of_remote": n,
+                "upstream": push.get("upstream"), "unpushed_oldest_h": push.get("oldest_h")}
+        notes = []
+        if dirty:
+            notes.append(f"{len(dirty)} live-behaviour file(s) UNCOMMITTED @ {head}: "
+                         f"{', '.join(dirty)} — cannot be diffed, reverted or attributed")
+        if push_bad:
+            notes.append(push_bad)
+        if notes:
+            return {**base, "status": WARN, "detail": " · ".join(notes)}
+        # The green light now asserts BOTH, and says so — a health line that names only what it
+        # checked is how "all committed" read as safe for 18 days.
+        pushed = f"pushed @ {head}" if n == 0 else f"{n} unpushed (<{_UNPUSHED_GRACE_H:.0f}h, ok)"
+        return {**base, "status": OK,
+                "detail": f"live-behaviour files all committed · {pushed}"}
     except Exception as e:
-        return {"status": WARN, "dirty": None, "detail": f"config-committed check failed: {e}"}
+        return {"status": WARN, "dirty": None, "ahead_of_remote": None,
+                "detail": f"config-committed check failed: {e}"}
 
 
 def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict:
