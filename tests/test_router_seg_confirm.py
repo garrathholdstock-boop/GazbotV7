@@ -5,7 +5,8 @@ flicker bug reached production: five confirmed UP reads undone by ONE marginal t
 abs_veto_short at 01:00 and re-arming it at 01:30. These tests exist so a timing change cannot
 quietly become a different rule.
 """
-import sys, os
+import os
+import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from router_tick_durable import seg_confirm  # noqa: E402
@@ -78,3 +79,28 @@ def test_the_live_constants_are_what_SATURDAY_1_ASKED_FOR():
     assert "SEG_WINDOW_MIN = 45" in src, "window must be 45 min (was 60)"
     assert "SEG_HOLD = 3" in src, "hold must be 3 ticks (was 2)"
     assert "SEG_NET_MIN = 40.0" in src
+
+
+def test_the_PROMPT_states_the_ACTUAL_hold_not_a_hard_coded_one():
+    """★ AUDIT FINDING. seg_txt/_hold_txt are interpolated into the LLM prompt under
+    "=== SEGMENT BIAS — THIS IS THE DIRECTION TRIGGER ===", and the router acts on that text.
+    It said "dissent 1 of 2" while SEG_HOLD was 3 — telling the router a two-tick rule against a
+    three-tick machine, and calling every dissent the first. CLAUDE.md: a memory is not a rule until
+    it is in the prompt; a prompt that carries the WRONG rule is worse than one that carries none."""
+    src = open(os.path.join(os.path.dirname(__file__), "..",
+                            "scripts", "router_tick_durable.py")).read()
+    i = src.index("⚠ HELD: raw read is")
+    msg = src[i:i + 420]
+    assert "1 of 2" not in msg and "second consecutive" not in msg, \
+        "the hold rule must not be hard-coded — it drifts from SEG_HOLD silently"
+    assert "{_dis}" in msg and "{SEG_HOLD}" in msg, "both numbers must be interpolated"
+
+
+def test_a_full_direction_FLIP_costs_two_holds_not_one():
+    """Worth stating because the commit said "15 minutes, both ways". Releasing a confirmed
+    direction costs HOLD dissents, and confirming the NEW one costs HOLD agreements — so a genuine
+    UP->DOWN flip is 2xHOLD ticks (30 min at a 5-min cadence), not one."""
+    s = _chain(["UP", "UP", "UP", "DOWN", "DOWN", "DOWN", "DOWN", "DOWN"])
+    assert s[2]["conf"] and s[2]["dir"] == "UP"
+    assert s[5]["dir"] == "DOWN" and not s[5]["conf"], "released, but not yet confirmed the other way"
+    assert s[7]["conf"] and s[7]["dir"] == "DOWN", "confirmation of DOWN takes a further HOLD ticks"

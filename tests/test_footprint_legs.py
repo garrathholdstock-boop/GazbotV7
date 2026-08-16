@@ -69,8 +69,11 @@ def test_the_shipped_wide_legs_vary_the_STOP_ONLY():
     assert [l.name for l in WIDE_LEGS] == ["exh_w15", "exh_w20"]
     assert {l.target for l in WIDE_LEGS} == {3.0}, "target must be held constant at 3.0xATR"
     assert [l.stop for l in WIDE_LEGS] == [1.5, 2.0]
-    assert all(l.mode == "atr" and l.hold_s == 0 for l in WIDE_LEGS), \
-        "the graded cell was 'no cap' — a hidden time cap makes it a different policy"
+    # ⚠ hold_s WAS 0 ("the graded cell had no cap") and an audit showed that starved the 120s
+    # control of 56% of its entries and left an unbounded tick scan open. The cap is now the desk's
+    # own global max_hold (2h), which every live position already has — so the legs cannot outlive
+    # what the real desk would allow, and "no cap" survives in practice for all but the extreme tail.
+    assert all(l.mode == "atr" and l.hold_s == 7200 for l in WIDE_LEGS)
 
 
 def test_repricer_geometry_is_the_LEG_S_not_the_legacy_8_12():
@@ -113,3 +116,52 @@ def test_all_legs_enter_on_the_SAME_fill_and_exit_independently():
     assert set(f._open) == {"tight", "wide"}
     entries = {op["entry_price"] for op in f._open.values()}
     assert len(entries) == 1, "the legs must enter on ONE fill, or this is not an exit comparison"
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# ★★★ AUDIT FINDINGS. The shipped call is legs=[LEGACY_LEG, *WIDE_LEGS], NOT legs=None — so
+# "exhaustion_rev is unchanged because legs=None reproduces it" tested a path that is not shipped.
+# Measured on 171 real signals: an uncapped wide leg blocked 95 of them (56%) from the 120s control.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+def test_the_control_is_INDEPENDENT_of_the_wide_arms():
+    """The starvation fix. exhaustion_rev must be its own group, or a 2h arm gates a 120s control."""
+    assert LEGACY_LEG.grp == "exhaustion_rev"
+    assert {l.grp for l in WIDE_LEGS} == {"wide"}
+    assert LEGACY_LEG.grp not in {l.grp for l in WIDE_LEGS}
+
+
+def test_no_leg_can_ride_unbounded():
+    """hold_s=0 meant a leg could stay open forever, growing an unLIMITed tick scan against a 5.6GB
+    capture.db on a 7.5GB box — and once its entry aged out of the 5-day window it could never
+    close. Every leg now caps at or under the desk's own 120-minute global force-flatten."""
+    for leg in [LEGACY_LEG, *WIDE_LEGS]:
+        assert leg.hold_s > 0, f"{leg.name} has no time cap"
+        assert leg.hold_s <= 7200, f"{leg.name} outlives the desk's global max_hold_minutes=120"
+
+
+def test_a_busy_wide_group_does_NOT_block_the_control():
+    """Drives the real re-entry rule rather than asserting on config."""
+    store = sqlite3.connect(":memory:")
+    from gazbot7.store import SCHEMA
+    store.executescript(SCHEMA)
+    f = FootprintShadow(store, "MNQ", value_per_point=2.0, fee_rt=1.5,
+                        legs=[LEGACY_LEG, *WIDE_LEGS])
+    leg_by = {l.name: l for l in f._legs}
+    # simulate: the wide group is mid-trade, the control has closed
+    f._open = {"exh_w15": {"leg": leg_by["exh_w15"], "entry_ts": 1000},
+               "exh_w20": {"leg": leg_by["exh_w20"], "entry_ts": 1000}}
+    busy = {f._open[n]["leg"].grp for n in f._open}
+    offered = [l.name for l in f._legs if l.name not in f._open and l.grp not in busy]
+    assert offered == ["exhaustion_rev"], \
+        "the control must still be offered a signal while the wide group rides"
+    # and the converse: a busy control must not block the wide group
+    f._open = {"exhaustion_rev": {"leg": LEGACY_LEG, "entry_ts": 1000}}
+    busy = {f._open[n]["leg"].grp for n in f._open}
+    offered = [l.name for l in f._legs if l.name not in f._open and l.grp not in busy]
+    assert offered == ["exh_w15", "exh_w20"]
+
+
+def test_legs_in_ONE_group_still_share_a_fill():
+    """The group rule must not accidentally let w15 and w20 enter on different signals — that would
+    turn the stop comparison into an occupancy comparison."""
+    assert WIDE_LEGS[0].grp == WIDE_LEGS[1].grp

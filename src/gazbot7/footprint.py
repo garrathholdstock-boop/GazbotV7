@@ -52,6 +52,15 @@ class ExitLeg:
     target: float
     mode: str = "pt"
     hold_s: int = HOLD_S
+    # ★2026-08-16 (audit) GROUPS. Re-entry is gated per GROUP, not across all legs. Legs in one group
+    # share every entry — that is what makes them an exit comparison. Legs in DIFFERENT groups are
+    # independent, so a long-riding arm cannot starve a short-capped one.
+    # Default "" means "my own group", i.e. fully independent, which is what the legacy control needs.
+    group: str = ""
+
+    @property
+    def grp(self) -> str:
+        return self.group or self.name
 
 
 # The legacy single leg. exhaustion_rev is a PROTECTED control and the entry substrate for seven
@@ -62,10 +71,28 @@ LEGACY_LEG = ExitLeg("exhaustion_rev", STOP_PT, TARGET_PT, "pt", HOLD_S)
 # would confound stop width with the harness (the shadow book leaks past its own stops on 44% of
 # trades), which is exactly the bias that makes the wide-stop grid suspect in the first place.
 # Target is held CONSTANT at 3.0xATR so only the stop varies — the live config's target distance.
+# ⚠⚠ hold_s IS NOT 0. The first version used 0 ("the graded cell was 'no cap'") and an audit found
+# two consequences, both bad:
+#   1. THE PROTECTED CONTROL LOST 56% OF ITS ENTRIES. on_cycle takes a new signal only when EVERY leg
+#      is flat, so an uncapped leg riding for hours blocks exhaustion_rev — whose own cap is 120s.
+#      Replayed on 171 real signals: 95 of them BLOCKED, and exh_w20 held up to 360 minutes without
+#      resolving. The control's 664-row history would have been joined by a differently-sampled
+#      population with nothing marking the change.
+#   2. UNBOUNDED TICK SCAN. _try_close re-reads ticks from entry to now on every cycle with no LIMIT,
+#      against a 5.6GB capture.db on a 7.5GB box with three prior OOM kills. An uncapped leg grows
+#      that range forever, and once the entry falls out of capture's 5-day window it can never close.
+# 7200s (2h) matches the desk's own global max_hold_minutes=120 — the outer backstop every live
+# position already has — so the legs cannot outlive what the real desk would allow anyway, and the
+# "no cap" the grid tested is preserved in practice for all but the extreme tail.
+_LEG_CAP_S = 7200
+
+# group="wide": these two share every entry with EACH OTHER (the 1.5-vs-2.0 comparison) but are
+# independent of exhaustion_rev, so the 120s control keeps its own sampling and its 664-row history
+# stays comparable to itself.
 WIDE_LEGS = [
-    ExitLeg("exh_w15", 1.5, 3.0, "atr", 0),     # mirrors what went live 2026-08-16
-    ExitLeg("exh_w20", 2.0, 3.0, "atr", 0),     # the candidate: better on the grid, monotonic to
-]                                               # the grid edge, which is why it is here not live
+    ExitLeg("exh_w15", 1.5, 3.0, "atr", _LEG_CAP_S, group="wide"),   # mirrors what went live 08-16
+    ExitLeg("exh_w20", 2.0, 3.0, "atr", _LEG_CAP_S, group="wide"),   # better on the grid, but
+]                                                                    # monotonic to its edge
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,10 +237,11 @@ class FootprintShadow:
     def on_cycle(self, cap, now_ms: int) -> None:
         if self._open:
             self._try_close(cap, now_ms)
-        # ★ A new signal is taken only when EVERY leg is flat. The alternative — letting a free leg
-        # re-enter while a wider one is still riding — would feed the legs different entry
-        # populations, and then the wide-vs-tight number would be measuring occupancy, not the stop.
-        if not self._open:
+        # ★ Re-entry is per GROUP (audit fix). Within a group every leg enters on the same fill, so
+        # the comparison is of the exit alone. Across groups they are independent — otherwise an
+        # uncapped 2h arm starves the 120s control, which measurement showed it did: 95 of 171 real
+        # signals blocked. Any group with no open leg is offered the signal.
+        if len(self._open) < len(self._legs):
             self._try_open(cap, now_ms)
 
     # ── entry ────────────────────────────────────────────────────────────────
@@ -237,7 +265,10 @@ class FootprintShadow:
         base = {"side": side, "entry_ts": now_ms // 1000, "entry_price": entry,
                 "net_signed": net, "price_move": move,
                 "bid1": bs or 0.0, "ask1": as_ or 0.0, "atr": atr}
+        busy = {self._open[n]["leg"].grp for n in self._open}
         for leg in self._legs:
+            if leg.name in self._open or leg.grp in busy:
+                continue      # this group is mid-trade; it does not see this signal
             if leg.mode == "atr" and not (atr and atr > 0):
                 continue      # no ATR -> no ATR-based arm. Fails CLOSED, and visibly (no row).
             self._open[leg.name] = dict(base, leg=leg)

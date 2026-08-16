@@ -203,7 +203,9 @@ async def run(specs=None, cfg: RunConfig | None = None, *, place_live: bool = Fa
     gw = None
     audit_task = None
     if place_live:
-        core, gw = await _build_live(cfg, gates)   # gateway + engine + per-slot safety + MultiSlotCore
+        # ★2026-08-16 the slate's stop widths must reach the VENUE stop — see _build_live.
+        core, gw = await _build_live(cfg, gates,
+                                     stop_mult={s.tag: float(s.stop_atr_mult or 1.0) for s in specs})
         adopted = core.reconstruct()               # rebuild open slots + stops from OUR ledger (netted venue can't)
         if adopted:
             log.warning("tournament ADOPTED %d open slot(s) from store: %s", len(adopted), adopted)
@@ -453,7 +455,7 @@ def _telegram_notifier(msg: str) -> None:
     notify(f"[V7-tournament] {msg}", critical=True)
 
 
-async def _build_live(cfg: RunConfig, gates):
+async def _build_live(cfg: RunConfig, gates, stop_mult: dict | None = None):
     """Live execution wiring (paper account). The per-slot venue-audit loop (naked/adopt/wedge/
     time-exit) is started by the caller; here we build the gateway + engine + per-slot safety +
     MultiSlotCore, with the operator notifier wired through so every safety alarm pages."""
@@ -484,7 +486,27 @@ async def _build_live(cfg: RunConfig, gates):
                              stop_contract=stop_contract)
     engine = OrderEngine(broker, store)
     slotbook = SlotBook(gates, value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
-    safeties = {g: SafetyManager(broker, notifier=_telegram_notifier) for g in gates}
+    # ★★★2026-08-16 THE VENUE STOP NOW HONOURS THE SLATE'S stop_atr_mult.
+    # Until today this read `SafetyManager(broker, notifier=...)` for every gate, so `atr_mult` took
+    # its 1.0 default and the resting STP was ALWAYS 1.0xATR. NO caller anywhere in the repo ever
+    # passed it — `grep "atr_mult="` returned only the definition.
+    #
+    # ⚠ THAT IS WHY THIS MORNING'S exhaustion_short "WIDE STOP" WAS NOT LIVE. In the multislot path
+    # spec.stop_atr_mult reaches only `exit_scalp(...) == "TARGET"`; the "STOP" return is DISCARDED
+    # because the native STP owns the downside (strategy.py: "native STP owns STOP"). So setting
+    # stop_k=1.5 moved the TARGET to 3.0xATR and left the stop at 1.0xATR — shipping the one cell on
+    # the report's grid that fails BOTH robustness bars (strip-3 -$510, LODO -$674), while the commit
+    # cited the 1.5 cell's +$2,046 / +$1,626 to justify choosing it. Asserting via scaleout_slots()
+    # was not enough: the field it returns was not the field that placed the order. CLAUDE.md trap 3
+    # one level below where it was looked for, and trap 9 — a test that checked the spec, not the STP.
+    #
+    # Keyed by SLOT TAG (safeties is), so only a gate whose slate row asks for a wider stop gets one;
+    # every other gate resolves 1.0 and rests exactly where it did before.
+    stop_mult = stop_mult or {}
+    safeties = {g: SafetyManager(broker, notifier=_telegram_notifier,
+                                 atr_mult=float(stop_mult.get(g, 1.0) or 1.0)) for g in gates}
+    log.info("tournament venue stops: %s",
+             {g: stop_mult.get(g, 1.0) for g in gates if stop_mult.get(g, 1.0) != 1.0} or "all 1.0xATR")
     core = MultiSlotCore(cfg, engine, slotbook, safeties, publisher=None, store=store,
                          notifier=_telegram_notifier)
     ref["core"] = core

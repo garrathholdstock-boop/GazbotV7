@@ -89,15 +89,21 @@ function render(d){
   const feedCls = d.depth_rows === 0 ? "no" : stale ? "wa" : "ok";
   const feedTxt = d.depth_rows === 0 ? "NO ROWS"
                 : stale ? "stale " + age(d.depth_age_s) : "live " + age(d.depth_age_s);
-  const recCls = d.recording ? "ok" : (d.arms.some(a => a.n > 0) ? "wa" : "no");
-  const recTxt = d.recording ? "recording"
+  // ⚠ A STORE ERROR MUST NOT RENDER AS "NOTHING YET". They look identical — zeros everywhere — and
+  // "nothing yet" is the alarm this page exists to raise, so a broken query imitating it is worse
+  // than no page. A data_quality column missing from shadow_mgc.db did exactly that on every
+  // request. Errors now take over the status card outright.
+  const broke = !!d.error;
+  const recCls = broke ? "no" : d.recording ? "ok" : (d.arms.some(a => a.n > 0) ? "wa" : "no");
+  const recTxt = broke ? "CANNOT READ STORE"
+               : d.recording ? "recording"
                : d.arms.some(a => a.n > 0) ? "idle" : "NOTHING YET";
   const total = d.arms.reduce((s,a) => s + (a.net || 0), 0);
   const n     = d.arms.reduce((s,a) => s + (a.n   || 0), 0);
   $("strip").innerHTML = `
     <div class="card"><div class="k">status</div>
       <div class="v ${recCls}">${recTxt}</div>
-      <div class="mut" style="font-size:12px">last trade ${age(d.last_trade_age_s)}</div></div>
+      <div class="mut" style="font-size:12px">${broke ? d.error : "last trade " + age(d.last_trade_age_s)}</div></div>
     <div class="card"><div class="k">depth feed (MGC)</div>
       <div class="v ${feedCls}">${feedTxt}</div>
       <div class="mut" style="font-size:12px">${d.depth_rows.toLocaleString()} snapshots</div></div>
@@ -143,8 +149,15 @@ function load(){
   // RELATIVE, like every other page here — it resolves under the /v7 prefix in production.
   fetch("api/mgcshadow", {cache:"no-store"})
     .then(r => r.json()).then(render)
-    .catch(e => { $("rows").innerHTML =
-      '<tr><td colspan="7" class="no">failed to load: ' + e + '</td></tr>'; });
+    // ⚠ the strip must be cleared too. Writing only into #rows left the freshness cards frozen on
+    // the last good values, so a page that had stopped loading looked alive on a 60s refresh.
+    .catch(e => {
+      $("strip").innerHTML =
+        '<div class="card"><div class="k">status</div><div class="v no">PAGE CANNOT LOAD</div>' +
+        '<div class="mut" style="font-size:12px">' + e + '</div></div>';
+      $("rows").innerHTML =
+        '<tr><td colspan="7" class="no">failed to load: ' + e + '</td></tr>';
+    });
 }
 load();
 setInterval(load, 60000);

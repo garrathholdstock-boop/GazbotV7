@@ -386,9 +386,15 @@ def main():
             # ER is printed to 3dp because the test is `_er >= 0.20` on the RAW value: at 2dp a raw
             # 0.1996 printed as "0.20" and read FLAT, so the log contradicted its own stated floor
             # and cost real audit time. Never round a number across the threshold it is judged on.
+            # ⚠ THIS STRING GOES INTO THE PROMPT AND THE ROUTER ACTS ON IT. It hard-coded
+            # "dissent 1 of 2" and went on saying so after SEG_HOLD became 3 — stating a two-tick
+            # rule to a three-tick machine, and calling every dissent the first however many had
+            # accumulated. CLAUDE.md: a memory is not a rule until it is in the prompt — here the
+            # prompt carried the WRONG rule. Both numbers are interpolated now.
             _hold_txt = (f"  ⚠ HELD: raw read is {_raw} but the previous tick's {_prev_dir} was "
-                        f"CONFIRMED, so this is dissent 1 of 2 — the direction does NOT flip until a "
-                        f"second consecutive dissent. Treat {_prev_dir} as still in force." if _held else "")
+                        f"CONFIRMED, so this is dissent {_dis} of {SEG_HOLD} — the direction does NOT "
+                        f"flip until {SEG_HOLD} consecutive dissents. Treat {_prev_dir} as still in "
+                        f"force." if _held else "")
             seg_txt = (f"last {SEG_WINDOW_MIN}min: {_dir}  net {_net:+.0f}pt  ER {_er:.3f} "
                        f"(needs |net|>{SEG_NET_MIN:.0f} AND ER>={SEG_ER_FLOOR:.2f} to be directional; "
                        f"agreeing ticks {_agree}/{SEG_HOLD})  "

@@ -739,8 +739,18 @@ class MultiSlotCore:
                         # sitting unmanaged is loud instead of green. Detection only — nothing below
                         # places an order or mutates slot state.
                         self._safety_skipped = getattr(self, "_safety_skipped", 0) + 1
+                        # ⚠ TWO BUGS LIVED ON THIS ONE LINE, BOTH SILENT.
+                        # (1) It first read a `_book` attribute, which does not exist on this class
+                        #     — the slot book is `_sb` — so the AttributeError was swallowed below,
+                        #     `held` was always [], and the alarm could NEVER fire. An alarm written
+                        #     to fix a silent failure, that failed silently.
+                        # (2) The obvious repair, `self._sb.slot(g)`, is ALSO wrong: slot() returns a
+                        #     Slot dataclass that is TRUTHY when flat, so every gate would read as
+                        #     held and the alarm would fire on an idle desk. `is_flat` is the real
+                        #     test — the same one any_held() uses.
+                        # Neither was catchable by reading source; both took exercising the object.
                         try:
-                            held = [g for g in self._gates if self._book.get(g)]
+                            held = [g for g in self._gates if not self._sb.slot(g).is_flat]
                         except Exception:
                             held = []
                         if held and self._safety_skipped in (1, 12, 60):   # now, ~1min, ~5min

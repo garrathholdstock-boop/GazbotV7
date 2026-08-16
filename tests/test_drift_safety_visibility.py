@@ -18,20 +18,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import sweep                                     # noqa: E402
 
 
-def _core(**over):
-    h = {"ts": 0, "conn": "ok", "healthy": True, "place_live": True, "flat": True,
-         "halted": False, "protection": {}, "audit_age_s": 1.0, "safety_skipped_cycles": 0}
-    h.update(over)
-    return h
-
-
-def _status(h, monkeypatch, tmp_path):
-    import json
-    p = tmp_path / "core_health.json"
-    p.write_text(json.dumps(h))
-    return sweep.check_core(str(tmp_path)) if hasattr(sweep, "check_core") else None
-
-
 def test_the_flag_is_published_at_all():
     """The regression for the whole bug: a number nothing publishes cannot be alarmed on."""
     src = open(os.path.join(os.path.dirname(__file__), "..",
@@ -70,3 +56,34 @@ def test_the_order_path_is_NOT_armed_under_drift():
     for forbidden in ("_flatten_slot(", "_reprotect_slot(", "time_exit_check(", "claim_check("):
         assert forbidden not in branch, \
             f"{forbidden} must NOT run under drift — the account is shared and netted"
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# ★★★ THE AUDIT FINDING: the four tests above are SOURCE GREPS. They passed while the alarm could
+# never fire, because `self._book` does not exist on MultiSlotCore and the AttributeError was
+# swallowed. A grep cannot see that. These exercise the real object.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+def test_the_held_accessor_IS_REAL_and_is_falsy_when_flat():
+    """Two bugs lived on one line: `_book` (does not exist) and then `slot(g)` (a Slot is TRUTHY
+    when flat, so every gate would read as held and the alarm would fire on an idle desk)."""
+    from gazbot7.slotbook import SlotBook
+
+    gates = ["grind_long_A", "exhaustion_short_A"]
+    sb = SlotBook(gates, value_per_point=2.0, fee_rt=1.5)
+
+    # the accessor the drift branch uses, applied to a FLAT book
+    held = [g for g in gates if not sb.slot(g).is_flat]
+    assert held == [], "a flat desk must report nothing held, or the alarm cries wolf every cycle"
+
+    # and it must be reachable — no AttributeError, which is what the original line raised
+    assert hasattr(sb, "slot") and hasattr(sb.slot(gates[0]), "is_flat")
+
+
+def test_MultiSlotCore_has_no_attribute_named__book():
+    """Pins the actual defect: the alarm referenced a field that has never existed on this class."""
+    from gazbot7.multislot_core import MultiSlotCore
+
+    src = open(os.path.join(os.path.dirname(__file__), "..",
+                            "src", "gazbot7", "multislot_core.py")).read()
+    assert "self._book" not in src, "_book does not exist here; the slot book is _sb"
+    assert not hasattr(MultiSlotCore, "_book")

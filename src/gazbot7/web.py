@@ -1066,13 +1066,22 @@ def mgc_shadow_json(mgc_path, depth_path="/home/alphabot/gazbot7/data/depth.db")
     try:
         con = sqlite3.connect(f"file:{mgc_path}?mode=ro", uri=True, timeout=3.0)
         con.row_factory = sqlite3.Row
-        for r in con.execute("""
+        # ⚠⚠ shadow_mgc.db HAS NO data_quality COLUMN. shadow.db does — it was ALTERed in by
+        # scripts/quarantine_shadow_md_corruption.py, which only ever targeted the MNQ store. The
+        # first version of this query filtered on it unconditionally and threw OperationalError on
+        # EVERY request; the page then rendered "trades 0 / net $0.00 / NOTHING YET" — which is
+        # indistinguishable from the true "armed but recording nothing" alarm this board exists to
+        # raise. A broken instrument imitating its own alarm is the worst of both.
+        cols = {r[1] for r in con.execute("PRAGMA table_info(shadow_trades)")}
+        dq = "AND t.data_quality IS NULL" if "data_quality" in cols else ""
+        out["data_quality_filtered"] = bool(dq)
+        for r in con.execute(f"""
                 SELECT t.strategy s, COUNT(*) n,
                        ROUND(SUM(r.real_pnl), 2) net, ROUND(AVG(r.real_pnl), 2) exp,
                        ROUND(AVG(CASE WHEN r.real_pnl > 0 THEN 1.0 ELSE 0.0 END) * 100, 1) win,
                        MAX(t.exit_ts) last_ts
                 FROM shadow_real r JOIN shadow_trades t ON t.id = r.trade_id
-                WHERE t.data_quality IS NULL AND r.fill_status = 'filled'
+                WHERE r.fill_status = 'filled' {dq}
                 GROUP BY t.strategy"""):
             rows[r["s"]] = dict(r)
         o = con.execute("SELECT MAX(exit_ts) FROM shadow_trades").fetchone()[0]

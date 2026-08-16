@@ -16,6 +16,7 @@ The cell, in the report's units and ours:
              (which is why exh_exit_grid2.json indexes the same cell as tgt_k=3.0)
 """
 import json
+import os
 
 from gazbot7.slot_strategy import scaleout_slots
 
@@ -87,3 +88,37 @@ def test_stop_k_is_validated_and_cannot_size_the_desk_by_typo():
     for bad in (0, -1, 50, 5.1, "wide", None):
         got = _with({"g": {"a_r": 2.0, "b": 2.0, "stop_k": bad}})["g"]
         assert "stop_k" not in got, f"stop_k={bad!r} must be rejected, falling back to 1.0"
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# ★★★ THE AUDIT FINDING: these tests check the ORDER, not the spec field.
+# The original tests asserted `s.stop_atr_mult == 1.5` and passed while the VENUE STOP rested at
+# 1.0xATR — because in the multislot path stop_atr_mult reaches only exit_scalp's TARGET branch and
+# the native STP owns the downside. A green suite over a config that was never live.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+def test_the_slate_stop_reaches_the_VENUE_stop_price():
+    """compute_stop_price is what actually sets the resting STP. If atr_mult does not arrive there,
+    the slate's stop width is decorative."""
+    from gazbot7.safety import compute_stop_price
+    tight = compute_stop_price(20000.0, 20.0, is_short=True, atr_mult=1.0)
+    wide = compute_stop_price(20000.0, 20.0, is_short=True, atr_mult=1.5)
+    assert tight - 20000.0 == 20.0
+    assert wide - 20000.0 == 30.0, "1.5xATR on a 20pt ATR must rest 30pt away, not 20"
+
+
+def test_build_live_PASSES_the_multiplier_and_does_not_default_it():
+    """The regression: every SafetyManager was constructed without atr_mult, so the STP was always
+    1.0xATR no matter what the slate said. grep 'atr_mult=' once returned only the definition."""
+    src = open(os.path.join(os.path.dirname(__file__), "..",
+                            "src", "gazbot7", "tournament.py")).read()
+    i = src.index("safeties = {g: SafetyManager(")
+    ctor = src[i:i + 260]
+    assert "atr_mult=" in ctor, "the venue stop must be told the slate's width"
+    assert "stop_mult" in ctor, "and it must come from the slate, not a constant"
+
+
+def test_ONLY_exhaustion_short_gets_a_wider_venue_stop():
+    """A per-gate map, so widening one gate cannot silently widen the desk."""
+    wide = {s.tag: float(s.stop_atr_mult or 1.0) for s in scaleout_slots()}
+    assert {k for k, v in wide.items() if v != 1.0} == {"exhaustion_short_A", "exhaustion_short_B"}
+    assert all(v == 1.5 for k, v in wide.items() if k.startswith("exhaustion_short"))
