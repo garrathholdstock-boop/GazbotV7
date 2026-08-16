@@ -106,6 +106,13 @@ class ShadowVariant:
     # The play: take the flush when buyers are slow to show, instead of waiting for a flip that
     # never comes. 0 = off, which is every other variant.
     flip_timeout_s: int = 0
+    # ★2026-08-16 BUILD #16 — the quiet-tape clip STANDS DOWN on a range-break ignition.
+    # The clip exists because quiet tape does not pay a full R-target. A range break is the one quiet
+    # setup that CAN run, so clipping it may be cutting exactly the move the clip was never aimed at.
+    # BRK is the report's own definition (gf_chop_scalp §2): the bar closes outside the PRIOR 2h
+    # high/low. Not my invention — using a hand-rolled break test here would make the arm answer a
+    # different question from the one asked.
+    clip_standdown_on_brk: bool = False
     clip_atr_split: float = 0.0
     clip_a_usd: float = 0.0
     clip_b_r: float = 0.0
@@ -132,7 +139,23 @@ class ShadowVariant:
     rider_gate_drift: bool = False
 
 
-def _eff_target_r(v: ShadowVariant, atr: float, vpp: float) -> float:
+def _brk_2h(bars, price: float) -> bool:
+    """Range-break ignition: does `price` sit outside the PRIOR 2 hours' high/low?
+
+    ★ THE REPORT'S OWN DEFINITION (gf_chop_scalp §2, the regime taxonomy): "BRK = block closes
+    outside the prior 2h high/low". Using a hand-rolled break test here would make BUILD #16 answer a
+    different question from the one asked. The window EXCLUDES the current bar — a bar cannot break a
+    level it is itself setting, which is the circularity detect_break() also guards against.
+    """
+    if not bars or len(bars) < 30:
+        return False                       # not enough history to claim a break either way
+    w = bars[-121:-1] if len(bars) > 121 else bars[:-1]
+    if not w:
+        return False
+    return price > max(b.high for b in w) or price < min(b.low for b in w)
+
+
+def _eff_target_r(v: ShadowVariant, atr: float, vpp: float, brk: bool = False) -> float:
     """The target_r to hand exit_scalp so the sim's target lands where it is MEANT to.
 
     Two corrections, both mandatory for the stop-width A/B and both no-ops for every pre-existing
@@ -151,6 +174,10 @@ def _eff_target_r(v: ShadowVariant, atr: float, vpp: float) -> float:
     # target_r * stop_atr_mult * atr, and dividing back out is exactly how a fixed distance is
     # recovered. If ATR is unusable there is no honest conversion, so it falls back rather than
     # inventing one.
+    if brk and v.clip_standdown_on_brk:
+        # ★ BUILD #16 — ignition was a range break: skip the clip, keep the full R-target. Evaluated
+        # BEFORE the clip branch below, because standing down means the clip never applies at all.
+        return v.target_r
     if v.target_pt and atr > 0 and v.stop_atr_mult > 0:
         return v.target_pt / (v.stop_atr_mult * atr)
     if not v.decouple_target:
@@ -378,8 +405,13 @@ class ShadowSim:
         return exit_absorption(Position(side, 0.0, 0.0, 0.0), tape_net=tape_net,
                                window_price_delta=wpd, flow_min=v.absorption_flow_min) is not None
 
-    def _open_pos(self, v, entry, f, ts) -> None:
-        self._open[v.name] = dict(side=entry.side, entry_price=f.price, entry_atr=f.atr, entry_ts=ts, peak=0.0)
+    def _open_pos(self, v, entry, f, ts, bars=None) -> None:
+        # ★2026-08-16 BUILD #16 — stamp the IGNITION at entry, not at exit. Whether the move began as
+        # a range break is a fact about the moment we entered; recomputing it later would read a
+        # different 2h window and could flip the answer mid-trade.
+        brk = _brk_2h(bars, f.price) if (bars and v.clip_standdown_on_brk) else False
+        self._open[v.name] = dict(side=entry.side, entry_price=f.price, entry_atr=f.atr,
+                                  entry_ts=ts, peak=0.0, brk=brk)
 
     def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms, cap, bars=None):
         op = self._open.get(v.name)
@@ -387,7 +419,7 @@ class ShadowSim:
             if v.confirm_s <= 0:  # immediate entry (the default / live control)
                 entry = self._entry(v, f, tape_net, in_rth, cap, bars, ts)
                 if entry is not None:
-                    self._open_pos(v, entry, f, ts)
+                    self._open_pos(v, entry, f, ts, bars)
                 return
             # DELAYED ENTRY — raise the signal, watch absorption for confirm_s, enter
             # only if the thrust still fires and no absorption appeared (mirrors the
@@ -406,7 +438,7 @@ class ShadowSim:
             del self._pending[v.name]
             entry = self._entry(v, f, tape_net, in_rth, cap)
             if entry is not None and entry.side == pc["side"] and not self._absorbed(v, entry.side, tape_net, wpd):
-                self._open_pos(v, entry, f, ts)
+                self._open_pos(v, entry, f, ts, bars)
             return
         self._pending.pop(v.name, None)  # holding — abandon any pending confirm
         # manage — track peak favourable, then check the sim exit stack
@@ -431,7 +463,9 @@ class ShadowSim:
             reason = "CHANDELIER" if fired else exit_scalp(
                 pos, f.price, target_r=99.0, stop_atr_mult=v.stop_atr_mult)  # target off; STOP only
         else:
-            reason = exit_scalp(pos, f.price, target_r=_eff_target_r(v, op["entry_atr"], self._vpp),
+            reason = exit_scalp(pos, f.price,
+                                target_r=_eff_target_r(v, op["entry_atr"], self._vpp,
+                                                       brk=bool(op.get("brk"))),
                                 stop_atr_mult=v.stop_atr_mult)
             if reason is None and exit_adverse_cut(pos, f.price, cut_atr=v.adverse_cut_atr):
                 reason = "ADVERSE_CUT"
@@ -1023,6 +1057,20 @@ def _stop_width_ab() -> list[ShadowVariant]:
     # worth waiting for INDEFINITELY, which is a different question and the one nobody has measured.
     # ★ THE PAIR IS THE POINT: capit_flip_live is the live rule, capit_flip_t90 is the same rule with
     # a patience limit. Any difference is the timeout, because nothing else differs.
+    # ★★2026-08-16 BUILD #16 — the quiet-tape clip STANDS DOWN on a range-break ignition.
+    # The clip exists because quiet tape does not pay a full R-target. A range break is the one quiet
+    # setup that CAN run, so clipping it may be cutting the exact move the clip was never aimed at.
+    # ★ PAIRED against the clip as it runs live, differing only in the stand-down — and both carry
+    # atr_max=22 so they only run where the clip is actually live. BRK is the report's own definition
+    # (gf_chop_scalp §2): closes outside the PRIOR 2h high/low.
+    _clipbase = dict(gate="grind", params=GRIND, side="LONG", target_r=2.5, stop_atr_mult=1.0,
+                     qty=1.0, decouple_target=True, atr_max=22.0,
+                     clip_atr_split=22.0, clip_a_usd=40.0)
+    out += [
+        ShadowVariant("cx_clip_brk_live", **_clipbase),
+        ShadowVariant("cx_clip_brk_standdown", clip_standdown_on_brk=True, **_clipbase),
+    ]
+
     _capit = dict(gate="capitulation", side="LONG", stop_atr_mult=1.0, qty=1.0, target_r=1.5)
     out += [
         ShadowVariant("capit_flip_live", params={"require_flip": True}, **_capit),

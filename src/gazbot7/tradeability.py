@@ -38,6 +38,25 @@ from dataclasses import dataclass
 # component weights — see module docstring for why these three
 W_EFFICIENCY, W_ROOM, W_PERSISTENCE = 0.50, 0.30, 0.20
 
+# ★★2026-08-16 BUILD #10 — A STOP-RATE-WEIGHTED SHADOW OF THIS METER, and it does NOT touch the live
+# cutoff. The report's question (Part 2.6 §5, "which of the three meters actually did the work") is
+# whether the live blend is carrying its weight, and the candidate answer is that STOP RATE — the
+# fraction of the day's exits that were stops — says more about an untradeable day than efficiency
+# and room inferred from price alone.
+#
+# ⚠ WHY SHADOW AND NOT A RE-WEIGHT. The live blend gates real benching decisions. Swapping weights
+# on a hunch would change what the desk does before anything says the new blend is better, and the
+# only honest way to find out is to compute BOTH on the same days and compare. `score_stopweighted`
+# is never called by the live path — grep it: only scripts/tradeability_ab.py uses it.
+#
+# ⚠ AND STOP RATE IS BACKWARD-LOOKING. Efficiency and room are readable DURING the day; a day's stop
+# rate is only complete once the day is. That is a real asymmetry, not a detail: a meter that needs
+# the day to be over cannot bench anything in the morning. This shadow measures whether the signal is
+# THERE at all; if it is, the next question — and it is a separate one — is whether a partial-day
+# stop rate carries it early enough to act on.
+W_STOP = 0.35          # the weight stop-rate takes in the shadow blend
+SW_EFFICIENCY, SW_ROOM, SW_PERSISTENCE = 0.35, 0.20, 0.10
+
 ER_FLOOR, ER_CEIL = 0.10, 0.55      # 0.10 = noise; 0.55 = the desk's clean-trend cut
 ATR_MIN, ATR_GOOD = 8.0, 20.0       # <8pt nothing survives friction; ~20pt is workable room
 ATR_VIOLENT = 30.0                  # beyond this, room becomes hazard unless ER is high
@@ -103,6 +122,27 @@ def score(er30: float, atr: float, give_back: float) -> Read:
         why.append(f"ER {er30:.2f}, ATR {atr:.0f}pt, holding {100*persistence:.0f}% of the move")
     return Read(round(s, 1), label, round(eff, 3), round(room, 3), round(persistence, 3),
                 round(er30, 3), round(atr, 1), " · ".join(why))
+
+
+def score_stopweighted(er30: float, atr: float, give_back: float, stop_rate: float) -> Read:
+    """BUILD #10 — the same meter with STOP RATE carrying 0.35 of the blend. SHADOW ONLY.
+
+    `stop_rate` is the fraction of the day's closed trades that exited on a STOP, 0..1. A high stop
+    rate is the signature of a day that kept taking the desk out — which is what "untradeable" is
+    supposed to mean, and which the price-derived terms only infer.
+
+    Returns the same Read shape so the two are directly comparable; `detail` names the blend so a
+    number cannot be mistaken for the live one in a log.
+    """
+    base = score(er30, atr, give_back)
+    survive = max(0.0, 1.0 - max(0.0, min(1.0, stop_rate)))      # 1.0 = nothing stopped out
+    s = 10.0 * (SW_EFFICIENCY * base.efficiency + SW_ROOM * base.room
+                + SW_PERSISTENCE * base.persistence + W_STOP * survive)
+    label = _label(s) if "_label" in globals() else base.label
+    return Read(round(s, 1), label, base.efficiency, base.room, base.persistence,
+                base.er30, base.atr,
+                f"SHADOW stop-weighted (W_STOP={W_STOP}): stop_rate={stop_rate:.2f} "
+                f"-> survive={survive:.2f} · live meter said {base.score}")
 
 
 def live(cap_path: str, *, symbol: str = "MNQ") -> Read:
