@@ -45,6 +45,12 @@ from .store import record_shadow_trade
 
 log = logging.getLogger("shadow")   # ★2026-08-04: shadow.py had no module logger
 
+# ★2026-08-16 THE OPEN RIDER'S WINDOW, named once. 14:45 is the 08-08 corrected right edge, NOT the
+# original 15:00: the 14:45–15:00 slice is −$446 across all days and −$453 on the unseen leg alone.
+# Read by gate="clock_rider" and nothing else — see ShadowVariant.__post_init__.
+RIDER_WIN_START_S = 13 * 3600              # 13:00 UTC
+RIDER_WIN_END_S = 14 * 3600 + 45 * 60      # 14:45 UTC
+
 
 @dataclass
 class ShadowVariant:
@@ -130,13 +136,33 @@ class ShadowVariant:
     # All fields default to 0/off so no pre-existing variant changes behaviour.
     rider_cadence_min: int = 0                   # fire every N min when flat (0 = not a rider)
     rider_lookback_min: int = 15                 # direction = sign of the move over this window
-    rider_win_start_s: int = 13 * 3600           # 13:00 UTC
-    rider_win_end_s: int = 14 * 3600 + 45 * 60   # 14:45 UTC — the 08-08 right-edge cut
+    # ★★2026-08-16 −1 = UNSET, and the window is read ONLY by _rider_entry (gate="clock_rider").
+    # It used to default to 13:00–14:45 on EVERY variant, so `rider_w5` — gate="board", whose real
+    # window is hh_lo/hh_hi=13–20 in params — resolved with a rider_win_end_s of 14:45 that nothing
+    # reads. Inspecting the arm showed a 1h45m window for a gate that trades 7 hours. A config field
+    # carried but consumed by no one is CLAUDE.md trap #9, and the danger is not today's confusion:
+    # it is that "fixing" this arm's window by editing the field would be a silent no-op.
+    # __post_init__ fills the clock_rider default and REFUSES the field on any other gate.
+    rider_win_start_s: int = -1                  # clock_rider only; -1 = unset
+    rider_win_end_s: int = -1                    # clock_rider only; -1 = unset
     time_cap_s: float = 0.0                      # flat at market after this long (0 = no cap)
     # ★2026-08-13 THE DRIFT-DIRECTION GATE. Once drift.py's detector CONFIRMS a session direction,
     # refuse rider entries against it. Entries BEFORE confirmation stay completely unguarded — that
     # asymmetry is the whole design; see _rider_entry.
     rider_gate_drift: bool = False
+
+    def __post_init__(self) -> None:
+        if self.gate == "clock_rider":
+            # Preserve the historical defaults exactly for the arms that actually read them.
+            if self.rider_win_start_s < 0:
+                self.rider_win_start_s = RIDER_WIN_START_S
+            if self.rider_win_end_s < 0:
+                self.rider_win_end_s = RIDER_WIN_END_S
+        elif self.rider_win_start_s >= 0 or self.rider_win_end_s >= 0:
+            raise ValueError(
+                f"{self.name}: rider_win_start_s/rider_win_end_s are read ONLY by "
+                f"gate='clock_rider' (this arm is gate='{self.gate}'). Setting them here changes "
+                f"NOTHING. A board arm's window is hh_lo/hh_hi in params.")
 
 
 def _brk_2h(bars, price: float) -> bool:
@@ -860,8 +886,12 @@ def _open_rider() -> list[ShadowVariant]:
     essential — there the question was "is a wider stop better?"; here it is "is this whole
     published cell better?".
     """
+    # ★2026-08-16 the window is now set EXPLICITLY here rather than inherited from a dataclass
+    # default that every non-rider variant also carried. Same values, same behaviour — but the
+    # 14:45 cut is now stated where the arms that read it are defined.
     common = dict(gate="clock_rider", params={}, target_r=2.0, time_cap_s=45 * 60,
-                  rider_lookback_min=15, adverse_cut_atr=99.0, absorption_flow_min=1e9)
+                  rider_lookback_min=15, adverse_cut_atr=99.0, absorption_flow_min=1e9,
+                  rider_win_start_s=RIDER_WIN_START_S, rider_win_end_s=RIDER_WIN_END_S)
     return [
         ShadowVariant("odr_c5_s20", rider_cadence_min=5, stop_atr_mult=2.0, **common),
         ShadowVariant("odr_c5_s30", rider_cadence_min=5, stop_atr_mult=3.0, **common),
