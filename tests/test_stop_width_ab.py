@@ -74,10 +74,13 @@ def test_wider_stop_actually_stops_later(pair):
 def test_decouple_is_opt_in_so_legacy_variants_are_untouched():
     """Every pre-existing variant must keep the old coupled behaviour — this change must not
     retroactively alter sims that have been accumulating history."""
-    # sw_ = stop-width A/B, cx_ = clip A/B. Both are NEW arms built to use decoupling deliberately;
-    # the guard is about not retroactively altering variants that have been accumulating history.
+    # sw_ = stop-width A/B, cx_ = clip A/B, lad_ = the BUILD #12 ladder A/B (added 2026-08-16).
+    # All are NEW arms built to use decoupling deliberately; the guard is about not retroactively
+    # altering variants that have been accumulating history, and an arm armed today has none.
+    # ⚠ Adding a prefix here is a DELIBERATE act. If an EXISTING arm ever needs decoupling, that is a
+    # different question and this test should fail loudly rather than be widened to accommodate it.
     for v in default_slate():
-        if not v.name.startswith(("sw_", "cx_")):
+        if not v.name.startswith(("sw_", "cx_", "lad_")):
             assert v.decouple_target is False, f"{v.name} unexpectedly decoupled"
             assert _eff_target_r(v, 17.0, VPP) == v.target_r
 

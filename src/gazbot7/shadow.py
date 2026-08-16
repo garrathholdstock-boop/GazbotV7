@@ -916,6 +916,21 @@ def _stop_width_ab() -> list[ShadowVariant]:
             ShadowVariant(f"sw_absS_B_{sfx}", "thrust", THRUST, side="SHORT", confirm_s=55,
                           target_r=2.5, **common, **_B_CLIP),
         ]
+    # ★★2026-08-16 BUILD #12 — THE TIGHTER abs_veto_short LADDER, 1.5R/2.5R -> 1.0R/1.5R.
+    # Part 2 calls this "the week's main proposal" and Rev 1's card did not carry it at all. REV2 Q3
+    # then established WHY it is the ladder and not the fills: across 46 live legs the desk fills a
+    # median 0.60 points BETTER than the repricer assumes (+$47.78 over the sample), so the gap that
+    # motivated it is not execution — it is where the rungs sit.
+    # ★ IT NEEDS NO NEW CONTROL: sw_absS_A_k10 / sw_absS_B_k10 already run the LIVE ladder at the
+    # live 1.0x stop on the same entries. These two differ from those in the target ALONE, which is
+    # the whole comparison. Adding a fresh pair of controls would have been two wasted slots and a
+    # second population to reconcile.
+    lad = dict(gate="thrust", params=THRUST, side="SHORT", confirm_s=55,
+               stop_atr_mult=1.0, qty=1.0, decouple_target=True)
+    out += [
+        ShadowVariant("lad_absS_A_10", target_r=1.0, **lad, **_A_CLIP),
+        ShadowVariant("lad_absS_B_15", target_r=1.5, **lad, **_B_CLIP),
+    ]
     # ★2026-08-08 THE k30 THIRD RUNG — grind ONLY, and only grind.
     # The 08-08 open-window read on the 512 tick-repriced trades already running here says wide
     # stops do NOT transfer as a class: in 13:00-14:45Z the house 1.0x and 2.0x are a dead heat
