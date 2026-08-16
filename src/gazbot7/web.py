@@ -1034,6 +1034,76 @@ def _paris_day_bounds(date_str):
     return day_start, day_start + 86400
 
 
+def mgc_shadow_json(mgc_path, depth_path="/home/alphabot/gazbot7/data/depth.db"):
+    """The GOLD shadow desk — its own board, because it is its own desk.
+
+    ★★2026-08-16 (operator: "add a dashboard for mgc shadow? it needs its own").
+    It cannot share /shadow: that board reads shadow.db and prices everything at MNQ's $2.00/pt.
+    Gold is $10.00/pt in a SEPARATE store, and that separation is deliberate — reprice_pending()
+    applies ONE multiplier to every pending trade, so a shared store would price gold at a fifth of
+    reality, intermittently, decided by whichever service called first.
+
+    ⚠ THIS BOARD'S JOB IS TO MAKE "ARMED BUT RECORDING NOTHING" VISIBLE. Three of the four blockers
+    in MGC_SHADOW_SCOPE.md fail SILENTLY, and an armed variant that never fires looks exactly like a
+    quiet tape. So every armed arm is listed even at zero, and the payload carries the two facts that
+    tell those apart: whether the DEPTH FEED is fresh (the gates fail closed without a book) and how
+    long since this desk recorded anything at all.
+    """
+    from .shadow import mgc_slate
+
+    out = {"arms": [], "store": mgc_path, "vpp": 10.0,
+           "fee_note": "repriced at $1.50/RT commission — the repricer already crosses both legs. "
+                       "$4.50 is the MID-priced all-in and is NOT what is applied here.",
+           "caveat": "The lab's +$1,387 / +$1,261 are DEPTH-MID numbers. This service folds md "
+                     "TRADE bars and only 41% of the lab's fires exist on that tape. The forward "
+                     "numbers below are the ones that count.",
+           "depth_rows": 0, "depth_age_s": None, "last_trade_age_s": None, "recording": False}
+    # web.py has no `time` import — it works in datetime throughout, so match that rather than
+    # adding a second clock to the module.
+    now = int(datetime.now(UTC).timestamp())
+    armed = {v.name: v for v in mgc_slate()}
+    rows = {}
+    try:
+        con = sqlite3.connect(f"file:{mgc_path}?mode=ro", uri=True, timeout=3.0)
+        con.row_factory = sqlite3.Row
+        for r in con.execute("""
+                SELECT t.strategy s, COUNT(*) n,
+                       ROUND(SUM(r.real_pnl), 2) net, ROUND(AVG(r.real_pnl), 2) exp,
+                       ROUND(AVG(CASE WHEN r.real_pnl > 0 THEN 1.0 ELSE 0.0 END) * 100, 1) win,
+                       MAX(t.exit_ts) last_ts
+                FROM shadow_real r JOIN shadow_trades t ON t.id = r.trade_id
+                WHERE t.data_quality IS NULL AND r.fill_status = 'filled'
+                GROUP BY t.strategy"""):
+            rows[r["s"]] = dict(r)
+        o = con.execute("SELECT MAX(exit_ts) FROM shadow_trades").fetchone()[0]
+        if o:
+            out["last_trade_age_s"] = now - int(o)
+            out["recording"] = (now - int(o)) < 86400 * 3
+        con.close()
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {e}"
+    for name, v in armed.items():
+        r = rows.get(name, {})
+        out["arms"].append({
+            "name": name, "side": v.side or "both",
+            "control": name.endswith("_nobook"),
+            "n": r.get("n", 0), "net": r.get("net", 0.0),
+            "exp": r.get("exp", 0.0), "win": r.get("win", 0.0),
+            "last_ts": r.get("last_ts"),
+        })
+    try:
+        d = sqlite3.connect(f"file:{depth_path}?mode=ro", uri=True, timeout=3.0)
+        n, mx = d.execute(
+            "SELECT COUNT(*), MAX(ts_ms) FROM depth_snap WHERE symbol='MGC'").fetchone()
+        out["depth_rows"] = n or 0
+        if mx:
+            out["depth_age_s"] = max(0, now - int(mx) // 1000)
+        d.close()
+    except Exception:
+        pass
+    return out
+
+
 def shadow_overview_json(shadow_path, date=None):
     """Per-variant honest P&L (real_pnl, filled trades) over today/week/all, plus
     by-symbol — the shape shadow_desk.html renders. real_available always True in
@@ -1447,6 +1517,13 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._send(open(os.path.join(_STATIC, "cube.html"), "rb").read(), _CT[".html"])
                 elif path == "/router" or path == "/router/":
                     self._send(open(os.path.join(_STATIC, "router.html"), "rb").read(), _CT[".html"])
+                elif path in ("/mgcshadow", "/mgcshadow/"):
+                    self._send(open(os.path.join(_STATIC, "mgcshadow.html"), "rb").read(),
+                               _CT[".html"])
+                elif path.startswith("/api/mgcshadow"):
+                    self._json(mgc_shadow_json(
+                        os.environ.get("GAZBOT7_SHADOW_MGC",
+                                       os.path.join(data_dir, "shadow_mgc.db"))))
                 elif path.startswith("/api/futures/router"):
                     self._json(router_json(store_path, cap_path, data_dir))
                 elif path.startswith("/api/tradeability"):
