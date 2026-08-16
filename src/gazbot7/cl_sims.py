@@ -43,6 +43,7 @@ that trade, and nothing else on the desk notices.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import subprocess
 import time
@@ -191,6 +192,71 @@ def _call(ctx: dict) -> tuple[dict, int]:
                 int((time.time() - t0) * 1000))
 
 
+_SWITCH_PATH = "/home/alphabot/gazbot7/data/gate_switches.env"
+_SW_CACHE: dict = {"mtime": -1.0, "off": frozenset()}
+
+# ★★2026-08-16 BUILD #6 — `suppressed_by` WAS A DEAD COLUMN: NULL in every row, because the one
+# caller passed neither it nor `taken`. Any claim of the form "the gate fired but we did not take it,
+# because X" was unanswerable from the journal — which is the entire reason the journal exists.
+#
+# ⚠⚠ WHAT THIS LOOP CAN AND CANNOT SEE. Read this before trusting the column.
+# ClSims is a SHADOW MIRROR of the gates: it re-evaluates entries from bars, it is not the desk, and
+# it has no view of live slot state. Of the five declared reasons it can determine three, and two it
+# cannot:
+#     switch_off  YES — straight from gate_switches.env, the router's own file
+#     atr_floor   YES — deciders.ATR_FLOOR against this fire's ATR
+#     er_floor    YES — deciders.ER_FLOOR (currently {}, so it never fires; wired for when it is not)
+#     slot_busy   NO  — needs the live SlotBook
+#     veto        NO  — the 55s absorption veto lives in tournament.run()
+#
+# ★ A BLIND SPOT WRITTEN AS NULL WOULD READ EXACTLY LIKE "NOTHING SUPPRESSED IT" — the same failure
+# one level down. So an unsuppressed fire is written as the explicit sentinel 'none_visible', never
+# NULL, and `taken` is left NULL because this loop genuinely does not know whether a position
+# resulted. Reading the column afterwards:
+#     NULL           = written before 2026-08-16, or by a caller that passed nothing
+#     'none_visible' = checked; nothing THIS LOOP can see suppressed it (the desk still might have)
+#     anything else  = the reason, and it is authoritative
+NOT_VISIBLE = "none_visible"
+
+
+def _switches_off() -> frozenset:
+    """Gates currently switched OFF, cached on mtime.
+
+    A read failure returns an EMPTY set — fail OPEN. Claiming a gate is off because the file could
+    not be read would invent suppressions that never happened, and this column exists to be trusted.
+    """
+    try:
+        m = os.path.getmtime(_SWITCH_PATH)
+        if m != _SW_CACHE["mtime"]:
+            from .tournament import parse_switches
+            with open(_SWITCH_PATH) as fh:
+                _SW_CACHE["off"] = frozenset(parse_switches(fh.read()))
+            _SW_CACHE["mtime"] = m
+    except Exception:
+        return frozenset()
+    return _SW_CACHE["off"]
+
+
+def suppression_reason(gate: str, f, er30: float | None = None) -> str:
+    """Why the LIVE desk would have declined this fire, as far as this loop can tell.
+
+    ★ ORDER MIRRORS tournament.step() DELIBERATELY: the switch is tested first, because a benched
+    gate never reaches its floors. Reporting 'atr_floor' for a benched gate would be a true
+    statement about a test the desk never ran — precise, and misleading.
+    """
+    from .deciders import ATR_FLOOR, ER_FLOOR
+
+    if gate in _switches_off():
+        return "switch_off"
+    floor = ATR_FLOOR.get(gate)
+    if floor is not None and f.atr < floor:
+        return "atr_floor"
+    er_floor = ER_FLOOR.get(gate)
+    if er_floor is not None and er30 is not None and er30 < er_floor:
+        return "er_floor"
+    return NOT_VISIBLE
+
+
 def journal(con: sqlite3.Connection, *, ts_ms: int, gate: str, side: str, price: float,
             f, bars, tape_net: float, taken: int | None = None,
             suppressed_by: str | None = None, extra: dict | None = None) -> None:
@@ -285,8 +351,13 @@ class ClSims:
             if key in self._seen:
                 continue
             self._seen.add(key)
+            # ★2026-08-16 BUILD #6 — record WHY, not just THAT. `taken` stays None on purpose:
+            # this loop cannot see whether a live position resulted, and guessing 1 here would be
+            # the dead column replaced by a wrong one.
+            from .sizing import efficiency_ratio
             journal(self._con, ts_ms=now_ms, gate=gate, side=side, price=price, f=f, bars=bars,
-                    tape_net=tape_net)
+                    tape_net=tape_net,
+                    suppressed_by=suppression_reason(gate, f, efficiency_ratio(bars, 30)))
             self._con.execute(
                 "INSERT INTO cl_signals (sim,gate,side,signal_ts_ms,signal_price,context) "
                 "VALUES (?,?,?,?,?,?)",

@@ -50,12 +50,62 @@ def paris_day_bounds(date_str):
     return start, start + dt.timedelta(days=1)
 
 
-def journal_lines(t0, t1):
+class JournalRotated(RuntimeError):
+    """The systemd journal no longer covers the window being backfilled."""
+
+
+def journal_lines(t0, t1, *, strict: bool = True):
+    """Tournament log lines for [t0, t1).
+
+    ★★2026-08-16 BUILD #8 — THIS USED TO REPORT $0/$0/$0 ON A ROTATED JOURNAL.
+    systemd's journal is a RING BUFFER. Backfill a day it has already discarded and journalctl exits
+    0 with empty stdout, so every downstream count is legitimately zero and the rollup publishes
+    "nothing happened" about a day that traded. That is this desk's signature failure — an instrument
+    reporting healthy about something it never checked — and it is worse than a crash, because a zero
+    looks like a finding.
+
+    An empty window is therefore an ERROR unless the journal is proven to still cover it. We compare
+    the requested start against the OLDEST entry systemd still holds. Telling "rotated away" apart
+    from "a quiet night" is the whole job: the first is a broken measurement, the second is data.
+    """
     since = t0.strftime("%Y-%m-%d %H:%M:%S")
     until = t1.strftime("%Y-%m-%d %H:%M:%S")
     out = subprocess.run(["journalctl", "-u", "gazbot7-tournament", "--since", since, "--until", until,
                           "--no-pager", "-o", "cat"], capture_output=True, text=True, timeout=120)
-    return out.stdout.splitlines()
+    lines = out.stdout.splitlines()
+    if lines or not strict:
+        return lines
+    oldest = journal_oldest_ts()
+    if oldest is not None and oldest <= t0:
+        return lines          # the journal DOES cover this window — genuinely a quiet night
+    raise JournalRotated(
+        f"journalctl returned NOTHING for {since} .. {until}, and the oldest entry it still holds is "
+        f"{oldest.isoformat() if oldest else 'unknown'}. This is a BROKEN MEASUREMENT, not a quiet "
+        f"night — the rollup would otherwise publish $0/$0/$0 for a day that traded. Re-run against "
+        f"the DB, or pass strict=False once you have CONFIRMED the window was really silent.")
+
+
+def journal_oldest_ts():
+    """Timestamp of the oldest tournament entry systemd still retains, or None if it cannot be read.
+
+    None is deliberately NOT treated as 'fine': the caller raises on it, because an unreadable
+    retention boundary means we cannot tell a rotated window from a quiet one, and guessing is what
+    produced the $0/$0/$0 in the first place."""
+    # ⚠ NOT `-n 1` — that is the NEWEST entry. journalctl prints OLDEST-FIRST, so the retention
+    # boundary is the FIRST line of an unlimited read. We stream it and stop after one line; the
+    # SIGPIPE ends journalctl early, so this does not walk the whole ring buffer.
+    try:
+        p = subprocess.Popen(["journalctl", "-u", "gazbot7-tournament", "--no-pager",
+                              "-o", "short-iso"], stdout=subprocess.PIPE, text=True)
+        try:
+            first = p.stdout.readline().strip()
+        finally:
+            p.stdout.close()
+            p.terminate()
+            p.wait(timeout=10)
+        return dt.datetime.fromisoformat(first.split(maxsplit=1)[0]).astimezone(dt.timezone.utc)
+    except Exception:
+        return None
 
 
 def reprice_scalp(con, side, entry_px, t0):

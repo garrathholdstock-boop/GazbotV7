@@ -6,14 +6,17 @@
 #  1. claim_audit.py — what the operator's hands are worth. Every MANUAL_CLAIM repriced against what
 #     its slot's own exit would have done on 250ms ticks. In the 07-27..07-31 week the hands were
 #     +$655-862 on twelve trades and it was invisible in every P&L we reported.
-#  2. nipc_replay.py — NIPC's control. NIPC went live 2026-08-01 with a kill review at n>=40 or
-#     2026-08-07 and no shadow arm (it is a tick state-machine and cannot ride the bar-based
-#     ShadowSim — a variant there would silently never fire). The replay prints the BLANKET book
-#     (dead-chop filter OFF) beside HOME (filter ON), which IS the control comparison.
+# ⛔2026-08-16 — nipc_replay.py REMOVED. The nipc gates were DELETED on 2026-08-15 (operator: "delete
+#    nipc gates theyve never done anytjing"), so the replay was grading a control for a gate that can
+#    no longer fire — nightly, against a roster it is not on. It also carried a known unfixed bug
+#    ([[nipc-replay-truncation-persists-unfixed]]: the same 6-of-12-day output two nights running).
+#    The unit was NOT disabled wholesale, because claim_audit.py above is still wanted — that is the
+#    whole reason this is a split rather than a `systemctl disable`.
+#    The script stays in scripts/ as history; re-add the ExecStart line if nipc is ever revived.
 #
 # Runs 21:30 UTC — inside the CME maintenance halt (21:00-22:00), so the desk is frozen and the
 # Paris-midnight day boundary (22:00 UTC) has not yet rolled.
-Description=GAZBOT V7 — nightly standing audits (claim value + NIPC control)
+Description=GAZBOT V7 — nightly standing audit (claim value)
 After=network-online.target
 
 [Service]
@@ -21,9 +24,8 @@ Type=oneshot
 User=root
 WorkingDirectory=/home/alphabot/gazbot7
 Environment=PYTHONPATH=src
-# Each is independent: a failure in one must not suppress the other, hence the leading '-'.
+# Leading '-' kept: a failure here must not mark the unit failed and drown the real alarms.
 ExecStart=-/home/alphabot/gazbot7/.venv/bin/python scripts/claim_audit.py
-ExecStart=-/home/alphabot/gazbot7/.venv/bin/python scripts/nipc_replay.py
 TimeoutStartSec=3600
 Nice=10
 
