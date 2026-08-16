@@ -217,6 +217,12 @@ _SW_CACHE: dict = {"mtime": -1.0, "off": frozenset()}
 #     'none_visible' = checked; nothing THIS LOOP can see suppressed it (the desk still might have)
 #     anything else  = the reason, and it is authoritative
 NOT_VISIBLE = "none_visible"
+# ★2026-08-16 (audit) A THIRD STATE, because two were not enough. _switches_off() fails OPEN — a
+# read failure returns an empty set, which is right (inventing suppressions would be worse) but it
+# meant a benched gate was written as 'none_visible': the exact wrong story this column was built to
+# stop telling, and now written PERMANENTLY into signal_journal rather than transiently into a
+# report. 'unknown_switch_unreadable' is indistinguishable from nothing only if you do not look.
+SWITCH_UNREADABLE = "unknown_switch_unreadable"
 
 
 def _switches_off() -> frozenset:
@@ -233,7 +239,7 @@ def _switches_off() -> frozenset:
                 _SW_CACHE["off"] = frozenset(parse_switches(fh.read()))
             _SW_CACHE["mtime"] = m
     except Exception:
-        return frozenset()
+        return None            # ⚠ None = "could not tell", NOT "nothing is off"
     return _SW_CACHE["off"]
 
 
@@ -246,7 +252,13 @@ def suppression_reason(gate: str, f, er30: float | None = None) -> str:
     """
     from .deciders import ATR_FLOOR, ER_FLOOR
 
-    if gate in _switches_off():
+    off = _switches_off()
+    if off is None:
+        # Cannot read the switch file. Saying 'none_visible' here would assert that nothing
+        # suppressed a fire we genuinely know nothing about — and unlike a report, this is written
+        # to the journal forever.
+        return SWITCH_UNREADABLE
+    if gate in off:
         return "switch_off"
     floor = ATR_FLOOR.get(gate)
     if floor is not None and f.atr < floor:

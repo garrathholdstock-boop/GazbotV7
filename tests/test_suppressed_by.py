@@ -45,11 +45,19 @@ def test_the_reader_ACTUALLY_READS_the_file(switches):
     assert C._switches_off() == frozenset({"grind_long", "rgv_short"})
 
 
-def test_an_unreadable_file_fails_OPEN_and_invents_nothing(monkeypatch):
+def test_an_unreadable_file_is_UNKNOWN_not_an_empty_set(monkeypatch):
+    """★ AUDIT FINDING. This used to return frozenset() — correct in that it invents no
+    suppressions, but it then made a BENCHED gate read as 'none_visible': the exact wrong story this
+    column exists to stop telling, written PERMANENTLY into signal_journal rather than transiently
+    into a report. Two states were not enough; there is now a third for "could not tell"."""
     monkeypatch.setattr(C, "_SWITCH_PATH", "/nonexistent/gate_switches.env")
     C._SW_CACHE["mtime"] = -1.0
-    assert C._switches_off() == frozenset(), \
-        "a read failure must never be reported as 'everything is switched off'"
+    assert C._switches_off() is None, "unreadable must be None, not 'nothing is off'"
+
+    class _F:
+        atr = 8.0
+    assert C.suppression_reason("grind_long", _F()) == C.SWITCH_UNREADABLE
+    assert C.SWITCH_UNREADABLE != C.NOT_VISIBLE
 
 
 def test_the_cache_notices_an_edit(switches):

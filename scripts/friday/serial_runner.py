@@ -90,8 +90,20 @@ def rotate(phases, week_iso: int):
         return phases, []
     start = (week_iso * PER_WEEK) % len(pool)
     picked = {pool[(start + i) % len(pool)] for i in range(min(PER_WEEK, len(pool)))}
-    dropped = [k for k in pool if k not in picked]
-    return [p for p in phases if p["key"] not in dropped], dropped
+    dropped = set(k for k in pool if k not in picked)
+    # ★2026-08-16 (audit) STRIP THE DANGLING DEPS TOO. movement3 and gf_report declare deps on all
+    # seven clusters; rotation deletes four, so order()'s topological sort could NEVER resolve and
+    # fell through to "UNRESOLVED deps, appending as-is" on EVERY run — which meant the entire tail
+    # was ordered by declaration rather than dependency, and a log line meant to catch real cycles
+    # fired every week. Removing a phase means removing the edges into it.
+    out = []
+    for p in phases:
+        if p["key"] in dropped:
+            continue
+        if any(d in dropped for d in p.get("deps", ())):
+            p = {**p, "deps": [d for d in p["deps"] if d not in dropped]}
+        out.append(p)
+    return out, sorted(dropped)
 
 
 def order(phases):
@@ -161,7 +173,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--deadline", default="05:15",
                     help="UTC HH:MM to be finished by (next occurrence)")
-    ap.add_argument("--reserve-min", type=int, default=200,
+    # ★2026-08-16 (audit) 200 was UNDER-DECLARED: assemble 60 + proofread 60 + rev2 90 + final 45
+    # = 255m. The tail loop hands each phase the whole remainder with no fair share, so a slow
+    # assemble ate the reserve and `final` was skipped for lack of budget — the same "declared
+    # timeouts never compared to the budget" defect this file was rewritten to fix, left unfixed on
+    # the ONE chain that must finish. 255 = the tail's own declared sum.
+    ap.add_argument("--reserve-min", type=int, default=255,
                     help="minutes held back for assemble+proofread+rev2+final")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--tail-only", action="store_true",

@@ -26,6 +26,12 @@ WorkingDirectory=/home/alphabot/gazbot7
 Environment=PYTHONPATH=src
 # Leading '-' kept: a failure here must not mark the unit failed and drown the real alarms.
 ExecStart=-/home/alphabot/gazbot7/.venv/bin/python scripts/claim_audit.py
+# ★2026-08-16 BUILD #7 — record the day's ATR14@1300Z + rider outcome into the Open Rider
+#   PRE-REGISTRATION. Without a writer that file was dead: nothing measured the feature, nothing
+#   appended, and after 60 sessions it would still have read `sessions: []` with a passing test
+#   over it. Runs at 21:30 UTC, inside the CME halt, so the session is complete and the Paris day
+#   boundary has not rolled. It records EXCLUDED sessions too — they are half the test.
+ExecStart=-/home/alphabot/gazbot7/.venv/bin/python scripts/prereg_tick.py
 TimeoutStartSec=3600
 Nice=10
 
