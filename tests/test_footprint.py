@@ -50,12 +50,15 @@ def test_evaluator_fires_and_records_a_target_win():
     book = [(1_020_000, "bid", 100.0, 10), (1_020_000, "ask", 100.5, 40)]     # ask wall 4× bid
     cap = _cap_with(ticks, book)
     fp.on_cycle(cap, 1_020_000)
-    assert fp._open is not None and fp._open["side"] == "SHORT"
+    # ★2026-08-16 `_open` is now keyed by EXIT LEG (one signal, N legs). With the default
+    # single-leg construction there is exactly one key, and it is the legacy arm.
+    assert set(fp._open) == {"exhaustion_rev"}
+    assert fp._open["exhaustion_rev"]["side"] == "SHORT"
     # now price falls 12pt to the target within the hold window
     cap.executemany("INSERT INTO ticks VALUES('MNQ',?,?,?,?)",
                     [(1_030_000, 100.25 - 12.0, 5, "sell")])
     fp.on_cycle(cap, 1_030_000)
-    assert fp._open is None
+    assert not fp._open
     rows = store.execute("SELECT strategy, side, exit_reason FROM shadow_trades").fetchall()
     assert rows and rows[0][0] == "exhaustion_rev" and rows[0][1] == "SHORT" and rows[0][2] == "TARGET"
 
@@ -67,7 +70,7 @@ def test_evaluator_stays_flat_when_no_wall():
     book = [(1_020_000, "bid", 100.0, 40), (1_020_000, "ask", 100.5, 10)]    # no ask wall (bid is bigger)
     cap = _cap_with(ticks, book)
     fp.on_cycle(cap, 1_020_000)
-    assert fp._open is None
+    assert not fp._open
 
 
 # ── footprint_summary: the combined roll-up feeding BOTH tournament gates ──────

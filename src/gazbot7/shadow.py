@@ -1004,8 +1004,16 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     # MNQ-specific: FootprintShadow reads capture.db's tick+book loop and capture.db has NO MGC
     # depth at all (gold's L2 only ever lands in depth.db). Running them on gold would not error —
     # they would silently record nothing, which is the failure mode this whole build guards against.
+    # ★2026-08-16 THE EXHAUSTION STOP-WIDTH ARMS ride the SAME signal as exhaustion_rev, added as
+    # extra exit LEGS rather than extra instances — so all three enter on an identical fill and the
+    # comparison is of the exit alone. exhaustion_rev keeps its legacy 8/12pt leg untouched (it is a
+    # protected control and the entry substrate for seven shipped scripts).
+    # exh_w15 mirrors what went live today; exh_w20 is the candidate held back from live because the
+    # grid improves monotonically to its own edge, which is what the 44% stop-leak bias produces.
+    from .footprint import LEGACY_LEG, WIDE_LEGS
     footprint = (FootprintShadow(store, cfg.symbol,
-                                 value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt)
+                                 value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt,
+                                 legs=[LEGACY_LEG, *WIDE_LEGS])
                  if extras else None)
     # ★2026-08-04 CL sims + signal journal. Opt-in via GAZBOT7_CL_SIMS=1 so it can be switched off
     # without a code change, and constructed inside try/except so a fault here leaves the shadow desk
