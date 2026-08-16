@@ -273,6 +273,20 @@ def _load_exit_overrides() -> dict:
             elif b not in ("wide", "tight"):
                 continue
             entry = {"a_r": a, "b": b}
+            # ★★2026-08-16 STOP WIDTH IS NOW AN OVERRIDE LEVER. Until today `stop_atr_mult` was
+            # hard-coded to 1.0 in all three branches of scaleout_slots(), so this panel could tune
+            # targets but NOT the stop — and the Friday report's exhaustion_short answer (REV2 Q2)
+            # IS a stop change: +$3,459.98 at stop 1.5xATR / target 2.0R against -$339.06 for the
+            # tight chandelier on the same 87 signals, with the chandelier at the 58th percentile of
+            # its own random-entry control. Validated hard and DEFAULTED TO 1.0, so any gate without
+            # the key behaves exactly as before. Capped at 5.0 — a wider stop than that on MNQ is a
+            # typo, and a typo here would size every stop on the desk.
+            try:
+                sk = float(o.get("stop_k", 0) or 0)
+                if 0 < sk <= 5.0:
+                    entry["stop_k"] = sk
+            except Exception:
+                pass
             # ★2026-08-02 OPTIONAL quiet-tape clip: {"atr_split": <pt>, "lo": {"a_usd": <$>, "b_r": <R>}}.
             # Validated hard and independently of the rest of the entry — a malformed `lo` drops ONLY the
             # split and leaves the gate's normal A/B intact, so a typo can never disarm an exit.
@@ -294,7 +308,7 @@ def _load_exit_overrides() -> dict:
     return ok
 
 
-def _lot_b(base: SlotSpec, b) -> SlotSpec:
+def _lot_b(base: SlotSpec, b, stop_k: float = 1.0) -> SlotSpec:
     """Lot B from a spec: number = fixed-R scalp; "wide" = lock-chandelier (ride tail); "tight" = k1.5 chandelier (snap-back)."""
     common = dict(tag=f"{base.tag}_B", sizing="flat", base_size=1, adaptive_exit=False, giveback_enabled=False)
     if b == "wide":
@@ -302,7 +316,7 @@ def _lot_b(base: SlotSpec, b) -> SlotSpec:
     if b == "tight":
         return replace(base, exit="chandelier", vol_adaptive_chandelier=False, chandelier_start_k=1.5,
                        chandelier_min_k=0.5, chandelier_tighten=0.75, **common)
-    return replace(base, exit="scalp", target_r=float(b), stop_atr_mult=1.0, **common)
+    return replace(base, exit="scalp", target_r=float(b), stop_atr_mult=stop_k, **common)
 
 
 def scaleout_slots() -> list[SlotSpec]:
@@ -315,9 +329,10 @@ def scaleout_slots() -> list[SlotSpec]:
     for base in tournament_slots():
         o = ov.get(base.tag)
         if o:   # operator exit override (data/exit_overrides.json)
+            _sk = float(o.get("stop_k", 1.0))     # 1.0 = the pre-2026-08-16 behaviour
             a = replace(base, tag=f"{base.tag}_A", sizing="flat", base_size=1, adaptive_exit=False,
-                        exit="scalp", target_r=o["a_r"], stop_atr_mult=1.0, giveback_enabled=False)
-            b = _lot_b(base, o["b"])
+                        exit="scalp", target_r=o["a_r"], stop_atr_mult=_sk, giveback_enabled=False)
+            b = _lot_b(base, o["b"], _sk)
             if o.get("atr_split"):   # ★2026-08-02 quiet-tape clip — Lot A takes $, Lot B a tighter fixed R
                 a = replace(a, atr_split=o["atr_split"], lo_target_usd=o["lo_a_usd"])
                 b = replace(b, atr_split=o["atr_split"], lo_target_r=o["lo_b_r"],

@@ -95,7 +95,13 @@ def test_live_exit_overrides_produce_the_intended_slate():
         # change was withdrawn (its "78% win" was an MFE stat, not a win rate — the ordering-correct
         # number is 29%). It now falls back to the built-in FADER default: A@1.5R + B tight-k1.5.
         "capitulation_long_A": ("scalp", 1.5), "capitulation_long_B": ("chandelier", None),
-        "exhaustion_short_A": ("scalp", 0.75), "exhaustion_short_B": ("chandelier", None),
+        # ★★2026-08-16 THE WIDE STOP WENT LIVE (operator's call, over the report's "shadow it").
+        # REV2 Q2: +$3,459.98 vs -$339.06 for the tight chandelier on the same 87 signals, the
+        # chandelier sitting at the 58th percentile of its own random-entry control — withdrawn as
+        # NOT-AN-ACTION #14. BOTH lots now run the ONE tested policy: scalp, stop 1.5xATR,
+        # target 2.0R (= 3.0 x ATR), no quiet-tape clip, no time cap.
+        # Full pins: tests/test_exh_wide_stop.py.
+        "exhaustion_short_A": ("scalp", 2.0), "exhaustion_short_B": ("scalp", 2.0),
         "abs_veto_long_A": ("scalp", 1.0), "abs_veto_long_B": ("scalp", 1.5),
         "abs_veto_short_A": ("scalp", 1.5), "abs_veto_short_B": ("scalp", 2.5),
         # no override → built-in BIG-RUN default
@@ -106,8 +112,9 @@ def test_live_exit_overrides_produce_the_intended_slate():
         assert d[tag].exit == ex, tag
         if tr is not None:
             assert d[tag].target_r == tr, tag
-    # "tight" really is a k1.5 non-vol-adaptive chandelier (the file's documented contract)
-    for tag in ("capitulation_long_B", "exhaustion_short_B"):
+    # "tight" really is a k1.5 non-vol-adaptive chandelier (the file's documented contract).
+    # exhaustion_short_B left this set on 2026-08-16 — it is a scalp now, not a chandelier.
+    for tag in ("capitulation_long_B",):
         assert d[tag].chandelier_start_k == 1.5 and d[tag].vol_adaptive_chandelier is False
 
 
