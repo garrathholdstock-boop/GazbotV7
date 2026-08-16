@@ -87,9 +87,14 @@ fires exist there — see `MGC_SHADOW_SCOPE.md` §8.
 | `venue_first_ok()` | on every rider order path **except** the 20:40 hard flat (refusing to flatten because books disagree is worse than the bug) |
 | native venue stop | 600pt on the rider = insurance, not a trading decision |
 
-⚠ **STILL OPEN:** on `drift` the tournament skips its ENTIRE safety block (`multislot_core.py:610`) —
-max-hold, naked auditor, re-protect and stop-breach all sit behind `!= "drift"`. The alarm disables
-the fire brigade. `audit_age_s` stays GREEN throughout.
+⛔ **BY DECISION, NOT BY OMISSION (2026-08-16, DECISIONS §362):** on `drift` the tournament skips its
+ENTIRE safety block — max-hold, naked auditor, re-protect, stop-breach and the exit watchdog. The
+operator was asked directly and said **"no. dont act under drift. leave it."** Acting on a position
+whose ownership is unknown, on a shared netted account, IS the 08-06 cascade.
+**What changed on 08-16 is that it is no longer SILENT:** `safety_skipped_cycles` is published in
+`core_health.json`, the desk alarms at cycles 1/12/60 naming each inactive protection, and `sweep`
+CRITs while holding. `audit_age_s` only ever said the loop was turning — it read GREEN through the
+whole 08-06 incident. **Do not "fix" the skip; a test fails if an order path appears in that branch.**
 
 **STANDING OPERATOR RULE: NEVER HOLD OVERNIGHT. EVER.** Rider flat at **20:40 UTC, never 21:00** —
 21:00 *is* the CME halt, so a flatten fired then has no market and no retry.
@@ -124,7 +129,8 @@ verified by row count.
 
 ## 8. KNOWN-OPEN / PARKED
 
-1. **The `drift` safety-block skip** (§5) — the oldest open item, from 08-06.
+1. ~~The `drift` safety-block skip~~ — **CLOSED 08-16.** Made visible and alarmed; acting under
+   drift was put to the operator and **declined** (§5, DECISIONS §362). Not an open item.
 2. **MGC bar-source divergence** — production's forward number is unknown until the shadow accrues.
 3. **`nipc_replay.py` runs nightly against a deleted gate** — not disabled because the same unit runs
    `claim_audit.py`. Split it.

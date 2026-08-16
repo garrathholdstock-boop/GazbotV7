@@ -18731,6 +18731,37 @@ A live-desk day — three architectural changes, each validated in production (p
 
 **Status:** proven-live but small-N (this +$768 + a −$166 whipsaw debut). Revert = slate `tournament`. Forward-validate over more days. See SESSIONS 2026-07-29, memory `dual-slot-scaleout-live`. (Also this session: the orphan-stop → phantom-long → drift-halt incident exposed a real gap — **no orphan-order cleanup on boot** — build it; memory `orphan-stop-phantom-incident`.)
 
+## §362 — 2026-08-16 (Sun) — ⛔ NOTHING ACTS UNDER DRIFT. Settled; do not reopen.
+
+**Operator, asked directly whether any safety check should ACT while the desk is in `drift`:
+*"no. dont act under drift. leave it."***
+
+Context. On `drift` the tournament's audit loop skips its entire safety block — max-hold, the naked
+auditor, re-protect, stop-breach and the exit watchdog. That hole was found on 2026-08-06 and stayed
+open because closing it looks trivial and is not. Today it was made **VISIBLE** (counted, published
+as `safety_skipped_cycles`, alarmed at cycles 1/12/60 naming each inactive protection, `sweep` CRITs
+while holding) and the question of whether to make it **ACT** was put to the operator. The answer is
+no.
+
+**Why this is the right call and not merely a deferral.** Drift means our book and the venue disagree
+on a **shared, netted** account. Every one of those checks places or cancels an order. Acting on a
+position whose ownership is unknown is precisely the 08-06 cascade: a flatten sized on the ACCOUNT
+net rather than our share, and a protective stop left resting with no position behind it, which fired
+hours later and opened a naked short. The governing rule — *nobody may act unless venue == the sum of
+EVERY desk's claim* — is not weakened here.
+
+**The accepted cost, stated plainly:** while drift persists with an open position, that position is
+unmanaged. It has no max-hold cut, no stop-breach check and no re-protect. What it does have, as of
+today, is a desk that says so loudly instead of showing green.
+
+⚠ **A future session will read "the safety block is skipped on drift" and want to close it.** Don't.
+This is decided. `tests/test_drift_safety_visibility.py::test_the_order_path_is_NOT_armed_under_drift`
+fails if an order-placing call appears in that branch, and that failure is a REGRESSION, not progress
+— do not edit the test to accommodate it. Reopening needs a fresh operator decision *and* an answer
+to the ownership question, not a refactor.
+
+---
+
 ## §361 — 2026-08-16 (Sun) — ★★ The project files were stranded in the retired repo for 17 days
 
 **The decision: STATE / SESSIONS / DECISIONS move to `gazbot7/docs/`, and CLAUDE.md becomes purely

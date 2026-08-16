@@ -727,13 +727,20 @@ class MultiSlotCore:
                         # brigade — and `cycle_ok` still went True below, so `audit_age_s` read GREEN
                         # throughout. The loop was cycling; only the work inside it was not.
                         #
-                        # ⚠ THE ORDER-PLACING HALF STAYS GATED, DELIBERATELY. Drift means the book
-                        # and the venue disagree on a SHARED, NETTED account. Acting then is exactly
-                        # how 08-06 happened: a flatten sized on the ACCOUNT net, and a stop left
-                        # resting with no position behind it that later opened a naked short.
-                        # "Nobody may act unless venue == the sum of EVERY desk's claim" is the
-                        # governing rule and this change does not weaken it. Promoting any of these
-                        # to ACT under drift is an operator decision, not a cleanup.
+                        # ⛔⛔ SETTLED — DO NOT "FIX" THIS. Operator, 2026-08-16, asked directly
+                        # whether any of these checks should ACT under drift: "no. dont act under
+                        # drift. leave it."
+                        #
+                        # This is a DECISION, not an unfinished edge. Drift means the book and the
+                        # venue disagree on a SHARED, NETTED account, and acting then is exactly how
+                        # 08-06 happened: a flatten sized on the ACCOUNT net, and a stop left resting
+                        # with no position behind it that later opened a naked short. "Nobody may act
+                        # unless venue == the sum of EVERY desk's claim" governs, and a desk sitting
+                        # unmanaged-but-LOUD is the accepted cost of not repeating that incident.
+                        #
+                        # A future session reading "the safety block is skipped on drift" will be
+                        # tempted to close it. Don't. Reopening it needs a fresh operator decision
+                        # and an answer to the ownership question, not a refactor. DECISIONS.md §362.
                         #
                         # What changes here: the skip is COUNTED, NAMED and ALARMED, so a desk
                         # sitting unmanaged is loud instead of green. Detection only — nothing below

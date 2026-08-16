@@ -47,8 +47,16 @@ def test_the_alarm_names_what_is_inactive():
 
 
 def test_the_order_path_is_NOT_armed_under_drift():
-    """The safety property. If a future edit moves flatten/reprotect into the drift branch, this
-    fails — and that must be a deliberate operator decision, not a refactor."""
+    """⛔ THE SAFETY PROPERTY, AND IT IS SETTLED POLICY — NOT AN UNFINISHED EDGE.
+
+    Operator, 2026-08-16, asked directly whether anything should ACT under drift: "no. dont act
+    under drift. leave it." (DECISIONS.md §362.)
+
+    If this test fails, someone has moved an order-placing call into the drift branch. That is a
+    REGRESSION, not progress — do not update this test to accommodate it. Drift means the book and
+    the venue disagree on a shared netted account; acting then is the 08-06 naked-short shape. A desk
+    that sits unmanaged but LOUD is the accepted cost of not repeating that.
+    """
     src = open(os.path.join(os.path.dirname(__file__), "..",
                             "src", "gazbot7", "multislot_core.py")).read()
     i = src.index("self._safety_skipped = getattr(self")
