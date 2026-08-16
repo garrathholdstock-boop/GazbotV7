@@ -62,20 +62,33 @@ All `stop_atr_mult=1.0`, `atr_split=22.0`. **Verify via `scaleout_slots()`, NEVE
 slate silently drops things and `grind_long` has two SlotSpecs in source.
 **Quiet-tape clip is LIVE**: ATR<22 → both lots clip $40 / 1.75R floored $60.
 
-## 4. SHADOW — 22 MNQ arms + 3 MGC (trimmed from 47 on 2026-08-15)
+## 4. SHADOW — **34 MNQ arms** (`default_slate()`) + **3 MGC** on a SEPARATE desk (`mgc_slate()`)
+
+★ **TWO SLATES, TWO DESKS, ZERO OVERLAP — do not add them up.** `default_slate()` returns **34, ALL
+MNQ, no MGC**; the gold arms are `mgc_slate()`, run by `gazbot7-shadow-mgc` into its own
+`shadow_mgc.db` (§1). **Counted by CALLING both, 2026-08-16** — this line previously read "22 MNQ +
+3 MGC", which merged two slates and was stale the day it was written: 47 was trimmed to 22 on 08-15,
+then the 08-16 BUILD commits (`c9c233a`, `d8ffcde` — #10/#13/#14/#15/#16/#17/#18) armed 9+ more.
+**Re-count with `default_slate()`, never from this line.**
 
 Judged on tick-repriced `real_pnl`, **never** `ceiling_pnl` (they have disagreed in SIGN on the same
 512 trades). Retired arms are filtered at `default_slate()`'s return by `RETIRED_2026_08_15`;
 definitions stay in source and registry numbers are permanent, so **re-arming is deleting one line**.
 
-⚠ **EIGHT OF THE 22 ARE LOSING ON PURPOSE.** `capit_loose` (−$11,292) is the no-flip CONTROL;
-`thrust_loose` is the un-vetoed BASE the abs_veto +$2,537.50 claim rests on and is hard-coded in
-three shipped scripts; `chand_k35` IS the live exit. **Never rank controls, A/B halves, factorial
-cells or slow-firing arms on their own P&L.**
+⚠ **MOST OF THIS SLATE CANNOT BE RANKED ON ITS OWN P&L.** At least **nine** arms are controls or
+live-mirror baselines: `capit_loose` (−$11,292, the no-flip CONTROL); `thrust_loose` (the un-vetoed
+BASE the abs_veto +$2,537.50 claim rests on, hard-coded in three shipped scripts); `chand_k35` (IS
+the live exit); `bank20_grindA_ctl`; `capit_live_mirror`; `capit_flip_live`; `cx_grindA_live`;
+`cx_clip_brk_live`; `rung_grindA_med_live`. Most of the remainder are A/B halves or factorial cells —
+`abs_veto_{50,55,60}s`, `sw_absS_{A,B}_k{10,20}`, `lad_absS_{A,B}`, the four PAIRED `odr_*`,
+`thrust_short_{raw,absveto55}`, `cx_clip_brk_standdown`, `rung_grind{A_med_05,B_med_10}`.
+**CLASSIFY control / A-B half / factorial cell / slow-firing BEFORE ranking anything.**
+⚠ The old "EIGHT of the 22" was a pre-08-16-builds count and has **NOT** been re-derived. The list
+above is a verified FLOOR, not a census — a P&L sort once put the control top of a kill pile.
 
-MGC: `mgc_holebreak_fade_long/short` + `mgc_break_fade_nobook` (the control). ⚠ Its headline
-+$1,387/+$1,261 are **depth-mid** numbers; the service folds **trade bars** and only 41% of the lab's
-fires exist there — see `MGC_SHADOW_SCOPE.md` §8.
+MGC (`mgc_slate()`, n=3): `mgc_holebreak_fade_long/short` + `mgc_break_fade_nobook` (the control).
+⚠ Its headline +$1,387/+$1,261 are **depth-mid** numbers; the service folds **trade bars** and only
+41% of the lab's fires exist there — see `MGC_SHADOW_SCOPE.md` §8.
 
 ## 5. SAFETY — non-negotiable
 

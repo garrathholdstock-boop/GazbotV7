@@ -28,6 +28,40 @@ authoritative where they disagree with this summary.
 
 ---
 
+## 2026-08-16 (Sun) — GitHub was 18 days stale, and sweep called that healthy (`c58df56`)
+
+**The find.** `refactor/three-service` was **207 commits / 18 days** ahead of origin; last push was
+`d65596d` on 07-29. Local-only: the router made permanent, the 08-06 shared-account fixes, the whole
+08-13 "the books lied" order-path rework, DECISION §362, BUILDs #3/#10/#12–#18. **B2 backs up
+`gazbot7.db`, `shadow.db` and configs — NOT the source tree**, so on a 7.5GB box with three logged
+OOM kills that was the desk one disk away from gone. Pushed (fast-forward, verified non-destructive:
+remote had 0 commits we lacked, `merge-base --is-ancestor` clean).
+
+**The instrument fault, which is the real entry.** `check_config_committed` asked *"is it
+committed?"* and never *"did it leave the building?"* — it read `OK` green for all 18 days.
+[[an-instrument-that-reports-healthy-about-something-it-does-not-check]], 8th instance.
+→ sweep's config section now carries **`ahead_of_remote` / `upstream` / `unpushed_oldest_h`**, WARNs
+once the OLDEST unpushed commit passes **24h**, and the OK line now NAMES both halves:
+`live-behaviour files all committed · pushed @ <sha>`.
+**No network call** — `@{u}` is the local remote-tracking ref, which git advances on push, so it
+measures "committed here, never pushed from here" without a fetch (a network call in a check running
+8×/day is a hang risk). Cannot see a push from another machine → over-reports, never under-reports.
+
+★ **The red path was PROVEN on fixtures, and that caught a bug in the check itself:** the oldest-
+commit age used the LAST LINE of `git log`, which is DAG order, not date order — one rebase or
+amended date and an 18-day-old commit read as **2.0h** and the alarm stayed green. Now `min()`.
+Fixtures: synced OK · 2h-unpushed OK · **18d-unpushed WARN** · no-upstream WARN · not-a-repo WARN.
+Suite green (801), ruff clean. Revert: `git revert c58df56`.
+
+**STATE.md §4 corrected in the same breath** (operator: *"its 34 mnq arms"*). It read "22 MNQ arms +
+3 MGC", which merged two slates AND was stale the day it was written. Counted by CALLING both:
+`default_slate()` = **34, all MNQ, zero MGC**; `mgc_slate()` = **3**, run by the separate
+`gazbot7-shadow-mgc` into its own store, zero name overlap. 47→22 was the 08-15 trim; the 08-16 BUILD
+commits then armed 9+ more. The "EIGHT of the 22 are losing on purpose" line was also a pre-builds
+count — replaced with a VERIFIED FLOOR of nine named controls/live-mirrors plus the A/B and factorial
+families, and explicitly labelled a floor rather than a census, because
+[[a-control-is-supposed-to-lose]] began with a P&L sort putting the control top of a kill pile.
+
 ## 2026-08-16 (Sun) — the rider window was a phantom on every shadow arm (`be06ff1`)
 
 Found while answering "is the rider armed for the whole US session or an hour and a half?" — a
@@ -49,11 +83,9 @@ editing the field it appears to carry would have been a **silent no-op**.
 
 Revert: `git revert be06ff1` + restart `gazbot7-shadow`.
 
-⚠ **Un-pushed** — branch is `refactor/three-service`, not main.
+~~⚠ Un-pushed~~ — **pushed**, see the entry above.
 
-⚠ **STATE.md §4 disagrees with the code and was NOT edited:** it says "22 MNQ arms + 3 MGC";
-`default_slate()` returns **34, all MNQ, zero MGC** (the gold arms live on the separate `shadow_mgc`
-desk with its own store). Left alone pending the operator — flagged, not fixed.
+~~⚠ STATE.md §4 disagrees with the code~~ — **CORRECTED to 34**, see the entry above.
 
 ## 2026-08-16 (Sun) — project files restored; Friday report schedule made satisfiable
 
