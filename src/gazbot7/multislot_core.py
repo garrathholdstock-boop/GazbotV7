@@ -383,7 +383,12 @@ class MultiSlotCore:
                      if self._last_audit_ok_mono is not None else None)
         health = {"ts": ts, "conn": conn, "healthy": healthy,
                   "place_live": self._cfg.place_live, "flat": not held,
-                  "halted": self._halted, "protection": protection, "audit_age_s": audit_age}
+                  "halted": self._halted, "protection": protection, "audit_age_s": audit_age,
+                  # ★2026-08-16 consecutive cycles the DRIFT branch skipped the safety block.
+                  # audit_age_s only says the loop is turning; this says whether the work inside it
+                  # actually ran. They disagreed for the whole of the 08-06 incident, and only the
+                  # first one was published — so the desk read green while unmanaged.
+                  "safety_skipped_cycles": getattr(self, "_safety_skipped", 0)}
         status = {**health, "position": slots or None}
         for name, payload in (("core_health.json", health), ("status.json", status)):
             path = os.path.join(data_dir, name)
@@ -714,6 +719,38 @@ class MultiSlotCore:
                                 self._flatten_slot(gate)
                             self._check_stop_breach(gate)      # live stop but price ran past it
                             self.exit_watchdog_slot(gate, gw)  # escalate a close that isn't completing
+                        self._safety_skipped = 0
+                    else:
+                        # ★★★2026-08-16 — THE DRIFT SKIP IS NO LONGER SILENT (open since 08-06).
+                        # On drift the ENTIRE block above is skipped: max-hold, the naked auditor,
+                        # re-protect, stop-breach and the exit watchdog. The alarm disables the fire
+                        # brigade — and `cycle_ok` still went True below, so `audit_age_s` read GREEN
+                        # throughout. The loop was cycling; only the work inside it was not.
+                        #
+                        # ⚠ THE ORDER-PLACING HALF STAYS GATED, DELIBERATELY. Drift means the book
+                        # and the venue disagree on a SHARED, NETTED account. Acting then is exactly
+                        # how 08-06 happened: a flatten sized on the ACCOUNT net, and a stop left
+                        # resting with no position behind it that later opened a naked short.
+                        # "Nobody may act unless venue == the sum of EVERY desk's claim" is the
+                        # governing rule and this change does not weaken it. Promoting any of these
+                        # to ACT under drift is an operator decision, not a cleanup.
+                        #
+                        # What changes here: the skip is COUNTED, NAMED and ALARMED, so a desk
+                        # sitting unmanaged is loud instead of green. Detection only — nothing below
+                        # places an order or mutates slot state.
+                        self._safety_skipped = getattr(self, "_safety_skipped", 0) + 1
+                        try:
+                            held = [g for g in self._gates if self._book.get(g)]
+                        except Exception:
+                            held = []
+                        if held and self._safety_skipped in (1, 12, 60):   # now, ~1min, ~5min
+                            self._notify(
+                                f"DRIFT: safety block SKIPPED for {self._safety_skipped} cycle(s) "
+                                f"with {len(held)} slot(s) OPEN ({', '.join(held)}). max-hold, "
+                                f"naked-audit, re-protect, stop-breach and the exit watchdog are ALL "
+                                f"inactive while the book and venue disagree. audit_age stays green "
+                                f"because the loop IS running — the work inside it is not. "
+                                f"Reconcile or flatten by hand.")
                 cycle_ok = True                          # reached here without raising → auditor ran
                 self._audit_alarmed = False
             except Exception:

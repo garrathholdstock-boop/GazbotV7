@@ -188,6 +188,21 @@ def check_core(cfg: RunConfig, now: datetime) -> dict:
     if audit_stale:
         status = CRIT
         notes.append(f"AUDIT LOOP STALE {audit_age:.0f}s (safety spine dead — max-hold/stop-breach NOT running)")
+    # ★★2026-08-16 — A TURNING LOOP IS NOT A WORKING ONE. On `drift` the audit loop skips its ENTIRE
+    # safety block (max-hold, naked-audit, re-protect, stop-breach, exit watchdog) while still
+    # COMPLETING its cycle — so audit_age_s stays green and this section passed clean throughout the
+    # whole 08-06 incident. audit_age_s answers "is the loop alive"; safety_skipped_cycles answers
+    # "did the work inside it run", and only the first was ever published. CRIT while HOLDING,
+    # because an open position with no max-hold and no stop-breach check is the state that produced
+    # a naked short.
+    skipped = h.get("safety_skipped_cycles") or 0
+    if skipped and not h.get("flat", True):
+        status = CRIT
+        notes.append(f"SAFETY BLOCK SKIPPED {skipped} cycles while HOLDING (drift — max-hold / "
+                     f"naked-audit / stop-breach ALL inactive; audit_age is green but meaningless)")
+    elif skipped:
+        status = _worst(status, WARN)
+        notes.append(f"safety block skipped {skipped} cycles (drift, desk flat)")
     if halted:
         status = _worst(status, WARN)
         notes.append("desk HALTED (kill-switch)")
