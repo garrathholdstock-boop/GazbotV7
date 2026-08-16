@@ -28,6 +28,33 @@ authoritative where they disagree with this summary.
 
 ---
 
+## 2026-08-16 (Sun) — the rider window was a phantom on every shadow arm (`be06ff1`)
+
+Found while answering "is the rider armed for the whole US session or an hour and a half?" — a
+question the code itself answered ambiguously, which is why it is worth an entry.
+
+`ShadowVariant.rider_win_start_s / rider_win_end_s` defaulted to **13:00–14:45Z on ALL 34 arms**, but
+only `_rider_entry` (`gate="clock_rider"`) ever reads them. `rider_w5` is `gate="board"` and trades
+**13:00–20:00Z** via `hh_lo`/`hh_hi` in params — yet inspecting the arm showed `rider_win_end_s`
+14:45, i.e. a 1h45m window on a gate that runs 7 hours. **CLAUDE.md trap #9** (a field carried but
+read by nothing). The live danger was never the confusion: it is that "fixing" that arm's window by
+editing the field it appears to carry would have been a **silent no-op**.
+
+- `-1` now means UNSET. `__post_init__` fills the historical default for `clock_rider` and **RAISES**
+  on any other gate, so the no-op edit is now a loud error.
+- `_open_rider()` states the 14:45 cut explicitly at the definition site.
+- **No behaviour change**, asserted via `default_slate()` not source: odr arms unchanged at
+  13:00–14:45Z; `rider_w5` still 13–20 with `cooldown_min=15`. Full suite green (801).
+- `gazbot7-shadow` restarted 12:35:30Z (it is long-running and does not pick up code).
+
+Revert: `git revert be06ff1` + restart `gazbot7-shadow`.
+
+⚠ **Un-pushed** — branch is `refactor/three-service`, not main.
+
+⚠ **STATE.md §4 disagrees with the code and was NOT edited:** it says "22 MNQ arms + 3 MGC";
+`default_slate()` returns **34, all MNQ, zero MGC** (the gold arms live on the separate `shadow_mgc`
+desk with its own store). Left alone pending the operator — flagged, not fixed.
+
 ## 2026-08-16 (Sun) — project files restored; Friday report schedule made satisfiable
 
 **Docs.** STATE.md rebuilt from the RUNNING system (the old one described one desk, 8 services and a
