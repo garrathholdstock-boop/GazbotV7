@@ -221,15 +221,70 @@ def main():
             else:
                 break
         return st
-    leak = [(g, p, reg_at(te)) for g, side, p, te in tr if g in dr.MANAGED and p < 0]
-    print(f"\nLEAKAGE — managed-gate LOSERS that fired while ON: {len(leak)} trades, "
-          f"${sum(p for _g, p, _r in leak):+.0f}")
+    # ★★2026-08-16 BUILD #3 — LEAKAGE NOW MEANS "THE ROUTER WAS WRONG", NOT "THE GATE LOST".
+    #
+    # Two faults were reported against this detector. The first — that its universe was too narrow
+    # and it printed ZERO on a week when -$241 leaked through a gate outside it — is already fixed:
+    # `dr.MANAGED` is DOWN_OFF | UP_OFF | CHOP_OFF, and exhaustion_short joined UP_OFF on 08-15, so
+    # the universe is now all six gates. That half needed no code.
+    #
+    # The second is still here and is the more misleading one: this counted EVERY losing trade from a
+    # managed gate, while `reg_at()` computed the regime at entry and only PRINTED it. So a gate that
+    # lost money in a regime the router correctly left it ON in was booked as "leakage" — conflating
+    # "the router failed to bench something its own rules say to bench" with "a gate had a bad trade".
+    # The desk's standing rule is that NO rule lets the router bench a gate that is simply bleeding;
+    # an instrument that scores it on bleeding teaches exactly the wrong lesson.
+    #
+    # So the split: TRUE leakage is a loser that fired while ON **in a regime where the gate's own
+    # routing rule says OFF**. Everything else is an ordinary loss and is reported separately, not
+    # counted against the router.
+    # ⚠ THE CARVE-OUT IS PART OF THE RULE, NOT AN EXCEPTION TO IT. abs_veto_short is EXEMPT from the
+    # chop bench by operator decision pending its 15-fire arm-by-default review: +$2,290.50 over 159
+    # fires / 17 days, positive in ALL FIVE regimes including chop, and 53 of 54 filters tested LOSE
+    # to just letting it fire. Without this the detector books its chop losers as router failures
+    # and argues, nightly, for benching the one gate the evidence says not to.
+    CHOP_EXEMPT = {"abs_veto_short"}
+
+    def _should_be_off(gate: str, regime: str) -> bool:
+        if regime == "TREND_UP":
+            return gate in dr.UP_OFF
+        if regime == "TREND_DOWN":
+            return gate in dr.DOWN_OFF
+        if regime == "CHOP":
+            return gate in dr.CHOP_OFF and gate not in CHOP_EXEMPT
+        return False
+
+    # ★★★2026-08-16 THE REAL REASON IT REPORTED ZERO, AND IT IS BIGGER THAN THE UNIVERSE.
+    # `trades.gate` holds the SLOT TAG — 'exhaustion_short_A', 'grind_long_B' — ever since the
+    # dual-slot scale-out went live on 2026-07-29. `dr.MANAGED` holds BASE names. So `g in MANAGED`
+    # matched nothing from the current book, and this detector has been structurally blind for three
+    # weeks: it printed a confident $0 on 08-11, 08-12 and 08-13, days the desk demonstrably lost
+    # money. That is not a narrow universe, it is a detector that could not see any trade at all.
+    # tournament._base() is the desk's own tag->gate map and exists for exactly this.
+    from gazbot7.tournament import _base
+    managed_losers = [(_base(g), p, reg_at(te)) for g, side, p, te in tr
+                      if _base(g) in dr.MANAGED and p < 0]
+    leak = [(g, p, r) for g, p, r in managed_losers if _should_be_off(g, r)]
+    other = [(g, p, r) for g, p, r in managed_losers if not _should_be_off(g, r)]
+    leak_pnl, other_pnl = sum(p for _g, p, _r in leak), sum(p for _g, p, _r in other)
+    print(f"\nLEAKAGE — losers that fired while ON in a regime the router's OWN rules say to bench: "
+          f"{len(leak)} trades, ${leak_pnl:+.0f}")
     for g, p, r in sorted(leak, key=lambda x: x[1])[:6]:
-        print(f"    {g:16} ${p:+7.1f}  regime@entry={r}")
+        print(f"    {g:16} ${p:+7.1f}  regime@entry={r}   <- the router should have had this OFF")
+    if not leak:
+        print("    (none — every managed-gate loser fired in a regime where its rule says ON)")
+    print(f"  for contrast, ORDINARY losses on managed gates (rule says ON, gate just lost): "
+          f"{len(other)} trades, ${other_pnl:+.0f}")
+    print("  ⚠ Only the first number is the router's. Benching on the second is the error the desk "
+          "has a standing rule against.")
 
     out = dict(date=date, regime_pct={k: round(100*v/tot_marks, 1) for k, v in regime_time.items()},
                blocked=per_gate, saved=round(saved), missed=round(missed), router_value=round(router_value),
-               leakage_n=len(leak), leakage_pnl=round(sum(p for _g, p, _r in leak)))
+               leakage_n=len(leak), leakage_pnl=round(leak_pnl),
+               # kept separate and explicitly named so no downstream reader can mistake one for the
+               # other — the previous field silently mixed them.
+               managed_loss_n=len(other), managed_loss_pnl=round(other_pnl),
+               leakage_universe=sorted(dr.MANAGED))
     import os
     os.makedirs(OUTDIR, exist_ok=True)
     with open(f"{OUTDIR}/{date}.json", "w") as f:
