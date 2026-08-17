@@ -26,7 +26,6 @@ change" for 10.5 hours.
 from __future__ import annotations
 
 import argparse
-import glob
 import json
 import datetime as dt
 import os
@@ -41,15 +40,71 @@ STATUS = f"{GB}/data/data_status.json"
 # (label, path, max_age_h, market_clock) — market_clock=True measures staleness against the last
 # instant the MARKET WAS OPEN rather than wall-clock. See _last_market_ts().
 LOCAL = [
-    ("trade record   gazbot7.db", f"{GB}/data/gazbot7.db", 30, False),
-    ("shadow book    shadow.db", f"{GB}/data/shadow.db", 30, False),
+    # ★★2026-08-17 gazbot7.db / shadow.db / shadow_mgc.db MOVED ONTO THE MARKET CLOCK. They were on
+    # wall-clock on the stated theory that "nightly jobs write them, so a dead writer would hide all
+    # weekend". THAT THEORY IS FALSE, and the desk proved it: gazbot7-backup is a WAL checkpoint +
+    # `VACUUM INTO` a SEPARATE file — it READS gazbot7.db and only moves its mtime when there is WAL
+    # to checkpoint, i.e. only when the desk actually TRADED. It ran and Finished on 08-15, 08-16 AND
+    # 08-17 while the mtime sat unchanged at 08-15 03:30. So the mtime measures "did we trade",
+    # not "is anything alive", and a flat desk is indistinguishable from a dead recorder.
+    # ⚠ WHAT ACTUALLY VERIFIES RECORDING INTEGRITY IS `book_vs_fills` (sweep), which reconciles the
+    # book against IBKR executions and REFUSES unverifiable days. This row is a liveness hint only.
+    ("trade record   gazbot7.db", f"{GB}/data/gazbot7.db", 72, True),
+    ("shadow book    shadow.db", f"{GB}/data/shadow.db", 30, True),
     # ★2026-08-15 the gold shadow book. Its own store by design (MGC_SHADOW_SCOPE §4), which is
     # exactly why it was in no backup, no inventory and no sweep — audit finding #6.
-    ("gold shadow    shadow_mgc.db", f"{GB}/data/shadow_mgc.db", 30, False),
+    ("gold shadow    shadow_mgc.db", f"{GB}/data/shadow_mgc.db", 30, True),
     ("live tape      capture.db", f"{GB}/data/capture.db", 2, True),
     ("L2 depth       depth.db", f"{GB}/data/depth.db", 2, True),
+    # NOT on the market clock, and correctly so: tape-mirror writes this at 21:05 EVERY day including
+    # weekends, so a missed write is a dead timer and wall-clock is exactly the right measure.
     ("tape manifest  _manifest.json", f"{GB}/data/tape/_manifest.json", 30, False),
 ]
+
+
+def _market_open_at(t: dt.datetime) -> bool:
+    """Is the CME trading MNQ/MGC at this instant? Closed Fri 21:00Z → Sun 22:00Z, plus the
+    21:00-22:00Z daily halt Mon-Thu. The single definition of the venue clock in this file."""
+    wd, hh = t.weekday(), t.hour             # Mon=0 .. Sun=6
+    return not (
+        (wd == 5)                                        # all Saturday
+        or (wd == 6 and hh < 22)                         # Sunday before the 22:00 reopen
+        or (wd == 4 and hh >= 21)                        # Friday after the 21:00 close
+        or (wd <= 3 and hh == 21)                        # the Mon-Thu daily halt
+    )
+
+
+def _market_hours_between(t0: float, t1: float, *, cap_days: int = 30) -> float:
+    """Hours the market was OPEN between t0 and t1 — the honest measure of staleness.
+
+    ★★2026-08-17 WHY THIS EXISTS ALONGSIDE `_last_market_ts`. That one re-bases the clock to the
+    last open instant, which forgives the shut hours ONLY WHILE YOU ARE STILL INSIDE the closed
+    window. The moment Monday opens, `_last_market_ts(now) == now`, and the whole weekend lands back
+    in the age: on Monday 08:48 a file last written Saturday read as **53h stale** and paged the
+    operator, with every backup job having run and Finished. Forgiving a weekend only until the
+    weekend ends is not forgiving it.
+
+    This counts ACTUAL open time, so the weekend stays forgiven on Monday — while a death during
+    trading hours still accumulates at full rate, which is the property that must not be lost.
+
+    ★ EXACT, not sampled. A first cut walked fixed 15-minute steps and lost up to one step at every
+    open/close boundary — and with the Mon-Thu daily halt that is TWO boundaries per trading day, so
+    the error compounded ~30min/day and would have eaten hours off a 30h threshold. Because
+    `_market_open_at` depends only on weekday and HOUR, the venue status is constant within any clock
+    hour, so clipping each segment to the hour boundary is exact rather than approximate.
+    """
+    if t1 <= t0:
+        return 0.0
+    t0 = max(t0, t1 - cap_days * 86400)      # bound the walk; older than this is stale either way
+    open_s, t = 0.0, t0
+    while t < t1:
+        cur = dt.datetime.fromtimestamp(t, dt.UTC)
+        nxt = (cur.replace(minute=0, second=0, microsecond=0) + dt.timedelta(hours=1)).timestamp()
+        end = min(nxt, t1)
+        if _market_open_at(cur):
+            open_s += end - t
+        t = end
+    return open_s / 3600
 
 
 def _last_market_ts(now: float) -> float:
@@ -74,13 +129,7 @@ def _last_market_ts(now: float) -> float:
     t = dt.datetime.fromtimestamp(now, dt.UTC)
     for _ in range(8):                       # walk back at most a week; loop is bounded by design
         wd, hh = t.weekday(), t.hour         # Mon=0 .. Sun=6
-        open_now = not (
-            (wd == 5)                                        # all Saturday
-            or (wd == 6 and hh < 22)                         # Sunday before the 22:00 reopen
-            or (wd == 4 and hh >= 21)                        # Friday after the 21:00 close
-            or (wd <= 3 and hh == 21)                        # the Mon-Thu daily halt
-        )
-        if open_now:
+        if _market_open_at(t):
             return t.timestamp()
         # step back to the last second before this closed window began
         if wd == 6 and hh < 22:
@@ -122,9 +171,10 @@ def scan() -> dict:
     for label, path, max_h, market_clock in LOCAL:
         try:
             st = os.stat(path)
-            # ★ tape files age on MARKET time — the hours the venue was shut are not staleness.
-            ref = _last_market_ts(now) if market_clock else now
-            age_h = max(0.0, (ref - st.st_mtime) / 3600)
+            # ★ market_clock files age on OPEN-MARKET time — hours the venue was shut are not
+            # staleness, and they stay forgiven after the venue reopens (see _market_hours_between).
+            age_h = (_market_hours_between(st.st_mtime, now) if market_clock
+                     else max(0.0, (now - st.st_mtime) / 3600))
             row = {"label": label, "path": path, "mb": round(st.st_size / 1e6, 1),
                    "age_h": round(age_h, 1), "ok": True}
             if st.st_size == 0:

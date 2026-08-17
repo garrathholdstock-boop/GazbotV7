@@ -70,13 +70,57 @@ def test_a_healthy_close_reads_as_zero_not_as_days():
         assert max(0.0, (_last_market_ts(now) - wrote) / H) == 0.0
 
 
-def test_the_tape_files_are_the_ones_on_the_market_clock():
-    """Only the tape ages on market time. The trade record and shadow book are written by the desk
-    and by nightly jobs, so they must keep wall-clock ageing or a dead writer would hide all weekend."""
+def test_every_market_written_file_is_on_the_market_clock():
+    """★2026-08-17 REVERSED, because the reason for the old assertion was FALSE.
+
+    This test used to assert gazbot7.db and shadow.db must stay on wall-clock, "written by the desk
+    and by nightly jobs, so a dead writer would hide all weekend". The desk disproved it:
+    `gazbot7-backup` is a WAL checkpoint + `VACUUM INTO` a SEPARATE file. It READS gazbot7.db and
+    moves its mtime only when there is WAL to checkpoint — i.e. only when the desk TRADED. It ran
+    and Finished on 08-15, 08-16 and 08-17 while the mtime sat at 08-15 03:30, and the operator was
+    paged for "53h" on a Monday morning with nothing whatsoever wrong.
+
+    Only `_manifest.json` is genuinely written by a daily job (tape-mirror, 21:05, every day
+    including weekends), so it alone keeps wall-clock ageing — there a missed write IS a dead timer.
+    """
     from data_inventory import LOCAL
-    by = {label.split()[0] + " " + label.split()[1]: mc for label, _p, _m, mc in
-          [(l, p, m, mc) for l, p, m, mc in LOCAL]}
-    flags = {l.strip(): mc for l, _p, _m, mc in LOCAL}
-    assert any("capture.db" in l and mc for l, mc in flags.items())
-    assert any("depth.db" in l and mc for l, mc in flags.items())
-    assert all(not mc for l, mc in flags.items() if "gazbot7.db" in l or "shadow.db" in l)
+    flags = {label.strip(): mc for label, _p, _m, mc in LOCAL}
+    for name in ("capture.db", "depth.db", "gazbot7.db", "shadow.db", "shadow_mgc.db"):
+        assert any(name in lb and mc for lb, mc in flags.items()), f"{name} must be on the market clock"
+    assert all(not mc for lb, mc in flags.items() if "_manifest.json" in lb)
+
+
+def test_the_weekend_stays_forgiven_after_the_market_reopens():
+    """★ THE REGRESSION THIS FIX EXISTS FOR. `_last_market_ts` forgives shut hours only while you
+    are still inside the closed window; once Monday opens it returns `now` and the whole weekend
+    lands back in the age. Real numbers from the page: written Sat 03:30, read Mon 08:48."""
+    from data_inventory import _market_hours_between
+    wrote = ts(2026, 8, 15, 3, 30)                      # Saturday — market shut
+    now = ts(2026, 8, 17, 8, 48)                        # Monday morning — market OPEN
+    assert (now - wrote) / H > 53                       # wall-clock: what paged the operator
+    assert (_last_market_ts(now) - wrote) / H > 53      # the OLD market-clock: no help at all
+    open_h = _market_hours_between(wrote, now)
+    assert 10 < open_h < 12, f"only Sun 22:00 -> Mon 08:48 is open time, got {open_h:.1f}h"
+    assert open_h < 30, "must not breach the shadow-book threshold"
+    assert open_h < 72, "must not breach the trade-record threshold"
+
+
+def test_open_hours_still_accrue_at_full_rate_during_trading():
+    """★ THE PROPERTY THAT MUST NOT BE LOST. Forgiving shut hours must not forgive trading ones."""
+    from data_inventory import _market_hours_between
+    died = ts(2026, 8, 14, 10, 0)                       # Friday mid-session
+    for now, lo, hi in ((ts(2026, 8, 15, 12, 46), 10, 12),   # Saturday: measures to the Fri close
+                        (ts(2026, 8, 16, 20, 0), 10, 12),    # Sunday, pre-reopen: still ~11h
+                        (ts(2026, 8, 17, 8, 48), 21, 23)):   # Monday: +10.8h of real trading
+        got = _market_hours_between(died, now)
+        assert lo < got < hi, f"at {now}: expected {lo}-{hi}h, got {got:.1f}h"
+        assert got > 2, "a mid-session death must always breach the 2h tape threshold"
+
+
+def test_a_healthy_close_reads_as_zero_open_hours():
+    """depth.db's real mtime: 12 min AFTER the Friday close. Zero open hours until the reopen."""
+    from data_inventory import _market_hours_between
+    wrote = ts(2026, 8, 14, 21, 12)
+    assert _market_hours_between(wrote, ts(2026, 8, 15, 12, 46)) == 0.0
+    assert _market_hours_between(wrote, ts(2026, 8, 16, 20, 0)) == 0.0
+    assert _market_hours_between(wrote, ts(2026, 8, 16, 23, 0)) > 0.9   # reopened at 22:00
