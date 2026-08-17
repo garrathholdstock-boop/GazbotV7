@@ -28,6 +28,47 @@ authoritative where they disagree with this summary.
 
 ---
 
+## 2026-08-17 (Mon) — a false ATTENTION GAZ, and the desk day was never the UTC day
+
+**07:08Z the hour-watch job told the operator to bench `exhaustion_short`** — "the only gate trading",
+"net ~−$88 on the day", citing "its last 3 signals (18:41, 18:44, 19:43), all STOPs for −$133".
+**The desk had taken ZERO trades that day.** Those were Friday 08-14's six A/B legs (−$133.5 exactly),
+and at 07:08 the cited 18:41 had not yet happened. The operator caught it: *"but no ttades today"*.
+
+The tape half WAS today's (day high 30326 ≈ its 30325), which is what made it convincing — a
+mixed-source alert is worse than a wholly stale one. Its own wording gives up the mechanism:
+*"its last 3 signals"* is an `ORDER BY closed_at DESC LIMIT`, no date floor, so a quiet morning walks
+it back into the previous session. **Both tools its prompt sanctions reported the truth and were not
+used** — `hour_watch.py` → `hour_trades: 0, day_net: 0, gates: [], escalate: false`; `desk_view.py` →
+`DAY TOTAL +0.0`. The durable router read the SAME rows correctly the day before (*"residue, not a
+wall"*) because its prompt carries a data contract and this one did not.
+
+**NOT benched** — and not merely because the alert was wrong. By the time it was read the premise had
+inverted: price 30263, **63pt below** the high, last 30-min net −35.75pt — the roll-over the fader
+exists to catch had begun. And day-ER 0.07 / ATR 6pt is confirmed chop, where the standing rule is
+*bench momentum, KEEP reversion* — `hour_watch.py` itself classes `exhaustion_short` as reversion.
+
+→ **`ops/job_prompts/hour-watch.md`: a 6-point DATA CONTRACT at the top**, ahead of every step, per
+the Friday-report lesson that a contract belongs in `PRE` so all phases inherit it. Trades come from
+the two tools only · every query bounded by `paris_day_start_utc` · never `ORDER BY … LIMIT` · **zero
+trades is a complete answer** · a dual-lot gate writes 2 rows per signal · never pair a live tape read
+with another day's trades.
+
+★ **The same class, worse, found next door.** `ops/job_prompts/nightly-review.md` scoped the day's
+book with `date(closed_at)=date('now')` — the **UTC** day. The desk day is the PARIS day, 22:00Z →
+22:00Z, and **22:00Z is the reopen**. So it misfiled every trade in the 22:00–24:00Z reopen window:
+**41 trades / $368 across the book**, including 07-30's 8 trades / −$336, which IS the documented
+reopen churn. Running at 22:43 it also swept in 43 minutes belonging to the next desk day.
+Fixed to a derived two-ended Paris window (never a hardcoded +2h — that breaks at DST).
+**VERIFIED against the desk's own record:** the corrected window returns 07-30 = **91 trades /
++$1,172.00**, exactly the "+$1,172 — best ever" in `router_badcall_ledger.md`; the old form said
+**+$93.50**. A **$1,078 miss on one day** that had never looked odd.
+⚠ My first attempt at the fix was WRONG — `-25h` produced a 48-hour window — and only running it
+caught that. ⚠ DST 2026-10-25 moves the boundary to 23:00Z while the timer stays at 22:43 UTC; the
+query stays correct, the TIMER needs revisiting. Logged in the prompt, not fudged.
+
+Revert: `git revert <sha>`. Prompts only — no desk state changed, `exhaustion_short=on` throughout.
+
 ## 2026-08-16 (Sun) — GitHub was 18 days stale, and sweep called that healthy (`c58df56`)
 
 **The find.** `refactor/three-service` was **207 commits / 18 days** ahead of origin; last push was
