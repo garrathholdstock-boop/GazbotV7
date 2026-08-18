@@ -1014,6 +1014,30 @@ def dayrider_claim_post(body, data_dir):
 
 
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────
+# ★★★2026-08-18 THE SIM NUMBER COMES FROM THE REGISTRY, FULL STOP.
+# shadow.html numbered sims off a HARDCODED `_ID_ORDER` array whose index+1 was shown as "#".
+# data/sim_registry.json is the authority (scripts/sim_registry.py allocates ids ONCE and persists
+# them; the Friday report already reads it). The two had drifted until **51 of 57 names on the board
+# were mislabelled** and 15 registered sims were missing from the array entirely.
+# It is not cosmetic: the operator asked "is sim 23 the same tech as rgv_short", the board's #23 was
+# rg_long_fast_v (registry #29) while the registry's #23 is exhaustion_rev, and a whole exchange was
+# spent confidently answering about the wrong strategy. Two surfaces numbering one thing differently
+# is the failure pnl.py exists to prevent — four V5 surfaces each summing P&L their own way.
+_SIM_REGISTRY = f"{os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))}/data/sim_registry.json"
+
+
+def sim_ids(path: str | None = None) -> dict:
+    """{sim name -> stable registry id}. Empty dict on any failure — a missing id renders as "?",
+    which is honest, where a positional fallback would silently invent a WRONG number."""
+    try:
+        with open(path or _SIM_REGISTRY) as fh:
+            d = json.load(fh)
+        ids = d.get("ids", d)
+        return {k: int(v) for k, v in ids.items() if isinstance(v, int)}
+    except Exception:
+        return {}
+
+
 def _shadow_block(vals):
     """The {n, real_pnl, win} block the shadow UI reads — honest net, win% or null."""
     n = len(vals)
@@ -1157,11 +1181,12 @@ def shadow_overview_json(shadow_path, date=None):
             a["week"].append(p); bs["week"].append(p)
         if day_start <= ts < day_end:
             a["today"].append(p); bs["today"].append(p)
+    _ids = sim_ids()
     strategies = []
     for s in names:
         a = agg[s]
         strategies.append({
-            "strategy": s, "armed": True,
+            "strategy": s, "armed": True, "sim_id": _ids.get(s),
             "days_live": None if a["min_ts"] is None else max(0, round((day_end - a["min_ts"]) / 86400)),
             "today": _shadow_block(a["today"]), "week": _shadow_block(a["week"]), "all": _shadow_block(a["all"]),
             "by_symbol": {sym: {"today": _shadow_block(b["today"]), "week": _shadow_block(b["week"]),
@@ -1173,6 +1198,7 @@ def shadow_overview_json(shadow_path, date=None):
         "all_total": round(sum(sum(a["all"]) for a in agg.values()), 2),
         "n_strategies": len(names), "as_of": (date or datetime.now(_PARIS).strftime("%Y-%m-%d")),
         "real_available": True, "strategies": strategies,
+        "sim_ids_source": "data/sim_registry.json", "sim_ids_loaded": len(_ids),
     }
 
 

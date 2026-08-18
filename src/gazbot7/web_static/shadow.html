@@ -244,9 +244,23 @@ const nameOf = s => (META[s] && META[s].n) || s;
 // ★2026-08-05 — #29..#57 APPENDED (29 sims that rendered "#?"). Nothing above #28 moved, so every
 // number already used in the ledger/reports still points at the same sim. The 11 retired names in
 // #1..#28 stay as GAPS on purpose — that is the rule this list is built on.
-const _ID_ORDER = ["thrust_loose","thrust_cont","thrust_aligned","rg_short_050","rg_short_025_raw","rg_short_025_flow25","rg_short_025_flow50","rg_short_025_flow50_rth","rg_short_025_flow25_t15","rg_long_20_t15","rg_long_20_t20","rg_long_20_flow25","abs_veto_50s","abs_veto_55s","abs_veto_60s","thrust_fast","capit_tight","capit_mid","capit_loose","capit_ride","rg_long_fast","grind_fast","rg_long_fast_v","chand_k35","chand_k25","chand_k20","cb_thrust","cb_thrust_dropped",
-  "thrust_short_raw","thrust_short_absveto55","capit_live_mirror","sw_grind_A_k10","sw_grind_B_k10","sw_absL_A_k10","sw_absL_B_k10","sw_absS_A_k10","sw_absS_B_k10","sw_grind_A_k20","sw_grind_B_k20","sw_absL_A_k20","sw_absL_B_k20","sw_absS_A_k20","sw_absS_B_k20","cx_grindA_live","cx_grindA_clip","cx_absLA_live","cx_absLA_clip","cx_absSB_live","cx_absSB_clip","CL-grind_long","CL-capitulation_long","CL-abs_veto_long","CL-abs_veto_short","CL-exhaustion_short","CL-rgv_short","CL-nipc_long","CL-nipc_short"];
-const idOf = s => { const i = _ID_ORDER.indexOf(s); return i < 0 ? "?" : i + 1; };
+/* ★★★2026-08-18 THE SIM NUMBER COMES FROM data/sim_registry.json, VIA THE API.
+   This was `_ID_ORDER.indexOf(s) + 1` — a hardcoded array whose POSITION was shown as the sim id.
+   The registry allocates ids once and persists them, so the two drifted until 51 of 57 names on
+   this board were mislabelled and 15 registered sims were missing from the array entirely.
+   It cost a real exchange: "is sim 23 the same tech as rgv_short?" — this board's #23 was
+   rg_long_fast_v, the registry's #23 is exhaustion_rev, and the question got answered about the
+   wrong strategy. A number rendered beside a right one is worse than no number at all.
+   ⚠ UNKNOWN RENDERS "?" ON PURPOSE. Never fall back to a position: an invented number is
+   indistinguishable from a real one, which is exactly how this broke. */
+const _SIM_IDS = Object.create(null);
+function learnSimIds(strategies){
+  if (!Array.isArray(strategies)) return;
+  for (const r of strategies){
+    if (r && r.strategy && Number.isInteger(r.sim_id)) _SIM_IDS[r.strategy] = r.sim_id;
+  }
+}
+const idOf = s => (s in _SIM_IDS ? _SIM_IDS[s] : "?");
 function srcBadge(strat){
   const s = META[strat] && META[strat].s;
   return (s && SRC[s]) ? `<span class="srcbadge" style="background:${SRC[s].c}" title="${SRC[s].t}">${s}</span>` : "";
@@ -544,6 +558,7 @@ async function loadOverview(){
     return;
   }
   OV=d;
+  learnSimIds(d.strategies);          // ★ registry ids arrive with the payload — BEFORE any render
   const p=projectTF(d);               // render the active DAY/WEEK/ALL timeframe
   setHeader(d);
   renderFilters();
