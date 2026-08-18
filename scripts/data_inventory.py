@@ -29,12 +29,18 @@ import argparse
 import json
 import datetime as dt
 import os
+import re
 import subprocess
 import sys
 import time
 
 GB = "/home/alphabot/gazbot7"
 STATUS = f"{GB}/data/data_status.json"
+_ALARM_KEY = "data_inventory.faults"
+# 12h, not the 4h scan cadence: a stale-source fault is not safety-critical (nothing is
+# naked, no position is at risk) and sweep reports it independently. Loud enough to not be
+# forgotten, quiet enough that a persistent fault does not train the operator to swipe past.
+_ALARM_COOLDOWN_S = 12 * 3600
 
 # (label, path, max_age_h or None if it never changes)
 # (label, path, max_age_h, market_clock) — market_clock=True measures staleness against the last
@@ -276,13 +282,28 @@ def main() -> int:
         with open(tmp, "w") as fh:
             json.dump(s, fh, indent=1)
         os.replace(tmp, STATUS)
-        if s["faults"]:
-            try:
-                sys.path.insert(0, f"{GB}/src")
-                from gazbot7.notify import notify
-                notify("⚠ GAZBOT DATA/BACKUP — " + " | ".join(s["faults"])[:800], critical=True)
-            except Exception:
-                pass
+        # ★★2026-08-18 DEDUPE ON THE SITUATION, NEVER ON THE MESSAGE TEXT.
+        # This job runs 4-hourly and the message carries a live age ("not written for 42h"), which
+        # INCREMENTS on every scan. notify.dedupe_ok() re-sends whenever the text changes — by
+        # design, so a position going -2 -> -4 alarms at once — so deduping on the raw message would
+        # suppress nothing at all: every scan is a "new" message describing an identical, unchanged
+        # fault. The operator got the same finding every four hours and asked why it was not fixed.
+        # Digits are therefore masked to build a STABLE signature of WHICH sources are faulting.
+        # A genuinely NEW fault (another file, or a file recovering and re-failing) changes the
+        # signature and pages immediately. [[a-correct-decision-repeated-every-tick-is-an-alarm-outage]]
+        try:
+            sys.path.insert(0, f"{GB}/src")
+            from gazbot7.notify import dedupe_clear, dedupe_ok, notify
+            if s["faults"]:
+                sig = " | ".join(sorted(re.sub(r"[\d,.]+", "#", f) for f in s["faults"]))
+                if dedupe_ok(_ALARM_KEY, sig, cooldown_s=_ALARM_COOLDOWN_S):
+                    notify("⚠ GAZBOT DATA/BACKUP — " + " | ".join(s["faults"])[:800], critical=True)
+            else:
+                # ⚠ CLEAR ON RESOLVE, or a fault that heals and returns inside the cooldown is
+                # swallowed. The cooldown suppresses a CONTINUING state, never a new occurrence.
+                dedupe_clear(_ALARM_KEY)
+        except Exception:
+            pass
     else:
         try:
             s = json.load(open(STATUS))
