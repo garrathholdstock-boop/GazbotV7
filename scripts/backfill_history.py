@@ -120,6 +120,31 @@ async def yield_while_busy(deadline: float) -> bool:
     return True
 
 
+async def ensure_connected(ib, tries: int = 20) -> bool:
+    """Reconnect if the gateway went away. Returns False only if it stays away.
+
+    ★★★2026-08-18 THE GATEWAY RESTARTS, AND THIS JOB RUNS FOR HOURS. `alphabot-gateway` bounced at
+    ~23:45 and the pull died on its next request with ConnectionError("Not connected"), 46 files in.
+    A multi-hour job against a nightly-restarting gateway MUST survive a bounce — the desk already
+    documents the ~04:40 reset as benign and self-healing, and any long research job has to be
+    equally patient. Resumability alone is not enough: it turns a 30-second blip into a lost run
+    until some watchdog notices.
+    """
+    if ib.isConnected():
+        return True
+    for i in range(tries):
+        try:
+            await ib.connectAsync("127.0.0.1", 4002, clientId=CLIENT_ID, timeout=20, readonly=True)
+            log(f"  reconnected to the gateway (attempt {i + 1})")
+            return True
+        except Exception as e:
+            if i == 0:
+                log(f"  gateway gone ({str(e)[:60]}) — retrying every 30s")
+            await asyncio.sleep(30)
+    log("  gateway did not come back — stopping cleanly, work already on disk is kept")
+    return False
+
+
 async def _hist(ib, con, *, end, dur, size):
     """One historical request, with a hard per-request timeout so a slow ask cannot eat the budget."""
     return await asyncio.wait_for(
@@ -128,8 +153,20 @@ async def _hist(ib, con, *, end, dur, size):
         timeout=90)
 
 
+def _bar_ts(d) -> int:
+    """★★2026-08-18 IBKR returns a datetime for INTRADAY bars and a bare datetime.DATE for DAILY.
+
+    `date` has no .timestamp(), so `int(b.date.timestamp())` raised AttributeError on the very first
+    phase and took the whole run down. driftlab never met this because it only ever asks for 1-min.
+    A daily bar is normalised to UTC midnight.
+    """
+    if isinstance(d, dt.datetime):
+        return int((d if d.tzinfo else d.replace(tzinfo=dt.UTC)).timestamp())
+    return int(dt.datetime(d.year, d.month, d.day, tzinfo=dt.UTC).timestamp())
+
+
 def _rows(bars):
-    return [(int(b.date.timestamp()), float(b.open), float(b.high),
+    return [(_bar_ts(b.date), float(b.open), float(b.high),
              float(b.low), float(b.close), float(b.volume)) for b in bars]
 
 
@@ -148,6 +185,8 @@ async def pull_contfut(ib, sym, exch, deadline):
             continue
         if not await yield_while_busy(deadline):
             return
+        if not await ensure_connected(ib):
+            return
         try:
             bars = await _hist(ib, q[0], end="", dur=dur, size=size)
         except asyncio.TimeoutError:
@@ -159,8 +198,13 @@ async def pull_contfut(ib, sym, exch, deadline):
             await asyncio.sleep(PACE_S)
             continue
         if bars:
-            n = _write(_rows(bars), path)
-            log(f"  {sym} CONTFUT {size:<7} {n:6d} bars  from {bars[0].date}")
+            try:
+                n = _write(_rows(bars), path)
+                log(f"  {sym} CONTFUT {size:<7} {n:6d} bars  from {bars[0].date}")
+            except Exception as e:
+                # ⚠ ONE BAD PHASE MUST NOT ABORT THE NIGHT. The date/datetime bug killed the whole
+                # run at its first request; a write failure is now logged and stepped over.
+                log(f"  {sym} CONTFUT {size:<7} WRITE FAILED: {str(e)[:90]}")
         await asyncio.sleep(PACE_S)
 
 
@@ -204,6 +248,8 @@ async def pull_contracts(ib, sym, exch, deadline):
             if not await yield_while_busy(deadline):
                 log("  deadline reached while yielding — stopping cleanly")
                 return
+            if not await ensure_connected(ib):
+                return
             con = Future(symbol=sym, exchange=exch, currency="USD",
                          lastTradeDateOrContractMonth=ex, includeExpired=True)
             q = [c for c in (await ib.qualifyContractsAsync(con) or []) if c is not None]
@@ -218,6 +264,8 @@ async def pull_contracts(ib, sym, exch, deadline):
                 d = last - dt.timedelta(days=95)
                 while d <= last and time.time() <= deadline:
                     if d.weekday() < 5:
+                        if not ib.isConnected() and not await ensure_connected(ib):
+                            break
                         try:
                             b = await _hist(ib, q[0], dur="1 D", size=size,
                                             end=dt.datetime(d.year, d.month, d.day, 22, 0,
@@ -235,10 +283,13 @@ async def pull_contracts(ib, sym, exch, deadline):
                     log(f"  {sym} {ex} {size:<7} {str(e)[:60]}")
                 await asyncio.sleep(PACE_S)
             if rows:
+              try:
                 n = _write(rows, path)
                 span = (dt.datetime.fromtimestamp(min(r[0] for r in rows), dt.UTC),
                         dt.datetime.fromtimestamp(max(r[0] for r in rows), dt.UTC))
                 log(f"  {sym} {ex} {size:<7} {n:6d} bars  {span[0]:%Y-%m-%d}..{span[1]:%Y-%m-%d}")
+              except Exception as e:
+                log(f"  {sym} {ex} {size:<7} WRITE FAILED: {str(e)[:90]}")
 
 
 async def run(symbols, minutes, force):
