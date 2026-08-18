@@ -239,9 +239,12 @@ def test_run_sweep_smoke_produces_all_sections(tmp_path):
     report = sweep.run_sweep(cfg, NOW)
     # ★2026-08-08 + "config" (SATURDAY #7): uncommitted live-behaviour files are now a finding.
     # ★2026-08-14 + "book_vs_fills": the ledger measured against IBKR's executions.
+    # ★2026-08-18 + "fill_vs_book": book_vs_fills asks "does our ledger match the venue" and can
+    # NEVER catch a bad price — book and venue agree, we recorded exactly the bad fill we got.
+    # This asks the other question: did the fill land outside the visible L2 ladder.
     assert set(report["sections"]) == {
-        "services", "core", "capture", "execution", "position",
-        "killswitch", "recording", "shadow", "storage", "config", "book_vs_fills"}
+        "services", "core", "capture", "execution", "position", "killswitch", "recording",
+        "shadow", "storage", "config", "book_vs_fills", "fill_vs_book"}
     assert report["overall"] in ("OK", "WARN", "CRIT")
     assert report["preflight_ok"] is False  # no core_health.json in tmp_path
 

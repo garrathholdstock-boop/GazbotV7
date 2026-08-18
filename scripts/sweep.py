@@ -24,7 +24,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -505,6 +505,107 @@ def check_book_vs_fills(store, now: datetime, *, days: int = 3) -> dict:
             "unverifiable": [{"day": v.day, "desk": v.desk, "why": v.status} for v in unver]}
 
 
+# ★2026-08-18 how far OUTSIDE the visible 10-deep ladder a fill must land before it is a finding,
+# and how much timestamp slop to allow when matching a fill to a book snapshot.
+_FILL_BOOK_TOL_PT = 2.0
+# ⚠ 2s, because the DAY RIDER'S OWN FILLS CARRY SECOND-ROUNDED exec_time while the tournament's
+# carry microseconds. Matching a second-rounded stamp to a 250ms snapshot needs slop, and the slop
+# must be spent making the check HARDER to trip, never easier — see the max()/min() below.
+_FILL_BOOK_WINDOW_MS = 2000
+
+
+def check_fill_vs_book(store, now: datetime, *, hours: int = 24,
+                       depth_path: str = DEPTH_PATH) -> dict:
+    """Did any fill land OUTSIDE the whole visible order book?
+
+    ★★2026-08-18. The day rider's TRAIL exit filled two lots at 29579.50 and 29609.00 — 29.5pt
+    apart — while the L2 ladder showed best ask 29580.50 with 3 lots and the DEEPEST of ten levels
+    at 29582.75. A 2-lot buy cannot walk to 29609; that is ~$57 on one lot, and the operator found
+    it by watching the screen. `book_vs_fills` could never catch it: the book and the venue AGREE
+    here — we booked exactly the bad price we got. Agreement is not quality.
+
+    ⚠ CONSERVATIVE BY CONSTRUCTION — it must not cry wolf on a shared alarm channel. A fill is only
+    flagged if it sits beyond the deepest visible level in EVERY snapshot in its window: for a BUY,
+    `price > max(ask10p)`; for a SELL, `price < min(bid10p)`. Timestamp slop therefore makes the
+    test stricter, never looser, so a mis-stamped fill cannot manufacture a finding.
+
+    ⚠ MULTI-SYMBOL. depth_snap carries MNQ and MGC; every read filters `symbol`
+    ([[md-stream-multi-symbol-filter]] — folding MGC into MNQ once put ATR at 1848 against a true 15).
+
+    ⚠ NO BOOK IS NOT CLEAN. depth capture starts 2026-07-21 and covers MNQ/MGC only, so older or
+    other-symbol fills are UNVERIFIABLE and reported as such — the `book_vs_fills` precedent.
+
+    WARN, never CRIT: this is execution QUALITY. Nothing is naked and no position is at risk.
+
+    ⚠ UNVERIFIABLE ALSO WARNS, which is stricter than `book_vs_fills` (where it only annotates).
+    Deliberate: that check looks back DAYS and legitimately meets old days with no execution record,
+    whereas this one looks back 24h, so a fill with no book snapshot means depth capture DIED inside
+    the last day. "I could not check this" must not render as a green light — that is the desk's
+    single most repeated failure ([[an-instrument-that-reports-healthy-about-something-it-does-not-check]]).
+    """
+    since = (now - timedelta(hours=hours)).isoformat()
+    try:
+        fills = store.execute(
+            "SELECT exec_id, order_id, symbol, side, qty, price, exec_time FROM fills "
+            "WHERE exec_time >= ? ORDER BY exec_time", (since,)).fetchall()
+    except Exception as e:
+        return {"status": WARN, "detail": f"could not read fills: {e}"}
+    if not fills:
+        return {"status": OK, "detail": f"no fills in {hours}h", "checked": 0}
+    if not os.path.exists(depth_path):
+        return {"status": WARN, "checked": 0,
+                "detail": f"{len(fills)} fill(s) UNVERIFIABLE — no depth.db at {depth_path}"}
+    findings, unver = [], 0
+    d = sqlite3.connect(f"file:{depth_path}?mode=ro", uri=True)
+    try:
+        for exec_id, order_id, sym, side, qty, price, ts in fills:
+            try:
+                t_ms = int(datetime.fromisoformat(ts).timestamp() * 1000)
+            except Exception:
+                unver += 1
+                continue
+            row = d.execute(
+                "SELECT MAX(ask10p), MIN(bid10p), MIN(ask1p), MAX(bid1p), COUNT(*) FROM depth_snap "
+                "WHERE symbol=? AND ts_ms BETWEEN ? AND ?",
+                (sym, t_ms - _FILL_BOOK_WINDOW_MS, t_ms + _FILL_BOOK_WINDOW_MS)).fetchone()
+            if not row or not row[4] or row[0] is None or row[1] is None:
+                unver += 1
+                continue
+            worst_ask, worst_bid, best_ask, best_bid = row[0], row[1], row[2], row[3]
+            if side == "BUY":
+                excess = float(price) - float(worst_ask)
+                ref = worst_ask
+            else:
+                excess = float(worst_bid) - float(price)
+                ref = worst_bid
+            if excess > _FILL_BOOK_TOL_PT:
+                vpp = 2.0 if sym == "MNQ" else (10.0 if sym == "MGC" else 2.0)
+                findings.append({"exec_id": exec_id, "order_id": order_id, "symbol": sym,
+                                 "side": side, "qty": float(qty), "price": float(price),
+                                 "deepest_visible": float(ref), "excess_pt": round(excess, 2),
+                                 "est_cost_usd": round(excess * float(qty) * vpp, 2),
+                                 "inside_touch": float(best_ask if side == "BUY" else best_bid),
+                                 "at": ts})
+    finally:
+        d.close()
+    checked = len(fills) - unver
+    if findings:
+        w = max(findings, key=lambda f: f["excess_pt"])
+        detail = (f"{len(findings)} of {checked} fill(s) landed OUTSIDE the visible book — worst "
+                  f"{w['order_id']} {w['side']} {w['qty']:g} @ {w['price']:.2f} vs deepest "
+                  f"{w['deepest_visible']:.2f} ({w['excess_pt']:+.2f}pt, ~${w['est_cost_usd']:.0f})")
+        status = WARN
+    else:
+        detail = f"{checked} fill(s) all inside the visible book"
+        status = OK
+    if unver:
+        status = _worst(status, WARN)
+        detail += (f" · {unver} UNVERIFIABLE (no book snapshot in ±"
+                   f"{_FILL_BOOK_WINDOW_MS}ms) — not the same as clean; is depth capture alive?")
+    return {"status": status, "detail": detail, "checked": checked,
+            "unverifiable": unver, "findings": findings[:8]}
+
+
 def check_recording(cfg: RunConfig, store, now: datetime) -> dict:
     since_iso = pnl.paris_day_start_utc(now)
     n = store.execute("SELECT count(*) FROM trades WHERE symbol=? AND closed_at>=?",
@@ -690,6 +791,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "killswitch": check_killswitch(cfg, store, core, now),
             "recording": check_recording(cfg, store, now),
             "book_vs_fills": check_book_vs_fills(store, now),
+            "fill_vs_book": check_fill_vs_book(store, now),
             "shadow": check_shadow(cfg, now),
             "storage": check_storage(cfg),
             "config": check_config_committed(),
