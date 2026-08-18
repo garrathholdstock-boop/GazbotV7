@@ -1,0 +1,21 @@
+[Unit]
+Description=GAZBOT V7 — historical bar backfill (MNQ+MGC, every expiry IBKR will serve), RESUMABLE
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=/home/alphabot/gazbot7/src
+WorkingDirectory=/home/alphabot/gazbot7
+# 8h budget: starts just after the 22:00Z reopen and runs through the 00:00-07:00 Asia block, where
+# the desk is already config-blocked from new entries so the pull costs no trading opportunity.
+# It YIELDS whenever a desk holds a position and resumes when flat — see desk_busy().
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/backfill_history.py \
+          --symbols MNQ,MGC --minutes 480
+MemoryMax=1G
+MemoryHigh=768M
+Nice=10
+TimeoutStartSec=30000
+StandardOutput=append:/home/alphabot/gazbot7/data/backfill/run.log
+StandardError=append:/home/alphabot/gazbot7/data/backfill/run.log

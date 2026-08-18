@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — historical backfill, nightly just after the reopen until complete
+
+[Timer]
+# 22:05Z — five minutes after the CME reopen, clear of the 22:00 gate-reactivate write.
+OnCalendar=*-*-* 22:05:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

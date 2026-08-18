@@ -114,10 +114,15 @@ async def pull(ib, spec, whatToShow="TRADES"):
     path = f"{OUT}/{spec['symbol']}_{spec['ym']}.parquet"
     if os.path.exists(path):
         return ("skip", path, 0)
-    con = Future(symbol=spec["symbol"], exchange="CME", currency="USD",
-                 lastTradeDateOrContractMonth=spec["ym"])
+    # ★★★2026-08-18 includeExpired=True IS MANDATORY. Without it every EXPIRED contract fails to
+    # resolve, so a 10-year walk backwards returns nothing at all — which is what this job was about
+    # to do on its first run. And qualifyContractsAsync returns a list that can contain None: `if
+    # not q` is True for [] but FALSE for [None], so the None then blows up downstream as an
+    # AttributeError that reads like "IBKR has no data". It is not; it is an unresolved contract.
+    con = Future(symbol=spec["symbol"], exchange=spec.get("exchange", "CME"), currency="USD",
+                 lastTradeDateOrContractMonth=spec["ym"], includeExpired=True)
     try:
-        q = await ib.qualifyContractsAsync(con)
+        q = [c for c in (await ib.qualifyContractsAsync(con) or []) if c is not None]
         if not q:
             return ("no-contract", path, 0)
     except Exception as e:
