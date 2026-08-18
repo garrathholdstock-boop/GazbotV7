@@ -176,10 +176,24 @@ async def pull_contracts(ib, sym, exch, deadline):
     expiries = sorted({c.contract.lastTradeDateOrContractMonth for c in cds})
     log(f"  {sym}: IBKR lists {len(expiries)} contracts, {expiries[0]} .. {expiries[-1]}")
     today = dt.date.today()
+    # ★2026-08-18 the FRONT month is the nearest unexpired contract. Only it earns the expensive
+    # per-day minute walk among the actives: a far-dated contract has barely traded, so walking 95
+    # days of it costs ~12 minutes of budget to collect almost nothing — and four of them would burn
+    # ~48 minutes before the contracts that matter. They still get the cheap bulk requests.
+    future = [e for e in expiries
+              if dt.date(int(e[:4]), int(e[4:6]), int(e[6:8]) if len(e) >= 8 else 15) > today]
+    front = future[0] if future else None
     for ex in expiries:
         exp = dt.date(int(ex[:4]), int(ex[4:6]), int(ex[6:8]) if len(ex) >= 8 else 15)
-        if exp > today:
-            continue                        # not yet expired: the live feed already captures it
+        # ★★★2026-08-18 THE ACTIVE CONTRACT IS PULLED TOO, ending NOW. A first cut skipped every
+        # unexpired contract on the reasoning that "the live feed already captures it" — but the
+        # live feed only started 2026-07-15, while the current front month has traded since ~March.
+        # That silently discarded ~4 months of the single most relevant contract. An unexpired
+        # contract simply ends at `now` instead of at its expiry; far-dated ones return little and
+        # cost one request each, which is the right price for not having to special-case the roll.
+        active = exp > today
+        end_at = "" if active else dt.datetime(exp.year, exp.month, exp.day, 22, 0,
+                                               tzinfo=dt.UTC).strftime("%Y%m%d-%H:%M:%S")
         for size, dur, per_day in LADDER:
             if time.time() > deadline:
                 log("  deadline reached — stopping cleanly, resumable")
@@ -197,9 +211,12 @@ async def pull_contracts(ib, sym, exch, deadline):
                 log(f"  {sym} {ex}: will not resolve — beyond this account's entitlement")
                 break
             rows = []
+            if per_day and active and ex != front:
+                continue                        # far-dated: not worth a 95-day minute walk
             if per_day:
-                d = exp - dt.timedelta(days=95)
-                while d <= exp and time.time() <= deadline:
+                last = min(exp, today)          # an active contract walks only up to TODAY
+                d = last - dt.timedelta(days=95)
+                while d <= last and time.time() <= deadline:
                     if d.weekday() < 5:
                         try:
                             b = await _hist(ib, q[0], dur="1 D", size=size,
@@ -212,9 +229,7 @@ async def pull_contracts(ib, sym, exch, deadline):
                     d += dt.timedelta(days=1)
             else:
                 try:
-                    b = await _hist(ib, q[0], dur=dur, size=size,
-                                    end=dt.datetime(exp.year, exp.month, exp.day, 22, 0,
-                                                    tzinfo=dt.UTC).strftime("%Y%m%d-%H:%M:%S"))
+                    b = await _hist(ib, q[0], dur=dur, size=size, end=end_at)
                     rows += _rows(b)
                 except Exception as e:
                     log(f"  {sym} {ex} {size:<7} {str(e)[:60]}")
