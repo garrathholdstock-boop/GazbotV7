@@ -22,13 +22,7 @@
   "exhaustion_short": {
     "a_r": 2.0,
     "b": 2.0,
-    "stop_k": 1.5,
-    "atr_split": 22,
-    "lo": {
-      "a_usd": 40,
-      "b_r": 1.75,
-      "b_floor_usd": 60
-    }
+    "stop_k": 1.5
   },
   "abs_veto_long": {
     "a_r": 1.0,

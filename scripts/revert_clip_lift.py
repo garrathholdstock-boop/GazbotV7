@@ -40,7 +40,15 @@ LOG = f"{GB}/data/router_trial_log.txt"
 CLIP = {"atr_split": 22, "lo": {"a_usd": 40, "b_r": 1.75, "b_floor_usd": 60}}
 # Gates that are SUPPOSED to carry the clip. nipc is deliberately exempt (its own 20-min cap +
 # 15:30 flat make a cash clip meaningless) and is NOT restored here.
-CLIPPED = ("grind_long", "capitulation_long", "exhaustion_short",
+# ★★2026-08-18 exhaustion_short REMOVED — this roster was STALE and the job "restored" a clip that
+# had been deliberately removed. d6a0e88 shipped the wide-stop cell (1.0 -> 1.5xATR, both lots scalp
+# 2.0R) and that GRADED cell has no clip; tests/test_exh_wide_stop.py pins it: "the graded cell had
+# no clip, so leaving it on would ship a config the grid never measured — silently, and only on
+# quiet days". On 08-16 21:15 this job put it back and restarted the tournament, so the desk ran an
+# unmeasured cell live on its only armed short, biting exactly when ATR < 22.
+# ⚠ THE LESSON IS THE ROSTER, NOT THE CLIP: a daily "restore to standard" job is only as correct as
+# its list of what standard IS. When a gate's graded config CHANGES, this tuple must change with it.
+CLIPPED = ("grind_long", "capitulation_long",
            "abs_veto_long", "abs_veto_short", "rgv_short")
 
 
