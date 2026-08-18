@@ -106,8 +106,10 @@ def phases(deep: bool) -> list[tuple]:
                        ("recent", "2026-08-01"), ("preroll", "2026-06-15")):
         P.append((f"walkforward_{tag}",
                   f"walk-forward, live gates, window from {since}",
-                  [VENV, "scripts/forward_validate.py", "--db", f"{GB}/data/capture.db",
-                   "--tf", "5s", "--from", since],
+                  # ★ --lake, NOT --db capture.db. The hot tier is pruned: on the same window it
+                  # yields 24 days against the lake's 43, and a walk-forward silently truncated to
+                  # half its out-of-sample period looks like evidence while being worth much less.
+                  [VENV, "scripts/forward_validate.py", "--lake", "--from", since],
                   f"{OUT}/walkforward_{tag}.txt", 2700))
     if deep:
         # Greenfield is Claude-driven and expensive; it runs LAST with whatever budget remains.

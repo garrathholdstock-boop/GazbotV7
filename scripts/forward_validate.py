@@ -62,6 +62,43 @@ def _load_days(db, tf, dfrom, dto):
     return out
 
 
+def _load_days_lake(dfrom, dto):
+    """Same shape as _load_days, but over the FULL history via gazbot7.lake.
+
+    ★★★2026-08-18. _load_days reads ONE sqlite file. Pointed at capture.db — which is PRUNED to a
+    few trading days — a walk-forward "from 2026-06-01" silently validates on whatever the hot tier
+    holds and reports as though it covered the range. The whole point of a walk-forward is the
+    breadth of the out-of-sample period, so a silently-truncated one is worse than none: it looks
+    like evidence. Same defect just fixed in run_census.py.
+
+    Aggregates 5s -> 1m in SQL, which is also ~40x faster than the python fold it replaces.
+    ⚠ CAST(bar_ts/60 AS INT)*60, never bar_ts/60*60: DuckDB `/` is FLOAT and that is a silent no-op
+    which once read 5s bars as "1m" for hours.
+    """
+    from gazbot7.lake import connect as lake_connect
+    con = lake_connect(symbol="MNQ")
+    where = ["symbol='MNQ'", "timeframe='5s'"]
+    if dfrom:
+        where.append(f"CAST(to_timestamp(bar_ts) AS DATE) >= DATE '{dfrom}'")
+    if dto:
+        where.append(f"CAST(to_timestamp(bar_ts) AS DATE) <= DATE '{dto}'")
+    rows = con.execute(f"""
+        SELECT CAST(to_timestamp(bar_ts) AS DATE) d, CAST(bar_ts/60 AS INT)*60 t,
+               arg_min(open, bar_ts) o, MAX(high) h, MIN(low) l,
+               arg_max(close, bar_ts) c, SUM(COALESCE(volume,0)) v
+        FROM bars WHERE {' AND '.join(where)}
+        GROUP BY d, t ORDER BY d, t""").fetchall()
+    con.close()
+    byday = {}
+    for d, t, o, h, low, c, v in rows:
+        byday.setdefault(str(d), []).append(Bar(int(t), float(o), float(h), float(low),
+                                               float(c), float(v or 0)))
+    out = [(d, b) for d, b in sorted(byday.items()) if len(b) >= 600]
+    print(f"[lake] {len(out)} usable days, {sum(len(b) for _, b in out):,} 1-min bars"
+          + (f", {out[0][0]} .. {out[-1][0]}" if out else ""))
+    return out
+
+
 def _grind_trades(bars):
     out = []; op = None
     for i in range(len(bars)):
@@ -132,10 +169,18 @@ def main():
     ap.add_argument("--tf", default="1m")
     ap.add_argument("--from", dest="dfrom", default=None)
     ap.add_argument("--to", dest="dto", default=None)
+    ap.add_argument("--lake", action="store_true",
+                    help="validate over the FULL history (V5 + Parquet + hot), not one sqlite file")
     a = ap.parse_args()
 
-    days = _load_days(a.db, a.tf, a.dfrom, a.dto)
-    print(f"forward-validation · {len(days)} days · {a.db.split('/')[-1]} {a.tf}\n")
+    days = (_load_days_lake(a.dfrom, a.dto) if a.lake
+            else _load_days(a.db, a.tf, a.dfrom, a.dto))
+    # ⚠ NAME THE SOURCE ACTUALLY READ. This printed "alphabot.db 1m" even under --lake, because
+    # it echoed the --db default rather than what was used. A header that misnames its data source
+    # is the same class of fault as a health line that reports on something it never checked.
+    _src = ("lake (V5 + Parquet + hot)" if a.lake else f"{a.db.split('/')[-1]} {a.tf}")
+    _span = f" · {days[0][0]}..{days[-1][0]}" if days else ""
+    print(f"forward-validation · {len(days)} days · {_src}{_span}\n")
 
     grind = [(d, _grind_trades(b)) for d, b in days]
     rgv = [(d, _rgv_trades(b)) for d, b in days]
