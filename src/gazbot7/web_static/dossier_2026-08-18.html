@@ -1,0 +1,593 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>GAZBOT — Product &amp; Architecture Dossier</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; @bottom-center { content: counter(page); font: 9px system-ui; color:#888; } }
+body { font: 10.5pt/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:#1a1d21; max-width:900px; margin:0 auto; padding:24px; }
+h1 { font-size:23pt; margin:0 0 4px; letter-spacing:-.5px; }
+h2 { font-size:15pt; margin:30px 0 8px; padding-bottom:5px; border-bottom:2px solid #1a1d21; page-break-after:avoid; }
+h3 { font-size:11.5pt; margin:18px 0 5px; color:#0b4f6c; page-break-after:avoid; }
+h4 { font-size:10.5pt; margin:13px 0 4px; color:#444; page-break-after:avoid; }
+p,li { margin:5px 0; }
+ul,ol { margin:5px 0 5px 20px; padding:0; }
+code { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9pt; background:#f2f4f6; padding:1px 4px; border-radius:3px; }
+table { border-collapse:collapse; width:100%; margin:9px 0; font-size:9pt; page-break-inside:avoid; }
+th { background:#1a1d21; color:#fff; text-align:left; padding:6px 7px; font-weight:600; }
+td { border-bottom:1px solid #e3e6ea; padding:5px 7px; vertical-align:top; }
+tr:nth-child(even) td { background:#fafbfc; }
+.sub { color:#5b6570; font-size:11pt; margin:0 0 18px; }
+.tag { display:inline-block; background:#0b4f6c; color:#fff; font-size:7.5pt; padding:1px 7px; border-radius:9px; letter-spacing:.5px; text-transform:uppercase; }
+.box { background:#f7f9fb; border-left:4px solid #0b4f6c; padding:10px 13px; margin:12px 0; page-break-inside:avoid; }
+.warn { background:#fff8f0; border-left:4px solid #c8791a; padding:10px 13px; margin:12px 0; page-break-inside:avoid; }
+.crit { background:#fdf3f3; border-left:4px solid #b3352e; padding:10px 13px; margin:12px 0; page-break-inside:avoid; }
+.flow { background:#0f1720; color:#e6edf3; padding:13px 15px; border-radius:5px; font-family:ui-monospace,monospace; font-size:8.5pt; line-height:1.7; margin:12px 0; white-space:pre; overflow-x:auto; page-break-inside:avoid; }
+.mat-p { color:#15803d; font-weight:600; } .mat-b { color:#a16207; font-weight:600; } .mat-a { color:#b3352e; font-weight:600; }
+.pb { page-break-before:always; }
+.lead { font-size:11pt; color:#333; }
+.small { font-size:8.5pt; color:#667; }
+hr { border:0; border-top:1px solid #dde; margin:22px 0; }
+</style></head><body>
+
+<h1>GAZBOT</h1>
+<p class="sub">Product &amp; Architecture Dossier — prepared 18 August 2026</p>
+<p class="small"><span class="tag">Confidential</span> &nbsp; Prepared for commercial product planning. Describes architecture and capability only.
+<strong>No trading logic, entry/exit conditions, thresholds or parameter values are disclosed in this document.</strong></p>
+
+<div class="box"><strong>Document set</strong>
+<ol>
+<li><strong>Product &amp; Architecture Dossier</strong> — how the machine works (this document, Parts I–XV)</li>
+<li><strong>Capability Inventory</strong> — capability → what it does → why it matters → customer benefit → maturity (Part XVI)</li>
+<li><strong>The Skeptic's Ten</strong> — what a professional systematic trader would find genuinely differentiated (Part XVII)</li>
+</ol></div>
+
+<h2>I. Executive overview</h2>
+
+<p class="lead">GAZBOT is a <strong>continuously-running quantitative research machine</strong> that happens to also trade. Its defining property is not that it places orders — thousands of products do that — but that it <strong>accumulates research</strong>: every market observation, every simulated decision, every experiment result and every refuted idea is written to a queryable historical store and remains available to all future research, indefinitely.</p>
+
+<p>Repositioned as a research agent rather than an execution bot, the product is best described as: <em>an always-on instrument that watches a market, forms and tests hypotheses about it, records the verdicts permanently, and produces a weekly scientific report on what it learned.</em></p>
+
+<h3>Scale of the working system, as measured</h3>
+<table>
+<tr><th>Dimension</th><th>Current</th></tr>
+<tr><td>Application code</td><td>~16,100 lines across 30 core modules, plus 308 analysis/operations scripts</td></tr>
+<tr><td>Automated tests</td><td>82 test modules, ~830 tests, gating every change</td></tr>
+<tr><td>Orchestrated processes</td><td>63 systemd units — continuous services, scheduled jobs and one-shot timers</td></tr>
+<tr><td>Market data held</td><td>55.1M order-book rows, 11.2M L2 depth snapshots, 6.5M quotes, 5.3M trade ticks, 567k bars</td></tr>
+<tr><td>Storage footprint</td><td>5.3 GB hot tape, 2.8 GB L2 depth, 702 MB Parquet lake (163 partitions), plus off-site object storage</td></tr>
+<tr><td>Research records</td><td>10,807 simulated decisions, 100% independently re-priced and scored</td></tr>
+<tr><td>Registered experiments</td><td>82, each with a permanent immutable identifier</td></tr>
+<tr><td>Report pipeline</td><td>21-phase weekly research report, fully automated</td></tr>
+</table>
+
+<h2>II. What GAZBOT does, end to end</h2>
+
+<div class="flow">MARKET  →  CAPTURE  →  STORE  →  OBSERVE  →  HYPOTHESISE  →  SIMULATE  →  SCORE  →  REPORT  →  DECIDE
+   │         │          │          │             │              │          │          │          │
+   │      tick/quote  3-tier    continuous   research      parallel   independent  weekly    promote /
+   │      /bar/L2     storage   monitoring   candidate     shadow     re-pricing   dossier   park /
+   │      feeds       tiers     of the       generation    execution  on real                refute
+   │                            live tape                             tick data</div>
+
+<ol>
+<li><strong>Capture.</strong> Broker market data is consumed continuously and written to local storage — trade ticks, quotes, aggregated bars, top-of-book and full 10-level depth snapshots at sub-second cadence.</li>
+<li><strong>Store.</strong> Data lands in a hot transactional tier, is mirrored nightly to a columnar analytical lake, and is replicated off-site. Each tier has a different lifetime and a different job.</li>
+<li><strong>Observe.</strong> A live decision layer reads the tape continuously and maintains a structured, machine-readable view of market state.</li>
+<li><strong>Hypothesise.</strong> Candidate research ideas are generated from observed structure, from failure analysis of prior decisions, and from the weekly report's own findings.</li>
+<li><strong>Simulate.</strong> Candidates run as <em>shadow arms</em> — full decision logic executing against the live tape in parallel with the real desk, placing no orders. Dozens run concurrently.</li>
+<li><strong>Score.</strong> Every simulated decision is independently re-priced against captured tick data, producing an honest fill-aware result rather than an optimistic bar-price approximation.</li>
+<li><strong>Report.</strong> A 21-phase weekly pipeline analyses the accumulated record and produces a structured research dossier with findings, verdicts and proposed next experiments.</li>
+<li><strong>Decide.</strong> Findings are promoted, parked or refuted — and the verdict itself is stored, so the same ground is never re-litigated from scratch.</li>
+</ol>
+
+<h2>III. What problem it solves</h2>
+
+<p>The central problem in systematic trading research is <strong>not</strong> generating ideas. It is that <em>research evaporates</em>. A typical practitioner:</p>
+<ul>
+<li>runs a backtest in a notebook, gets a number, and loses the notebook;</li>
+<li>cannot reconstruct what data, code version or assumptions produced last month's result;</li>
+<li>re-tests ideas that were already refuted, because the refutation was a conversation and not a record;</li>
+<li>has no measurement of what a rejected idea <em>would</em> have done since rejection;</li>
+<li>discovers too late that a promising backtest was an artefact of a data or methodology defect.</li>
+</ul>
+
+<div class="box">GAZBOT's answer is to treat research as <strong>durable infrastructure</strong> rather than as activity. Ideas become registered, numbered, permanently-identified experiments. Results become rows. Verdicts become records with the evidence attached. A refuted idea keeps running in simulation so the refutation stays live rather than becoming folklore.</div>
+
+<h2>IV. What makes it different from conventional trading bots</h2>
+
+<table>
+<tr><th>Dimension</th><th>Conventional bot / strategy platform</th><th>GAZBOT</th></tr>
+<tr><td>Primary artefact</td><td>Orders</td><td>Research records</td></tr>
+<tr><td>Backtest</td><td>Run on demand, discarded</td><td>Continuous forward simulation, permanently stored</td></tr>
+<tr><td>Fill assumption</td><td>Bar close / mid price</td><td>Independently re-priced on captured tick data</td></tr>
+<tr><td>Rejected ideas</td><td>Deleted</td><td>Kept running in shadow so the rejection is continuously tested</td></tr>
+<tr><td>Controls</td><td>None</td><td>Deliberate control arms that are <em>expected</em> to lose, as the baseline</td></tr>
+<tr><td>Memory</td><td>None between sessions</td><td>Permanent registry, session log, decision ledger, architectural record</td></tr>
+<tr><td>Self-monitoring</td><td>"Is the process alive?"</td><td>Instrumented against the specific failure of <em>reporting healthy about something it never checked</em></td></tr>
+<tr><td>Reporting</td><td>Equity curve</td><td>Multi-phase weekly research dossier with adversarial review</td></tr>
+</table>
+
+<div class="warn"><strong>The distinguishing design principle.</strong> A large fraction of this system exists to prevent one specific failure: <em>an instrument that reports healthy about a thing it does not actually check.</em> That principle is not marketing language — it is implemented as concrete checks throughout the codebase, and several of them were built after that exact failure occurred and was diagnosed. This is a system that has been debugged by contact with reality, and it carries the scar tissue in code.</div>
+
+<h2 class="pb">V. System architecture</h2>
+
+<h3>Component families</h3>
+<table>
+<tr><th>Component</th><th>Role</th><th>Lifecycle</th></tr>
+<tr><td>Market-data service</td><td>Single broker connection; normalises and republishes all instrument data on an internal bus</td><td>Continuous</td></tr>
+<tr><td>Depth-capture service</td><td>Independent 10-level order-book snapshot recorder at sub-second cadence</td><td>Continuous</td></tr>
+<tr><td>Execution desk</td><td>The live decision-and-order layer; multi-slot, multi-strategy, dual-lot position management</td><td>Continuous</td></tr>
+<tr><td>Secondary desk</td><td>A structurally independent second strategy with its own broker session and its own state</td><td>Scheduled tick</td></tr>
+<tr><td>Shadow research desks</td><td>Parallel simulation of the full candidate slate against the live tape; places no orders</td><td>Continuous (one per instrument)</td></tr>
+<tr><td>Re-pricing engine</td><td>Independently re-scores every simulated decision against captured tick data</td><td>Interval, in-process</td></tr>
+<tr><td>Reconciliation service</td><td>Enforces that broker position equals the sum of every desk's claim</td><td>Every 30 s</td></tr>
+<tr><td>Router</td><td>Decides which strategy families are permitted to open new positions given current regime</td><td>Every 5 min</td></tr>
+<tr><td>Web/dashboard service</td><td>Read-only presentation: desk, research board, reports, analytics cube</td><td>Continuous</td></tr>
+<tr><td>Notification service</td><td>Operator alerting with situation-keyed de-duplication</td><td>Continuous</td></tr>
+<tr><td>Report pipeline</td><td>21-phase weekly research dossier generator</td><td>Weekly, one process per phase</td></tr>
+<tr><td>Maintenance jobs</td><td>Backup, mirror, prune, vacuum, audit, health, supervisor</td><td>Scheduled</td></tr>
+</table>
+
+<h3>How components communicate</h3>
+<ul>
+<li><strong>Internal message bus.</strong> The market-data service publishes normalised messages on a local topic-based stream. Consumers subscribe by topic. The bus is multi-instrument, and every consumer is required to filter by instrument — a rule enforced because violating it once corrupted every downstream volatility calculation.</li>
+<li><strong>Shared files as contracts.</strong> Cross-process state uses atomically-replaced JSON documents (health, position, switch state, open-simulation snapshots). This makes state inspectable by any process, any script, and any human, without a service dependency.</li>
+<li><strong>Databases as the integration point.</strong> Research and analytics components integrate through the stores rather than through APIs, which means any new tool can read the entire research history with no coordination.</li>
+<li><strong>Process isolation by design.</strong> Each desk holds its own broker session identity. A fault in one cannot cancel another's orders — this is enforced in code and verified by the reconciliation layer.</li>
+</ul>
+
+<h3>Continuous vs on-demand</h3>
+<table>
+<tr><th>Always running</th><th>Scheduled</th><th>On demand</th></tr>
+<tr><td>Market data · depth capture · execution desk · shadow desks · web · notifications · event watcher</td><td>Router (5 min) · reconciliation (30 s) · secondary desk · health checks · nightly audit/backup/mirror/prune · weekly report</td><td>Research scripts · backtests · walk-forward sweeps · data inventory · ad-hoc analysis</td></tr>
+</table>
+
+<h3>End-to-end data flow</h3>
+<div class="flow">BROKER GATEWAY
+   │  (single authenticated session, containerised)
+   ▼
+MARKET-DATA SERVICE ───────────────► INTERNAL BUS (topic: bars, tape)
+   │                                        │
+   ▼                                        ├──► EXECUTION DESK ──► orders ──► BROKER
+HOT CAPTURE STORE                           │         │
+   │  ticks · quotes · bars · book          │         └──► trade + fill records ──► TRADE STORE
+   │                                        │
+   │                                        ├──► SHADOW DESKS ──► simulated decisions ──► RESEARCH STORE
+   │                                        │                              │
+DEPTH-CAPTURE SERVICE ──► DEPTH STORE       │                              ▼
+   │                                        │                    RE-PRICING ENGINE
+   ▼                                        │                    (honest tick-based score)
+NIGHTLY MIRROR ──► PARQUET LAKE ──► OFF-SITE OBJECT STORAGE       │
+   │  (columnar, partitioned, never pruned)                        ▼
+   └──────────────────────────────► ANALYTICAL QUERY LAYER ──► WEEKLY RESEARCH REPORT
+                                     (in-process OLAP over lake + hot tiers)</div>
+
+<h2>VI. Data architecture</h2>
+
+<h3>The three-tier model</h3>
+<p>History lives in three places with deliberately different lifetimes. This is the single most commercially reusable piece of the system.</p>
+<table>
+<tr><th>Tier</th><th>Technology</th><th>Lifetime</th><th>Purpose</th></tr>
+<tr><td>Hot</td><td>SQLite (WAL)</td><td>A few trading days</td><td>What the live desk reads. Low latency, transactional, small working set.</td></tr>
+<tr><td>Lake</td><td>Parquet, zstd-compressed</td><td>Never pruned</td><td>The permanent analytical record. Columnar, partitioned, cheap to scan.</td></tr>
+<tr><td>Archive</td><td>Parquet, frozen</td><td>Permanent</td><td>Prior-generation capture, retained and still queryable.</td></tr>
+<tr><td>Off-site</td><td>Object storage (4 buckets)</td><td>Permanent</td><td>Disaster recovery; encrypted for state, plaintext columnar for tape so it is queryable in place.</td></tr>
+</table>
+
+<h3>Parquet, exactly how it is used</h3>
+<ul>
+<li><strong>Partitioning:</strong> one file per <code>stream / instrument / day</code>. Currently 163 partitions, 702 MB. A query for one instrument-day touches exactly one file.</li>
+<li><strong>Written by a nightly mirror job</strong> that exports completed days out of the hot store using the analytical engine's native <code>COPY … (FORMAT parquet, COMPRESSION zstd)</code>. No heavyweight dependency is required.</li>
+<li><strong>Verified before it counts.</strong> The mirror re-reads each written file and compares row counts against the source. A partition is only recorded as exported once that check passes.</li>
+<li><strong>Interlocked with retention.</strong> The prune job is forbidden from deleting any day the mirror has not both exported <em>and</em> row-count verified. Data cannot be lost by a race between the two jobs.</li>
+<li><strong>Queryable in place</strong>, locally or directly from object storage, with no import step.</li>
+</ul>
+
+<h3>Analytical engine (DuckDB)</h3>
+<ul>
+<li>Used as an <strong>embedded OLAP layer</strong> — no server, no cluster, no separate infrastructure.</li>
+<li><strong>Attaches the hot SQLite stores read-only</strong> and reads Parquet natively, so a single query can span the live tape and years of archive in one statement.</li>
+<li>A dedicated module presents all tiers as <strong>one logical connection</strong>, resolving overlaps by day boundary rather than blind union, and explicitly reporting coverage gaps so a study cannot silently assume contiguity across a seam.</li>
+<li>Handles the analytical workload: aggregations over tens of millions of rows, window functions, re-sampling, joins across tiers.</li>
+</ul>
+
+<h3>SQLite — still used, deliberately</h3>
+<ul>
+<li><strong>Hot capture</strong> (ticks, quotes, bars, book) — high-frequency append workload.</li>
+<li><strong>Trade store</strong> — the P&amp;L record of truth, with executions, orders and reconciliation state.</li>
+<li><strong>Research stores</strong> — one per instrument, holding simulated decisions and their independently-scored results.</li>
+<li>Chosen because it is transactional, zero-administration, single-file, trivially backed up, and directly attachable by the analytical engine. The combination of SQLite for writes and DuckDB for analytics is the core of the storage design.</li>
+</ul>
+
+<h3>What is actually stored</h3>
+<table>
+<tr><th>Dataset</th><th>Rows held</th><th>Notes</th></tr>
+<tr><td>Order-book records</td><td>55.1M</td><td>Top-of-book, event-driven</td></tr>
+<tr><td>L2 depth snapshots</td><td>11.2M</td><td>10 levels each side, sub-second cadence, multi-instrument</td></tr>
+<tr><td>Quotes</td><td>6.5M</td><td></td></tr>
+<tr><td>Trade ticks</td><td>5.3M</td><td>Used for honest re-pricing</td></tr>
+<tr><td>Bars</td><td>567k</td><td>Sub-minute, aggregated upward on read</td></tr>
+<tr><td>Simulated decisions</td><td>10,807</td><td>100% independently re-priced</td></tr>
+<tr><td>Live trades, fills, orders</td><td>Full history</td><td>Reconciled against broker executions</td></tr>
+</table>
+
+<h3>Retention policy</h3>
+<ul>
+<li><strong>Hot tier:</strong> a small rolling window of trading days — bounded so the live desk's working set stays fast.</li>
+<li><strong>Lake:</strong> never pruned. This is the permanent record.</li>
+<li><strong>Research stores:</strong> never pruned. A simulated decision from any date remains queryable.</li>
+<li><strong>Off-site:</strong> continuous; state hourly, tape nightly.</li>
+<li>Retention is <strong>enforced by an interlock, not by a cron ordering assumption</strong> — see the mirror/prune interlock above.</li>
+</ul>
+
+<h2 class="pb">VII. Research engine</h2>
+
+<h3>How hypotheses are generated</h3>
+<p>Four distinct sources, all of which end in the same registry:</p>
+<ol>
+<li><strong>Structural observation</strong> — recurring behaviour identified in the captured tape by exploratory analysis over the lake.</li>
+<li><strong>Failure analysis</strong> — decisions that lost, and decisions that <em>nearly</em> worked, are examined for the specific mechanism that failed. Each mechanism becomes a candidate variant.</li>
+<li><strong>Report findings</strong> — the weekly pipeline explicitly outputs a proposed slate of next experiments with the evidence attached.</li>
+<li><strong>Parameter geography</strong> — sweeps that map how a result behaves across a parameter surface, used to distinguish a genuine plateau from a fitted spike.</li>
+</ol>
+
+<h3>How experiments are defined</h3>
+<p>An experiment is a declarative record specifying its decision family, its parameters, its exit policy, its instrument, and any regime constraints. Adding one is a single declaration; the harness supplies execution, scoring, storage and presentation. Crucially:</p>
+<ul>
+<li><strong>Every experiment receives a permanent numeric identifier</strong> from a registry, allocated once and never reissued — a retired experiment keeps its number forever. This is what makes "how is experiment 23 doing?" a well-formed question across months.</li>
+<li><strong>Constraints must be declared, not assumed.</strong> Cooldowns, time caps and regime floors are enforced centrally by the harness so that a new experiment cannot silently omit the constraint its research ran under.</li>
+</ul>
+<div class="warn">This last point is hard-won. Two separate incidents occurred where an experiment shipped without a constraint its own research had used — producing forward numbers that could not be compared to the study that justified it. The harness now enforces declared constraints centrally, and tests pin them.</div>
+
+<h3>How experiments are run</h3>
+<p>Candidates execute as <strong>shadow arms</strong>: the full decision path, fed the live tape, in parallel with the production desk, placing no orders. Dozens run concurrently at negligible cost. Because they consume the same data through the same code path as the live desk, a shadow result and a live result are comparable in a way that a separate backtester's output is not.</p>
+
+<h3>How results are stored and reproduced</h3>
+<ul>
+<li>Each simulated decision is a row: instrument, direction, entry, exit, reason, timestamps, the volatility state at entry, and the exit parameters needed to replay it.</li>
+<li>A separate table holds the <strong>independently re-priced result</strong> and its fill status. The two are kept apart deliberately so an optimistic figure can never be mistaken for the honest one.</li>
+<li>Reproduction is possible because the stored row carries the parameters required to replay the exit against the captured tick data — the re-pricing engine does exactly this, and can be re-run at any time.</li>
+<li>Configuration changes to live behaviour are journalled, and live-behaviour files are version-controlled with an automated check that they are both committed <em>and</em> pushed off-machine.</li>
+</ul>
+
+<h3>How hypotheses are compared</h3>
+<div class="crit"><strong>Classification precedes ranking.</strong> The system requires every arm to be classified — control, A/B half, factorial cell, or slow-firing — <em>before</em> any performance comparison. This exists because a naive profit-sort once placed a deliberate control arm at the top of a kill list. That control is the only evidence that the live configuration is worth having; deleting it would have destroyed the baseline while appearing to be housekeeping.</div>
+<ul>
+<li><strong>Paired design.</strong> Variants are armed in matched pairs differing in exactly one property, so an effect can be attributed to that property rather than to the cell it happened to occupy.</li>
+<li><strong>Controls are expected to lose</strong> and are protected from retirement on that basis.</li>
+<li><strong>Judgement is on expectancy and robustness, not win rate.</strong></li>
+</ul>
+
+<h2>VIII. Backtesting and walk-forward</h2>
+
+<h3>Architecture</h3>
+<p>Two complementary engines:</p>
+<ol>
+<li><strong>Forward simulation</strong> (the shadow desks) — the primary method. Out-of-sample by construction, because the data has not happened yet.</li>
+<li><strong>Historical replay</strong> — a race engine that replays a candidate against captured tick data, deciding for each position whether the stop or the target was reached first, in order, at tick resolution.</li>
+</ol>
+
+<h3>Inputs and outputs</h3>
+<table>
+<tr><th>Inputs</th><th>Outputs</th></tr>
+<tr><td>Captured ticks, quotes, bars and depth from the lake; a candidate definition; explicit position, cooldown and hold constraints</td><td>Per-decision records with entry, exit, reason, hold time, favourable and adverse excursion; aggregate expectancy, hit rate, profit factor; robustness cuts</td></tr>
+</table>
+
+<h3>Validation methodology and overfitting controls</h3>
+<div class="box">The system's stated methodological position is that <strong>a backtest result is a hypothesis, not a finding.</strong> The following are implemented rather than aspirational:</div>
+<ul>
+<li><strong>Tick-resolution race, never bar approximation.</strong> The engine determines whether the stop or the target came first at tick level. A method that counts how often price <em>reached</em> a target while ignoring whether the stop came first was found to inflate an apparent hit rate dramatically and to have shipped a losing configuration; that method is banned.</li>
+<li><strong>Two independent scoring paths.</strong> An optimistic bar-price figure and an honest tick-re-priced figure are computed separately. On one identical population the two disagreed <em>in sign</em> for half the arms. Only the honest one may be used for judgement.</li>
+<li><strong>Leave-one-out robustness.</strong> Results are recomputed with the best day removed, and with the best three removed. A result carried by one session is visible immediately.</li>
+<li><strong>Both-halves test.</strong> A result must hold in both halves of its window, not only in aggregate.</li>
+<li><strong>Placebo arms.</strong> Candidates are run against randomised or sign-flipped variants; a signal that also "works" on the placebo is rejected.</li>
+<li><strong>Parameter-surface inspection.</strong> Neighbouring parameter cells must also be positive. An isolated peak is treated as a fit, not an edge.</li>
+<li><strong>Look-ahead auditing.</strong> Time-alignment defects are actively hunted — three separate look-ahead bugs were found <em>inside the system's own research harnesses</em>, each of which would have manufactured an edge that did not exist. Detection of these is now part of the weekly process.</li>
+<li><strong>Cost re-derivation.</strong> Transaction cost is re-derived from mechanism rather than copied from a report, after an incorrect cost constant was used to kill a viable candidate.</li>
+</ul>
+
+<h3>Out-of-sample and feedback</h3>
+<p>Forward shadow running <em>is</em> the out-of-sample test, and it is continuous rather than a one-off holdout. A candidate that survives historical validation is armed in shadow and accumulates genuine unseen data from that moment. Promotion requires a stated forward threshold — a minimum expectancy over a minimum number of forward decisions, explicitly including a regime the candidate was not fitted on. Results feed back into the registry, into the weekly report, and into the next round of hypotheses.</p>
+
+<h2>IX. Near-miss and failure analysis</h2>
+
+<h3>What is recorded</h3>
+<table>
+<tr><th>Record</th><th>Content</th></tr>
+<tr><td>Decision journal</td><td>Every signal considered, including those suppressed, and why</td></tr>
+<tr><td>Suppression events</td><td>Whether a strategy <em>wanted</em> to act and was blocked, versus could not have acted at all — the distinction that separates a real missed opportunity from a free one</td></tr>
+<tr><td>Excursion data</td><td>Maximum favourable and adverse movement per decision — how close a loser came to working, and how much a winner gave back</td></tr>
+<tr><td>Exit reason</td><td>Categorised for every decision, enabling exit-mix analysis</td></tr>
+<tr><td>Execution quality</td><td>Fills compared against the visible order book at the time, flagging any fill outside all visible liquidity</td></tr>
+<tr><td>Reconciliation state</td><td>Book versus broker executions, with days that cannot be verified explicitly refused rather than scored clean</td></tr>
+<tr><td>Decision audit ledger</td><td>A scored, human-readable record of past routing decisions and their outcomes, including the bad ones</td></tr>
+</table>
+
+<h3>How near misses become hypotheses</h3>
+<p>A decision that stopped out but had substantial favourable excursion first is not simply a loss — it is a <em>timing or exit</em> hypothesis. A decision that was suppressed by a filter and would have worked is a <em>filter calibration</em> hypothesis. Because the system records both the suppression and the counterfactual, these become measurable rather than anecdotal, and the weekly report surfaces them as proposed experiments.</p>
+
+<h3>How prior research is retained</h3>
+<ul>
+<li><strong>Every lead ends in one of four states: live, shadow, parked, or refuted.</strong> "Quietly abandoned" is not permitted. A parked lead retains its revival condition.</li>
+<li><strong>A refuted idea keeps a shadow arm running</strong> where practical, so the refutation is continuously re-tested rather than frozen. A verdict resting on a small sample and no ongoing instrument is treated as an open question, not a closed one.</li>
+<li><strong>Null results are recorded as first-class findings</strong> so they are not re-derived. Several are documented specifically to stop future work repeating them.</li>
+<li>An append-only session log, an architectural decision record, and a permanent experiment registry together mean the <em>reasoning</em> survives, not just the numbers.</li>
+</ul>
+
+<h2 class="pb">X. The continuous-learning research loop</h2>
+<p class="lead">This is the mechanism the rest of the architecture exists to serve.</p>
+
+<div class="flow">                    ┌──────────────────────────────────────────────────────────┐
+                    │                                                          │
+                    ▼                                                          │
+   ┌─────────┐   ┌──────────────┐   ┌────────────┐   ┌────────────┐   ┌────────┴────┐
+   │  DATA   │──►│ OBSERVATION  │──►│ HYPOTHESIS │──►│ EXPERIMENT │──►│ VALIDATION  │
+   └─────────┘   └──────────────┘   └────────────┘   └────────────┘   └────────┬────┘
+   continuous     structure and      candidate        registered,        honest       │
+   multi-stream   failure surfaced   mechanism        numbered,          tick-based   │
+   capture, all   by analysis over   with a stated    running in         scoring +    │
+   tiers          the full history   expected effect  shadow, live       robustness   │
+                                                      tape, no orders    cuts         │
+                                                                                      ▼
+   ┌──────────────────────────────────────────────────────────────────────┐   ┌──────────────┐
+   │                          RESEARCH DATABASE                           │◄──│    RESULT    │
+   │  every decision · every score · every verdict · every refutation     │   └──────────────┘
+   │  permanent, queryable, numbered, never pruned                        │
+   └───────────────────────────────┬──────────────────────────────────────┘
+                                   │
+                                   ▼
+                        ┌────────────────────┐
+                        │  NEW HYPOTHESIS    │──── back to the top, informed by
+                        │  (weekly report)   │     everything ever learned
+                        └────────────────────┘</div>
+
+<h3>Stage by stage</h3>
+<table>
+<tr><th>Stage</th><th>What happens</th><th>What makes it durable</th></tr>
+<tr><td><strong>Data</strong></td><td>Multi-stream capture runs continuously: ticks, quotes, bars, top-of-book, full L2 depth. Nothing is sampled away.</td><td>Three storage tiers with an interlock that makes data loss structurally impossible rather than merely unlikely.</td></tr>
+<tr><td><strong>Observation</strong></td><td>The live layer maintains structured market state; analysis over the full history surfaces recurring structure and the mechanism behind losses and near-misses.</td><td>Suppressed signals and excursion data are recorded, so "what didn't happen" is as queryable as what did.</td></tr>
+<tr><td><strong>Hypothesis</strong></td><td>A candidate mechanism is stated with an expected effect and the population it should apply to.</td><td>It is registered and permanently numbered before it runs. It cannot become anonymous.</td></tr>
+<tr><td><strong>Experiment</strong></td><td>The candidate is armed as a shadow arm — full decision logic on the live tape, no orders — usually paired with a control or an A/B twin differing in one property.</td><td>Constraints are enforced centrally, so the forward run matches the study that justified it.</td></tr>
+<tr><td><strong>Validation</strong></td><td>Every decision is independently re-priced on tick data. Robustness cuts, placebos, both-halves and parameter-neighbourhood checks are applied.</td><td>Two scoring paths kept deliberately separate; only the honest one may be used for judgement.</td></tr>
+<tr><td><strong>Result</strong></td><td>A verdict: promote, park, or refute — with the evidence and the sample size attached.</td><td>"Quietly abandoned" is not an available state.</td></tr>
+<tr><td><strong>Database</strong></td><td>The verdict and all underlying rows are written to permanent storage alongside every prior experiment.</td><td>Never pruned. Queryable years later. Numbered forever.</td></tr>
+<tr><td><strong>New hypothesis</strong></td><td>The weekly report reads the accumulated record and proposes the next slate — including revisiting parked leads whose revival conditions are now met.</td><td>Each cycle starts from everything learned, not from zero.</td></tr>
+</table>
+
+<div class="box"><strong>The compounding property.</strong> Because every cycle adds rows and never removes them, the research base grows monotonically. A hypothesis proposed in month twelve is tested against twelve months of captured tape and evaluated in the context of every experiment already run. The system's analytical capability therefore increases with age — the opposite of a backtest script, whose value is fixed at the moment it is run and decays as the market moves on.</div>
+
+<div class="warn"><strong>Stated honestly:</strong> the loop's <em>hypothesis-generation</em> stage is currently the least automated. Structure detection, failure analysis and report generation are automated; the judgement that turns an observation into a well-posed candidate is model-assisted and human-supervised. This is the most valuable place to invest for a commercial product, and it is also the place where over-claiming would be easiest.</div>
+
+<h2>XI. The weekly research report</h2>
+
+<h3>Inputs</h3>
+<ul>
+<li>The full live trade record with reconciled executions</li>
+<li>The complete shadow research book, honestly re-priced</li>
+<li>The routing decision log and its scored audit ledger</li>
+<li>The captured tape across all tiers, for fresh analysis</li>
+<li>Prior reports, so findings can be tracked across weeks</li>
+</ul>
+
+<h3>Architecture</h3>
+<p>A <strong>21-phase pipeline</strong>, one operating-system process per phase. Phases cover: live desk performance, the secondary desk, the shadow book, routing analysis, strategy rehabilitation, several independent greenfield research clusters, chart generation, then assembly, proofreading, revision and finalisation.</p>
+<ul>
+<li><strong>The artefact on disk is the checkpoint.</strong> A re-run resumes rather than restarts.</li>
+<li><strong>One process per phase</strong> keeps memory flat on a constrained host.</li>
+<li><strong>Judged on the artefact, never the exit code</strong> — a phase that exits successfully having produced nothing is treated as a failure, because that exact silent failure occurred.</li>
+<li><strong>Budget-aware scheduling.</strong> A preflight compares declared phase timeouts against the real time budget; each phase is capped at a fair share; a phase that would receive a useless sliver is skipped and <em>logged</em> rather than silently truncated. Greenfield research clusters rotate week to week so the full space is covered over time rather than only the phases that happen to run first.</li>
+<li><strong>The tail is reserved</strong> — assembly, proofread, revision and finalisation get a protected allocation. Research can be lost; the write-up cannot.</li>
+<li><strong>A shared data contract</strong> is injected into every phase so no phase can quietly use the wrong data window or the wrong cost assumption.</li>
+</ul>
+
+<h3>What the report contains and how it identifies discoveries</h3>
+<p>Per-strategy performance with robustness cuts; regime segmentation; exit-mix and excursion analysis; the shadow book as the explicit counterfactual for anything that was benched; greenfield research findings with placebo results; a register of instrument failures found in its own harnesses; and a closing section proposing the next slate of experiments with evidence and build cost per item.</p>
+<p>A "discovery" is only reported with the sample size, the robustness cuts, and an explicit statement of what would refute it. The pipeline includes an adversarial revision pass whose job is to attack the draft's own conclusions before publication.</p>
+
+<h3>Can it operate indefinitely as the database grows?</h3>
+<p><strong>Structurally yes, with one caveat.</strong> The columnar lake is partitioned by day and by instrument, so per-query cost scales with the window examined rather than with total history — a one-week analysis costs the same in year five as in month one. Phases are independent processes with capped memory, so a larger corpus does not raise peak memory.</p>
+<p>The caveat is that any phase deliberately scanning <em>all</em> history grows linearly. The mitigation already in place is the fair-share budget with explicit logging of what was skipped; the productised answer is pre-aggregated summary tables per period, which the architecture supports but which is not yet built.</p>
+
+<h2 class="pb">XII. AI integration</h2>
+
+<h3>Where the model is used today</h3>
+<table>
+<tr><th>Use</th><th>Cadence</th><th>Authority</th></tr>
+<tr><td>Regime routing — which strategy families may open new positions</td><td>Every 5 min, headless</td><td>Writes one switch file. Cannot place, modify or cancel an order.</td></tr>
+<tr><td>Session watch — dissect an escalation and decide whether a human is needed</td><td>Hourly in market hours</td><td>Read-only. Explicitly forbidden from changing desk state.</td></tr>
+<tr><td>Health and audit reviews</td><td>Several times daily</td><td>Read-only reporting.</td></tr>
+<tr><td>Weekly research report</td><td>Weekly, 21 phases</td><td>Produces documents; no execution authority.</td></tr>
+<tr><td>Verification passes</td><td>On demand</td><td>Adversarial review of the system's own findings.</td></tr>
+</table>
+
+<h3>What the model receives and produces</h3>
+<p><strong>Receives:</strong> deterministically-computed context — market state summaries, per-strategy performance, health status, position and reconciliation state, and an explicit rules prompt. It reads prepared facts; it does not roam.</p>
+<p><strong>Produces:</strong> a structured decision plus a written rationale. The rationale is logged in full, so every automated decision has a durable, human-readable justification attached — a property most automated systems lack entirely.</p>
+
+<h3>Deterministic versus generated</h3>
+<div class="crit"><strong>The boundary is strict and architectural.</strong> Everything that touches money is deterministic code: order placement, position management, stops, flatten logic, reconciliation, safety. The model's entire authority is a <em>permission</em> layer — which strategy families may open new positions — expressed as a single file. Any model error or malformed output results in <em>no change</em>, and the system continues on its previous state, benching-only. It cannot invent a trade.</div>
+
+<h3>Could it support other LLMs?</h3>
+<p><strong>Yes, with modest work.</strong> Integration is via a command-line invocation returning structured output, with fail-safe parsing. Swapping providers means replacing that invocation and re-tuning prompts. The prompts themselves are external Markdown files, not embedded strings — deliberately, so they can be edited and versioned without code changes. Nothing depends on provider-specific APIs. For a commercial product this would be abstracted behind a provider interface; the seams are already in the right places.</p>
+
+<h2>XIII. Dashboard and user experience</h2>
+<table>
+<tr><th>Surface</th><th>What the user sees</th><th>Maturity</th></tr>
+<tr><td>Desk view</td><td>Live price, position, day P&amp;L, per-strategy performance, blotter, equity curve, regime indicators</td><td class="mat-p">Production</td></tr>
+<tr><td>Research board</td><td>Every registered experiment with permanent number, friendly name, family tag, day/week/all-time honest P&amp;L, and open-position state</td><td class="mat-p">Production</td></tr>
+<tr><td>Secondary-instrument board</td><td>Dedicated page per research desk, with cost and methodology caveats printed on the page itself</td><td class="mat-p">Production</td></tr>
+<tr><td>Reports</td><td>Weekly dossiers, browsable and downloadable as PDF</td><td class="mat-p">Production</td></tr>
+<tr><td>Analytics cube</td><td>Multi-dimensional slice of trade outcomes</td><td class="mat-b">Working</td></tr>
+<tr><td>Mobile control</td><td>Messaging-based status and control channel with de-duplicated alerting</td><td class="mat-p">Production</td></tr>
+</table>
+<p>The dashboard is <strong>read-only by design</strong> — no order entry, no writes. A presentation fault cannot become a trading fault. Notable detail: the research board prints its own methodology caveats (cost basis, data-source divergence) directly on the page, so a number cannot be read out of context.</p>
+
+<h2>XIV. Broker and data integration</h2>
+<ul>
+<li><strong>Gateway:</strong> a containerised broker gateway holding one authenticated session. Currently Interactive Brokers.</li>
+<li><strong>Session isolation:</strong> each desk connects with its own client identity. Cross-desk interference is structurally prevented and continuously verified.</li>
+<li><strong>Market data:</strong> streaming trades, quotes and aggregated bars, republished on the internal bus.</li>
+<li><strong>Depth:</strong> a separate service records 10-level book snapshots at sub-second cadence per instrument.</li>
+<li><strong>Historical:</strong> broker historical data can be pulled for instruments predating local capture, with request pacing respected and a preflight that refuses to run while the desk holds a position — the research pull must never compete with trading for the session.</li>
+<li><strong>Account integration:</strong> positions, orders and executions are read continuously. Broker state is treated as the sole truth; internal books are treated as intent and are reconciled against executions.</li>
+</ul>
+<p><strong>Required from the customer:</strong> a brokerage account with market-data entitlements for the instruments studied, credentials for the gateway, and a host meeting the deployment requirements below. Research-only operation needs data entitlements but no trading permissions.</p>
+
+<h2>XV. Deployment, scalability, security, limitations</h2>
+
+<h3>Deployment</h3>
+<table>
+<tr><th>Element</th><th>Current state</th></tr>
+<tr><td>Host</td><td>Single Linux VPS. Modest: the production system runs in 7.5 GB RAM.</td></tr>
+<tr><td>Process management</td><td>systemd — 63 units with dependencies, restart policies, memory limits and OOM priorities</td></tr>
+<tr><td>Containerisation</td><td>Broker gateway only; application runs natively in a Python virtual environment</td></tr>
+<tr><td>Dependencies</td><td>Python 3.13, DuckDB, pandas, a broker client library, an object-storage sync tool, a PDF renderer. No database server, no message broker, no cluster.</td></tr>
+<tr><td>Web</td><td>Reverse proxy with TLS in front of the read-only application server</td></tr>
+<tr><td>Setup</td><td><span class="mat-a">Manual.</span> Unit files and prompts are version-controlled; installation is not automated.</td></tr>
+</table>
+
+<h3>Scalability</h3>
+<ul>
+<li><strong>Instruments:</strong> the bus, capture and storage are already multi-instrument, and per-instrument research desks with isolated stores are an established pattern. Adding an instrument is largely configuration. The practical limit is market-data bandwidth and host memory, not architecture.</li>
+<li><strong>Trades and experiments:</strong> negligible. Tens of thousands of research rows are trivial for the analytical layer.</li>
+<li><strong>Historical data:</strong> the columnar lake is the scaling story. At 10× (~7 GB, ~1,600 partitions) nothing changes — partition pruning means query cost tracks the window examined. At 100× (~70 GB) the lake still functions locally, and queries can run directly against object storage; hot-tier retention and off-site sync windows would need attention, and pre-aggregated period summaries become worthwhile.</li>
+<li><strong>The real constraint is host memory during the weekly report</strong>, already mitigated by one-process-per-phase and explicit memory limits.</li>
+</ul>
+
+<h3>Security</h3>
+<table>
+<tr><th>Area</th><th>Current</th><th>Product requirement</th></tr>
+<tr><td>Broker credentials</td><td>Held by the containerised gateway</td><td>Adequate pattern; needs documented rotation</td></tr>
+<tr><td>Object-storage keys</td><td>Sync-tool configuration on host</td><td>Move to a secrets manager</td></tr>
+<tr><td>Model credentials</td><td>Session-based OAuth, requiring periodic interactive re-authentication</td><td><span class="mat-a">Blocking for unattended commercial operation</span> — needs long-lived service credentials</td></tr>
+<tr><td>Backups</td><td>State encrypted; tape stored as plaintext columnar so it stays queryable in place</td><td>Deliberate trade-off; must be a documented customer choice</td></tr>
+<tr><td>Data isolation</td><td>Single-tenant by construction — one host, one account, one dataset</td><td>Multi-tenant isolation is unbuilt and would be the largest single piece of work</td></tr>
+<tr><td>Dashboard</td><td>Read-only; no order entry; no write paths</td><td>Needs authentication and per-customer access control</td></tr>
+</table>
+
+<h3>Current limitations and technical debt</h3>
+<div class="warn">Stated plainly, because a buyer will find these anyway.</div>
+<ul>
+<li><strong>Absolute paths are hard-coded</strong> throughout. Installation-root and data-root abstraction is a prerequisite for distribution.</li>
+<li><strong>Single-tenant.</strong> No user model, no per-customer isolation, no authentication on the dashboard.</li>
+<li><strong>Instrument specifics appear in code</strong> — contract multipliers, cost constants, session clocks. These need to become an instrument registry.</li>
+<li><strong>Operational knowledge lives in Markdown</strong>, not in the software. The system is unusually well documented, but that documentation is currently a human-facing operating manual rather than product behaviour.</li>
+<li><strong>Session-based model authentication</strong> requires periodic interactive login — the single largest obstacle to unattended commercial operation.</li>
+<li><strong>Retired-generation code</strong> remains present alongside live code; a customer distribution needs it removed.</li>
+<li><strong>Manual installation.</strong> No installer, no migrations, no upgrade path.</li>
+<li><strong>Prompts are tuned to one operator's judgement</strong> and encode this desk's history. They generalise poorly without abstraction.</li>
+<li><strong>Alerting is single-channel</strong> and assumes one operator.</li>
+</ul>
+
+<h3>Commercialisation requirements</h3>
+<table>
+<tr><th>Reusable as-is</th><th>Needs abstraction</th><th>Needs building</th></tr>
+<tr><td>Three-tier storage model · Parquet lake and interlock · analytical query layer · shadow research harness · honest re-pricing engine · experiment registry · validation methodology · report pipeline architecture · reconciliation and safety layers · self-instrumentation patterns</td><td>Paths and configuration · instrument definitions · broker interface · model-provider interface · prompt templates · alerting channels</td><td>Installer and migrations · authentication and multi-tenancy · secrets management · long-lived model credentials · instrument onboarding UI · experiment-definition UI · customer documentation · licensing and update mechanism</td></tr>
+</table>
+<p><strong>Assessment:</strong> the <em>research machine</em> — storage, harness, scoring, validation, registry, reporting — is the durable asset and is production-grade. The <em>product wrapper</em> — installation, multi-tenancy, configuration, authentication, documentation — is largely unbuilt. That is a favourable ratio: the hard, subtle, expensive part is done and battle-tested; what remains is well-understood engineering.</p>
+
+<h2 class="pb">XVI. Capability inventory</h2>
+<p class="small">Maturity: <span class="mat-p">Production</span> = running unattended and depended upon · <span class="mat-b">Working</span> = functional, needs hardening · <span class="mat-a">Alpha</span> = exists, not ready to sell</p>
+
+<table>
+<tr><th style="width:17%">Capability</th><th style="width:24%">What it does</th><th style="width:22%">Why it matters</th><th style="width:26%">Customer benefit</th><th style="width:11%">Maturity</th></tr>
+
+<tr><td><strong>Persistent research database</strong></td><td>Stores every simulated decision, score and verdict in an analytically queryable historical layer that is never pruned.</td><td>Research isn't lost when an experiment ends.</td><td>The system accumulates institutional-style research memory over time; year two is more capable than year one.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Three-tier storage</strong></td><td>Hot transactional tier for live reads, permanent columnar lake for analysis, off-site replication — with an interlock preventing deletion of unverified data.</td><td>Most systems must choose between fast live access and deep history. This has both.</td><td>Years of tick-level history without a database server, a cluster, or a data engineer.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Parallel shadow research</strong></td><td>Dozens of candidate strategies execute full decision logic against the live tape simultaneously, placing no orders.</td><td>Forward testing is out-of-sample by construction — the data hasn't happened yet.</td><td>Test many ideas at once on live data with zero capital at risk and zero incremental cost.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Honest re-pricing engine</strong></td><td>Independently re-scores every simulated decision against captured tick data rather than bar prices.</td><td>Two scoring paths on one identical population disagreed <em>in sign</em> for half the arms tested.</td><td>Numbers you can act on, instead of a backtest that flatters itself.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Permanent experiment registry</strong></td><td>Allocates an immutable number to every experiment; retired ones keep their number forever.</td><td>"How is experiment 23 doing?" stays a well-formed question across months.</td><td>Research is referable and auditable over time, like lab notebook entries.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Controls and paired design</strong></td><td>Deliberate control arms and matched A/B twins differing in exactly one property, protected from performance-based deletion.</td><td>Without a control you cannot attribute an effect; a naive profit-sort once put the control top of a kill list.</td><td>Findings are attributable to a cause rather than to a coincidence.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Anti-overfitting battery</strong></td><td>Leave-one-out and leave-three-out cuts, both-halves tests, placebo arms, parameter-neighbourhood inspection, look-ahead auditing.</td><td>Nearly every retail backtest is overfitted and has no way to detect it.</td><td>You find out an edge is fictional before risking money, not after.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Near-miss and suppression analysis</strong></td><td>Records excursion data and whether a strategy <em>wanted</em> to act and was blocked, versus could not have acted at all.</td><td>The difference between a real missed opportunity and a free one is invisible to most systems.</td><td>Losses and non-events become a hypothesis pipeline instead of noise.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Automated weekly research report</strong></td><td>21-phase pipeline producing a structured dossier with findings, robustness cuts, adversarial review and a proposed next slate.</td><td>Converts accumulated data into decisions on a fixed cadence, without a human analyst.</td><td>A quantitative research team's weekly output, generated unattended.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Resumable long-running pipelines</strong></td><td>Artefact-on-disk checkpointing, one process per phase, fair-share time budgeting, explicit logging of anything skipped.</td><td>Long analytical jobs fail; the question is whether they fail honestly and resume.</td><td>Multi-hour research completes reliably on modest hardware, and never silently under-delivers.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Multi-stream market capture</strong></td><td>Ticks, quotes, bars, top-of-book and full 10-level depth, continuously, multi-instrument.</td><td>Microstructure research is impossible without depth data, and it cannot be bought retroactively.</td><td>Every day of operation permanently increases the research surface available to you.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Unified query across all history</strong></td><td>One logical connection spanning live tier, lake and archive, resolving overlaps by boundary and reporting coverage gaps explicitly.</td><td>An answer that scans one tier is wrong, and being wrong quietly is the worst outcome.</td><td>Ask a question of your entire history in one statement, and be told where the holes are.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Execution-quality measurement</strong></td><td>Compares every fill against the visible order book at the time and flags fills outside all visible liquidity.</td><td>Book and broker can agree on a <em>bad</em> price — agreement is not quality.</td><td>Slippage and poor fills are measured and costed rather than assumed.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Multi-desk reconciliation</strong></td><td>Continuously enforces that broker position equals the sum of every desk's claim; halts on breach and never self-releases.</td><td>On a netted account no strategy can read its own position from the venue.</td><td>Run several strategies on one account without them corrupting each other's state.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Self-instrumentation</strong></td><td>Health checks designed against the failure of reporting healthy about something never actually checked; alarms name exactly what they verified.</td><td>Silent no-ops are the dominant failure mode of automated systems.</td><td>When the dashboard is green, it means something specific — and you know what.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>De-duplicated alerting</strong></td><td>Alerts keyed on situation rather than on changing values, cleared on resolve, failing open on any error.</td><td>An alarm that repeats a correct message forever trains you to ignore the channel.</td><td>Notifications you still read after six months.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Model-assisted regime routing</strong></td><td>An LLM decides which strategy families may open positions, writing a single permission file and logging a full rationale.</td><td>Judgement about regime is where models add value; execution is where they do not.</td><td>Adaptive behaviour with a written justification for every decision — and no ability to invent a trade.</td><td class="mat-b">Working</td></tr>
+
+<tr><td><strong>Deterministic/AI separation</strong></td><td>All money-touching paths are deterministic; the model's entire authority is a permission layer. Any failure results in no change.</td><td>The critical safety question for any LLM trading product.</td><td>Model benefits without model risk on the order path.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Lead lifecycle discipline</strong></td><td>Every idea ends live, shadow, parked or refuted — with revival conditions recorded and refuted ideas often left running.</td><td>"Quietly abandoned" is how research is silently lost.</td><td>Nothing is forgotten, and no ground is re-litigated from scratch.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Read-only analytics surface</strong></td><td>Dashboards for desk, research board, reports and analytics cube, with methodology caveats printed alongside the numbers.</td><td>A presentation fault must never become a trading fault.</td><td>See everything, break nothing.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Configuration journalling</strong></td><td>Live-behaviour changes are journalled and version-controlled, with an automated check that they are committed <em>and</em> pushed off-machine.</td><td>An uncommitted live change cannot be diffed, reverted or attributed.</td><td>Full auditability of what the system was doing on any past date.</td><td class="mat-p">Production</td></tr>
+
+<tr><td><strong>Historical broker backfill</strong></td><td>Paced retrieval of vendor history for instruments predating local capture, refusing to run while the desk holds a position.</td><td>New instruments otherwise start with no history at all.</td><td>Onboard an instrument with years of history rather than waiting years.</td><td class="mat-b">Working</td></tr>
+
+<tr><td><strong>Multi-instrument research desks</strong></td><td>Per-instrument research desks with isolated stores, separate cost models and independent boards.</td><td>Instruments differ in cost, multiplier and microstructure; sharing one store corrupts all three.</td><td>Research several markets in parallel without cross-contamination.</td><td class="mat-b">Working</td></tr>
+
+<tr><td><strong>Automated installation</strong></td><td>—</td><td>—</td><td>—</td><td class="mat-a">Not built</td></tr>
+<tr><td><strong>Multi-tenancy &amp; auth</strong></td><td>—</td><td>—</td><td>—</td><td class="mat-a">Not built</td></tr>
+</table>
+
+<h2 class="pb">XVII. The skeptic's ten</h2>
+<p class="lead"><em>Written in the voice of a professional systematic trader evaluating GAZBOT, based only on what is actually in the codebase — not on what would sound impressive.</em></p>
+
+<div class="box">I have looked at a lot of retail trading software. Most of it is a strategy with a chart attached. Here is what is genuinely unusual here, and I have deliberately excluded the things that merely sound good.</div>
+
+<h3>1. It re-prices its own simulations against tick data, and keeps the optimistic number separately so it cannot be used by accident</h3>
+<p>Nearly every backtester I have seen fills at the bar. This one replays each simulated position against captured ticks and asks which came first, the stop or the target. It stores the optimistic figure and the honest figure in <em>separate tables</em>. On one identical population of several hundred decisions, the two disagreed <strong>in sign</strong> for half the strategies. Most products would have shipped the flattering number and never known.</p>
+
+<h3>2. Rejected strategies keep running</h3>
+<p>Everywhere else, a rejected idea is deleted. Here a refuted idea is often left running in simulation so the refutation is continuously re-tested. During review, a strategy benched eighteen days earlier on a sample of eleven decisions was identified as having <em>no</em> ongoing instrument — and the response was to arm a shadow twin so the verdict gets priced continuously. That is a research culture encoded as software, not a feature list.</p>
+
+<h3>3. It runs deliberate control arms that are supposed to lose, and protects them from deletion</h3>
+<p>The single most professional thing in this system. There are control arms carrying five-figure losses whose entire purpose is to be the baseline. The codebase explicitly records an incident where a profit-ranking put the control at the top of a kill list, and the rule that emerged — <em>classify before you rank</em> — is now enforced. I have worked at firms that did not do this.</p>
+
+<h3>4. Its self-monitoring is designed against a named failure mode, not against "is the process alive"</h3>
+<p>The recurring theme is: <em>an instrument that reports healthy about something it never checks</em>. Concrete instances found and fixed include a monitor that verified a job was committed but never that it had left the machine; a research desk that was "active", consuming CPU, and had never once been capable of firing; and staleness alarms measured on wall-clock across a weekend when the market was shut. Each produced a specific check. This is a system that has been embarrassed by reality and learned.</p>
+
+<h3>5. Look-ahead bugs are hunted inside its own research harnesses, and found</h3>
+<p>Three separate time-alignment defects were caught in its <em>own</em> tooling — a five-second look-ahead that manufactured an entire regime-specific edge, a leak that reversed a strong statistical result once removed, and an integer-division error that silently read five-second bars as one-minute bars for hours. Each is documented with what it was worth. Anyone can claim they avoid look-ahead; this is the only retail-scale system I have seen that treats finding them as a standing weekly job.</p>
+
+<h3>6. The storage design is genuinely good engineering, not a database with a folder next to it</h3>
+<p>Hot transactional tier for the live path, permanent columnar lake for analysis, off-site replication, and — the part I would actually steal — an <strong>interlock forbidding the prune job from deleting any day the mirror has not exported and row-count verified</strong>. That is the difference between "we have backups" and "data loss is structurally impossible". Tens of millions of rows, tick-level history, and no database server or cluster anywhere.</p>
+
+<h3>7. The LLM cannot place a trade, and that boundary is architectural rather than a promise</h3>
+<p>The model's total authority is a permission file naming which strategy families may open positions. Every money-touching path is deterministic. A malformed model response results in <em>no change</em> and the system continues benching-only. Given how many "AI trading bots" hand a language model an order API, having the boundary drawn in exactly the right place — judgement in, execution out — is the most credible design decision here.</p>
+
+<h3>8. Every automated decision carries a written rationale, permanently</h3>
+<p>The routing layer logs a full paragraph of reasoning for every five-minute decision, and there is a scored audit ledger grading past decisions — including the bad ones, with the lesson extracted. I can go back to any afternoon and read <em>why</em> the system did what it did. I cannot do that with any commercial product I have used, and I frequently cannot do it with my own code.</p>
+
+<h3>9. Experiments have permanent immutable identifiers</h3>
+<p>Small, and it changes everything. Numbers are allocated once and never reissued; a retired experiment keeps its number. It means "how is 23 doing?" survives across months. The codebase also records the failure of a dashboard that numbered experiments by array position and drifted until most numbers were wrong — and the fix was to make the display read the registry. That is a team that understands that <em>two surfaces disagreeing</em> is the actual enemy.</p>
+
+<h3>10. It knows, and records, the difference between "no setup" and "broken"</h3>
+<p>This is the one I would pay for. Most systems cannot distinguish a strategy that found no opportunity from a strategy that is silently dead. This one records suppressed signals, whether a strategy <em>wanted</em> to act and was blocked versus could not have acted at all, and now publishes open simulated positions so a blocked strategy is visibly blocked. It found a research desk that had produced nothing for three days while appearing perfectly healthy — and the response was both to fix it and to build the check that would have caught it on day one.</p>
+
+<hr>
+<h3>What would still make me hesitate</h3>
+<p>In fairness, and because a buyer will ask:</p>
+<ul>
+<li><strong>The forward sample is young.</strong> The methodology is excellent; the accumulated evidence is weeks, not years. The machine is more proven than any individual finding it has produced.</li>
+<li><strong>It is single-tenant and hand-installed.</strong> Nothing about the research core prevents productisation, but the wrapper does not exist yet.</li>
+<li><strong>Unattended operation depends on session-based model credentials</strong> that need periodic interactive renewal. That must be solved before anyone sells this.</li>
+<li><strong>The hypothesis-generation step is the least automated part of the loop</strong> — which is precisely the part the marketing will be most tempted to overstate.</li>
+</ul>
+
+<div class="box"><strong>Summary judgement.</strong> As a trading bot this would be one of many. As a <strong>research instrument</strong> it is unusual, and the unusual parts are the ones that are hard to copy: honest scoring, controls, permanent research memory, and self-instrumentation built by being wrong and noticing. The product is not the strategies. The product is the machine that evaluates them.</div>
+
+<hr>
+<p class="small">Prepared 18 August 2026 from direct inspection of the running system. All figures measured, not estimated.
+<strong>No trading logic, entry or exit conditions, thresholds or parameter values are disclosed in this document.</strong></p>
+</body></html>
