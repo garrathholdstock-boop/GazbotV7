@@ -28,6 +28,45 @@ authoritative where they disagree with this summary.
 
 ---
 
+## 2026-08-18 (Tue) — drift-persistence study queued for the halt (`gazbot7-driftlab`)
+
+Operator: *"use our confirmation formula and go back 10 years of public MNQ data and see what % of
+days once our thresholds are met how often does it stay in that direction"*, and *"do 10 years"*.
+
+**Two constraints settled before building.** (1) **10 years of MNQ does not exist** — MNQ launched
+2019-05-06. **NQ** carries the 10-year span (same index, same price, 1/10 notional), MNQ is pulled
+over its own life as a cross-check that the two agree. (2) **10y cannot fit one halt** — IBKR paces
+~60 historical reqs/10min and 1-min bars need one request per day (a larger `durationStr` returns a
+SHORT result rather than an error — silent truncation that would read as thin days). ~2,500 requests
+≈ 7h. So the job is **resumable**: one parquet per contract-month IS the checkpoint, it stops at a
+50-min deadline and continues the next night. TradingView was ruled out — a charting front-end over
+licensed CME feeds, no public bulk API, and scraping it breaches their ToS. Yahoo caps 1-min futures
+at 7 days; Stooq is behind a JS proof-of-work wall.
+
+**It shares the LIVE trading gateway**, so preflight refuses unless the desk is FLAT and the venue
+HALTED — verified by test-firing the unit while the rider held a live SHORT (it declined). A refusal
+exits **0, not red**: a unit sitting failed for behaving correctly is the alarm-outage pattern.
+`MemoryMax=1G` on a 7.5GB box with three logged OOM kills — the desk wins any contention.
+
+★ **Smoke-tested before queueing, and it found three bugs** — the Friday-report lesson that a job
+judged only at run time dies unattended:
+- `validate()` used an O(n²) correlated sqlite subquery; it **hung past 2 minutes** on one month of
+  5s bars and would have wedged the job at 21:05. Now DuckDB `arg_max`.
+- **This box has no `pyarrow`/`fastparquet`**, so `pandas.to_parquet` raises ImportError. Switched to
+  DuckDB `COPY … (FORMAT parquet)` + read-back row count, the same mechanism `tape_mirror.py` uses.
+- The confirmation scan ran to 21:00Z and reported **100% of days "confirmed"** — true and
+  meaningless, since the rider cannot act after its **15:00Z entry cutoff**. Now bounded to it.
+
+★ **The replay reproduces `drift.py`'s own number**, which is the check that it measures the right
+thing: 24 of our sessions give **DRIFT_HELD 70.8%** against the docstring's **71% (22/31)**, median
+confirmation at minute 10 — the docstring's stated sweep peak. It also separates two things the
+docstring does not: **DRIFT_HELD** (close vs the 13:30 open, the 71% metric) from **ENTRY_PAID**
+(close vs the price AT confirmation — what the rider, which enters there, actually lives). On the
+same 24 sessions ENTRY_PAID to 20:40 is **66.7%**, ~4pp below the headline. Reported separately, by
+year and by direction, because conflating them is how a study flatters itself.
+
+Revert: `systemctl disable --now gazbot7-driftlab.timer`, delete the unit + the CLAUDE.md row.
+
 ## 2026-08-17 (Mon) — a false ATTENTION GAZ, and the desk day was never the UTC day
 
 **07:08Z the hour-watch job told the operator to bench `exhaustion_short`** — "the only gate trading",

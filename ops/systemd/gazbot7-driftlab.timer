@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — drift-persistence study, nightly inside the CME halt until complete
+
+[Timer]
+# 21:02Z — two minutes into the halt, and deliberately NOT 21:05/21:15/21:20/21:30/21:40 where
+# tape-mirror, capture-prune, clip-revert, cloud-backup and the audits already run.
+OnCalendar=*-*-* 21:02:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

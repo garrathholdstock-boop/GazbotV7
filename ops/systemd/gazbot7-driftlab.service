@@ -1,0 +1,21 @@
+[Unit]
+Description=GAZBOT V7 — drift-persistence study (10y NQ/MNQ pull + replay), RESUMABLE, halt-only
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=/home/alphabot/gazbot7/src
+WorkingDirectory=/home/alphabot/gazbot7
+# --minutes 50 keeps it inside the 21:00-22:00Z halt; it stops cleanly at the deadline and the
+# parquet already on disk IS the checkpoint, so the next night resumes rather than restarts.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/drift_persistence_study.py \
+          --years 10 --symbols NQ,MNQ --minutes 50 --phase all
+# ⚠ THE BOX IS 7.5GB WITH THREE LOGGED OOM KILLS and the desk must win any contention.
+MemoryMax=1G
+MemoryHigh=768M
+Nice=10
+TimeoutStartSec=3300
+StandardOutput=append:/home/alphabot/gazbot7/data/driftlab/run.log
+StandardError=append:/home/alphabot/gazbot7/data/driftlab/run.log
