@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — backfill watchdog (checks PRODUCTION, not liveness; self-heals)
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=/home/alphabot/gazbot7/src
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/backfill_health.py
+StandardOutput=append:/home/alphabot/gazbot7/data/backfill/health.log
+StandardError=append:/home/alphabot/gazbot7/data/backfill/health.log

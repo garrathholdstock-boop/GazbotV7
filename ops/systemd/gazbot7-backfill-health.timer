@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — backfill watchdog every 30 min
+
+[Timer]
+# :12/:42 — deliberately offset from the pull's own cadence and from the 22:05 start.
+OnCalendar=*-*-* *:12,42:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target
