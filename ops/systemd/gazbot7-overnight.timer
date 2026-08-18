@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — overnight research chain, starts inside the Asia block
+
+[Timer]
+# 23:20Z — after the reopen churn, inside the stretch where the desk is entry-blocked anyway.
+# It blocks on the backfill, so starting early costs nothing and buys wait-time.
+OnCalendar=*-*-* 23:20:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

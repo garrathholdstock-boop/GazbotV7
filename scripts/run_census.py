@@ -85,6 +85,13 @@ def main():
     ap.add_argument("--days", type=int, default=7)
     ap.add_argument("--min-atr", type=float, default=1.5)
     ap.add_argument("--html", type=str, default=None, help="write the Movement-1 light-theme HTML fragment here")
+    # ★★★2026-08-18 --lake: census the FULL HISTORY, not just the hot tier.
+    # CAP is capture.db, which is PRUNED to a few trading days. Running "--days 400" against it
+    # silently censuses whatever capture.db happens to hold and reports as though it covered 400 —
+    # the [[capture-retention-silently-halves-audits]] failure. gazbot7.lake spans V5 + Parquet lake
+    # + hot with a `src` column per row, so --lake censuses everything we own.
+    ap.add_argument("--lake", action="store_true",
+                    help="read the full history (V5 + Parquet lake + hot) instead of only capture.db")
     a = ap.parse_args()
     t1 = dt.datetime.now(dt.UTC).timestamp()
     t0 = t1 - a.days * 86400
@@ -92,9 +99,25 @@ def main():
     SYM = a.symbol
     VPP = VPP_BY_SYMBOL[SYM]
 
-    con = duckdb.connect()
-    con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
-    con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
+    if a.lake:
+        from gazbot7.lake import connect as lake_connect
+        con = lake_connect(symbol=SYM)
+        con.execute("CREATE SCHEMA IF NOT EXISTS c")
+        for _t in ("bars", "ticks", "book"):
+            # ⚠ main.{t}, not bare {t}: inside schema `c` an unqualified name resolves to c.{t}
+            # and the view becomes self-referential.
+            con.execute(f"CREATE OR REPLACE VIEW c.{_t} AS SELECT * FROM main.{_t}")
+        con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
+        _span = con.execute("SELECT MIN(bar_ts), MAX(bar_ts), COUNT(*) FROM c.bars "
+                            f"WHERE symbol='{SYM}'").fetchone()
+        if _span and _span[0]:
+            print(f"[lake] {SYM}: {_span[2]:,} bars, "
+                  f"{dt.datetime.fromtimestamp(_span[0], dt.UTC):%Y-%m-%d} .. "
+                  f"{dt.datetime.fromtimestamp(_span[1], dt.UTC):%Y-%m-%d}")
+    else:
+        con = duckdb.connect()
+        con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
+        con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
     bars = con.execute(f"""
         SELECT bar_ts, open, high, low, close FROM c.bars
         WHERE symbol='{SYM}' AND timeframe='5s' AND bar_ts>={t0} AND bar_ts<={t1} ORDER BY bar_ts""").fetchall()

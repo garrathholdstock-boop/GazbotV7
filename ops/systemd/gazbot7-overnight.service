@@ -1,0 +1,19 @@
+[Unit]
+Description=GAZBOT V7 — overnight research: full-history census, walk-forward, greenfield
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=/home/alphabot/gazbot7/src
+WorkingDirectory=/home/alphabot/gazbot7
+# Waits for the backfill (its INPUT), then works through the phases. The artifact on disk is the
+# checkpoint, so a re-run resumes rather than restarts.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/overnight_research.py --hours 7 --wait-hours 4
+MemoryMax=3G
+MemoryHigh=2G
+Nice=15
+TimeoutStartSec=27000
+StandardOutput=append:/home/alphabot/gazbot7/reports/overnight/run.log
+StandardError=append:/home/alphabot/gazbot7/reports/overnight/run.log
