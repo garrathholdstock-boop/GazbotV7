@@ -1108,6 +1108,18 @@ def mgc_shadow_json(mgc_path, depth_path="/home/alphabot/gazbot7/data/depth.db")
                 WHERE r.fill_status = 'filled' {dq}
                 GROUP BY t.strategy"""):
             rows[r["s"]] = dict(r)
+        # ★★2026-08-18 THE TWO PANELS ON THIS PAGE READ TWO DIFFERENT SOURCES.
+        # The arms table joins shadow_real (SCORED), the header's "last trade" reads shadow_trades
+        # (RECORDED). The repricer runs on an interval, so between a sim closing and being repriced
+        # the page truthfully says "last trade 1 minute ago" beside a table showing NOTHING — which
+        # is exactly what the operator hit on the gold desk's first-ever sim (exit 18:33:00,
+        # repriced 18:36:03, a 3-minute window). Neither number was wrong; the page just never said
+        # they measure different things. Publish the gap so the UI can name it.
+        pend = con.execute(
+            "SELECT COUNT(*) FROM shadow_trades t LEFT JOIN shadow_real r ON r.trade_id = t.id "
+            "WHERE r.trade_id IS NULL OR r.fill_status <> 'filled'").fetchone()[0]
+        out["pending_reprice"] = int(pend or 0)
+        out["recorded_total"] = con.execute("SELECT COUNT(*) FROM shadow_trades").fetchone()[0]
         o = con.execute("SELECT MAX(exit_ts) FROM shadow_trades").fetchone()[0]
         if o:
             out["last_trade_age_s"] = now - int(o)

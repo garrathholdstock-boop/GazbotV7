@@ -931,6 +931,11 @@ def default_slate() -> list[ShadowVariant]:
                       # position at a time with a 15-minute cooldown after every exit — that is why
                       # 337 signals a session become ~6 trades, and every number quoted for this leg
                       # (+$4,841, $19.29/tr) came from the constrained version.
+                      # ⚠ CONFIG BOUNDARY: this arm ran UNCAPPED 2026-08-17 13:25 → 08-18 17:49.
+                      # Its first 10 trades are FAITHFUL (all closed <=60min, so the cap never bound)
+                      # but their FREQUENCY is censored — a slow trade blocks the session and is not
+                      # recorded until it closes, and one entry was lost to the deploy restart. Count
+                      # toward the promotion bar from 08-18 17:49. See SESSIONS.md.
                       # ★★★2026-08-18 time_cap_s=120min RESTORED — the SECOND constraint this arm
                       # shipped without. The report's spec is "stop 3.0xATR, target 6.0xATR, 120min"
                       # and gf_rider_engine caps every race at `cap_min` (i1 = min(n, i0 + cap_min*12)),

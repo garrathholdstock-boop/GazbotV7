@@ -103,7 +103,8 @@ function render(d){
   $("strip").innerHTML = `
     <div class="card"><div class="k">status</div>
       <div class="v ${recCls}">${recTxt}</div>
-      <div class="mut" style="font-size:12px">${broke ? d.error : "last trade " + age(d.last_trade_age_s)}</div></div>
+      <div class="mut" style="font-size:12px">${broke ? d.error : "last trade " + age(d.last_trade_age_s)
+        + (d.pending_reprice ? ` · ${d.pending_reprice} awaiting reprice (not yet in the table below)` : "")}</div></div>
     <div class="card"><div class="k">depth feed (MGC)</div>
       <div class="v ${feedCls}">${feedTxt}</div>
       <div class="mut" style="font-size:12px">${d.depth_rows.toLocaleString()} snapshots</div></div>

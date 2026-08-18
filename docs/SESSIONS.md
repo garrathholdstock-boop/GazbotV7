@@ -28,6 +28,36 @@ authoritative where they disagree with this summary.
 
 ---
 
+## ⚠ 2026-08-18 (Tue) — CONFIG BOUNDARY: rider_w5 ran UNCAPPED, 08-17 13:25 → 08-18 17:49
+
+**Do not pool rider_w5 data across this line.** Between those instants the arm ran with
+`time_cap_s=0.0` — no clock — against a spec and a lab engine that both cap the hold at **120
+minutes** (`gf_rider_engine.run_trades`, `i1 = min(n, i0 + cap_min * 12)`). Restored in `e95aca0`.
+
+**The 10 trades in that window are VALID and were NOT voided.** Every one closed inside 60 minutes
+(longest 60), so the 120-minute cap could not have altered a single entry, exit or dollar — each is
+exactly what the correct config would have produced. Voiding faithful rows would be the opposite of
+the operator's standing rule, *"do not book a loss caused by a system bug — LABEL, never adjust"*,
+which cuts both ways. `data_quality` is deliberately left NULL on them: setting it makes honest P&L
+filter them out, which is voiding by another name.
+
+**What IS unusable from that window is the SAMPLE, not the trades:**
+- One position at a time, and an uncapped trade holds until stop or target — so a slow trade blocks
+  the session AND is not recorded until it closes. The set is conditioned on *closed quickly*: all
+  10 are ≤60min, which reads as a property of the strategy and is partly a property of what survived
+  to be written down.
+- **At least one entry was lost outright.** On 08-18 the gate was TRUE on 32 minutes and produced
+  ONE trade (against nine on 08-17); the inferred open position was cleared by the restart that
+  deployed the fix and never produced a row.
+
+→ **P&L of those 10 (−$288, −$28.80/tr, 2 wins) is trustworthy. Trade FREQUENCY, hold-time
+distribution and anything per-session from that window are NOT.** Count trades toward the promotion
+bar (+0.15R over 200 including a non-trending week) from **2026-08-18 17:49 onward**.
+
+⚠ This is the SECOND constraint this arm shipped without — the 15-minute cooldown was the first
+(restored 08-15, `05039e1`). Its own comment already said *"every number quoted for this leg came
+from the CONSTRAINED version"*, and the other half was not checked at the same time.
+
 ## 2026-08-18 (Tue) — drift-persistence study queued for the halt (`gazbot7-driftlab`)
 
 Operator: *"use our confirmation formula and go back 10 years of public MNQ data and see what % of
