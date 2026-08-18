@@ -735,6 +735,38 @@ RETIRED_2026_08_15: dict[str, str] = {
     #    the right trade; a broken factorial is worth zero slots.
 }
 
+def _live_rgv_short() -> dict:
+    """The LIVE rgv_short entry params, read from slot_strategy so the mirror cannot drift.
+
+    Falls back to an empty dict on any import failure, which makes the mirror fire on the gate's own
+    defaults rather than silently mirroring something that is not live — and a fallback that changed
+    behaviour without saying so is the failure this whole file keeps meeting.
+    """
+    try:
+        from .slot_strategy import _RGV_SHORT
+        return dict(_RGV_SHORT)
+    except Exception:
+        log.warning("rgv_short_live_mirror: could not read _RGV_SHORT — mirroring gate defaults")
+        return {}
+
+
+def _live_rgv_short_exit() -> tuple[float, float]:
+    """(target_r, stop_atr_mult) of the LIVE rgv_short LOT A, resolved from the slate.
+
+    ★ RESOLVED, never read from the SlotSpec literal. The source says target_r=2.0; scaleout_slots()
+    returns rgv_short_A at 1.5R (and a chandelier B at 2.0). Reading source here would have shadowed
+    an exit the desk does not run — [[a-slate-is-assembled-from-helpers]].
+    """
+    try:
+        from .slot_strategy import scaleout_slots
+        a = [s for s in scaleout_slots() if s.tag == "rgv_short_A"]
+        if a:
+            return float(a[0].target_r), float(a[0].stop_atr_mult)
+    except Exception:
+        log.warning("rgv_short_live_mirror: could not resolve the live exit — using 1.5R/1.0xATR")
+    return 1.5, 1.0
+
+
 def default_slate() -> list[ShadowVariant]:
     """Thrust threshold A/B (loose 1.5 = the LIVE control vs cont 2.0), amplitude-
     floor A/B (none / 0.0003 / 0.0004 = live), and the reversal-grab short slate —
@@ -856,6 +888,28 @@ def default_slate() -> list[ShadowVariant]:
         #     live's exact entry (climax 2.5 / dom 0.60 / require_flip TRUE) at the live 2.0R.
         ShadowVariant("capit_live_mirror", "capitulation",
                       {"climax_min": 2.5, "dom_min": 0.60, "require_flip": True}, target_r=2.0),
+        # ★★★2026-08-18 THE BENCH ON rgv_short IS NOW PRICED. Operator: "why doesnt router arm rgv
+        # short on days like today". It has been off since a STANDING 07-31 VERDICT — "benched for
+        # the week, verdicted SHADOW (11 fires, -$142, negative at every exit rung)" — which the
+        # router still quotes on every tick eighteen days later. But the rg_short_* twins were all
+        # retired in RETIRED_2026_08_15, so the gate could neither trade nor be shadowed: no live
+        # evidence, no counterfactual, and an n=11 verdict frozen in place.
+        # That is a lead in none of the four permitted states — [[never-kill-a-lead-that-has-a-glimmer]]
+        # says every lead ends LIVE / SHADOW / PARKED / REFUTED, and "benched with nothing watching"
+        # is not one of them. This is the SHADOW state, and it costs nothing: it places no orders.
+        # ★ PARAMS ARE IMPORTED FROM THE LIVE SLATE, NEVER COPIED. A mirror that duplicates the dict
+        # by hand stops being a mirror the moment the live gate is retuned — the same two-surfaces
+        # drift that just put the wrong sim number on the dashboard. Exit matches live too
+        # (scalp, target_r 2.0, stop 1.0xATR), so a divergence can only come from the BENCH.
+        # ⚠ MIRRORS LOT A ONLY, and the number is 1.5R not 2.0R. I first wrote 2.0 by reading
+        # SlotSpec("rgv_short", ... target_r=2.0) in SOURCE — but the live slate RESOLVES to
+        # rgv_short_A scalp 1.5R + rgv_short_B chandelier 2.0. That is CLAUDE.md trap #3 verbatim
+        # ("verify via scaleout_slots(), NEVER source"), and only the assertion caught it.
+        # Lot B is a chandelier ride and is NOT mirrored, so this arm is the SCALP LEG's
+        # counterfactual — never read it as the whole gate's P&L.
+        ShadowVariant("rgv_short_live_mirror", "reversal_grab",
+                      {"side": "SHORT", **_live_rgv_short()},
+                      target_r=_live_rgv_short_exit()[0], stop_atr_mult=_live_rgv_short_exit()[1]),
     ]
     slate += _stop_width_ab()
     slate += _clip_ab()
