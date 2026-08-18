@@ -1242,7 +1242,17 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                     # A/B arms built today — were being fed corrupt features from 17:30 onward.
                     if body.get("symbol") != cfg.symbol:
                         continue
-                    _n_before = len(mb.bars())
+                    # ★★★2026-08-18 KEY ON THE NEWEST BAR'S TIMESTAMP, NEVER ON THE BAR COUNT.
+                    # `mb` is a deque(maxlen=bar_lookback) and line ~1227 WARMS it to capacity
+                    # before the loop starts, so `len(mb.bars()) > _n_before` was `120 > 120` on the
+                    # very first message and every one after — false FOREVER. The gold shadow could
+                    # therefore never fire, and did not: 0 sims in 3 days while the same gate
+                    # replayed 459 fires on the same tape. A count comparison on a FIXED-SIZE RING
+                    # can only ever be true while the ring is filling, and the warm-up guarantees it
+                    # never is. Same class as the 08-15 audit's "the gate could never have fired"
+                    # (bar_lookback=60 vs a look_min needing 61) — in this same service, one week on.
+                    _bs_before = mb.bars()
+                    _ts_before = _bs_before[-1].ts if _bs_before else None
                     mb.fold(body["ts"], body["o"], body["h"], body["l"], body["c"], body["v"])
                     # ★★2026-08-15 (audit #10) DRIVE OFF OUR OWN BARS WHEN WE HAVE A BOOK.
                     # md publishes T_TAPE tagged with ITS OWN symbol (MNQ) and shadow.py never
@@ -1250,8 +1260,8 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
                     # froze the gold shadow silently while MGC bars kept arriving. When a depth feed
                     # is attached we step on OUR completed bars instead, which is also the natural
                     # cadence now that level_break decides once per bar.
-                    if depth is not None and len(mb.bars()) > _n_before:
-                        _bs = mb.bars()
+                    _bs = mb.bars()
+                    if depth is not None and _bs and _bs[-1].ts != _ts_before:
                         if len(_bs) >= 6:
                             _t = _bs[-1].ts * 1000
                             sim.on_bars(_bs, now_ms=_t, in_rth=True,

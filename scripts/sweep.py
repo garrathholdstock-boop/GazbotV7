@@ -606,6 +606,74 @@ def check_fill_vs_book(store, now: datetime, *, hours: int = 24,
             "unverifiable": unver, "findings": findings[:8]}
 
 
+def check_shadow_arms(cfg: RunConfig, now: datetime) -> dict:
+    """An ARMED shadow slate that recorded NOTHING through a session the tape ran is a finding.
+
+    ★★★2026-08-18. `gazbot7-shadow-mgc` recorded ZERO sims for three days. The service was `active`
+    with NRestarts=0, burning 1h45m of CPU, logging nothing and raising nothing; the feed was
+    delivering MGC bars at the correct cadence; and the gate replayed 459 fires on the same week of
+    tape. It stepped the sim zero times because the step was gated on the bar COUNT growing, and the
+    ring is a pre-warmed fixed-size deque. Nothing noticed for three days — and `check_shadow`
+    reported OK the whole time, because it counts sims in the MNQ store and gold has its OWN store
+    that nothing looked at ([[an-instrument-that-reports-healthy-about-something-it-does-not-check]]).
+
+    ⚠ ONLY JUDGED ON A DAY THE TAPE ACTUALLY RAN. A weekend, a holiday or a feed outage legitimately
+    produces zero sims, and alarming then is how a channel gets ignored. No bars for that symbol in
+    the window → SKIPPED and reported as such, never scored clean and never scored a fault.
+
+    ⚠ It deliberately judges the SLATE, not the arm. Individual arms are legitimately slow-firing
+    (a level_break gate can go days), and per-arm silence is the classify-before-ranking problem, not
+    an alarm. A whole armed slate silent for a session is a mechanism failure.
+    """
+    day_end = pnl.paris_day_start_utc(now)
+    day_start = pnl.paris_day_start_utc(datetime.fromisoformat(day_end) - timedelta(seconds=1))
+    try:
+        from gazbot7.shadow import default_slate, mgc_slate
+    except Exception as e:
+        return {"status": WARN, "detail": f"cannot load the slates: {e}"}
+    books = [("MNQ shadow", cfg.shadow_store_path, len(default_slate()), cfg.symbol),
+             ("MGC shadow", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                                         "data", "shadow_mgc.db"), len(mgc_slate()), "MGC")]
+    rows, faults, skipped = [], [], []
+    for label, path, armed, sym in books:
+        if not armed:
+            continue
+        if not os.path.exists(path):
+            skipped.append(f"{label} (no store)")
+            continue
+        try:
+            c = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            n = c.execute("SELECT COUNT(*) FROM shadow_trades WHERE entry_ts>=? AND entry_ts<?",
+                          (int(datetime.fromisoformat(day_start).timestamp()),
+                           int(datetime.fromisoformat(day_end).timestamp()))).fetchone()[0]
+            c.close()
+        except Exception as e:
+            skipped.append(f"{label} (unreadable: {str(e)[:40]})")
+            continue
+        # did the tape even run for this symbol that session?
+        try:
+            cap = sqlite3.connect(f"file:{cfg.capture_path}?mode=ro", uri=True)
+            bars = cap.execute("SELECT COUNT(*) FROM bars WHERE symbol=? AND bar_ts>=? AND bar_ts<?",
+                               (sym, int(datetime.fromisoformat(day_start).timestamp()),
+                                int(datetime.fromisoformat(day_end).timestamp()))).fetchone()[0]
+            cap.close()
+        except Exception:
+            bars = 0
+        rows.append({"book": label, "armed": armed, "sims": n, "tape_bars": bars})
+        if bars < 500:
+            skipped.append(f"{label} (tape did not run: {bars} bars)")
+        elif n == 0:
+            faults.append(f"{label}: {armed} arms ARMED, {n} sims on a session with {bars:,} bars "
+                          f"— the slate is not firing at all")
+    if faults:
+        return {"status": WARN, "detail": " · ".join(faults), "books": rows, "skipped": skipped}
+    live = "; ".join(f"{r['book']} {r['sims']} sims/{r['armed']} arms" for r in rows) or "none"
+    detail = f"session {day_start[:10]}: {live}"
+    if skipped:
+        detail += f" · SKIPPED {', '.join(skipped)} — not the same as clean"
+    return {"status": OK, "detail": detail, "books": rows, "skipped": skipped}
+
+
 def check_recording(cfg: RunConfig, store, now: datetime) -> dict:
     since_iso = pnl.paris_day_start_utc(now)
     n = store.execute("SELECT count(*) FROM trades WHERE symbol=? AND closed_at>=?",
@@ -792,6 +860,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "recording": check_recording(cfg, store, now),
             "book_vs_fills": check_book_vs_fills(store, now),
             "fill_vs_book": check_fill_vs_book(store, now),
+            "shadow_arms": check_shadow_arms(cfg, now),
             "shadow": check_shadow(cfg, now),
             "storage": check_storage(cfg),
             "config": check_config_committed(),
