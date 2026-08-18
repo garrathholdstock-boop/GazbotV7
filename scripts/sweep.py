@@ -674,6 +674,68 @@ def check_shadow_arms(cfg: RunConfig, now: datetime) -> dict:
     return {"status": OK, "detail": detail, "books": rows, "skipped": skipped}
 
 
+def check_shadow_open(cfg: RunConfig, now: datetime) -> dict:
+    """Sim positions that are OPEN — and any that have blown past their own time cap.
+
+    ★★★2026-08-18. `record_shadow_trade()` fires only on EXIT, so an open sim position was
+    invisible: a variant sitting in a trade and a variant not firing AT ALL rendered identically.
+    rider_w5 took ONE trade on a session its gate was true for 32 minutes (nine the day before) and
+    the reason had to be reconstructed by replaying the tape four hours later. It shipped without
+    the 120-minute cap its own spec and its own lab engine both enforce, so one trade held all
+    afternoon and — one position at a time — blocked every re-entry.
+
+    "Blocked" and "dead" must not look the same. This makes the open set visible, and CRITs nothing:
+    a long hold is a finding for RESEARCH, never an order-path fault (the shadow desk touches no
+    broker). ⚠ A stale snapshot is reported as stale rather than as "nothing open" — absence of a
+    file is not evidence of an empty book.
+    """
+    out = {"status": OK, "books": []}
+    seen_any = False
+    for label, sp in (("MNQ", cfg.shadow_store_path),
+                      ("MGC", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                                           "data", "shadow_mgc.db"))):
+        path = f"{sp}.open.json"
+        if not os.path.exists(path):
+            out["books"].append({"book": label, "state": "no snapshot"})
+            continue
+        try:
+            with open(path) as fh:
+                snap = json.load(fh)
+        except Exception as e:
+            out["books"].append({"book": label, "state": f"unreadable: {str(e)[:40]}"})
+            out["status"] = _worst(out["status"], WARN)
+            continue
+        seen_any = True
+        age_s = max(0, int(now.timestamp()) - int(snap.get("ts") or 0))
+        opens = snap.get("open") or {}
+        over = []
+        for name, o in opens.items():
+            cap = float(o.get("time_cap_s") or 0)
+            held = float(o.get("held_s") or 0)
+            if cap and held > cap * 1.25:
+                over.append({"variant": name, "held_min": round(held / 60), "cap_min": round(cap / 60)})
+        out["books"].append({"book": label, "open": len(opens), "snapshot_age_s": age_s,
+                             "over_cap": over, "names": sorted(opens)[:6]})
+        if over:
+            out["status"] = _worst(out["status"], WARN)
+    if not seen_any:
+        out["detail"] = "no open-position snapshot from any shadow desk — is the sim publishing?"
+        out["status"] = _worst(out["status"], WARN)
+        return out
+    bits = []
+    for b in out["books"]:
+        if "open" not in b:
+            bits.append(f"{b['book']}: {b['state']}")
+        elif b["over_cap"]:
+            w = b["over_cap"][0]
+            bits.append(f"{b['book']}: {b['open']} open, {w['variant']} held "
+                        f"{w['held_min']}min past a {w['cap_min']}min cap")
+        else:
+            bits.append(f"{b['book']}: {b['open']} open")
+    out["detail"] = " · ".join(bits)
+    return out
+
+
 def check_recording(cfg: RunConfig, store, now: datetime) -> dict:
     since_iso = pnl.paris_day_start_utc(now)
     n = store.execute("SELECT count(*) FROM trades WHERE symbol=? AND closed_at>=?",
@@ -861,6 +923,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "book_vs_fills": check_book_vs_fills(store, now),
             "fill_vs_book": check_fill_vs_book(store, now),
             "shadow_arms": check_shadow_arms(cfg, now),
+            "shadow_open": check_shadow_open(cfg, now),
             "shadow": check_shadow(cfg, now),
             "storage": check_storage(cfg),
             "config": check_config_committed(),

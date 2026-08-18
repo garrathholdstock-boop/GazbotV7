@@ -246,7 +246,8 @@ def test_run_sweep_smoke_produces_all_sections(tmp_path):
     # for three days while the gold slate — its own store — recorded literally nothing.
     assert set(report["sections"]) == {
         "services", "core", "capture", "execution", "position", "killswitch", "recording",
-        "shadow", "storage", "config", "book_vs_fills", "fill_vs_book", "shadow_arms"}
+        "shadow", "storage", "config", "book_vs_fills", "fill_vs_book", "shadow_arms",
+        "shadow_open"}
     assert report["overall"] in ("OK", "WARN", "CRIT")
     assert report["preflight_ok"] is False  # no core_health.json in tmp_path
 

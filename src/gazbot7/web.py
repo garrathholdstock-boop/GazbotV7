@@ -1137,6 +1137,20 @@ def mgc_shadow_json(mgc_path, depth_path="/home/alphabot/gazbot7/data/depth.db")
     return out
 
 
+def _shadow_open_snapshot(shadow_path):
+    """The sim's OPEN positions, from the snapshot ShadowSim publishes beside its store.
+
+    Returns {} when there is no snapshot — and the caller must render that as UNKNOWN, never as
+    "nothing open". Absence of a file is not evidence of an empty book.
+    """
+    try:
+        with open(f"{shadow_path}.open.json") as fh:
+            snap = json.load(fh)
+        return {"ts": snap.get("ts"), "open": snap.get("open") or {}}
+    except Exception:
+        return {}
+
+
 def shadow_overview_json(shadow_path, date=None):
     """Per-variant honest P&L (real_pnl, filled trades) over today/week/all, plus
     by-symbol — the shape shadow_desk.html renders. real_available always True in
@@ -1199,6 +1213,10 @@ def shadow_overview_json(shadow_path, date=None):
         "n_strategies": len(names), "as_of": (date or datetime.now(_PARIS).strftime("%Y-%m-%d")),
         "real_available": True, "strategies": strategies,
         "sim_ids_source": "data/sim_registry.json", "sim_ids_loaded": len(_ids),
+        # ★2026-08-18 open sim positions. shadow_trades records only on EXIT, so a variant sitting
+        # in a trade and a variant not firing at all looked identical on this board. The snapshot is
+        # published by ShadowSim on open/close beside the store.
+        "open_positions": _shadow_open_snapshot(shadow_path),
     }
 
 

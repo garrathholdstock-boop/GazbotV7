@@ -17,6 +17,7 @@ Clean-room: nothing copied from V5.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -223,13 +224,22 @@ def _eff_target_r(v: ShadowVariant, atr: float, vpp: float, brk: bool = False) -
 
 class ShadowSim:
     def __init__(self, store, variants: list[ShadowVariant], *, value_per_point: float = 2.0,
-                 fee_rt: float = 1.5, absorption_min_loss_usd: float = 60.0) -> None:
+                 fee_rt: float = 1.5, absorption_min_loss_usd: float = 60.0,
+                 store_path: str | None = None) -> None:
         self._store = store
         self._variants = variants
         self._vpp = value_per_point
         self._fee = fee_rt
         self._abs_min_loss = absorption_min_loss_usd  # absorption = catastrophe backstop, not a green-scalp cutter
         self._open: dict[str, dict] = {}  # variant name → open sim position
+        # ★★★2026-08-18 OPEN SIM POSITIONS ARE PUBLISHED, because until now they were INVISIBLE.
+        # record_shadow_trade() only fires on EXIT, so a variant sitting in a trade and a variant
+        # not firing at all looked identical from outside. That is how rider_w5 taking ONE trade on
+        # a session the gate was true for 32 minutes had to be reconstructed by replaying the tape
+        # four hours later. "Blocked" and "dead" must not render the same — the MGC lesson in a
+        # different costume. Written on OPEN and on CLOSE only (not per tick), next to the store.
+        self._open_path = f"{store_path}.open.json" if store_path else None
+        self._publish_open()
         self._pending: dict[str, dict] = {}  # variant name → pending entry watching absorption
         # ★2026-08-15 level-break state (audit fixes #2/#3). `_lb_seen` latches the last bar a
         # level_break variant was evaluated on, so one completed bar produces at most one decision
@@ -259,6 +269,24 @@ class ShadowSim:
         cap = cap or {}
         for v in self._variants:
             self._step(v, f, ts, tape_net, window_price_delta, in_rth, now_ms, cap, bars)
+
+    def _publish_open(self) -> None:
+        """Snapshot the open sim positions beside the store. FAIL-QUIET by design: this is
+        observability, and it must never be able to take the shadow desk down."""
+        if not self._open_path:
+            return
+        try:
+            caps = {v.name: v.time_cap_s for v in self._variants}
+            snap = {"ts": int(time.time()),
+                    "open": {n: {**o, "time_cap_s": caps.get(n, 0.0),
+                                 "held_s": max(0, int(time.time()) - int(o.get("entry_ts") or 0))}
+                             for n, o in self._open.items()}}
+            tmp = self._open_path + ".tmp"
+            with open(tmp, "w") as fh:
+                json.dump(snap, fh, indent=1, sort_keys=True)
+            os.replace(tmp, self._open_path)
+        except Exception:
+            pass
 
     def _rider_entry(self, v: ShadowVariant, bars: list[Bar], ts: int):
         """★2026-08-08 THE CLOCK GATE. No signal — the clock is the trigger.
@@ -438,6 +466,7 @@ class ShadowSim:
         brk = _brk_2h(bars, f.price) if (bars and v.clip_standdown_on_brk) else False
         self._open[v.name] = dict(side=entry.side, entry_price=f.price, entry_atr=f.atr,
                                   entry_ts=ts, peak=0.0, brk=brk)
+        self._publish_open()
 
     def _step(self, v, f, ts, tape_net, wpd, in_rth, now_ms, cap, bars=None):
         op = self._open.get(v.name)
@@ -512,6 +541,7 @@ class ShadowSim:
         if reason is not None:
             self._record(v, op, f.price, ts, reason)
             del self._open[v.name]
+            self._publish_open()
 
     def _record_target_r(self, v, atr):
         """What to persist as target_r so the TICK REPRICER reproduces this sim's own target.
@@ -847,9 +877,18 @@ def default_slate() -> list[ShadowVariant]:
                       # position at a time with a 15-minute cooldown after every exit — that is why
                       # 337 signals a session become ~6 trades, and every number quoted for this leg
                       # (+$4,841, $19.29/tr) came from the constrained version.
+                      # ★★★2026-08-18 time_cap_s=120min RESTORED — the SECOND constraint this arm
+                      # shipped without. The report's spec is "stop 3.0xATR, target 6.0xATR, 120min"
+                      # and gf_rider_engine caps every race at `cap_min` (i1 = min(n, i0 + cap_min*12)),
+                      # but the variant carried time_cap_s=0.0, i.e. NO CLOCK. With a 3xATR stop and a
+                      # 6xATR target and one position at a time, an uncapped trade holds until one of
+                      # them prints and blocks re-entry for the whole session: on 08-18 the gate was
+                      # TRUE on 32 minutes and produced ONE trade, against nine on 08-17 when every
+                      # hold happened to close inside an hour. Exactly the cooldown defect again —
+                      # "every number quoted for this leg came from the CONSTRAINED version".
                       {"k": 2.0, "w": 5, "hh_lo": 13.0, "hh_hi": 20.0, "cooldown_min": 15},
                       symbol="MNQ", qty=1.0, stop_atr_mult=3.0, target_r=2.0,
-                      adverse_cut_atr=3.0, chandelier=False))
+                      adverse_cut_atr=3.0, chandelier=False, time_cap_s=120 * 60))
 
     # ★2026-08-15 the trim rides alongside the older RETIRED set — see RETIRED_2026_08_15.
     return [v for v in slate
@@ -1184,7 +1223,8 @@ async def run(cfg, *, variants=None, reprice_interval_s: float = 30.0,
     cap = open_capture(cfg.capture_path)
     sim = ShadowSim(store, variants or default_slate(),
                     value_per_point=cfg.value_per_point, fee_rt=cfg.fee_rt,
-                    absorption_min_loss_usd=cfg.absorption_min_loss_usd)
+                    absorption_min_loss_usd=cfg.absorption_min_loss_usd,
+                    store_path=cfg.shadow_store_path)
     # the per-side direction circuit breaker (prototype) rides the same feed alongside
     # the variant slate, booking cb_thrust (governed) + cb_thrust_dropped (phantom).
     # ★2026-08-02 RETIRED — it is in RETIRED, so it no longer runs. It was falsified by its own
