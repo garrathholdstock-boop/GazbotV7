@@ -1,0 +1,155 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>G-Lab — Report Generator Rewrite: Scope</title>
+<style>
+@page{size:A4;margin:18mm 16mm;@bottom-center{content:counter(page);font:9px system-ui;color:#888}}
+body{font:10.5pt/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:#1a1d21;max-width:900px;margin:0 auto;padding:24px}
+h1{font-size:22pt;margin:0 0 4px;letter-spacing:-.5px}
+h2{font-size:14.5pt;margin:28px 0 8px;padding-bottom:5px;border-bottom:2px solid #1a1d21;page-break-after:avoid}
+h3{font-size:11.5pt;margin:16px 0 5px;color:#0b4f6c;page-break-after:avoid}
+p,li{margin:5px 0}ul,ol{margin:5px 0 5px 20px;padding:0}
+code{font-family:ui-monospace,Menlo,monospace;font-size:9pt;background:#f2f4f6;padding:1px 4px;border-radius:3px}
+table{border-collapse:collapse;width:100%;margin:9px 0;font-size:9pt;page-break-inside:avoid}
+th{background:#1a1d21;color:#fff;text-align:left;padding:6px 7px}
+td{border-bottom:1px solid #e3e6ea;padding:5px 7px;vertical-align:top}
+tr:nth-child(even) td{background:#fafbfc}
+.sub{color:#5b6570;font-size:11pt;margin:0 0 18px}
+.crit{background:#fdf3f3;border-left:4px solid #b3352e;padding:10px 13px;margin:12px 0;page-break-inside:avoid}
+.box{background:#f7f9fb;border-left:4px solid #0b4f6c;padding:10px 13px;margin:12px 0;page-break-inside:avoid}
+.warn{background:#fff8f0;border-left:4px solid #c8791a;padding:10px 13px;margin:12px 0;page-break-inside:avoid}
+.a{color:#15803d;font-weight:600}.b{color:#a16207;font-weight:600}.c{color:#b3352e;font-weight:600}
+.flow{background:#0f1720;color:#e6edf3;padding:12px 14px;border-radius:5px;font-family:ui-monospace,monospace;font-size:8.5pt;line-height:1.65;margin:12px 0;white-space:pre;page-break-inside:avoid}
+</style></head><body>
+
+<h1>G-Lab — Report Generator Rewrite</h1>
+<p class="sub">Scope, 19 August 2026 · replacing the LLM-driven Friday report with deterministic Python</p>
+
+<h2>0. The finding that changes the order of work</h2>
+<div class="crit"><strong>122 of 169 analysis scripts read only <code>capture.db</code> — a rolling window of a few
+trading days — and none of them say so.</strong> They print "last 400d" or "full history" while scanning a
+fraction. This is not a reporting bug; it is a correctness bug in the research layer, and it silently
+invalidates any conclusion drawn over a period longer than the hot tier.
+<br><br>
+Three instances were found and fixed on 18–19 August: the run census, the walk-forward harness, and
+(after the census was fixed) the <em>fix itself</em>, which reintroduced the same hardcoded timeframe one
+file away. Two of the remaining 122 — <code>abs_veto_robustness.py</code> and <code>adaptive_exit_bt.py</code> — are
+invoked by the Friday report's own shadow section.</div>
+
+<p><strong>Therefore: the data-access layer is prerequisite work, not part of the rewrite.</strong> Rewriting the
+report generator on top of 122 scripts that each narrow their own dataset would produce a deterministic
+report that is confidently wrong — which is worse than an LLM-written one that is occasionally vague.</p>
+
+<h2>1. Current state, measured</h2>
+<table>
+<tr><th>Layer</th><th>Implementation</th><th>Lines</th></tr>
+<tr><td>Capture, storage, lake, shadow sim, re-pricing, census, walk-forward, safety, reconciliation</td><td class="a">Deterministic Python</td><td>75,036 (95%)</td></tr>
+<tr><td>Router decision · hourly watch · scheduled reviews · Friday report · courtroom sims</td><td class="c">Claude-dependent</td><td>3,208 (4%)</td></tr>
+</table>
+<p>Only <strong>7 files</strong> invoke the CLI. The Friday report is <strong>21 of 21 phases</strong> Claude prompts, but
+<strong>9 deterministic scripts already exist</strong> (2,966 lines, zero Claude) doing the actual computation —
+the prompts largely orchestrate and narrate them.</p>
+
+<h2>2. Prerequisite — the data-access layer (do this first)</h2>
+<h3>2.1 One reader, and it cannot silently narrow</h3>
+<div class="flow">gazbot7.lake.connect()          # already exists: V5 archive + Parquet lake + hot SQLite
+        │
+        ▼
+glab.data.bars(symbol, tf=None, since=None, until=None)
+        │  · tf=None  -> choose the WIDEST-SPAN timeframe fine enough for the caller's need
+        │  · records what it scanned: source tier, timeframe, row count, span, gaps
+        │  · RAISES if the requested window exceeds what is held, never truncates
+        ▼
+every report component, every backtest, every study</div>
+
+<div class="warn"><strong>Two rules learned the hard way, both non-obvious.</strong>
+<br><strong>(a) Choose timeframe by COVERAGE, not by fineness.</strong> Preferring the finest bar picks 5-second
+data — which exists only for the weeks we captured ourselves — and discards nine months of backfilled
+minute bars to gain a resolution the measurement does not use. Selection must be widest-span among
+timeframes fine enough to resolve the question, with anything coarser <em>refused</em> rather than accepted.
+<br><strong>(b) A label that misnames its source is worse than no label.</strong> The walk-forward printed
+"alphabot.db 1m" while reading the lake, because it echoed a default instead of what it used. Every
+component must emit the tier, timeframe, row count and span it actually scanned.</div>
+
+<h3>2.2 Migration of the 122</h3>
+<table>
+<tr><th>Step</th><th>Work</th><th>Effort</th></tr>
+<tr><td>1</td><td>Build <code>glab.data</code> over the existing <code>lake.connect()</code>, with span reporting and refuse-on-overrun</td><td class="a">2–3 days</td></tr>
+<tr><td>2</td><td>A test that FAILS if any script imports sqlite3 against <code>capture.db</code> directly — stops the population growing</td><td class="a">half a day</td></tr>
+<tr><td>3</td><td>Migrate the ~20 scripts the report actually calls</td><td class="b">1 week</td></tr>
+<tr><td>4</td><td>Migrate the long tail (102 exploratory scripts) opportunistically, or quarantine them as <code>research/legacy/</code></td><td class="b">ongoing</td></tr>
+</table>
+<p>Step 2 matters more than it looks: without it, the next 122 arrive the same way the first did.</p>
+
+<h2>3. Phase-by-phase rewrite scope</h2>
+<p>21 phases. 7 greenfield + <code>movement3</code> are excluded (§4). The remaining 13 fall into three tiers.</p>
+
+<h3>Tier A — templating over scripts that already exist</h3>
+<p>The computation is done; Claude is being used as a query planner and HTML formatter.</p>
+<table>
+<tr><th>Phase</th><th>Existing deterministic script</th><th>Remaining work</th><th>Effort</th></tr>
+<tr><td><code>day_rider</code></td><td><code>day_rider_lab.py</code> (263 ln, already lake-aware)</td><td>HTML template</td><td class="a">1 day</td></tr>
+<tr><td><code>part2_shadow</code></td><td><code>abs_veto_robustness</code>, <code>adaptive_exit_bt</code>, <code>partial_shadow_watch</code>, <code>two_ratchet_shadow_watch</code> (719 ln)</td><td>migrate all 4 to the lake, then template</td><td class="b">3 days</td></tr>
+<tr><td><code>part2_6_router</code></td><td><code>router_study.py</code> (299 ln)</td><td>template + parse the router log</td><td class="a">1–2 days</td></tr>
+<tr><td><code>run_charts</code></td><td><code>run_charts.py</code> (253 ln) <em>— reads capture.db</em></td><td>migrate to lake, then template</td><td class="a">1 day</td></tr>
+<tr><td><code>assemble</code></td><td><code>friday_v7_build.py</code> (1,053 ln) already builds HTML+PDF</td><td>drive it from a manifest instead of a prompt</td><td class="a">1–2 days</td></tr>
+</table>
+
+<h3>Tier B — new Python, mechanical but real</h3>
+<p>No script exists; the logic is stated in the prompt and is deterministic once written down.</p>
+<table>
+<tr><th>Phase</th><th>What it computes</th><th>Effort</th></tr>
+<tr><td><code>part1_live</code></td><td>Live desk P&amp;L by gate / period / regime, blotter, equity curve, exit mix</td><td class="b">3–4 days</td></tr>
+<tr><td><code>movement2_idle</code></td><td>Gates that did not fire, cross-referenced against census runs — needs the suppression journal</td><td class="b">3 days</td></tr>
+<tr><td><code>rehab</code></td><td>Gate ranking by the stated rehabilitation rules; the rules exist in prose and must be encoded</td><td class="c">1 week</td></tr>
+<tr><td><code>gf_report</code></td><td>Tabulates greenfield findings into the gates page — mechanical IF greenfield emits structured output (§4)</td><td class="b">2 days</td></tr>
+</table>
+
+<h3>Tier C — keep, drop, or narrow</h3>
+<table>
+<tr><th>Phase</th><th>Assessment</th></tr>
+<tr><td><code>part25_musings</code></td><td><strong>Drop.</strong> Commentary. A deterministic product should not ship opinions it cannot justify from a table.</td></tr>
+<tr><td><code>proofread</code></td><td><strong>Narrow to consistency checking</strong>, which IS deterministic: do the numbers in the prose match the tables, do totals reconcile, is any figure quoted with a different sample size elsewhere. That catches the errors that matter. Narrative review is not replaceable and is not needed.</td></tr>
+<tr><td><code>rev2</code>, <code>final</code></td><td><strong>Replace with assertions.</strong> Their real job is "did every section actually build" — that is a manifest check, not a read-through. The 08-14 failure (<code>rc=0</code>, artifact missing) is exactly what an assertion catches and a read-through did not.</td></tr>
+</table>
+
+<h2>4. Greenfield — the honest exception</h2>
+<p>The seven <code>gf_*</code> phases invoke <strong>zero</strong> Python scripts. They are wholly "here is a data contract,
+go find something". Three separable parts:</p>
+<table>
+<tr><th>Part</th><th>Automatable?</th></tr>
+<tr><td>Running a hypothesis sweep across a parameter surface</td><td class="a">Yes — this is already what the backtest engine does</td></tr>
+<tr><td>Applying the validation battery (leave-one-out, both-halves, placebo, neighbourhood)</td><td class="a">Yes — deterministic, and partly built</td></tr>
+<tr><td><strong>Choosing which hypothesis space is worth searching, and recognising an artefact</strong></td><td class="c">No</td></tr>
+</table>
+<div class="box"><strong>Recommendation: do not remove it — make it optional and structured.</strong>
+Greenfield stays LLM-driven behind a provider interface, and is required to emit <strong>structured output</strong>
+(candidate, mechanism, evidence, sample size, refutation condition) rather than prose. Then <code>gf_report</code>
+becomes templating, and a customer without an AI key still gets a complete instrument that MEASURES —
+just not one that PROPOSES.</div>
+
+<h2>5. Sequenced plan and effort</h2>
+<table>
+<tr><th>#</th><th>Work</th><th>Effort</th><th>Unblocks</th></tr>
+<tr><td>1</td><td><strong>Data-access layer + the test that prevents regression</strong></td><td>3–4 days</td><td>everything; without it the rest is confidently wrong</td></tr>
+<tr><td>2</td><td>Migrate the ~20 report-critical scripts to it</td><td>1 week</td><td>Tier A</td></tr>
+<tr><td>3</td><td>Tier A — five phases to templates</td><td>1.5 weeks</td><td>~40% of the report</td></tr>
+<tr><td>4</td><td>Tier B — four phases, new Python</td><td>2.5–3 weeks</td><td>~70% cumulative</td></tr>
+<tr><td>5</td><td>Tier C — assertions + consistency checks; drop musings</td><td>1 week</td><td>the whole tail</td></tr>
+<tr><td>6</td><td>Structured-output contract for greenfield</td><td>1 week</td><td>optional AI layer</td></tr>
+<tr><td></td><td><strong>Total to a deterministic report with an optional AI research layer</strong></td><td><strong>7–8 weeks</strong></td><td></td></tr>
+</table>
+
+<h2>6. What this buys, commercially</h2>
+<ul>
+<li><strong>No LLM dependency in the core.</strong> A customer needs no AI key to get capture, storage, backtesting, census, walk-forward, validation and a full weekly report.</li>
+<li><strong>Removes an operational liability.</strong> Session-based model credentials once silently no-opped the router for 10.5 hours. Shipping that dependency to customers is not viable; here it becomes an optional add-on rather than a single point of failure.</li>
+<li><strong>Reproducibility.</strong> A deterministic report run twice on the same data produces the same bytes. That is auditable in a way an LLM-written one is not — and it is what a professional buyer will ask for first.</li>
+<li><strong>Cost.</strong> The per-run cost of the weekly report goes to approximately zero.</li>
+<li><strong>Honest positioning.</strong> "Deterministic research instrument, optional AI analyst" is a stronger and more defensible claim than either "AI-powered" or "no AI".</li>
+</ul>
+
+<div class="warn"><strong>The one thing not to promise.</strong> Hypothesis <em>generation</em> is the least automated link in
+the loop and the most tempting to overstate. The deterministic product measures, validates and reports.
+It does not invent the next question — and a scope that claims otherwise will be found out.</div>
+
+<p style="font-size:8.5pt;color:#667;margin-top:22px">Prepared 19 August 2026 from direct inspection of the running system. Line counts, script counts and the 122/169 figure are measured, not estimated.</p>
+</body></html>

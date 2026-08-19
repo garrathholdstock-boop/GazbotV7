@@ -247,6 +247,74 @@ def validate(limit_days: int = 30) -> dict:
             "agree_pct": round(100 * ag / n, 1) if n else None, "rows": rows}
 
 
+def _lake_days():
+    """MNQ minute bars from the LAKE, day-keyed — the full backfilled history.
+
+    ★2026-08-19 the study originally read its own data/driftlab pull (a handful of contracts).
+    The lake now holds ~11 months of stitched MNQ 1-minute bars, which is the better source and the
+    one the desk's other research uses. Picks the widest-span minute-grade timeframe, same rule as
+    run_census and forward_validate — NOT the finest, which would pick 5s and lose nine months.
+    """
+    from gazbot7.lake import connect
+    con = connect(symbol="MNQ")
+    tf = con.execute("""
+        SELECT timeframe FROM bars WHERE symbol='MNQ' AND timeframe IN ('5s','1min','1m')
+        GROUP BY 1 ORDER BY MAX(bar_ts)-MIN(bar_ts) DESC LIMIT 1""").fetchone()
+    if not tf:
+        return {}
+    tf = tf[0]
+    rows = con.execute(f"""
+        SELECT CAST(to_timestamp(bar_ts) AS DATE) d, CAST(bar_ts/60 AS INT)*60 t,
+               MAX(high) h, MIN(low) l, arg_max(close, bar_ts) c
+        FROM bars WHERE symbol='MNQ' AND timeframe='{tf}'
+        GROUP BY d, t ORDER BY d, t""").fetchall()
+    con.close()
+    byday: dict = {}
+    for d, t, h, low, c in rows:
+        byday.setdefault(str(d), []).append((int(t), float(h), float(low), float(c)))
+    log(f"[lake] tf={tf!r} · {len(byday)} days, {sum(len(v) for v in byday.values()):,} minute bars")
+    return byday
+
+
+def replay_lake() -> dict:
+    """Causal minute-by-minute replay of the REAL detector over the lake's full MNQ history."""
+    from gazbot7.day_rider import ENTRY_CUTOFF_MIN
+    from gazbot7.drift import MIN_BARS, OPEN_UTC_MIN, compute
+    out = []
+    for day, bars in sorted(_lake_days().items()):
+        sess = [b for b in bars if OPEN_UTC_MIN * 60 <= (b[0] % 86400) < 21 * 3600]
+        if len(sess) < 120:
+            continue
+        conf = None
+        max_i = min(len(sess), ENTRY_CUTOFF_MIN - OPEN_UTC_MIN)
+        for i in range(MIN_BARS, max_i + 1):
+            r = compute(sess[:i])
+            if r.confirmed:                      # ⚠ `confirmed`, never `ok`
+                conf = (i, r.direction, sess[i - 1][3], sess[0][3], r.efficiency, r.roundtrip)
+                break
+        if not conf:
+            out.append({"day": day, "confirmed": False})
+            continue
+        i, d, px_conf, px_open, eff, rt = conf
+        sgn = 1 if d == "UP" else -1
+
+        def px_at(hh, mm):
+            want = (hh * 3600 + mm * 60)
+            pri = [b for b in sess if (b[0] % 86400) <= want]
+            return pri[-1][3] if pri else sess[-1][3]
+        c2040, c2100 = px_at(20, 40), px_at(21, 0)
+        out.append({"day": day, "confirmed": True, "minute": i, "dir": d,
+                    "eff": round(eff, 3), "rt": round(rt, 3),
+                    "drift_held_2040": (c2040 - px_open) * sgn > 0,
+                    "drift_held_2100": (c2100 - px_open) * sgn > 0,
+                    "entry_paid_2040": (c2040 - px_conf) * sgn > 0,
+                    "entry_paid_2100": (c2100 - px_conf) * sgn > 0,
+                    "pt_2040": round((c2040 - px_conf) * sgn, 2),
+                    "pt_open_2040": round((c2040 - px_open) * sgn, 2),
+                    "year": day[:4], "ym": day[:7]})
+    return {"status": "ok", "by_symbol": {"MNQ_lake": out}}
+
+
 def replay() -> dict:
     """Causal minute-by-minute replay. For each day: the FIRST minute drift.compute() reports
     `confirmed`, then whether the day stayed that way.
@@ -380,7 +448,7 @@ def main():
     ap.add_argument("--years", type=int, default=10)
     ap.add_argument("--symbols", default="NQ,MNQ")
     ap.add_argument("--minutes", type=int, default=50, help="wall-clock budget; halt is 60min")
-    ap.add_argument("--phase", default="all", choices=["pull", "validate", "replay", "all"])
+    ap.add_argument("--phase", default="all", choices=["pull", "validate", "replay", "all", "lake"])
     ap.add_argument("--force", action="store_true", help="bypass preflight (NOT for a live session)")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
@@ -398,6 +466,13 @@ def main():
         if v.get("status") == "ok" and v.get("days", 0) >= 5 and (v.get("agree_pct") or 0) < 90:
             log("⚠ FEED DISAGREES WITH OUR TAPE — the persistence numbers below describe IBKR's "
                 "bars, not the desk's. Do not act on them until this is explained.")
+    if a.phase == "lake":
+        rep = replay_lake()
+        json.dump(rep, open(f"{OUT}/_persistence_lake.json", "w"), indent=1, default=str)
+        txt = report(rep)
+        open(f"{OUT}/_REPORT_LAKE.txt", "w").write(txt)
+        print(txt)
+        return
     if a.phase in ("replay", "all"):
         rep = replay()
         json.dump(rep, open(f"{OUT}/_persistence.json", "w"), indent=1, default=str)
