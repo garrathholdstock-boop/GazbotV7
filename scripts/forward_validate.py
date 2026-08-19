@@ -77,7 +77,17 @@ def _load_days_lake(dfrom, dto):
     """
     from gazbot7.lake import connect as lake_connect
     con = lake_connect(symbol="MNQ")
-    where = ["symbol='MNQ'", "timeframe='5s'"]
+    # ⚠ NOT timeframe='5s'. I hardcoded that here while fixing the SAME bug in run_census.py, and it
+    # capped the walk-forward at the weeks we captured ourselves — 42 days instead of 337. Choose the
+    # widest-span timeframe fine enough to fold into 1-minute; anything coarser is refused.
+    _tf = con.execute("""
+        SELECT timeframe, MAX(bar_ts) - MIN(bar_ts) span FROM bars
+        WHERE symbol='MNQ' AND timeframe IN ('5s','1min','1m') GROUP BY 1
+        ORDER BY span DESC LIMIT 1""").fetchone()
+    if not _tf:
+        print("[lake] no usable timeframe (need 5s or 1-minute)")
+        return []
+    where = ["symbol='MNQ'", f"timeframe='{_tf[0]}'"]
     if dfrom:
         where.append(f"CAST(to_timestamp(bar_ts) AS DATE) >= DATE '{dfrom}'")
     if dto:
@@ -94,7 +104,7 @@ def _load_days_lake(dfrom, dto):
         byday.setdefault(str(d), []).append(Bar(int(t), float(o), float(h), float(low),
                                                float(c), float(v or 0)))
     out = [(d, b) for d, b in sorted(byday.items()) if len(b) >= 600]
-    print(f"[lake] {len(out)} usable days, {sum(len(b) for _, b in out):,} 1-min bars"
+    print(f"[lake] tf={_tf[0]!r} · {len(out)} usable days, {sum(len(b) for _, b in out):,} 1-min bars"
           + (f", {out[0][0]} .. {out[-1][0]}" if out else ""))
     return out
 

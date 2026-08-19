@@ -52,6 +52,14 @@ def run(cmd: list[str], out_path: str, timeout_s: int) -> tuple[bool, str]:
         open(out_path, "w").write(f"ERROR {e}")
         return (False, str(e)[:80])
     size = os.path.getsize(out_path)
+    body = open(out_path, errors="replace").read()
+    # ★★2026-08-19 SIZE ALONE IS NOT AN ARTIFACT CHECK. greenfield.txt was 431 BYTES OF TRACEBACK and
+    # cleared a 400-byte floor, so a hard failure was recorded "ok" — the precise fault this check
+    # exists to prevent, reintroduced by measuring the wrong thing. Content is now inspected too.
+    for marker in ("Traceback (most recent call last)", "TIMEOUT after", "ERROR "):
+        if marker in body:
+            first = next((ln for ln in body.splitlines() if marker in ln), marker)
+            return (False, f"{size}B but contains {marker!r}: {first.strip()[:70]}")
     if size < 400:
         return (False, f"artifact only {size}B — exit code was {r.returncode}, but nothing was produced")
     return (True, f"{size:,}B")
