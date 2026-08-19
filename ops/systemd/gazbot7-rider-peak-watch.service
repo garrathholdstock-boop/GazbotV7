@@ -1,0 +1,44 @@
+[Unit]
+# GAZBOT V7 — RIDER PEAK WATCH (the operator's eyes, at 1 Hz).
+#
+# ★2026-08-19. The rider's own tick is *:*:05 — ONCE A MINUTE. That was the finest resolution
+# anything on this desk had on an open position, and a 137-point impulse that peaks and rolls over
+# inside two minutes is invisible at that cadence. The operator claimed $726 by hand in 23 minutes
+# and said the thing that mattered: "it went up to $550 and then started dropping in real time."
+# This service exists so he is TOLD, instead of having to happen to be looking.
+#
+# ⚠ READ-ONLY BY CONSTRUCTION. It holds no order path — no ib_async, no placeOrder, no INTENTS
+#   socket — and tests/test_rider_peak_watch.py asserts that against the source. A notifier that
+#   dies is a missed message; an actor that dies is a naked position. Keep it on this side of that
+#   line.
+Description=GAZBOT V7 — rider peak watch (1Hz open-P&L alerts to the operator)
+After=network.target gazbot7-md.service
+Wants=gazbot7-md.service
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+# The operator's ladder. Change these here, not in the code.
+Environment=PEAK_ARM_USD=200
+Environment=PEAK_STEP_USD=50
+Environment=PEAK_GIVEBACK_USD=75
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python -u /home/alphabot/gazbot7/scripts/rider_peak_watch.py
+
+# Always come back — a watcher that stays dead looks exactly like a quiet market.
+Restart=always
+RestartSec=15
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+# The box is 7.5GB with three global_oom kills on 2026-08-08. This is a socket read and a dict;
+# cap it hard so it can only ever kill itself, and let it yield to the trading path (-500).
+MemoryMax=200M
+MemorySwapMax=50M
+OOMScoreAdjust=-150
+
+[Install]
+WantedBy=multi-user.target

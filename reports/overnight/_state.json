@@ -1,0 +1,16 @@
+{
+ "backfill": "partial",
+ "started": "2026-08-18T23:52:00.432312+00:00",
+ "phases": {
+  "census_MNQ": "ok 65,311B",
+  "census_MNQ_small": "FAILED timeout 3600s",
+  "census_MGC": "ok 38,586B",
+  "census_MGC_small": "FAILED timeout 3600s",
+  "walkforward_all": "ok 430B",
+  "walkforward_q3": "ok 430B",
+  "walkforward_recent": "ok 427B",
+  "walkforward_preroll": "ok 430B",
+  "greenfield": "ok 431B"
+ },
+ "finished": "2026-08-19T03:10:21.845480+00:00"
+}

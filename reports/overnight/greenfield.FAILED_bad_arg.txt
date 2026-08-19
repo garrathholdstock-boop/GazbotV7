@@ -1,0 +1,10 @@
+
+--- stderr ---
+Traceback (most recent call last):
+  File "/home/alphabot/gazbot7/scripts/friday/serial_runner.py", line 315, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/alphabot/gazbot7/scripts/friday/serial_runner.py", line 213, in main
+    since = dt.datetime.fromisoformat(a.since).timestamp()
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+ValueError: Invalid isoformat string: 'gf_MGC'

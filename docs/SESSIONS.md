@@ -1623,3 +1623,49 @@ VACUUM item checked off.
 **Commits:** <shas> · DECISIONS §N (if architectural)
 
 -->
+
+## 2026-08-19 - the operator's eyes: rider peak watch at 1 Hz
+
+Live day: **+$726 in 23 minutes, all three exits MANUAL_CLAIM** (rider +$544, abs_veto_short_B +$94,
+abs_veto_short_A +$88). The rider trade confirmed with **rt 0.48** - inside the `roundtrip < 0.50`
+band that was the only finding to survive both halves of the 231-session study. First out-of-sample
+instance; n=1 proves nothing on its own, but it is the right sign.
+
+**Shipped two things, both reporting-only, neither touching trading behaviour.**
+
+1. **`WATCH_RT` in the entry notification.** Confirmation now says `rt 0.48 -> WATCH - favourable
+   band` (or `off-band`), so the operator knows at 13:30 whether today is one of the ~26% the tape
+   has historically paid *before* deciding to watch it. Made the verdict a pure function so the
+   boundary is testable - an inline conditional inside a 200-line IB try-block is not.
+   WARNING: also killed a lie that had been in that message since it was written: it said
+   **"flat 21:00"**, which is the CME halt. It now renders from `FLAT_UTC_MIN` (20:40Z) and a test
+   forbids the literal.
+
+2. **`gazbot7-rider-peak-watch.service`** - the reason for the day. The rider's tick is `*:*:05`,
+   **once a MINUTE**, so a 137pt impulse that peaks and rolls over in two minutes was invisible.
+   This subscribes to `MD_STREAM` `tape` (verified live at **1.03 msg/s**), computes open P&L at
+   1 Hz and sends: URGENT at **+$200** ("start watching"), a ping per **$50** new high-water mark,
+   and a give-back alert at **$75 off the peak** - the last being the operator's actual complaint,
+   *"it went up to $550 and then started dropping in real time."*
+
+   * The P&L convention is pinned by test against the REAL booked trade:
+     `(29470.75-29607.50) * -1 * 2 * $2 - $1.50*2 = $544.00`, exactly what the venue booked.
+     `$2/pt is PER LOT` - mixing the per-lot and per-position figures is what turned a "$200 claim"
+     into $100 banked in an earlier study.
+   * Filters `body["symbol"]` - `bar` was observed carrying **both MNQ and MGC** at build time.
+   * Rungs fire only on a NEW high, so a position chopping across $300 cannot machine-gun the one
+     Telegram channel that also carries naked-position alarms. Pinned by test.
+   * Silence is alarmed: holding with no tape for 90s pages critically. A watcher that quietly stops
+     watching is indistinguishable from a calm market - this desk's signature failure.
+   * Venue truth outranks our book: the reconciler's `venue == 0` silences it immediately, because
+     `day_rider_state.json` is written once a minute and can say "open" for 60s after a manual claim.
+   * READ-ONLY by construction - no `ib_async`, no `placeOrder`, no `INTENTS`. A test asserts it
+     against the source. A notifier that dies is a missed message; an actor that dies is a naked
+     position.
+
+   Dry-run on the live tape: 12 ticks in 12s, armed at $246, give-back fired at -$82. 15 unit tests.
+
+**Asked and answered: can the watcher read the L2 book to say "heaps of buyers, it should keep
+climbing"?** No, and it must not be rebuilt - see `run-catcher-null-all-microstructure`. Resting
+depth, far-side depletion and OFI were all tested to destruction on 22.6M ticks: the book is
+CONCURRENT with price at every horizon the 250ms capture can reach, never leading.

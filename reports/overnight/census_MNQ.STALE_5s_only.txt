@@ -1,0 +1,699 @@
+[lake] MNQ: 741,505 bars, 2026-06-08 .. 2026-08-18
+═══ MNQ RUN CENSUS — last 400d · 654 runs ≥ 1.5×ATR (15-min move ≥ 72pt; typical 15m range = 48pt) ═══
+
+time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   book  cluster
+06-19 12:41     UP   +105    210  sat out —                  +0     +0  0.13      —  UNCLASS
+06-19 16:58     DN   -157    314  sat out —                  +0     +0  0.06      —  UNCLASS
+06-21 22:57     DN    -99    198  sat out —                  +0     +0  0.05      —  UNCLASS
+06-21 23:25     DN    -77    154  sat out —                  +0     +0  0.12      —  UNCLASS
+06-21 23:52     UP   +156    312  sat out —                  +0     +0  0.09      —  UNCLASS
+06-22 00:12     UP    +73    146  sat out —                  +0     +0  0.16      —  UNCLASS
+06-22 05:04     UP    +77    154  sat out —                  +0     +0  0.07      —  UNCLASS
+06-22 10:52     UP    +73    146  sat out —                  +0     +0  0.06      —  UNCLASS
+06-22 13:18     DN    -90    180  sat out —                  +0     +0  0.06      —  OPEN/NEWS
+06-22 13:43     UP   +146    293  sat out —                  +0     +0  0.53      —  VOL-EXPANSION
+06-22 14:02     DN    -76    152  sat out —                  +0     +0  0.20      —  OPEN/NEWS
+06-22 14:18     DN   -217    434  sat out —                  +0     +0  0.27      —  OPEN/NEWS
+06-22 14:40     DN   -148    296  sat out —                  +0     +0  0.23      —  OPEN/NEWS
+06-22 15:04     DN    -78    156  sat out —                  +0     +0  0.17      —  UNCLASS
+06-22 15:46     DN   -139    278  sat out —                  +0     +0  0.11      —  UNCLASS
+06-22 16:06     UP    +85    170  sat out —                  +0     +0  0.15      —  UNCLASS
+06-22 19:46     UP    +91    182  sat out —                  +0     +0  0.09      —  UNCLASS
+06-22 22:23     DN    -91    182  sat out —                  +0     +0  0.05      —  UNCLASS
+06-23 00:09     DN    -95    190  sat out —                  +0     +0  0.13      —  UNCLASS
+06-23 00:30     UP   +124    249  sat out —                  +0     +0  0.14      —  UNCLASS
+06-23 01:31     DN   -104    208  sat out —                  +0     +0  0.09      —  UNCLASS
+06-23 03:47     UP    +88    177  sat out —                  +0     +0  0.11      —  UNCLASS
+06-23 04:02     DN    -76    152  sat out —                  +0     +0  0.14      —  UNCLASS
+06-23 05:24     DN    -86    172  sat out —                  +0     +0  0.10      —  UNCLASS
+06-23 06:59     UP    +82    164  sat out —                  +0     +0  0.14      —  UNCLASS
+06-23 07:17     DN    -80    160  sat out —                  +0     +0  0.09      —  UNCLASS
+06-23 07:50     DN    -96    191  sat out —                  +0     +0  0.11      —  UNCLASS
+06-23 08:09     DN    -98    196  sat out —                  +0     +0  0.20      —  UNCLASS
+06-23 08:27     UP    +78    156  sat out —                  +0     +0  0.15      —  UNCLASS
+06-23 08:59     UP    +78    156  sat out —                  +0     +0  0.10      —  UNCLASS
+06-23 10:22     DN    -88    175  sat out —                  +0     +0  0.07      —  UNCLASS
+06-23 12:10     DN   -103    206  sat out —                  +0     +0  0.09      —  UNCLASS
+06-23 13:16     DN    -84    168  sat out —                  +0     +0  0.18      —  OPEN/NEWS
+06-23 13:31     UP   +111    222  sat out —                  +0     +0  0.33      —  VOL-EXPANSION
+06-23 13:46     UP   +247    494  sat out —                  +0     +0  0.27      —  OPEN/NEWS
+06-23 14:20     DN   -124    249  sat out —                  +0     +0  0.18      —  OPEN/NEWS
+06-23 14:51     DN   -132    263  sat out —                  +0     +0  0.29      —  OPEN/NEWS
+06-23 15:13     DN    -81    162  sat out —                  +0     +0  0.14      —  UNCLASS
+06-23 15:50     UP   +152    305  sat out —                  +0     +0  0.13      —  UNCLASS
+06-23 17:09     UP    +76    152  sat out —                  +0     +0  0.11      —  UNCLASS
+06-23 17:43     DN   -100    200  sat out —                  +0     +0  0.14      —  UNCLASS
+06-23 18:32     DN   -132    264  sat out —                  +0     +0  0.08      —  UNCLASS
+06-23 18:50     UP   +101    202  sat out —                  +0     +0  0.21      —  UNCLASS
+06-23 19:05     DN   -116    232  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+06-23 19:21     UP   +110    219  sat out —                  +0     +0  0.24      —  UNCLASS
+06-23 22:20     DN   -108    215  sat out —                  +0     +0  0.14      —  UNCLASS
+06-23 22:51     DN    -76    152  sat out —                  +0     +0  0.09      —  UNCLASS
+06-23 23:07     UP    +88    175  sat out —                  +0     +0  0.28      —  UNCLASS
+06-23 23:40     UP   +115    230  sat out —                  +0     +0  0.11      —  UNCLASS
+06-24 00:05     UP   +105    210  sat out —                  +0     +0  0.24      —  UNCLASS
+06-24 00:50     DN    -87    174  sat out —                  +0     +0  0.10      —  UNCLASS
+06-24 02:34     DN    -92    184  sat out —                  +0     +0  0.12      —  UNCLASS
+06-24 02:59     UP    +87    174  sat out —                  +0     +0  0.16      —  UNCLASS
+06-24 03:21     UP    +83    166  sat out —                  +0     +0  0.11      —  UNCLASS
+06-24 04:26     UP    +90    181  sat out —                  +0     +0  0.09      —  UNCLASS
+06-24 07:59     UP    +83    166  sat out —                  +0     +0  0.14      —  UNCLASS
+06-24 13:18     UP    +92    183  sat out —                  +0     +0  0.10      —  OPEN/NEWS
+06-24 13:33     DN   -230    461  sat out —                  +0     +0  0.68      —  VOL-EXPANSION
+06-24 14:05     DN   -128    257  sat out —                  +0     +0  0.32      —  VOL-EXPANSION
+06-24 14:20     UP   +210    420  sat out —                  +0     +0  0.40      —  VOL-EXPANSION
+06-24 14:43     UP   +129    258  sat out —                  +0     +0  0.21      —  OPEN/NEWS
+06-24 14:59     DN   -108    216  sat out —                  +0     +0  0.34      —  VOL-EXPANSION
+06-24 15:30     DN    -98    196  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+06-24 16:25     DN   -135    270  sat out —                  +0     +0  0.16      —  UNCLASS
+06-24 17:06     DN   -170    340  sat out —                  +0     +0  0.20      —  UNCLASS
+06-24 17:22     DN    -72    144  sat out —                  +0     +0  0.25      —  UNCLASS
+06-24 18:14     UP   +132    264  sat out —                  +0     +0  0.14      —  UNCLASS
+06-24 18:37     DN   -150    301  sat out —                  +0     +0  0.26      —  UNCLASS
+06-24 18:57     DN   -114    228  sat out —                  +0     +0  0.22      —  UNCLASS
+06-24 19:22     UP   +117    234  sat out —                  +0     +0  0.11      —  UNCLASS
+06-24 19:39     UP    +72    144  sat out —                  +0     +0  0.20      —  UNCLASS
+06-24 19:57     UP   +424    848  sat out —                  +0     +0  0.16      —  UNCLASS
+06-24 20:13     UP   +162    323  sat out —                  +0     +0  0.29      —  UNCLASS
+06-24 20:34     UP   +167    334  sat out —                  +0     +0  0.17      —  UNCLASS
+06-24 22:01     DN    -80    159  sat out —                  +0     +0  0.28      —  UNCLASS
+06-25 00:23     DN    -99    198  sat out —                  +0     +0  0.10      —  UNCLASS
+06-25 01:57     DN    -72    145  sat out —                  +0     +0  0.05      —  UNCLASS
+06-25 12:22     UP    +89    178  sat out —                  +0     +0  0.06      —  UNCLASS
+06-25 13:25     DN   -171    342  sat out —                  +0     +0  0.08      —  OPEN/NEWS
+06-25 13:40     DN   -624   1248  sat out —                  +0     +0  0.39      —  VOL-EXPANSION
+06-25 13:55     UP   +299    598  sat out —                  +0     +0  1.10      —  VOL-EXPANSION
+06-25 14:18     UP   +186    372  sat out —                  +0     +0  0.45      —  VOL-EXPANSION
+06-25 14:37     UP   +139    278  sat out —                  +0     +0  0.33      —  VOL-EXPANSION
+06-25 15:01     DN   -202    405  sat out —                  +0     +0  0.46      —  VOL-EXPANSION
+06-25 15:16     UP   +165    330  sat out —                  +0     +0  0.50      —  VOL-EXPANSION
+06-25 15:31     UP    +95    190  sat out —                  +0     +0  0.29      —  UNCLASS
+06-25 15:46     DN    -84    167  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+06-25 16:01     UP   +202    403  sat out —                  +0     +0  0.24      —  UNCLASS
+06-25 16:18     DN   -166    333  sat out —                  +0     +0  0.18      —  UNCLASS
+06-25 16:45     UP   +111    222  sat out —                  +0     +0  0.34      —  VOL-EXPANSION
+06-25 17:01     UP    +88    177  sat out —                  +0     +0  0.23      —  UNCLASS
+06-25 17:30     DN    -72    144  sat out —                  +0     +0  0.18      —  UNCLASS
+06-25 17:45     UP    +91    182  sat out —                  +0     +0  0.35      —  VOL-EXPANSION
+06-25 18:05     UP   +140    280  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+06-25 18:26     DN    -94    189  sat out —                  +0     +0  0.24      —  UNCLASS
+06-25 19:00     DN   -110    219  sat out —                  +0     +0  0.15      —  UNCLASS
+06-25 19:46     UP   +244    487  sat out —                  +0     +0  0.14      —  UNCLASS
+06-25 20:01     DN    -74    147  sat out —                  +0     +0  0.80      —  VOL-EXPANSION
+06-25 20:23     DN    -78    155  sat out —                  +0     +0  0.15      —  UNCLASS
+06-25 20:58     DN   -124    248  sat out —                  +0     +0  0.05      —  UNCLASS
+06-25 23:10     UP   +192    384  sat out —                  +0     +0  0.07      —  UNCLASS
+06-25 23:36     DN   -150    301  sat out —                  +0     +0  0.15      —  UNCLASS
+06-25 23:51     UP    +81    162  sat out —                  +0     +0  0.23      —  UNCLASS
+06-26 00:17     DN    -90    180  sat out —                  +0     +0  0.15      —  UNCLASS
+06-26 00:51     DN    -98    196  sat out —                  +0     +0  0.14      —  UNCLASS
+06-26 01:20     DN   -129    258  sat out —                  +0     +0  0.11      —  UNCLASS
+06-26 02:07     DN    -75    150  sat out —                  +0     +0  0.13      —  UNCLASS
+06-26 02:26     DN    -75    150  sat out —                  +0     +0  0.13      —  UNCLASS
+06-26 02:42     DN   -121    242  sat out —                  +0     +0  0.15      —  UNCLASS
+06-26 03:43     UP   +119    238  sat out —                  +0     +0  0.16      —  UNCLASS
+06-26 04:11     DN    -87    174  sat out —                  +0     +0  0.17      —  UNCLASS
+06-26 05:00     UP    +84    168  sat out —                  +0     +0  0.08      —  UNCLASS
+06-26 05:33     DN    -92    185  sat out —                  +0     +0  0.12      —  UNCLASS
+06-26 06:20     UP    +80    160  sat out —                  +0     +0  0.11      —  UNCLASS
+06-26 06:41     UP   +103    206  sat out —                  +0     +0  0.08      —  UNCLASS
+06-26 07:10     UP    +90    179  sat out —                  +0     +0  0.12      —  UNCLASS
+06-26 08:41     DN    -96    192  sat out —                  +0     +0  0.08      —  UNCLASS
+06-26 09:27     UP    +72    144  sat out —                  +0     +0  0.10      —  UNCLASS
+06-26 09:47     DN   -108    217  sat out —                  +0     +0  0.10      —  UNCLASS
+06-26 11:55     UP   +100    200  sat out —                  +0     +0  0.22      —  UNCLASS
+06-26 12:30     DN    -79    158  sat out —                  +0     +0  0.09      —  UNCLASS
+06-26 12:56     DN    -77    154  sat out —                  +0     +0  0.16      —  UNCLASS
+06-26 13:17     UP    +92    183  sat out —                  +0     +0  0.07      —  OPEN/NEWS
+06-26 13:33     UP    +86    173  sat out —                  +0     +0  0.38      —  VOL-EXPANSION
+06-26 13:53     UP   +280    560  sat out —                  +0     +0  0.35      —  VOL-EXPANSION
+06-26 14:25     DN   -153    306  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+06-26 15:00     DN   -102    203  sat out —                  +0     +0  0.26      —  UNCLASS
+06-26 15:15     UP   +207    414  sat out —                  +0     +0  0.37      —  VOL-EXPANSION
+06-26 15:39     DN   -126    252  sat out —                  +0     +0  0.36      —  VOL-EXPANSION
+06-26 15:57     DN    -98    197  sat out —                  +0     +0  0.35      —  VOL-EXPANSION
+06-26 16:23     UP   +111    222  sat out —                  +0     +0  0.26      —  UNCLASS
+06-26 16:55     UP    +84    168  sat out —                  +0     +0  0.13      —  UNCLASS
+06-26 17:10     DN   -112    224  sat out —                  +0     +0  0.20      —  UNCLASS
+06-26 18:44     DN    -74    147  sat out —                  +0     +0  0.12      —  UNCLASS
+06-26 19:06     UP    +89    178  sat out —                  +0     +0  0.16      —  UNCLASS
+06-26 19:30     UP   +100    200  sat out —                  +0     +0  0.10      —  UNCLASS
+06-26 19:47     DN   -261    522  sat out —                  +0     +0  0.26      —  UNCLASS
+06-26 20:27     DN    -98    197  sat out —                  +0     +0  0.13      —  UNCLASS
+06-26 20:59     UP   +259    518  sat out —                  +0     +0  0.12      —  UNCLASS
+06-28 22:21     UP    +74    148  sat out —                  +0     +0  0.22      —  UNCLASS
+06-28 22:58     UP    +84    167  sat out —                  +0     +0  0.07      —  UNCLASS
+06-28 23:47     DN   -149    298  sat out —                  +0     +0  0.12      —  UNCLASS
+06-29 00:13     DN   -151    302  sat out —                  +0     +0  0.16      —  UNCLASS
+06-29 00:52     UP    +82    164  sat out —                  +0     +0  0.23      —  UNCLASS
+06-29 01:29     UP   +107    214  sat out —                  +0     +0  0.21      —  UNCLASS
+06-29 01:59     DN   -119    238  sat out —                  +0     +0  0.10      —  UNCLASS
+06-29 02:15     UP   +124    249  sat out —                  +0     +0  0.23      —  UNCLASS
+06-29 03:38     UP   +114    227  sat out —                  +0     +0  0.15      —  UNCLASS
+06-29 05:29     UP    +94    187  sat out —                  +0     +0  0.14      —  UNCLASS
+06-29 13:15     DN   -108    216  sat out —                  +0     +0  0.07      —  OPEN/NEWS
+06-29 13:30     UP   +201    402  sat out —                  +0     +0  0.39      —  VOL-EXPANSION
+06-29 13:52     DN   -349    698  sat out —                  +0     +0  0.38      —  VOL-EXPANSION
+06-29 14:18     UP   +293    586  sat out —                  +0     +0  0.38      —  VOL-EXPANSION
+06-29 14:33     DN   -124    247  sat out —                  +0     +0  0.55      —  VOL-EXPANSION
+06-29 14:48     UP   +212    425  sat out —                  +0     +0  0.34      —  VOL-EXPANSION
+06-29 15:23     UP   +112    223  sat out —                  +0     +0  0.21      —  UNCLASS
+06-29 15:49     UP    +78    156  sat out —                  +0     +0  0.15      —  UNCLASS
+06-29 16:59     UP    +72    144  sat out —                  +0     +0  0.05      —  UNCLASS
+06-30 00:17     DN   -132    264  sat out —                  +0     +0  0.10      —  UNCLASS
+06-30 00:45     UP    +72    144  sat out —                  +0     +0  0.16      —  UNCLASS
+06-30 01:18     UP   +103    206  sat out —                  +0     +0  0.10      —  UNCLASS
+06-30 03:27     UP    +80    160  sat out —                  +0     +0  0.06      —  UNCLASS
+06-30 08:25     DN    -95    190  sat out —                  +0     +0  0.10      —  UNCLASS
+06-30 11:50     DN    -72    145  sat out —                  +0     +0  0.06      —  UNCLASS
+06-30 13:20     UP   +222    444  sat out —                  +0     +0  0.08      —  OPEN/NEWS
+06-30 13:44     UP   +180    360  sat out —                  +0     +0  0.26      —  OPEN/NEWS
+06-30 14:10     UP    +90    180  sat out —                  +0     +0  0.20      —  OPEN/NEWS
+06-30 14:42     DN    -90    181  sat out —                  +0     +0  0.16      —  OPEN/NEWS
+06-30 14:58     UP    +95    190  sat out —                  +0     +0  0.18      —  OPEN/NEWS
+06-30 15:41     UP    +77    154  sat out —                  +0     +0  0.10      —  UNCLASS
+07-01 01:56     DN    -77    154  sat out —                  +0     +0  0.09      —  UNCLASS
+07-01 12:25     DN   -126    252  sat out —                  +0     +0  0.06      —  UNCLASS
+07-01 13:23     DN   -194    388  sat out —                  +0     +0  0.13      —  OPEN/NEWS
+07-01 13:45     UP   +174    347  sat out —                  +0     +0  0.23      —  OPEN/NEWS
+07-01 14:31     DN   -110    220  sat out —                  +0     +0  0.19      —  OPEN/NEWS
+07-01 14:49     UP    +87    174  sat out —                  +0     +0  0.34      —  VOL-EXPANSION
+07-01 15:12     UP   +102    205  sat out —                  +0     +0  0.19      —  UNCLASS
+07-01 18:56     UP   +109    218  sat out —                  +0     +0  0.12      —  UNCLASS
+07-01 19:34     DN    -92    184  sat out —                  +0     +0  0.14      —  UNCLASS
+07-01 19:51     DN   -114    228  sat out —                  +0     +0  0.14      —  UNCLASS
+07-02 00:21     UP    +76    152  sat out —                  +0     +0  0.13      —  UNCLASS
+07-02 00:46     UP   +107    214  sat out —                  +0     +0  0.15      —  UNCLASS
+07-02 01:02     UP    +79    158  sat out —                  +0     +0  0.12      —  UNCLASS
+07-02 05:26     DN    -92    184  sat out —                  +0     +0  0.09      —  UNCLASS
+07-02 06:00     DN    -98    197  sat out —                  +0     +0  0.09      —  UNCLASS
+07-02 06:37     DN    -94    188  sat out —                  +0     +0  0.05      —  UNCLASS
+07-02 06:59     DN   -102    205  sat out —                  +0     +0  0.12      —  UNCLASS
+07-02 07:27     UP   +103    206  sat out —                  +0     +0  0.11      —  UNCLASS
+07-02 08:19     UP   +109    218  sat out —                  +0     +0  0.18      —  UNCLASS
+07-02 11:37     UP    +78    156  sat out —                  +0     +0  0.06      —  UNCLASS
+07-02 12:01     UP   +122    243  sat out —                  +0     +0  0.11      —  UNCLASS
+07-02 12:21     UP   +182    363  sat out —                  +0     +0  0.10      —  UNCLASS
+07-02 12:46     DN   -110    220  sat out —                  +0     +0  0.12      —  UNCLASS
+07-02 13:15     DN   -125    250  sat out —                  +0     +0  0.10      —  OPEN/NEWS
+07-02 13:39     UP   +183    366  sat out —                  +0     +0  0.45      —  VOL-EXPANSION
+07-02 14:13     DN   -312    624  sat out —                  +0     +0  0.38      —  VOL-EXPANSION
+07-02 14:37     DN   -200    401  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+07-02 15:01     DN   -167    334  sat out —                  +0     +0  0.29      —  UNCLASS
+07-02 15:23     UP   +153    306  sat out —                  +0     +0  0.26      —  UNCLASS
+07-02 15:38     DN   -155    310  sat out —                  +0     +0  0.27      —  UNCLASS
+07-02 16:19     DN   -107    214  sat out —                  +0     +0  0.23      —  UNCLASS
+07-02 16:49     DN   -134    268  sat out —                  +0     +0  0.14      —  UNCLASS
+07-02 17:33     DN   -108    216  sat out —                  +0     +0  0.14      —  UNCLASS
+07-02 17:58     UP   +146    291  sat out —                  +0     +0  0.19      —  UNCLASS
+07-02 18:18     UP   +100    200  sat out —                  +0     +0  0.27      —  UNCLASS
+07-02 18:51     DN   -120    240  sat out —                  +0     +0  0.25      —  UNCLASS
+07-02 19:23     UP    +96    193  sat out —                  +0     +0  0.19      —  UNCLASS
+07-02 19:44     UP   +126    252  sat out —                  +0     +0  0.12      —  UNCLASS
+07-03 00:56     UP   +142    284  sat out —                  +0     +0  0.14      —  UNCLASS
+07-03 05:55     UP    +76    151  sat out —                  +0     +0  0.05      —  UNCLASS
+07-05 22:08     UP    +72    145  sat out —                  +0   +217  0.26      —  UNCLASS
+07-06 00:16     DN   -112    224  sat out —                  +0    +23  0.19      —  UNCLASS
+07-06 00:31     UP    +84    169  sat out —                  +0   -205  0.33      —  VOL-EXPANSION
+07-06 01:12     DN   -102    204  sat out —                  +0   -310  0.14      —  FLOW-LED
+07-06 01:43     DN    -74    148  sat out —                  +0   +126  0.12      —  UNCLASS
+07-06 02:56     UP    +72    145  sat out —                  +0    -59  0.12      —  UNCLASS
+07-06 03:39     DN    -84    168  sat out —                  +0    -64  0.07      —  UNCLASS
+07-06 04:02     UP    +81    162  sat out —                  +0    -74  0.11      —  UNCLASS
+07-06 06:24     UP    +74    149  sat out —                  +0    +33  0.08      —  UNCLASS
+07-06 13:00     DN    -96    193  sat out —                  +0   +184  0.04      —  VACUUM
+07-06 13:39     UP   +136    273  sat out —                  +0   +244  0.51      —  VOL-EXPANSION
+07-06 14:00     UP    +93    186  sat out —                  +0   -651  0.29      —  VACUUM
+07-06 15:02     DN    -87    174  sat out —                  +0   +674  0.19      —  UNCLASS
+07-06 15:18     UP   +117    234  sat out —                  +0   +124  0.16      —  UNCLASS
+07-06 17:27     DN    -96    193  sat out —                  +0    -51  0.11      —  UNCLASS
+07-06 18:01     UP    +72    144  sat out —                  +0   -341  0.09      —  UNCLASS
+07-06 19:46     DN    -95    190  sat out —                  +0   -162  0.07      —  UNCLASS
+07-07 00:26     DN   -101    202  sat out —                  +0   +204  0.10      —  VACUUM
+07-07 01:17     DN    -83    166  sat out —                  +0   +115  0.09      —  UNCLASS
+07-07 01:32     UP    +85    170  sat out —                  +0    +28  0.12      —  UNCLASS
+07-07 03:15     DN    -79    158  sat out —                  +0    -65  0.08      —  UNCLASS
+07-07 05:27     UP    +96    192  sat out —                  +0    -38  0.13      —  UNCLASS
+07-07 11:55     UP    +90    180  sat out —                  +0   +110  0.11      —  UNCLASS
+07-07 13:23     DN   -121    242  sat out —                  +0    +28  0.11      —  OPEN/NEWS
+07-07 13:41     DN   -148    296  sat out —                  +0   +784  0.35      —  VACUUM
+07-07 14:09     DN   -146    292  sat out —                  +0  +1051  0.21      —  VACUUM
+07-07 14:44     UP    +86    172  sat out —                  +0   -152  0.22      —  OPEN/NEWS
+07-07 15:39     UP   +102    204  sat out —                  +0   -809  0.18      —  VACUUM
+07-07 16:08     UP   +112    225  sat out —                  +0   -543  0.18      —  UNCLASS
+07-07 18:27     DN    -75    150  sat out —                  +0   -141  0.09      —  UNCLASS
+07-07 18:46     DN   -105    210  sat out —                  +0   +120  0.12      —  UNCLASS
+07-07 19:05     DN   -100    201  sat out —                  +0   +795  0.13      —  VACUUM
+07-07 19:51     UP    +96    192  sat out —                  +0   +188  0.21      —  UNCLASS
+07-07 20:45     DN    -82    164  sat out —                  +0   -121  0.04      —  UNCLASS
+07-07 23:45     DN    -78    156  sat out —                  +0   +116  0.07      —  UNCLASS
+07-08 00:00     UP   +151    302  sat out —                  +0    -24  0.18      —  UNCLASS
+07-08 00:35     UP   +121    242  sat out —                  +0    +27  0.15      —  UNCLASS
+07-08 01:23     DN    -86    173  sat out —                  +0   +200  0.10      —  UNCLASS
+07-08 07:20     UP   +101    202  sat out —                  +0    -99  0.12      —  UNCLASS
+07-08 08:15     DN   -366    732  sat out —                  +0   +117  0.16      —  VACUUM
+07-08 08:40     UP   +116    232  sat out —                  +0    -11  0.44      —  VOL-EXPANSION
+07-08 08:55     DN   -140    279  sat out —                  +0    -53  0.24      —  UNCLASS
+07-08 10:14     UP    +83    166  sat out —                  +0    +16  0.10      —  UNCLASS
+07-08 11:29     UP   +124    248  sat out —                  +0    +48  0.09      —  UNCLASS
+07-08 11:53     UP    +98    196  sat out —                  +0   +125  0.18      —  UNCLASS
+07-08 13:26     UP   +193    386  sat out —                  +0   -154  0.17      —  OPEN/NEWS
+07-08 13:59     DN   -117    234  sat out —                  +0   +933  0.31      —  VACUUM
+07-08 14:35     DN   -124    248  sat out —                  +0   +554  0.25      —  OPEN/NEWS
+07-08 14:56     DN    -76    151  sat out —                  +0   +546  0.41      —  VOL-EXPANSION
+07-08 15:12     DN   -136    272  sat out —                  +0   -184  0.14      —  UNCLASS
+07-08 15:27     UP    +85    170  sat out —                  +0   -428  0.28      —  UNCLASS
+07-08 15:53     UP    +93    186  sat out —                  +0   +242  0.16      —  UNCLASS
+07-08 16:08     UP   +144    287  sat out —                  +0   -201  0.20      —  UNCLASS
+07-08 16:38     UP   +110    219  sat out —                  +0   -435  0.23      —  UNCLASS
+07-08 17:15     UP    +98    196  sat out —                  +0   -381  0.11      —  UNCLASS
+07-08 17:33     DN    -90    180  sat out —                  +0    -56  0.13      —  UNCLASS
+07-08 17:57     UP    +84    167  sat out —                  +0    -30  0.23      —  UNCLASS
+07-08 19:43     UP    +84    168  sat out —                  +0     -9  0.11      —  UNCLASS
+07-08 23:31     UP    +81    162  sat out —                  +0    +31  0.09      —  UNCLASS
+07-09 00:49     DN    -89    178  sat out —                  +0   -333  0.17      —  FLOW-LED
+07-09 01:05     UP    +75    150  sat out —                  +0    -26  0.20      —  UNCLASS
+07-09 01:47     DN   -103    206  sat out —                  +0   +125  0.09      —  UNCLASS
+07-09 02:03     UP   +102    204  sat out —                  +0   +221  0.14      —  FLOW-LED
+07-09 02:21     DN    -74    148  sat out —                  +0    +29  0.13      —  UNCLASS
+07-09 02:39     DN    -80    160  sat out —                  +0   +136  0.13      —  UNCLASS
+07-09 03:18     UP   +100    200  sat out —                  +0   -380  0.09      —  VACUUM
+07-09 05:15     DN    -76    152  sat out —                  +0   -133  0.23      —  UNCLASS
+07-09 05:42     UP    +80    160  sat out —                  +0   -126  0.07      —  UNCLASS
+07-09 10:39     DN    -84    168  sat out —                  +0    +59  0.07      —  UNCLASS
+07-09 13:32     UP   +194    387  sat out —                  +0  -1003  0.29      —  VACUUM
+07-09 13:53     DN   -262    525  sat out —                  +0   -839  0.33      —  FLOW-LED
+07-09 14:22     UP   +146    292  sat out —                  +0  +1401  0.38      —  FLOW-LED
+07-09 14:54     UP   +126    251  sat out —                  +0   +381  0.29      —  OPEN/NEWS
+07-09 23:57     DN    -94    188  sat out —                  +0   +135  0.09      —  UNCLASS
+07-10 00:20     DN    -78    156  sat out —                  +0    +99  0.14      —  UNCLASS
+07-10 13:22     UP   +109    218  sat out —                  +0    -13  0.07      —  OPEN/NEWS
+07-10 13:43     UP   +110    220  sat out —                  +0  +1344  0.38      —  FLOW-LED
+07-10 14:18     DN   -162    324  sat out —                  +0   +670  0.16      —  VACUUM
+07-10 14:33     UP   +104    208  sat out —                  +0 -20403  0.94      —  VACUUM
+07-10 14:50     DN   -111    222  sat out —                  +0  +1603  0.16      —  OPEN/NEWS
+07-10 15:06     UP   +154    308  sat out —                  +0    +31  0.18      —  UNCLASS
+07-10 15:27     DN   -134    268  sat out —                  +0     -9  0.18      —  UNCLASS
+07-10 15:45     UP   +106    211  sat out —                  +0   +558  0.29      —  UNCLASS
+07-10 20:59     DN   -204    408  sat out —                  +0    +70  0.04      —  UNCLASS
+07-12 23:55     UP   +165    330  sat out —                  +0    -50  0.09      —  UNCLASS
+07-13 00:26     DN   -139    278  sat out —                  +0   -123  0.11      —  UNCLASS
+07-13 00:45     DN    -74    147  sat out —                  +0    -96  0.17      —  UNCLASS
+07-13 01:38     DN    -94    188  sat out —                  +0    +24  0.17      —  UNCLASS
+07-13 05:12     DN   -105    210  sat out —                  +0   -105  0.14      —  UNCLASS
+07-13 13:30     DN   -156    311  sat out —                  +0  -1088  0.29      —  FLOW-LED
+07-13 13:45     UP   +104    208  sat out —                  +0  -4305  0.22      —  VACUUM
+07-13 14:01     DN    -94    187  sat out —                  +0  -1054  0.41      —  FLOW-LED
+07-13 14:16     UP   +171    342  sat out —                  +0  -3643  0.35      —  VACUUM
+07-13 14:45     UP   +127    254  sat out —                  +0   -817  0.21      —  OPEN/NEWS
+07-13 15:00     DN    -73    146  sat out —                  +0  +2430  0.31      —  VACUUM
+07-13 15:33     DN    -82    163  sat out —                  +0   +290  0.15      —  UNCLASS
+07-13 16:20     DN    -94    188  sat out —                  +0   -177  0.11      —  UNCLASS
+07-13 19:37     UP    +85    170  sat out —                  +0   +328  0.16      —  FLOW-LED
+07-13 23:46     UP   +102    205  sat out —                  +0   -112  0.10      —  UNCLASS
+07-14 00:07     UP    +93    186  sat out —                  +0   +408  0.31      —  FLOW-LED
+07-14 00:44     UP   +109    218  sat out —                  +0   +142  0.27      —  UNCLASS
+07-14 01:26     DN    -73    146  sat out —                  +0     +3  0.12      —  UNCLASS
+07-14 02:08     DN    -94    188  sat out —                  +0    +44  0.10      —  UNCLASS
+07-14 02:50     DN    -80    159  sat out —                  +0    -41  0.09      —  UNCLASS
+07-14 03:17     UP    +78    156  sat out —                  +0   +140  0.07      —  FLOW-LED
+07-14 03:43     UP    +80    159  sat out —                  +0     +2  0.15      —  UNCLASS
+07-14 04:12     UP    +72    144  sat out —                  +0    -17  0.15      —  UNCLASS
+07-14 05:17     UP    +85    170  sat out —                  +0    +76  0.09      —  UNCLASS
+07-14 11:10     UP   +106    211  sat out —                  +0    -40  0.13      —  UNCLASS
+07-14 12:18     UP   +302    604  sat out —                  +0   -199  0.08      —  VACUUM
+07-14 12:33     DN    -99    198  sat out —                  +0   -418  0.90      —  FLOW-LED
+07-14 13:27     DN   -100    199  sat out —                  +0   +227  0.15      —  OPEN/NEWS
+07-14 14:00     DN   -147    294  sat out —                  +0   -316  0.22      —  OPEN/NEWS
+07-14 14:20     UP   +139    278  sat out —                  +0  +1067  0.30      —  FLOW-LED
+07-14 14:49     UP   +134    267  sat out —                  +0   -469  0.23      —  OPEN/NEWS
+07-14 15:28     DN    -72    144  sat out —                  +0    +35  0.08      —  UNCLASS
+07-14 15:48     DN   -125    250  sat out —                  +0   -241  0.15      —  UNCLASS
+07-14 16:15     UP    +78    155  sat out —                  +0    -84  0.15      —  UNCLASS
+07-14 23:20     UP    +84    167  sat out —                  +0   -143  0.05      —  VACUUM
+07-15 00:05     UP    +81    162  sat out —                  +0    +77  0.11      —  UNCLASS
+07-15 00:43     UP    +74    148  sat out —                  +0   +160  0.16      —  UNCLASS
+07-15 07:12     DN    -93    186  sat out —                  +0    +62  0.04      —  UNCLASS
+07-15 07:58     DN    -79    158  sat out —                  +0    -13  0.05      —  UNCLASS
+07-15 12:25     UP    +95    190  sat out —                  +0    +32  0.09      —  UNCLASS
+07-15 13:34     DN   -169    338  sat out —                  +0   +587  0.22      —  VACUUM
+07-15 13:51     UP   +119    238  sat out —                  +0   +287  0.22      —  OPEN/NEWS
+07-15 14:10     DN   -219    438  sat out —                  +0   -496  0.19      —  OPEN/NEWS
+07-15 14:27     DN   -138    275  sat out —                  +0   -550  0.39      —  VOL-EXPANSION
+07-15 15:08     DN    -94    188  sat out —                  +0   +296  0.23      —  UNCLASS
+07-15 15:23     UP    +98    196  sat out —                  +0   -473  0.23      —  UNCLASS
+07-15 15:41     DN    -73    146  sat out —                  +0   -357  0.10      —  UNCLASS
+07-15 15:59     DN   -110    220  sat out —                  +0   -177  0.08      —  UNCLASS
+07-15 16:37     UP   +100    201  sat out —                  +0   +253  0.18      —  UNCLASS
+07-15 16:55     UP    +75    150  sat out —                  +0   -595  0.15      —  UNCLASS
+07-15 17:15     UP    +76    151  sat out —                  +0   +382  0.12      —  UNCLASS
+07-15 17:42     UP    +74    147  sat out —                  +0   -180  0.06      —  UNCLASS
+07-15 18:36     DN    -88    176  sat out —                  +0   -492  0.13      —  UNCLASS
+07-15 19:26     UP    +78    156  sat out —                  +0    -21  0.07      —  UNCLASS
+07-15 19:48     UP    +79    158  sat out —                  +0   -122  0.15      —  UNCLASS
+07-16 00:00     UP    +72    144  sat out —                  +0   -129  0.08      —  UNCLASS
+07-16 00:15     DN    -94    187  sat out —                  +0   +761  0.14      —  VACUUM
+07-16 01:34     UP    +72    144  sat out —                  +0    -22  0.08      —  UNCLASS
+07-16 02:10     UP    +72    144  sat out —                  +0   -194  0.07      —  VACUUM
+07-16 05:25     DN    -99    198  sat out —                  +0    -57  0.07      —  UNCLASS
+07-16 06:20     DN    -72    144  sat out —                  +0     +3  0.07      —  UNCLASS
+07-16 08:00     DN    -79    158  caught  thrust            -35    -55  0.07      —  UNCLASS
+07-16 13:33     DN   -216    432  FOUGHT  thrust            -42   -452  0.29      —  OPEN/NEWS
+07-16 13:55     UP   +216    432  sat out —                  +0  -2740  0.33      —  VACUUM
+07-16 14:38     DN    -96    192  sat out —                  +0  +1152  0.18      —  VACUUM
+07-16 15:02     DN    -94    189  sat out —                  +0   -984  0.21      —  FLOW-LED
+07-16 15:24     UP    +97    194  caught  thrust            -50   -244  0.15      —  UNCLASS
+07-16 15:58     DN   -102    204  sat out —                  +0   +118  0.19      —  UNCLASS
+07-16 17:30     DN   -106    212  sat out —                  +0   -238  0.24      —  UNCLASS
+07-16 18:22     DN    -76    152  sat out —                  +0   +659  0.16      —  VACUUM
+07-16 19:04     DN    -75    150  sat out —                  +0    +28  0.14      —  UNCLASS
+07-16 19:48     UP   +130    261  sat out —                  +0   -697  0.25      —  VACUUM
+07-17 00:47     UP    +73    146  sat out —                  +0    -95  0.12      —  UNCLASS
+07-17 01:04     DN    -78    156  sat out —                  +0    -95  0.18      —  UNCLASS
+07-17 03:12     UP    +72    144  sat out —                  +0    -97  0.03      —  UNCLASS
+07-17 03:52     DN    -72    144  sat out —                  +0   -116  0.08      —  UNCLASS
+07-17 06:10     UP    +77    154  sat out —                  +0   +201  0.17      —  FLOW-LED
+07-17 06:31     DN    -74    148  sat out —                  +0    +18  0.07      —  UNCLASS
+07-17 08:05     DN   -144    289  sat out —                  +0    +65  0.15      —  UNCLASS
+07-17 08:42     UP    +74    149  sat out —                  +0   -198  0.11      —  VACUUM
+07-17 11:54     DN    -73    146  sat out —                  +0   +132  0.12      —  VACUUM
+07-17 13:31     DN   -200    399  FOUGHT  thrust           -105   +921  0.34      —  VACUUM
+07-17 13:51     UP   +288    577  sat out —                  +0    -95  0.43      —  VOL-EXPANSION
+07-17 14:17     DN   -100    199  sat out —                  +0   +873  0.37      —  VACUUM
+07-17 14:47     DN   -137    274  sat out —                  +0  +1922  0.35      —  VACUUM
+07-17 15:24     UP   +134    269  sat out —                  +0   -789  0.25      —  VACUUM
+07-17 15:45     UP   +160    319  sat out —                  +0   -730  0.24      —  VACUUM
+07-17 16:38     UP    +93    186  sat out —                  +0   -179  0.12      —  UNCLASS
+07-17 17:28     DN    -86    172  FOUGHT  thrust            -46   +244  0.20      —  UNCLASS
+07-17 17:45     DN    -73    146  sat out —                  +0    -13  0.10      —  UNCLASS
+07-17 18:03     DN    -92    184  sat out —                  +0   +289  0.16      —  UNCLASS
+07-17 18:30     DN    -72    145  FOUGHT  thrust            -42  +1106  0.24      —  VACUUM
+07-17 18:59     DN   -107    214  sat out —                  +0   -119  0.12      —  UNCLASS
+07-17 19:51     DN   -113    226  sat out —                  +0   -137  0.21      —  UNCLASS
+07-17 20:58     UP   +176    352  sat out —                  +0     +8  0.07      —  UNCLASS
+07-20 00:42     DN    -76    152  sat out —                  +0     +0  0.17      —  UNCLASS
+07-20 01:54     UP   +100    201  sat out —                  +0     +0  0.19      —  UNCLASS
+07-20 02:27     UP   +106    212  sat out —                  +0     +0  0.08      —  UNCLASS
+07-20 04:17     UP    +76    152  sat out —                  +0     +0  0.12      —  UNCLASS
+07-20 04:57     DN    -87    174  sat out —                  +0     +0  0.12      —  UNCLASS
+07-20 07:19     UP   +101    202  sat out —                  +0     +0  0.09      —  UNCLASS
+07-20 09:37     UP    +86    172  sat out —                  +0     +0  0.05      —  UNCLASS
+07-20 11:27     UP   +112    225  caught  grind             +89     +0  0.04      —  UNCLASS
+07-20 11:47     DN    -82    164  sat out —                  +0     +0  0.16      —  UNCLASS
+07-20 13:28     UP   +144    289  caught  grind             +29     +0  0.12      —  OPEN/NEWS
+07-20 13:43     DN   -193    386  FOUGHT  grind             -70     +0  0.22      —  OPEN/NEWS
+07-20 14:05     DN    -75    150  caught  grind             -68     +0  0.30      —  VOL-EXPANSION
+07-20 14:20     UP    +89    178  caught  rgv              +114     +0  0.28      —  OPEN/NEWS
+07-20 14:41     DN    -90    179  sat out —                  +0     +0  0.15      —  OPEN/NEWS
+07-20 15:05     UP    +92    184  sat out —                  +0     +0  0.25      —  UNCLASS
+07-20 15:50     UP    +98    197  sat out —                  +0     +0  0.18      —  UNCLASS
+07-20 16:39     DN    -96    192  caught  grind             -80     +0  0.10      —  UNCLASS
+07-20 17:00     DN    -79    158  caught  grind             -42     +0  0.15      —  UNCLASS
+07-20 18:29     DN    -88    176  sat out —                  +0     +0  0.14      —  UNCLASS
+07-20 19:00     DN    -78    156  FOUGHT  rgv_long         -192     +0  0.15      —  UNCLASS
+07-20 19:40     DN   -102    204  sat out —                  +0     +0  0.14      —  UNCLASS
+07-20 23:47     DN    -98    197  sat out —                  +0     +0  0.10      —  UNCLASS
+07-21 00:16     UP   +105    210  sat out —                  +0     +0  0.20      —  UNCLASS
+07-21 13:30     DN   -100    200  caught  exhaustion_short    +12     +0  0.19      —  OPEN/NEWS
+07-21 14:01     DN    -99    198  sat out —                  +0     +0  0.33      —  VOL-EXPANSION
+07-21 14:16     UP   +138    275  FOUGHT  exhaustion_short    +62     +0  0.23      —  OPEN/NEWS
+07-21 15:03     UP    +92    185  FOUGHT  exhaustion_short    -70     +0  0.18      —  UNCLASS
+07-22 07:26     DN    -80    161  sat out —                  +0     +0  0.09      —  UNCLASS
+07-22 11:28     DN    -79    158  sat out —                  +0     +0  0.10      —  UNCLASS
+07-22 12:41     DN    -78    156  sat out —                  +0     +0  0.09      —  UNCLASS
+07-22 13:30     UP    +97    194  caught  rgv_long           -1     +0  0.18      —  OPEN/NEWS
+07-22 13:50     UP   +103    206  caught  grind_long       +121     +0  0.22      —  OPEN/NEWS
+07-22 14:55     UP   +113    226  sat out —                  +0     +0  0.14      —  OPEN/NEWS
+07-22 19:51     DN    -88    176  sat out —                  +0     +0  0.15      —  UNCLASS
+07-22 20:06     UP   +108    215  sat out —                  +0     +0  0.40      —  VOL-EXPANSION
+07-22 20:52     DN   -141    282  sat out —                  +0     +0  0.08      —  UNCLASS
+07-23 00:12     UP    +93    186  sat out —                  +0     +0  0.07      —  UNCLASS
+07-23 02:07     DN    -77    154  FOUGHT  rgv_long          -14     +0  0.13      —  UNCLASS
+07-23 05:17     UP    +77    154  sat out —                  +0     +0  0.06      —  UNCLASS
+07-23 06:57     DN   -128    255  sat out —                  +0     +0  0.04      —  UNCLASS
+07-23 07:30     DN    -83    166  sat out —                  +0     +0  0.09      —  UNCLASS
+07-23 08:02     UP    +86    172  sat out —                  +0     +0  0.12      —  UNCLASS
+07-23 08:48     UP    +82    164  sat out —                  +0     +0  0.06      —  UNCLASS
+07-23 11:21     DN   -100    200  sat out —                  +0     +0  0.12      —  UNCLASS
+07-23 12:27     DN    -91    182  FOUGHT  rgv_long          -98     +0  0.13      —  UNCLASS
+07-23 13:02     DN    -78    157  sat out —                  +0     +0  0.11      —  OPEN/NEWS
+07-23 13:30     UP   +169    338  sat out —                  +0     +0  0.19      —  OPEN/NEWS
+07-23 13:46     DN   -123    246  caught  rgv_short        +198     +0  0.24      —  OPEN/NEWS
+07-23 14:39     DN   -172    343  sat out —                  +0     +0  0.41      —  VOL-EXPANSION
+07-23 14:57     DN   -118    236  sat out —                  +0     +0  0.15      —  OPEN/NEWS
+07-23 15:48     UP   +124    248  FOUGHT  exhaustion_short    -56     +0  0.14      —  UNCLASS
+07-23 16:08     UP    +84    167  sat out —                  +0     +0  0.17      —  UNCLASS
+07-23 16:39     DN   -116    233  sat out —                  +0     +0  0.20      —  UNCLASS
+07-23 17:26     DN    -88    176  sat out —                  +0     +0  0.17      —  UNCLASS
+07-23 17:52     DN    -77    154  sat out —                  +0     +0  0.09      —  UNCLASS
+07-23 19:10     UP    +80    161  caught  rgv_long           +7     +0  0.09      —  UNCLASS
+07-23 19:30     DN    -85    170  sat out —                  +0     +0  0.12      —  UNCLASS
+07-23 19:49     UP   +221    442  sat out —                  +0     +0  0.09      —  UNCLASS
+07-23 20:58     DN   -106    212  sat out —                  +0     +0  0.06      —  UNCLASS
+07-24 00:02     DN    -78    156  sat out —                  +0   -934  0.18      —  UNCLASS
+07-24 06:57     UP   +104    208  sat out —                  +0    -25  0.07      —  UNCLASS
+07-24 13:23     DN    -82    163  caught  exhaustion_short    +22   +166  0.11      —  OPEN/NEWS
+07-24 13:39     DN   -184    367  sat out —                  +0  -1240  0.42      —  FLOW-LED
+07-24 13:59     UP    +98    196  sat out —                  +0   +223  0.19      —  OPEN/NEWS
+07-24 14:23     DN   -112    224  caught  exhaustion_short    -84   +577  0.44      —  VOL-EXPANSION
+07-24 14:45     UP   +205    410  caught  rgv_long         +108   -440  0.16      —  OPEN/NEWS
+07-24 15:09     UP   +137    274  sat out —                  +0   +157  0.21      —  UNCLASS
+07-24 15:49     UP    +88    176  FOUGHT  rgv_short        -160    +33  0.14      —  UNCLASS
+07-24 16:25     DN    -80    160  caught  rgv_short        +151    +59  0.10      —  UNCLASS
+07-24 18:18     DN   -109    218  sat out —                  +0   -203  0.11      —  UNCLASS
+07-24 18:56     DN    -89    178  sat out —                  +0    -83  0.13      —  UNCLASS
+07-24 20:45     UP   +403    806  sat out —                  +0    +34  0.10      —  UNCLASS
+07-27 01:01     DN    -74    148  sat out —                  +0   +207  0.13      —  VACUUM
+07-27 13:13     DN    -78    155  sat out —                  +0    +88  0.10      —  OPEN/NEWS
+07-27 13:29     DN   -151    302  caught  exhaustion_short    -30   +237  0.18      —  VACUUM
+07-27 13:51     DN   -190    379  caught  exhaustion_short    +20  +1002  0.26      —  VACUUM
+07-27 14:19     DN   -233    466  caught  exhaustion_short    +20    +17  0.26      —  OPEN/NEWS
+07-27 14:43     UP   +196    393  FOUGHT  exhaustion_short     +9   +505  0.43      —  VOL-EXPANSION
+07-27 15:03     DN    -97    194  caught  exhaustion_short     +8   -271  0.19      —  UNCLASS
+07-27 15:22     DN   -132    264  caught  exhaustion_short    -54   -470  0.37      —  VOL-EXPANSION
+07-27 15:55     UP   +110    220  sat out —                  +0   -187  0.15      —  UNCLASS
+07-27 16:17     UP   +123    246  sat out —                  +0    +73  0.37      —  VOL-EXPANSION
+07-27 16:48     DN   -137    274  sat out —                  +0   +158  0.14      —  UNCLASS
+07-27 17:45     UP    +80    159  sat out —                  +0    -75  0.10      —  UNCLASS
+07-27 18:40     UP   +150    300  sat out —                  +0    -50  0.12      —  UNCLASS
+07-27 19:34     DN    -79    158  caught  abs_veto_short    +12   +282  0.09      —  UNCLASS
+07-28 00:04     DN    -84    168  sat out —                  +0    +60  0.15      —  UNCLASS
+07-28 00:58     DN    -89    178  sat out —                  +0    +42  0.08      —  UNCLASS
+07-28 01:13     UP    +86    173  sat out —                  +0   -184  0.21      —  VACUUM
+07-28 01:48     DN    -98    196  sat out —                  +0    -81  0.14      —  UNCLASS
+07-28 03:09     UP   +102    204  caught  capitulation_long   +106   -282  0.09      —  VACUUM
+07-28 03:31     UP    +96    191  sat out —                  +0   +279  0.25      —  FLOW-LED
+07-28 08:12     UP   +113    226  sat out —                  +0    -83  0.16      —  UNCLASS
+07-28 11:45     UP    +98    196  sat out —                  +0   -345  0.11      —  VACUUM
+07-28 13:30     DN   -230    460  caught  abs_veto_short   +400  +1650  0.21      —  VACUUM
+07-28 14:05     DN   -131    262  sat out —                  +0   +499  0.28      —  OPEN/NEWS
+07-28 14:34     UP   +154    308  FOUGHT  exhaustion_short    +18   -585  0.22      —  OPEN/NEWS
+07-28 14:50     DN    -94    189  caught  exhaustion_short    +18   +397  0.48      —  VOL-EXPANSION
+07-28 15:05     UP   +186    372  sat out —                  +0   -214  0.25      —  UNCLASS
+07-28 15:31     UP    +87    174  caught  abs_veto_long      +3   +217  0.22      —  UNCLASS
+07-28 16:37     UP    +92    184  sat out —                  +0   +281  0.10      —  UNCLASS
+07-28 16:56     DN    -88    176  sat out —                  +0   -327  0.08      —  UNCLASS
+07-28 17:40     DN    -73    146  caught  abs_veto_short    +40   +694  0.17      —  VACUUM
+07-28 19:31     DN    -75    150  sat out —                  +0   +216  0.14      —  UNCLASS
+07-28 19:54     DN    -84    168  sat out —                  +0   +526  0.18      —  VACUUM
+07-28 22:10     DN    -97    194  FOUGHT  abs_veto_long     -27   -207  0.07      —  FLOW-LED
+07-28 22:43     DN   -107    214  caught  abs_veto_short    +59   -143  0.13      —  UNCLASS
+07-28 23:09     UP   +121    242  sat out —                  +0    -75  0.18      —  UNCLASS
+07-28 23:42     UP   +194    388  sat out —                  +0    +20  0.12      —  UNCLASS
+07-29 00:22     DN   -106    212  sat out —                  +0   +803  0.18      —  VACUUM
+07-29 01:04     DN   -114    228  sat out —                  +0    -58  0.14      —  UNCLASS
+07-29 01:39     DN   -130    259  sat out —                  +0    -26  0.15      —  UNCLASS
+07-29 02:18     UP   +101    202  sat out —                  +0    -41  0.23      —  UNCLASS
+07-29 03:16     DN    -77    154  sat out —                  +0    -91  0.19      —  UNCLASS
+07-29 03:46     DN    -90    180  sat out —                  +0    +40  0.14      —  UNCLASS
+07-29 04:49     UP   +121    242  sat out —                  +0    -67  0.15      —  UNCLASS
+07-29 05:55     DN    -90    179  sat out —                  +0    +22  0.12      —  UNCLASS
+07-29 06:23     UP   +136    271  sat out —                  +0     -2  0.14      —  UNCLASS
+07-29 08:30     UP    +90    179  sat out —                  +0    +98  0.09      —  FLOW-LED
+07-29 09:00     UP    +76    152  sat out —                  +0    +38  0.07      —  UNCLASS
+07-29 09:36     UP    +77    154  sat out —                  +0    -14  0.08      —  UNCLASS
+07-29 12:07     DN   -118    236  sat out —                  +0    +98  0.12      —  VACUUM
+07-29 13:20     UP   +107    214  sat out —                  +0   +240  0.09      —  FLOW-LED
+07-29 13:42     DN   -206    413  caught  exhaustion_short   -101   +151  0.29      —  OPEN/NEWS
+07-29 14:11     DN   -182    363  caught  exhaustion_short   +146  +1128  0.39      —  VACUUM
+07-29 14:33     DN   -111    222  sat out —                  +0   +480  0.35      —  VOL-EXPANSION
+07-29 14:48     UP   +101    202  sat out —                  +0   -514  0.24      —  OPEN/NEWS
+07-29 15:50     DN   -115    230  sat out —                  +0    -76  0.17      —  UNCLASS
+07-29 16:16     UP   +155    310  sat out —                  +0   +650  0.19      —  FLOW-LED
+07-29 16:42     UP    +89    178  sat out —                  +0    +57  0.14      —  UNCLASS
+07-29 16:58     UP   +139    278  sat out —                  +0    -88  0.15      —  UNCLASS
+07-29 17:15     DN    -83    166  sat out —                  +0   +121  0.24      —  UNCLASS
+07-29 17:47     UP   +202    404  sat out —                  +0   +112  0.14      —  UNCLASS
+07-29 18:07     DN   -143    286  sat out —                  +0    -91  0.39      —  VOL-EXPANSION
+07-29 18:35     UP   +283    566  sat out —                  +0   -354  0.42      —  VOL-EXPANSION
+07-29 18:52     DN    -86    173  sat out —                  +0   +416  0.22      —  UNCLASS
+07-29 19:07     DN   -252    505  caught  exhaustion_short_A   -166   +331  0.54      —  VOL-EXPANSION
+07-29 19:31     DN   -263    526  sat out —                  +0   +364  0.37      —  VOL-EXPANSION
+07-29 19:49     DN   -251    502  sat out —                  +0   -225  0.24      —  UNCLASS
+07-29 20:16     DN   -105    210  sat out —                  +0   +143  0.38      —  VOL-EXPANSION
+07-29 20:58     UP   +192    384  sat out —                  +0    -21  0.11      —  UNCLASS
+07-29 22:54     UP    +74    148  sat out —                  +0    +87  0.15      —  UNCLASS
+07-29 23:17     UP    +77    154  caught  grind_long_A      -41    -68  0.13      —  UNCLASS
+07-30 00:04     UP   +103    206  caught  abs_veto_long_A   -133    +28  0.26      —  UNCLASS
+07-30 00:29     DN   -104    209  sat out —                  +0   -223  0.13      —  FLOW-LED
+07-30 00:52     UP   +123    246  sat out —                  +0   -184  0.15      —  UNCLASS
+07-30 01:18     UP   +109    218  sat out —                  +0    +90  0.11      —  UNCLASS
+07-30 02:48     DN    -74    148  sat out —                  +0    +91  0.15      —  UNCLASS
+07-30 03:06     DN    -82    164  sat out —                  +0    +59  0.13      —  UNCLASS
+07-30 07:06     DN   -106    212  sat out —                  +0    +10  0.14      —  UNCLASS
+07-30 07:36     UP    +72    144  sat out —                  +0    +36  0.15      —  UNCLASS
+07-30 08:02     UP    +96    192  sat out —                  +0    +91  0.30      —  VOL-EXPANSION
+07-30 10:06     UP    +86    172  caught  abs_veto_long_A   +252    -40  0.10      —  UNCLASS
+07-30 12:46     UP    +80    160  caught  grind_long_A     +198    +27  0.14      —  UNCLASS
+07-30 13:40     UP   +243    486  caught  grind_long_A     +478   +744  0.26      —  FLOW-LED
+07-30 14:18     UP   +146    293  sat out —                  +0   -147  0.21      —  OPEN/NEWS
+07-30 14:41     DN   -201    402  sat out —                  +0   +148  0.12      —  OPEN/NEWS
+07-30 15:09     DN    -82    165  caught  exhaustion_short_A   +224  +2058  0.30      —  VACUUM
+07-30 15:30     UP    +97    194  sat out —                  +0   +329  0.21      —  UNCLASS
+07-30 16:00     UP   +114    228  sat out —                  +0   +223  0.26      —  UNCLASS
+07-30 16:27     DN    -86    172  sat out —                  +0   +421  0.10      —  UNCLASS
+07-30 16:50     UP    +81    162  sat out —                  +0   +163  0.11      —  UNCLASS
+07-30 18:58     UP   +121    242  sat out —                  +0    -84  0.07      —  UNCLASS
+07-30 19:53     UP   +105    210  sat out —                  +0   -112  0.13      —  UNCLASS
+07-30 20:11     UP    +78    155  sat out —                  +0    +78  0.14      —  UNCLASS
+07-30 20:56     UP    +74    149  sat out —                  +0   +115  0.06      —  UNCLASS
+07-31 00:54     UP    +85    170  sat out —                  +0    -83  0.08   0.49  UNCLASS
+07-31 06:28     DN   -124    248  FOUGHT  capitulation_long_A    -38    -17  0.04   0.47  UNCLASS
+07-31 12:01     DN    -72    145  sat out —                  +0   -137  0.12   0.51  FLOW-LED
+07-31 13:01     UP    +79    158  sat out —                  +0    -57  0.11   0.50  OPEN/NEWS
+07-31 13:19     UP   +155    310  sat out —                  +0    -26  0.10   0.49  OPEN/NEWS
+07-31 13:34     DN   -362    724  FOUGHT  abs_veto_long_A   -138   +111  0.57   0.47  VOL-EXPANSION
+07-31 14:00     DN   -260    519  sat out —                  +0   +269  0.37   0.49  VOL-EXPANSION
+07-31 14:16     UP   +168    337  sat out —                  +0  -2205  0.36   0.50  VACUUM
+07-31 14:34     UP    +97    194  sat out —                  +0   -442  0.25   0.52  OPEN/NEWS
+07-31 14:57     DN   -100    199  sat out —                  +0    +50  0.32   0.50  VOL-EXPANSION
+07-31 15:19     DN   -148    296  sat out —                  +0   +527  0.36   0.48  VOL-EXPANSION
+07-31 15:43     UP   +114    227  sat out —                  +0   -283  0.33   0.50  VOL-EXPANSION
+07-31 16:16     UP    +98    197  sat out —                  +0   -477  0.17   0.51  UNCLASS
+07-31 17:22     UP    +94    187  caught  abs_veto_long_A    +55   -152  0.10   0.47  UNCLASS
+07-31 19:07     UP    +82    164  sat out —                  +0     -8  0.13   0.51  UNCLASS
+07-31 19:50     DN   -140    281  sat out —                  +0   +753  0.13   0.51  VACUUM
+07-31 20:42     DN    -86    171  sat out —                  +0    +59  0.03   0.50  UNCLASS
+07-31 20:59     UP   +303    606  sat out —                  +0    +70  0.19   0.54  UNCLASS
+08-03 08:12     DN    -78    156  sat out —                  +0   +155  0.14   0.48  VACUUM
+08-03 08:27     UP    +75    150  sat out —                  +0    +18  0.14   0.48  UNCLASS
+08-03 13:17     DN   -126    251  sat out —                  +0   +240  0.12   0.50  VACUUM
+08-03 13:43     UP   +150    300  caught  nipc_long_A       -92   -385  0.37   0.51  VOL-EXPANSION
+08-03 14:15     UP   +107    214  caught  nipc_long_A      +120    -98  0.21   0.51  OPEN/NEWS
+08-03 14:43     UP    +83    166  caught  nipc_long_A       -82   -418  0.11   0.49  OPEN/NEWS
+08-04 01:39     UP   +129    258  sat out —                  +0   -117  0.08   0.45  UNCLASS
+08-04 02:01     DN    -76    151  sat out —                  +0    -82  0.07   0.54  UNCLASS
+08-04 11:40     UP    +88    177  caught  abs_veto_long_A    -48   -379  0.08   0.45  VACUUM
+08-04 13:27     UP   +210    420  caught  abs_veto_long_A   +138   -540  0.11   0.50  VACUUM
+08-04 13:56     UP    +94    188  sat out —                  +0   -176  0.27   0.50  OPEN/NEWS
+08-04 14:58     UP    +90    179  caught  abs_veto_long_A    +94   -166  0.09   0.48  OPEN/NEWS
+08-04 17:33     UP    +80    160  sat out —                  +0   -296  0.08   0.48  UNCLASS
+08-04 19:44     DN    -82    164  sat out —                  +0  +1044  0.12   0.51  VACUUM
+08-04 20:05     DN   -138    275  sat out —                  +0   +407  0.25   0.49  UNCLASS
+08-05 08:07     DN    -80    160  sat out —                  +0   -164  0.07   0.49  FLOW-LED
+08-05 13:25     UP   +109    218  sat out —                  +0   +507  0.09   0.55  FLOW-LED
+08-05 13:48     DN   -117    234  caught  nipc_short_A      -58   +525  0.18   0.48  OPEN/NEWS
+08-05 14:15     DN   -130    261  sat out —                  +0    -29  0.19   0.49  OPEN/NEWS
+08-05 14:54     UP    +81    162  sat out —                  +0  -3730  0.40   0.55  VACUUM
+08-05 15:42     DN   -103    206  sat out —                  +0   +179  0.13   0.50  UNCLASS
+08-05 16:14     UP   +116    232  sat out —                  +0   -315  0.10   0.50  UNCLASS
+08-05 19:50     DN   -176    352  sat out —                  +0   +959  0.15   0.52  VACUUM
+08-06 02:30     UP    +80    160  sat out —                  +0    -26  0.11   0.52  UNCLASS
+08-06 05:59     DN    -74    148  sat out —                  +0    +56  0.08   0.46  UNCLASS
+08-06 08:58     DN    -73    146  sat out —                  +0    -28  0.05   0.52  UNCLASS
+08-06 10:51     DN   -107    214  sat out —                  +0    -23  0.06   0.48  UNCLASS
+08-06 11:06     UP    +77    154  sat out —                  +0   -221  0.16   0.49  VACUUM
+08-06 13:17     DN    -85    170  sat out —                  +0    +19  0.09   0.51  OPEN/NEWS
+08-06 13:32     UP   +250    500  FOUGHT  abs_veto_short_A   -130   +908  0.37   0.49  FLOW-LED
+08-06 14:03     UP   +154    308  sat out —                  +0   -101  0.22   0.51  OPEN/NEWS
+08-06 14:24     DN    -81    162  sat out —                  +0  -1429  0.14   0.48  FLOW-LED
+08-06 14:46     UP   +116    232  sat out —                  +0   -264  0.30   0.51  VOL-EXPANSION
+08-06 15:10     DN    -94    188  sat out —                  +0  +1074  0.19   0.53  VACUUM
+08-06 15:30     DN    -80    160  sat out —                  +0   +869  0.14   0.51  VACUUM
+08-06 15:48     DN   -114    229  sat out —                  +0   +864  0.26   0.48  VACUUM
+08-06 16:46     UP    +90    180  sat out —                  +0   +117  0.15   0.49  UNCLASS
+08-06 22:00     UP    +75    150  sat out —                  +0   +159  0.11   0.53  UNCLASS
+08-07 00:05     DN   -105    210  sat out —                  +0    -88  0.13   0.52  UNCLASS
+08-07 01:07     DN    -88    176  sat out —                  +0   -151  0.08   0.51  UNCLASS
+08-07 12:28     UP   +144    288  caught  capitulation_long_B   +207     -6  0.08   0.47  UNCLASS
+08-07 13:00     DN   -112    224  sat out —                  +0   +204  0.07   0.49  VACUUM
+08-07 13:29     UP    +87    174  caught  abs_veto_short_B    -36    +60  0.20   0.52  OPEN/NEWS
+08-07 13:53     DN   -133    266  sat out —                  +0   -343  0.22   0.52  OPEN/NEWS
+08-07 14:15     UP   +185    370  sat out —                  +0    -70  0.29   0.50  OPEN/NEWS
+08-07 14:30     DN    -72    144  sat out —                  +0   -478  0.16   0.51  OPEN/NEWS
+08-07 14:55     UP    +94    187  sat out —                  +0     +7  0.20   0.48  OPEN/NEWS
+08-07 15:16     UP    +96    192  sat out —                  +0   -216  0.13   0.49  UNCLASS
+08-07 16:16     DN   -141    282  FOUGHT  capitulation_long_A    -52   +233  0.11   0.48  UNCLASS
+08-07 16:31     UP    +88    176  sat out —                  +0    -57  0.17   0.50  UNCLASS
+08-07 18:56     UP   +114    228  sat out —                  +0   -238  0.07   0.51  UNCLASS
+08-10 00:00     UP    +72    144  sat out —                  +0    -87  0.09   0.51  UNCLASS
+08-10 10:57     DN    -76    152  sat out —                  +0     +6  0.05   0.49  UNCLASS
+08-10 13:26     DN    -82    164  sat out —                  +0    +24  0.10   0.49  OPEN/NEWS
+08-10 13:56     UP   +113    226  sat out —                  +0   -180  0.19   0.52  OPEN/NEWS
+08-10 14:45     DN    -85    170  sat out —                  +0    +70  0.10   0.49  OPEN/NEWS
+08-10 15:39     UP    +82    165  sat out —                  +0     +6  0.10   0.51  UNCLASS
+08-10 16:28     DN    -77    154  sat out —                  +0   -249  0.12   0.47  UNCLASS
+08-11 08:04     DN    -77    154  sat out —                  +0   +147  0.13   0.47  UNCLASS
+08-11 13:21     DN   -130    260  sat out —                  +0   +106  0.07   0.51  OPEN/NEWS
+08-11 13:51     UP   +127    254  sat out —                  +0   -197  0.16   0.49  OPEN/NEWS
+08-11 14:55     DN    -87    174  sat out —                  +0   +116  0.13   0.49  OPEN/NEWS
+08-12 12:30     UP   +104    207  sat out —                  +0   +179  0.69   0.33  VOL-EXPANSION
+08-12 13:25     DN   -108    217  sat out —                  +0   -324  0.06   0.51  FLOW-LED
+08-12 13:49     DN    -86    172  caught  exhaustion_short_A     -8  +1713  0.33   0.53  VACUUM
+08-12 20:05     DN    -72    144  sat out —                  +0   +814  0.17   0.53  VACUUM
+08-13 13:32     UP   +235    470  sat out —                  +0   -107  0.19   0.53  OPEN/NEWS
+08-13 14:20     UP    +75    150  sat out —                  +0   -240  0.11   0.48  OPEN/NEWS
+08-13 15:21     DN    -92    185  sat out —                  +0    +58  0.13   0.51  UNCLASS
+08-14 13:22     DN    -77    154  sat out —                  +0    +49  0.05   0.48  OPEN/NEWS
+08-14 13:37     UP    +78    156  FOUGHT  abs_veto_short_A   +277  -1586  0.28   0.46  VACUUM
+08-14 14:13     DN    -99    198  sat out —                  +0   -226  0.15   0.50  OPEN/NEWS
+08-14 20:47     UP    +84    168  sat out —                  +0    -33  0.02   0.48  UNCLASS
+08-17 12:24     DN    -77    154  sat out —                  +0    -24  0.04   0.58  UNCLASS
+08-18 01:38     DN   -100    200  sat out —                  +0    +30  0.05   0.47  UNCLASS
+08-18 02:01     DN    -73    146  sat out —                  +0    -17  0.12   0.47  UNCLASS
+08-18 05:52     DN    -80    160  sat out —                  +0    -25  0.07   0.47  UNCLASS
+08-18 07:52     DN    -93    186  sat out —                  +0    -33  0.07   0.53  UNCLASS
+08-18 13:40     DN   -147    294  caught  exhaustion_short_A   -208   +883  0.29   0.49  VACUUM
+08-18 14:14     UP    +90    180  sat out —                  +0   -241  0.21   0.45  OPEN/NEWS
+08-18 14:38     DN   -105    210  caught  exhaustion_short_A   +250   -142  0.12   0.49  OPEN/NEWS
+
+── CLUSTERS ──
+   UNCLASS        409 runs
+   OPEN/NEWS       88 runs
+   VOL-EXPANSION   64 runs
+   VACUUM          64 runs
+   FLOW-LED        29 runs
+
+── HONEST MONEY (ceiling = hindsight 1-lot; real = what a gate actually banked) ──
+   CAUGHT   51 runs · ceiling $ 12299 · real $ +2282  (19% of ceiling)
+   FOUGHT   20 runs · ceiling $  5717 · real $  -912
+   SAT OUT 583 runs · ceiling $132895 · real $     0  ← the money on the table
+
+── real $ by gate (near the runs) ──
+   thrust           $   -321
+   abs_veto_short_B $   -216
+   grind            $   -210
+   rgv_long         $   -190
+   abs_veto_short_A $   -139
+   rgv              $   -100
+   nipc_long_A      $    -68
+   nipc_short_A     $    -68
+   nipc_short_B     $    -68
+   exhaustion_short_A $    -66
+   exhaustion_short_B $    -54
+   nipc_long_B      $    -48
+   abs_veto_long    $    -24
+   grind_long       $    +52
+   capitulation_long_A $    +54
+   capitulation_long_B $    +62
+   abs_veto_long_A  $    +82
+   capitulation_long $   +106
+   abs_veto_short   $   +152
+   rgv_short        $   +190
+   abs_veto_long_B  $   +190
+   grind_long_A     $   +192
+   grind_long_B     $   +258
+   exhaustion_short $   +300
+   day_rider        $   +434
+
+Movement-1 HTML → /home/alphabot/gazbot7/reports/overnight/census_MNQ.html (165469 bytes)

@@ -63,15 +63,28 @@ def sessions():
     return out
 
 
-def run_day(sess, i, direction, entry, arm_atr, *, use_trail=True, claim_usd=0.0):
-    """One session. Returns (pnl_usd, exit_reason, held_min, peak_pt)."""
+def run_day(sess, i, direction, entry, arm_atr, *, use_trail=True, claim_usd=0.0, stop_usd=0.0):
+    """One session. Returns (pnl_usd, exit_reason, held_min, peak_pt).
+
+    ⚠ THE STOP IS CHECKED BEFORE THE CLAIM. Inside one minute the order of a stop and a target is
+    unknowable from OHLC, and assuming the target came first is exactly how an MFE measurement
+    flatters itself. Booking the stop first is the only reading that cannot manufacture an edge.
+    ⚠ claim_usd and stop_usd are POSITION dollars across BOTH lots ($4/pt), matching how the
+    operator reads the screen — not per-lot. Mixing those two conventions is what made the earlier
+    scale-out table describe a $100/$150 strategy while labelling it $200/$300.
+    """
     from gazbot7.day_rider import FLAT_UTC_MIN, trail_level
     d = 1 if direction == "UP" else -1
     peak = entry
     claim_pt = (claim_usd / DOLLARS_PER_PT) if claim_usd else None
+    stop_pt = (stop_usd / DOLLARS_PER_PT) if stop_usd else None
     for b in sess[i:]:
         ts, hi, lo, cl = b
         mod = (ts % 86400) // 60
+        adv = (entry - lo) if d > 0 else (hi - entry)
+        if stop_pt is not None and adv >= stop_pt and mod < FLAT_UTC_MIN:
+            held = ((ts % 86400) // 60) - ((sess[i - 1][0] % 86400) // 60)
+            return (-stop_pt * DOLLARS_PER_PT - FEES, "STOP", held, (peak - entry) * d)
         if mod >= FLAT_UTC_MIN:                                  # hard flat, never past it
             return ((cl - entry) * d * DOLLARS_PER_PT - FEES, "CLOCK_FLAT",
                     mod - ((sess[i - 1][0] % 86400) // 60), (peak - entry) * d)

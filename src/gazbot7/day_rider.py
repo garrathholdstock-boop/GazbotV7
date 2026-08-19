@@ -126,6 +126,26 @@ ARM_ATR_MULT = 4.0                 # arm the trail once this many ATR ahead
 _UNOWNED_KEY = "day_rider.unowned_venue_net"
 _UNOWNED_COOLDOWN_S = 6 * 3600
 TRAIL_ATR_MULT = 2.0               # then trail this many ATR off the peak
+
+# ★2026-08-19 REPORTING ONLY — this drives NO switch, NO entry and NO exit.
+# The 231-session study of every confirmed session in the lake found that `roundtrip` at the moment
+# of confirmation was the ONE filter that survived the full anti-overfit battery: positive in BOTH
+# halves (+$1,907 / +$2,310), walk-forward in both directions, and separating on an exit-free basis.
+# It is not wired to the desk because the operator claims BY HAND and the finding only holds with a
+# claim+stop, never with the live trail. So it exists to answer one question at 13:30 — "is today
+# one of the ~26% the tape has historically paid, and therefore worth watching?"
+#   ⚠ n is small (1.3 days/week) and P>=0.22 once charged for the full 10-feature search.
+#     Treat it as a HINT for the operator's attention, never as permission.
+WATCH_RT = 0.50
+
+
+def watch_verdict(rt: float) -> str:
+    """One line for the operator at confirmation: is today worth watching by hand?
+
+    Reporting only. Callers must NOT branch trading behaviour on this."""
+    if rt < WATCH_RT:
+        return "WATCH — favourable band"
+    return f"off-band (rt>={WATCH_RT:.2f} — historically the losing side)"
 ARM_PT = 150.0                     # fallback: trail arms once this far ahead
 TRAIL_PT = 100.0
 VENUE_STOP_PT = 600.0              # last-resort only; see docstring note 2
@@ -1006,8 +1026,14 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                    arm_atr=round(r.atr, 2), venue_stop=stop_px,
                    note=f"ENTERED {LOTS} lots {r.direction} @ {fill}")
         if notify:
-            notify(f"DAY RIDER ENTERED {LOTS} lots {r.direction} @ {fill:.2f} "
-                   f"(eff {r.efficiency:.2f} rt {r.roundtrip:.2f}) · stop {stop_px} · flat 21:00",
+            # ⚠ "flat 21:00" was WRONG here for the life of this line: 21:00 IS the CME halt, and
+            #   the desk flattens at FLAT_UTC_MIN (20:40). Never restate a clock as a literal.
+            band = watch_verdict(r.roundtrip)
+            notify(f"DAY RIDER ENTERED {LOTS} lots {r.direction} @ {fill:.2f} · ATR {r.atr:.1f}pt\n"
+                   f"rt {r.roundtrip:.2f} → {band}\n"
+                   f"eff {r.efficiency:.2f} · stop {stop_px} · hard flat "
+                   f"{FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z · entries stop "
+                   f"{ENTRY_CUTOFF_MIN//60:02d}:{ENTRY_CUTOFF_MIN%60:02d}Z",
                    critical=True)
         save_state(out)
         return out

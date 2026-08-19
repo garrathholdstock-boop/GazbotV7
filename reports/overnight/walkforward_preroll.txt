@@ -1,0 +1,9 @@
+[lake] tf='1min' · 205 usable days, 276,465 1-min bars, 2025-11-03 .. 2026-08-18
+forward-validation · 205 days · lake (V5 + Parquet + hot) · 2025-11-03..2026-08-18
+
+FROZEN (grind peak-trail -300, rgv flat -400):
+  grind  -9496   rgv  -3202   combined -12698
+
+WALK-FORWARD OOS (197 held-out days, latch re-tuned on prior days only):
+  grind -11176   rgv  -1841   combined -13017
+  combined worst day   -954   green 72/197   grind~rgv corr -0.16

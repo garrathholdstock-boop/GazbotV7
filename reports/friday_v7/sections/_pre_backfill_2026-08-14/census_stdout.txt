@@ -1,0 +1,95 @@
+═══ MNQ RUN CENSUS — last 7d · 68 runs ≥ 1.5×ATR (15-min move ≥ 44pt; typical 15m range = 29pt) ═══
+
+time UTC       dir   move  $ceil  us      gate            real$   flow  amp%   book  cluster
+08-09 22:02     DN    -59    118  sat out —                  +0     +0  0.16      —  UNCLASS
+08-09 23:47     DN    -62    123  sat out —                  +0     +0  0.07      —  UNCLASS
+08-10 00:02     UP    +82    165  sat out —                  +0   -154  0.13   0.49  UNCLASS
+08-10 00:22     DN    -59    118  sat out —                  +0    +19  0.09   0.51  UNCLASS
+08-10 01:01     UP    +54    108  sat out —                  +0   -145  0.09   0.53  UNCLASS
+08-10 06:13     DN    -50    100  sat out —                  +0   +166  0.07   0.44  VACUUM
+08-10 07:11     UP    +54    108  sat out —                  +0   -659  0.11   0.47  VACUUM
+08-10 10:57     DN    -66    132  sat out —                  +0    +39  0.06   0.49  UNCLASS
+08-10 11:35     DN    -56    112  sat out —                  +0    -57  0.03   0.57  UNCLASS
+08-10 12:09     DN    -67    134  sat out —                  +0    +79  0.06   0.50  UNCLASS
+08-10 13:20     DN    -74    147  sat out —                  +0     +6  0.09   0.50  OPEN/NEWS
+08-10 13:35     UP    +84    167  FOUGHT  exhaustion_short_A    +82  -2910  0.37   0.52  OPEN/NEWS
+08-10 13:56     UP   +109    218  sat out —                  +0   -118  0.21   0.51  OPEN/NEWS
+08-10 14:25     UP    +46     92  sat out —                  +0   -438  0.22   0.50  OPEN/NEWS
+08-10 14:45     DN    -90    179  sat out —                  +0   +101  0.10   0.48  OPEN/NEWS
+08-10 15:20     DN    -62    125  sat out —                  +0   -190  0.09   0.50  UNCLASS
+08-10 15:40     UP    +76    152  sat out —                  +0   -274  0.10   0.47  UNCLASS
+08-10 16:29     DN    -84    168  sat out —                  +0   -132  0.12   0.49  UNCLASS
+08-10 16:54     UP    +51    102  sat out —                  +0    +52  0.09   0.52  UNCLASS
+08-10 19:44     DN    -52    104  sat out —                  +0    +12  0.08   0.50  UNCLASS
+08-10 23:47     DN    -48     96  sat out —                  +0   +351  0.07   0.53  VACUUM
+08-11 00:02     UP    +74    149  sat out —                  +0   -377  0.14   0.48  VACUUM
+08-11 01:09     UP    +63    126  sat out —                  +0    -82  0.05   0.48  UNCLASS
+08-11 05:16     DN    -46     92  sat out —                  +0   -109  0.04   0.57  FLOW-LED
+08-11 06:18     DN    -66    132  sat out —                  +0    -38  0.06   0.53  UNCLASS
+08-11 08:03     DN    -72    144  sat out —                  +0    +59  0.12   0.48  UNCLASS
+08-11 10:13     UP    +70    141  sat out —                  +0    -33  0.04   0.51  UNCLASS
+08-11 10:53     UP    +64    128  sat out —                  +0    -74  0.04   0.51  UNCLASS
+08-11 11:08     DN    -51    102  sat out —                  +0    +50  0.07   0.50  UNCLASS
+08-11 12:01     UP    +47     94  sat out —                  +0   -305  0.05   0.49  VACUUM
+08-11 12:16     DN    -44     89  sat out —                  +0    +52  0.05   0.53  UNCLASS
+08-11 13:24     DN   -137    274  sat out —                  +0    +48  0.05   0.51  OPEN/NEWS
+08-11 13:51     UP   +124    249  sat out —                  +0  -1145  0.16   0.50  OPEN/NEWS
+08-11 14:16     DN    -49     98  sat out —                  +0  +1720  0.15   0.50  OPEN/NEWS
+08-11 14:40     UP    +55    110  sat out —                  +0   +543  0.13   0.51  OPEN/NEWS
+08-11 14:55     DN    -89    178  sat out —                  +0   +601  0.13   0.51  OPEN/NEWS
+08-11 15:22     DN    -54    108  sat out —                  +0   +539  0.11   0.51  UNCLASS
+08-11 16:59     DN    -45     90  sat out —                  +0   +105  0.07   0.46  UNCLASS
+08-11 18:15     DN    -59    118  sat out —                  +0    -28  0.04   0.49  UNCLASS
+08-11 20:10     UP    +47     94  sat out —                  +0   +197  0.07   0.52  UNCLASS
+08-12 00:08     UP    +44     89  sat out —                  +0   -200  0.08   0.54  VACUUM
+08-12 12:25     UP    +87    174  sat out —                  +0   -161  0.07   0.53  VACUUM
+08-12 13:08     UP    +52    105  sat out —                  +0     +0  0.08   0.45  OPEN/NEWS
+08-12 13:28     DN    -92    183  FOUGHT  capitulation_long_A    -48   +694  0.09   0.47  OPEN/NEWS
+08-12 13:50     DN    -96    192  caught  exhaustion_short_A     -8   +401  0.33   0.49  OPEN/NEWS
+08-12 14:40     DN    -60    120  caught  exhaustion_short_A   +112    -75  0.22   0.48  OPEN/NEWS
+08-12 15:30     DN    -47     94  sat out —                  +0   +588  0.10   0.48  UNCLASS
+08-12 16:36     UP    +59    118  FOUGHT  exhaustion_short_A    -46   -340  0.08   0.52  UNCLASS
+08-12 20:05     DN    -59    118  sat out —                  +0   +392  0.11   0.52  VACUUM
+08-12 23:59     UP    +58    115  sat out —                  +0     +5  0.04   0.51  UNCLASS
+08-13 11:49     DN    -48     95  sat out —                  +0    +60  0.04   0.53  UNCLASS
+08-13 12:50     UP    +57    114  sat out —                  +0    -60  0.08   0.51  UNCLASS
+08-13 13:32     UP   +236    472  sat out —                  +0    +73  0.19   0.50  OPEN/NEWS
+08-13 13:56     UP    +79    158  caught  abs_veto_long_A   +132   -119  0.10   0.51  OPEN/NEWS
+08-13 14:20     UP    +75    150  sat out —                  +0   -711  0.11   0.42  OPEN/NEWS
+08-13 14:41     DN    -45     90  sat out —                  +0   +432  0.08   0.53  OPEN/NEWS
+08-13 15:22     DN    -98    196  sat out —                  +0    +32  0.13   0.51  UNCLASS
+08-13 15:43     DN    -61    122  sat out —                  +0   -227  0.15   0.50  UNCLASS
+08-13 16:18     UP    +51    102  FOUGHT  abs_veto_short_A    -66   +211  0.07   0.51  UNCLASS
+08-13 16:55     UP    +49     98  sat out —                  +0   -361  0.09   0.49  UNCLASS
+08-13 18:27     UP    +45     90  sat out —                  +0     -6  0.07   0.53  UNCLASS
+08-14 00:03     DN    -47     94  sat out —                  +0   -173  0.12   0.54  FLOW-LED
+08-14 00:58     DN    -47     94  sat out —                  +0    +60  0.03   0.44  UNCLASS
+08-14 13:22     DN    -80    159  sat out —                  +0   +144  0.05   0.48  OPEN/NEWS
+08-14 13:37     UP    +79    158  FOUGHT  abs_veto_short_A   +170   +408  0.24   0.51  OPEN/NEWS
+08-14 14:13     DN    -98    197  sat out —                  +0   -411  0.13   0.48  OPEN/NEWS
+08-14 14:48     DN    -48     96  sat out —                  +0   +160  0.07   0.48  OPEN/NEWS
+08-14 15:11     DN    -73    146  sat out —                  +0    -92  0.10   0.48  UNCLASS
+
+── CLUSTERS ──
+   UNCLASS         36 runs
+   OPEN/NEWS       22 runs
+   VACUUM           8 runs
+   FLOW-LED         2 runs
+
+── HONEST MONEY (ceiling = hindsight 1-lot; real = what a gate actually banked) ──
+   CAUGHT    3 runs · ceiling $   470 · real $  +237  (50% of ceiling)
+   FOUGHT    5 runs · ceiling $   728 · real $   +92
+   SAT OUT  60 runs · ceiling $  8024 · real $     0  ← the money on the table
+
+── real $ by gate (near the runs) ──
+   abs_veto_short_B $    -69
+   abs_veto_short_A $    -67
+   exhaustion_short_A $    -57
+   capitulation_long_B $    -24
+   capitulation_long_A $    -24
+   abs_veto_long_A  $    -12
+   exhaustion_short_B $     +4
+   abs_veto_long_B  $    +12
+   day_rider        $   +434
+
+Movement-1 HTML → /home/alphabot/gazbot7/reports/friday_v7/sections/movement1_census.html (19693 bytes)
