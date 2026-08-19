@@ -153,3 +153,92 @@ def test_the_tape_is_filtered_by_symbol():
     into an MNQ reader once made ATR read 1848 against a true 15."""
     src = open(os.path.join(os.path.dirname(__file__), "..", "scripts", "rider_peak_watch.py")).read()
     assert 'body.get("symbol") != SYMBOL' in src
+
+
+# ── extension: the honest substitute for "heaps of buyers" ───────────────────
+def test_extension_reproduces_the_real_trade():
+    """★ 2026-08-19: 137pt taken on a 39.05 ATR day. That is 3.5x — the number the operator should
+    have seen on his phone while deciding whether $544 was enough."""
+    from rider_peak_watch import extension
+    assert round(extension(29470.75, 29607.50, 39.05), 2) == 3.50
+
+
+def test_extension_is_direction_blind_and_survives_a_zero_atr():
+    from rider_peak_watch import extension
+    assert extension(29700.0, 29600.0, 50.0) == extension(29500.0, 29600.0, 50.0) == 2.0
+    assert extension(29700.0, 29600.0, 0.0) == 0.0          # must not raise on a bad state file
+
+
+def test_extension_carries_no_threshold():
+    """★ THE POINT. Nobody has shown a level of extension that PREDICTS anything. A constant here
+    would be an instrument reporting healthy about something it never checked — this desk's most
+    common failure, 7 instances in 4 days. It is descriptive only."""
+    import rider_peak_watch as W
+    src = open(W.__file__).read()
+    body = src.split("def extension")[1].split("def _ago")[0]
+    assert "if ext" not in body and "EXT_MAX" not in body and ">=" not in body
+
+
+# ── the stall: absence of a new high is itself an event ──────────────────────
+def test_stall_fires_when_the_move_simply_stops():
+    """★ A move that flattens without giving $75 back fires no rung and no give-back. It would be
+    SILENT, and silence is what this process exists to prevent."""
+    lad = Ladder(stall_s=180)
+    lad.update(250, now=1000)                      # ARM
+    assert kinds(lad.update(255, now=1100)) == []  # still drifting up, high_ts moves with it
+    assert kinds(lad.update(254, now=1200)) == []  # 100s since the high — not yet
+    assert kinds(lad.update(253, now=1281)) == ["STALL"]   # 181s since the high
+
+
+def test_stall_fires_at_most_once_per_peak_and_rearms_on_a_new_high():
+    lad = Ladder(stall_s=180)
+    lad.update(250, now=0)
+    assert kinds(lad.update(249, now=200)) == ["STALL"]
+    assert kinds(lad.update(248, now=400)) == []          # ★ must not repeat on the same peak
+    assert kinds(lad.update(247, now=9999)) == []
+    assert kinds(lad.update(305, now=10000)) == ["RUNG"]  # a new high re-arms it
+    assert kinds(lad.update(304, now=10200)) == ["STALL"]
+
+
+def test_a_new_high_resets_the_stall_clock():
+    lad = Ladder(stall_s=180)
+    lad.update(250, now=0)
+    for t in range(50, 400, 50):
+        lad.update(250 + t / 10, now=t)            # a new high every 50s
+    assert lad.high_ts == 350
+    assert kinds(lad.update(280, now=400)) == []   # only 50s since the last high
+
+
+def test_stall_does_not_fire_before_the_arm():
+    lad = Ladder(stall_s=60)
+    for t in (0, 100, 200, 300):
+        assert lad.update(50, now=t) == []
+
+
+def test_stall_can_be_disabled():
+    lad = Ladder(stall_s=0)
+    lad.update(250, now=0)
+    assert kinds(lad.update(249, now=99999)) == []
+
+
+def test_reset_clears_the_stall_latches_too():
+    lad = Ladder(stall_s=180)
+    lad.update(250, now=0)
+    lad.update(249, now=500)
+    lad.reset()
+    assert (lad.stall_peak, lad.high_ts) == (0.0, 0.0)
+
+
+def test_the_clock_defaults_to_zero_so_a_pure_pnl_test_never_stalls():
+    """The ladder must stay usable as a pure function of P&L alone."""
+    lad = Ladder(stall_s=180)
+    lad.update(250)
+    assert kinds(lad.update(249)) == []
+
+
+def test_ago_is_readable_at_both_scales():
+    from rider_peak_watch import _ago
+    assert _ago(9) == "9s"
+    assert _ago(59) == "59s"
+    assert _ago(60) == "1m00s"
+    assert _ago(131) == "2m11s"

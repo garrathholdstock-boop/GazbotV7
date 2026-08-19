@@ -23,6 +23,14 @@ The alert ladder, exactly as specified by the operator:
      so a chopping position cannot machine-gun the channel.
   3. **GIVE-BACK** — peak minus current >= GIVEBACK_USD. This is the one that answers "$550 then
      started dropping". It re-arms only on a NEW high, so it fires at most once per peak.
+  4. **STALL** — no new high for STALL_S. The operator's own read of the tape is that it moves for
+     ~90 minutes after the open "then it usually calms down", and a move that flattens out without
+     giving $75 back fires NO rung and NO give-back. It would be silent, and silence is the exact
+     thing this process exists to prevent. So the ABSENCE of a new high is itself an event.
+
+Every message carries **extension in ATR** — how far the move has run in units of the day's own
+volatility. It is descriptive, never predictive, and deliberately has no threshold on it: see
+`extension()` for why inventing one would repeat this desk's most common failure.
 
 ★ THE MULTI-SYMBOL TRAP. MD_STREAM carries MNQ *and* MGC — verified live at build time (`bar:MNQ`
   and `bar:MGC` both present). Folding MGC into an MNQ reader is precisely what once made ATR read
@@ -67,6 +75,7 @@ ARM_USD = float(os.environ.get("PEAK_ARM_USD", "200"))
 STEP_USD = float(os.environ.get("PEAK_STEP_USD", "50"))
 GIVEBACK_USD = float(os.environ.get("PEAK_GIVEBACK_USD", "75"))   # 0 disables
 BLIND_S = float(os.environ.get("PEAK_BLIND_S", "90"))
+STALL_S = float(os.environ.get("PEAK_STALL_S", "180"))       # 0 disables
 PT_USD = 2.0          # MNQ, PER LOT
 FEE_RT = 1.50         # per lot, round trip
 RECON_MAX_AGE = 120.0  # older than this and the venue check is not evidence either way
@@ -77,6 +86,27 @@ def open_pnl(last: float, entry: float, direction: int, qty: float) -> float:
     return (last - entry) * direction * qty * PT_USD - FEE_RT * qty
 
 
+def extension(last: float, entry: float, atr: float) -> float:
+    """How far this move has run in units of TODAY'S OWN volatility.
+
+    ★ THIS IS A MEASUREMENT, NOT A FORECAST, and the distinction is the whole reason it is here.
+    The operator asked whether the L2 book could say "heaps of buyers, it should keep climbing".
+    It cannot — resting depth, far-side depletion and OFI are a ROBUST NULL on 22.6M ticks; the far
+    side thins CONCURRENTLY because price eats it, never before. So the watcher must not pretend to
+    predict. What it CAN do honestly is state how stretched the move already is relative to the
+    day's own ATR: 2026-08-19 was 137pt on ATR 39.05 = 3.5x, which is a fact, not an opinion.
+    ⚠ No threshold is attached to it on purpose. Nobody has shown a level of extension that
+      predicts anything, and inventing one here would be exactly the instrument-that-reports-
+      healthy-about-what-it-never-checked failure this desk keeps repeating."""
+    return abs(last - entry) / atr if atr else 0.0
+
+
+def _ago(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    return f"{int(seconds // 60)}m{int(seconds % 60):02d}s"
+
+
 @dataclass
 class Ladder:
     """The pure alert decision. No I/O, so the boundaries are testable and pinned."""
@@ -84,10 +114,13 @@ class Ladder:
     arm_usd: float = ARM_USD
     step_usd: float = STEP_USD
     giveback_usd: float = GIVEBACK_USD
+    stall_s: float = STALL_S
     armed: bool = False
     peak: float = 0.0
     last_rung: float = 0.0
     gb_peak: float = 0.0          # the peak at which a give-back was last announced
+    stall_peak: float = 0.0       # ...and at which a stall was last announced
+    high_ts: float = 0.0          # when the current peak was set
     seen: bool = False
 
     def reset(self) -> None:
@@ -95,17 +128,21 @@ class Ladder:
         self.peak = 0.0
         self.last_rung = 0.0
         self.gb_peak = 0.0
+        self.stall_peak = 0.0
+        self.high_ts = 0.0
         self.seen = False
 
-    def update(self, pnl: float) -> list[tuple[str, str]]:
+    def update(self, pnl: float, now: float = 0.0) -> list[tuple[str, str]]:
         """Feed one live P&L. Returns [(kind, detail)] — usually empty."""
         out: list[tuple[str, str]] = []
         if not self.seen:
             self.seen = True
             self.peak = pnl
+            self.high_ts = now
         new_high = pnl > self.peak
         if new_high:
             self.peak = pnl
+            self.high_ts = now
 
         if not self.armed:
             if self.peak >= self.arm_usd:
@@ -126,6 +163,16 @@ class Ladder:
             if self.peak - pnl >= self.giveback_usd:
                 self.gb_peak = self.peak
                 out.append(("GIVEBACK", f"{self.peak - pnl:.0f}"))
+
+        # ★ THE STALL. The operator's own description of the tape: "only in the first 90 minutes
+        #   after open, then it usually calms down." A move that simply STOPS making new highs
+        #   without giving $75 back fires no rung and no give-back — it would be silent. Silence is
+        #   the one thing this process exists to prevent, so the absence of a new high is itself an
+        #   event. Re-arms on a new high, so at most one per peak.
+        if self.stall_s > 0 and self.peak > self.stall_peak:
+            if now - self.high_ts >= self.stall_s:
+                self.stall_peak = self.peak
+                out.append(("STALL", f"{now - self.high_ts:.0f}"))
         return out
 
 
@@ -171,7 +218,8 @@ def main() -> int:
     sock.setsockopt_string(zmq.SUBSCRIBE, "tape")
     sock.setsockopt(zmq.RCVTIMEO, 2000)
     log(f"START symbol={SYMBOL} arm=${ARM_USD:.0f} step=${STEP_USD:.0f} "
-        f"giveback=${GIVEBACK_USD:.0f} blind={BLIND_S:.0f}s  (READ-ONLY: no order path)")
+        f"giveback=${GIVEBACK_USD:.0f} stall={STALL_S:.0f}s blind={BLIND_S:.0f}s  "
+        f"(READ-ONLY: no order path)")
 
     lad = Ladder()
     last_tape = time.time()
@@ -225,20 +273,32 @@ def main() -> int:
 
             pnl = open_pnl(float(last), entry, direction, qty)
             side = "SHORT" if direction < 0 else "LONG"
-            for kind, detail in lad.update(pnl):
+            # ★ arm_atr is the copy FROZEN at entry. entry_atr is overwritten with the live ATR on
+            #   every rider tick, so using it would silently rescale the extension mid-trade and the
+            #   number would mean something different at 13:45 than it did at 13:40.
+            atr = float(st.get("arm_atr") or st.get("entry_atr") or 0.0)
+            now = time.time()
+            for kind, detail in lad.update(pnl, now):
+                ext = extension(float(last), entry, atr)
+                ext_s = f"{ext:.1f}x ATR" if atr else "ATR n/a"
+                since = _ago(now - lad.high_ts)
                 if kind == "ARM":
-                    msg = (f"🔴 RIDER +${detail} — ABOVE ${ARM_USD:.0f}. START WATCHING.\n"
+                    notify(f"🔴 RIDER +${detail} — ABOVE ${ARM_USD:.0f}. START WATCHING.\n"
                            f"{side} {qty:g} @ {entry:.2f} · now {last:.2f}\n"
-                           f"pings every ${STEP_USD:.0f} from here")
-                    notify(msg, critical=True)
-                elif kind == "RUNG":
-                    notify(f"📈 RIDER PEAK ${detail} (now ${pnl:.0f}) · "
-                           f"{side} @ {entry:.2f} → {last:.2f}", critical=True)
-                else:
-                    notify(f"⚠️ RIDER OFF THE HIGH — peak ${lad.peak:.0f}, now ${pnl:.0f} "
-                           f"(−${detail}) · {last:.2f}\nIt has stopped making new highs.",
+                           f"{ext_s} (ATR {atr:.1f}pt) · pings every ${STEP_USD:.0f} from here",
                            critical=True)
-                log(f"{kind} {detail} pnl={pnl:.0f} peak={lad.peak:.0f} last={last}")
+                elif kind == "RUNG":
+                    notify(f"📈 RIDER PEAK ${detail} (now ${pnl:.0f}) · {ext_s}\n"
+                           f"{side} @ {entry:.2f} → {last:.2f}", critical=True)
+                elif kind == "GIVEBACK":
+                    notify(f"⚠️ RIDER OFF THE HIGH — peak ${lad.peak:.0f}, now ${pnl:.0f} "
+                           f"(−${detail}) · {ext_s}\n"
+                           f"last new high {since} ago · {last:.2f}", critical=True)
+                else:
+                    notify(f"😴 RIDER STALLED — peak ${lad.peak:.0f}, now ${pnl:.0f} · {ext_s}\n"
+                           f"no new high for {since} · {last:.2f}", critical=True)
+                log(f"{kind} {detail} pnl={pnl:.0f} peak={lad.peak:.0f} "
+                    f"ext={ext:.2f} since={since} last={last}")
 
         except KeyboardInterrupt:
             log("STOP")

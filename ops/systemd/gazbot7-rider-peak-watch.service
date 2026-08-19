@@ -25,6 +25,7 @@ Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PEAK_ARM_USD=200
 Environment=PEAK_STEP_USD=50
 Environment=PEAK_GIVEBACK_USD=75
+Environment=PEAK_STALL_S=180
 WorkingDirectory=/home/alphabot/gazbot7
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python -u /home/alphabot/gazbot7/scripts/rider_peak_watch.py
 
