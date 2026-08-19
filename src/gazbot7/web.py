@@ -1009,8 +1009,11 @@ def dayrider_claim_post(body, data_dir):
             f.write(datetime.now(UTC).isoformat() + "\n")
     except Exception as e:
         return {"ok": False, "error": f"write failed: {e}"}
-    return {"ok": True, "msg": "claim requested — the day rider flattens on its next tick (up to ~60s). "
-                               "This ends its session; it will not re-enter today."}
+    # ★2026-08-19 was "up to ~60s". gazbot7-day-rider-claim.path now watches this file and starts
+    # the rider on the inotify close-write — measured at 0.02s. The 60s timer stays the FLOOR, so if
+    # the path unit is down the claim is still picked up on the next tick exactly as before.
+    return {"ok": True, "msg": "claim requested — the day rider flattens immediately (~0.1s; the 60s "
+                               "tick is the fallback). This ends its session; it will not re-enter today."}
 
 
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────

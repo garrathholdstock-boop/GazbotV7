@@ -1,0 +1,37 @@
+[Unit]
+# GAZBOT V7 — CLAIM FAST PATH.
+#
+# ★2026-08-19. The operator claims by hand and those claims are the best exits in the book — on this
+# day three manual claims took $726 in 23 minutes. But the claim BUTTON wrote a flag file that the
+# day-rider only read on its next tick, and the rider is `Type=oneshot` on `*:*:05` — ONCE A MINUTE.
+# So pressing Claim could sit for up to 60 seconds before an order was placed. On 2026-08-19 the
+# rider's tracked peak was 29458.75 and the claim filled at 29470.75: 12 points, $48, on a move the
+# operator watched roll over in real time.
+#
+# ★ THE INDIRECTION IS NOT THE BUG AND MUST NOT BE REMOVED. The web process never places an order —
+#   it writes the flag and returns — because on 2026-08-06 a button that reached the broker directly
+#   flattened without checking whose position it was, put the tournament's book at +2 against a venue
+#   of 0, and halted the desk for 11 minutes with the safety block skipped. This unit changes only
+#   WHEN the rider reads the flag. Every ownership check, venue-first gate, stop cancellation and
+#   booking path stays exactly where it is, inside the rider.
+#
+# ★ PathModified, NOT PathExists — and the difference is a live hazard, not a style choice.
+#   PathExists is LEVEL-triggered: it re-fires for as long as the file is there. `claim_requested()`
+#   documents the case where a tick exits by hard-flat or venue stop before the claim branch is
+#   reached, "leaving the file behind with nothing to consume it" for up to CLAIM_MAX_AGE_S = 15
+#   MINUTES. Under PathExists that orphan would restart the rider in a tight loop for a quarter of an
+#   hour, hammering the shared IB gateway. PathModified is EDGE-triggered on the endpoint's
+#   write-and-close, so a file that merely continues to exist fires nothing.
+#
+# The 60s timer remains the floor and is untouched: if this path unit is dead, stopped, or the file
+# is written some way inotify does not see, the claim is still picked up on the next tick exactly as
+# before. This is a fast lane over a working road, never a replacement for it.
+Description=GAZBOT V7 — claim fast path (operator presses Claim -> rider runs NOW, not in up to 60s)
+After=gazbot7-day-rider.timer
+
+[Path]
+PathModified=/home/alphabot/gazbot7/data/day_rider_claim.txt
+Unit=gazbot7-day-rider.service
+
+[Install]
+WantedBy=paths.target

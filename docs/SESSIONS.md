@@ -1669,3 +1669,32 @@ instance; n=1 proves nothing on its own, but it is the right sign.
 climbing"?** No, and it must not be rebuilt - see `run-catcher-null-all-microstructure`. Resting
 depth, far-side depletion and OFI were all tested to destruction on 22.6M ticks: the book is
 CONCURRENT with price at every horizon the 250ms capture can reach, never leading.
+
+### later the same day — the claim button was waiting up to 60 seconds
+
+Asked to "fix the rider to write state on exit". Checked first: **it already does** — `save_state()`
+is called immediately after `book_trade()` on every exit path. The rider is `Type=oneshot` and is not
+even resident when a claim happens, so it cannot observe an exit it did not make.
+
+**The real defect was upstream and worth more.** The Claim button writes `day_rider_claim.txt`; the
+rider reads it **on its next tick**, and the rider ticks `*:*:05` — **once a MINUTE**. So a press
+could sit for up to 60 seconds before an order existed. On today's own trade the rider's tracked peak
+was 29458.75 and the claim filled 29470.75: **12pt = $48**, on a move the operator watched roll over
+in real time.
+
+**Fixed with `gazbot7-day-rider-claim.path`** — inotify on the flag file starts the rider at once.
+**Measured 0.02s**, from up to 60s. Zero code: the rider still does every ownership check,
+venue-first gate, stop cancellation and booking exactly as before.
+
+* ⚠ **`PathModified`, NEVER `PathExists`.** `claim_requested()` documents an orphan — a tick can exit
+  by hard-flat or venue stop before the claim branch is reached, "leaving the file behind with
+  nothing to consume it" for up to `CLAIM_MAX_AGE_S` = **15 minutes**. Level-triggering would restart
+  the rider in a tight loop for that whole window against the shared IB gateway. **Confirmed live
+  during the test**: the rider was closed, so the flag was still on disk after the trigger fired.
+* ⚠ **The indirection was not touched.** The web process still never places an order — 2026-08-06 is
+  what a button reaching the broker directly does. Only WHEN the flag is read changed. The 60s tick
+  remains the floor.
+* The web endpoint's message was corrected from "up to ~60s" but **`gazbot7-web` was NOT restarted**
+  — that drops the operator's tab. It serves the old text until someone restarts it.
+
+Project files updated: `STATE.md` §1b (new) + §8, `DECISIONS.md` §363, `CLAUDE.md` timer table.

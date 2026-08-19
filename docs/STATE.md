@@ -33,6 +33,37 @@ describe INTENT, not reality.
 
 ---
 
+## 1b. THE OPERATOR'S LOOP — the manual claim is the desk's best exit
+
+**This is not a footnote. It is where the money came from.** 2026-08-19 booked **+$726 in 23 minutes
+and all three exits were `MANUAL_CLAIM`** (rider +$544, abs_veto_short_B +$94, abs_veto_short_A +$88).
+Across the rider's live history roughly half the trades are manual claims and they are the largest
+winners, while eleven months of testing says every FIXED automated exit loses. Three studies on
+2026-08-18 tried to reproduce the claims with a level — $100 to $600, ATR-scaled, two-lot — and all
+of them lose. **He is not claiming at a dollar figure; he is reading an impulse exhausting.** The
+desk's job is therefore to give him PRESENCE and INFORMATION, not to replace the judgement.
+
+| piece | unit / file | what it gives him |
+|---|---|---|
+| **peak watch** | `gazbot7-rider-peak-watch.service` | 1 Hz open P&L off `MD_STREAM` `tape`. URGENT at **+$200**, ping per **$50** new high, **give-back** $75 off the peak, **stall** at 3 min with no new high. Every message carries extension in ATR. ⚠ READ-ONLY — no order path, asserted by test |
+| **claim fast path** | `gazbot7-day-rider-claim.path` | the Claim button reaches the rider on the inotify write (**measured 0.02s**) instead of waiting for the `*:*:05` tick — which was **up to 60 SECONDS**. On 08-19 the tracked peak was 29458.75 and the claim filled 29470.75: 12pt = $48 |
+| **watch band** | `day_rider.WATCH_RT` | the entry notification says `rt 0.48 → WATCH — favourable band`, so he knows at 13:30 whether today is one of the ~26% the tape has historically paid |
+
+⚠ **`PathModified`, NEVER `PathExists`.** `claim_requested()` documents an orphaned flag surviving up
+to `CLAIM_MAX_AGE_S` = **15 minutes**; level-triggering would restart the rider in a tight loop for
+that whole window against the shared gateway. Observed live: after a trigger with the rider closed,
+the flag was still on disk.
+
+⚠ **The 60s tick remains the FLOOR.** The path unit is a fast lane over a working road. If it is dead
+the claim is picked up on the next tick exactly as before, and nothing in the trading path moved —
+the web process still never places an order (2026-08-06: a button that reached the broker directly
+halted the desk for 11 minutes).
+
+★ **He watches only the first ~90 minutes after the open** — *"then it usually calms down"* — which
+is already what `ENTRY_CUTOFF_MIN` encodes (13:30Z cash open → 15:00Z).
+
+---
+
 ## 2. GATES — 6 live, 3 long / 3 short
 
 Current `gate_switches.env` (⚠ router-owned, changes every 5 min — re-read it, never quote this):
@@ -151,5 +182,12 @@ verified by row count.
    that is intended.
 5. **The Friday report has never completed fully unattended** — 4 Fridays. 08-16 fixes should make
    the 08-21 run the first; judge on the ARTIFACT, never the exit code.
-6. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
+6. **`roundtrip < 0.50` is UNARMED and accruing no forward evidence.** The one finding that survived
+   both halves of the 231-session study (+$69/day, PF 1.80, walk-forward both directions) is
+   reporting-only in the entry notification. It works only with a claim+stop, never the live trail,
+   and P>=0.22 once charged for the full 10-feature search. Recommended next step: shadow it.
+   First out-of-sample instance 2026-08-19 (rt 0.48, +$544) — n=1.
+7. **The web endpoint's claim message was corrected but `gazbot7-web` is NOT restarted** — it still
+   serves "up to ~60s" until someone restarts it. ⚠ Warn the operator first; it drops his tab.
+8. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
    `gazbot7-router-health.timer` IS the mitigation. If it pages: run `claude` on the box, `/login`.
