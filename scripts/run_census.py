@@ -118,9 +118,35 @@ def main():
         con = duckdb.connect()
         con.execute(f"ATTACH '{CAP}' AS c (TYPE sqlite, READ_ONLY)")
         con.execute(f"ATTACH '{DB}' AS g (TYPE sqlite, READ_ONLY)")
+    # ★★★2026-08-18 USE THE FINEST TIMEFRAME AVAILABLE PER PERIOD, not a hardcoded '5s'.
+    # The backfilled history is 1-minute at its finest — 5s does not exist before our own capture
+    # began. Hardcoding '5s' silently restricted every census to the weeks we captured ourselves
+    # and reported it as "last 400d", which is the same silent-truncation fault as reading the
+    # pruned hot tier. A 15-minute run is measurable from 1-min bars; it is not measurable from
+    # hourly, so anything coarser is refused rather than quietly accepted.
+    # ⚠ CHOOSE ON COVERAGE, NOT ON FINENESS. A first cut preferred '5s' because it exists — but 5s
+    # only spans the weeks we captured ourselves, while the backfilled '1min' reaches a year further
+    # back. A 15-minute run is measured identically from either, so picking the finer one would have
+    # thrown away nine months of history to gain resolution the measurement does not use.
+    # Anything coarser than a minute cannot resolve a 15-min run and is refused, not quietly used.
+    _rows = con.execute(
+        f"SELECT timeframe, COUNT(*), MIN(bar_ts), MAX(bar_ts) FROM c.bars WHERE symbol='{SYM}' "
+        f"AND bar_ts>={t0} AND bar_ts<={t1} GROUP BY 1").fetchall()
+    _usable = [r for r in _rows if r[0] in ("5s", "1min", "1m") and r[1] > 400]
+    if not _usable:
+        print(f"no usable timeframe for {SYM} — have {sorted(r[0] for r in _rows)}, need 5s or 1-minute")
+        return
+    _best = max(_usable, key=lambda r: r[3] - r[2])          # widest span wins
+    _tf = _best[0]
+    print(f"[tf] '{_tf}' — {_best[1]:,} bars, "
+          f"{dt.datetime.fromtimestamp(_best[2], dt.UTC):%Y-%m-%d} .. "
+          f"{dt.datetime.fromtimestamp(_best[3], dt.UTC):%Y-%m-%d}"
+          + ("; rejected " + ", ".join(f"{r[0]}({(r[3]-r[2])//86400}d)"
+                                       for r in _usable if r[0] != _tf) if len(_usable) > 1 else ""))
     bars = con.execute(f"""
         SELECT bar_ts, open, high, low, close FROM c.bars
-        WHERE symbol='{SYM}' AND timeframe='5s' AND bar_ts>={t0} AND bar_ts<={t1} ORDER BY bar_ts""").fetchall()
+        WHERE symbol='{SYM}' AND timeframe='{_tf}' AND bar_ts>={t0} AND bar_ts<={t1}
+        ORDER BY bar_ts""").fetchall()
     if len(bars) < 400:
         print("too few 5s bars")
         return
