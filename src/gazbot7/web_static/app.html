@@ -72,6 +72,59 @@
       <div class="big" id="unreal">—</div>
       <div class="subval" id="unreal-sub">flat</div>
 
+      <!-- ★★2026-08-20 THE DAY RIDER LADDER. The rider is the ONLY desk that trades; it runs 4
+           lots each banking its own figure ($100/$200/$400/$600 = $1,300) with NO STOP, so these
+           buttons are the only manual exit and they double as kill switches. Lives here on DESK
+           rather than inside the holdings card because five buttons did not fit there. -->
+      <div class="sec" id="rider-sec" style="display:none">DAY RIDER LADDER
+        <span class="dim3">· 4 lots · no stop · claim = kill</span></div>
+      <div id="rider-ladder" style="display:none"></div>
+
+      <!-- ★★2026-08-20 MANUAL ENTRY. Operator: "quantity entry, profit take level in $ and BUY
+           button. ill do it myself." The page NEVER places the order — it POSTs a request and the
+           rider executes behind its own ownership check. Hidden while a position is open. -->
+      <!-- ★★2026-08-20 STAY-OUT LIGHT. Measured on 225 lake sessions. It does NOT say buy —
+           confluence tops out at 55.9%. What separates is DISAGREEMENT: mixed meters hit 44.4%
+           and average -35.3pt. Each meter carries its own measured hit rate so no light claims
+           more authority than it earned. -->
+      <div class="sec">DIRECTION METERS <span class="dim3">· measured on 225 sessions · not a buy signal</span></div>
+      <div id="stayout-box"></div>
+      <!-- ★2026-08-29 RVOL, normalised BY TIME OF DAY (operator asked for it back). A flat
+           day-average would read "hot" at 13:30Z every single day — that is a clock, not a signal. -->
+      <div class="row"><span class="k">RVOL <span class="dim3">30m vs same clock</span></span>
+        <span class="val" id="m-rvol">—</span></div>
+      <div class="row"><span class="k">SESSION</span><span class="val" id="m-block">—</span></div>
+      <div class="row"><span class="k">VWAP stretch</span><span class="val" id="m-vwap">—</span></div>
+      <div class="row"><span class="k">ADVERSE <span class="dim3">vs same time held</span></span>
+        <span class="val" id="m-adv">—</span></div>
+
+      <div class="sec" id="buy-sec">MANUAL ENTRY <span class="dim3">· no stop · flat 20:40Z</span></div>
+      <div id="buy-box">
+        <div class="row"><span class="k">quantity</span>
+          <span class="val"><input id="buy-qty" type="number" min="1" max="8" step="1" value="4"
+                style="width:5em"> lots</span></div>
+        <!-- ★2026-08-21 four windows, one per lot, cascading. Defaults $100/$200/$400/$600
+             = $1,300 if all four fill. Each shows its own point distance, because the targets are
+             dollars but the tape moves in points. Boxes beyond `quantity` grey out. -->
+        <div class="row"><span class="k">L1 take profit</span>
+          <span class="val">$<input id="buy-t1" type="number" min="10" max="20000" step="10"
+                value="100" style="width:6em"> <span class="dim3" id="buy-p1">—</span></span></div>
+        <div class="row"><span class="k">L2 take profit</span>
+          <span class="val">$<input id="buy-t2" type="number" min="10" max="20000" step="10"
+                value="200" style="width:6em"> <span class="dim3" id="buy-p2">—</span></span></div>
+        <div class="row"><span class="k">L3 take profit</span>
+          <span class="val">$<input id="buy-t3" type="number" min="10" max="20000" step="10"
+                value="400" style="width:6em"> <span class="dim3" id="buy-p3">—</span></span></div>
+        <div class="row"><span class="k">L4 take profit</span>
+          <span class="val">$<input id="buy-t4" type="number" min="10" max="20000" step="10"
+                value="600" style="width:6em"> <span class="dim3" id="buy-p4">—</span></span></div>
+        <div class="row"><span class="k dim3">total if all fill</span>
+          <span class="val dim3" id="buy-total">—</span></div>
+        <div class="row"><span class="k">&nbsp;</span><span class="val">
+          <button class="claimbtn" id="buy-long">BUY</button>
+          <button class="claimbtn" id="buy-short">SELL</button></span></div>
+      </div>
+
       <div class="sec">DESK · TODAY</div>
       <div class="row"><span class="k">Open contracts</span><span class="val" id="pos-open">—</span></div>
       <div class="row"><span class="k">Realised today</span><span class="val" id="pos-realised">—</span></div>
@@ -104,6 +157,11 @@
         <button class="tf" data-min="60">1h</button>
         <button class="tf on" data-min="120">2h</button>
         <button class="tf" data-min="240">4h</button>
+        <button class="tf" data-min="480">8h</button>
+        <!-- ★2026-08-29 DAY = since 00:00 Europe/Paris, which is the CME reopen (22:00Z in CEST).
+             data-min="session" is resolved at click time, because the number of minutes since the
+             reopen changes every minute and a fixed value would be wrong the moment it was set. -->
+        <button class="tf" data-min="session">DAY</button>
       </div>
       <div class="legend" id="chart-legend"></div>
       <div class="sec" style="margin:4px 0 2px">DISTANCE TO TRIGGER <span class="dim3">· 100 = FIRE</span></div>

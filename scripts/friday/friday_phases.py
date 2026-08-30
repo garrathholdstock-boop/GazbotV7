@@ -328,6 +328,12 @@ PHASES = [
     # that gold's runs are SIZE-predictable but DIRECTION-unpredictable.
     # ⚠ MGC IS $10/POINT, five times MNQ. Price it wrong and gold looks unworthy on arithmetic alone.
     dict(key="gf_MGC", artifact=f"{SEC}/gf_MGC.md", deps=[], timeout_s=5400, prompt=PRE +
+         f"★★★2026-08-25 A FRESH MGC CENSUS IS NOW FROZEN FOR YOU at {SEC}/census_summary_MGC.json "
+         f"and {SEC}/census_stdout_MGC.txt — 70 gold runs over 08-17..08-21, priced correctly at "
+         f"$10/point, clusters UNCLASS 35 / OPEN-NEWS 15 / VACUUM 13 / FLOW-LED 6 / VOL-EXPANSION 1, "
+         f"with 70 runs SAT OUT for a ceiling of $11,401. READ IT; do NOT re-run run_census.py. "
+         f"⚠ {SEC}/census_summary.json is the MNQ census — do not confuse them, and never price a "
+         f"gold run with the MNQ multiplier.\n"
          f"GOLD GATE HUNT — MGC. A GREENFIELD build, not a port. This is the flagship new line of "
          f"enquiry: we have captured MGC L1 (ticks/quotes/bars) and L2 (depth.db.depth_snap, 10 levels) "
          f"since 2026-08-04 and have NEVER hunted an entry on it. "
@@ -555,13 +561,27 @@ PHASES = [
          f"{SEC}/rev2_done.txt listing every question closed and every fix applied. If proofread.json listed nothing, write "
          f"'no changes required' to that file and stop."),
 
-    dict(key="final", artifact=f"{SEC}/final_check.txt", deps=["rev2"], timeout_s=2700, prompt=PRE +
-         f"FINAL CHECK — the wake-up standard. Re-read the published {WEB}/weekly_*.html end-to-end. Confirm MISSION / "
-         f"READS-WELL / THOROUGH / MAKES-SENSE all pass, the proofread's questions are closed, every grave is visible, and no "
-         f"stale prior-week content survived. Verify weekly_<date>.html + .pdf + monday_<date>.html all exist and report their "
-         f"pdfinfo page count and word count. If any MATERIAL gap remains, fix it directly and re-render. Then PING the operator "
-         f"via Telegram (`PYTHONPATH=src ./.venv/bin/python -c \"from gazbot7.notify import notify; notify('<msg>', "
-         f"critical=True)\"`) with the /v7/reports link, a 3-line 'what SURVIVED' summary, and the page count. Write a one-page "
+    # ★★★2026-08-30 `final` HAS NEVER SUCCEEDED — not once, in any run on record. Every instance:
+    # rc=-1, timed out at its own cap, artifact MISSING (08-29 03:20, 08-29 15:22, and again earlier
+    # in the chain). It was asked to RE-DERIVE the same four criteria `proofread` had already spent a
+    # full 60-minute phase computing, re-read the entire rendered report, shell out to pdfinfo, fix
+    # any gap it found AND re-render — all inside a 45m cap, TIGHTER than proofread's 60m for
+    # strictly more work. It was never achievable.
+    # ★ AND IT OWNED THE OPERATOR'S ONLY "DONE" MESSAGE. Because the Telegram ping was the LAST
+    #   instruction in a prompt that never reached its end, the operator has never once been told by
+    #   this pipeline that his report was ready. A notification that depends on an LLM finishing a
+    #   long narrative task is not a notification; it is a lottery ticket.
+    #   The ping now fires DETERMINISTICALLY from serial_runner.py after the tail — file exists, size,
+    #   section count — and this phase is purely a written judgement it can no longer suppress.
+    dict(key="final", artifact=f"{SEC}/final_check.txt", deps=["rev2"], timeout_s=3600, prompt=PRE +
+         f"FINAL CHECK — the wake-up standard. ★ DO NOT RE-DERIVE THE GRADE: read {SEC}/proofread.json, "
+         f"which already scored MISSION / READS-WELL / THOROUGH / MAKES-SENSE this run. Your job is to "
+         f"confirm its open questions were CLOSED by rev2 and that no stale prior-week content survived — "
+         f"spot-check, do not re-read end to end. Verify weekly_<date>.html exists and report its size and "
+         f"section count. ⚠ Do NOT re-render and do NOT attempt to fix gaps yourself: rev2 is the revision "
+         f"pass and a second editor at this stage has twice cost the whole phase its budget. If a MATERIAL "
+         f"gap remains, NAME IT in your summary and leave it — a named gap is worth more than a missed "
+         f"deadline. ⚠ Do NOT send Telegram; serial_runner pings the operator itself. Write a one-page "
          f"summary of the final state to {SEC}/final_check.txt."),
 ]
 

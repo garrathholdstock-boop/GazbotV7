@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAZBOT V7 — Greenfield Lab: the 60 runs we sat out (2026-08-29)</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1b1a17; --ink2:#4a4842; --ink3:#7a776e;
+  --line:#e2ded4; --line2:#efece4;
+  --green:#1f7a4d; --greenbg:#e8f5ee;
+  --red:#a8322a; --redbg:#fbeceb;
+  --amber:#8a6100; --amberbg:#fdf3de;
+  --blue:#1d5c8f; --bluebg:#e9f1f8;
+  --grey:#5c5a53; --greybg:#eeece6;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:34px 26px 90px}
+header.top{border-bottom:3px solid var(--ink);padding-bottom:20px;margin-bottom:34px}
+header.top .kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+header.top h1{font-size:34px;line-height:1.18;margin:10px 0 8px;letter-spacing:-.015em}
+header.top .sub{color:var(--ink2);font-size:15px;margin:0}
+header.top .meta{color:var(--ink3);font-size:13px;margin-top:12px}
+
+h2{font-size:23px;letter-spacing:-.01em;margin:52px 0 6px;padding-top:18px;border-top:2px solid var(--ink);display:flex;align-items:baseline;gap:12px}
+h2 span.n{font-size:13px;font-weight:800;color:#fff;background:var(--ink);padding:3px 9px;border-radius:3px;letter-spacing:.06em;flex:none;position:relative;top:-3px}
+h3{font-size:17px;margin:26px 0 8px;letter-spacing:-.005em}
+h4{font-size:14.5px;margin:20px 0 6px;color:var(--ink2);text-transform:uppercase;letter-spacing:.07em}
+p{margin:0 0 13px}
+p.lead{font-size:18.5px;line-height:1.55;color:var(--ink);margin:14px 0 20px}
+p.note{font-size:13.5px;color:var(--ink3);margin-top:-4px}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:7px}
+strong{font-weight:700}
+em{font-style:italic}
+code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--line2);padding:1px 5px;border-radius:3px}
+pre{background:#faf8f3;border:1px solid var(--line);border-left:3px solid var(--ink3);padding:14px 16px;overflow-x:auto;font:12.5px/1.62 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border-radius:4px;margin:0 0 16px}
+
+div.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px 22px 18px;margin:18px 0}
+div.card>h3{margin-top:0}
+div.card.hl{border-left:4px solid var(--ink)}
+
+div.callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:5px;padding:15px 18px;margin:18px 0}
+div.callout>div.ct{font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);margin-bottom:7px}
+div.callout.bad{border-left-color:var(--red)} div.callout.bad>div.ct{color:var(--red)}
+div.callout.good{border-left-color:var(--green)} div.callout.good>div.ct{color:var(--green)}
+div.callout.info{border-left-color:var(--blue)} div.callout.info>div.ct{color:var(--blue)}
+div.callout p:last-child{margin-bottom:0}
+
+table{width:100%;border-collapse:collapse;margin:14px 0 18px;font-size:13.5px;background:var(--panel)}
+caption{caption-side:top;text-align:left;font-size:13px;color:var(--ink3);padding-bottom:7px;font-weight:600}
+th{text-align:left;font-size:11.5px;letter-spacing:.055em;text-transform:uppercase;color:var(--ink2);
+   border-bottom:2px solid var(--ink);padding:8px 10px;font-weight:800;vertical-align:bottom}
+td{border-bottom:1px solid var(--line2);padding:7px 10px;vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.num{text-align:right}
+td.ln{color:var(--ink2);font-size:13px}
+tbody tr:last-child td{border-bottom:1px solid var(--line)}
+tr.row-hl td{background:var(--greenbg);font-weight:600}
+tr.row-bad td{background:var(--redbg)}
+tr.row-tot td{border-top:2px solid var(--ink);font-weight:800;background:#faf8f3}
+
+span.tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  padding:3px 8px;border-radius:3px;white-space:nowrap;vertical-align:2px}
+span.tag.live{background:var(--greenbg);color:var(--green);border:1px solid #b9dfca}
+span.tag.shadow{background:var(--bluebg);color:var(--blue);border:1px solid #bcd6e9}
+span.tag.parked{background:var(--amberbg);color:var(--amber);border:1px solid #ecd9a8}
+span.tag.refuted{background:var(--redbg);color:var(--red);border:1px solid #eec4c0}
+span.tag.null{background:var(--greybg);color:var(--grey);border:1px solid #d8d5cc}
+span.tag.build{background:#f0eafa;color:#5b3a97;border:1px solid #d6c9ee}
+span.tag.fixed{background:var(--greenbg);color:var(--green);border:1px solid #b9dfca}
+
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:18px 0 22px}
+.kpi div{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:13px 14px}
+.kpi .k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.kpi .v{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.kpi div.g .v{color:var(--green)} .kpi div.r .v{color:var(--red)} .kpi div.a .v{color:var(--amber)}
+
+.sig{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink3)}
+@media (max-width:720px){
+  .wrap{padding:22px 14px 60px} header.top h1{font-size:26px}
+  table{font-size:12.5px} td,th{padding:6px 6px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="kicker">GAZBOT V7 · Greenfield Laboratory · standalone report</div>
+  <h1>Sixty runs walked past this desk this week.<br>How do we take some of that money?</h1>
+  <p class="sub">Commissioned by the operator on 2026-08-15: <em>“do a special greenfields report on reports page.”</em>
+     This is not a section of the Friday report. It is its own page, and it answers one question for a reader
+     who has seen none of the working.</p>
+  <div class="meta">Written 2026-08-29 · MNQ $2.00/point &amp; MGC $10.00/point · <strong>$1.50 per round trip</strong> ·
+     sources: the seven <code>gf_full_*</code> / <code>gf_*</code> labs written this weekend · every number below comes from those labs</div>
+</header>
+
+<h2><span class="n">1</span> THE MONEY</h2>
+
+<p class="lead">The census counted the big moves and asked one thing of each: <em>did we show up?</em>
+Sixty-eight runs of at least 1.5× the typical fifteen-minute range. We were on <strong>eight</strong> of them,
+worth <strong>$1,198</strong> of ceiling. We sat out <strong>sixty</strong>, worth <strong>$8,025</strong>.
+That $8,025 is the whole reason this page exists.</p>
+
+<table>
+  <caption>The frame, as commissioned — sat-out runs by cause-cluster, 1-lot hindsight ceiling</caption>
+  <thead><tr><th>Cluster</th><th class="num">Runs sat out</th><th class="num">Ceiling $</th><th class="num">Share of the money</th><th>What the label means</th></tr></thead>
+  <tbody>
+    <tr class="row-hl"><td><strong>UNCLASS</strong></td><td class="num">34</td><td class="num">$4,097</td><td class="num">51%</td><td class="ln">The <em>else</em> clause. Nothing in the tape looked unusual, so the census had no name for it.</td></tr>
+    <tr><td>OPEN/NEWS</td><td class="num">16</td><td class="num">$2,814</td><td class="num">35%</td><td class="ln">The 13:00–15:00Z US cash-open window, minus a flow event, minus a vol expansion.</td></tr>
+    <tr><td>VACUUM</td><td class="num">8</td><td class="num">$928</td><td class="num">12%</td><td class="ln">Aggressor flow was unusual and pointed the <em>opposite</em> way to the move.</td></tr>
+    <tr><td>FLOW-LED</td><td class="num">2</td><td class="num">$186</td><td class="num">2%</td><td class="ln">Aggressor flow was unusual and <em>agreed</em> with the move.</td></tr>
+    <tr class="row-tot"><td>SAT OUT</td><td class="num">60</td><td class="num">$8,025</td><td class="num">100%</td><td class="ln">Money on the table</td></tr>
+  </tbody>
+</table>
+
+<p><strong>UNCLASS is the biggest bucket, and until this weekend it had never been hunted at all.</strong>
+Not because anybody decided to skip it — because our own classifier could not name it. UNCLASS is the
+fall-through branch of a four-branch waterfall: if the flow test finds nothing, and the amplitude test
+finds nothing, and the clock is not the US open, the run lands in UNCLASS. Half the money on this page
+sat in a bucket whose only definition is <em>“we ran our two instruments over it and neither one lit up.”</em>
+This weekend is the first time anyone has taken a run at it, and §4 has the result.</p>
+
+<div class="callout bad">
+  <div class="ct">⚠ Read this before you trust a single figure on this page — there are THREE censuses</div>
+  <p>The frame above is the one I was commissioned with, and it is internally consistent
+  (34+16+8+2 = 60 runs; $4,097+$2,814+$928+$186 = $8,025). It is <strong>not</strong> the census the labs
+  actually scored against, and the labs caught this themselves rather than quietly papering over it.
+  Three different snapshots exist:</p>
+</div>
+
+<table>
+  <caption>The three census cuts, and which one each number on this page is scored against</caption>
+  <thead><tr><th>Snapshot</th><th>Window</th><th class="num">Runs</th><th class="num">Sat out</th><th class="num">Sat-out ceiling</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><strong>The brief</strong></td><td class="ln">an earlier week</td><td class="num">68</td><td class="num">60</td><td class="num">$8,025</td><td class="ln">The framing above. Correct in shape, superseded in detail.</td></tr>
+    <tr class="row-hl"><td><strong>The labs’ anchor</strong></td><td class="ln">2026-08-17 00:00 → 08-21 20:59 UTC</td><td class="num">68</td><td class="num">62</td><td class="num">$9,610</td><td class="ln"><strong>Every number in §3–§5 is scored against this.</strong> RIDER_ALL and UNCLASS each re-derived it and matched the frozen file 68/68 on time, direction and move.</td></tr>
+    <tr><td>The file on disk now</td><td class="ln">2026-08-23 22:00 → 08-28 20:59 UTC</td><td class="num">65</td><td class="num">62</td><td class="num">$10,278</td><td class="ln">The census has since been <strong>re-run for the current week and has overwritten the labs’ snapshot</strong>. 2 caught ($1,052 real), 1 fought, 62 sat out.</td></tr>
+  </tbody>
+</table>
+
+<p>The three agree on the thing that matters — <strong>we sit out about sixty big moves a week and they are
+worth eight to ten thousand dollars of hindsight ceiling</strong> — and they disagree on the third digit.
+I have kept the commissioned frame as the way in because that is the question I was asked, and then scored
+every piece of working against the labs’ own frozen anchor, exactly as the labs did. The VACUUM lab used a
+slightly wider window again (08-16 → 08-21: 70 runs, 65 sat out, $9,986); its cluster numbers are quoted
+on that cut and flagged where they appear.</p>
+
+<h3>Now the part that changes what the money is worth</h3>
+
+<p>The $9,610 is a <strong>hindsight</strong> number. It measures each run close-to-close, from a starting
+point you can only identify after the move has happened. Nothing that enters <em>after</em> a move has
+proven itself can collect it. So the first honest job was to price what a run-catcher could reach even if
+it cheated on the exit.</p>
+
+<table>
+  <caption>The honest ceiling — RIDER_ALL §8, scored against the $9,610 sat-out ceiling</caption>
+  <thead><tr><th>What</th><th class="num">$</th><th class="num">% of $9,610</th></tr></thead>
+  <tbody>
+    <tr class="row-hl"><td><strong>ORACLE — a perfect late boarder.</strong> Fires inside 62 of 62 sat-out runs at a median 3 minutes late, then exits at the <em>exact</em> top of the move. No costs. Cheats.</td><td class="num"><strong>$5,094</strong></td><td class="num"><strong>53%</strong></td></tr>
+    <tr><td>ORACLE — same, but with a detector you would actually deploy (W=10, k=1.5, ER≥0.50)</td><td class="num">$2,286</td><td class="num">24%</td></tr>
+    <tr><td>ORACLE — with the candidate rider’s own trigger (W=10, k=2.5, ER≥0.50)</td><td class="num">$1,910</td><td class="num">20%</td></tr>
+    <tr class="row-bad"><td><strong>CAUSAL — the candidate rider, one position at a time, run over the census week itself</strong></td><td class="num"><strong>−$245</strong></td><td class="num"><strong>−3%</strong></td></tr>
+    <tr><td>CAUSAL — same rider, whole 5s lake, scaled to a 5-session week (<em>in-sample only</em>)</td><td class="num">+$433/wk</td><td class="num">in-sample</td></tr>
+    <tr class="row-bad"><td><strong>CAUSAL — same rider, corrected by the 236-session out-of-sample leg</strong></td><td class="num"><strong>≈ $0/wk</strong></td><td class="num"><strong>0%</strong></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Thirteen per cent of the runs are finished before any honest trigger can see them.</strong>
+By the time even the fastest detector fires, there is nothing left. Those runs are not catchable by
+anything that boards; only by something that predicts — and predicting run starts is already a banked
+null on 22.6 million ticks.</p>
+
+<div class="callout info">
+  <div class="ct">What a realistic capture rate is worth per week</div>
+  <p><strong>Today: zero.</strong> Not “small”. Zero. The rider that participated in 32 of the 62 sat-out
+  runs — half of them — lost $245 on the census week and measured <strong>+$14 across 1,289 trades on
+  236 untouched sessions</strong>. That is the honest weekly number and I am not going to dress it up.</p>
+  <p><strong>The ceiling worth building toward is about $2,000 a week, not $9,610.</strong> A deployable
+  detector reaches $1,910–$2,286 of oracle. If a future selector converted a genuinely good third of that
+  — which nothing on this page has yet done — you would be looking at roughly <strong>$600–$750 a week</strong>,
+  before the round trip. Every conversation about this money should start from those numbers, not from the
+  census headline.</p>
+</div>
+
+<h2><span class="n">2</span> THE VERDICT, UP FRONT</h2>
+
+<p class="lead"><strong>No. We did not find a way to ride them.</strong> Not one candidate out of roughly
+forty, across seven separate hunts, survives to a live promotion — and only two survive to shadow. But the
+week is not a null, because it answered <em>why</em>, and the answer is precise and it is not what we
+assumed. <strong>Detection is solved.</strong> A dumb five-minute boarding trigger gets inside <em>62 of
+the 62</em> runs we sat out, at a median three minutes late, with a median 41 points and 63% of the move
+still in front of it. We can see them. We can get on them. What kills us is <strong>selection</strong>:
+that same trigger fires about 34 times a day, roughly one fire in twenty becomes a run, and the rider is
+risking a 33–48 point stop to collect a median 12–41 points. The arithmetic never closes. Every wide-exit
+variant, every causal filter, every cluster-specific gate and every book read we tried is an attempt to
+fix that ratio, and none of them did — the ATR band that looked like the answer turns out to
+<em>concentrate</em> the same money into a quarter of the trades rather than find any, worth <strong>+$368
+in total</strong> on the bottom line. The one instrument that would break it — something that says at the
+board moment <em>“given this volatility, is this a 3-ATR move or a 12-ATR one?”</em> — does not exist on
+this desk, and every board-time read we own correlates with a run’s eventual size in ATR units at
+<strong>r ≤ 0.13</strong>. That is a missing instrument, not a failed strategy, and building it is the
+next attempt. Two things do go forward to shadow, both of them instrumented questions rather than
+money-makers, and one live arm gets <strong>retired</strong>: <code>rider_w5</code>, shipped off last
+week’s version of this same work at a quoted +$19.29 a trade, has taken 51 forward trades since 08-17 for
+<strong>−$1,471, or −$28.84 a trade</strong>, and nobody had graded it until now.</p>
+
+<div class="kpi">
+  <div><div class="k">Runs we sat out</div><div class="v">62</div><div class="d">of 68, worth $9,610</div></div>
+  <div class="g"><div class="k">Boarding trigger catches</div><div class="v">62/62</div><div class="d">median 3 min late, 41pt left</div></div>
+  <div class="r"><div class="k">Best rider, out of sample</div><div class="v">+$14</div><div class="d">1,289 trades · 236 sessions</div></div>
+  <div class="r"><div class="k">Live arm we shipped last week</div><div class="v">−$1,471</div><div class="d">51 trades · −$28.84/tr</div></div>
+  <div class="a"><div class="k">Candidates promoted LIVE</div><div class="v">0</div><div class="d">2 to shadow, thin n</div></div>
+</div>
+
+<h2><span class="n">3</span> THE RIDER — the pooled, direction-agnostic run-catcher</h2>
+
+<p class="lead">The instruction was to stop trying to <em>predict</em> a run and instead <em>board</em> it
+after it has proven itself, then measure what is left. One rule, both directions, all clusters, all
+sessions — a pooled run-catcher that does not care <em>why</em> the tape is moving. This is the piece
+that matters most, so it gets the full working: the spec, how late we board and what remains, the exit
+swept wider than this desk has ever run one, the causal filter and its placebos, the test that killed it,
+and the router rule that would keep the survivor dark until conditions are ripe.</p>
+
+<div class="card hl">
+  <h3>The mechanical spec — <code>RIDER_ALL / board_atrband</code></h3>
+  <p class="note">Sampled at each completed one-minute bar. Everything here is causal — known before the trade.</p>
+<pre>ATR20      = mean 1-min (high − low) over the last 20 minutes
+             ★ this is the exact number the live router already prints, so it is deployable as written
+
+FIRE  when  11 ≤ ATR20 &lt; 16                       (a BAND — both edges carry weight)
+      AND   |net move over 10 min| ≥ 2.5 × ATR20   (the move has proven itself)
+      AND   ER(10 min) ≥ 0.50                      (it got there in a straight line)
+
+DIRECTION  = sign of the 10-minute move            (no view, no prediction, no classification)
+STOP       = 3.0 × ATR20
+TARGET     = 6.0 × ATR20
+TIME CAP   = flat at 240 minutes
+LOCKOUT    = 60 minutes between fires
+COSTS      = $2.00/point, $1.50 per round trip</pre>
+</div>
+
+<h3>Step one — the board-late curve. At what point could we have known, and what was left?</h3>
+
+<p>“What was left” is measured to the run’s own terminus — the furthest the move got before giving back
+a full ATR — with no costs and no stop. It is a pure oracle: the most any rider could have taken, not
+what one would take.</p>
+
+<table>
+  <caption>The boarding curve across the 62 sat-out runs — RIDER_ALL §1</caption>
+  <thead><tr><th>Detector</th><th class="num">Fires in</th><th class="num">Min late (p25/<strong>med</strong>/p75/p90)</th><th class="num">Points LEFT (p25/<strong>med</strong>/p75/p90)</th><th class="num">% move ahead</th><th class="num">Nothing left</th><th class="num">≥50pt left</th><th class="num">Oracle $</th><th class="num">% of $9,610</th></tr></thead>
+  <tbody>
+    <tr class="row-hl"><td><strong>W=5, k=1.0, ER≥0.40</strong></td><td class="num"><strong>62 / 62</strong></td><td class="num">2 / <strong>3</strong> / 4 / 7</td><td class="num">+24 / <strong>+41</strong> / +57 / +78</td><td class="num"><strong>63%</strong></td><td class="num">13%</td><td class="num">40%</td><td class="num"><strong>$5,094</strong></td><td class="num"><strong>53%</strong></td></tr>
+    <tr><td>W=5, k=1.5, ER≥0.40</td><td class="num">61 / 62</td><td class="num">— / <strong>4</strong> / — / —</td><td class="num">— / <strong>+37</strong> / — / —</td><td class="num">55%</td><td class="num">11%</td><td class="num">34%</td><td class="num">$4,514</td><td class="num">47%</td></tr>
+    <tr><td>W=8, k=1.0, ER≥0.40</td><td class="num">62 / 62</td><td class="num">— / <strong>5</strong> / — / —</td><td class="num">— / <strong>+35</strong> / — / —</td><td class="num">52%</td><td class="num">18%</td><td class="num">29%</td><td class="num">$4,135</td><td class="num">43%</td></tr>
+    <tr><td>W=10, k=1.5, ER≥0.50</td><td class="num">60 / 62</td><td class="num">6 / <strong>8</strong> / 9 / 13</td><td class="num">+2 / <strong>+20</strong> / +38 / +63</td><td class="num">33%</td><td class="num">22%</td><td class="num">17%</td><td class="num">$2,286</td><td class="num">24%</td></tr>
+    <tr><td>W=10, k=2.5, ER≥0.50</td><td class="num">60 / 62</td><td class="num">6 / <strong>8</strong> / 10 / 14</td><td class="num">+0 / <strong>+12</strong> / +33 / +63</td><td class="num">18%</td><td class="num">27%</td><td class="num">15%</td><td class="num">$1,910</td><td class="num">20%</td></tr>
+  </tbody>
+</table>
+
+<div class="callout good">
+  <div class="ct">★ Read the top row properly — it is the most encouraging number on this page, and it is still not enough</div>
+  <p>A five-minute confirmation catches <strong>every one</strong> of the 62 runs we sat out, and catches
+  them fast: three minutes in at the median, ten minutes at the very worst. At that moment the median run
+  still has <strong>41 points and 63% of its move</strong> in front of it. <strong>Detection latency, on
+  this trigger, is simply not the problem.</strong></p>
+  <p>That directly contradicts the prior this desk has been carrying. The detection-latency finding we
+  have quoted all month — median 119 points already moved, 16 points left, 12% capture — was measured on a
+  <strong>30-minute</strong> window with net ≥ 80 and ER ≥ 0.35. That is a much heavier confirmation and it
+  buys a much later seat. Shortening the window from 30 minutes to 5 moves the median from “16 points left”
+  to “41 points left”. <strong>The latency was a property of the instrument we were measuring with, not of
+  the tape.</strong></p>
+</div>
+
+<p>And the thing that table does not show, which is the whole problem: <strong>the same W=5 / k=1.0 trigger
+fires 34 times a day.</strong> Over the 35-day lake it produces 1,180 boards, of which about 60 a month are
+these runs. The other 96% are ordinary tape.</p>
+
+<h3>Step two — the exit, swept wide</h3>
+
+<p>Three separate results this week said a tight exit gets shaken out of a grind while the same entries
+with a wide stop and a far target make money. So the exit was swept <em>before</em> concluding anything
+about the entry. Entry set held fixed (W=8, k=1.5, ER≥0.50, 60-minute lockout, 1,034 boards) so every
+cell differs in the exit and nothing else.</p>
+
+<table>
+  <caption>Stop × target, net $ over the 35-day 5s lake, 1 lot, $1.50/RT — RIDER_ALL §2</caption>
+  <thead><tr><th>stop ↓ / target →</th><th class="num">1.0</th><th class="num">1.5</th><th class="num">2.0</th><th class="num">3.0</th><th class="num">4.0</th><th class="num">6.0</th><th class="num">8.0</th><th class="num">hold to cap</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1.0×ATR</strong></td><td class="num">−2,449</td><td class="num">−2,783</td><td class="num">−2,492</td><td class="num">−1,886</td><td class="num">−1,662</td><td class="num">−2,634</td><td class="num">−4,277</td><td class="num">−2,428</td></tr>
+    <tr><td><strong>1.5×ATR</strong></td><td class="num">−2,320</td><td class="num">−3,050</td><td class="num">−2,550</td><td class="num">−783</td><td class="num">−1,052</td><td class="num">−1,914</td><td class="num">−3,302</td><td class="num">−5,722</td></tr>
+    <tr><td><strong>2.0×ATR</strong></td><td class="num">−1,361</td><td class="num">−1,489</td><td class="num">−767</td><td class="num">+449</td><td class="num">+895</td><td class="num"><strong>+1,725</strong></td><td class="num">+702</td><td class="num">−90</td></tr>
+    <tr><td><strong>2.5×ATR</strong></td><td class="num">−996</td><td class="num">−665</td><td class="num">−639</td><td class="num">−865</td><td class="num">+319</td><td class="num"><strong>+2,684</strong></td><td class="num">+1,345</td><td class="num">−1,138</td></tr>
+    <tr><td><strong>3.0×ATR</strong></td><td class="num">+104</td><td class="num">+432</td><td class="num">+53</td><td class="num">−1,249</td><td class="num">−814</td><td class="num"><strong>+2,133</strong></td><td class="num">+1,319</td><td class="num">−1,042</td></tr>
+    <tr class="row-hl"><td><strong>4.0×ATR</strong></td><td class="num">+376</td><td class="num">+1,127</td><td class="num">+1,344</td><td class="num">−1,792</td><td class="num">−318</td><td class="num"><strong>+3,484</strong></td><td class="num"><strong>+3,495</strong></td><td class="num">−964</td></tr>
+    <tr><td><strong>6.0×ATR</strong></td><td class="num">−303</td><td class="num">+1,360</td><td class="num">+1,421</td><td class="num">−1,595</td><td class="num">−1,504</td><td class="num">+1,328</td><td class="num">+1,355</td><td class="num">−1,556</td></tr>
+  </tbody>
+</table>
+
+<p><strong>On the surface the wide-exit thesis is confirmed.</strong> The live-desk-shaped exit (1.5 stop,
+3.0 target) loses $783. Widen the stop to 4×ATR and push the target to 6–8× and the same entries make
++$3,484 to +$3,495 — a swing of over $4,200 on identical boards, purely on the exit.</p>
+
+<p><strong>But look at the surface, not the best cell.</strong> At a 4.0× stop, target 3.0 loses $1,792,
+target 4.0 loses $318, and target 6.0 makes $3,484. A real edge does not do that. That is not a plateau,
+it is a lottery, and it is the first sign that a handful of trades are carrying everything.</p>
+
+<div class="callout bad">
+  <div class="ct">☠ The grave that matters most — a backtest bug that manufactured a winner</div>
+  <p>The chandelier family — wide stop, trail armed after N×ATR, give back k×ATR from the peak — came out
+  of this sweep looking like the answer. It was the <em>only</em> exit family positive in nearly every
+  regime cell across two different entry definitions, and <code>chand_2.5_a1.5_t1.5</code> survived
+  everything: +$4,270 net, +$4.58 a trade, 60% win, strip-best-3 still +$3,115,
+  <strong>strip-best-10 still +$1,098</strong>, day-green 61%, worst day −$631.</p>
+  <p>It was wrong. <strong>The trail was testing the bar’s HIGH against the running peak instead of its
+  LOW.</strong> A 5s bar that printed a new high and then collapsed registered a give-back of exactly zero,
+  so the trail never fired inside the bar that actually broke it — it exited later, at prices that never
+  traded. The peak was also read <em>including</em> the current bar, a second look-ahead on top of the first.</p>
+  <p><strong>The tell was there before it was found, and it is worth naming so we catch the next one
+  faster: the random-entry placebo.</strong> Firing at completely random minutes in a random direction with
+  that same chandelier made <strong>+$1,542 on average</strong>, and the “real” rider’s +$4,270 sat at
+  p = 0.115 against that null. A random entry should not make money. <strong>When your null hypothesis
+  starts printing, the bug is in the machinery, not in the market.</strong></p>
+</div>
+
+<table>
+  <caption>Every chandelier variant, before and after the fix — RIDER_ALL §2</caption>
+  <thead><tr><th>Exit</th><th>Entry set</th><th class="num">BEFORE the fix</th><th class="num">AFTER the fix</th></tr></thead>
+  <tbody>
+    <tr class="row-bad"><td>chand 2.5 / arm 1.5 / trail 1.5</td><td class="ln">W=10 k2.0</td><td class="num">+$4,270 <span class="ln">(strip-10 +$1,098)</span></td><td class="num"><strong>−$631</strong> <span class="ln">(strip-10 −$3,339)</span></td></tr>
+    <tr class="row-bad"><td>chand 3.0 / arm 2 / trail 2</td><td class="ln">W=10 k2.0</td><td class="num">+$4,126 <span class="ln">(strip-10 −$331)</span></td><td class="num"><strong>−$820</strong> <span class="ln">(strip-10 −$4,491)</span></td></tr>
+    <tr class="row-bad"><td>chand 3.0 / arm 2 / trail 2</td><td class="ln">W=8 k1.5</td><td class="num">+$3,026</td><td class="num"><strong>−$1,471</strong></td></tr>
+    <tr class="row-bad"><td>chand 4.0 / arm 2 / trail 3</td><td class="ln">W=8 k1.5</td><td class="num">+$5,247 <span class="ln">(strip-10 −$736)</span></td><td class="num"><strong>−$872</strong> <span class="ln">(strip-10 −$6,748)</span></td></tr>
+    <tr class="row-bad"><td>chand 3.0 / arm 3 / trail 2</td><td class="ln">W=5 k1.0</td><td class="num">+$6</td><td class="num"><strong>−$4,728</strong></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Every single one flipped. Not one chandelier configuration in the study is positive with a
+correct trail.</strong> Cause of death: a backtest bug, self-inflicted, caught by the placebo control.
+Everything downstream uses the fixed simulator.</p>
+
+<h3>The honest sweep — every cell judged, not just the best one</h3>
+
+<p>Cherry-picking the best cell out of a grid is how a desk convinces itself. So the full grid was run —
+5 entry windows × 6 thresholds × 4 ER floors × 2 lockouts × 8 exits = <strong>1,824 scored cells</strong>
+— and the <em>same</em> battery put on every one: net &gt; 0, strip-best-3 &gt; 0, strip-best-10 &gt; 0,
+and <strong>both halves of the tape positive</strong>, with n ≥ 60.</p>
+
+<table>
+  <caption>The blanket sweep base rate — RIDER_ALL §2</caption>
+  <thead><tr><th>Bar</th><th class="num">Cells passing</th><th class="num">Share</th></tr></thead>
+  <tbody>
+    <tr><td>net &gt; 0</td><td class="num">423 / 1,824</td><td class="num">23.2%</td></tr>
+    <tr><td>second half of the tape &gt; 0</td><td class="num"><strong>36 / 1,824</strong></td><td class="num"><strong>2.0%</strong></td></tr>
+    <tr class="row-bad"><td>net <strong>and</strong> strip-3 <strong>and</strong> strip-10 <strong>and</strong> both halves</td><td class="num"><strong>5 / 1,824</strong></td><td class="num"><strong>0.3%</strong></td></tr>
+  </tbody>
+</table>
+
+<p>Two per cent of the entire configuration space makes money in the second half. If the edge were real and
+broad you would expect most of the 423 profitable cells to also be profitable in the back half; instead 423
+shrinks to 36. <strong>With a 2% base rate you would expect about 8 of the 423 to clear the full bar by luck
+alone. Five did.</strong> The five “survivors” of the blanket sweep are exactly what chance hands you, and
+quoting any one of them would be a lie of selection.</p>
+
+<h4>But the halves test is confounded, and that was checked</h4>
+
+<table>
+  <caption>What the two halves actually are</caption>
+  <thead><tr><th>Half</th><th>Dates</th><th class="num">Sessions</th><th class="num">ATR20 median</th><th class="num">Mean daily range</th><th class="num">|15-min move| p90</th><th class="num">ER30 median</th></tr></thead>
+  <tbody>
+    <tr><td>first</td><td class="ln">07-16 → 08-04</td><td class="num">14</td><td class="num"><strong>13.9pt</strong></td><td class="num"><strong>709pt</strong></td><td class="num">67.1pt</td><td class="num">0.172</td></tr>
+    <tr><td>second</td><td class="ln">08-05 → 08-24</td><td class="num">14</td><td class="num"><strong>9.3pt</strong></td><td class="num"><strong>398pt</strong></td><td class="num">44.4pt</td><td class="num">0.156</td></tr>
+  </tbody>
+</table>
+
+<p>The second half is a <strong>33% quieter tape by ATR and 44% quieter by daily range</strong>. So “it
+stopped working in half two” and “it stops working when volatility halves” are the same sentence, and the
+blanket halves test cannot tell them apart. That is exactly the failure mode our own backtest discipline
+warns about — a blanket cross-tape number averages the regimes a config should be ON with those it should
+be OFF. So the next step split by regime first.</p>
+
+<!--PART3B-->
+
+
+</div>
+</body>
+</html>

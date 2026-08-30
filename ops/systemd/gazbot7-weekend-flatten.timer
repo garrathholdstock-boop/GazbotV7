@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — weekend-carry flatten: every minute across the Sunday 22:00Z reopen
+# Retries for a full hour because the failure being fixed was a gateway that would not answer;
+# a single shot at 22:00 would reproduce the original bug. The job self-disables once flat.
+
+[Timer]
+OnCalendar=Sun *-*-* 22:00:00 UTC
+OnCalendar=Sun *-*-* 22:*:00 UTC
+OnCalendar=Sun *-*-* 23:*:00 UTC
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

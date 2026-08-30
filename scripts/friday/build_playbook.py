@@ -28,9 +28,44 @@ CSS_CANDIDATES = [
     '/home/alphabot/alphabot2/alphabot/dashboard/static/weekly_2026-06-26.html',
 ]
 
-def esc(t): return html.escape('' if t is None else str(t))
+def esc(t): return _unescape_inline(html.escape('' if t is None else str(t)))
+
+
+# ★2026-08-22 — INLINE MARKUP SURVIVES THE ESCAPE.
+# This week's plays.json is the first to carry inline HTML in its prose (<code> around file
+# and field names, <strong> for the number that decides a row, &mdash; between clauses).
+# html.escape() rendered all of it as literal angle brackets: 69 visible "<code>...</code>"
+# strings on the operator's own action card and 36 on the Monday playbook. Escaping is still
+# the default — everything is escaped first — and only this fixed inline whitelist is put
+# back. No attributes, no block tags, nothing that can change the page's structure.
+_INLINE_OK = ("code", "strong", "em", "b", "i")
+
+
+def _unescape_inline(t: str) -> str:
+    for tag in _INLINE_OK:
+        t = t.replace("&lt;%s&gt;" % tag, "<%s>" % tag).replace("&lt;/%s&gt;" % tag, "</%s>" % tag)
+    for ent in ("mdash", "ndash", "middot", "rsquo", "lsquo", "ldquo", "rdquo", "times", "nbsp", "hellip", "ge", "le", "minus"):
+        t = t.replace("&amp;%s;" % ent, "&%s;" % ent)
+    return t
 
 VLABEL = {'verified': '✓ VERIFIED', 'bug': '🔧 REAL BUG', 'refuted': '⚠ REFUTED', 'exploratory': '◦ EXPLORATORY'}
+
+# The pill is the play's VERDICT. Since 2026-08-28 plays.json carries that in `tier`
+# (LIVE / SHADOW / PARKED / REFUTED, sometimes with a qualifier); `verification` now
+# holds the prose test that would confirm the play, which is not a pill and — because
+# it contains <code> and quotes — silently broke the class attribute when used as one.
+VLABEL.update({'live': '● LIVE', 'shadow': '◐ SHADOW', 'parked': '◦ PARKED'})
+_TIERS = ('refuted', 'parked', 'shadow', 'live')
+
+
+def verdict_id(p):
+    tier = (p.get('tier') or '').strip().lower()
+    for t in _TIERS:
+        if tier.startswith(t):
+            return t
+    legacy = (p.get('verification') or '').strip().lower()
+    return legacy if legacy in VLABEL else 'exploratory'
+
 
 # window key -> (heading, blurb). Order here is the order on the page.
 WINDOWS = [
@@ -71,8 +106,8 @@ def short_play(p):
 
 
 def card(p, pickable=True):
-    vid = p.get('verification', 'exploratory')
-    live_locked = vid in ('refuted', 'exploratory')
+    vid = verdict_id(p)
+    live_locked = vid in ('refuted', 'parked', 'exploratory')
     default = p.get('suggested_mode', 'skip')
     if live_locked and default == 'live': default = 'shadow'
     money = p.get('money_gbp', 0)
@@ -121,7 +156,7 @@ def summary_table(plays):
     for key, _h, _b in WINDOWS:
         grp = sorted([p for p in plays if p.get('window') == key], key=lambda p: p.get('rank', 99))
         for i, p in enumerate(grp):
-            vid = p.get('verification', 'exploratory')
+            vid = verdict_id(p)
             money = p.get('money_gbp', 0)
             first = ' pk-wfirst' if i == 0 else ''
             wcell = (f'<td class="pk-w pk-w-{key.lower().replace("-","")}" rowspan="{len(grp)}">{SHORT_W.get(key,key)}</td>'
@@ -162,6 +197,8 @@ PICKER_CSS = """<style>
 .pk-btn.alt{background:#0088cc;margin-left:8px}
 .pill.v-verified{background:#eafaf0;color:var(--pos)} .pill.v-bug{background:#e7edf5;color:var(--navy)}
 .pill.v-refuted{background:#fdecea;color:var(--neg)} .pill.v-exploratory{background:#f1f1f1;color:var(--ink2)}
+.pill.v-live{background:#eafaf0;color:var(--pos)} .pill.v-shadow{background:#fdf6e3;color:#8a6d1f}
+.pill.v-parked{background:#f1f1f1;color:var(--ink2)}
 .pk-note{font-size:12.5px;color:var(--ink2);font-style:italic;margin-top:3px}
 .pk-btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);margin-left:8px}
 .pk-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);background:var(--navy);color:#fff;

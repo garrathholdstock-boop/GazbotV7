@@ -78,7 +78,17 @@ def load_trades(symbol, t0, t1):
     """
     con = sqlite3.connect(f"file:{DESK}?mode=ro", uri=True)
     rows = con.execute(
-        "SELECT side, entry_price, exit_price, opened_at, closed_at, pnl_usd, gate, exit_reason "
+        # ★2026-08-26 REV3 — THE 08-22 "NET, not gross" CHANGE IS WITHDRAWN. It was backwards.
+        # `pnl_usd` is ALREADY net of fees: store.py:66 says so in the schema ("net of fees,
+        # venue truth"), pnl.py's docstring says so, and it is CHECKED, not assumed --
+        # `pnl_usd == (exit-entry)*dir*qty*mult - fees_usd` holds on 765 of 765 rows in the
+        # book. `pnl_usd - fees_usd` therefore charged the $1.50 round trip a SECOND time,
+        # which is what made these chart labels disagree with the tables beside them: the
+        # 08-20 rider day titled -$1,294.50 where the book says -$1,288.50, and the per-fill
+        # labels read -$295.00/-$269.50/-$730.00 against a booked -$293.50/-$268.00/-$727.00.
+        # One ruler, and it is the plain sum: pnl_usd.
+        "SELECT side, entry_price, exit_price, opened_at, closed_at, pnl_usd, "
+        "gate, exit_reason "
         "FROM trades WHERE symbol=? AND closed_at IS NOT NULL AND data_quality IS NULL "
         "ORDER BY opened_at", (symbol,)).fetchall()
     con.close()

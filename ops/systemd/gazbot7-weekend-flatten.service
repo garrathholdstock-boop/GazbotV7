@@ -1,0 +1,16 @@
+[Unit]
+Description=GAZBOT V7 — flatten the weekend carry at the Sunday CME reopen (one job, self-disabling)
+After=network-online.target alphabot-gateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Slice=gazbot7.slice
+User=alphabot
+Group=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/weekend_flatten.py
+TimeoutStartSec=120
+MemoryMax=300M
+OOMScoreAdjust=-500

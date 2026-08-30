@@ -21,8 +21,20 @@ from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 _PARIS = ZoneInfo("Europe/Paris")
-_PY = "/home/alphabot/alphabot2/.venv/bin/python"
-_SCRIPT = "/home/alphabot/alphabot2/scripts/notify_operator.py"
+# ★★★2026-08-20 THE ALARM CHAIN NOW LIVES IN gazbot7. It used to run the RETIRED alphabot2 tree's
+# python, its notify_operator.py and its .env — so deleting a tree CLAUDE.md calls "RETIRED" would
+# have silenced EVERY alert on this desk (reconcile breaches, naked positions, the peak watch) while
+# notify() kept returning True. The audit found it; this closes it.
+# The old paths remain as a FALLBACK, so this change cannot itself cause an outage: if the local
+# copy is missing we still deliver exactly as before.
+import sys as _sys
+
+_GB = "/home/alphabot/gazbot7"
+_PY = f"{_GB}/.venv/bin/python"
+_SCRIPT = f"{_GB}/scripts/notify_operator.py"
+_ENVFILE = f"{_GB}/data/.notify_env"          # TELEGRAM_TOKEN/CHAT, mode 600, gitignored
+_LEGACY_PY = "/home/alphabot/alphabot2/.venv/bin/python"
+_LEGACY_SCRIPT = "/home/alphabot/alphabot2/scripts/notify_operator.py"
 
 
 def in_quiet_hours(now: datetime) -> bool:
@@ -31,14 +43,66 @@ def in_quiet_hours(now: datetime) -> bool:
     return h >= 22 or h < 6
 
 
-def _subprocess_send(message: str) -> bool:
+def _load_env() -> dict:
+    """TELEGRAM_TOKEN/CHAT from our own file. Never raises — a missing file falls back to legacy.
+
+    ★★★2026-08-21 THIS SWALLOWED A TOTAL ALARM OUTAGE. The file was written mode 600 root:root
+    while EVERY desk service (day-rider, tournament, shadow, md, web) runs as `alphabot`. The open()
+    raised PermissionError, `except Exception: pass` ate it, and the sender then printed
+    "TELEGRAM_TOKEN/CHAT_ID not configured" and exited 1 — into a caller that returned True anyway.
+    Five services could not page for ~12 hours and NOTHING reported it. The rider crashed, the
+    account failed to reconcile and the kill switch fired; the operator found out by pressing a
+    button that did nothing.
+
+    ⚠ MISSING and UNREADABLE ARE DIFFERENT FAULTS. Missing is the documented legacy-fallback path.
+    Unreadable means the credentials are RIGHT THERE and we are the wrong user — always a
+    misconfiguration, never normal, so it is stated on stderr where the journal keeps it. Still
+    never raises: an alarm must not be able to abort the caller that is trying to alarm.
+    """
+    import os as _os
+    env = {}
+    if not _os.path.exists(_ENVFILE):
+        return env
     try:
-        # cwd=alphabot2 so notify_operator.py loads TELEGRAM_TOKEN/CHAT from its .env
-        subprocess.run([_PY, _SCRIPT, message], check=False, timeout=15,
-                       cwd="/home/alphabot/alphabot2")
-        return True
+        with open(_ENVFILE) as fh:
+            for line in fh:
+                if "=" in line and not line.strip().startswith("#"):
+                    k, _, v = line.strip().partition("=")
+                    env[k.strip()] = v.strip().strip('"').strip("'")
+    except Exception as exc:
+        print(f"NOTIFY: {_ENVFILE} exists but is UNREADABLE by uid {_os.getuid()} ({exc}) — "
+              f"alerts from this process WILL NOT DELIVER. Fix ownership.", file=_sys.stderr)
+    return env
+
+
+def _subprocess_send(message: str) -> bool:
+    """Deliver via OUR copy; fall back to the legacy tree so this change cannot cause an outage.
+
+    ★2026-08-21 RETURNS TRUE ONLY ON DELIVERY. It used to return True on DISPATCH without reading
+    the sender's returncode — so `notify()` reported success while the sender was exiting 1 for want
+    of credentials it could not read. "The alarm IS the mitigation" (operator, on credential expiry)
+    is only true if the alarm can tell you it failed. A non-zero sender now falls through to legacy,
+    and if nothing delivers this says so on stderr and returns False.
+    """
+    import os as _os
+    if _os.path.exists(_SCRIPT) and _os.path.exists(_PY):
+        try:
+            r = subprocess.run([_PY, _SCRIPT, message], check=False, timeout=15, cwd=_GB,
+                               env={**_os.environ, **_load_env()})
+            if r.returncode == 0:
+                return True
+            print(f"NOTIFY: primary sender exited {r.returncode} — trying legacy", file=_sys.stderr)
+        except Exception as exc:
+            print(f"NOTIFY: primary sender raised ({exc}) — trying legacy", file=_sys.stderr)
+    try:
+        r = subprocess.run([_LEGACY_PY, _LEGACY_SCRIPT, message], check=False, timeout=15,
+                           cwd="/home/alphabot/alphabot2")
+        if r.returncode == 0:
+            return True
     except Exception:
-        return False
+        pass
+    print(f"NOTIFY: ALERT NOT DELIVERED by any sender: {message[:120]!r}", file=_sys.stderr)
+    return False
 
 
 def notify(message: str, *, critical: bool = False, now: datetime | None = None, send=None) -> bool:

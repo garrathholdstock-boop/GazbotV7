@@ -2,7 +2,10 @@
 Description=Fire the GAZBOT V7 durable Friday report every Friday 22:07 UTC (box is UTC)
 
 [Timer]
-OnCalendar=Fri *-*-* 22:07:00
+# ★2026-08-29 22:07 -> 21:05. The CME halt is 21:00, so the desk is idle from then and the memory
+# drop-in is sized for exactly that. Starting 62 minutes earlier is the single cheapest source of
+# body budget there is: it needs no new hardware, risks nothing, and the desk cannot trade anyway.
+OnCalendar=Fri *-*-* 21:05:00
 Persistent=false
 AccuracySec=30s
 

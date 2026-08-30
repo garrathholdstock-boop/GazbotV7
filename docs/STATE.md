@@ -20,8 +20,8 @@
 
 | desk | unit | what it does | switch |
 |---|---|---|---|
-| **Tournament** | `gazbot7-tournament` (clientId 0) | the main book — 6 gates, multi-slot, dual-lot scale-out | `data/gate_switches.env` |
-| **Day Rider** | `gazbot7-day-rider.timer` (clientId 4) | ONE trade/day off the 13:30 cash open, ATR trail, hard flat 20:40Z | `data/day_rider.env` → **`day_rider=on`** |
+| **Tournament** | `gazbot7-tournament` (clientId 0) | ⛔ **STOOD DOWN 2026-08-20 — trades nothing.** All 6 gates OFF, HELD off at the reopen, router may bench but may NOT arm | `data/gate_switches.env` |
+| **Day Rider** | `gazbot7-day-rider.timer` (clientId 4) | ★ **THE ONLY DESK THAT TRADES.** ONE trade/day off the 13:30 cash open, **4 lots on a per-lot profit ladder**, **NO STOP**, hard flat 20:40Z | `data/day_rider.env` → **`day_rider=on`** |
 | **MGC Shadow** | `gazbot7-shadow-mgc` | gold, observe-only, own store `shadow_mgc.db` | n/a — touches nothing |
 
 ⚠ **THE ACCOUNT IS SHARED AND IBKR NETS BOTH DESKS INTO ONE NUMBER.** You cannot read your own
@@ -47,6 +47,9 @@ desk's job is therefore to give him PRESENCE and INFORMATION, not to replace the
 |---|---|---|
 | **peak watch** | `gazbot7-rider-peak-watch.service` | 1 Hz open P&L off `MD_STREAM` `tape`. URGENT at **+$200**, ping per **$50** new high, **give-back** $75 off the peak, **stall** at 3 min with no new high. Every message carries extension in ATR. ⚠ READ-ONLY — no order path, asserted by test |
 | **claim fast path** | `gazbot7-day-rider-claim.path` | the Claim button reaches the rider on the inotify write (**measured 0.02s**) instead of waiting for the `*:*:05` tick — which was **up to 60 SECONDS**. On 08-19 the tracked peak was 29458.75 and the claim filled 29470.75: 12pt = $48 |
+| **the profit ladder** | `day_rider.TARGET_USD_PER_LOT` | ★2026-08-20 **4 lots, each banking its own figure: $100 / $200 / $400 / $600 = $1,300** if all four fill (50/100/200/300pt at $2/pt per lot). Reach rates over 231 sessions: **77.5% / 58.0% / 29.4% / ~15%**, so ~$300 is the common case and lots 3-4 are HIS to work |
+| **five claim buttons** | `L1 L2 L3 L4` + `ALL` | one per lot plus flatten-all. ★ They are **ALSO KILL BUTTONS** — there is no stop, so they fire in profit or loss and the confirm dialog says so. The endpoint does not check P&L and must not. `ALL` is unchanged and remains the kill switch |
+| **NO STOP** | `day_rider.PLACE_VENUE_STOP=False` | ⚠ **The 20:40Z hard flat is now the ONLY automatic protection.** Operator: *"i dont want any stop. leave them all naked."* Backed by the desk's own research — the stop *"costs $3,451 of expectancy AND has a WORSE worst-day (−$1,603) than running naked (−$1,531)"*. **EXPOSURE:** median worst-adverse day 160pt = **−$1,284**; worst of 231 sessions 1,084pt = **−$8,672** |
 | **watch band** | `day_rider.WATCH_RT` | the entry notification says `rt 0.48 → WATCH — favourable band`, so he knows at 13:30 whether today is one of the ~26% the tape has historically paid |
 
 ⚠ **`PathModified`, NEVER `PathExists`.** `claim_requested()` documents an orphaned flag surviving up
@@ -66,10 +69,18 @@ is already what `ENTRY_CUTOFF_MIN` encodes (13:30Z cash open → 15:00Z).
 
 ## 2. GATES — 6 live, 3 long / 3 short
 
-Current `gate_switches.env` (⚠ router-owned, changes every 5 min — re-read it, never quote this):
+⛔ **2026-08-20 — ALL SIX GATES ARE OFF AND THE TOURNAMENT TRADES NOTHING.** Operator: *"the only
+thing that trades is day rider … turn all other gates off."*
 
-    grind_long=off   capitulation_long=on   abs_veto_long=off
-    rgv_short=off    exhaustion_short=on    abs_veto_short=on
+    grind_long=off   capitulation_long=off   abs_veto_long=off
+    rgv_short=off    exhaustion_short=off    abs_veto_short=off
+
+Held off by TWO mechanisms, because one is not enough: `reactivate_gates.HOLD` covers the **whole
+roster** (so the 22:00Z Paris-midnight reopen arms nothing) and `router_tick_durable.
+TOURNAMENT_STOOD_DOWN` drops any change to `on`. The router keeps **full bench authority** — it can
+still bench, it simply cannot arm. ⚠ NOT done with `PINNED`: a full-roster pin makes `valid`
+permanently empty, which is the silent no-op that ran 411 ticks unnoticed, and it trips the PIN
+ALARM every tick. **Revert:** `TOURNAMENT_STOOD_DOWN=False` + `HOLD=frozenset({"rgv_short"})`.
 
 - **`ER_FLOOR` is `{}`** — no gate has an ER floor. The deletion is pinned by `tests/test_deciders.py`.
 - **`ATR_FLOOR`** = `grind_long: 22.0`, `capitulation_long: 10.0`. `ER_CEIL` is `{}`.
@@ -129,7 +140,11 @@ MGC (`mgc_slate()`, n=3): `mgc_holebreak_fade_long/short` + `mgc_break_fade_nobo
 | `safety.own_flatten_verdict()` | every flatten is ownership-gated — the fix for the 08-06 shared-account cascade |
 | `day_rider.cancel_own_stops()` | on all five close paths, clientId-filtered so it can never cancel the tournament's stops |
 | `venue_first_ok()` | on every rider order path **except** the 20:40 hard flat (refusing to flatten because books disagree is worse than the bug) |
-| native venue stop | 600pt on the rider = insurance, not a trading decision |
+| ⛔ **NO rider stop** | **2026-08-20: `PLACE_VENUE_STOP=False`.** The 20:40Z hard flat is the ONLY automatic protection on the rider. Exposure: median worst-adverse day −$1,284, worst of 231 sessions −$8,672 |
+| **alarm chain** | ★2026-08-20 moved INTO gazbot7 (`scripts/notify_operator.py`, stdlib-only, `data/.notify_env` 600). It used to run the RETIRED `alphabot2` tree — deleting that tree would have silenced every page while `notify()` returned True. Legacy path kept as fallback |
+| ⚠ **kill-switches NOT enforced** | `max_daily_loss_usd` / `loss_streak_halt` live only in `core.py`, which has **never started**. `multislot_core` has zero references. `sweep` now says so out loud instead of printing "headroom OK". Both are 0 and the desk is PAPER — do not set one and believe it |
+| **cross-desk kill survives the reopen** | ★2026-08-20 `reactivate_gates` refuses while `desk_kill.json` is active, and FAILS CLOSED if it is unreadable. Previously the kill expired for the tournament at 22:00Z while the rider stayed frozen |
+| **watchdog blindness pages** | ★2026-08-20 the rider watchdog logged SKIP and exited 0 — 450 blind cycles, longest run 117 consecutive (3h54m) through the hard-flat window, nothing paged. Now pages at 5/30/120 |
 
 ⛔ **BY DECISION, NOT BY OMISSION (2026-08-16, DECISIONS §362):** on `drift` the tournament skips its
 ENTIRE safety block — max-hold, naked auditor, re-protect, stop-breach and the exit watchdog. The

@@ -451,7 +451,23 @@ def check_killswitch(cfg: RunConfig, store, core: dict, now: datetime) -> dict:
     if cfg.loss_streak_halt and streak >= cfg.loss_streak_halt:
         status = _worst(status, WARN)
         notes.append(f"loss streak {streak} >= {cfg.loss_streak_halt}")
-    detail = (f"day ${day_pnl} ({day_w}/{day_n}W), streak {streak} — headroom OK"
+    # ★★★2026-08-20 SAY WHETHER THE LIMITS ARE ENFORCED, NOT JUST WHETHER THEY ARE BREACHED.
+    # `max_daily_loss_usd` and `loss_streak_halt` are defined in config.py and implemented ONLY in
+    # core.py — a module that has NEVER STARTED. `multislot_core`, the desk that actually runs, has
+    # zero references to either. So this section printed "headroom OK" for limits that nothing on
+    # the box enforces. Harmless while both are 0 and the desk is PAPER; catastrophic the day a
+    # limit is set, believed, and silently not applied. Operator, 2026-08-20: do NOT turn them on
+    # for paper — so this reports the truth instead of implementing them.
+    _enforced = "max_daily_loss_usd" in open("/home/alphabot/gazbot7/src/gazbot7/multislot_core.py").read() \
+        if os.path.exists("/home/alphabot/gazbot7/src/gazbot7/multislot_core.py") else False
+    if not _enforced:
+        _limits = (f"limits NOT ENFORCED by the live desk "
+                   f"(max_daily_loss=${cfg.max_daily_loss_usd or 0:g}, "
+                   f"streak_halt={cfg.loss_streak_halt or 0}) — implemented only in core.py, "
+                   f"which never runs")
+    else:
+        _limits = "headroom OK"
+    detail = (f"day ${day_pnl} ({day_w}/{day_n}W), streak {streak} — {_limits}"
               if status == OK else "; ".join(notes))
     if dr_n:
         detail += f" | DAY-RIDER ${dr_pnl} ({dr_w}/{dr_n})"
@@ -905,6 +921,45 @@ def check_config_committed(repo: str = "/home/alphabot/gazbot7") -> dict:
                 "detail": f"config-committed check failed: {e}"}
 
 
+def check_alarm_chain(envfile: str | None = None) -> dict:
+    """CAN THE DESK ACTUALLY PAGE? Checked as the user the desk services actually run as.
+
+    ★★★2026-08-21 THE OUTAGE THIS EXISTS FOR. `data/.notify_env` was created mode 600 root:root.
+    Every desk service — day-rider, tournament, shadow, md, web — runs as `alphabot`, so all five
+    were unable to send a single alert for ~12 hours. The rider crashed mid-flatten, the account
+    stopped reconciling and the kill switch fired: all silent. Sweep was GREEN throughout, because
+    sweep had never checked the alarm chain — it is the desk's #1 failure mode, an instrument
+    reporting healthy about something it does not test, and the alarm chain was the one instrument
+    nothing was watching.
+
+    Ownership, not delivery: sending a message every sweep would page the operator 8x a day. The
+    fault mode that has actually bitten is READABILITY, and that is what this tests.
+    """
+    import pwd, stat
+    envfile = envfile or "/home/alphabot/gazbot7/data/.notify_env"
+    notes, status = [], "ok"
+    if not os.path.exists(envfile):
+        return {"status": "warn", "notes": [f"{envfile} MISSING — alerts fall back to the legacy "
+                                            f"alphabot2 tree, which is RETIRED"]}
+    st = os.stat(envfile)
+    for user in ("alphabot", "root"):
+        try:
+            uid = pwd.getpwnam(user).pw_uid
+        except KeyError:
+            continue
+        if uid == 0:
+            continue                       # root bypasses file permissions
+        ok = (st.st_uid == uid and st.st_mode & stat.S_IRUSR) or (st.st_mode & stat.S_IROTH)
+        if not ok:
+            status = "critical"
+            notes.append(f"{user} CANNOT read {envfile} (uid {st.st_uid} mode "
+                         f"{stat.S_IMODE(st.st_mode):o}) — every service running as {user} "
+                         f"is UNABLE TO PAGE. Total silent alarm outage.")
+    if not notes:
+        notes.append(f"credentials readable by the desk user (mode {stat.S_IMODE(st.st_mode):o})")
+    return {"status": status, "notes": notes}
+
+
 def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict:
     cfg = cfg or RunConfig()
     now = now or datetime.now(UTC)
@@ -927,6 +982,7 @@ def run_sweep(cfg: RunConfig | None = None, now: datetime | None = None) -> dict
             "shadow": check_shadow(cfg, now),
             "storage": check_storage(cfg),
             "config": check_config_committed(),
+            "alarm_chain": check_alarm_chain(),
         }
     finally:
         store.close()

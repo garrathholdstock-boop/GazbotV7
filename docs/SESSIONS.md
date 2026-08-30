@@ -10,6 +10,257 @@
 
 ---
 
+## 2026-08-20 (Thu) — the rider goes 4-lot/naked/laddered, five buttons, a stay-out light, and the P0 safety list
+
+### Trading changes (all live, full suite green)
+* **Tournament STOOD DOWN** — all six gates off, `HOLD` = the whole roster, `TOURNAMENT_STOOD_DOWN`
+  drops any arm. Router keeps full bench authority. Deliberately NOT `PINNED` (full-roster pin =
+  the documented silent no-op + a PIN ALARM every tick).
+* **Day rider: 4 lots, per-lot ladder $100/$200/$400/$600 = $1,300, NO STOP.** Operator: *"i dont
+  want any stop. leave them all naked."* Backed by the rider's own docstring — the stop *"costs
+  $3,451 of expectancy AND has a WORSE worst-day"*. 20:40Z hard flat untouched and now the only
+  automatic protection. EXPOSURE: median worst-adverse 160pt = −$1,284; worst of 231 sessions −$8,672.
+* **Five claim buttons** (`L1..L4` + `ALL`) on the holdings card AND a DESK ladder panel showing each
+  lot's live distance to target. They are ALSO KILL buttons — the confirm says so, and the label
+  reads KILL when the position is red. The web process still NEVER places an order.
+* **Manual BUY/SELL** (qty + $ target) — same file-request indirection, and moved ABOVE the
+  once-per-session latch after that latch swallowed the operator's press.
+* **Stay-out light** on DESK. Six meters measured on 225 lake sessions: VWAP position 50.7% · slope
+  50.7% · slope FAST 55.1% · OR break 52.3% · net_atr_5 52.9% · volume surge 37.5% (n=8, excluded).
+  Confluence does NOT stack — agreement tops at 55.9%. The only cell that separates is DISAGREEMENT:
+  mixed meters hit 44.4% and average −35.3pt over 54 of 225. So it is a STAY-OUT light, not a buy
+  signal, and every meter prints its own measured hit rate.
+
+### FIRST LIVE DAY: −$1,288.50 (1 lot −$293.50, 1 lot −$268.00, 2 lots −$727.00, all MANUAL_CLAIM)
+Entered LONG 4 @ 29447.75, went 103.8pt offside almost immediately, recovered 142.8pt off the low,
+never reached L1. Operator killed lots individually then flattened. The buttons did their job.
+
+### P0 SAFETY LIST — all five done
+1. **The alarm chain no longer runs from the RETIRED alphabot2 tree.** `notify.py` used its python,
+   its script and its `.env`; deleting that tree would have silenced EVERY page while `notify()`
+   returned True. Now `scripts/notify_operator.py` (self-contained, stdlib-only, talks to the
+   Telegram HTTP API, exits 1 on failure) + `data/.notify_env` (600, gitignored), with the legacy
+   path kept as a FALLBACK so the change cannot itself cause an outage. ⚠ First attempt copied the
+   old script verbatim and it still imported `alphabot.*` — caught by a live send test.
+2. **`sweep` reports enforcement, not just breach.** `max_daily_loss_usd`/`loss_streak_halt` exist
+   only in `core.py`, which has never started; `multislot_core` has zero references. It printed
+   "headroom OK" for limits nothing enforces. Now: *"limits NOT ENFORCED by the live desk …
+   implemented only in core.py, which never runs"*. Operator said do NOT enable them for paper.
+3. **`gazbot7-{md,tournament,web,tgbot}` ENABLED** — they were `disabled/active`, so the desk, feed,
+   dashboard and phone control would not have survived a reboot. Nothing on the box checked.
+4. **`reactivate_gates` honours `desk_kill.json`** and FAILS CLOSED on an unreadable one. The
+   cross-desk kill previously expired for the tournament at the next 22:00Z while the rider stayed
+   frozen — CLAUDE.md's "never re-arms" was true for one desk and false for the other.
+5. **The day-rider watchdog pages when blind.** It logged SKIP and exited 0: 450 blind cycles, the
+   longest run **117 consecutive (3h54m)** straight through the hard-flat window, everything green,
+   nothing paged. Now counts a streak and pages at 5/30/120 cycles; a good read clears it.
+
+### Also fixed today
+* `lots_open`/`qty` now zero on every whole-position close (`_zero_size_if_flat`) — state had read
+  `closed: True, lots_open: 2` against a venue of ZERO.
+* Gateway stopped accepting API connections ~10:30–12:46Z; the tournament reconnect-looped and the
+  RECONCILE WENT BLIND (`venue ?`) for over two hours with no alarm. Fixed by `docker restart
+  alphabot-gateway`. **There is still no alarm for "the gateway refuses new connections"** — the
+  feed keeps streaming on its existing socket so everything looks healthy. Open item.
+* Margin measured live for the first time: **4 MNQ lots = $22,088 initial / $15,083 maintenance**
+  ($5,522/lot) against $210,928 available. The desk records margin NOWHERE — open item.
+
+### Research (all negative, recorded so nobody re-derives them)
+Direction measured from six angles and none clears ~55%: drift 47.6% · pre-open slope 52.0% ·
+order book ≈ coin flip below cost (already a robust null on 22.6M ticks) · six discretionary meters
+≤55.9% · LLM news blocked by documented lookahead bias · **mega-cap earnings reaction days are
+BEARISH** (median net −145pt vs +23, 33% up-days vs 53%, no lift in 300pt up-runs) and the cleanest
+case refutes the mechanism outright: **NVDA 2025-11-19 BEAT ($0.81 vs $0.75, raised guidance) and
+MNQ had its worst session of the sample — 974pt down-run, −954 net.** Good news, sold.
+⚠ 4 of 12 earnings dates were inferred; an earlier NVDA date was wrong by a week and flipped that
+session's sign, which is why the inferred rows are not defended.
+
+**Reverts:** `PLACE_VENUE_STOP=True` · `TOURNAMENT_STOOD_DOWN=False` · `HOLD={"rgv_short"}` ·
+`LOTS=2`. Backups `*.bak-0820`.
+
+
+## 2026-08-20 (Thu) — ★★★ THE TOURNAMENT IS STOOD DOWN. THE DAY RIDER IS THE ONLY DESK, AT 4 LOTS, NAKED, ON A PROFIT LADDER.
+
+**Operator, direct:** *"the only thing that trades is day rider. 4 lots. 1 takes profit at $100. 2
+takes profit at $200. 3 takes profit at $400. and 4 takes profit at $600. so if they all take profit
+we take $1300 for the day. if it goes the wrong way then it will be a lesson. turn all other gates
+off."* · *"i dont want any stop. leave them all naked."* · *"if its going south my claim profit
+buttons also work as a manual kill button."*
+
+### What changed (A → B)
+
+| | was | now |
+|---|---|---|
+| tournament | 6 gates, router-managed | **ALL SIX OFF and HELD off** |
+| rider size | 2 lots | **4 lots** |
+| rider profit exit | ATR trail only | **per-lot ladder $100/$200/$400/$600 = $1,300** (50/100/200/300pt) |
+| rider stop | 600pt venue stop | **NONE — naked by decision** |
+| claim buttons | 1 (flatten all) | **5** — `L1 L2 L3 L4` per-lot + `ALL` |
+
+* `reactivate_gates.HOLD` now covers the **whole roster**, so the 22:00Z reopen arms nothing. A
+  comment in `gate_switches.env` would not have worked — nothing reads comments, the exact failure
+  already documented for `rgv_short`.
+* `router_tick_durable.TOURNAMENT_STOOD_DOWN = True` drops any change to `on` and logs each refusal
+  by name. The router keeps FULL bench authority and loses only the ability to arm.
+  ⚠ Deliberately NOT `PINNED = all six`: a full-roster pin makes `valid` permanently empty — the
+  documented SILENT NO-OP that ran 411 ticks / 36h unnoticed — and would trip the PIN ALARM
+  every tick. A loud guard beats a silent one.
+* Rider: `LOTS=4`, `TARGET_USD_PER_LOT=(100,200,400,600)`, `PLACE_VENUE_STOP=False`. Each lot books
+  its own row at its own fill, so P&L and `claim_audit` see them individually. `out["qty"]` is
+  decremented as lots leave — every later exit (trail, claim, 20:40 flat) sizes from it, and a stale
+  4 there would try to sell lots already gone, which on a shared netted account is the 08-06 cascade.
+* Buttons are ALSO kill buttons and the confirm dialog says so: there is no stop, so they fire in
+  profit **or** loss. The endpoint does not check P&L and must not.
+* ⚠ **The web process still never places an order.** It writes a request file; the rider acts on it
+  through its own ownership check. Untouched — 2026-08-06 is what a button reaching the broker does.
+
+### Why, and the honest state of the evidence
+
+A full day of simulation across 231 lake sessions could NOT show this design profitable, and the
+operator's closing position is the right one: *"lets just agree we cant backtest when i am claiming
+profit."* What the sims did establish, and what survives:
+* **Every automated variant loses.** 2,016-config search: 0 with a positive worst-case. A null test
+  with RANDOMISED direction produced 34/720 positive vs 0/720 for the real signal — coin flips beat
+  `drift.compute()`, whose ENTRY_PAID has never exceeded 48% on any of three datasets.
+* **The stop was already refuted** by the rider's own docstring: it *"costs $3,451 of expectancy AND
+  has a WORSE worst-day (−$1,603) than running naked (−$1,531)"*. Removing it follows the research.
+* **Reach rates (231 sessions, raw peak, causal):** 50pt 77.5% · 100pt 58.0% · 200pt 29.4% · 300pt ~15%.
+  So ~$300 of the $1,300 is the common case; lots 3-4 are the operator's to work by hand.
+* **EXPOSURE WITH NO STOP:** median worst-adverse session 160pt = **−$1,284**; worst of 231 sessions
+  1,084pt = **−$8,672**. Accepted knowingly — *"if it goes the wrong way then it will be a lesson."*
+
+### Guards
+
+Two structural tests caught the work twice — every close path must clean up stops and book its own
+fill. `LADDER_COMPLETE` and the per-lot `MANUAL_CLAIM` were each wired up FIRST, then the counts
+raised 5→7 / 5→7 / 4→6. Never the other way round. The per-lot claim cleans up only when it takes
+the LAST lot, which is correct: a stop must outlive a partial exit and die with the position.
+Full suite green. Web restarted with operator authorisation (it drops his tab).
+
+**Revert:** `PLACE_VENUE_STOP=True` · `TOURNAMENT_STOOD_DOWN=False` · `HOLD=frozenset({"rgv_short"})`
+· `LOTS=2`. Backups `*.bak-0820`.
+
+
+## 2026-08-19 (Wed) — the same leak audited across EVERY headless Claude job. Three more found.
+
+**Operator:** *"check the same leak isnt in the other claude jobs"* — and it was in three of them.
+
+**Six call sites audited.** The line that matters is **DECIDES vs ANALYSES**.
+
+| site | role | was | now |
+|---|---|---|---|
+| `router_tick_durable.py` | owns `gate_switches.env` | inherited repo cwd | **isolated** |
+| `open_hour_watch.py` | **ARMS gates** (`=off`→`=on`, never `=off`) | **no `cwd=` at all** | **isolated** |
+| `cl_sims.py` `_call` | courtroom verdicts | no `cwd=` | **isolated** |
+| `cl_verify.py` | courtroom verification | no `cwd=` | **isolated** |
+| `claude_job.py` | review jobs (sweep/hour-watch/ledger/nightly/sunday) | `cwd=GB` | **left as-is** |
+| `friday/serial_runner.py` | Friday report phases | `cwd=GB` | **left as-is** |
+
+**Why the last two were deliberately NOT changed.** They are TOOL-USING (`Bash,Read[,Write,Edit]`)
+and genuinely need the repo as cwd to work at all, and they are analysis-only by policy —
+`claude_job.py:51`: *"None of them may move a switch — gate_switches.env belongs to the router tick
+alone."* Isolating them needs `--add-dir`, which changes how those agents see the filesystem and
+would put the fragile Friday report at risk for no decision-path benefit. **Flagged, not fixed.**
+
+**Deployment — checked, not assumed.** `ClSims` (imported by the LONG-RUNNING `gazbot7-shadow`)
+never reaches `_call`; the claude path lives in `scripts/cl_worker.py`, a **oneshot** timer, and
+`open_hour_watch` is likewise oneshot. So all three deploy on their next tick with **no restart** —
+this is the "editing is not deploying" trap and it does not bite here.
+
+⚠ **`open_hour_watch`'s model path was NOT exercised live.** It can ARM a gate, and the book is
+deliberately fully benched with `abs_veto_short` operator-pinned; forcing a run could have overridden
+that instruction. Verified by import + call-site inspection instead; it next runs its model in the
+13:30–14:30Z window.
+
+Guards extended: `tests/test_router_prompt_is_isolated.py` now has 6 tests, including one asserting
+all four deciders agree on ONE path outside the repo (four files hardcode it; drift would silently
+re-leak whichever fell behind).
+
+## 2026-08-19 (Wed) — ★★★ THE ROUTER READS ITS PROMPT AND NOTHING ELSE. Auto-memory leak closed.
+
+**Operator, direct:** *"CLAUDE.md should have zero impact on router operation. If it does, that
+needs fixing. CLAUDE.md is a start-up document you read for instructions. The router is its own
+beast — it should bench and debench based on the day's tape with a view to making profitable
+trades."*
+
+**Investigated, and the accusation was half right — but the culprit was not CLAUDE.md.**
+* `/root/CLAUDE.md` is **NOT** loaded by the tick. Verified by running the router's exact invocation:
+  it is in neither the cwd chain (`WorkingDirectory=/home/alphabot/gazbot7`) nor `~/.claude/`.
+* **The per-project AUTO-MEMORY INDEX was.** `~/.claude/projects/-home-alphabot-gazbot7/memory/
+  MEMORY.md` — **~1,720 words, 32 bullets of trading opinion** (bench cost, ATR floors, the Asia
+  block, `abs_veto_short`, `exhaustion_rev`, shadow families …) written by past sessions,
+  unreviewed, injected into **every 5-minute bench/arm decision** beside the maintained prompt.
+
+**Fix (A → B).** The headless `claude -p` call inherited the unit's WorkingDirectory → it now runs
+with **`cwd=/var/lib/gazbot7/router_ctx`**, an empty directory. Measured from that exact path: no
+memory index, no CLAUDE.md, no desk documents.
+* ⚠ **HOME stays `/root`** — the OAuth credential is `~/.claude/.credentials.json` and credential
+  expiry is the desk's #1 fragility. It is the **cwd** that leaks context, never HOME. A test pins it.
+* `os.makedirs(..., exist_ok=True)` is defensive: `subprocess.run` raises on a missing cwd, which
+  would ABORT every tick and silently stop the desk being managed.
+
+**⚠ THE MISTAKE WORTH RECORDING.** The first fix shipped the context dir at `gazbot7/ops/router_ctx`
+— **inside the repo — and it did not work while appearing to.** Claude Code resolves the project by
+walking UP to the repo root, so a dir inside `gazbot7` still loads the gazbot7 memory index. The
+"verification" had been run from `/tmp`, a *different path from the one being shipped*, so it proved
+nothing. Caught only by re-probing from the real path. **Any replacement path must be re-verified by
+running FROM THAT EXACT PATH, and must not sit inside a git repo that owns a memory project.**
+
+**Verified live:** tick 19:40:15Z ran under the isolated context, produced a coherent decision,
+`Result=success`, 0 ABORTs, switches unchanged.
+Guarded by `tests/test_router_prompt_is_isolated.py` (4 tests: cwd is set, not the repo root, not
+inside the repo, dir empty, HOME preserved). Docs: `ops/ROUTER_CONTEXT_ISOLATION.md`.
+**Revert:** drop `cwd=ctx` from the subprocess call — but that reopens the leak.
+
+**Residual, stated honestly:** the tick still receives Claude Code's own harness scaffolding (tool
+list, skills list, agent types, git status). That is generic CLI furniture, not desk instruction, and
+removing it needs `--system-prompt`. No trading document reaches the router any more.
+
+## 2026-08-19 (Wed) — ★★★ NO STANDING EXEMPTIONS. The abs_veto_short carve-out is REVOKED.
+
+**Operator, direct:** *"strip the exemption now. there should be NO standing exemptions unless i
+approve them on saturdays"* — *"should never!"*
+
+**What changed (A → B).**
+* `abs_veto_short` was **ARMED-BY-DEFAULT and EXEMPT FROM THE CHOP BENCH** (08-08 carve-out,
+  MONDAY #1) → it is an **ORDINARY MOMENTUM GATE**: in `CHOP_OFF`, benched by confirmed chop like
+  `grind_long`/`abs_veto_long`, benched-by-default, and no longer restored when a bench lapses.
+* **New STANDING RULE** in `/root/CLAUDE.md` and at the head of the router prompt: no gate is exempt
+  from the regime rules; any text anywhere granting a standing carve-out is STALE and must not be
+  acted on; a carve-out is valid ONLY by explicit operator approval in a **Saturday** review, and it
+  must name its **LIVE** evidence.
+* Surviving carve-outs are now an explicit inventory of **exactly one** — `(c2)` exhaustion_short not
+  benched on day-bias SIGN — kept because it is a MECHANISM correction rather than a P&L exemption
+  and grants no immunity (validated fader bench, violent whipsaw, execution pathology all still
+  apply). **Marked PENDING SATURDAY RATIFICATION; dies unratified.**
+
+**Why.** The carve-out cited *"+$2,290.50 over 159 fires / 17 days, positive in ALL FIVE regimes"*.
+**That was the SHADOW twin, not the gate.** On 08-08, the day it was granted, LIVE `abs_veto_short`
+was **n=35 / −$200.50**. It is now **−$435.00** over 83 fires all-time and **−$478.50 over the last 7
+days** on 36 fires at 27% W, while `abs_veto_55s` alone sits at **+$4,352** in shadow. That is
+`shadow-green-does-not-mean-live-green` against CLAUDE.md's own *"judge footprint faders on LIVE
+P&L"* rule.
+Because the exemption removed that gate's ONLY bench rule, **six consecutive CHOP sessions**
+(08-10..08-17, session ER **0.006–0.068**) ran with the **momentum** gate armed **82.3%** of US hours
+and the **profitable reversion** gate (`exhaustion_short`: +$108 last 7d, +$7.50 all-time on 160)
+benched to **54.1%** — the exact inverse of *"confirmed chop → bench ALL momentum, keep reversion"*.
+An exemption is the one thing that can invert the whole framework while every tick still reads fine.
+
+⚠ **This was NOT a bench-on-P&L decision** — still never allowed. The carve-out fell because its
+EVIDENCE was shadow evidence; the gate simply returned to the ordinary regime rule. The
+53-of-54-filters research is **not** overturned: bench it on REGIME, or not at all.
+
+**Also today:** operator bench of `abs_veto_short` at 18:15Z (*"i dont want to give back all
+profit"*) — switch off + `PINNED` in `router_tick_durable.py` with a **self-clearing expiry at
+21:55Z**, five minutes before the 22:00Z gate-reactivate, because a pin outliving the reactivate
+would leave the gate ARMED and UNBENCHABLE. Router prompt now NAMES the pinned set (`_pin_prompt()`)
+so a pin-blocked change cannot false-trip the PIN ALARM's `blocked and not valid` critical page.
+
+**Revert:** restore the deleted prompt block at `router_tick_durable.py` (search "ARM-BY-DEFAULT
+CARVE-OUT ... REVOKED") and the CLAUDE.md bullet — but the live evidence above has to be answered
+first, and under the new rule it needs a Saturday.
+
+
 ---
 
 ## ⚠ 2026-08-16 (Sun) — THIS LOG WAS DEAD FOR 17 DAYS. Backfill 07-31 → 08-16.
@@ -1698,3 +1949,275 @@ venue-first gate, stop cancellation and booking exactly as before.
   — that drops the operator's tab. It serves the old text until someone restarts it.
 
 Project files updated: `STATE.md` §1b (new) + §8, `DECISIONS.md` §363, `CLAUDE.md` timer table.
+
+### §369 — 2026-08-21 · manual entry extended to the FULL CME SESSION (and a gutted helper caught)
+Operator: *"i tried to buy. nothing happened"* → *"extend it to the full cme session."*
+
+**Two separate faults, one symptom.** (1) The web endpoint refused outside 13:30-20:40Z. (2) Even
+past that, the rider's OUTER session guard returned `flat, idle` before the buy file was ever read,
+so the press died in silence with the UI reporting success.
+
+Both call sites now share ONE `do_manual_entry()`. The window is the full CME session; the only
+refusal is **20:40-22:00Z** (the flatten window + the halt). ★ This does NOT weaken "never hold
+overnight": the session runs 22:00Z→21:00Z, so an entry anywhere inside it is flattened at 20:40
+without crossing a halt — one session, not two. Manual entry bypasses the drift confirmation, the
+13:30-15:00 window and the once-per-session latch; it does NOT bypass `venue_first_ok()`, the
+booking path, or the 20:40 flat.
+
+**★★★ THE NEAR MISS — worth more than the feature.** Extracting the helper deleted its own body.
+The file parsed, imported, and the FULL SUITE STAYED GREEN, because no test ever *executed* the
+manual path — it was only ever asserted as a string in the source. A `MarketOrder` literal can sit
+in a branch nothing runs. The button would have told the operator "BUY 4 lots requested" and placed
+nothing, silently, on a live desk. New `tests/test_day_rider_manual_entry.py` drives the helper with
+a fake IB and asserts THE ORDER REACHED THE VENUE, plus the naked-stop rule, the $→pt conversion
+(÷$2/pt per lot, never ÷lots), the refusal window, and the venue-first gate. The guard test that
+matched a docstring literal now asserts the CALL SITE.
+
+### §370 — 2026-08-21 · THE 09:11 INCIDENT: one window mismatch, four failures
+Operator: *"flatten byttons not working."* The buttons were the last symptom, not the fault.
+
+**Chain.** 09:11:06 manual BUY 4 @ 29428.25 (clean). 09:12:06 the rider hard-flatted it — SLD 3 @
+29417.50 and 1 @ 29388.25 — then died on `UnboundLocalError: px` at the CLOCK_FLAT `await_fill`.
+The order had ALREADY reached the venue, so the close was never booked: book +4 vs venue 0. The
+reconciler confirmed the breach on two reads, wrote `desk_kill.json`, set `day_rider=off`. The rider
+went inert → every later claim press wrote `day_rider_claim.txt` and nothing ever read it.
+
+**ROOT CAUSE — MINE, from §369.** The flatten branch fired on `mod >= FLAT_UTC_MIN or mod <
+OPEN_UTC_MIN`, and `mod < OPEN_UTC_MIN` is TRUE ALL MORNING. I extended manual ENTRY to the full CME
+session and left MANAGEMENT on the old 13:30-20:40 window, so the rider was entering trades it would
+immediately hard-flat 60 seconds later. ★ A window that governs when we may OPEN must govern when we
+may HOLD. Extending one half of a clock is how you build a desk that fights itself.
+
+**Fixes.** The dead window is now exactly 20:40-22:00 (`hard_flat_window`); at any other hour a
+position WE OWN falls through to MANAGE, so claims/ladder/trail work on a hand-opened trade. The
+decision moved out of an inline boolean into `idle_block_applies()` — *the bug lived where no test
+could reach it* — and `tests/test_day_rider_hold_window.py` (20 cases) pins it, including that the
+automatic path is untouched and that nothing survives 20:40Z. `px` now has a bound fallback.
+
+**Book.** −$150.50 (−$69.00 on 3 lots, −$81.50 on 1), booked from the FILLS and LABELLED
+`EXCLUDE:clock_flat_outside_session_bug_20260821` — a system-bug loss, so it is labelled, never
+adjusted, and the row exists because a missing row is worse than an approximate one. All six web.py
+`trades` queries already honour `_dq()`, so the dashboard and `pnl.py` agree.
+
+**⚠ OPEN — OPERATOR DECISION.** `desk_kill.json` is still ACTIVE and `day_rider=off`; release is a
+human act by design and was not taken. **And the policy question the fix exposes:** holding across
+the full CME session means a position opened at 23:00Z lives until 20:40Z the next day. It crosses
+no halt — one session — but it IS overnight in wall-clock terms, against the standing
+*"NEVER HOLD OVERNIGHT. EVER."* Not resolved unilaterally.
+
+**★ The alarm was silent throughout** — the rider logs `TELEGRAM_TOKEN/CHAT_ID not configured`, so
+the crash, the breach and the kill all paged NOBODY. `gazbot7-day-rider.service` does not load
+`data/.notify_env`. Separate fault, still open.
+
+### §371 — 2026-08-21 · alarm chain restored, and the dashboard made to agree with itself
+**THE ALARM WAS DEAD FOR ~12 HOURS AND NOTHING SAID SO.** `data/.notify_env` was created mode 600
+**root:root** at 08-20 21:19. Every desk service — day-rider, tournament, shadow, md, web — runs as
+`alphabot`, so all five were unable to send a single alert. Only the root units (router-tick,
+reconcile, the watchers) could page, which is exactly why the 09:33 reconcile breach alarmed and the
+09:12 rider crash did not. Ownership fixed; delivery verified as BOTH `alphabot` and `root`.
+
+**Why it stayed silent — two swallowed failures, not one.**
+· `_load_env()` caught PermissionError with a bare `except: pass`. MISSING (legacy fallback) and
+  UNREADABLE (wrong user, always a misconfiguration) are different faults and now read differently.
+· `_subprocess_send()` returned True on DISPATCH without reading the sender's returncode — so
+  `notify()` reported success while `notify_operator.py` exited 1 for want of credentials. It now
+  returns True only on delivery, falls through to legacy on non-zero, and says so on stderr.
+  ★ "The alarm IS the mitigation" is only true if the alarm can tell you it failed.
+
+**The instrument that never looked.** `sweep.py` was GREEN throughout. It now has an `alarm_chain`
+section, and `tests/test_sweep_checks_the_alarm_chain.py` proves it goes **critical** on root-owned
+credentials — a check that cannot be shown to fail is the same class of instrument as the one that
+caused the outage. The notify tests inject PermissionError rather than `chmod(0o000)`, because the
+suite runs as root and root bypasses permissions: a chmod fixture would SKIP on this box and
+silently retire the only test covering the fault.
+
+**Dashboard.** Operator: *"trades djsappearwd from dashboRd"* — my doing. The two CLOCK_FLAT_BUG
+rows were labelled `EXCLUDE:` per the do-not-book-a-system-bug-loss rule, and `_dq()` filters that
+label out of ALL SIX views, so a real trade on a real account showed nowhere. Operator chose to
+unhide; attribution is kept in `exit_reason='CLOCK_FLAT_BUG'`. Today reads −$150.50.
+
+**★ And unhiding exposed trap #6 again.** `header.today` is TOURNAMENT-ONLY; `today_total` is both
+desks. The headline was fixed on 08-13 but `pos-realised`, `curve-end`, `tb-desk` and `pos-trades`
+were left on the tournament number — so the blotter listed two rider losses while "Realised today"
+read $0.00, and the REALISED CURVE (whose query has NO desk filter, so the line already included the
+rider) carried a label that excluded it. All five call sites now go through one `deskToday()`
+accessor. `app.js` is read from disk per request — a refresh suffices, no web restart.
+
+### §372 — 2026-08-22 · the weekend carry: flatten armed, and the two defects behind it fixed
+**WHAT HAPPENED.** 4 MNQ lots opened by hand at 13:13Z Friday were NOT flattened at 20:40Z. The
+gateway wedged and `day_rider` logged **100 consecutive TimeoutErrors across the whole flatten
+window**, saying nothing; it had also been switched off by the kill, so nothing retried. The lots
+went through the CME halt into the weekend, ~$975 down at Friday's 29370.00 close.
+
+**1 · THE FLATTEN NOW SHOUTS.** `except Exception` set `venue_ok=False` and returned. Failing closed
+is right for TRADING and catastrophic for FLATTENING — the safe direction there is to shout, and it
+is the one case nothing else covers, because the reconciler cannot read the venue either and
+reports "IBKR truth unavailable" rather than a breach. A dead venue while holding, at or past
+20:40Z, now pages CRITICAL every 5 min (stable text + cooldown; a live minute-count in the message
+would re-page every 60s, which is the spam this session was asked to stop) and sets
+`flatten_blocked`. 11 tests.
+
+**2 · THE RECONCILER PAGED 49× IN 2 HOURS.** It runs every 30s and had NO dedupe — the desk's own
+"a correct decision repeated every tick is an ALARM OUTAGE". Now situation-keyed via
+`notify.dedupe_ok`: re-alarms IMMEDIATELY when the size changes, every 30 min otherwise, FAILS OPEN,
+and `dedupe_clear` on resolution so a breach that clears and returns is not swallowed. ★ The KILL is
+untouched — suppression applies to the MESSAGE, never the action.
+
+**3 · ★★★ THE ROLLOVER WAS EATING THE INVENTORY (the root cause of half of the above).**
+`session_key` is the CALENDAR DATE, so at midnight UTC — mid-hold — the reset blanked the book
+unconditionally. The rider disowned 4 real lots: stopped managing them, claimed ZERO to the
+reconciler (venue +4 vs rider +0 → kill + the 30s alarm all night), and the dashboard went blank.
+**It would also have defeated the Sunday flatten**, since a claim is refused on a position the rider
+does not think it owns. The reset exists to clear the ONCE-PER-SESSION LATCH, not to forget
+inventory; a live claim is now carried across, latch only. 5 tests.
+
+**4 · THE SUNDAY FLATTEN.** `gazbot7-weekend-flatten.timer` — every minute 22:00-23:59Z Sunday,
+because a single shot would repeat the original bug. It places NO order: it re-arms the rider and
+writes a BARE-STAMP claim (= claim ALL) through the same path as the operator's button. An
+UNREADABLE venue is treated as NOT flat. Self-disabling once the venue reads flat, so a forgotten
+timer can never flatten a future position. 6 tests. **DELETE the unit once it has run.**
+
+**★ Two of my own bugs caught by tests, not by review.** A `from .notify import dedupe_ok` inside
+the new error handler made the name function-local and turned the EXISTING unowned-position alarm
+into an UnboundLocalError — a live safety alarm silently disabled from inside an error handler.
+And the first flatten-alarm draft read only `out`, which is exactly the dict the rollover blanks,
+so it would have gone quiet at the moment the position became an overnight one.
+
+### §373 — 2026-08-26 · the 08-21 report rebuilt properly, and three one-off units removed
+**THE REPORT.** `weekly_2026-08-21.html` — 16 sections, 262 tables, 1,040KB, against the 08-21
+run's 113 tables / 658KB. **7 built, 10 already had, 0 missing** (the original: 4 of 13). `rev2`
+failed rc=1 at 01:22 and the 03:00 repair sweep rebuilt it; verifier passed and retired the thin
+`weekly_2026-08-22.html` to `reports/friday_v7/superseded_*`. Both censuses were re-frozen first —
+MNQ 68 runs / MGC 70 runs over 08-17..08-21 — because the original froze MNQ only, and the week's
+data exists as **5s bars** (81,337) while `1min` covers just two days of it.
+
+**★★★ THE HAZARD THE REPORT CAUGHT THAT I MISSED.** `gazbot7-weekend-flatten.timer` was **still
+armed for Sun 08-30 22:00Z**. I told the operator it self-disables once the venue reads flat — it
+dies BEFORE the flat check, so it never disabled itself. It would have re-armed the rider and
+written a bare-stamp claim (= claim EVERYTHING) against whatever was open. Deleted.
+
+**★★ AND IT CORRECTED MY DIAGNOSIS.** I reported the Sunday flatten failed on a `PermissionError`.
+That was the LAST 14 of 119 fires; the first **105** died on a gateway wedge from ~19:57Z Friday.
+The rider's hard flat, the watchdog, the EOD flatten and the reconciler **all share one
+`ib.connectAsync`**, so all four died on the same call — and `gazbot7-eod-flatten.timer` is Mon–Fri,
+so a Friday failure gets no weekend catch-up. My file-mode fix was necessary and NOT sufficient, and
+I presented it as sufficient. ★ Sharper: all seven tested stop widths close that position within
+19 minutes of entry, six hours before the wedge. It is a MISSING-STOP incident that a wedge made
+unfixable, not a wedge incident.
+
+**Findings that outrank the gates** (and which my own velocity/breakout work reached independently
+from the other direction): **~120pt is the tradeable threshold**, found by three labs with three
+harnesses — below it a late board does not pay for its own stop, so **hunt SIZE, not direction**.
+And **detection is solved, selection is not**: the rider boards 62 of 62 runs, the same trigger
+fires 34×/day, ~1 in 20 becomes a run, and the $9,610 census ceiling is really **$1,910–2,286**
+honestly boarded. ⚠ The gold lead is blocked on [[the-labs-tape-is-not-productions-tape]] — the lab
+builds bars from the depth MID, the service from TRADES, and the sign flips on that alone
+(+$3.06/tr vs −$8.96/tr on the six days both cover).
+
+**Units deleted:** `gazbot7-weekend-flatten`, `gazbot7-friday-catchup`, `gazbot7-friday-catchup-repair`
+(timer + service each). The recurring `gazbot7-friday-report.timer` is untouched — next Fri 08-28 22:07Z.
+
+### §374 — 2026-08-26 · stand-down lifted for the NVDA session, and the prompt header reset
+Operator: *"nvidia reports tonight. i want everything armed as normal tomorrow. day rider and normal
+gates as the router sees fit. router should watch from paris open at midnight tonight and we should
+trade from paris 0800."* Then, on the clock conflict: *"leave the asia block, start 09:00 paris."*
+
+**BOTH HALVES OF THE STAND-DOWN LIFTED, and they must move together.** `TOURNAMENT_STOOD_DOWN=False`
+in `router_tick_durable.py` AND `HOLD` back to `{"rgv_short"}` in `reactivate_gates.py`. Lifting one
+alone leaves the router able to BENCH but never ARM, which drifts the whole roster to off. The
+22:00Z reopen arms five gates; rgv_short stays held for the separate 08-09 churn reason.
+
+**★ THE CLOCK THAT DID NOT MEAN WHAT IT LOOKED LIKE.** Paris 08:00 = 06:00Z, which is inside the
+permanent ASIA block (00:00-07:00 UTC, `config.no_open_asia`, n=1840 at −$3.17/tr). It refuses NEW
+ENTRIES and the ROUTER CANNOT SEE IT — so the desk would have watched from Paris midnight and
+silently refused to trade for the first hour. Surfaced rather than worked around; operator kept the
+block and moved the start to 09:00 Paris.
+
+**★★★ THE PROMPT HEADER WAS AN UNMANAGED FIFO — 524 comment lines, top 45 spliced into EVERY router
+prompt as instructions.** Carve-outs are prepended and NOTHING prunes them, so the router was being
+handed instructions from past sessions as current. Live at the moment of arming: two open-hour
+watcher "let it run" notes about `abs_veto_short` (08-21, 08-24), and — one line outside the 45-line
+cap — the 2026-08-09 block asserting that same gate was armed-by-default and chop-exempt. That
+exemption was revoked by the operator on 08-19 and survived here, **one comment deletion away from
+re-entering the prompt**, on the exact gate being re-armed tonight. Archived in full to
+`docs/gate_switches_header_archive_2026-08-26.md`; replaced with a dated 25-line header.
+
+**★★ AND THE FIRST REWRITE WAS ITSELF UNSAFE.** It explained the problem by QUOTING the stale
+phrases — inside the very prompt meant to void them. An instruction quoted for context is still an
+instruction in the context window. Rewritten to describe without reproducing; asserted by grep that
+none of the trigger phrasings appear. ⚠ A prompt is not documentation: never quote a revoked
+instruction inside the text that revokes it.
+
+**Verified live:** the router's 19:55Z tick still said "tournament STOOD DOWN … nothing armed to
+bench"; its 19:59Z tick says it holds full arm/bench authority. The change is in effect, not merely
+on disk.
+
+### §375 — 2026-08-29 · why the Friday report never finished, and the actual fix
+Operator: *"i still dont understand why we are hitting limits. market closes at 23hr paris time. it
+can basically start straight away and churn away all night. you know the server and ram we have.
+just design it to churn within those limits and make sure it works."* He was right on every count.
+
+**THE RECORD.** 08-14: 5 of 17, tail died, 1755m declared vs 228m (7.7×). 08-21: 4 of 13, 1065m vs
+162m (6.6×). 08-28: 5 of 13, tail died on `final`, 975m vs 166m (5.9×). Same fault every week.
+
+**WHAT WE KEPT FIXING WAS THE REPORTING, NOT THE CAPACITY.** After 08-14 we built PREFLIGHT (measure
+the overcommit), FAIR SHARE (ration it), MIN_SLICE (skip rather than hand out slivers) and ROTATION
+(2 of 6 greenfield). All of it works — it is why the report now carries honest red placeholders
+instead of silent holes. But it converted a SILENT failure into a LOUD, CORRECTLY-REPORTED, STILL
+FAILING one. The preflight printed "5.9× over" every Friday and nothing acted on the number.
+
+**★★★ THE ROOT CAUSE WAS A MEMORY FIGURE THAT WAS FIVE TIMES TOO BIG.** Sections ran ONE AT A TIME
+because the design assumed a `claude -p` costs ~2.3GB on a 7.5GB box. MEASURED during a live run:
+    one section agent      465MB steady (sampled 30s, no spikes)
+    whole job, cgroup      1,435MB peak — runner + agent + every subprocess
+    unit ceiling           MemoryHigh 4,608MB
+Four concurrent agents is ~2.8GB. **The desk was never memory-bound — it was bound by a serial loop
+protecting against a cost that does not exist.** 13 sections × 23m serial = 299m, which cannot fit a
+166m budget by any scheduling policy.
+
+**THE FIX, in three parts.**
+· WINDOW: timer 22:07 → **21:05Z** (the CME halt is 21:00; 62 free minutes, zero risk) and deadline
+  05:15 → **05:55Z** (the operator needs it by 08:00 Paris; 05:15 was leaving 45m unused against a
+  hard requirement, every week). Reserve 255 → 225m, still above both measured tails (122m, 147m).
+  Body budget **166m → 305m**.
+· PARALLEL BODY: dependency-aware waves, `--workers 4`, with a **memory floor checked before every
+  launch** (never assumed — the box has had three global_oom kills). 15 of 17 body phases declare no
+  deps; only movement3/gf_report consume the greenfield clusters, and they are scheduled later.
+  ⚠ THE TAIL STAYS SERIAL — assemble→proofread→rev2→final is a real chain.
+· RESULT: **76m per section, up from 23m serial and 13m under the old budget** — inside the same
+  night, on the same hardware.
+
+**★ The test executes the scheduler rather than inspecting it** (`peak concurrency >= 2`), because a
+scheduler that silently runs serially looks identical to a correct one from the source. Same lesson
+as the gutted-helper and the grep-only weekend guard, both caught the same way this week.
+
+### §376 — 2026-08-29 · dashboard meters for the manual London trade
+Operator keeps the single hand-entered London day-rider ("a nice addition to our arsenal") and asked
+what else would help. Added, all MEASURED — **no meter here implies a direction**, because every
+directional test run for him has come back a coin flip and a meter that hints otherwise is worse
+than none.
+
+· **RVOL, normalised BY TIME OF DAY** — last 30m against the median of the SAME clock window over 5
+  prior sessions. A flat day-average reads "hot" at 13:30Z every day, which is a clock, not a signal.
+  Reads "venue shut" rather than a confident 0.00x when the market is closed.
+· **8h + DAY chart buttons** — DAY = since 00:00 Europe/Paris (the CME reopen), re-resolved on every
+  poll so the window keeps extending instead of freezing at click time. Server bars cap 600→1500
+  minutes, which is what made a full-session view possible at all. Operator: *"awesome, gives me
+  great context."*
+· **SESSION block + its own shadow edge** (LONDON +$0.70/tr · US −$1.93 · ASIA −$3.17, benched).
+· **VWAP stretch** in pt and ATR, carrying the 08-20 study's date and in-sample caveat with the
+  number so they cannot drift apart.
+· **ADVERSE percentile** for an open position, from `data/mae_percentiles.json`.
+
+**★ THE MEASUREMENT THAT MATTERED, and the first cut of it was useless.** The MAE table was first
+built as "hold the whole block to 20:40Z" — a 171pt LONDON median, against which any 30-minute
+drawdown looks harmless, so the meter would have called almost everything normal. Rebuilt CONDITIONED
+ON MINUTES HELD, which is the only comparison that means anything mid-trade:
+    median / p90 adverse, by minutes held
+    LONDON  15m 15/46   30m 20/59   60m 27/80   120m 42/119
+    US      15m 36/132  30m 52/184  60m 74/206  120m 116/287
+★★ **At 30 minutes in, a US-open position's typical drawdown is 2.6× London's and its bad case
+3.1× worse.** That is the quantified form of the operator's own instinct, and it says the value of
+his London trade is not that London trends (it does not — efficiency 0.040 vs the US 0.050, and the
+race is a coin flip at 42-54%) but that London is a MUCH CHEAPER PLACE TO BE WRONG. Both sides are
+pooled in the distribution so it carries no directional drift.

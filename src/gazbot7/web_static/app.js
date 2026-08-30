@@ -8,6 +8,14 @@
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
+  // ★★★2026-08-21 ONE ACCESSOR FOR "TODAY", because three call sites disagreed with the headline.
+  // `header.today` is the TOURNAMENT ONLY; `today_total` is both desks. The headline was fixed on
+  // 08-13 and pos-realised / curve-end / tb-desk were left reading the tournament number — so on
+  // 08-21 the blotter listed two rider losses while "Realised today" showed $0.00, and the
+  // REALISED CURVE (whose query has no desk filter at all, so the line already includes the rider)
+  // carried a label that excluded it. A right number beside a wrong one is worse than either alone:
+  // nothing tells the operator which to believe. Falls back to h.today for an older API build.
+  const deskToday = (h) => (h && h.today_total != null ? h.today_total : (h ? h.today : null));
   const POLL_FAST_MS = 1000;   // chart / price / ribbon / DTT — as live as the feed allows
   const POLL_SLOW_MS = 5000;   // header P&L / blotter / leaderboard / gate perf
   let STATE = { mnq: null, us: null, tour: null, promo: null, bars: null, drill: null, tf: 120 };  // tf = chart window in minutes (2h default)
@@ -15,6 +23,20 @@
   /* ---------- formatting ---------- */
   const nf = (v, d = 2) => (v == null || isNaN(v)) ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
   const usd = (v, d = 0) => (v == null || isNaN(v)) ? "—" : "$" + nf(Math.abs(v), d);
+  // ★2026-08-29 DAY = since 00:00 Europe/Paris = the CME reopen. Resolved AT CALL TIME, not once:
+  // minutes-since-the-reopen grows every minute, so a value captured on click would be stale by the
+  // next poll and the chart would silently stop extending. Computed from the browser's own Paris
+  // midnight so it follows CEST/CET without a second timezone rule to drift.
+  function tfMinutes(mode) {
+    if (mode !== "session") return parseInt(mode, 10) || 120;
+    const now = new Date();
+    const paris = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+    const mid = new Date(paris); mid.setHours(0, 0, 0, 0);
+    let mins = Math.floor((paris - mid) / 60000);
+    if (mins < 5) mins += 24 * 60;                 // just after midnight — show the session just ended
+    return Math.max(30, Math.min(1500, mins));     // 1500 = the server's cap
+  }
+
   function money(v, d = 0) { // signed, coloured class handled by caller
     if (v == null || isNaN(v)) return "—";
     const s = v < 0 ? "−" : (v > 0 ? "+" : "");
@@ -93,6 +115,7 @@
       if (us) STATE.us = us;
       const tour = await getJSON("api/futures/tournament").catch(() => null);
       if (tour) STATE.tour = tour;
+      if (STATE.tfMode === "session") STATE.tf = tfMinutes("session");   // DAY keeps extending
       try { STATE.bars = await getJSON("api/futures/bars/MNQ?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
       try { renderConn(us != null); renderSafety(); renderRibbonAndDTT(); renderHero(); renderHolding(); renderTournament(); } catch (e) { console.error("fast", e); }
     } finally { _fastBusy = false; }
@@ -225,7 +248,7 @@
     // all — the operator watched it hold and then saw nothing. Week that prompted it: tournament
     // −$438 while the rider made +$1,183.50. Falls back to h.today (tournament-only) so an older
     // API build still renders rather than showing "—".
-    const total = h.today_total != null ? h.today_total : h.today;
+    const total = deskToday(h);
     set("k-today", total); set("k-yest", h.yest); set("k-d2", h.d2); set("k-d7", h.d7); set("k-d30", h.d30);
     const sub = (id, label, v) => {
       const el = $(id); if (!el) return;
@@ -399,12 +422,187 @@
     ue.className = "big " + (anyOpen ? cls(unreal) : "mut");
     $("unreal-sub").textContent = anyOpen ? (hold.length + " slot" + (hold.length > 1 ? "s" : "") + " open") : "FLAT — no open slots";
 
+    /* ── DAY RIDER LADDER ─────────────────────────────────────────────────────────
+       One row per lot: its target, how far the position still has to travel to reach
+       it, and a claim/kill button. Distance is shown in BOTH points and dollars because
+       the targets are dollar figures but the tape moves in points.
+       ⚠ There is no stop, so a button fires in profit OR loss — the label says KILL when
+       the position is red, so nobody presses it expecting a refusal. */
+    /* ── STAY-OUT LIGHT ─────────────────────────────────────────────────────────
+       Deliberately NOT a buy signal. The measurement says confluence tops out at 55.9%,
+       so the only cell worth surfacing is the mixed one (44.4% hit, -35.3pt over 54 of
+       225 sessions). Green here means "meters disagree, historically the worst cell". */
+    // ★2026-08-29 RVOL. Reads "—" when the venue is SHUT rather than a confident 0.00x: an absence
+    // of tape is not a measurement of it. n_days is shown when the baseline is thin, because a
+    // ratio built on one comparison day is a different claim from one built on five.
+    const rv = $("m-rvol");
+    if (rv) {
+      const r = (STATE.m && STATE.m.rvol) || (m && m.rvol);
+      if (!r || r.open === false) {
+        rv.textContent = "— venue shut"; rv.className = "val mut";
+      } else if (r.rvol == null) {
+        rv.textContent = "— no baseline"; rv.className = "val mut";
+      } else {
+        rv.textContent = r.rvol.toFixed(2) + "x" + (r.n_days < 3 ? ` (${r.n_days}d)` : "");
+        rv.className = "val " + (r.rvol >= 1.5 ? "pos" : r.rvol <= 0.6 ? "neg" : "");
+        rv.title = `${r.now} vs a ${r.baseline} median over ${r.n_days} session(s), `
+                 + `same ${r.window_min}-minute clock window`;
+      }
+    }
+    // ★2026-08-29 three meters, all MEASURED — no meter here implies a direction, because every
+    // directional test on this desk has come back a coin flip and a meter that hints otherwise is
+    // worse than none. SESSION carries the block's own shadow edge; VWAP carries the date and
+    // in-sample caveat of the study behind it; ADVERSE is a percentile against positions held the
+    // SAME LENGTH OF TIME, which is the only comparison that means anything mid-trade.
+    const T = (id) => $(id);
+    const bl = T("m-block"), blk = (STATE.m && STATE.m.block) || (m && m.block);
+    if (bl && blk) {
+      bl.textContent = `${blk.block} ${blk.edge_per_trade >= 0 ? "+" : ""}$${blk.edge_per_trade}/tr`
+        + (blk.tradeable ? "" : " · blocked");
+      bl.className = "val " + (blk.edge_per_trade > 0 ? "pos" : "neg");
+      bl.title = `${blk.utc}Z · ${blk.note} · shadow n=${blk.n}`;
+    }
+    const vw = T("m-vwap"), vs = (STATE.m && STATE.m.vwap_stretch) || (m && m.vwap_stretch);
+    if (vw) {
+      if (!vs || !vs.ok) { vw.textContent = "—"; vw.className = "val mut"; }
+      else {
+        vw.textContent = `${vs.pt >= 0 ? "+" : ""}${vs.pt.toFixed(1)}pt`
+          + (vs.atr_mult != null ? ` (${vs.atr_mult.toFixed(1)}x ATR)` : "");
+        vw.className = "val " + (vs.measured ? "pos" : "");
+        vw.title = vs.measured || `${vs.band} VWAP ${vs.vwap}`;
+      }
+    }
+    const ad = T("m-adv"), av = (STATE.m && STATE.m.adverse) || (m && m.adverse);
+    if (ad) {
+      if (!av || !av.ok) { ad.textContent = av && av.flat ? "flat" : "—"; ad.className = "val mut"; }
+      else {
+        const p = av.percentile;
+        ad.textContent = `-${av.adverse_pt}pt / -$${Math.abs(av.adverse_usd).toFixed(0)}`
+          + (p != null ? ` · p${p}` : "");
+        ad.className = "val " + (p == null ? "" : p >= 90 ? "neg" : p >= 75 ? "" : "mut");
+        ad.title = `held ${av.held_min}m in ${av.block}; median ${av.median}pt, p90 ${av.p90}pt `
+                 + `for positions held ~${av.bucket}m (n=${av.n})`;
+      }
+    }
+    const sob = $("stayout-box");
+    if (sob) {
+      const so = (STATE.m && STATE.m.stayout) || (m && m.stayout);
+      if (!so || !so.ok) {
+        sob.innerHTML = `<div class="row"><span class="k mut">meters</span>`
+          + `<span class="val mut">${so && so.detail ? esc(so.detail) : "unavailable"}</span></div>`;
+      } else {
+        const cls = so.mixed ? "neg" : "mut";
+        sob.innerHTML =
+          `<div class="row"><span class="k">verdict</span><span class="val ${cls}">`
+          + `<b>${esc(so.verdict)}</b></span></div>`
+          + `<div class="row"><span class="k dim3">why</span>`
+          + `<span class="val dim3">${esc(so.evidence)}</span></div>`
+          + so.meters.map((x) => `<div class="row"><span class="k">${esc(x.name)}`
+              + ` <span class="dim3">· ${x.hit}</span></span><span class="val ${x.vote > 0 ? "pos" : (x.vote < 0 ? "neg" : "mut")}">`
+              + `${x.vote > 0 ? "UP" : (x.vote < 0 ? "DOWN" : "—")}</span></div>`).join("")
+          + `<div class="row"><span class="k dim3">score</span><span class="val dim3">`
+          + `${so.score > 0 ? "+" : ""}${so.score} · px ${nf(so.px, 2)} · vwap ${nf(so.vwap, 2)}`
+          + ` · ext ${nf(so.ext_atr, 2)} ATR</span></div>`;
+      }
+    }
+
+    /* ── MANUAL ENTRY BOX ───────────────────────────────────────────────────────
+       Hidden while a position is open: the rider tracks ONE entry/direction/qty, so a
+       second buy on top would desync its book from a netted venue. The endpoint refuses
+       it too — belt and braces, because a disabled control is a hint and the server is
+       the rule. */
+    const bsec = $("buy-sec"), bbox = $("buy-box");
+    if (bsec && bbox) {
+      const inPos = hold.some((x) => x.entry_gate === "day_rider");
+      bsec.style.display = inPos ? "none" : "";
+      bbox.style.display = inPos ? "none" : "";
+      if (!inPos && !bbox.dataset.wired) {
+        bbox.dataset.wired = "1";
+        const q = $("buy-qty");
+        const T = [1, 2, 3, 4].map((i) => $("buy-t" + i));
+        const P = [1, 2, 3, 4].map((i) => $("buy-p" + i));
+        /* Each lot is 1 contract at $2/pt, so a lot's $ target is simply usd/2 POINTS —
+           it does NOT divide by quantity. Getting that wrong is what made the first
+           version of this ladder bank $269 when the operator expected $1,300. */
+        const showPt = () => {
+          const qq = Math.max(1, Math.min(4, Number(q.value) || 1));
+          let tot = 0;
+          T.forEach((el, i) => {
+            const on = i < qq;
+            el.disabled = !on;
+            el.style.opacity = on ? "1" : "0.35";
+            const v = Number(el.value) || 0;
+            P[i].textContent = on ? "= " + nf(v / 2, 0) + "pt" : "— unused";
+            if (on) tot += v;
+          });
+          $("buy-total").textContent = "$" + nf(tot, 0) + " across " + qq + " lot" + (qq > 1 ? "s" : "");
+        };
+        q.oninput = showPt; T.forEach((el) => { el.oninput = showPt; }); showPt();
+        const send = (side) => {
+          const qq = Math.max(1, Math.min(4, Number(q.value) || 1));
+          const tg = T.slice(0, qq).map((el) => Number(el.value));
+          if (tg.some((v) => !(v >= 10))) { window.alert("Each target must be at least $10."); return; }
+          if (!window.confirm(
+            side + " " + qq + " lot" + (qq > 1 ? "s" : "") + " of MNQ at market?\n\n"
+            + tg.map((v, i) => "  L" + (i + 1) + "  $" + v + "  (" + nf(v / 2, 0) + "pt)").join("\n")
+            + "\n  total if all fill: $" + nf(tg.reduce((a, b) => a + b, 0), 0) + "\n\n"
+            + "THERE IS NO STOP. The only exits are your buttons and the 20:40Z hard flat.\n\n"
+            + "The rider places this on its next tick (~60s), through its own ownership check.")) return;
+          const pin = window.prompt("PIN");
+          if (!pin) return;
+          fetch("api/control/dayrider-buy", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: pin, side: side, qty: qq, targets: tg }),
+          }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+            .then((j) => window.alert(j && j.ok ? j.msg : "Not sent: " + ((j && j.error) || "unknown")))
+            .catch((e) => window.alert("Not sent: " + e.message));
+        };
+        $("buy-long").onclick = () => send("BUY");
+        $("buy-short").onclick = () => send("SELL");
+      }
+    }
+
+    const RIDER_USD = [100, 200, 400, 600];
+    const RIDER_PT = [50, 100, 200, 300];
+    const rsec = $("rider-sec"), rl = $("rider-ladder");
+    if (rsec && rl) {
+      const dr = hold.filter((x) => x.entry_gate === "day_rider")[0];
+      if (!dr) {
+        rsec.style.display = "none"; rl.style.display = "none";
+      } else {
+        rsec.style.display = ""; rl.style.display = "";
+        const lots = Math.abs(dr.qty || 0) || 1;
+        const ahead = (dr.pnl_usd || 0) / (lots * 2);      /* points ahead, $2/pt per lot */
+        const done = dr.targets_done || [];
+        const red = (dr.pnl_usd || 0) < 0;
+        rl.innerHTML = RIDER_USD.map((usd, i) => {
+          const out = done.indexOf(i) >= 0;
+          const togo = RIDER_PT[i] - ahead;
+          const stat = out ? `<span class="mut">BANKED</span>`
+            : (togo <= 0 ? `<span class="pos">AT TARGET</span>`
+                         : `${nf(togo, 1)}pt to go <span class="dim3">($${nf(togo * lots * 2, 0)})</span>`);
+          return `<div class="row">`
+            + `<span class="k">L${i + 1} &nbsp;$${usd}<span class="dim3"> · ${RIDER_PT[i]}pt</span></span>`
+            + `<span class="val">${stat} `
+            + `<button class="claimbtn" data-claim="${i + 1}"${out ? " disabled" : ""}>`
+            + `${out ? "—" : (red ? "KILL" : "CLAIM")}</button></span></div>`;
+        }).join("")
+          + `<div class="row"><span class="k">ALL <span class="dim3">· flatten everything</span></span>`
+          + `<span class="val">${nf(ahead, 1)}pt · ${money(dr.pnl_usd || 0, 0)} `
+          + `<button class="claimbtn" data-claim="all">FLATTEN</button></span></div>`;
+        wireClaims(rl, hold);
+      }
+    }
+
     // positioning (desk-level)
     const h = m.header || {};
     const openContracts = hold.reduce((s, x) => s + Math.abs(x.qty || 0), 0);
     $("pos-open").textContent = anyOpen ? String(openContracts) : "0";
-    const pr = $("pos-realised"); pr.textContent = money(h.today, 2); pr.className = "val " + cls(h.today);
-    $("pos-trades").textContent = h.trades_today != null ? h.trades_today : "—";
+    const _rt = deskToday(h);
+    const pr = $("pos-realised"); pr.textContent = money(_rt, 2); pr.className = "val " + cls(_rt);
+    $("pos-trades").textContent = (h.trades_tournament != null || h.trades_rider != null)
+      ? ((h.trades_tournament || 0) + (h.trades_rider || 0))
+      : (h.trades_today != null ? h.trades_today : "—");
     $("pos-win").textContent = h.win_today != null ? h.win_today + "%" : "—";
 
     // rolling table (net / win / N — PF & MaxDD not computed in V7)
@@ -455,8 +653,20 @@
          banked. It does NOT flatten from here: it POSTs a request and the day
          rider flattens on its own next tick through its own ownership check.
          A dashboard that placed orders directly is how 2026-08-06 happened. */
+      /* ★★2026-08-20 FOUR PER-LOT BUTTONS + the original flatten-all.
+         The rider runs 4 lots on a ladder ($100/$200/$400/$600 per lot). Each button claims
+         ONE lot; the last one on the row still flattens everything and is the kill switch.
+         There is NO STOP on the rider by operator decision, so these are the only manual exit
+         and they fire in profit OR loss — the labels say "claim/kill" so nobody presses one
+         expecting it to refuse a red position. A lot already out is rendered disabled. */
+      const LOT_USD = [100, 200, 400, 600];
+      const doneSet = (h.targets_done || []);
       const claim = h.entry_gate === "day_rider"
-        ? `<button class="claimbtn" data-claim="1">Claim profit</button>` : "";
+        ? LOT_USD.map((u, i) =>
+            `<button class="claimbtn" data-claim="${i + 1}"${doneSet.indexOf(i) >= 0 ? " disabled" : ""}`
+            + ` title="Claim or kill lot ${i + 1} (target $${u})">L${i + 1} $${u}</button>`).join("")
+          + `<button class="claimbtn" data-claim="all" title="Flatten every remaining lot">ALL</button>`
+        : "";
       return `<div class="slot-card">`
         + `<div class="hold-head">${sidePill(side)}<span class="sym">${esc(gateAbbr(h.entry_gate))}</span>${prot}${claim}</div>`
         + rows.map((r) => `<div class="row"><span class="k">${r[0]}</span><span class="val">${r[1]}</span></div>`).join("")
@@ -467,16 +677,26 @@
     /* Wired after render because the cards are rebuilt on every poll. The
        confirm states the two things that surprise people: it is not instant,
        and it ends the session. */
-    Array.prototype.forEach.call(body.querySelectorAll("[data-claim]"), (b) => {
+    wireClaims(body, holds);
+  }
+
+  /* Shared by the holdings card and the DESK ladder — one implementation, so the two
+     surfaces can never drift into asking the rider for different things. */
+  function wireClaims(root, holds) {
+    Array.prototype.forEach.call(root.querySelectorAll("[data-claim]"), (b) => {
       b.onclick = () => {
         const dr = holds.filter((x) => x.entry_gate === "day_rider")[0];
         const pnl = dr ? nf(dr.pnl_usd, 2) : "?";
+        const which = b.getAttribute("data-claim");
+        const isAll = which === "all";
         if (!window.confirm(
-          "Claim the day rider's position?\n\n"
-          + "Showing " + pnl + " right now.\n\n"
-          + "It flattens on the day rider's next tick — up to about 60 seconds — so the fill "
-          + "will not be exactly this number.\n\n"
-          + "This ENDS its session: it will not re-enter today.")) return;
+          (isAll ? "Flatten EVERY remaining day-rider lot?" : "Claim/kill lot " + which + "?")
+          + "\n\nPosition is showing " + pnl + " right now.\n\n"
+          + "It exits on the rider's next tick (~0.1s via the claim path; 60s is the fallback), "
+          + "so the fill will not be exactly this number.\n\n"
+          + "There is NO STOP on the rider — this fires whether the lot is green or red.\n\n"
+          + (isAll ? "This ENDS its session: it will not re-enter today."
+                   : "The other lots stay open and keep their targets."))) return;
         const pin = window.prompt("PIN");
         if (!pin) return;
         b.disabled = true; b.textContent = "Claiming…";
@@ -487,7 +707,7 @@
            the browser. */
         fetch("api/control/dayrider-claim", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pin: pin }),
+          body: JSON.stringify(isAll ? { pin: pin } : { pin: pin, lot: Number(which) }),
         }).then((r) => {
           /* Check the STATUS before parsing. A 404 returns an HTML error page,
              r.json() throws on it, and the catch below then blamed the network —
@@ -495,7 +715,7 @@
           if (!r.ok) throw new Error("server said " + r.status);
           return r.json();
         }).then((j) => {
-          b.textContent = j && j.ok ? "Claimed" : "Claim profit";
+          b.textContent = j && j.ok ? "Claimed" : (isAll ? "ALL" : "L" + which);
           b.disabled = !!(j && j.ok);
           window.alert(j && j.ok ? j.msg : "Not claimed: " + ((j && j.error) || "unknown"));
         }).catch((e) => {
@@ -649,17 +869,24 @@
   /* ---------- today trades ---------- */
   function renderTrades(m) {
     const blot = m.blotter || [];
-    $("trades-meta").textContent = blot.length + " today · newest first";
+    const _nUn = blot.filter((t) => t.uncounted).length;
+    $("trades-meta").textContent = blot.length + " today · newest first"
+      + (_nUn ? " · " + _nUn + " not counted" : "");
     const h = m.header || {};
-    $("curve-end").textContent = "ends " + money(h.today, 2);
+    $("curve-end").textContent = "ends " + money(deskToday(h), 2);
     drawCurve(m.curve || []);
     // phone → ultra-short: side L/S, 3-letter gate, 2-3 letter exit, whole-$ and 1-dp % so the columns fit
     const ph = window.matchMedia("(max-width:899px)").matches;
     const sideCell = (s) => ph
       ? `<span class="${s === "SHORT" ? "red" : "grn"}">${s === "SHORT" ? "S" : "L"}</span>`
       : sideMini(s);
+    // ★2026-08-21 A `BADFILL:` row is SHOWN but NOT COUNTED — the fill price came from a broken
+    // execution (08-21: a lot filled 30pt outside the visible book at a price two hours stale), so
+    // it must never reach the P&L, the curve or a gate ranking. It is struck through and marked so
+    // the row cannot be read as money, and so the blotter count never silently disagrees with the
+    // header again.
     $("blotter").innerHTML = blot.length ? blot.map((t) =>
-      `<tr><td>${parisHM(t.time)}</td><td>${sideCell(t.side)}</td><td class="txt2">${esc(gateAbbr(t.gate, ph))}</td><td class="dim3">${esc(exitAbbr(t.exit, ph))}</td><td class="${cls(t.pnl_usd)}">${money(t.pnl_usd, ph ? 0 : 2)}</td><td class="${cls(t.pnl_pct)}">${pct(t.pnl_pct, ph ? 1 : 2)}</td></tr>`
+      `<tr${t.uncounted ? ' class="uncounted" title="' + esc(t.flag || "") + ' — shown for the record, excluded from P&L"' : ""}><td>${parisHM(t.time)}</td><td>${sideCell(t.side)}</td><td class="txt2">${esc(gateAbbr(t.gate, ph))}</td><td class="dim3">${esc(exitAbbr(t.exit, ph))}${t.uncounted ? ' <span class="badfill">BAD FILL</span>' : ""}</td><td class="${t.uncounted ? "mut" : cls(t.pnl_usd)}">${money(t.pnl_usd, ph ? 0 : 2)}</td><td class="${t.uncounted ? "mut" : cls(t.pnl_pct)}">${pct(t.pnl_pct, ph ? 1 : 2)}</td></tr>`
     ).join("") : `<tr><td class="empty" colspan="6">no MNQ trades today</td></tr>`;
   }
   function drawCurve(curve) {
@@ -729,7 +956,7 @@
   function renderTabBadges(m) {
     const h = m.header || {};
     const hold = mnqHoldings();
-    $("tb-desk").textContent = h.today != null ? money(h.today, 0) : "—";
+    $("tb-desk").textContent = deskToday(h) != null ? money(deskToday(h), 0) : "—";
     $("tb-hold").textContent = hold.length ? money(hold.reduce((s, x) => s + (x.pnl_usd || 0), 0), 0) : "flat";
     $("tb-trades").textContent = (h.trades_today != null ? h.trades_today : "—");
     const d = (STATE.tour && STATE.tour.desk) || null;
@@ -768,7 +995,8 @@
   document.querySelectorAll("#tfbar .tf").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll("#tfbar .tf").forEach((x) => x.classList.remove("on"));
     b.classList.add("on");
-    STATE.tf = parseInt(b.dataset.min, 10) || 120;
+    STATE.tfMode = b.dataset.min;                  // "session" stays dynamic; a number is fixed
+    STATE.tf = tfMinutes(b.dataset.min);
     fastTick();
   }));
 

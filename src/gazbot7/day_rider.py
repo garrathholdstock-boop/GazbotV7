@@ -80,7 +80,26 @@ def startup_fetch():
 GB = "/home/alphabot/gazbot7"
 STATE = f"{GB}/data/day_rider_state.json"
 SWITCH = f"{GB}/data/day_rider.env"
-LOTS = 2
+LOTS = 4
+# ★★★2026-08-20 OPERATOR DESIGN — the day rider is now the ONLY desk that trades, at 4 lots, and
+# each lot takes profit at its own dollar figure. "1 takes profit at $100. 2 at $200. 3 at $400.
+# 4 at $600. so if they all take profit we take $1300 for the day."
+# PER LOT at $2.00/pt, so the point distances are usd/2. Reach rates measured over 231 lake
+# sessions (raw peak, causal): 50pt 77.5% · 100pt 58.0% · 200pt 29.4% · 300pt ~15%.
+TARGET_USD_PER_LOT = (100.0, 200.0, 400.0, 600.0)
+TARGET_PT = tuple(u / 2.0 for u in TARGET_USD_PER_LOT)      # 50/100/200/300pt — 2.0 is
+# VPP, written as a literal because VPP is defined further down this module. A test pins
+# them equal so the two can never drift apart.
+# ★★★ NO STOP. Operator, 2026-08-20: "i dont want any stop. leave them all naked ... if its going
+# south my claim profit buttons also work as a manual kill button."
+# This is not merely permitted, it is what the desk's own research already said: the venue stop
+# "costs $3,451 of expectancy AND has a WORSE worst-day (-$1,603) than running naked (-$1,531)".
+# ⚠ THE 20:40 HARD FLAT IS UNTOUCHED and is now the ONLY automatic protection. Standing operator
+#   rule: NEVER HOLD OVERNIGHT, EVER.
+# ⚠ EXPOSURE, measured over 231 sessions: median worst-adverse 160pt = -$1,284 on 4 lots; the
+#   worst session ran 1,084pt = -$8,672. That is the price of no stop; it was accepted knowingly.
+# REVERT: set PLACE_VENUE_STOP = True.
+PLACE_VENUE_STOP = False
 # ★ NO NEW ENTRY AFTER THIS. Across all 31 validated sessions the detector confirmed between 13:38 and
 # 14:09 — never later. The service ticks to 21:00, so without this guard it could enter at 17:00 on a
 # setup the backtest contains ZERO examples of, and then hold it with under four hours to the hard flat.
@@ -88,6 +107,22 @@ LOTS = 2
 # tight enough that the strategy only ever trades the distribution it was validated on. Managing an
 # already-open position continues normally past this time; it gates ENTRY only.
 ENTRY_CUTOFF_MIN = 15 * 60
+
+# ★★2026-08-26 CONFIRMATION PERSISTENCE. Operator, for the NVDA session: *"i want to delay a little
+# bit… on nvidia news days, once it runs it stays in that direction. so i want to wait until its
+# confirmed run"* — and, in the same breath, *"i know you cant backtest this because its always a
+# coinflip"*.
+# WHAT IT DOES: `drift.confirmed` must hold, IN THE SAME DIRECTION, for this many CONSECUTIVE ticks
+# before the rider enters. A single confirming minute is no longer enough. 0 = today's behaviour.
+# ⚠ WHAT THE MEASURED TAPE SAYS, so nobody mistakes this for a proven edge later: across 291
+#   sessions, direction read at 15-30 min is 44.6-49.5% right — WORSE than a coin flip — and waiting
+#   to 45-60 min moves it to ~50%, never past it. Waiting removes an ANTI-signal; it does not create
+#   a signal. The operator's claim is narrower (mega-cap-earnings days specifically) and is NOT
+#   refuted by that measurement, but it is also untested — n is a handful of days and every one of
+#   them is hindsight. This is an OPERATOR-DIRECTED experiment, not a backtested change.
+# ⚠ IT COSTS ENTRY PRICE. Every minute waited is a minute of the move given up, and the 15:00Z
+#   cutoff is unchanged — so a slow confirmation can mean NO trade at all. That is the trade.
+CONFIRM_PERSIST_MIN = int(os.environ.get("GAZBOT7_RIDER_CONFIRM_PERSIST", "0"))
 # ★★ FLAT AT 20:40 UTC = 22:40 PARIS, NOT AT THE 21:00 HALT. Operator, 2026-08-05: "flatten at 23
 # doesnt work. market is closed. needs to be at 2240 so you have 20 minutes to troubleshoot and try
 # again if necessary." He is right and the original 21:00 was a real defect: 23:00 Paris IS the CME
@@ -98,6 +133,30 @@ ENTRY_CUTOFF_MIN = 15 * 60
 # Moving it to 22:00 Paris instead would cost $2,309, so 20:40 is the right point on that curve.
 FLAT_UTC_MIN = 20 * 60 + 40
 HALT_UTC_MIN = 21 * 60             # the venue closes here; nothing can be done after it
+REOPEN_UTC_MIN = 22 * 60           # the CME reopens here; 20:40-22:00 is the only dead window
+
+
+def hard_flat_window(mod: int) -> bool:
+    """Is `mod` (UTC minute-of-day) inside the ONLY window where we force a position closed?
+
+    20:40 -> 22:00. That is the daily flat plus the CME halt, and nothing may be carried across it.
+    Everything else — including the whole overnight and London block — is tradeable by hand.
+    """
+    return FLAT_UTC_MIN <= mod < REOPEN_UTC_MIN
+
+
+def idle_block_applies(mod: int, owned_live: bool) -> bool:
+    """Should step() take the pre-session/idle branch instead of MANAGING a position?
+
+    ★2026-08-21 This predicate exists because the bug it replaces lived in an inline boolean that
+    no test could reach. It hard-flatted a hand-opened 09:11 position 60 seconds after entry.
+    A position we actually hold is MANAGED at every hour except the flatten window.
+    """
+    if hard_flat_window(mod):
+        return True
+    outside_auto = mod >= FLAT_UTC_MIN or mod < OPEN_UTC_MIN
+    return outside_auto and not owned_live
+
 # ★★2026-08-07 ATR-SCALED TRAIL (operator: "deploy the atr trail"). Backtested over 35 detected
 # sessions 06-22..08-07, every rule scored on IDENTICAL entries so the RANKING is the trustworthy part:
 #     trail 2xATR armed at 4xATR ....... $7,341   strip-best $6,184  strip-best-3 $4,109  25/35 green
@@ -251,14 +310,28 @@ async def await_fill(tr, fallback: float, *, what: str, notify=None, out: dict |
     return float(fallback)
 
 
-def book_trade(out: dict, exit_px: float, reason: str, notify=None) -> None:
+def _zero_size_if_flat(out: dict, qty: float | None) -> None:
+    """★2026-08-20 After a WHOLE-POSITION close, size fields must read zero.
+
+    `lots_open` was added for the 4-lot ladder and only the PER-LOT paths decremented it, so a
+    whole-position exit (ALL claim, trail, hard flat, ladder complete) left `lots_open` and `qty`
+    stale — on 08-20 state read `closed: True, lots_open: 2, qty: 2.0` against a venue of ZERO, and
+    a monitor reading it announced two open lots at a flat book for half an hour.
+    A partial book (qty passed explicitly) is left alone: its caller owns the decrement.
+    """
+    if qty is None:                      # whole-position close
+        out["lots_open"] = 0
+        out["qty"] = 0.0
+
+
+def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float | None = None) -> None:
     """Write the closed round-trip to the trades table. Never raises: a booking failure must
     not stop a flatten from completing or a session from closing cleanly — the position is
     already out at this point and the row is bookkeeping. It DOES notify on failure, because a
     silently missing row is what created this whole gap."""
     try:
         entry = float(out.get("entry") or 0)
-        qty = abs(float(out.get("qty") or 0))
+        qty = abs(float(qty if qty is not None else (out.get("qty") or 0)))
         d = int(out.get("direction") or 0)
         if entry <= 0 or qty <= 0 or d not in (-1, 1) or not exit_px:
             # ★2026-08-13 was a BARE `return`. The docstring promises "It DOES notify on failure,
@@ -288,6 +361,7 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None) -> None:
             # practice — but say so rather than imply an idempotency that is not there.
         )
         conn.close()
+        _zero_size_if_flat(out, qty)
     except Exception as e:
         if notify:
             try:
@@ -390,14 +464,64 @@ async def cancel_own_stops(ib, symbol: str, notify=None) -> int:
     return n
 
 
+BUY_FILE = "/home/alphabot/gazbot7/data/day_rider_buy.txt"
+BUY_MAX_AGE_S = 5 * 60      # shorter than a claim: a manual entry is a NOW decision
+
+
+def buy_requested():
+    """Operator's manual BUY/SELL from the dashboard. Returns None or (side, qty, target_usd).
+
+    ★★ SAME INDIRECTION AS THE CLAIM BUTTONS, AND FOR THE SAME REASON. The web process writes a
+    file; THIS process places the order, behind venue_first_ok() and the ownership check. A button
+    that reached the broker directly is 2026-08-06: a flatten fired without checking whose position
+    it was and the desk sat halted for 11 minutes.
+    ⚠ Age-bounded at 5 minutes — tighter than a claim's 15. A stale manual entry firing into a tape
+    that has moved on is worse than a missed press, and a missed press costs only a re-press.
+    File: ISO stamp | side | qty | t1,t2,t3,t4   (per-lot $ targets, cascading)
+    ★2026-08-21 was a single target for the whole position. The operator cascades them per lot
+    ($100/$200/$400/$600 by default), so the request carries a LIST. A single value is still
+    accepted and applied to every lot, so an older request file cannot break this.
+    """
+    try:
+        raw = open(BUY_FILE).read().strip()
+    except Exception:
+        return None
+    try:
+        stamp, side, qty, tgt = [x.strip() for x in raw.split("|")]
+        age = (dt.datetime.now(dt.UTC) - dt.datetime.fromisoformat(stamp)).total_seconds()
+        qty = int(qty)
+        tgts = [float(x) for x in tgt.split(",") if x.strip()]
+        side = side.upper()
+    except Exception:
+        clear_buy(); return None
+    if len(tgts) == 1:
+        tgts = tgts * qty                     # one value = same target on every lot
+    if (age > BUY_MAX_AGE_S or age < -60 or side not in ("BUY", "SELL")
+            or not 1 <= qty <= 8 or len(tgts) < qty or any(t <= 0 for t in tgts)):
+        clear_buy(); return None
+    return side, qty, tgts[:qty]
+
+
+def clear_buy() -> None:
+    try:
+        os.remove(BUY_FILE)
+    except Exception:
+        pass
+
+
 CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
 # Long enough to survive a slow tick or a one-off service restart, far short of
 # the overnight gap that would let a press leak into the next session.
 CLAIM_MAX_AGE_S = 15 * 60
 
 
-def claim_requested() -> bool:
-    """Has the operator pressed Claim profit on the dashboard?
+def claim_requested():
+    """Which Claim button did the operator press? Returns None, "all", or a 0-based lot index.
+
+    ★2026-08-20 the rider runs FOUR lots on a profit ladder, so there are four buttons plus the
+    original flatten-everything one. File format is the ISO stamp, optionally followed by
+    "|lot=N". A BARE STAMP STILL MEANS "ALL" — the old single button keeps working untouched,
+    which matters because it is the operator's kill switch and must never depend on this change.
 
     ★ The web process NEVER places an order. It writes this file and returns; the
     day-rider picks it up on its own cycle and flattens through its own safety.
@@ -417,16 +541,25 @@ def claim_requested() -> bool:
     try:
         raw = open(CLAIM_FILE).read().strip()
     except Exception:
-        return False
+        return None
+    stamp, _, spec = raw.partition("|")
     try:
-        age = (dt.datetime.now(dt.UTC) - dt.datetime.fromisoformat(raw)).total_seconds()
+        age = (dt.datetime.now(dt.UTC) - dt.datetime.fromisoformat(stamp.strip())).total_seconds()
     except Exception:
         clear_claim()          # unreadable stamp — refuse it and do not retry
-        return False
+        return None
     if age > CLAIM_MAX_AGE_S or age < -60:
         clear_claim()
-        return False
-    return True
+        return None
+    spec = spec.strip()
+    if spec.startswith("lot="):
+        try:
+            k = int(spec[4:])
+        except Exception:
+            return "all"       # malformed lot spec -> fall back to the safe, whole-position action
+        if 0 <= k < LOTS:
+            return k
+    return "all"
 
 
 def clear_claim() -> None:
@@ -601,6 +734,67 @@ async def _net_position(ib, symbol: str) -> float:
     return sum(p.position for p in ib.positions() if p.contract.symbol == symbol)
 
 
+async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify):
+    """Execute an operator BUY/SELL request. ONE implementation, called from BOTH paths.
+
+    ★2026-08-21 Extracted after a press outside 13:30-20:40Z hit the outer session guard and died
+    in silence. Two copies of an order path is how the halves drift apart, so there is exactly one.
+
+    WHAT THIS BYPASSES: the drift confirmation, the 13:30-15:00 automatic entry window, and the
+    once-per-session latch. A human pressing BUY has made a decision none of those govern.
+    WHAT IT DOES NOT BYPASS: `venue_first_ok()`, the shared-account ownership check, the booking
+    path, and the 20:40Z HARD FLAT.
+
+    ⚠ WINDOW = THE FULL CME SESSION (operator, 2026-08-21). Refused only between the 20:40 flatten
+      and the 22:00 reopen. That is safe because the session runs 22:00Z -> 21:00Z, so an entry
+      anywhere inside it is flattened at 20:40 WITHOUT CROSSING THE HALT — one session, not two.
+      The standing rule "NEVER HOLD OVERNIGHT" is preserved, not weakened.
+
+    Returns True when it has handled the request; the caller saves state and returns.
+    """
+    _side, _q, _tgts = _buy
+    _d = 1 if _side == "BUY" else -1
+    if FLAT_UTC_MIN <= mod < HALT_UTC_MIN + 60:
+        out["note"] = "manual entry refused — inside the flatten/halt window (20:40-22:00Z)"
+        if notify:
+            notify("DAY RIDER manual entry REFUSED — 20:40-22:00Z is the flatten window and the "
+                   "CME halt. Nothing was placed.", critical=True)
+        return True
+    if not venue_first_ok(net, f"MANUAL {_side} {_q} lots", notify):
+        out["note"] = "manual entry refused — venue does not reconcile against desk claims"
+        return True
+    rr = drift_read(cfg.capture_path, cfg.symbol, now)
+    from ib_async import MarketOrder
+    _tr = ib.placeOrder(contract, MarketOrder(_side, _q))
+    _fill = await await_fill(_tr, rr.price or 0.0, what=f"MANUAL {_side}", notify=notify, out=out)
+    # PER-LOT targets in POINTS. One contract is $2/pt, so a lot's $ target is usd/2 — it does NOT
+    # divide by quantity. Getting that wrong is what made the ladder bank $269 instead of $1,300.
+    _tpts = [round(t / VPP, 2) for t in _tgts]
+    # ★★★2026-08-21 `closed=False` IS LOAD-BEARING — omitting it cost the operator a live position.
+    # The once-per-session reset only clears this latch at a SESSION ROLLOVER, and manual entry
+    # deliberately bypasses the once-per-session rule, so a hand-press after ANY earlier exit lands
+    # with `closed` still True from the previous trade. Then `owns_position` (entered AND NOT
+    # closed) is False, so: the rider does not manage the position, it claims ZERO lots to the
+    # reconciler, the venue's +4 becomes "unaccounted", the kill switch fires and the dashboard
+    # shows nothing — while 4 real lots sit naked at the broker. Observed 13:13Z on a 4-lot long.
+    # See the standing memory: "DAY-RIDER `closed` latch eats the session".
+    out.update(entered=True, closed=False, exit_reason=None, entry=_fill, peak=_fill,
+               direction=_d, qty=float(_q),
+               entered_at=dt.datetime.now(dt.UTC).isoformat(),
+               entry_atr=round(rr.atr, 2), arm_atr=round(rr.atr, 2), venue_stop=None,
+               lots_open=_q, targets_done=[], manual=True,
+               manual_targets_usd=list(_tgts), manual_targets_pt=_tpts,
+               note=(f"MANUAL {_side} {_q} lots @ {_fill} · targets "
+                     + "/".join(f"${t:.0f}" for t in _tgts)))
+    if notify:
+        notify(f"DAY RIDER MANUAL {_side} {_q} lots @ {_fill:.2f}\n"
+               + "\n".join(f"  L{i+1} ${t:.0f} = {pt:.1f}pt \u2192 {_fill + _d*pt:.2f}"
+                            for i, (t, pt) in enumerate(zip(_tgts, _tpts)))
+               + f"\nNO STOP · hard flat {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z",
+               critical=True)
+    return True
+
+
 async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -> dict:
     """One pass. Returns the state it wrote. Safe to call repeatedly; idempotent per session."""
     now = now or dt.datetime.now(dt.UTC)
@@ -609,7 +803,27 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
     out = dict(st)
     out["session"] = session_key(now)
     if st.get("session") != out["session"]:
-        out = {"session": out["session"], "entered": False, "closed": False}
+        # ★★★2026-08-22 A SESSION ROLLOVER MUST NOT DISCARD AN OPEN POSITION.
+        # `session_key` is the CALENDAR DATE, so this fires at midnight UTC — mid-hold. It used to
+        # blank the book unconditionally, which on 08-21/22 made the rider disown 4 lots it really
+        # held: `owns_position` went False, so it stopped managing them, claimed ZERO to the
+        # reconciler (venue +4 vs rider +0 → kill switch + an alarm every 30s all night), and the
+        # dashboard showed nothing. The same wipe would then have defeated the Sunday flatten,
+        # because a claim is refused on a position the rider does not think it owns.
+        # The reset exists to clear the ONCE-PER-SESSION LATCH, not to forget inventory. So: when
+        # the outgoing book still claims a live position, the POSITION FIELDS ARE CARRIED OVER and
+        # only the latch is cleared. IBKR remains the truth — this just stops our book lying about
+        # what we hold, which is the precondition for reconciling against it at all.
+        _carry = (bool(st.get("entered")) and not bool(st.get("closed"))
+                  and abs(float(st.get("qty") or 0)) > 1e-9)
+        if _carry:
+            out = dict(st)
+            out["session"] = session_key(now)
+            out["carried_session"] = st.get("session")
+            out["note"] = (f"position carried across the session rollover from "
+                           f"{st.get('session')} — {st.get('qty')} lots @ {st.get('entry')}")
+        else:
+            out = {"session": out["session"], "entered": False, "closed": False}
 
     if not enabled():
         out["note"] = "switch off"
@@ -656,7 +870,18 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         # of bug as [[md-stream-multi-symbol-filter]] — a SHARED resource consumed without checking
         # the tag that says which owner it belongs to.
         owns_position = bool(out.get("entered")) and not bool(out.get("closed"))
-        if mod >= FLAT_UTC_MIN or mod < OPEN_UTC_MIN:
+        # ★★★2026-08-21 THE 09:11 INCIDENT. This read `mod >= FLAT_UTC_MIN or mod < OPEN_UTC_MIN`,
+        # which is TRUE all morning — so the hard flat fired on a position the operator had just
+        # opened BY HAND at 09:11, killing it 60 seconds later at a 40pt slip on the last lot.
+        # Extending manual ENTRY to the full CME session without extending MANAGEMENT left the
+        # rider entering trades it would immediately execute a hard flat against. A window that
+        # governs when we may OPEN must govern when we may HOLD, or the two fight each other.
+        # NOW: the hard flat fires only in the real dead window (20:40-22:00). Any other time, a
+        # position WE OWN falls through to MANAGE, so the claim buttons, the profit ladder and the
+        # trail all work on a hand-opened trade exactly as they do on an automatic one.
+        # ⚠ "NEVER HOLD OVERNIGHT" IS PRESERVED — nothing survives 20:40Z; see the flatten below.
+        _owned_live = owns_position and abs(net) > 1e-9
+        if idle_block_applies(mod, _owned_live):
             # Re-arm the moment the condition RESOLVES — the venue went flat, or the position became
             # ours. A cooldown must suppress a CONTINUING state, never a fresh occurrence of one.
             if not (abs(net) > 1e-9 and not owns_position):
@@ -717,7 +942,15 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                                critical=True)
                     from ib_async import MarketOrder
                     _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                    _xpx = await await_fill(_tr, px, what="CLOCK_FLAT exit", notify=notify, out=out)
+                    # ★2026-08-21 `px` was UNBOUND here — it is assigned only in the MANAGE path
+                    # below. The order went to the venue and the tick then died on
+                    # UnboundLocalError, so the flatten executed while the book still claimed 4
+                    # lots. The reconciler saw venue 0 vs rider +4, wrote the kill file, and the
+                    # rider went inert — which is why the claim buttons stopped responding. A
+                    # fallback price is only ever used if the fill is unreadable; it must exist.
+                    _fb = drift_read(cfg.capture_path, cfg.symbol, now)
+                    _xpx = await await_fill(_tr, (_fb.price or 0.0), what="CLOCK_FLAT exit",
+                                            notify=notify, out=out)
                     # ★ VERIFY, then let the minute cadence retry. A market order that does not fill
                     # is exactly why the flatten moved off the halt — silence here would carry the
                     # position overnight, which the operator has ruled out absolutely.
@@ -780,8 +1013,28 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                            f"{out.get('qty')} @ {out.get('entry')}. Booked as CLOSED_ELSEWHERE at "
                            f"{px} — CHECK who closed it (shared account DUQ191770).",
                            critical=True)
+            elif (_mb := buy_requested()):
+                # ★★★2026-08-21 MANUAL ENTRY IS ALLOWED ACROSS THE FULL CME SESSION.
+                # Operator: "extend it to the full cme session." The AUTOMATIC rider still only
+                # enters 13:30-15:00 — the detector has no edge outside it — but a human pressing
+                # BUY has made a decision this clock was never written to govern, and until now
+                # the request died here in silence.
+                # ⚠ THE 20:40Z HARD FLAT IS UNCHANGED AND IS WHY THIS IS SAFE. The CME session runs
+                #   22:00Z -> 21:00Z, so an entry anywhere inside it is flattened at 20:40 WITHOUT
+                #   EVER CROSSING THE HALT. The standing rule is "never hold overnight"; a position
+                #   opened at 23:00Z and closed at 20:40Z is one session, not two. The button
+                #   itself refuses 20:40-22:00 (the flatten window and the halt).
+                clear_buy()
+                await do_manual_entry(_mb, ib=ib, contract=contract, cfg=cfg, now=now,
+                                      mod=mod, net=net, out=out, notify=notify)
             else:
-                out["note"] = "outside 13:30-21:00 — flat, idle"
+                # ★2026-08-21 RESTORED — the extraction dropped this else, so `note` was left
+                # carrying the PREVIOUS tick's text. A state field that is not rewritten every
+                # tick is a stale instrument, and this one is what the dashboard shows.
+                # It no longer says "outside 13:30-21:00", which now reads as CLOSED on a button
+                # that works: manual entry is live across the whole CME session.
+                out["note"] = ("outside the automatic entry window (13:30-15:00Z) — flat, idle. "
+                               "MANUAL BUY/SELL is live across the whole CME session.")
             save_state(out)
             return out
 
@@ -828,6 +1081,54 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             tl = trail_level(d, entry, peak, arm_atr)
             out["trail"] = tl
             out["ahead_pt"] = round(d * (px - entry), 1)
+
+            # ── ★★★2026-08-20 THE PROFIT LADDER — each lot banks its own dollar figure ─────
+            # Operator: "1 takes profit at $100. 2 at $200. 3 at $400. 4 at $600 ... if they all
+            # take profit we take $1300 for the day." PER LOT at $2/pt = 50/100/200/300pt.
+            # Checked BEFORE the trail and the approval exit, so a target always wins the tick.
+            # ⚠ out["qty"] is reduced as lots leave. Every later exit path (trail, claim, and the
+            #   20:40 hard flat) sizes from it, so a stale 4 here would try to sell lots that are
+            #   already gone — on a shared netted account that is the 08-06 cascade.
+            done = list(st.get("targets_done") or [])
+            lots_open = int(st.get("lots_open") or own_qty)
+            ahead = d * (px - entry)
+            # ★2026-08-21 a MANUAL entry carries its own cascade; the automatic entry uses the
+            # standing ladder. Never mix them — the position was opened against one set of rungs.
+            _ladder = st.get("manual_targets_pt") or TARGET_PT
+            _lusd = st.get("manual_targets_usd") or TARGET_USD_PER_LOT
+            for _k, _tpt in enumerate(_ladder):
+                if _k in done or lots_open <= 0 or ahead < _tpt:
+                    continue
+                _usd = _lusd[_k] if _k < len(_lusd) else 0.0
+                from ib_async import MarketOrder
+                _tr = ib.placeOrder(contract, MarketOrder("SELL" if d > 0 else "BUY", 1))
+                _xpx = await await_fill(_tr, px, what=f"TARGET lot {_k+1}",
+                                        notify=notify, out=out)
+                book_trade(out, _xpx, f"TARGET_{int(_usd)}", notify, qty=1)
+                done.append(_k)
+                lots_open -= 1
+                if notify:
+                    notify(f"DAY RIDER lot {_k+1} banked ${_usd:.0f} @ {_xpx:.2f} "
+                           f"({ahead:+.0f}pt from entry) · {lots_open} lot(s) still open")
+            if done != list(st.get("targets_done") or []):
+                out["targets_done"] = done
+                out["lots_open"] = lots_open
+                out["qty"] = float(lots_open)
+                own_qty = float(lots_open)
+                if lots_open <= 0:
+                    out["closed"] = True
+                    out["exit_reason"] = "LADDER_COMPLETE"
+                    # The sixth close path. No stop is placed while PLACE_VENUE_STOP is False, so
+                    # this is a no-op today — but it must be here anyway: if the stop is ever
+                    # re-enabled, a ladder that completed without cleaning up would leave a resting
+                    # 4-lot stop behind a flat book, which is the 08-06 orphan-stop cascade exactly.
+                    await cancel_own_stops(ib, cfg.symbol, notify)
+                    out["note"] = f"all {len(_ladder)} lots banked — ${sum(_lusd):.0f}"
+                    if notify:
+                        notify(f"DAY RIDER LADDER COMPLETE — ${sum(_lusd):.0f} banked",
+                               critical=True)
+                    save_state(out)
+                    return out
 
             # ── OPERATOR-APPROVAL EXIT — ask up to 3x, 15 min apart, DEFAULT HOLD ──────────
             atr_now = float(out.get("entry_atr", st.get("entry_atr", 0.0)) or 0.0)
@@ -905,13 +1206,42 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # against what holding would have made. The nightly audit already
             # exists to answer "what are the operator's hands worth"; this makes
             # the day-rider's claims part of that number from day one.
-            if claim_requested():
+            _claim = claim_requested()
+            if _claim is not None:
                 clear_claim()
                 # Gated. The operator pressing "claim" is not evidence about what the account holds
                 # — on 08-13 the claim button was pressed while the books and the venue disagreed by
                 # 8 lots. Refusing and paging is the honest answer; the claim can be re-pressed.
                 v = (own_flatten_verdict(d, own_qty)  # ours, never the shared account net
                      if venue_first_ok(net, "exit on MANUAL_CLAIM", notify) else None)
+                if v and isinstance(_claim, int):
+                    # ── ONE LOT. Ownership is verified across the WHOLE position (v), then exactly
+                    # one lot is sold. Doubles as the kill button for that lot: it fires in profit
+                    # or loss, because there is no stop and this is the operator's only manual exit.
+                    from ib_async import MarketOrder
+                    _tr = ib.placeOrder(contract, MarketOrder(v[0], 1))
+                    _xpx = await await_fill(_tr, px, what=f"MANUAL_CLAIM lot {_claim+1}",
+                                            notify=notify, out=out)
+                    _done = list(st.get("targets_done") or [])
+                    if _claim not in _done:
+                        _done.append(_claim)          # that rung is spent — never fills later
+                    _left = max(0, int(st.get("lots_open") or own_qty) - 1)
+                    book_trade(out, _xpx, "MANUAL_CLAIM", notify, qty=1)
+                    out["targets_done"] = _done
+                    out["lots_open"] = _left
+                    out["qty"] = float(_left)
+                    out["note"] = (f"lot {_claim+1} claimed by hand at {_xpx:.1f} "
+                                   f"({d*(_xpx-entry):+.0f}pt) · {_left} lot(s) open")
+                    if notify:
+                        notify(f"DAY RIDER lot {_claim+1} claimed @ {_xpx:.1f} · "
+                               f"{d*(_xpx-entry):+.0f}pt from entry · {_left} lot(s) still open",
+                               critical=False)
+                    if _left <= 0:
+                        out["closed"] = True
+                        out["exit_reason"] = "MANUAL_CLAIM"
+                        await cancel_own_stops(ib, cfg.symbol, notify)
+                    save_state(out)
+                    return out
                 if v:
                     from ib_async import MarketOrder
                     _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
@@ -975,16 +1305,30 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             return out
 
         # ── 3. ENTRY — once per session, only on a confirmed drift ───────────────────────
+        _buy = buy_requested()
+        if _buy:
+            clear_buy()
+            if await do_manual_entry(_buy, ib=ib, contract=contract, cfg=cfg, now=now,
+                                     mod=mod, net=net, out=out, notify=notify):
+                save_state(out)
+                return out
+
+        # ── the ONCE-PER-SESSION LATCH (automatic entry only) ────────────────────────────
+        # Restored 2026-08-21 after an extraction removed it. It stops the DETECTOR re-entering;
+        # the manual BUY above is deliberately checked first, because a human press is not the
+        # detector firing twice.
         if st.get("entered") or st.get("closed"):
             out["note"] = "already traded this session — no re-entry"
             save_state(out)
             return out
+        # ── venue holds something our book does not claim: STAND DOWN, never trade over it ──
         if abs(net) > 1e-9:
             out["note"] = f"venue holds {net} but state says no entry — STANDING DOWN"
             if notify:
                 notify(f"DAY RIDER: unexplained venue position {net} — standing down", critical=True)
             save_state(out)
             return out
+
         if mod >= ENTRY_CUTOFF_MIN:
             out["note"] = (f"past the {ENTRY_CUTOFF_MIN//60:02d}:00 entry cutoff — no new entry "
                            f"(all 31 validated detections were 13:38-14:09)")
@@ -995,6 +1339,23 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                           "rt": round(r.roundtrip, 3), "confirmed": r.confirmed}
         if not r.confirmed:
             out["note"] = "not confirmed — " + (r.detail or "")
+            out["confirm_streak"] = 0            # a break in confirmation RESETS the run
+            out["confirm_dir"] = None
+            save_state(out)
+            return out
+
+        # ★ PERSISTENCE. Count consecutive confirming ticks in the SAME direction. A direction flip
+        #   restarts the count at 1 — a run that changes its mind is not the run we are waiting for.
+        if out.get("confirm_dir") == r.direction:
+            out["confirm_streak"] = int(out.get("confirm_streak") or 0) + 1
+        else:
+            out["confirm_streak"] = 1
+        out["confirm_dir"] = r.direction
+        if out["confirm_streak"] < CONFIRM_PERSIST_MIN:
+            _left = CONFIRM_PERSIST_MIN - out["confirm_streak"]
+            out["note"] = (f"confirmed {r.direction} — holding for the run to persist "
+                           f"({out['confirm_streak']}/{CONFIRM_PERSIST_MIN} ticks, {_left} more; "
+                           f"cutoff {ENTRY_CUTOFF_MIN//60:02d}:00Z)")
             save_state(out)
             return out
 
@@ -1015,7 +1376,10 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 break
         fill = float(tr.orderStatus.avgFillPrice or r.price)
         stop_px = round(fill - d * VENUE_STOP_PT, 2)
-        ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", LOTS, stop_px))
+        if PLACE_VENUE_STOP:
+            ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", LOTS, stop_px))
+        else:
+            stop_px = None      # naked by operator decision — see PLACE_VENUE_STOP above
         out.update(entered=True, entry=fill, peak=fill, direction=d, qty=LOTS,
                    # ★2026-08-11 the state had NO entry timestamp, so a booked trade had no
                    # opened_at and "how long did it hold?" was unanswerable after the fact.
@@ -1024,6 +1388,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                    # ★ FROZEN at entry and never rewritten — entry_atr above is overwritten every
                    #   tick with the live ATR, so the trail needs its own immutable copy.
                    arm_atr=round(r.atr, 2), venue_stop=stop_px,
+                   lots_open=LOTS, targets_done=[],
                    note=f"ENTERED {LOTS} lots {r.direction} @ {fill}")
         if notify:
             # ⚠ "flat 21:00" was WRONG here for the life of this line: 21:00 IS the CME halt, and
@@ -1031,7 +1396,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             band = watch_verdict(r.roundtrip)
             notify(f"DAY RIDER ENTERED {LOTS} lots {r.direction} @ {fill:.2f} · ATR {r.atr:.1f}pt\n"
                    f"rt {r.roundtrip:.2f} → {band}\n"
-                   f"eff {r.efficiency:.2f} · stop {stop_px} · hard flat "
+                   f"eff {r.efficiency:.2f} · stop {stop_px if stop_px else 'NONE (naked)'} · hard flat "
                    f"{FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z · entries stop "
                    f"{ENTRY_CUTOFF_MIN//60:02d}:{ENTRY_CUTOFF_MIN%60:02d}Z",
                    critical=True)
@@ -1042,6 +1407,54 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         # ★ TimeoutError and friends stringify to '', which made the first live failure log a bare
         # "ERROR (no action): " with no cause. Always record the exception TYPE.
         out["note"] = f"ERROR (no action): {type(e).__name__}: {str(e)[:110]}"
+
+        # ★★★2026-08-22 A DEAD VENUE DURING THE FLATTEN WINDOW *IS* AN OVERNIGHT POSITION.
+        # 08-21: the gateway wedged and this handler logged 100 consecutive TimeoutErrors across
+        # the whole 20:40-21:00 window. Every tick "failed safe" and said nothing, so 4 naked lots
+        # went through the CME halt and into the WEEKEND — the operator's one absolute rule broken
+        # by silence, not by a decision. Failing closed is right for TRADING; it is catastrophic
+        # for FLATTENING, because the safe direction there is to shout. An unreachable broker is
+        # exactly when a human has to be told, and it is the one case nothing else can cover:
+        # the reconciler cannot read the venue either, so it reports "IBKR truth unavailable"
+        # rather than a breach.
+        try:
+            # ★ CHECK BOTH THE LIVE DICT *AND* THE LOADED STATE. `out` is RESET to
+            # entered=False at a session rollover, and the 08-21 carry crossed exactly such a
+            # rollover: at midnight the rider forgot it held 4 lots, so an alarm keyed on `out`
+            # alone goes quiet at precisely the moment the position becomes an overnight one.
+            # `st` is the pre-reset book and still carries the claim.
+            def _claims(d):
+                return (bool(d.get("entered")) and not bool(d.get("closed"))
+                        and abs(float(d.get("qty") or 0)) > 1e-9)
+            _held = _claims(out) or _claims(st)
+            if _held and notify and mod >= FLAT_UTC_MIN:
+                # ⚠ NO local `from .notify import dedupe_ok` HERE. A function-scoped import binds
+                # the name for the WHOLE function, so it shadowed the module-level dedupe_ok and
+                # turned the unowned-position alarm at the top of step() into an UnboundLocalError
+                # — silently disabling a live safety alarm from inside an error handler. Use the
+                # module-level import.
+                _past = mod >= HALT_UTC_MIN
+                # Message text is deliberately STABLE (no live minute count): dedupe_ok re-sends on
+                # ANY text change, so a ticking clock in here would page every 60s — the spam that
+                # made the operator ask for dedupe in the first place. Stable text + cooldown =
+                # one page every 5 minutes for as long as it is unresolved.
+                _q = out.get("qty") or st.get("qty")
+                _e = out.get("entry") or st.get("entry")
+                _msg = (f"⚠⚠⚠ DAY RIDER CANNOT FLATTEN — the venue is UNREACHABLE "
+                        f"({type(e).__name__}) and we still hold {_q} lots @ {_e}. "
+                        + ("THE HALT HAS PASSED — this position is going overnight. "
+                           if _past else
+                           f"Hard flat was {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z; the CME "
+                           f"halt is {HALT_UTC_MIN//60:02d}:{HALT_UTC_MIN%60:02d}Z. ")
+                        + "Retrying every minute. CHECK THE GATEWAY NOW "
+                          "(docker restart alphabot-gateway) — nothing else can do this.")
+                if dedupe_ok("rider_cannot_flatten", _msg, cooldown_s=300.0):
+                    notify(_msg, critical=True)
+            # a durable marker so the watchdog and sweep can see it without parsing a log
+            out["flatten_blocked"] = bool(_held and mod >= FLAT_UTC_MIN)
+        except Exception:
+            pass                                  # an alarm must never mask the original failure
+
         save_state(out)
         log.exception("day_rider step failed")
         return out

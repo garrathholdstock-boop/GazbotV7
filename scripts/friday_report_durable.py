@@ -155,7 +155,13 @@ def main():
     # morning precisely because it is built LAST.
     rc = 1
     try:
-        r = subprocess.run(f"{PY} scripts/friday/serial_runner.py --deadline 05:15",
+        # ★★★2026-08-30 --deadline REMOVED. It was pinned here at 05:15 and therefore OVERRODE the
+        # widened 05:55 default in serial_runner.py — so the extra 40 minutes, added because the
+        # operator needs the report by 08:00 Paris and 05:15 was leaving that time unused every
+        # single week, never once took effect on the ONLY path that runs on a Friday. A fix that
+        # lives in a default and a caller that hardcodes past it is a fix that was never shipped.
+        # Let serial_runner own the schedule; it is the thing that reasons about the budget.
+        r = subprocess.run(f"{PY} scripts/friday/serial_runner.py",
                            shell=True, cwd=GB, env=ENV, timeout=int(7.5 * 3600))
         rc = r.returncode
     except subprocess.TimeoutExpired:

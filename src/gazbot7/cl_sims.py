@@ -61,6 +61,14 @@ CL_PREFIX = "CL-"
 # sequentially on a 2-min timer with TimeoutStartSec=900, and timeouts run ~9% of signals, so a 20-row
 # backlog worst-cases well inside 900s. Revert: CALL_TIMEOUT_S = 25.
 CALL_TIMEOUT_S = 45
+# ★★2026-08-19 HEADLESS CONTEXT ISOLATION — the prompt must be the ONLY instruction.
+# Claude Code auto-loads a CLAUDE.md from the cwd chain AND the per-project auto-memory index
+# (~/.claude/projects/<slug-of-cwd>/memory/). Running from the repo injected ~1,720 words of
+# unreviewed trading opinion into every headless decision. Must be OUTSIDE the repo: Claude Code
+# walks UP to the repo root, so a dir inside gazbot7 still loads gazbot7's memory.
+# See ops/ROUTER_CONTEXT_ISOLATION.md.
+CL_CTX = "/var/lib/gazbot7/router_ctx"
+
 
 # the eight live-roster gates, mirrored 1:1
 CL_GATES: dict[str, str] = {
@@ -175,8 +183,9 @@ def _call(ctx: dict) -> tuple[dict, int]:
     """Blocking model call. Run via asyncio.to_thread so the shadow loop never waits on it."""
     t0 = time.time()
     try:
+        os.makedirs(CL_CTX, exist_ok=True)
         p = subprocess.run(["claude", "-p", PROMPT + json.dumps(ctx, indent=1)],
-                           capture_output=True, text=True, timeout=CALL_TIMEOUT_S)
+                           capture_output=True, text=True, timeout=CALL_TIMEOUT_S, cwd=CL_CTX)
         import re
         m = re.search(r"\{.*\}", p.stdout, re.S)
         d = json.loads(m.group(0)) if m else {}

@@ -15,4 +15,10 @@ ExecStart=/home/alphabot/gazbot7/.venv/bin/python /home/alphabot/gazbot7/scripts
 # mid-REV2, which is exactly the part that has never survived to Saturday morning:
 # the proofread and the revision are the LAST things built and so the first things lost.
 # 8h from a 22:07 start lands at 06:07 Saturday, still before the operator reads it.
-TimeoutStartSec=28800
+# ★★★2026-08-30 28800 (8h) -> 32400 (9h). This was sized for a 22:07 start; the timer moved to
+# 21:05 on 08-29 and this was not recomputed, so the hard SIGKILL landed at 05:05Z — FIFTY
+# MINUTES BEFORE the job's own 05:55Z deadline, and systemd kills the whole tree with none of
+# run_phase()'s logging and no operator alert. Moving a start time without recomputing the kill
+# turns a graceful finish into a silent execution.
+# 21:05 + 9h = 06:05Z, ten minutes of margin past the internal deadline.
+TimeoutStartSec=32400

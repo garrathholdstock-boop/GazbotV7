@@ -121,6 +121,36 @@ def order(phases):
     return out
 
 
+def deps_newer(p, phases, since: float) -> list:
+    """Which of p's dependencies are NEWER than p's own artifact? (make-style staleness)
+
+    ★★★2026-08-30 THE BUG THIS FIXES, and it cost a whole weekend. `fresh()` asks only "is this
+    artifact from THIS report window", which both an artifact and its inputs can satisfy while the
+    artifact is still OLDER than them. On 08-29 `assemble` ran at 02:34 and five body sections were
+    then rebuilt at 07:27-09:08. All six were "fresh", so assemble was SKIPPED on both retries and
+    the rebuilt sections — including the day_rider section that was the whole point — were never
+    folded into the published report. Two runs completed "successfully" and changed nothing the
+    operator could see.
+    A checkpoint must be invalidated by its INPUTS, not just by the calendar.
+    """
+    try:
+        mine = os.path.getmtime(p["artifact"])
+    except OSError:
+        return []
+    by_key = {q["key"]: q for q in phases}
+    out = []
+    for d in p.get("deps", []):
+        q = by_key.get(d)
+        if not q:
+            continue
+        try:
+            if os.path.getmtime(q["artifact"]) > mine + 1:
+                out.append(d)
+        except OSError:
+            pass
+    return out
+
+
 def fresh(path: str, since: float) -> bool:
     """Is this artifact from THIS report run, not last week's?
 
@@ -142,6 +172,84 @@ def fresh(path: str, since: float) -> bool:
 MIN_SLICE_S = 20 * 60
 
 
+# ★★★2026-08-29 THE BODY RUNS IN PARALLEL NOW, and this is the fix that was needed all along.
+# Operator: "i still dont understand why we are hitting limits… it can basically start straight away
+# and churn away all night. you know the server and ram we have. just design it to churn within
+# those limits and make sure it works."
+#
+# He was right and the file name was the tell. Every section ran ONE AT A TIME because the design
+# assumed a `claude -p` costs ~2.3GB on a 7.5GB box. MEASURED 2026-08-29 while a real run was going:
+#     one section agent      465MB steady (sampled over 30s, no spikes)
+#     the WHOLE job, cgroup  1,435MB peak — runner + agent + every subprocess
+#     unit ceiling           MemoryHigh 4,608MB
+# So four concurrent agents is ~2.8GB against a 4.6GB ceiling. We were never memory-bound; we were
+# bound by a serial loop protecting against a cost that is five times smaller than believed.
+#
+# WHAT THIS BUYS. 13 sections x ~23m serial = 299m, which did not fit the 166m body budget — that is
+# why four were SKIPPED on 08-28 and eight went unbuilt. In waves of 4 the same 13 sections take
+# 4 waves, so each one can be given ~80 MINUTES instead of 23 inside the same night.
+#
+# ⚠ THE TAIL STAYS SERIAL. assemble -> proofread -> rev2 -> final is a real dependency chain and
+#   parallelising it would be nonsense. Only the body fans out.
+# ⚠ DEPENDENCIES ARE HONOURED: movement3 and gf_report consume every greenfield cluster, so they
+#   run in a later wave, never alongside their inputs.
+# ⚠ MEMORY IS CHECKED BEFORE EACH LAUNCH, not assumed. If available RAM falls below MIN_FREE_MB the
+#   scheduler waits rather than starting another agent — the box has had three global_oom kills and
+#   the desk must always win contention.
+MIN_FREE_MB = 1200
+
+
+def _free_mb() -> int:
+    try:
+        for line in open("/proc/meminfo"):
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) // 1024
+    except Exception:
+        pass
+    return 10 ** 6            # unreadable -> do not let a missing gauge stall the run
+
+
+def run_wave(phases, cap_s: float, workers: int):
+    """Run `phases` concurrently, at most `workers` at once. Returns {key: ok}."""
+    import threading
+    results, lock = {}, threading.Lock()
+    sem = threading.Semaphore(workers)
+
+    def one(p):
+        with sem:
+            waited = 0
+            while _free_mb() < MIN_FREE_MB and waited < 600:
+                time.sleep(15); waited += 15
+            if waited:
+                log(f"MEM: waited {waited}s for headroom before {p['key']} "
+                    f"({_free_mb()}MB free)")
+            ok = run_phase(p, cap_s)
+        with lock:
+            results[p["key"]] = ok
+
+    ts = [threading.Thread(target=one, args=(p,), daemon=True) for p in phases]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    return results
+
+
+def plan_waves(body, workers: int):
+    """Split body into dependency-respecting waves of at most `workers`."""
+    done, waves, remaining = set(), [], list(body)
+    while remaining:
+        ready = [p for p in remaining if all(d in done or d not in {q["key"] for q in body}
+                                             for d in p.get("deps", []))]
+        if not ready:                      # a cycle or an unbuildable dep — run the rest serially
+            ready = remaining[:1]
+        for i in range(0, len(ready), workers):
+            waves.append(ready[i:i + workers])
+        for p in ready:
+            done.add(p["key"]); remaining.remove(p)
+    return waves
+
+
 def run_phase(p, budget_s: float) -> bool:
     """One phase, one fresh `claude -p`. Returns True if its artifact exists afterwards."""
     cap = int(min(p["timeout_s"], budget_s))
@@ -150,18 +258,45 @@ def run_phase(p, budget_s: float) -> bool:
         return False
     t0 = time.time()
     err = f"{GB}/reports/friday_v7/sections/{p['key']}.stderr.txt"
+    # ★★★2026-08-29 KEEP STDOUT ON FAILURE. It was captured to a PIPE and thrown away, so when
+    # eight phases died with rc=1 in 0.0s on 08-29 the reason went into a discarded variable and
+    # left EMPTY stderr files — an unexplainable failure by construction. `claude -p` reports quota
+    # and auth problems on STDOUT, which is exactly the class of failure that kills a whole night.
+    # The tail of stdout is now appended to the phase's error file whenever rc is non-zero.
+    out_txt = ""
     try:
         with open(err, "w") as ef:
             r = subprocess.run([CLAUDE, "-p", p["prompt"], "--allowedTools", TOOLS],
                                stdout=subprocess.PIPE, stderr=ef, text=True,
                                timeout=cap, cwd=GB, env=ENV)
         rc = r.returncode
-    except subprocess.TimeoutExpired:
+        out_txt = r.stdout or ""
+    except subprocess.TimeoutExpired as e:
         rc = -1
+        out_txt = (e.stdout or "") if isinstance(getattr(e, "stdout", None), str) else ""
     except Exception as e:
         log(f"{p['key']} EXCEPTION {type(e).__name__}: {e}")
         rc = -2
     took = time.time() - t0
+    if rc != 0 and out_txt:
+        try:
+            with open(err, "a") as ef:
+                ef.write(f"\n--- STDOUT TAIL (rc={rc}) ---\n{out_txt[-4000:]}\n")
+        except Exception:
+            pass
+    # ★2026-08-30 rc=-1 IS A TIMEOUT, NOT A CRASH — and yesterday's version of this line called
+    # every one of them "the CLI died on invocation", which was flatly wrong and sent me looking at
+    # auth for phases that had run their full 90-180 minute cap. Distinguish them:
+    #   rc == -1  -> ran to the cap and was killed. Nothing to diagnose; it needed more time or the
+    #                box was too slow (on 08-29 three of them overlapped a 93%-memory-pressure
+    #                thrash caused by an orphaned 4.4GB grandchild).
+    #   rc  >  0  -> the process exited by itself. With no output at all that is the CLI failing on
+    #                invocation — quota, auth or binary.
+    if rc == -1:
+        log(f"{p['key']}: TIMED OUT at its {cap//60}m cap — not a crash. More time, or a faster box.")
+    elif rc != 0 and not out_txt:
+        log(f"{p['key']}: rc={rc} with NO output at all — the CLI died on invocation "
+            f"(quota, auth or binary). Check `claude -p` by hand.")
     ok = os.path.exists(p["artifact"]) and time.time() - os.path.getmtime(p["artifact"]) < took + 120
     # ★ The ARTIFACT is the verdict, not the exit code. On 2026-07-31 the session exited 0 having
     # only DESCRIBED what it would do; the report was never built and the driver called it success.
@@ -171,14 +306,26 @@ def run_phase(p, budget_s: float) -> bool:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--deadline", default="05:15",
-                    help="UTC HH:MM to be finished by (next occurrence)")
+    # ★★★2026-08-29 WINDOW WIDENED. The 08-28 run built 5 of 13 sections and its tail died: 13 body
+    # phases against a 166m budget, with four SKIPPED for fair shares of 19-20m against the 20m floor.
+    # The reserve was not the fault — run_phase() caps every phase at its declared timeout, so the
+    # tail cannot exceed 255m and the reserve is correctly sized for the worst case. The fault was
+    # that the WINDOW was 420m for 975m of declared work.
+    # 05:15 -> 05:55: the operator needs it by 08:00 Paris = 06:00Z, so 05:15 was leaving 45m unused
+    # against a hard requirement, every week.
+    ap.add_argument("--deadline", default="05:55",
+                    help="UTC HH:MM to be finished by (next occurrence). 05:55Z = 07:55 Paris, "
+                         "just inside the operator's 08:00 Paris requirement.")
     # ★2026-08-16 (audit) 200 was UNDER-DECLARED: assemble 60 + proofread 60 + rev2 90 + final 45
     # = 255m. The tail loop hands each phase the whole remainder with no fair share, so a slow
     # assemble ate the reserve and `final` was skipped for lack of budget — the same "declared
     # timeouts never compared to the budget" defect this file was rewritten to fix, left unfixed on
     # the ONE chain that must finish. 255 = the tail's own declared sum.
-    ap.add_argument("--reserve-min", type=int, default=255,
+    # ★2026-08-29 255 -> 225. Still ABOVE every measured tail (08-21: 122m, 08-28: 147m) and above
+    # the sum of what the tail actually needs, but 30m is returned to the body. Not cut further:
+    # 255 is the tail's declared worst case and `final` has already been starved once by a slow
+    # assemble (08-16). Insurance, deliberately over-provisioned — just less so.
+    ap.add_argument("--reserve-min", type=int, default=225,
                     help="minutes held back for assemble+proofread+rev2+final")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--tail-only", action="store_true",
@@ -188,6 +335,17 @@ def main() -> int:
                          "(--reserve-min is the wrong lever for this: it starves the body budget "
                          "but the loop still enters the first phase before it checks.)")
     ap.add_argument("--force", action="store_true", help="re-run phases whose artifact exists")
+    ap.add_argument("--per-week", type=int, default=None,
+                    help="how many greenfield clusters to admit (default PER_WEEK=2, sized for the "
+                         "228m Friday window). A CATCH-UP RUN with a long deadline can afford all "
+                         "of them: at the observed ~23m/section, six clusters is ~140m. Overriding "
+                         "this on a FRIDAY re-creates the 08-14 failure where the list could not "
+                         "fit and clock order decided what got built.")
+    ap.add_argument("--workers", type=int, default=4,
+                    help="sections to build CONCURRENTLY. Measured 2026-08-29: one agent is 465MB "
+                         "and the whole job peaks at 1,435MB against a 4,608MB ceiling, so 4 is "
+                         "~2.8GB and safe. The scheduler also refuses to launch below "
+                         "MIN_FREE_MB of free RAM. The TAIL is always serial.")
     ap.add_argument("--since", default="",
                     help="UTC ISO cutoff; artifacts older than this are STALE and get rebuilt. "
                          "Default: the most recent Friday 22:00Z, i.e. this report window.")
@@ -222,6 +380,10 @@ def main() -> int:
         f"artifacts older than {dt.datetime.fromtimestamp(since, dt.UTC):%Y-%m-%dT%H:%MZ} are STALE ===")
 
     week_iso = dl.isocalendar().week
+    if a.per_week is not None:
+        globals()["PER_WEEK"] = max(0, min(a.per_week, len(ROTATING)))
+        log(f"ROTATION OVERRIDE: admitting {PER_WEEK} of {len(ROTATING)} greenfield clusters "
+            f"(default {2}) — only safe because this run's body budget is not the Friday 228m.")
     rotated, dropped = rotate(PHASES, week_iso)
     if dropped:
         log(f"ROTATION (ISO week {week_iso}): running {PER_WEEK} of {len(ROTATING)} greenfield "
@@ -241,13 +403,21 @@ def main() -> int:
     body_budget = (total - a.reserve_min * 60) / 60.0
     log(f"PREFLIGHT: {len(body)} body phases declare {body_cap:.0f}m of timeouts against a "
         f"{body_budget:.0f}m budget ({body_cap / max(body_budget, 1):.1f}x)")
-    if body_cap > body_budget * 1.5:
-        log(f"PREFLIGHT ⚠ the section list CANNOT fit — at the observed ~23m/section pace about "
-            f"{int(body_budget // 23)} of {len(body)} will finish. Fair-share capping is ON.")
+    _w = max(1, a.workers)
+    _waves = (len(body) + _w - 1) // _w
+    log(f"PREFLIGHT: {len(body)} sections in ~{_waves} wave(s) of {_w} -> "
+        f"{body_budget/max(_waves,1):.0f}m per section (serial would be "
+        f"{body_budget/max(len(body),1):.0f}m)")
+    if body_budget / max(_waves, 1) < MIN_SLICE_S / 60:
+        log(f"PREFLIGHT ⚠ even in waves the per-section share is below the "
+            f"{MIN_SLICE_S//60}m floor — sections WILL be skipped.")
 
     if a.dry_run:
         for p in body + tail:
-            state = "HAVE" if fresh(p["artifact"], since) else "todo"
+            _sd = deps_newer(p, phases, since)
+            state = ("todo" if _sd else "HAVE") if fresh(p["artifact"], since) else "todo"
+            if _sd:
+                state = "REBUILD"
             print(f"  {'TAIL ' if p['key'] in TAIL else '     '}{p['key']:<22} {state}  "
                   f"cap {p['timeout_s']//60}m")
         print(f"\n  window {total/3600:.1f}h | reserve {a.reserve_min}m | "
@@ -259,32 +429,42 @@ def main() -> int:
             f"what is on disk is the report")
         body = []
     built, skipped, failed = [], [], []
-    for p in body:
+    todo_body = [q for q in body
+                 if a.force or not fresh(q["artifact"], since) or deps_newer(q, phases, since)]
+    skipped = [q["key"] for q in body if q not in todo_body]
+    for k in skipped:
+        log(f"HAVE {k} — skipping (artifact is the checkpoint)")
+
+    # ★★★2026-08-29 WAVES, NOT A QUEUE. The old loop ran one section at a time and gave each
+    # 1.6x the even split of what remained — with 13 sections in a 166m budget that is ~20m each,
+    # under the 20m floor, which is why four were SKIPPED and eight went unbuilt on 08-28.
+    # Measured on 08-29: an agent is 465MB and the whole job peaks at 1,435MB against a 4,608MB
+    # ceiling, so 4 at once is safe. 13 sections in waves of 4 is 4 waves — each section can have
+    # ~80m instead of 20m, inside the SAME night.
+    waves = plan_waves(todo_body, a.workers)
+    if waves:
+        log(f"SCHEDULE: {len(todo_body)} section(s) in {len(waves)} wave(s) of up to {a.workers} "
+            f"(memory floor {MIN_FREE_MB}MB, {_free_mb()}MB free now)")
+    for wi, wave in enumerate(waves, 1):
         left = (dl - dt.datetime.now(dt.UTC)).total_seconds() - a.reserve_min * 60
-        if fresh(p["artifact"], since) and not a.force:
-            skipped.append(p["key"]); log(f"HAVE {p['key']} — skipping (artifact is the checkpoint)")
-            continue
+        waves_left = len(waves) - wi + 1
         if left <= 120:
             # ★ Stop building SECTIONS rather than eat the tail's budget. A report missing a
             # greenfield lab but carrying its proofread is worth more than a complete unchecked one.
             log(f"BUDGET: stopping section builds to protect the tail ({left/60:.0f}m left)")
-            failed.extend(q["key"] for q in body[body.index(p):]
-                          if not fresh(q["artifact"], since))
+            failed.extend(q["key"] for w in waves[wi-1:] for q in w)
             break
-        # ★ FAIR SHARE, not first-come-first-served. Previously a phase was handed ALL remaining
-        # budget and could spend 40% of the night producing nothing. Each phase now gets at most
-        # 1.6x the even split of what is left, so an over-runner is truncated instead of the
-        # sections behind it. And a phase that would get less than MIN_SLICE is SKIPPED rather than
-        # handed a useless sliver — 13 minutes bought exactly nothing on 08-14, twice.
-        todo = [q for q in body[body.index(p):] if not fresh(q["artifact"], since) or a.force]
-        share = left / max(len(todo), 1) * 1.6
-        cap = min(left, share)
+        # each WAVE gets an even share of what is left; inside a wave the phases run together, so
+        # the wave costs the SLOWEST member, not the sum.
+        cap = min(left / waves_left, max(q["timeout_s"] for q in wave))
         if cap < MIN_SLICE_S:
-            log(f"SKIP {p['key']} — fair share is {cap/60:.0f}m, below the {MIN_SLICE_S//60}m "
-                f"minimum a section needs to produce anything")
-            failed.append(p["key"])
+            log(f"SKIP wave {wi} ({', '.join(q['key'] for q in wave)}) — {cap/60:.0f}m share is "
+                f"below the {MIN_SLICE_S//60}m minimum a section needs to produce anything")
+            failed.extend(q["key"] for q in wave)
             continue
-        (built if run_phase(p, cap) else failed).append(p["key"])
+        log(f"WAVE {wi}/{len(waves)}: {', '.join(q['key'] for q in wave)} — {cap/60:.0f}m each")
+        for k, ok in run_wave(wave, cap, a.workers).items():
+            (built if ok else failed).append(k)
 
     log(f"sections: {len(built)} built, {len(skipped)} already had, {len(failed)} missing")
     if failed:
@@ -294,8 +474,11 @@ def main() -> int:
     tail_ok = True
     for p in tail:
         left = (dl - dt.datetime.now(dt.UTC)).total_seconds()
-        if fresh(p["artifact"], since) and not a.force:
+        stale_deps = deps_newer(p, phases, since)
+        if fresh(p["artifact"], since) and not a.force and not stale_deps:
             log(f"HAVE {p['key']} — skipping"); continue
+        if stale_deps:
+            log(f"REBUILD {p['key']} — its inputs are newer: {', '.join(stale_deps)}")
         if not run_phase(p, left):
             tail_ok = False
             log(f"TAIL PHASE FAILED: {p['key']} — stopping (downstream depends on it)")
@@ -303,6 +486,33 @@ def main() -> int:
                    f"re-run `scripts/friday/serial_runner.py` and it will resume from here "
                    f"(finished artifacts are skipped).", crit=True)
             break
+
+    # ★★★2026-08-30 THE OPERATOR IS TOLD BY THE DRIVER, NOT BY AN AGENT. The "your report is ready"
+    # Telegram used to be the last instruction inside `final`'s prompt — a phase that has never once
+    # run to completion — so it has never fired. A notification that depends on an LLM finishing a
+    # long narrative task is a lottery ticket, not a notification. This is deterministic: it reads
+    # what is on disk and says so, and it fires whether the tail finished or not, because "it did not
+    # finish" is exactly the message worth sending.
+    try:
+        import glob as _glob
+        _reps = sorted(_glob.glob(f"{GB}/src/gazbot7/web_static/weekly_*.html"),
+                       key=os.path.getmtime)
+        if _reps:
+            _r = _reps[-1]
+            _html = open(_r, encoding="utf-8", errors="replace").read()
+            _h2 = _html.count("<h2"); _tb = _html.count("<table")
+            _kb = os.path.getsize(_r) // 1024
+            _missing = [q["key"] for q in body + tail
+                        if not fresh(q["artifact"], since) and not a.tail_only]
+            notify(("✅ Friday report READY — " if tail_ok else "⚠ Friday report INCOMPLETE — ")
+                   + f"{os.path.basename(_r)} · {_h2} sections · {_tb} tables · {_kb}KB"
+                   + (f" · {len(_missing)} section(s) unbuilt: {', '.join(_missing[:5])}"
+                      if _missing else " · all sections present")
+                   + "\n/v7/reports", crit=not tail_ok)
+        else:
+            notify("⚠⚠ Friday report: NO weekly_*.html on disk at all after the run.", crit=True)
+    except Exception as _e:
+        log(f"final ping failed ({type(_e).__name__}: {_e}) — the report itself is unaffected")
 
     log(f"=== SERIAL RUN END — tail {'OK' if tail_ok else 'INCOMPLETE'} ===")
     if tail_ok:

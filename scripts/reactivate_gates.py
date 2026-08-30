@@ -17,8 +17,11 @@ import sys
 from datetime import datetime, timezone
 
 sys.path.insert(0, "/home/alphabot/gazbot7/src")
+import re  # noqa: E402
+
 from gazbot7.telegram_bot import apply_gate_switch as _apply  # noqa: E402
 from gazbot7.telegram_bot import reactivate_all  # noqa: E402
+from gazbot7.session import is_open as _session_is_open  # noqa: E402
 
 SWITCH = "/home/alphabot/gazbot7/data/gate_switches.env"
 
@@ -53,6 +56,20 @@ SWITCH = "/home/alphabot/gazbot7/data/gate_switches.env"
 # Remove once the divergence is diagnosed and the replay reproduces live within a stated tolerance.
 # ★2026-08-15 nipc dropped from HOLD — it is retired from the roster entirely now, so there is no
 # switch to re-arm and nothing to hold back. rgv_short stays: it is still a live spec.
+# ★★★2026-08-20 OPERATOR DECISION — THE TOURNAMENT IS STOOD DOWN. THE DAY RIDER IS THE ONLY DESK.
+# "the only thing that trades is day rider ... turn all other gates off."
+# ALL SIX tournament gates are held OFF at the Paris-midnight reopen. This is the whole roster, so
+# the reopen now arms nothing at all.
+# ⚠ WHY HERE AND NOT JUST IN gate_switches.env: this job re-arms every `=off` gate at 22:00Z and it
+#   writes the file DIRECTLY. A comment in gate_switches.env does not stop it — nothing reads
+#   comments, which is the exact failure documented above for rgv_short. HOLD is the only mechanism
+#   that works. The router is separately PINNED off the whole roster in router_tick_durable.py.
+# REVERT (restores the previous policy exactly): HOLD = frozenset({"rgv_short"})
+# ★2026-08-26 RESTORED to the pre-standdown roster. The full-roster HOLD was the mechanical half
+# of the 08-20 tournament stand-down; with it in place the 22:00Z reopen arms NOTHING, so lifting
+# TOURNAMENT_STOOD_DOWN alone would leave the router able to bench but never arm.
+# rgv_short stays held for the 2026-08-09 churn reason documented immediately below — that is a
+# separate, still-valid decision and is NOT part of the stand-down.
 HOLD: frozenset = frozenset({"rgv_short"})
 
 # ★★2026-08-09 — rgv_short ADDED TO HOLD. This reverses the 08-01 release noted above, which moved
@@ -97,12 +114,58 @@ MOMENTUM_START_BENCHED: frozenset = frozenset({"grind_long", "abs_veto_long"})
 
 
 def run() -> int:
+    # ★★★2026-08-20 THE CROSS-DESK KILL MUST SURVIVE THE REOPEN.
+    # deskrecon stops BOTH desks when `venue != tournament + rider` and writes desk_kill.json;
+    # CLAUDE.md says it "never re-arms — --release is a human act". That was TRUE for the rider
+    # (single writer, off-only) and FALSE for the tournament: this job re-armed its gates at the
+    # next 22:00Z whether or not a human had released the kill. Failure: reconcile confirms a breach
+    # at 20:00Z on an unreconciled shared account, and two hours later the tournament trades again
+    # while the rider stays correctly frozen.
+    try:
+        import json as _json
+        _k = _json.load(open("/home/alphabot/gazbot7/data/desk_kill.json"))
+        if _k.get("active"):
+            print("reactivate_gates: REFUSED — desk_kill.json is ACTIVE. Release it by hand; "
+                  "a kill is not lifted by a clock.")
+            return 0
+    except FileNotFoundError:
+        pass                      # no kill file = no kill, the normal case
+    except Exception as _e:
+        print(f"reactivate_gates: REFUSED — desk_kill.json unreadable ({_e}). Failing CLOSED: "
+              f"an unreadable kill file is not evidence that there is no kill.")
+        return 0
+
     try:
         with open(SWITCH) as f:
             text = f.read()
     except OSError as e:
         print(f"reactivate_gates: no switch file ({e}) — nothing to do")
         return 0
+
+    # ★★★2026-08-29 WEEKENDS ARE OFF. Operator: "everything should be off on weekends."
+    # This job runs at 00:00 Europe/Paris EVERY day, which is 22:00Z — and on Friday that is one
+    # hour AFTER the CME halt. On 2026-08-28 it armed three gates into a venue that was shut until
+    # Sunday; the router benched two as "housekeeping, not evidence" and capitulation_long sat
+    # armed for the whole weekend.
+    # session.is_open() already draws the line exactly where it is needed, so no new clock is
+    # invented here:  Fri 22:00Z -> False (weekend) · Sat 22:00Z -> False · Sun 22:00Z -> TRUE,
+    # because that instant IS the reopen. So the same timer arms on Sunday and disarms on Friday
+    # and Saturday, with no extra unit and no second definition of "the weekend" to drift.
+    _now = datetime.now(timezone.utc)
+    if not _session_is_open(_now):
+        off = re.sub(r"^(\w+)=on\s*$", r"\1=off", text, flags=re.M)
+        changed = sorted(m.group(1) for m in re.finditer(r"^(\w+)=on\s*$", text, flags=re.M))
+        if changed:
+            tmp = SWITCH + ".tmp"          # same atomic write the arm path uses
+            with open(tmp, "w") as fh:
+                fh.write(off)
+            os.replace(tmp, SWITCH)
+            print(f"reactivate_gates: VENUE SHUT ({_now:%a %H:%M}Z) — benched {', '.join(changed)}. "
+                  f"Nothing arms until the Sunday reopen.")
+        else:
+            print(f"reactivate_gates: VENUE SHUT ({_now:%a %H:%M}Z) — already all off, nothing to do.")
+        return 0
+
     new, reactivated = reactivate_all(text)
     # ★ HOLD and MOMENTUM_START_BENCHED are NOT applied the same way, and the difference is the
     # whole point of MONDAY #2:

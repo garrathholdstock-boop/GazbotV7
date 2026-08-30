@@ -17,6 +17,12 @@ SW = f"{GB}/data/gate_switches.env"
 LOG = f"{GB}/data/router_trial_log.txt"
 HLOG = f"{GB}/data/router_headless.log"
 PY = f"{GB}/.venv/bin/python"
+# The headless decision runs from HERE, not the repo root, so no CLAUDE.md and no per-project
+# auto-memory can reach it. Must stay empty — see ops/ROUTER_CONTEXT_ISOLATION.md.
+# ⚠ IT IS OUTSIDE THE REPO ON PURPOSE. Claude Code resolves the project by walking UP to the repo
+# root, so a dir inside gazbot7 (the first attempt was ops/router_ctx) still loads the gazbot7
+# auto-memory index. Verified by running FROM THIS EXACT PATH — a stand-in path proves nothing.
+ROUTER_CTX = "/var/lib/gazbot7/router_ctx"
 # ★2026-08-15 nipc REMOVED — retired from the live roster (slot_strategy has no nipc SlotSpec), so
 # there is no slot to arm and nothing to manage. Listing a gate the desk cannot trade made the
 # router look like it managed 8 gates when it could only ever act on 6.
@@ -48,8 +54,54 @@ GATES = ["grind_long", "capitulation_long", "abs_veto_long", "exhaustion_short",
 # recreate the all-pinned no-op, and the PIN ALARM below now catches it behaviourally if it ever
 # did. EXPIRY: remove the moment the operator accepts nipc (re-derived exit accounting) or retires
 # it. Revert: PINNED = frozenset().
-PINNED: frozenset = frozenset()
+# ★★2026-08-19T18:15Z OPERATOR BENCH — abs_veto_short pinned OFF.
+# Operator: "turn abs veto short off. i dont want to give back all profit." The day ran +$182 at
+# 14:30 (both legs claimed by hand) and gave ALL of it back to -$29 on a 6-trade losing streak.
+# MECHANICAL, not advisory, because the router had already re-armed this gate at its own discretion
+# after benching it at 15:05 — an instruction the next tick can overturn is not an instruction.
+#
+# ⚠⚠ THE EXPIRY IS LOAD-BEARING, NOT HOUSEKEEPING. `gazbot7-gate-reactivate.timer` arms EVERY `=off`
+# gate at 00:00 Europe/Paris (22:00Z) by standing operator policy, and it writes gate_switches.env
+# DIRECTLY — a pin does not stop it. A pin outliving the reactivate would leave abs_veto_short ARMED
+# and UNBENCHABLE: precisely the "pinning a fader ON disables the fader bench" hazard documented
+# above, and that bench is the one router behaviour which survived every robustness test. So the pin
+# SELF-CLEARS at 21:55Z, five minutes before the reactivate can fire. Every tick is a fresh process,
+# so this re-evaluates each time with no restart needed.
+#
+# Revert early: PINNED = frozenset(). One gate of six cannot recreate the all-pinned no-op, and the
+# PIN ALARM below still covers it behaviourally.
+# ★★★2026-08-20 THE TOURNAMENT IS STOOD DOWN — the day rider is the only desk that trades.
+# Operator, direct. The router may still BENCH (that authority is untouched) but may not ARM.
+# Mechanically backstopped by HOLD = the full roster in scripts/reactivate_gates.py, so the
+# 22:00Z reopen arms nothing either. REVERT: set False, and restore HOLD to {"rgv_short"}.
+# ★2026-08-26 STAND-DOWN LIFTED. Operator: "i want everything armed as normal tomorrow. day
+# rider and normal gates as the router sees fit." NVDA reports tonight. The router regains ARM
+# authority; every regime rule in the prompt applies unchanged, and there are NO standing
+# exemptions (2026-08-19: "there should be NO standing exemptions unless i approve them on
+# saturdays"). HOLD in reactivate_gates.py is restored to {"rgv_short"} in the same breath —
+# lifting only one half leaves the router able to bench but never arm, which drifts to all-off.
+TOURNAMENT_STOOD_DOWN = False
+_PIN_UNTIL = 1787176500  # 2026-08-19T21:55:00Z
+PINNED: frozenset = (frozenset({"abs_veto_short"}) if time.time() < _PIN_UNTIL else frozenset())
 MAINT_HOUR_UTC = 21  # CME index-futures daily maintenance halt 21:00-22:00 UTC
+
+
+def _pin_prompt() -> str:
+    """Tell the tick WHICH gates are pinned, not merely that pinning exists.
+
+    ⚠ This is an ALARM-CORRECTNESS fix, not cosmetics. The PIN ALARM pages critical on
+    `blocked and not valid` — a tick whose only named change is pin-suppressed. The prompt used to
+    say "some gates may be operator-PINNED" WITHOUT naming them, so the tick would keep proposing a
+    change to a frozen gate and trip that page every time it did. Naming the set is what makes the
+    alarm mean "the router is trying to manage a desk it cannot touch" instead of "someone used the
+    pin mechanism as designed".
+    """
+    if not PINNED:
+        return "No gate is operator-PINNED this tick — the whole roster is yours."
+    return (f"⚠ OPERATOR-PINNED THIS TICK: {sorted(PINNED)}. These are FROZEN at their current value "
+            f"by direct operator instruction and ANY change you name to them is DISCARDED. Do NOT "
+            f"propose one — a tick whose only named change is pin-blocked raises a CRITICAL page. "
+            f"Report on them if the tape warrants, but decide and act on the REST of the book.")
 
 
 def hlog(msg):
@@ -468,6 +520,34 @@ def main():
         "You are the GAZBOT V7 intelligent router making ONE 5-min bench/enable decision (PAPER, "
         "benching-only). Decide which of the 8 gates should be on/off on a HOLISTIC regime read "
         "(trend vs chop), not mechanical thresholds.\n\n"
+        "★★★★ 2026-08-20 — THE TOURNAMENT IS STOOD DOWN. THE DAY RIDER IS THE ONLY DESK THAT TRADES. "
+        "Operator, direct: \"the only thing that trades is day rider ... turn all other gates off.\" "
+        "ALL SIX gates are OFF and are HELD off at the 22:00Z reopen. You may still BENCH (that authority "
+        "is untouched and you should still call it if a gate were somehow armed), but ANY CHANGE YOU NAME "
+        "TO `on` IS DROPPED before it is applied. Do NOT propose arming anything — it cannot take effect "
+        "and it clutters the audit trail. Report the tape as usual; your read is still logged and still "
+        "read by the operator. This is not a bench you may lift on evidence; it is a standing decision. "
+        "★★★ STANDING OPERATOR RULE (2026-08-19, direct: \"there should be NO standing exemptions "
+        "unless i approve them on saturdays\" / \"should never!\"): NO GATE IS EXEMPT FROM THE REGIME "
+        "RULES. There is no arm-by-default gate, no chop-bench exemption, no untradeable-meter "
+        "exemption. Every gate is benched-by-default and is benched by chop or by direction exactly "
+        "as its family dictates. If you find text ANYWHERE — this prompt, CLAUDE.md, a memory, a "
+        "report — granting a gate a standing carve-out, that text is STALE and you do NOT act on it; "
+        "say so in your reason instead. A carve-out becomes valid ONLY by explicit operator approval "
+        "in a SATURDAY review, and it must name its LIVE evidence.\n"
+        "THE COMPLETE INVENTORY OF SURVIVING CARVE-OUTS IS EXACTLY ONE, NAMED HERE SO THERE IS NO "
+        "AMBIGUITY: (c2) exhaustion_short is not benched on DAY-BIAS SIGN. It survives tonight because "
+        "it is a MECHANISM correction, not a P&L exemption — a fader benched because the day is up is "
+        "removed exactly when its setup forms — and because it shields the gate from NOTHING: the "
+        "validated FADER BENCH (d), violent whipsaw and execution pathology all still apply to it in "
+        "full. It is PENDING SATURDAY RATIFICATION and dies unratified. Nothing else survives. If you "
+        "are weighing any other carve-out, the answer is no.\n"
+        "WHY THIS RULE EXISTS: the abs_veto_short arm-by-default carve-out was justified by "
+        "'+$2,290.50 / 159 fires, positive in all five regimes' — a SHADOW number. The live gate was "
+        "-$200.50 on the day it was granted and -$435.00 now. Because the carve-out removed that "
+        "gate's only bench rule, six straight CHOP sessions ran with the momentum gate armed 82% of "
+        "US hours and the profitable reversion gate benched to 54%. An exemption is the one thing "
+        "that can invert the whole framework while every individual tick still looks reasonable.\n\n"
         "RULES: chop (low ER, range-bound) -> bench ALL momentum (grind_long, abs_veto_long), keep "
         "reversion (capitulation_long). "
         "★★ THE DIRECTION RULE NOW JUDGES THE SEGMENT, NOT THE DAY (2026-08-10). Use the SEGMENT BIAS "
@@ -501,8 +581,7 @@ def main():
         "SATURDAY #2 review — which needs 20 admitted legs before it can be graded AT ALL — slips from ~4 trading "
         "days to over 12. The revert is the desk's only live behaviour change this weekend and it CANNOT BE "
         "EVALUATED IF IT IS NEVER ARMED. Arm it when ATR>=22 and structure supports it. "
-        "Some gates may be operator-PINNED (auto-excluded "
-        "from your changes) — decide holistically regardless. "
+        f"{_pin_prompt()} "
         "★★★ ARMING IS HALF YOUR JOB — READ THIS BEFORE THE BENCH RULES BELOW. "
         "Operator, 2026-08-04: 'i dont want blanket benching all the time. it needs to be intelligent. if you "
         "can watch like i watch with the smarts you have and turn things back on when we want them we are gold.' "
@@ -534,16 +613,22 @@ def main():
         "(b) ⛔ DELETED 2026-08-09 — SATURDAY #1 (absveto-short-arm-by-default-er035-0808), operator-picked LIVE. "
         "The old rule was 'abs_veto_short: bench it in VIOLENT WHIPSAW (ATR>=19pt AND 30-min ER<0.25)'. It is GONE, "
         "along with 'bench it on a stop-out pair'. DO NOT RE-CREATE EITHER BY HAND. "
-        "★★ abs_veto_short IS NOW ARMED BY DEFAULT. Its signal is the strongest thing on the desk: +$2,290.50 over "
-        "159 fires / 17 days, 4-of-4 weeks green, POSITIVE IN ALL FIVE REGIMES INCLUDING CHOP, and 53 of the 54 "
-        "filters tested LOSE to simply letting it fire — (b) was one of those filters. Over the 96.7% of last week "
-        "it sat benched, its identically-configured shadow twin made +$1,064.50; the router armed it for the 9% in "
-        "which it lost -$559.00. The desk's arming of this gate was backwards on BOTH sides: benched through the "
-        "good tape, armed into the bad. It is also EXEMPT FROM THE CHOP BENCH (MONDAY #1 carve-out). "
-        "★ You retain bench authority on exactly two things: EXECUTION PATHOLOGY (naked stop, absurd entry_atr, "
-        "MAX_HOLD stacking), and the standing DIRECTION rule (CONFIRMED segment bias UP -> bench shorts). Nothing else. "
-        "A losing run is NOT a reason: the review below is what judges it, not your read of a bad hour. "
-        "★ REVIEW: after 15 fires armed-by-default, re-bench if the armed book is negative over those 15. Count them. "
+        "★★★ 2026-08-19 — THE ARM-BY-DEFAULT CARVE-OUT AND THE CHOP-BENCH EXEMPTION ARE BOTH REVOKED (operator, "
+        "direct). abs_veto_short is an ORDINARY MOMENTUM GATE again: it is in CHOP_OFF, so CONFIRMED CHOP BENCHES "
+        "IT exactly like grind_long and abs_veto_long, and it is benched-by-default like the rest. "
+        "WHY THE OLD RULE WAS WRONG, so nobody restores it: it cited '+$2,290.50 over 159 fires / 17 days, positive "
+        "in ALL FIVE REGIMES' — but that was the SHADOW TWIN, not the gate. On 2026-08-08, the day the carve-out was "
+        "written, the LIVE gate was n=35 / -$200.50. It is now n=83 / -$435.00 all-time and -$478.50 over the last 7 "
+        "days on 36 fires at a 27% win rate, while the shadow family it was credited with sits at +$4,352 on "
+        "abs_veto_55s alone. That is shadow-green-does-not-mean-live-green, and the desk's own standing rule two "
+        "lines away says JUDGE ON LIVE P&L, NOT THE SHADOW. The exemption then removed this gate's ONLY bench rule, "
+        "so across six consecutive CHOP sessions (08-10..08-17, session ER 0.006-0.068) the router kept the MOMENTUM "
+        "gate armed 82% of US hours and benched the REVERSION gate to 54% — the exact inverse of 'confirmed chop -> "
+        "bench ALL momentum, keep reversion'. "
+        "⚠ THIS IS NOT 'BENCH IT BECAUSE IT IS BLEEDING' — that is still never a reason. The carve-out is gone "
+        "because its EVIDENCE was shadow evidence; the gate simply returns to the ordinary REGIME rule. "
+        "The 53-of-54-filters research is NOT overturned and you must still not invent a bespoke filter for this "
+        "gate by hand: bench it on REGIME (chop / direction), or not at all. "
         "⚠ The ER30>=0.35 arming floor once proposed alongside this is REFUTED — no ER floor on this gate, ever. "
         "⚠ NOT YET SHIPPED, so do not assume it is filtering: the BUILDING x 13:30-20:00Z per-entry veto that "
         "SATURDAY #1 also calls for is NOT in the live code (no BUILDING regime exists in src/). The gate is "
@@ -624,7 +709,12 @@ def main():
         "fader benched on day-bias sign is removed exactly when its setup forms), which stands on its own — but do "
         "NOT cite rarity as evidence, and if it starts firing repeatedly, believe the tape over this rule. "
         "The router has armed it 0 times against 6 benches — it only ever reaches 'on' via the 22:00 reactivation. "
-        "So: LEAVE IT ARMED BY DEFAULT and let its rarity be the filter. Do NOT bench it on day-bias sign. "
+        "So: do NOT bench it on day-bias sign, and let its rarity be the filter. "
+        "★2026-08-19 THIS IS THE ONE SURVIVING CARVE-OUT AND IT IS SUBORDINATE TO THE STANDING RULE AT THE TOP "
+        "OF THIS PROMPT: it is PENDING SATURDAY RATIFICATION and dies unratified. It removes ONE trigger "
+        "(day-bias SIGN) on a MECHANISM argument and grants NO immunity — the validated fader bench, violent "
+        "whipsaw and execution pathology all still bench it. It is NOT an arm-by-default licence: 'the bench "
+        "lapsed' is still not an arming case for this gate either. "
         "⚠ (c2) DOES NOT OVERRIDE (d) BELOW — the validated FADER BENCH still applies. Bench exhaustion_short when "
         "a TREND/RUN is genuinely running against a fade (that is the tested behaviour, +$810 non-overlap n=25), or "
         "on violent whipsaw, or on execution pathology. The carve-out removes ONE trigger — day-bias SIGN — not the "
@@ -683,10 +773,11 @@ def main():
         "POSITIVE case made this tick; the absence of a bench is not one, and neither is 'the tape is dead' "
         "or 'nothing is stopping me'. This fired FIVE times in 24h (2026-08-10/11) and the 17:45 instance "
         "cost $92.50 by re-arming exhaustion_short, already the day's worst gate at -$137.50 with 4 of 6 "
-        "lots stopped, which then stopped 4 more. ⚠ TWO NAMED EXCEPTIONS, and only these two: abs_veto_short "
-        "is ARMED-BY-DEFAULT under the 08-08 carve-out (+$2,290.50 / 159 fires, positive in all five "
-        "regimes), so restoring IT when a bench lapses is correct policy; capitulation_long likewise carries "
-        "no start-benched flag. Every gate in MOMENTUM_START_BENCHED (grind_long, abs_veto_long) is "
+        "lots stopped, which then stopped 4 more. ⚠ ONE NAMED EXCEPTION, and only this one: capitulation_long "
+        "carries no start-benched flag. ★2026-08-19 abs_veto_short WAS the other exception and is NOT any "
+        "more — its 08-08 arm-by-default carve-out is REVOKED (see above), so a lapsed bench on it is a "
+        "lapsed bench like any other and restoring it needs a POSITIVE case made this tick. Every gate in "
+        "MOMENTUM_START_BENCHED (grind_long, abs_veto_long) is "
         "benched-by-default and needs the MONDAY #4 trio — structure break + ER climbing + vol expanding — "
         "before it is armed. ⚠ AND WEIGH THE GATE'S OWN RECORD: per-gate evidence OUTRANKS the meter's "
         "silence. A meter going quiet says nothing about the gate; it says the meter is quiet. "
@@ -728,7 +819,8 @@ def main():
         f"do not treat it as outranking the meter or your own read of the tape.\n\n"
         f"=== UNTRADEABLE METER === (stay-out needs SCORE>=55 on TWO CONSECUTIVE ticks, only from "
         f"15:00Z, and never on a NO READ; the printed verdict word still switches at 65 — ignore "
-        f"the word, read the score. abs_veto_short is exempt)\n{untr_txt}\n"
+        f"the word, read the score. ★2026-08-19 NO GATE IS EXEMPT — abs_veto_short's exemption is "
+        f"REVOKED)\n{untr_txt}\n"
         f"  ⚠ The meter is a DAY aggregate and is diluted by earlier chop. On 08-06 it read 87/100 "
         f"STAY-OUT while a +297pt run was underway and the desk sat flat through all of it. "
         f"NEITHER INSTRUMENT OUTRANKS THE OTHER — the 'RUN STATE wins' tie-break was WITHDRAWN "
@@ -740,9 +832,26 @@ def main():
         "changes = ONLY gates whose state should FLIP from CURRENT (empty {} if no change). Be conservative."
     )
 
+    # ★★★2026-08-19 THE PROMPT IS THE ONLY INSTRUCTION — run from an ISOLATED cwd.
+    # Claude Code auto-loads context keyed to the WORKING DIRECTORY: a CLAUDE.md in the cwd or any
+    # parent, and the per-project auto-memory index at ~/.claude/projects/<slug-of-cwd>/memory/.
+    # This call inherited the unit's WorkingDirectory=/home/alphabot/gazbot7, which injected ~1,720
+    # words of AUTO-MEMORY into every 5-minute routing decision — 32 bullets of trading opinion
+    # written by past sessions, unreviewed, sitting beside this prompt and shaping live bench/arm
+    # calls. Operator, 2026-08-19: "the router is its own beast. It should bench and debench based on
+    # the day's tape." Measured: from ROUTER_CTX the tick reports no MEMORY.md and no CLAUDE.md.
+    # ⚠ HOME STAYS /root — the OAuth credential is ~/.claude/.credentials.json and credential expiry
+    #   is this desk's #1 fragility. It is the cwd that leaks context, never HOME.
+    # ⚠ makedirs is DEFENSIVE: subprocess.run raises on a missing cwd, which would ABORT every tick
+    #   and silently stop the desk being managed. A fresh clone must not be able to do that.
+    try:
+        os.makedirs(ROUTER_CTX, exist_ok=True)
+    except Exception as e:
+        hlog(f"WARN: router ctx dir unavailable ({e}) — falling back to {GB}")
+    ctx = ROUTER_CTX if os.path.isdir(ROUTER_CTX) else GB
     try:
         r = subprocess.run(["/root/.local/bin/claude", "-p", prompt, "--allowedTools", ""],
-                           capture_output=True, text=True, timeout=200,
+                           capture_output=True, text=True, timeout=200, cwd=ctx,
                            env={**os.environ, "HOME": "/root"})
         out = (r.stdout or "").strip()
     except Exception as e:
@@ -768,6 +877,19 @@ def main():
                if g in GATES and g in PINNED and v in ("on", "off") and cur.get(g) != v}
     valid = {g: v for g, v in changes.items()
              if g in GATES and g not in PINNED and v in ("on", "off") and cur.get(g) != v}
+
+    # ★★★2026-08-20 TOURNAMENT STOOD DOWN (operator: "the only thing that trades is day rider …
+    # turn all other gates off"). Any change to `on` is DROPPED; `off` still applies, so the router
+    # keeps every ability to bench and loses only its ability to arm.
+    # ⚠ WHY NOT `PINNED = all six`: a full-roster pin makes `valid` permanently empty, which is the
+    #   documented SILENT NO-OP that ran 411 ticks / 36h unnoticed, and it would trip the PIN ALARM
+    #   below on every tick. This guard is loud instead: it logs each drop by name.
+    # REVERT: delete this block (and HOLD in reactivate_gates.py).
+    if TOURNAMENT_STOOD_DOWN:
+        armed = {g: v for g, v in valid.items() if v == "on"}
+        if armed:
+            hlog(f"STOOD DOWN: refused to arm {sorted(armed)} — day rider is the only desk")
+        valid = {g: v for g, v in valid.items() if v == "off"}
 
     # ★ PIN ALARM (2026-08-01). A PINNED set covering every gate makes `valid` permanently empty, so
     # the router silently stops managing the desk while still logging the healthy-looking "no change"

@@ -35,7 +35,7 @@ _VPP, _FEE = 2.0, 1.5
 _CLEANUP = pnl._CLEANUP_REASONS  # ADOPT_FLATTEN etc. — not strategy trades
 
 
-def _dq(c) -> str:
+def _dq(c, show_badfill: bool = False) -> str:
     """``" AND data_quality IS NULL"`` when the column exists, else ``""``.
 
     ★★2026-08-13 — ONE PLACE, because six copies is how this drifted in the first place. The flag
@@ -48,9 +48,19 @@ def _dq(c) -> str:
     to believe.
     ⚠ Conditional on the column existing, for the same reason pnl.py is: fixtures and older
     databases build `trades` without it, and a view that throws is worse than one that over-counts.
+
+    ★2026-08-21 TWO KINDS OF FLAG, because hiding a real trade was its own fault. On 08-21 a
+    genuine round trip was labelled `EXCLUDE:` (a system-bug loss, per the operator's
+    "label, never adjust" rule) and vanished from all six views — the operator watched a trade
+    happen on his own account and then could not find it. `EXCLUDE:` still means GONE. `BADFILL:`
+    means SHOW IT, DO NOT COUNT IT: the trade is real and the operator must see it, but its price
+    came from a broken fill, so it must never reach a P&L, a curve or a gate ranking. Only the
+    blotter passes `show_badfill=True`.
     """
     try:
         if any(r[1] == "data_quality" for r in c.execute("PRAGMA table_info(trades)").fetchall()):
+            if show_badfill:
+                return " AND (data_quality IS NULL OR data_quality LIKE 'BADFILL:%')"
             return " AND data_quality IS NULL"
     except Exception:
         pass
@@ -90,6 +100,146 @@ def bars_json(cap_path, count):
     except Exception:
         pass
     return {"bars": out}
+
+
+def _mae_table():
+    try:
+        with open("/home/alphabot/gazbot7/data/mae_percentiles.json") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def session_block(now=None) -> dict:
+    """Which block are we in, and what has it been worth? Measured, not asserted.
+
+    Numbers are the desk's own shadow book (session.py, n=6,324 MNQ sims) — the unconfounded
+    counterfactual, because the shadow fires whether or not a gate is benched.
+    """
+    now = now or datetime.now(UTC)
+    h = now.hour
+    if h < 7:
+        return {"block": "ASIA", "utc": "00:00-07:00", "edge_per_trade": -3.17, "n": 1840,
+                "note": "worst block by a distance — ENTRIES ARE CONFIG-BLOCKED", "tradeable": False}
+    if h < 13 or (h == 13 and now.minute < 30):
+        return {"block": "LONDON", "utc": "07:00-13:30", "edge_per_trade": 0.70, "n": 1516,
+                "note": "the only positive block the desk has", "tradeable": True}
+    if h < 21:
+        return {"block": "US", "utc": "13:30-21:00", "edge_per_trade": -1.93, "n": 2394,
+                "note": "biggest moves and the biggest drawdowns", "tradeable": True}
+    return {"block": "POST", "utc": "21:00-24:00", "edge_per_trade": -3.62, "n": 574,
+            "note": "halt + thin reopen", "tradeable": False}
+
+
+def vwap_stretch(cap_path) -> dict:
+    """How far price is from VWAP, in points AND in ATR.
+
+    ★ The 2026-08-20 measurement is carried with the number so it cannot drift from its evidence:
+    buying MORE THAN 100pt BELOW VWAP with a +25pt target and a ~75pt stop won 90.6-94.5% across
+    every block tested. IN-SAMPLE, one instrument, not split by year — context for a discretionary
+    entry, never an instruction. Above VWAP is NOT the mirror of that result; it was not measured.
+    """
+    f = _features(cap_path) or {}
+    last, vw = f.get("last"), f.get("vwap")
+    if last is None or vw is None:
+        return {"ok": False}
+    pt = round(last - vw, 2)
+    atr = f.get("atr_pts") or 0
+    band = ("stretched BELOW" if pt <= -100 else "below" if pt < 0
+            else "stretched ABOVE" if pt >= 100 else "above")
+    return {"ok": True, "pt": pt, "atr_mult": round(pt / atr, 2) if atr else None,
+            "vwap": vw, "band": band,
+            "measured": ("below -100pt: +25pt target won 90.6-94.5% (2026-08-20, in-sample)"
+                         if pt <= -100 else None)}
+
+
+def adverse_meter(data_dir, cap_path) -> dict:
+    """For an OPEN position: how far against, how long held, and how unusual that is.
+
+    The operator holds naked and manages by hand, so mid-trade the question is never "am I down"
+    but "is this NORMAL down or one of the bad ones". Answered against the measured distribution in
+    data/mae_percentiles.json, bucketed by MINUTES HELD — an unconditioned distribution calls almost
+    every short-trade drawdown normal and is worse than no meter at all.
+    """
+    try:
+        st_ = json.load(open(os.path.join(data_dir, "day_rider_state.json")))
+    except Exception:
+        return {"ok": False}
+    if not st_.get("entered") or st_.get("closed") or not (st_.get("qty") or 0):
+        return {"ok": False, "flat": True}
+    f = _features(cap_path) or {}
+    last, entry = f.get("last"), st_.get("entry")
+    d = 1 if (st_.get("direction") or 1) > 0 else -1
+    if last is None or not entry:
+        return {"ok": False}
+    adverse = round(max(0.0, -(last - entry) * d), 1)
+    try:
+        held = int((datetime.now(UTC)
+                    - datetime.fromisoformat(st_["entered_at"])).total_seconds() // 60)
+    except Exception:
+        held = 0
+    blk = session_block()["block"]
+    tab = _mae_table().get("blocks", {}).get(blk, {})
+    bucket = next((k for k in ("15", "30", "60", "120") if held <= int(k)), "flat")
+    ref = tab.get(bucket, {}).get("pt", {})
+    pct = None
+    if ref:
+        pct = 0
+        for p in sorted(ref, key=lambda x: int(x)):
+            if adverse >= ref[p]:
+                pct = int(p)
+    return {"ok": True, "adverse_pt": adverse, "adverse_usd": round(adverse * 2.0 * abs(st_["qty"]), 2),
+            "held_min": held, "block": blk, "bucket": bucket, "percentile": pct,
+            "median": ref.get("50"), "p90": ref.get("90"),
+            "n": tab.get(bucket, {}).get("n")}
+
+
+def rvol(cap_path, window_min: int = 30, lookback: int = 5) -> dict:
+    """RELATIVE VOLUME, normalised BY TIME OF DAY. Operator asked for RVOL back on the dashboard.
+
+    ★ WHY TIME-OF-DAY AND NOT A FLAT AVERAGE. MNQ volume has an enormous intraday shape — the 13:30Z
+    cash open is many times any London hour. Divide by the day's mean and the meter reads "hot"
+    every single day at 13:30 and "cold" every night, which is a clock, not information. So the
+    baseline for the last `window_min` is the SAME clock window on each of the previous sessions,
+    and the reading answers the only question worth asking: is there more going on right now than
+    there normally is AT THIS TIME OF DAY?
+
+    Returns {rvol, now, baseline, n_days, window_min} — n_days is exposed because a reading built on
+    one comparison day is not the same claim as one built on five, and the UI must be able to say so.
+    """
+    out = {"rvol": None, "now": None, "baseline": None, "n_days": 0,
+           "window_min": window_min, "open": True}
+    try:
+        # ★ A SHUT VENUE IS NOT A QUIET ONE. Without this the meter reads a confident 0.00x all
+        # weekend, which looks like a measurement of the tape rather than an absence of tape.
+        from .session import is_open as _is_open
+        if not _is_open(datetime.now(UTC)):
+            out["open"] = False
+            return out
+        c = _conn(cap_path)
+        now = datetime.now(UTC)
+        t1 = int(now.timestamp()); t0 = t1 - window_min * 60
+        cur = c.execute("SELECT COALESCE(SUM(volume),0) v FROM bars WHERE symbol='MNQ' AND "
+                        "timeframe='5s' AND bar_ts>=? AND bar_ts<?", (t0, t1)).fetchone()["v"]
+        base = []
+        for d in range(1, lookback + 1):
+            a, b = t0 - d * 86400, t1 - d * 86400
+            v = c.execute("SELECT COALESCE(SUM(volume),0) v, COUNT(*) n FROM bars WHERE "
+                          "symbol='MNQ' AND timeframe='5s' AND bar_ts>=? AND bar_ts<?",
+                          (a, b)).fetchone()
+            # a weekend/holiday window is EMPTY, not quiet — excluded, never averaged in as a zero
+            if v["n"] >= window_min * 6 and v["v"] > 0:
+                base.append(v["v"])
+        c.close()
+        if base:
+            med = sorted(base)[len(base) // 2]
+            out.update(rvol=round(cur / med, 2) if med else None, now=int(cur),
+                       baseline=int(med), n_days=len(base))
+        else:
+            out["now"] = int(cur)
+    except Exception:
+        pass
+    return out
 
 
 def _features(cap_path):
@@ -221,11 +371,18 @@ def us_terminal_json(cap_path, data_dir):
                     # an UNARMED trail is not protection — say so honestly rather than let the
                     # 600pt insurance stop render as if it were a working protective stop.
                     "protected": bool(dr.get("trail")),
+                    # ★2026-08-20 the DESK ladder panel needs to know which lots are already out,
+                    # so a banked rung renders BANKED instead of offering a button that the
+                    # endpoint would only reject. Empty list degrades safely: every button shows,
+                    # and dayrider_claim_post still refuses a lot that is gone.
+                    "targets_done": list(dr.get("targets_done") or []),
+                    "lots_open": dr.get("lots_open"),
                 })
     except Exception:
         pass
 
     return {"holdings": holdings, "activity": [activity], "regime_groups": {},
+            "stayout": stayout_meters(cap_path), "rvol": rvol(cap_path), "block": session_block(), "vwap_stretch": vwap_stretch(cap_path), "adverse": adverse_meter(data_dir, cap_path),
             "margin_deployed_usd": None, "nlv_usd": None}
 
 
@@ -249,7 +406,30 @@ def _strategy_trades(c, since_iso=None):
     ph = ",".join("?" * len(_CLEANUP))
     q = (f"SELECT closed_at, side, gate, exit_reason, pnl_usd, entry_price, exit_price, qty "
          f"FROM trades WHERE symbol='MNQ' AND exit_reason NOT IN ({ph})")
+    # ★2026-08-21 STAYS STRICT. These rows feed the curve, the gate table, the leaderboard, the
+    # loss buckets and two more panels — a BADFILL row here would re-enter five P&L surfaces at
+    # once. The blotter has its own query (`_blotter_rows`) precisely so "show it" cannot leak
+    # into "count it".
     q += _dq(c)
+    args = list(_CLEANUP)
+    if since_iso:
+        q += " AND closed_at>=?"
+        args.append(since_iso)
+    q += " ORDER BY closed_at"
+    return c.execute(q, args).fetchall()
+
+
+def _blotter_rows(c, since_iso=None):
+    """Rows for the DISPLAY blotter only — includes `BADFILL:` trades, flagged.
+
+    ★2026-08-21 A trade the operator watched happen must be visible even when its price is
+    unusable. `_strategy_trades` stays strict so no P&L surface can ever see these; this is the one
+    query that shows them, and it carries `data_quality` so the UI can mark the row as uncounted.
+    """
+    ph = ",".join("?" * len(_CLEANUP))
+    q = (f"SELECT closed_at, side, gate, exit_reason, pnl_usd, entry_price, exit_price, qty, "
+         f"data_quality FROM trades WHERE symbol='MNQ' AND exit_reason NOT IN ({ph})")
+    q += _dq(c, show_badfill=True)
     args = list(_CLEANUP)
     if since_iso:
         q += " AND closed_at>=?"
@@ -336,12 +516,16 @@ def mnq_json(store_path):
         for r in today_rows:
             cum += r["pnl_usd"]
             out["curve"].append({"cum": round(cum, 2)})
-        for r in reversed(today_rows):
+        for r in reversed(_blotter_rows(c, since_iso=t0)):
             sign = 1 if r["side"] == "LONG" else -1
             ppct = (round(sign * (r["exit_price"] - r["entry_price"]) / r["entry_price"] * 100, 3)
                     if r["entry_price"] else None)
+            _flag = r["data_quality"] or ""
             out["blotter"].append({"time": r["closed_at"], "side": r["side"], "gate": r["gate"] or "—",
-                                   "exit": r["exit_reason"], "pnl_usd": round(r["pnl_usd"], 2), "pnl_pct": ppct})
+                                   "exit": r["exit_reason"], "pnl_usd": round(r["pnl_usd"], 2),
+                                   "pnl_pct": ppct,
+                                   "uncounted": _flag.startswith("BADFILL:"),
+                                   "flag": _flag or None})
         gp = _gate_groups(today_rows)
         out["gate_perf"] = gp
         out["leaderboard"] = {"top": gp[:5], "bottom": list(reversed(gp[-5:])) if len(gp) > 5 else []}
@@ -1004,16 +1188,184 @@ def dayrider_claim_post(body, data_dir):
         st = {}
     if not st.get("entered") or st.get("closed"):
         return {"ok": False, "error": "nothing to claim — the day rider is not in a position"}
+    # ★★2026-08-20 FOUR BUTTONS. The rider runs 4 lots on a profit ladder ($100/$200/$400/$600),
+    # so each lot gets its own button. `lot` is 1-based from the UI and written 0-based.
+    # ⚠ OMITTING `lot` STILL MEANS FLATTEN EVERYTHING — the original button is the operator's kill
+    #   switch and must keep working byte-for-byte, so the bare stamp is left exactly as it was.
+    # ⚠ These are ALSO kill buttons: there is no stop on the rider by operator decision, so a
+    #   button fires in profit or loss. The endpoint does not check P&L and must not.
+    lot = req.get("lot", None)
+    spec = ""
+    if lot not in (None, "", "all"):
+        try:
+            k = int(lot)
+        except Exception:
+            return {"ok": False, "error": "bad lot"}
+        if not 1 <= k <= 4:
+            return {"ok": False, "error": "lot must be 1-4"}
+        done = set(st.get("targets_done") or [])
+        if (k - 1) in done:
+            return {"ok": False, "error": f"lot {k} is already out"}
+        spec = f"|lot={k-1}"
     try:
         with open(os.path.join(data_dir, "day_rider_claim.txt"), "w") as f:
-            f.write(datetime.now(UTC).isoformat() + "\n")
+            f.write(datetime.now(UTC).isoformat() + spec + "\n")
     except Exception as e:
         return {"ok": False, "error": f"write failed: {e}"}
+    if spec:
+        left = max(0, int(st.get("lots_open") or 4) - 1)
+        return {"ok": True, "msg": f"lot {lot} claimed — it exits immediately (~0.1s). "
+                                   f"{left} lot(s) will remain open."}
     # ★2026-08-19 was "up to ~60s". gazbot7-day-rider-claim.path now watches this file and starts
     # the rider on the inotify close-write — measured at 0.02s. The 60s timer stays the FLOOR, so if
     # the path unit is down the claim is still picked up on the next tick exactly as before.
     return {"ok": True, "msg": "claim requested — the day rider flattens immediately (~0.1s; the 60s "
                                "tick is the fallback). This ends its session; it will not re-enter today."}
+
+
+# ── STAY-OUT LIGHT ────────────────────────────────────────────────────────────
+# ★★2026-08-20 MEASURED, NOT INVENTED. Six discretionary meters were scored on 225 lake sessions
+# (decision 14:00Z, outcome to the 20:40 flat):
+#     VWAP position 50.7% · VWAP slope 50.7% · VWAP slope FAST 55.1% · OR break 52.3%
+#     · momentum net_atr_5 52.9% · volume surge 37.5% (n=8, dead at this resolution)
+# CONFLUENCE DOES NOT STACK: strong agreement reaches only 55.9% up / 51.0% down, because five
+# correlated indicators agreeing is one opinion said five times. So this does NOT say BUY.
+# THE ONE CELL THAT SEPARATES IS DISAGREEMENT: when the meters are mixed (net score -1..+1) the
+# hit rate falls to 44.4% and the mean session is -35.3pt across 54 of 225 sessions. That is a
+# STAY-OUT signal, and it is the only honest product in the measurement.
+# ⚠ Volume surge is deliberately EXCLUDED from the score: 8 calls in 225 sessions is not a meter.
+def stayout_meters(capture_path):
+    """Live meter board + the measured stay-out verdict. Read-only; never trades."""
+    try:
+        from .deciders import Bar, compute_features
+        con = _conn(capture_path)
+        rows = con.execute(
+            "SELECT bar_ts,open,high,low,close,volume FROM bars WHERE symbol='MNQ' "
+            "AND timeframe='5s' ORDER BY bar_ts DESC LIMIT 4320").fetchall()
+        con.close()
+        if len(rows) < 600:
+            return {"ok": False, "detail": "not enough tape"}
+        rows = list(reversed(rows))
+        mins = {}
+        for r in rows:                                   # 5s -> 1m, integer floor
+            m = int(r[0]) - int(r[0]) % 60
+            b = mins.get(m)
+            mins[m] = (m, r[1] if not b else b[1], max(r[2], b[2] if b else r[2]),
+                       min(r[3], b[3] if b else r[3]), r[4], (b[5] if b else 0) + (r[5] or 0))
+        bars = [Bar(int(v[0]), float(v[1]), float(v[2]), float(v[3]), float(v[4]), float(v[5]))
+                for _, v in sorted(mins.items())]
+        if len(bars) < 65:
+            return {"ok": False, "detail": "not enough minute bars"}
+        f = compute_features(bars[-60:])
+        px = bars[-1].close
+        import datetime as _dt
+        opn = 13 * 60 + 30
+        todays = [b for b in bars
+                  if opn <= _dt.datetime.fromtimestamp(b.ts, _dt.UTC).hour * 60
+                  + _dt.datetime.fromtimestamp(b.ts, _dt.UTC).minute < opn + 15]
+        orh = max((b.high for b in todays), default=None)
+        orl = min((b.low for b in todays), default=None)
+        meters = [
+            ("VWAP position", 1 if px > f.vwap else -1, "50.7%"),
+            ("VWAP slope", 1 if f.vwap_slope_atr > 0 else -1, "50.7%"),
+            ("VWAP slope FAST", 1 if f.vwap_slope_fast > 0 else -1, "55.1%"),
+            ("Momentum net_atr_5", 1 if f.net_atr_5 > 0 else -1, "52.9%"),
+            ("Opening-range break",
+             (1 if (orh and px > orh) else (-1 if (orl and px < orl) else 0)), "52.3%"),
+        ]
+        score = sum(v for _, v, _ in meters)
+        mixed = -1 <= score <= 1
+        return {"ok": True, "score": score, "mixed": mixed,
+                "verdict": "STAY OUT — meters disagree" if mixed else
+                           ("leaning UP" if score > 0 else "leaning DOWN"),
+                "evidence": ("mixed: 44.4% hit, -35.3pt mean over 54 of 225 sessions"
+                             if mixed else
+                             "agreement: 55.9% up / 51.0% down — barely above a coin flip, NOT a buy signal"),
+                "meters": [{"name": n, "vote": v, "hit": h} for n, v, h in meters],
+                "px": round(px, 2), "vwap": round(f.vwap, 2),
+                "ext_atr": round(f.ext_atr, 2), "atr": round(f.atr, 1)}
+    except Exception as e:
+        return {"ok": False, "detail": f"{type(e).__name__}: {e}"}
+
+
+# ── POST /api/control/dayrider-buy — operator MANUAL entry ────────────────────
+def dayrider_buy_post(body, data_dir):
+    """PIN-guarded manual BUY/SELL request. Writes a file; the RIDER places the order.
+
+    ★★ THE WEB PROCESS NEVER PLACES AN ORDER. Same indirection as every claim button and for the
+    same reason — 2026-08-06: a button that reached the broker directly flattened without checking
+    whose position it was and halted the desk for 11 minutes. This writes
+    `ISO | SIDE | QTY | TARGET_USD` and returns; the rider validates and executes behind
+    venue_first_ok() and the shared-account ownership check on its next tick.
+    ⚠ REFUSES WHEN ALREADY IN A POSITION. The rider tracks one entry, one direction and one qty;
+      a second buy on top would desync its book from the venue, which on a netted account is the
+      08-06 cascade. Flatten first.
+    """
+    try:
+        req = json.loads(body or "{}")
+    except Exception:
+        return {"ok": False, "error": "bad request"}
+    pin = str(req.get("pin", "")).strip()
+    try:
+        want = open(os.path.join(data_dir, "claim_pin.txt")).read().strip()
+    except Exception:
+        return {"ok": False, "error": "claim PIN not set on server"}
+    if not want or pin != want:
+        return {"ok": False, "error": "wrong PIN"}
+    side = str(req.get("side", "BUY")).upper()
+    if side not in ("BUY", "SELL"):
+        return {"ok": False, "error": "side must be BUY or SELL"}
+    # ★2026-08-21 CASCADING per-lot targets: the operator sets a $ figure for each lot
+    # ($100/$200/$400/$600 by default). A single `target_usd` is still accepted and applied to
+    # every lot, so an older client cannot break.
+    try:
+        qty = int(req.get("qty", 0))
+        raw_t = req.get("targets")
+        if raw_t is None:
+            tg = [float(req.get("target_usd", 0))] * max(1, qty)
+        else:
+            tg = [float(x) for x in raw_t]
+    except Exception:
+        return {"ok": False, "error": "qty and targets must be numbers"}
+    if not 1 <= qty <= 8:
+        return {"ok": False, "error": "qty must be 1-8"}
+    if len(tg) < qty:
+        return {"ok": False, "error": f"need {qty} target(s), got {len(tg)}"}
+    tg = tg[:qty]
+    if any(not 10 <= t <= 20000 for t in tg):
+        return {"ok": False, "error": "each target must be $10-$20,000"}
+    try:
+        st = json.load(open(os.path.join(data_dir, "day_rider_state.json")))
+    except Exception:
+        st = {}
+    if st.get("entered") and not st.get("closed"):
+        return {"ok": False, "error": "already in a position — flatten before buying again"}
+    # ★★2026-08-21 REFUSE OUTSIDE THE RIDER'S WINDOW, AT THE BUTTON.
+    # The rider returns early with "outside 13:30-21:00 — flat, idle" long before it reaches the
+    # manual-entry branch, so a press outside the window wrote a file that nothing consumed and
+    # expired in silence. The operator pressed BUY, got "ok", and nothing happened — the worst
+    # possible feedback on an order path. Say no HERE, immediately, with the reason and the clock.
+    _now = datetime.now(UTC)
+    _mod = _now.hour * 60 + _now.minute
+    # ★2026-08-21 FULL CME SESSION (operator). Refuse only the flatten window and the halt:
+    # 20:40-22:00Z. Everything else is tradeable, and the 20:40 flat still closes it inside the
+    # same session, so "never hold overnight" is preserved.
+    if 20 * 60 + 40 <= _mod < 22 * 60:
+        _mins = (22 * 60) - _mod
+        return {"ok": False,
+                "error": (f"20:40-22:00Z is the flatten window and the CME halt — it is "
+                          f"{_now:%H:%M}Z. The session reopens in {_mins // 60}h {_mins % 60}m. "
+                          f"Nothing was sent.")}
+    try:
+        with open(os.path.join(data_dir, "day_rider_buy.txt"), "w") as f:
+            f.write(f"{datetime.now(UTC).isoformat()}|{side}|{qty}|"
+                    + ",".join(f"{t:g}" for t in tg) + "\n")
+    except Exception as e:
+        return {"ok": False, "error": f"write failed: {e}"}
+    lad = " / ".join(f"L{i+1} ${t:g} ({t/2.0:.0f}pt)" for i, t in enumerate(tg))
+    return {"ok": True, "msg": f"{side} {qty} lot(s) requested — the rider places it on its next "
+                               f"tick (~60s).\n{lad}\nTotal if all fill: ${sum(tg):g}. "
+                               f"NO STOP; hard flat 20:40Z."}
 
 
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────
@@ -1566,6 +1918,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                 body = self.rfile.read(n) if n else b""
                 if path == "/api/control/claim":
                     self._json(claim_post(body, data_dir))
+                elif path == "/api/control/dayrider-buy":
+                    self._json(dayrider_buy_post(body, data_dir))
                 elif path == "/api/control/dayrider-claim":
                     self._json(dayrider_claim_post(body, data_dir))
                 else:
@@ -1612,7 +1966,10 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                 elif path.startswith("/api/shadow/activity"):
                     self._json(shadow_activity_json(shadow_path, min(200, int(qs.get("limit", ["50"])[0]))))
                 elif path.startswith("/api/futures/bars/MNQ"):
-                    self._json(bars_json(cap_path, min(600, int(qs.get("count", ["120"])[0]))))
+                    # ★2026-08-29 600 -> 1500. 600 minutes capped the chart at 10h, so a "since Paris midnight"
+                    # view (22:00Z -> now, up to 23h) was impossible to request. 1500 covers a full CME
+                    # session with room; the query reads count*12 5s rows, so 1500 is ~18k rows — fine.
+                    self._json(bars_json(cap_path, min(1500, int(qs.get("count", ["120"])[0]))))
                 elif path.startswith("/api/futures/us-terminal"):
                     self._json(us_terminal_json(cap_path, data_dir))
                 elif path.startswith("/api/futures/tournament"):

@@ -57,7 +57,31 @@ RECON_CLIENT_ID = 8          # reserved for checks (core=0, md=2, rider=4, watch
 SECOND_READ_DELAY_S = 6.0
 
 
-def page(msg: str, critical: bool = True) -> None:
+def page(msg: str, critical: bool = True, *, dedupe_key: str | None = None,
+         cooldown_s: float = 1800.0) -> None:
+    """Alert the operator. With `dedupe_key`, a STEADY-STATE condition pages once, not forever.
+
+    ★★★2026-08-22 THIS SERVICE RUNS EVERY 30 SECONDS AND HAD NO DEDUPE. An unresolved breach paged
+    49 times in two hours (plus retries on 15s notify timeouts) and the operator asked it to stop —
+    which is the failure mode the desk already has a rule for: a correct decision repeated every
+    tick is an ALARM OUTAGE, because the channel becomes noise and the next real alert is missed.
+
+    Semantics come from notify.dedupe_ok, deliberately:
+      · keyed on the SITUATION (the message text), so +4 -> +6 unaccounted re-alarms IMMEDIATELY
+        rather than hiding behind the cooldown — the size changing is new information;
+      · FAILS OPEN — any error in the dedupe store sends the alert;
+      · re-alarms every `cooldown_s` while the condition persists, so a breach can never go quiet.
+    The KILL is untouched: suppression applies to the MESSAGE only, never to the action. The desk
+    still stops on every tick that confirms a breach.
+    """
+    if dedupe_key is not None:
+        try:
+            sys.path.insert(0, f"{GB}/src")
+            from gazbot7.notify import dedupe_ok
+            if not dedupe_ok(dedupe_key, msg, cooldown_s=cooldown_s):
+                return
+        except Exception:
+            pass                      # FAIL OPEN — never let the deduper swallow a safety alert
     try:
         subprocess.run([PY, "-c", "import sys; from gazbot7.notify import notify; "
                                   "notify(sys.argv[1], critical=sys.argv[2]=='1')",
@@ -235,9 +259,20 @@ def main() -> int:
             result["actions"] = actions
             page(f"⚠⚠ GAZBOT CROSS-DESK BREACH — {reason}. BOTH DESKS STOPPED: "
                  f"{'; '.join(actions)}. IBKR is the truth and it does not match our books. "
-                 f"Check TWS; release with scripts/desk_reconcile.py --release.")
+                 f"Check TWS; release with scripts/desk_reconcile.py --release.",
+                 dedupe_key="reconcile_breach")
         elif r1.breach:
             result["note"] = "not confirmed on the second read — treated as a position-change race"
+        if not confirmed:
+            # ★ RE-ARM ON RESOLUTION. A cooldown must suppress a CONTINUING condition, never a NEW
+            # occurrence of one — otherwise a breach that clears and returns inside 30 minutes is
+            # silent, which is precisely the alert you most need.
+            try:
+                sys.path.insert(0, f"{GB}/src")
+                from gazbot7.notify import dedupe_clear
+                dedupe_clear("reconcile_breach")
+            except Exception:
+                pass
 
         # ★ ORPHAN STOPS ALARM BUT DO NOT KILL, and this asymmetry is deliberate. An unaccounted
         # POSITION means a book is lying and nobody may trade. An orphan ORDER means the books may
@@ -255,7 +290,8 @@ def main() -> int:
                              f"{o['qty']:g} @ {o['aux']} — {o['why']}" for o in both)
             page(f"⚠⚠ GAZBOT ORPHAN STOP — a working order with nothing behind it: {desc}. "
                  f"This is the 08-06 shape: it can FIRE and open a naked position. Cancel it as its "
-                 f"OWNING clientId — another client gets Error 10147 which looks like success.")
+                 f"OWNING clientId — another client gets Error 10147 which looks like success.",
+                 dedupe_key="reconcile_orphan")
 
     if a.json:
         print(json.dumps(result, indent=2))

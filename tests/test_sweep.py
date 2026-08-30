@@ -244,10 +244,13 @@ def test_run_sweep_smoke_produces_all_sections(tmp_path):
     # This asks the other question: did the fill land outside the visible L2 ladder.
     # ★2026-08-18 + "shadow_arms": check_shadow shows the MNQ store's sim COUNT and reported OK
     # for three days while the gold slate — its own store — recorded literally nothing.
+    # ★2026-08-21 + "alarm_chain": every desk service runs as `alphabot` and the credentials file
+    # was root-owned, so rider/tournament/shadow/md/web could not page for ~12 hours while this
+    # sweep stayed green — it had never checked whether the alarm itself worked.
     assert set(report["sections"]) == {
         "services", "core", "capture", "execution", "position", "killswitch", "recording",
         "shadow", "storage", "config", "book_vs_fills", "fill_vs_book", "shadow_arms",
-        "shadow_open"}
+        "shadow_open", "alarm_chain"}
     assert report["overall"] in ("OK", "WARN", "CRIT")
     assert report["preflight_ok"] is False  # no core_health.json in tmp_path
 

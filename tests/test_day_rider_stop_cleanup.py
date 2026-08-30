@@ -120,8 +120,54 @@ def test_never_raises_even_if_ib_is_broken():
 
 
 def test_every_close_path_calls_it():
-    """Five exits close a position; each must clean up. A new one added without this is the bug."""
+    """Six exits close a position; each must clean up. A new one added without this is the bug.
+
+    ★2026-08-20 5 -> 7: LADDER_COMPLETE joined when the rider went to 4 lots with a per-lot
+    profit ladder, then the PER-LOT MANUAL_CLAIM (one of the four buttons) joined as the seventh.
+    Both counts were RAISED only after each new path was given its `cancel_own_stops()` call —
+    never to make a red test go green. The per-lot claim cleans up only when it takes the LAST
+    lot, which is correct: a stop must outlive a partial exit and die with the position."""
     src = open("/home/alphabot/gazbot7/src/gazbot7/day_rider.py").read()
     reasons = [ln for ln in src.splitlines() if 'out["exit_reason"] = "' in ln]
-    assert len(reasons) == 5, f"close paths changed ({len(reasons)}) — wire the new one up"
-    assert src.count("await cancel_own_stops(") == 5
+    assert len(reasons) == 7, f"close paths changed ({len(reasons)}) — wire the new one up"
+    assert src.count("await cancel_own_stops(") == 7
+
+
+# ── ★2026-08-20 SIZE FIELDS MUST GO TO ZERO ON A WHOLE-POSITION CLOSE ──────────────
+# On 08-20 the state read `closed: True, lots_open: 2, qty: 2.0` against a venue of ZERO for half
+# an hour, and a monitor reading it announced two open lots at a flat book. `lots_open` was added
+# for the 4-lot ladder and only the PER-LOT paths decremented it.
+def test_whole_position_close_zeroes_the_size_fields():
+    import importlib.util, sys
+    spec = importlib.util.spec_from_file_location(
+        "dr_size", "/home/alphabot/gazbot7/src/gazbot7/day_rider.py")
+    m = importlib.util.module_from_spec(spec); sys.modules["dr_size"] = m
+    try:
+        spec.loader.exec_module(m)
+    except Exception:
+        import pytest; pytest.skip("day_rider needs ib_async to import")
+    out = {"lots_open": 2, "qty": 2.0}
+    m._zero_size_if_flat(out, None)                 # whole-position close
+    assert out["lots_open"] == 0 and out["qty"] == 0.0, "a flat book must report zero size"
+    out2 = {"lots_open": 3, "qty": 3.0}
+    m._zero_size_if_flat(out2, 1)                   # ONE lot booked — caller owns the decrement
+    assert out2["lots_open"] == 3 and out2["qty"] == 3.0, "a partial book must not be zeroed here"
+
+
+def test_manual_buy_is_checked_before_the_session_latch():
+    """A human pressing BUY is not the automatic detector re-entering.
+
+    The once-per-session latch exists to stop `drift` firing twice. On 08-20 it swallowed the
+    operator's manual BUY with "already traded this session" — the latch governing a decision it
+    was never written for. Manual entry must be evaluated FIRST.
+    """
+    src = open("/home/alphabot/gazbot7/src/gazbot7/day_rider.py").read()
+    # ★2026-08-21 assert the CALL SITE, not a comment string. The first version of this test matched
+    # a docstring literal; renaming the helper made it pass/fail for reasons unrelated to the
+    # invariant. What matters is that step() invokes the manual entry BEFORE the latch returns.
+    call = src.index("await do_manual_entry(_buy")
+    latch = src.index('out["note"] = "already traded this session — no re-entry"')
+    assert call < latch, "the manual BUY call has fallen below the once-per-session latch"
+    # and it must still actually place an order — a gutted helper is worse than no button
+    assert "MarketOrder(_side, _q)" in src, "do_manual_entry no longer places an order"
+    assert src.count("await await_fill(") == 7, "an order path lost its fill-sourced exit"

@@ -28,7 +28,15 @@ takes ts_ms and slices strictly `< ts_ms`; tests assert it.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+
+# ★★2026-08-19 HEADLESS CONTEXT ISOLATION — the prompt must be the ONLY instruction.
+# Claude Code auto-loads a CLAUDE.md from the cwd chain AND the per-project auto-memory index.
+# Must be OUTSIDE the repo: Claude Code walks UP to the repo root, so a dir inside gazbot7
+# still loads gazbot7's memory. See ops/ROUTER_CONTEXT_ISOLATION.md.
+CL_CTX = "/var/lib/gazbot7/router_ctx"
+
 import subprocess
 import time
 from dataclasses import asdict, dataclass
@@ -194,8 +202,9 @@ def verify(ctx: dict, *, timeout_s: int = CALL_TIMEOUT_S) -> tuple[dict, int]:
     can never block or break anything — a dead verifier is simply invisible."""
     t0 = time.time()
     try:
+        os.makedirs(CL_CTX, exist_ok=True)
         p = subprocess.run(["claude", "-p", PROMPT + json.dumps(ctx, indent=1)],
-                           capture_output=True, text=True, timeout=timeout_s)
+                           capture_output=True, text=True, timeout=timeout_s, cwd=CL_CTX)
         import re
         m = re.search(r"\{.*\}", p.stdout, re.S)
         d = json.loads(m.group(0)) if m else {}

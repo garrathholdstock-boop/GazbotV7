@@ -356,3 +356,11 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
   #p-trades th:nth-child(5),#blotter td:nth-child(5){width:25%}
   #p-trades th:nth-child(6),#blotter td:nth-child(6){width:18%}
 }
+
+/* ★2026-08-21 a trade shown for the record but excluded from P&L (broken fill price).
+   Must be unmistakable: a row that looks like money but is not counted is how a blotter
+   and a header come to disagree without anyone noticing. */
+tr.uncounted td { opacity: .62; }
+tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: line-through; }
+.badfill { font-size: 9px; letter-spacing: .04em; padding: 1px 4px; border-radius: 3px;
+           background: #4a2c00; color: #ffb454; }

@@ -95,9 +95,38 @@ async def run(dry: bool) -> int:
         (contract,) = await ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
         net = sum(p.position for p in ib.positions() if p.contract.symbol == cfg.symbol)
     except Exception as e:
+        # ★★★2026-08-20 A BLIND WATCHDOG MUST NOT LOOK LIKE A HEALTHY ONE.
+        # This used to log SKIP and exit 0, full stop. Measured over the log's life: 9,743 ok /
+        # 450 SKIP, and the longest unbroken blind run was 117 CONSECUTIVE cycles — 3h54m, straight
+        # through the 20:40Z hard-flat window — with systemd green, the timer green, sweep clean and
+        # nothing paged. The watchdog for a naked, stopless desk was watching nothing and saying so
+        # to no one. Consecutive blindness is now counted and paged.
         log(f"SKIP venue read failed: {str(e)[:100]}")
+        try:
+            import json as _json
+            _f = "/home/alphabot/gazbot7/data/day_rider_watchdog_blind.json"
+            try:
+                _st = _json.load(open(_f))
+            except Exception:
+                _st = {"streak": 0}
+            _st["streak"] = int(_st.get("streak", 0)) + 1
+            _st["last"] = str(e)[:200]
+            _json.dump(_st, open(_f, "w"))
+            # 2-min cadence, so 5 = ~10 minutes blind. Page once per escalation, not every cycle.
+            if _st["streak"] in (5, 30, 120):
+                from gazbot7.notify import notify as _n
+                _n(f"⚠ DAY RIDER WATCHDOG BLIND for {_st['streak']} consecutive cycles "
+                   f"(~{_st['streak']*2} min) — venue read failing: {str(e)[:120]}. The rider runs "
+                   f"with NO STOP; nothing is verifying its position.", critical=True)
+        except Exception:
+            pass
         return 0
     try:
+        try:                       # a good read ends the blind streak
+            import os as _os
+            _os.remove("/home/alphabot/gazbot7/data/day_rider_watchdog_blind.json")
+        except Exception:
+            pass
         if abs(net) < 1e-9:
             log(f"ok flat (heartbeat {'never' if age is None else f'{age:.0f}s'})")
             return 0
