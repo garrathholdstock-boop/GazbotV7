@@ -7,6 +7,9 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
+> **Re-scanned 2026-08-30.** The tournament stand-down is LIFTED; the Friday report's structural
+> faults were audited and four of them fixed. See SESSIONS §374-§377.
+>
 > **Rebuilt 2026-08-16** by scanning the running system. The previous STATE.md lived in the RETIRED
 > V5 tree (`/home/alphabot/alphabot2/docs/`), stopped on **2026-07-30**, and described a different
 > desk: one desk instead of three, 8 services instead of 36, `capture.db` at 1.9GB instead of 5.3GB.
@@ -20,8 +23,8 @@
 
 | desk | unit | what it does | switch |
 |---|---|---|---|
-| **Tournament** | `gazbot7-tournament` (clientId 0) | ⛔ **STOOD DOWN 2026-08-20 — trades nothing.** All 6 gates OFF, HELD off at the reopen, router may bench but may NOT arm | `data/gate_switches.env` |
-| **Day Rider** | `gazbot7-day-rider.timer` (clientId 4) | ★ **THE ONLY DESK THAT TRADES.** ONE trade/day off the 13:30 cash open, **4 lots on a per-lot profit ladder**, **NO STOP**, hard flat 20:40Z | `data/day_rider.env` → **`day_rider=on`** |
+| **Tournament** | `gazbot7-tournament` (clientId 0) | ✅ **LIVE AGAIN 2026-08-26** — the 08-20 stand-down is LIFTED. The router holds full ARM and BENCH authority over all 6 gates and applies the regime rules. `HOLD = {rgv_short}` only. **NO GATE HAS SPECIAL STATUS** | `data/gate_switches.env` |
+| **Day Rider** | `gazbot7-day-rider.timer` (clientId 4) | ONE automatic trade/day off the 13:30 cash open (entries stop 15:00Z), **4 lots, ladder $100/$200/$400/$600 = 50/100/200/300pt**, **NO STOP**, hard flat 20:40Z. ★ **MANUAL BUY/SELL is live across the WHOLE CME session** and bypasses the drift confirmation, the entry window and the once-per-session latch — but NOT `venue_first_ok()`, the booking path or the 20:40 flat. ⏳ `GAZBOT7_RIDER_CONFIRM_PERSIST=5` (drop-in): drift must hold the SAME direction for 5 consecutive ticks before an AUTOMATIC entry — operator experiment, not a measured edge | `data/day_rider.env` → **`day_rider=on`** |
 | **MGC Shadow** | `gazbot7-shadow-mgc` | gold, observe-only, own store `shadow_mgc.db` | n/a — touches nothing |
 
 ⚠ **THE ACCOUNT IS SHARED AND IBKR NETS BOTH DESKS INTO ONE NUMBER.** You cannot read your own
@@ -132,6 +135,16 @@ MGC (`mgc_slate()`, n=3): `mgc_holebreak_fade_long/short` + `mgc_break_fade_nobo
 ⚠ Its headline +$1,387/+$1,261 are **depth-mid** numbers; the service folds **trade bars** and only
 41% of the lab's fires exist there — see `MGC_SHADOW_SCOPE.md` §8.
 
+## 4b. WEEKENDS ARE OFF (2026-08-30)
+
+`gazbot7-gate-reactivate` runs 00:00 Europe/Paris **every day** = 22:00Z, and on Friday that is one
+hour AFTER the CME halt — so it used to arm gates into a shut venue. It now consults
+`session.is_open()`, which draws the line exactly right (Fri 22:00Z and Sat 22:00Z are False; Sun
+22:00Z is True because that instant IS the reopen), and **DISARMS** instead of arming while the
+venue is shut. One timer, no second definition of "the weekend" to drift.
+
+---
+
 ## 5. SAFETY — non-negotiable
 
 | layer | what it guarantees |
@@ -185,6 +198,38 @@ verified by row count.
 | the MGC desk | `systemctl disable --now gazbot7-shadow-mgc` |
 | the durable router | `systemctl disable --now gazbot7-router-tick.timer` |
 | a stopped desk after a reconcile halt | `deskrecon.py --release` (**human only**) |
+
+## 7b. THE FRIDAY REPORT — audited 2026-08-30, four structural faults closed
+
+It had **never once finished unattended**. An audit (sonnet) found the cause was not any single
+incident but four things that made success impossible or invisible:
+
+| fault | why it never finished | fixed |
+|---|---|---|
+| the whole 08-29/30 fix set was **uncommitted** — last commit to `serial_runner.py` was 08-19 | a checkout or rebuild silently reverts every fix | committed + pushed (`0eed176`, `22ef7e6`) |
+| `friday_report_durable.py` hardcoded `--deadline 05:15`, **overriding** the widened `05:55` | the extra 40m never took effect on the only path that runs weekly | argument removed; `serial_runner` owns its schedule |
+| `TimeoutStartSec=28800` sized for a 22:07 start, timer moved to 21:05 | systemd SIGKILL at **05:05Z — 50 min INSIDE the 05:55 deadline**, no logging, no alert | `32400` → kill 06:05Z, 10m margin |
+| **`final` has never succeeded** in any run on record — and it owned the operator's only "report ready" Telegram | the ping was the last line of a prompt that never reached its end, so he has never been told a report was ready | scope cut (reads `proofread.json`, spot-checks, 60m); **ping now fires deterministically from `serial_runner`, on failure too** |
+
+**Schedule, as it now runs:** timer **21:05Z** (the halt is 21:00) → internal deadline **05:55Z** →
+systemd kill 06:05Z. Body budget **305m**, tail reserve 225m.
+**The body is a dependency-aware ROLLING POOL** (`--workers 4`), not waves: a phase starts the
+instant a worker frees and gets its FULL declared timeout provided the phases queued behind it can
+each still clear `MIN_SLICE`. Waves were a barrier that capped a 240m section at 76m while a 30m
+section idled its worker. Capacity is now **4 × 305 = 1,220 agent-min against ~975m declared — it
+fits**, and PREFLIGHT reports that ratio instead of the "5.9× over" it printed weekly while nothing
+acted on it.
+**Phases run in their own process group** and a timeout kills the GROUP — an orphaned 4.4GB
+grandchild on 08-29 filled swap, drove memory pressure to 93% and most plausibly starved three
+phases into producing nothing.
+
+⚠ **STILL OPEN — audit item 9, the operator's call.** Even fixed, 13 deep-research phases plus a
+4-stage serial tail may not be a reliable one-night job. The alternative is a two-night split
+(Friday = body, Saturday morning = tail on a market-closed budget), which costs the 08:00 Paris
+delivery. **Decision deferred until one clean Friday has run and been measured** — the 975m is
+*declared* time, and declared timeouts on this desk have historically been aspirational.
+
+---
 
 ## 8. KNOWN-OPEN / PARKED
 

@@ -2221,3 +2221,50 @@ ON MINUTES HELD, which is the only comparison that means anything mid-trade:
 his London trade is not that London trends (it does not — efficiency 0.040 vs the US 0.050, and the
 race is a coin flip at 42-54%) but that London is a MUCH CHEAPER PLACE TO BE WRONG. Both sides are
 pooled in the distribution so it carries no directional drift.
+
+### §377 — 2026-08-30 · the Friday report audited, and the four faults that made it unwinnable
+Operator: *"friday report has never worked autonomously. always takes me half the weekend to finish
+it with you. find out whats wrong."* Audited by a sonnet subagent (token-conscious), briefed with
+the full failure record and the fixes already shipped so it could not waste tokens re-deriving them.
+
+**IT FOUND THREE FIXES OF MINE THAT WERE INERT**, which is the part worth remembering:
+· `friday_report_durable.py:158` hardcoded `--deadline 05:15` and therefore OVERRODE the widened
+  05:55 default. The 40 minutes I added on 08-29 had never once taken effect on the only path that
+  runs on a Friday. ★ A fix that lives in a DEFAULT and a caller that hardcodes past it is a fix
+  that was never shipped.
+· `TimeoutStartSec=28800` was sized for the old 22:07 start. I moved the timer to 21:05 and never
+  recomputed it, so systemd's hard SIGKILL landed at **05:05Z — fifty minutes INSIDE the job's own
+  05:55 deadline**, killing the tree with none of run_phase's logging and no alert. ★ Moving a start
+  time without recomputing the kill turns a graceful finish into a silent execution.
+· **The entire weekend fix set was UNCOMMITTED.** Last commit touching `serial_runner.py` was 08-19
+  while the file carried 08-29/30 changes — including the dependency-staleness fix that finally made
+  a run deliver. One `git checkout` and every incident in the record repeats.
+  [[committed-is-not-pushed]] — now committed AND pushed.
+
+**AND THE ONE THAT EXPLAINS MONTHS OF SILENCE.** `final` has never succeeded in ANY run on record:
+it re-derived the grade `proofread` had already computed, re-read the whole report and re-rendered,
+inside a cap TIGHTER than proofread's. It also owned the operator's only "report ready" Telegram —
+the last instruction in a prompt that never reached its end. **He has never once been told by this
+pipeline that his report was ready.** The ping now fires deterministically from the driver, and
+sends on failure too, because "it did not finish" is the message worth having.
+
+**THE SCHEDULE WAS NEVER THE REAL PROBLEM ONCE PARALLEL.** 4 workers × 305m = 1,220 agent-minutes
+against ~975m declared — it fits with a quarter spare. My WAVE scheduler was spending that capacity
+in equal slices: a barrier that capped a 240m-declaring section at 76m while a 30m section finished
+and idled its worker (08-29: wave 1 ran ~3h with a free slot most of it). Replaced with a rolling
+pool that allocates by need. Orphan reaping added — `start_new_session=True` + `killpg` TERM/KILL —
+against the 4.4GB PID-1 orphan that cost 242 of 644 agent-minutes that weekend.
+
+**Delivered along the way:** the dependency-driven staleness fix earned its keep on its first run —
+`assemble` and `proofread` both succeeded and folded Saturday's rebuilt sections (including the
+day_rider section, absent from a week the rider traded entirely) into the published report, now
+1,341,334 bytes / 17 sections / 334 tables. `rev2` timed out at 90m; that is item 9's territory.
+
+**★ TESTS EXECUTE, THEY DO NOT GREP.** Pool concurrency is asserted by wall-clock against a barrier;
+the orphan test spawns a real grandchild and asserts the whole group dies. Both were written that
+way because a source-grep test passed green this week while the code under it crashed — the third
+instance in seven days.
+
+**Housekeeping:** all one-off units deleted (`weekend-flatten`, `friday-catchup`,
+`friday-catchup-repair`, `friday-finish`); `ops/systemd/` synced to the live units, which still
+claimed 22:07. 374 tests green, working tree clean, both commits pushed.
