@@ -209,45 +209,111 @@ def _free_mb() -> int:
     return 10 ** 6            # unreadable -> do not let a missing gauge stall the run
 
 
-def run_wave(phases, cap_s: float, workers: int):
-    """Run `phases` concurrently, at most `workers` at once. Returns {key: ok}."""
-    import threading
-    results, lock = {}, threading.Lock()
-    sem = threading.Semaphore(workers)
+def run_pool(body, phases, deadline_ts, reserve_s, workers: int, log_fn=None):
+    """Dependency-aware ROLLING POOL. Launches the next ready phase the moment a worker frees.
 
-    def one(p):
-        with sem:
+    ★★★2026-08-30 THIS REPLACES WAVE BATCHING, and the difference is the whole ballgame.
+    A wave is a BARRIER: every phase in it is capped at the wave's share of the budget and the next
+    wave cannot start until the slowest member joins. With 13 phases in 4 waves that capped every
+    phase at ~76m — so a section declaring 240m timed out at 76m while a section needing 30m
+    finished and left its worker IDLE for 46m. Observed 08-29: wave 1 ran ~3 hours with a free slot
+    for most of it.
+    The budget was never really the problem. 4 workers x 305m = 1,220 agent-minutes of capacity
+    against 975m of declared demand — it FITS, with a quarter to spare. Waves were spending that
+    capacity in equal slices instead of by need. A pool spends the same minutes where they are
+    wanted: a phase gets its DECLARED timeout as long as the remaining budget can still cover the
+    phases behind it.
+    ⚠ Deps are honoured — a phase is only launched once every dep it shares the body with is done.
+    ⚠ The memory floor is still checked before every launch (the desk shares this box).
+    """
+    import threading
+    done, results, running = set(), {}, {}
+    lock = threading.Condition()
+    remaining = list(body)
+    body_keys = {q["key"] for q in body}
+    log_fn = log_fn or (lambda m: None)
+
+    def ready(q):
+        return all(d in done or d not in body_keys for d in q.get("deps", []))
+
+    def worker(q, cap):
+        ok = False
+        try:
             waited = 0
             while _free_mb() < MIN_FREE_MB and waited < 600:
                 time.sleep(15); waited += 15
             if waited:
-                log(f"MEM: waited {waited}s for headroom before {p['key']} "
-                    f"({_free_mb()}MB free)")
-            ok = run_phase(p, cap_s)
-        with lock:
-            results[p["key"]] = ok
+                log_fn(f"MEM: waited {waited}s for headroom before {q['key']} ({_free_mb()}MB free)")
+            ok = run_phase(q, cap)
+        finally:
+            with lock:
+                done.add(q["key"]); results[q["key"]] = ok
+                running.pop(q["key"], None)
+                lock.notify_all()
 
-    ts = [threading.Thread(target=one, args=(p,), daemon=True) for p in phases]
-    for t in ts:
-        t.start()
-    for t in ts:
-        t.join()
+    while True:
+        with lock:
+            if not remaining and not running:
+                break
+            left = deadline_ts - time.time() - reserve_s
+            launched = False
+            while remaining and len(running) < workers and left > 120:
+                nxt = next((q for q in remaining if ready(q)), None)
+                if nxt is None:
+                    break
+                # a phase may have its FULL declared time, provided the phases still queued behind
+                # it can each still get MIN_SLICE out of what would be left.
+                queued_after = max(0, len(remaining) - 1)
+                floor_needed = queued_after * MIN_SLICE_S / max(workers, 1)
+                cap = min(nxt["timeout_s"], max(MIN_SLICE_S, left - floor_needed))
+                if cap < MIN_SLICE_S:
+                    log_fn(f"SKIP {nxt['key']} — only {cap/60:.0f}m allocatable, below the "
+                           f"{MIN_SLICE_S//60}m floor a section needs to produce anything")
+                    remaining.remove(nxt); done.add(nxt["key"]); results[nxt["key"]] = False
+                    continue
+                remaining.remove(nxt)
+                t = threading.Thread(target=worker, args=(nxt, cap), daemon=True)
+                running[nxt["key"]] = t
+                log_fn(f"START {nxt['key']} — {cap/60:.0f}m cap ({len(running)}/{workers} busy, "
+                       f"{len(remaining)} queued)")
+                t.start(); launched = True
+            if remaining and not running and not launched:
+                log_fn(f"BUDGET: stopping section builds to protect the tail ({left/60:.0f}m left)")
+                for q in remaining:
+                    results[q["key"]] = False
+                remaining.clear()
+                break
+            lock.wait(timeout=10)
     return results
 
 
-def plan_waves(body, workers: int):
-    """Split body into dependency-respecting waves of at most `workers`."""
-    done, waves, remaining = set(), [], list(body)
-    while remaining:
-        ready = [p for p in remaining if all(d in done or d not in {q["key"] for q in body}
-                                             for d in p.get("deps", []))]
-        if not ready:                      # a cycle or an unbuildable dep — run the rest serially
-            ready = remaining[:1]
-        for i in range(0, len(ready), workers):
-            waves.append(ready[i:i + workers])
-        for p in ready:
-            done.add(p["key"]); remaining.remove(p)
-    return waves
+def _kill_tree(proc) -> None:
+    """Kill a phase and EVERYTHING it spawned. TERM the group, then KILL what survives.
+
+    ★ The group is the unit, not the process. A phase that shells out to a heavy analysis script
+    leaves that script running as a PID-1 orphan if only the direct child is signalled — see the
+    4.4GB orphan of 2026-08-29. There is no owner left to collect its output, so every second it
+    survives is pure waste on a box the desk shares.
+    """
+    import signal
+    try:
+        pgid = os.getpgid(proc.pid)
+    except Exception:
+        return
+    for sig, wait in ((signal.SIGTERM, 10), (signal.SIGKILL, 5)):
+        try:
+            os.killpg(pgid, sig)
+        except ProcessLookupError:
+            return
+        except Exception:
+            return
+        t0 = time.time()
+        while time.time() - t0 < wait:
+            try:
+                os.killpg(pgid, 0)          # signal 0 = "does the group still exist?"
+            except ProcessLookupError:
+                return
+            time.sleep(0.5)
 
 
 def run_phase(p, budget_s: float) -> bool:
@@ -264,16 +330,29 @@ def run_phase(p, budget_s: float) -> bool:
     # and auth problems on STDOUT, which is exactly the class of failure that kills a whole night.
     # The tail of stdout is now appended to the phase's error file whenever rc is non-zero.
     out_txt = ""
+    proc = None
     try:
         with open(err, "w") as ef:
-            r = subprocess.run([CLAUDE, "-p", p["prompt"], "--allowedTools", TOOLS],
-                               stdout=subprocess.PIPE, stderr=ef, text=True,
-                               timeout=cap, cwd=GB, env=ENV)
-        rc = r.returncode
-        out_txt = r.stdout or ""
-    except subprocess.TimeoutExpired as e:
-        rc = -1
-        out_txt = (e.stdout or "") if isinstance(getattr(e, "stdout", None), str) else ""
+            # ★★★2026-08-30 start_new_session=True PUTS THE PHASE IN ITS OWN PROCESS GROUP.
+            # Without it, a timeout signals ONLY the direct `claude` child; anything IT spawned is
+            # reparented to PID 1 and runs on unsupervised. On 08-29 a phase's own analysis script
+            # (gf5_mgc_battery.py) was orphaned that way and grew to 4.4GB on a 7.5GB box — filling
+            # swap, driving memory pressure to 93%, and most plausibly starving the three phases
+            # that then stalled their full 90/90/180m caps producing nothing. 242 of 644 wasted
+            # agent-minutes that weekend trace back to it. Killing the GROUP kills the whole tree.
+            proc = subprocess.Popen([CLAUDE, "-p", p["prompt"], "--allowedTools", TOOLS],
+                                    stdout=subprocess.PIPE, stderr=ef, text=True,
+                                    cwd=GB, env=ENV, start_new_session=True)
+            try:
+                out_txt = proc.communicate(timeout=cap)[0] or ""
+                rc = proc.returncode
+            except subprocess.TimeoutExpired:
+                rc = -1
+                _kill_tree(proc)
+                try:
+                    out_txt = proc.communicate(timeout=30)[0] or ""
+                except Exception:
+                    out_txt = ""
     except Exception as e:
         log(f"{p['key']} EXCEPTION {type(e).__name__}: {e}")
         rc = -2
@@ -404,13 +483,12 @@ def main() -> int:
     log(f"PREFLIGHT: {len(body)} body phases declare {body_cap:.0f}m of timeouts against a "
         f"{body_budget:.0f}m budget ({body_cap / max(body_budget, 1):.1f}x)")
     _w = max(1, a.workers)
-    _waves = (len(body) + _w - 1) // _w
-    log(f"PREFLIGHT: {len(body)} sections in ~{_waves} wave(s) of {_w} -> "
-        f"{body_budget/max(_waves,1):.0f}m per section (serial would be "
-        f"{body_budget/max(len(body),1):.0f}m)")
-    if body_budget / max(_waves, 1) < MIN_SLICE_S / 60:
-        log(f"PREFLIGHT ⚠ even in waves the per-section share is below the "
-            f"{MIN_SLICE_S//60}m floor — sections WILL be skipped.")
+    _cap = body_budget * _w
+    log(f"PREFLIGHT: rolling pool of {_w} -> {_cap:.0f} agent-min of capacity against "
+        f"{body_cap:.0f}m declared ({_cap/max(body_cap,1):.2f}x)")
+    if _cap < body_cap:
+        log(f"PREFLIGHT ⚠ capacity is BELOW declared demand — the longest phases will be "
+            f"truncated. Raise --workers or cut the section list.")
 
     if a.dry_run:
         for p in body + tail:
@@ -441,29 +519,11 @@ def main() -> int:
     # Measured on 08-29: an agent is 465MB and the whole job peaks at 1,435MB against a 4,608MB
     # ceiling, so 4 at once is safe. 13 sections in waves of 4 is 4 waves — each section can have
     # ~80m instead of 20m, inside the SAME night.
-    waves = plan_waves(todo_body, a.workers)
-    if waves:
-        log(f"SCHEDULE: {len(todo_body)} section(s) in {len(waves)} wave(s) of up to {a.workers} "
+    if todo_body:
+        log(f"SCHEDULE: {len(todo_body)} section(s), rolling pool of {a.workers} "
             f"(memory floor {MIN_FREE_MB}MB, {_free_mb()}MB free now)")
-    for wi, wave in enumerate(waves, 1):
-        left = (dl - dt.datetime.now(dt.UTC)).total_seconds() - a.reserve_min * 60
-        waves_left = len(waves) - wi + 1
-        if left <= 120:
-            # ★ Stop building SECTIONS rather than eat the tail's budget. A report missing a
-            # greenfield lab but carrying its proofread is worth more than a complete unchecked one.
-            log(f"BUDGET: stopping section builds to protect the tail ({left/60:.0f}m left)")
-            failed.extend(q["key"] for w in waves[wi-1:] for q in w)
-            break
-        # each WAVE gets an even share of what is left; inside a wave the phases run together, so
-        # the wave costs the SLOWEST member, not the sum.
-        cap = min(left / waves_left, max(q["timeout_s"] for q in wave))
-        if cap < MIN_SLICE_S:
-            log(f"SKIP wave {wi} ({', '.join(q['key'] for q in wave)}) — {cap/60:.0f}m share is "
-                f"below the {MIN_SLICE_S//60}m minimum a section needs to produce anything")
-            failed.extend(q["key"] for q in wave)
-            continue
-        log(f"WAVE {wi}/{len(waves)}: {', '.join(q['key'] for q in wave)} — {cap/60:.0f}m each")
-        for k, ok in run_wave(wave, cap, a.workers).items():
+        _res = run_pool(todo_body, phases, dl.timestamp(), a.reserve_min * 60, a.workers, log)
+        for k, ok in _res.items():
             (built if ok else failed).append(k)
 
     log(f"sections: {len(built)} built, {len(skipped)} already had, {len(failed)} missing")
