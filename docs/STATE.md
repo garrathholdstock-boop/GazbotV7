@@ -7,6 +7,11 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
+> **Re-scanned 2026-09-02 19:45Z.** Desk flat and reconciling, router deciding, rider **+$1,159.50 on
+> the day (13 trades)**. **TUNNEL WATCH is ARMED** (§1b) — the compression-break alarm, read-only.
+> Two doc faults fixed: `capture.db` retention is PER-TABLE (§6, bars keep 60 days not 5) and §2's
+> `off` roster is today's live bench, not the 08-29 weekend guard. See SESSIONS §380.
+>
 > **Re-scanned 2026-08-30.** The tournament stand-down is LIFTED; the Friday report's structural
 > faults were audited and four of them fixed. See SESSIONS §374-§377.
 >
@@ -49,6 +54,7 @@ desk's job is therefore to give him PRESENCE and INFORMATION, not to replace the
 | piece | unit / file | what it gives him |
 |---|---|---|
 | **peak watch** | `gazbot7-rider-peak-watch.service` | 1 Hz open P&L off `MD_STREAM` `tape`. URGENT at **+$200**, ping per **$50** new high, **give-back** $75 off the peak, **stall** at 3 min with no new high. Every message carries extension in ATR. ⚠ READ-ONLY — no order path, asserted by test |
+| **tunnel watch** | `gazbot7-tunnel-watch.service` | ★**ARMED 2026-09-02 19:45Z.** A 2-state HMM (fitted offline on 322,300 1-min bars / 240 sessions, forward-filtered ONLINE — never Viterbi) reads the tape as QUIET vs ACTIVE and tells him when price leaves a compression. Built from his own read: *"it will run and then hover around vwap for a while. then run again."* ★ **MAGNITUDE AND TIMING ONLY** — a break is followed by ~**1.75×** a matched-hour control's 60-min excursion (REAL), but continuation in the break's own direction is **0.436/0.466/0.477** at ±1/±1.5/±2 ATR against a control of 0.504/0.506/0.510 — worse than a coin flip, 91% poke back inside (median 3m). The message carries that number so it cannot quietly become a buy signal. ⚠ READ-ONLY, asserted by `tests/test_tunnel_watch.py`. Knobs are systemd `Environment=`, not code |
 | **claim fast path** | `gazbot7-day-rider-claim.path` | the Claim button reaches the rider on the inotify write (**measured 0.02s**) instead of waiting for the `*:*:05` tick — which was **up to 60 SECONDS**. On 08-19 the tracked peak was 29458.75 and the claim filled 29470.75: 12pt = $48 |
 | **the profit ladder** | `day_rider.TARGET_USD_PER_LOT` | ★2026-08-20 **4 lots, each banking its own figure: $100 / $200 / $400 / $600 = $1,300** if all four fill (50/100/200/300pt at $2/pt per lot). Reach rates over 231 sessions: **77.5% / 58.0% / 29.4% / ~15%**, so ~$300 is the common case and lots 3-4 are HIS to work |
 | **five claim buttons** | `L1 L2 L3 L4` + `ALL` | one per lot plus flatten-all. ★ They are **ALSO KILL BUTTONS** — there is no stop, so they fire in profit or loss and the confirm dialog says so. The endpoint does not check P&L and must not. `ALL` is unchanged and remains the kill switch |
@@ -72,18 +78,23 @@ is already what `ENTRY_CUTOFF_MIN` encodes (13:30Z cash open → 15:00Z).
 
 ## 2. GATES — 6 live, 3 long / 3 short
 
-⛔ **2026-08-20 — ALL SIX GATES ARE OFF AND THE TOURNAMENT TRADES NOTHING.** Operator: *"the only
-thing that trades is day rider … turn all other gates off."*
+✅ **THE 08-20 STAND-DOWN IS LIFTED (2026-08-26) — the router holds FULL ARM AND BENCH
+authority over all six gates.** Verified in source 2026-08-30: `router_tick_durable.
+TOURNAMENT_STOOD_DOWN = False` (:83) and `reactivate_gates.HOLD = frozenset({"rgv_short"})` (:73)
+— i.e. **both revert conditions the stand-down named are met.** `PINNED` is empty.
+This paragraph read "ALL SIX GATES ARE OFF AND THE TOURNAMENT TRADES NOTHING" until 08-30; it
+contradicted §1 and the header for four days, and a session that believed it would have concluded it
+could not arm at the Sunday reopen. **`HOLD = {rgv_short}` is the only carve-out. NO GATE HAS
+SPECIAL STATUS.**
 
     grind_long=off   capitulation_long=off   abs_veto_long=off
     rgv_short=off    exhaustion_short=off    abs_veto_short=off
 
-Held off by TWO mechanisms, because one is not enough: `reactivate_gates.HOLD` covers the **whole
-roster** (so the 22:00Z Paris-midnight reopen arms nothing) and `router_tick_durable.
-TOURNAMENT_STOOD_DOWN` drops any change to `on`. The router keeps **full bench authority** — it can
-still bench, it simply cannot arm. ⚠ NOT done with `PINNED`: a full-roster pin makes `valid`
-permanently empty, which is the silent no-op that ran 411 ticks unnoticed, and it trips the PIN
-ALARM every tick. **Revert:** `TOURNAMENT_STOOD_DOWN=False` + `HOLD=frozenset({"rgv_short"})`.
+★ **All six reading `off` right now is a LIVE ROUTER BENCH, not the stand-down and not the weekend guard.** `gate_switches.env` was last written **2026-09-02 14:55:34Z** (verified mtime) and the durable tick is deciding every 5 min: at 19:45Z it logs *"STAY-OUT IS LIVE AND LEGAL: meter 66 … 48 straight ticks over the 55 bar … it benches the book with NO gate exempt"*, with direction failing both bars (45-min net +34pt / ER 0.184 against |net|>40 AND ER>=0.20). **Always re-read the mtime and the last trial-log line before reading anything into this roster** — the same six `off` can mean a bench, the weekend guard disarming into a shut venue (§4b), or a stand-down, and only the timestamp separates them.
+
+⚠ A stand-down must never be done with `PINNED`: a full-roster pin makes `valid` permanently empty,
+which is the silent no-op that ran 411 ticks unnoticed, and it trips the PIN ALARM every tick.
+**To stand down again:** `TOURNAMENT_STOOD_DOWN=True` + `HOLD` = the whole roster.
 
 - **`ER_FLOOR` is `{}`** — no gate has an ER floor. The deletion is pinned by `tests/test_deciders.py`.
 - **`ATR_FLOOR`** = `grind_long: 22.0`, `capitulation_long: 10.0`. `ER_CEIL` is `{}`.
@@ -176,7 +187,7 @@ whole 08-06 incident. **Do not "fix" the skip; a test fails if an order path app
 | where | what | note |
 |---|---|---|
 | `data/gazbot7.db` | 932K | the trade record from 2026-07-16 — the P&L truth |
-| `data/capture.db` | **5.3G** | live tape, **5 TRADING days only**. ⚠ ATTACHing it silently sees 5 days |
+| `data/capture.db` | **5.5G** | live tape. ⚠ **RETENTION IS PER-TABLE — there is no single "capture keeps N days"** (`prune_capture.RETAIN`): `book`/`quotes`/`ticks` **5 trading days**, `bars` **60**. Measured 2026-09-02: book+quotes from 08-28, ticks 08-27, **bars from 07-15 — 49 days, 929,817 rows**. ATTACHing for TICK history silently sees 5 days (the cause of two degraded nightly audits); a MINUTE-BAR study has ~2 months here and does not need the lake |
 | `data/depth.db` | **2.8G** | L2, 10 levels @250ms, MNQ+MGC. **Gold's book is ONLY here** — `capture.db.book` has no MGC |
 | `data/shadow.db` / `shadow_mgc.db` | 6.2M / 100K | the two shadow books |
 | `data/tape/` + `b2raw:gazbotv7/plain/` | Parquet, 07-16 → | **query via `gazbot7.lake.connect()`** |

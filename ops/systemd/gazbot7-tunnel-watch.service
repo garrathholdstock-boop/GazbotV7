@@ -1,0 +1,54 @@
+# /etc/systemd/system/gazbot7-tunnel-watch.service
+[Unit]
+# GAZBOT V7 — TUNNEL WATCH. Tells the operator when the tape leaves a volatility compression.
+#
+# ★2026-09-02. Built from the operator's own read: "it will run and then hover around vwap for a
+# while. then run again." Measured on 322,300 1-minute bars / 240 sessions — the STRUCTURE is real
+# and stable (5.6 compressions per session, median 68m and 81pt wide, ~60% of all minutes), and the
+# break is followed by ~1.75x a matched-hour control's 60-minute excursion.
+#
+# ⚠ IT CARRIES NO DIRECTIONAL OPINION, BY DESIGN. Continuation in the break's own direction
+#   measured 0.436 / 0.466 / 0.477 at ±1 / ±1.5 / ±2 ATR against a control of 0.504 / 0.506 / 0.510
+#   — at short barriers WORSE than a coin flip. The alarm therefore reports SIZE and TIMING, on
+#   which it is informative, and states the continuation number in the message so it cannot quietly
+#   become a recommendation. The operator supplies direction (65% over 20 positions); the tape
+#   supplies the moment.
+#
+# ⚠ READ-ONLY BY CONSTRUCTION — no ib_async, no order path, no switch writes. Its only output is
+#   Telegram text. tests/test_tunnel_watch.py asserts that against the source. Same boundary as
+#   gazbot7-rider-peak-watch: a notifier that dies is a missed message, an actor that dies is a
+#   naked position.
+Description=GAZBOT V7 — tunnel watch (compression-break alerts to the operator)
+After=network.target gazbot7-depth-capture.service
+Wants=gazbot7-depth-capture.service
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=GAZBOT7_CAPTURE=/home/alphabot/gazbot7/data/capture.db
+# Knobs. Change them here, not in the code.
+#   TUNNEL_MIN_MIN      a compression shorter than this is noise between two impulses, not the
+#                       thing the operator is describing. NOISE CONTROL, NOT a validated filter —
+#                       short tunnels do not break differently (<30m scored 0.435, in line).
+#   TUNNEL_CONFIRM_MIN  the follow-up window. EXPLICITLY UNVALIDATED (see confirm_note()).
+#   TUNNEL_MAX_ALERTS   5.6 breaks/session is more than anyone can act on; an alarm nobody can act
+#                       on is an outage of the alarm channel.
+Environment=TUNNEL_POLL_S=20
+Environment=TUNNEL_MIN_MIN=25
+Environment=TUNNEL_CONFIRM_MIN=10
+Environment=TUNNEL_MAX_ALERTS=6
+Environment=TUNNEL_STALE_S=300
+WorkingDirectory=/home/alphabot/gazbot7
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/tunnel_watch.py
+Restart=always
+RestartSec=15
+# The box is 7.5GB and has taken three global_oom kills. This reads a few hundred rows a poll.
+MemoryMax=256M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
