@@ -4,7 +4,7 @@ Serves the V5 MNQ cockpit (copied verbatim: web_static/app.{html,css,js}) and th
 four endpoints its JS consumes, computed from V7's store + capture DB + core's
 status.json:
 
-* /api/futures/bars/MNQ?count=N  — 1-minute price bars for the hero chart (the tf
+* /api/futures/bars/<MNQ|MGC>?count=N — 1-minute price bars for the hero chart (the tf
   buttons set N); aggregated from the 5s capture bars.
 * /api/futures/us-terminal       — holdings (from core's live position) + activity
   (last/VWAP/ATR/net-ATR for the ribbon + chart) + regime/margin (empty in V7).
@@ -81,14 +81,29 @@ def _conn(path):
     return c
 
 
-# ── /api/futures/bars/MNQ — 1m bars aggregated from 5s capture ────────────────
-def bars_json(cap_path, count):
+# ── /api/futures/bars/<SYM> — 1m bars aggregated from 5s capture ──────────────
+# ★2026-09-02 SYMBOL-AWARE. Operator: "can you add mgc to the charts tab with all the same time
+# toggles? i want to watch if it behaves the same way over a few days. tunnel. run. tunnel. run."
+# capture.db has carried MGC 5s bars all along (349,470 rows); only this reader was hard-wired.
+# ⚠ THE SYMBOL IS WHITELISTED, NOT INTERPOLATED. It arrives from the URL path, and the one thing
+#   a URL segment may never do is reach a SQL string. Unknown symbol -> MNQ, never a query.
+# ⚠ MD_STREAM/capture.db ARE MULTI-SYMBOL and every consumer must filter — folding MGC into an MNQ
+#   reader once made ATR read 1848 against a true 15 and opened live trades with $3,700 stops. The
+#   filter here is the `symbol = ?` bind; the FRONT-END half of the same rule (MNQ vwap/fills/ATR
+#   must not be drawn over a gold chart) is enforced in app.js renderHero().
+BAR_SYMBOLS = ("MNQ", "MGC")
+
+
+def bars_json(cap_path, count, symbol="MNQ"):
+    symbol = symbol.upper() if isinstance(symbol, str) else ""
+    if symbol not in BAR_SYMBOLS:
+        symbol = "MNQ"
     out = []
     try:
         c = _conn(cap_path)
         rows = c.execute(
-            "SELECT bar_ts, close FROM bars WHERE symbol='MNQ' AND timeframe='5s' "
-            "ORDER BY bar_ts DESC LIMIT ?", (count * 12 + 24,),
+            "SELECT bar_ts, close FROM bars WHERE symbol = ? AND timeframe='5s' "
+            "ORDER BY bar_ts DESC LIMIT ?", (symbol, count * 12 + 24),
         ).fetchall()
         c.close()
         by_min = {}
@@ -99,7 +114,10 @@ def bars_json(cap_path, count):
             out.append({"ts": datetime.fromtimestamp(m, UTC).isoformat(), "close": by_min[m]})
     except Exception:
         pass
-    return {"bars": out}
+    # `symbol` is echoed so the client can PROVE what it is drawing rather than assume the request
+    # it sent is the one it got back — a chart that silently falls back to MNQ while the toggle
+    # reads MGC is the worst outcome available here.
+    return {"symbol": symbol, "bars": out}
 
 
 def _mae_table():
@@ -1965,11 +1983,12 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._json(shadow_overview_json(shadow_path, (qs.get("date", [None])[0])))
                 elif path.startswith("/api/shadow/activity"):
                     self._json(shadow_activity_json(shadow_path, min(200, int(qs.get("limit", ["50"])[0]))))
-                elif path.startswith("/api/futures/bars/MNQ"):
+                elif path.startswith("/api/futures/bars/"):
                     # ★2026-08-29 600 -> 1500. 600 minutes capped the chart at 10h, so a "since Paris midnight"
                     # view (22:00Z -> now, up to 23h) was impossible to request. 1500 covers a full CME
                     # session with room; the query reads count*12 5s rows, so 1500 is ~18k rows — fine.
-                    self._json(bars_json(cap_path, min(1500, int(qs.get("count", ["120"])[0]))))
+                    self._json(bars_json(cap_path, min(1500, int(qs.get("count", ["120"])[0])),
+                                         path.rsplit("/", 1)[-1]))
                 elif path.startswith("/api/futures/us-terminal"):
                     self._json(us_terminal_json(cap_path, data_dir))
                 elif path.startswith("/api/futures/tournament"):

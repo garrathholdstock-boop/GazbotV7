@@ -2466,3 +2466,50 @@ section but one, desk flat, working tree pushed. **Day rider +$1,159.50 on 13 tr
 Not chased — it is a slippage-visibility warning on a fast tape, and the fills reconcile.
 
 **Nothing else changed:** no gate switched, no trading service restarted, no cron armed.
+
+### §381 — 2026-09-02 · MGC on the chart tab, with the same window toggles
+Operator: *"can you add mgc to the charts tab on dashboard with all the same time toggles? i want to
+watch if it behaves the same way over a few days. tunnel. run. tunnel. run. i think we are on to
+something. we will trade between the tunnels. just a few runs per day."*
+
+**The data was already there — only the reader was hard-wired.** `capture.db` has carried MGC 5s
+bars all along (**349,520 rows**, live and current at 4400.3 while this was written); `bars_json()`
+had `symbol='MNQ'` inlined in the SQL. Now `/api/futures/bars/<SYM>` with a **whitelist**, the symbol
+bound as a parameter, unknown → MNQ. The payload **echoes the symbol it actually queried**.
+
+**★ THE FRONT-END HALF IS THE PART THAT COULD HAVE HURT.** Every overlay on that chart is the MNQ
+desk's: VWAP, the blotter fills, the entry/stop lines, the right-hand ATR axis, the last-price tag.
+Drawn over a 4,400 gold tape they are not "roughly right", they are another instrument's numbers —
+this desk has already paid for that once, when MGC folded into an MNQ deque made ATR read **1848
+against a true 15** and opened live trades with $3,700 stops. So on MGC they are suppressed **at the
+source** (`a = null`, `holds = []`, `fills = []`), not filtered at each draw site, and a future
+overlay inherits the guard instead of having to remember it.
+[[md-stream-multi-symbol-filter]]
+
+**★ THE CHART LABELS ITSELF FROM THE PAYLOAD, NEVER FROM THE TOGGLE.** The fast poll deliberately
+keeps the last good bars on a failed fetch, so a failed MGC request would otherwise leave MNQ bars on
+screen under an MGC heading. Four states, all distinct and all visible: `loading MGC…` (payload
+cleared on toggle, so it is a true loading state), **red** *"this API build serves MNQ only — restart
+gazbot7-web"* (a payload with no symbol field = pre-toggle build), **red** *"showing MNQ, not MGC —
+the MGC fetch failed"*, and on success a note that gold is **WATCH-ONLY** and that the meters, gates
+and DTT rows on that page remain the MNQ desk's. The one outcome ruled out is a silently mislabelled
+chart.
+
+**Tests EXECUTE the endpoint, they do not grep it** — 10 of them, against a real two-symbol sqlite
+and against the real HTTP route in a thread, because the dispatch takes the symbol from the URL with
+`rsplit("/")` and the client always sends `?timeframe=1m&count=…`. If that query string ever reached
+the whitelist it would fail closed to MNQ: **the gold button would draw the index**, which no
+source-grep test can see. Also asserted: injection strings fall back to MNQ and leave the table
+intact, lowercase works, a missing db is an empty chart not a crash.
+
+**Verified live, not assumed:** `:8087` serves both symbols; DAY (1500m) returns a full gold session
+back to 09-01 18:15Z; and it works **through nginx** (`/v7/` is a blanket proxy, no per-path
+allowlist). `gazbot7-web` restarted **with the operator's explicit go-ahead** — it drops his tab.
+1022 tests green.
+
+**NOT done, and deliberately:** the tunnel model was **not** pointed at gold. `tunnel_watch`'s HMM was
+fitted on MNQ log-true-range (quiet mean 5.14pt / active 14.62pt); gold's minute TR lives on an
+entirely different scale, and running MNQ parameters over it would score every gold minute ACTIVE and
+find no tunnels at all — the same class of error as the ATR-1848 incident, arriving as a plausible
+"gold has no structure" answer. Fitting MGC its own parameters is a measurement, and it is offered
+rather than assumed.

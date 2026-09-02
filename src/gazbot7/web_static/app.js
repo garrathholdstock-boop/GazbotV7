@@ -1,7 +1,7 @@
 /* GAZBOT V7 — MNQ DESK (read-only presentation)
  * Reuses: /api/futures/mnq (MNQ-scoped header/rolling/gates/blotter/curve),
  *         /api/futures/us-terminal (holdings/activity-DTT/regime/margin — filter to MNQ),
- *         /api/futures/bars/MNQ (hero price).
+ *         /api/futures/bars/<MNQ|MGC> (hero price — MGC is watch-only, no overlays).
  * No writes, no order entry. Numbers are net-of-fees (canonical desk P&L); sim numbers
  * are NOT rendered here (this is the live MNQ desk), so the honest-real_pnl rule is met
  * by omission. */
@@ -18,7 +18,10 @@
   const deskToday = (h) => (h && h.today_total != null ? h.today_total : (h ? h.today : null));
   const POLL_FAST_MS = 1000;   // chart / price / ribbon / DTT — as live as the feed allows
   const POLL_SLOW_MS = 5000;   // header P&L / blotter / leaderboard / gate perf
-  let STATE = { mnq: null, us: null, tour: null, promo: null, bars: null, drill: null, tf: 120 };  // tf = chart window in minutes (2h default)
+  // ★2026-09-02 `sym` — which contract the hero chart draws. MNQ is the desk; MGC is WATCH-ONLY
+  // (no gold desk trades from this page), which is why every MNQ-derived overlay is suppressed
+  // when it is selected. See renderHero().
+  let STATE = { mnq: null, us: null, tour: null, promo: null, bars: null, drill: null, tf: 120, sym: "MNQ" };  // tf = chart window in minutes (2h default)
 
   /* ---------- formatting ---------- */
   const nf = (v, d = 2) => (v == null || isNaN(v)) ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -116,7 +119,7 @@
       const tour = await getJSON("api/futures/tournament").catch(() => null);
       if (tour) STATE.tour = tour;
       if (STATE.tfMode === "session") STATE.tf = tfMinutes("session");   // DAY keeps extending
-      try { STATE.bars = await getJSON("api/futures/bars/MNQ?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
+      try { STATE.bars = await getJSON("api/futures/bars/" + STATE.sym + "?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
       try { renderConn(us != null); renderSafety(); renderRibbonAndDTT(); renderHero(); renderHolding(); renderTournament(); } catch (e) { console.error("fast", e); }
     } finally { _fastBusy = false; }
   }
@@ -240,7 +243,9 @@
   function renderHeader(m) {
     const h = m.header || {};
     $("expiry").textContent = m.expiry || "—";
-    $("hero-expiry").textContent = m.expiry || "—";
+    // ★2026-09-02 the hero header follows the CHART's symbol, not the desk's — this runs on the
+    // slow tick and would otherwise stamp the MNQ expiry back over a gold chart every 5s.
+    $("hero-expiry").textContent = (STATE.sym === "MNQ") ? (m.expiry || "—") : "gold · watch-only";
     $("k-fee").textContent = m.fee_per_rt != null ? "−$" + nf(m.fee_per_rt, 2) + "/RT" : "NET";
     const set = (id, v, d = 0) => { const el = $(id); el.textContent = money(v, d); el.className = "v " + cls(v); };
     // ★2026-08-13 TODAY is the WHOLE desk now, with the two books underneath. The day-rider is a
@@ -304,6 +309,30 @@
   const sideMini = (s) => `<span class="${s === "SHORT" ? "red" : "grn"}">${s}</span>`;
 
   /* ---------- hero price chart ---------- */
+  // ★2026-09-02 One place that states, in words, what the chart is showing and what it is NOT.
+  // The strip above the chart (RVOL/SESSION/VWAP/ADVERSE), the armed-gate ribbon and the
+  // distance-to-trigger row below are all the MNQ desk's and do not change with this toggle —
+  // an unlabelled MNQ meter sitting over a gold chart is precisely the confusion to avoid.
+  function setSymNote(want, served, got) {
+    const el = $("symnote");
+    $("hero-sym").textContent = served === null ? want : got;
+    if (!el) return;
+    if (served === null) { el.innerHTML = `<span class="dim3">loading ${want}…</span>`; return; }
+    if (served === "?") {
+      // The bars payload carries no symbol, so this API build predates the toggle and serves MNQ
+      // only. Naming the fix beats a silent fallback: the chart is NOT what the button says.
+      el.innerHTML = `<span class="red">this API build serves MNQ only — restart gazbot7-web to chart ${want}</span>`;
+      return;
+    }
+    if (served !== want) {
+      el.innerHTML = `<span class="red">showing ${served}, not ${want} — the ${want} fetch failed, this is the last good payload</span>`;
+      return;
+    }
+    el.innerHTML = (got === "MNQ")
+      ? ""
+      : `gold · WATCH-ONLY — meters, gates and fills on this page are the <b>MNQ</b> desk's`;
+  }
+
   function renderHero() {
     const svg = $("price-svg");
     const host = svg.parentElement;               // .chart-host — the real pixel box
@@ -314,6 +343,19 @@
     const bars = (STATE.bars && STATE.bars.bars || []).filter((b) => typeof b.close === "number" && b.ts);
     // Draw in TRUE PIXEL SPACE: viewBox == the host's pixel size, so text is never distorted (the old
     // stretched viewBox forced axis labels into fragile HTML overlays). preserveAspectRatio is moot at 1:1.
+    // ★2026-09-02 WHICH CONTRACT IS THIS? THE PAYLOAD ANSWERS, NOT THE TOGGLE. The fetch keeps the
+    // last good bars on error (by design — a blank chart is worse than a stale one), so a failed
+    // MGC request leaves MNQ bars in STATE while the button reads MGC. Labelling those "MGC" is
+    // the exact multi-symbol confusion this desk has already paid for, so the server echoes the
+    // symbol it actually queried and everything below keys off THAT. A mismatch is shown as a
+    // warning instead of a mislabelled chart.
+    const want = STATE.sym;
+    //   null = nothing fetched yet (a real "loading", because the toggle clears STATE.bars)
+    //   "?"  = an API build that predates the symbol echo, which serves MNQ and nothing else
+    const served = STATE.bars ? (STATE.bars.symbol || "?") : null;
+    const got = (served && served !== "?") ? served : "MNQ";
+    const isMNQ = (got === "MNQ");
+    setSymNote(want, served, got);
     const W = Math.max(320, Math.round(host.clientWidth));
     const H = Math.max(160, Math.round(host.clientHeight));
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -323,10 +365,14 @@
     // is numeric AND aligns with the fills (which use Date.parse(...)/1000). Without this every X was NaN.
     const T = (b) => Date.parse(b.ts) / 1000;
     const t0 = T(bars[0]), t1 = T(bars[bars.length - 1]), tspan = Math.max(1, t1 - t0);
-    const a = mnqActivity();
-    const holds = mnqHoldings();
+    // ⚠ EVERY ONE OF THESE IS THE MNQ DESK'S. On gold they are not "roughly right", they are
+    //   another instrument's numbers — vwap 29,188 against a 4,400 tape, this desk's fills, this
+    //   desk's ATR. Suppressed at the SOURCE rather than filtered at each draw site, so a future
+    //   overlay added below inherits the guard instead of having to remember it.
+    const a = isMNQ ? mnqActivity() : null;
+    const holds = isMNQ ? mnqHoldings() : [];
     const hold = holds[0] || null;
-    const fills = (STATE.mnq && STATE.mnq.blotter) || [];
+    const fills = isMNQ ? ((STATE.mnq && STATE.mnq.blotter) || []) : [];
     // ATR context for the RIGHT axis: 1 ATR in points = atr_pct (already a % of price) / 100 * price.
     // Each gridline is then labelled by its distance from the CURRENT price in ATRs, so the vertical
     // scale reads as volatility context, not just raw price.
@@ -396,7 +442,8 @@
     }
     svg.innerHTML = g;
     const leg = [];
-    leg.push(`<span><span class="sw" style="background:#c6d2db"></span>MNQ price</span>`);
+    leg.push(`<span><span class="sw" style="background:#c6d2db"></span>${got} price</span>`);
+    if (!isMNQ) leg.push(`<span class="dim3">watch-only · MNQ desk overlays (vwap · fills · stop · ATR axis) hidden</span>`);
     if (a && a.vwap) leg.push(`<span><span class="sw" style="background:#37c9c9"></span>VWAP ${nf(a.vwap, 1)}</span>`);
     if (holds.some((h) => h.stop)) leg.push(`<span><span class="sw" style="background:#ff5a5f"></span>stop</span>`);
     leg.push(`<span>▲ entry · ▼ exit · <span class="grn">long</span>/<span class="red">short</span></span>`);
@@ -435,9 +482,17 @@
     // ★2026-08-29 RVOL. Reads "—" when the venue is SHUT rather than a confident 0.00x: an absence
     // of tape is not a measurement of it. n_days is shown when the baseline is thin, because a
     // ratio built on one comparison day is a different claim from one built on five.
+    /* ★★★2026-09-02 THE METERS READ `STATE.us`, NOT `STATE.m`.
+       Shipped 08-29 reading `(STATE.m && STATE.m.X) || (m && m.X)`. `STATE.m` is assigned NOWHERE
+       in this file, and `m` is the /api/futures/mnq payload, which carries none of these keys —
+       rvol/block/vwap_stretch/adverse/stayout are served by /api/futures/us-terminal and stored as
+       STATE.us. So every meter rendered "—" from the day it shipped and NEVER once showed a
+       reading. It survived four days on screen because "—" reads as "no data yet" rather than
+       "reading the wrong object" — the same shape as a green light for something never checked. */
+    const MET = (k) => (STATE.us && STATE.us[k]) || (STATE.m && STATE.m[k]) || (m && m[k]);
     const rv = $("m-rvol");
     if (rv) {
-      const r = (STATE.m && STATE.m.rvol) || (m && m.rvol);
+      const r = MET("rvol");
       if (!r || r.open === false) {
         rv.textContent = "— venue shut"; rv.className = "val mut";
       } else if (r.rvol == null) {
@@ -455,14 +510,14 @@
     // in-sample caveat of the study behind it; ADVERSE is a percentile against positions held the
     // SAME LENGTH OF TIME, which is the only comparison that means anything mid-trade.
     const T = (id) => $(id);
-    const bl = T("m-block"), blk = (STATE.m && STATE.m.block) || (m && m.block);
+    const bl = T("m-block"), blk = MET("block");
     if (bl && blk) {
       bl.textContent = `${blk.block} ${blk.edge_per_trade >= 0 ? "+" : ""}$${blk.edge_per_trade}/tr`
         + (blk.tradeable ? "" : " · blocked");
       bl.className = "val " + (blk.edge_per_trade > 0 ? "pos" : "neg");
       bl.title = `${blk.utc}Z · ${blk.note} · shadow n=${blk.n}`;
     }
-    const vw = T("m-vwap"), vs = (STATE.m && STATE.m.vwap_stretch) || (m && m.vwap_stretch);
+    const vw = T("m-vwap"), vs = MET("vwap_stretch");
     if (vw) {
       if (!vs || !vs.ok) { vw.textContent = "—"; vw.className = "val mut"; }
       else {
@@ -472,7 +527,7 @@
         vw.title = vs.measured || `${vs.band} VWAP ${vs.vwap}`;
       }
     }
-    const ad = T("m-adv"), av = (STATE.m && STATE.m.adverse) || (m && m.adverse);
+    const ad = T("m-adv"), av = MET("adverse");
     if (ad) {
       if (!av || !av.ok) { ad.textContent = av && av.flat ? "flat" : "—"; ad.className = "val mut"; }
       else {
@@ -486,7 +541,7 @@
     }
     const sob = $("stayout-box");
     if (sob) {
-      const so = (STATE.m && STATE.m.stayout) || (m && m.stayout);
+      const so = MET("stayout");
       if (!so || !so.ok) {
         sob.innerHTML = `<div class="row"><span class="k mut">meters</span>`
           + `<span class="val mut">${so && so.detail ? esc(so.detail) : "unavailable"}</span></div>`;
@@ -505,6 +560,21 @@
           + ` · ext ${nf(so.ext_atr, 2)} ATR</span></div>`;
       }
     }
+
+    /* ★2026-09-02 MIRROR THE METERS ONTO THE CHART TAB. The operator watches CHART all day and
+       these lived only on DESK, so even once they worked he would not have seen them. Mirroring by
+       [data-meter] rather than duplicating ids keeps ONE render path and one source of truth: the
+       desk node is authoritative, the chart node is a copy, and a missing twin is a no-op. */
+    [["m-rvol", "rvol"], ["m-block", "block"], ["m-vwap", "vwap"], ["m-adv", "adv"]]
+      .forEach(([id, nm]) => {
+        const src = $(id); if (!src) return;
+        document.querySelectorAll(`[data-meter="${nm}"]`).forEach((el) => {
+          if (el === src) return;
+          el.textContent = src.textContent;
+          el.className = src.className;
+          el.title = src.title || "";
+        });
+      });
 
     /* ── MANUAL ENTRY BOX ───────────────────────────────────────────────────────
        Hidden while a position is open: the rider tracks ONE entry/direction/qty, so a
@@ -991,6 +1061,25 @@
     STATE.tf = 60;
     document.querySelectorAll("#tfbar .tf").forEach((x) => x.classList.toggle("on", x.dataset.min === "60"));
   }
+  // ★2026-09-02 symbol selector — same WINDOW toggles, different series. The choice is remembered
+  // so a phone that reloads mid-watch comes back to the contract he was watching; MNQ on anything
+  // unexpected, because the desk's own instrument is the safe default.
+  try {
+    const saved = localStorage.getItem("gz7.chartSym");
+    if (saved === "MGC") STATE.sym = "MGC";
+  } catch (e) { /* private mode — MNQ default is correct */ }
+  document.querySelectorAll("#symbar .tf").forEach((x) => x.classList.toggle("on", x.dataset.sym === STATE.sym));
+  document.querySelectorAll("#symbar .tf").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#symbar .tf").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    STATE.sym = b.dataset.sym === "MGC" ? "MGC" : "MNQ";
+    STATE.bars = null;            // ⚠ drop the other contract's bars NOW — one poll of gold prices
+                                  //   drawn under an MNQ label is exactly the confusion to avoid
+    try { localStorage.setItem("gz7.chartSym", STATE.sym); } catch (e) { }
+    try { renderHero(); } catch (e) { }          // repaint immediately: "loading MGC…", not stale MNQ
+    fastTick();
+  }));
+
   // timeframe selector — switch the chart window + refetch immediately
   document.querySelectorAll("#tfbar .tf").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll("#tfbar .tf").forEach((x) => x.classList.remove("on"));

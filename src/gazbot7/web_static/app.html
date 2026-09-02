@@ -3,7 +3,7 @@
   GAZBOT V7 — MNQ DESK (2026-07-13)
   Single-instrument (MNQ) view of the futures desk. Read-only presentation layer.
   Data: /api/futures/mnq (MNQ-scoped header/gates/trades) + /api/futures/us-terminal
-  (holdings/DTT/regime/margin, filtered to MNQ) + /api/futures/bars/MNQ (hero price).
+  (holdings/DTT/regime/margin, filtered to MNQ) + /api/futures/bars/<MNQ|MGC> (hero price).
   Aesthetic ref: gazbot_mnq_mockup.html. Spec: docs/GAZBOT_MNQ_BUILD_SPEC.md.
   Desktop = 4-col grid; phone = sticky KPI header + tab bar + single-column stack.
 -->
@@ -143,13 +143,35 @@
     </div>
   </section>
 
-  <!-- HERO — MNQ CHART -->
+  <!-- HERO — PRICE CHART (MNQ or MGC) -->
   <section class="panel" id="p-chart" data-tab="chart">
-    <div class="ph"><h2>MNQ · <span id="hero-expiry">—</span></h2><span class="live" id="hero-state">● price · triggers · fills</span></div>
+    <div class="ph"><h2><span id="hero-sym">MNQ</span> · <span id="hero-expiry">—</span></h2><span class="live" id="hero-state">● price · triggers · fills</span></div>
     <div class="hero-body">
       <div class="ribbon" id="ribbon"></div>
+      <!-- ★2026-09-02 DIRECTION METERS ON THE CHART. Operator: "they need to be on the chart page,
+           i look at the chart page all day." Rendered by the mirror in renderDesk() via
+           [data-meter] so there is ONE render path and no duplicate ids. Same numbers as DESK.
+           ⚠ These are MEASURED context, not a buy signal — confluence tops out at 55.9%. -->
+      <div class="mstrip">
+        <span class="ms"><i>RVOL</i><b class="val" data-meter="rvol">—</b></span>
+        <span class="ms"><i>SESSION</i><b class="val" data-meter="block">—</b></span>
+        <span class="ms"><i>VWAP</i><b class="val" data-meter="vwap">—</b></span>
+        <span class="ms"><i>ADVERSE</i><b class="val" data-meter="adv">—</b></span>
+      </div>
       <div class="chart-host">
         <svg id="price-svg" preserveAspectRatio="none"></svg>
+      </div>
+      <!-- ★2026-09-02 SYMBOL TOGGLE. Operator: "add mgc to the charts tab with all the same time
+           toggles — i want to watch if it behaves the same way over a few days. tunnel. run."
+           Same WINDOW bar serves both; only the series changes. ⚠ On MGC every MNQ-desk overlay
+           (vwap, fills, entry/stop lines, the ATR axis, the meters strip) is SUPPRESSED by
+           renderHero — they are the MNQ desk's numbers and drawing them over gold is the
+           multi-symbol bug that once read ATR 1848 against a true 15. -->
+      <div class="tfbar" id="symbar">
+        <span class="tflab">SYMBOL</span>
+        <button class="tf on" data-sym="MNQ">MNQ</button>
+        <button class="tf" data-sym="MGC">MGC</button>
+        <span class="symnote dim3" id="symnote"></span>
       </div>
       <div class="tfbar" id="tfbar">
         <span class="tflab">WINDOW</span>
