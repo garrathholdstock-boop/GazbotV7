@@ -2513,3 +2513,13 @@ entirely different scale, and running MNQ parameters over it would score every g
 find no tunnels at all — the same class of error as the ATR-1848 incident, arriving as a plausible
 "gold has no structure" answer. Fitting MGC its own parameters is a measurement, and it is offered
 rather than assumed.
+
+**⚠ THIS COMMIT ALSO CARRIES EARLIER-TODAY WORK THAT WAS SITTING UNCOMMITTED**, and the changelog
+should say so rather than leave a future reader to find it in the diff: the DIRECTION METERS mirrored
+onto the chart tab (*"they need to be on the chart page, i look at the chart page all day"*) — the
+`mstrip` markup, its CSS, and the `[data-meter]` single-render-path — **including the fix that they
+read `STATE.us` and not `STATE.m`, having rendered `—` from the day they shipped**. That was live
+behaviour in the working tree only; one `git checkout` would have reverted it, which is §377's lesson
+verbatim. Now committed and, after the restart this session took, actually serving numbers —
+verified against the API rather than the screen: `rvol 0.74` · `block US` · `vwap_stretch −26.37pt
+(−2.69 ATR)` · `adverse flat` · `stayout −2 "leaning DOWN"`.
