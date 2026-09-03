@@ -7,6 +7,10 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
+> **2026-09-03.** MGC added to the dashboard chart tab; the tunnel structure MEASURED on both
+> contracts (**§1c**) — the structure is real and gold matches MNQ almost exactly, but the break is
+> worth nothing on either, and the live watcher's **1.75× claim was withdrawn**. SESSIONS §381-§382.
+>
 > **Re-scanned 2026-09-02 19:45Z.** Desk flat and reconciling, router deciding, rider **+$1,159.50 on
 > the day (13 trades)**. **TUNNEL WATCH is ARMED** (§1b) — the compression-break alarm, read-only.
 > Two doc faults fixed: `capture.db` retention is PER-TABLE (§6, bars keep 60 days not 5) and §2's
@@ -54,7 +58,7 @@ desk's job is therefore to give him PRESENCE and INFORMATION, not to replace the
 | piece | unit / file | what it gives him |
 |---|---|---|
 | **peak watch** | `gazbot7-rider-peak-watch.service` | 1 Hz open P&L off `MD_STREAM` `tape`. URGENT at **+$200**, ping per **$50** new high, **give-back** $75 off the peak, **stall** at 3 min with no new high. Every message carries extension in ATR. ⚠ READ-ONLY — no order path, asserted by test |
-| **tunnel watch** | `gazbot7-tunnel-watch.service` | ★**ARMED 2026-09-02 19:45Z.** A 2-state HMM (fitted offline on 322,300 1-min bars / 240 sessions, forward-filtered ONLINE — never Viterbi) reads the tape as QUIET vs ACTIVE and tells him when price leaves a compression. Built from his own read: *"it will run and then hover around vwap for a while. then run again."* ★ **MAGNITUDE AND TIMING ONLY** — a break is followed by ~**1.75×** a matched-hour control's 60-min excursion (REAL), but continuation in the break's own direction is **0.436/0.466/0.477** at ±1/±1.5/±2 ATR against a control of 0.504/0.506/0.510 — worse than a coin flip, 91% poke back inside (median 3m). The message carries that number so it cannot quietly become a buy signal. ⚠ READ-ONLY, asserted by `tests/test_tunnel_watch.py`. Knobs are systemd `Environment=`, not code |
+| **tunnel watch** | `gazbot7-tunnel-watch.service` | ★ARMED 2026-09-02, **claim withdrawn 2026-09-03**. A 2-state HMM (forward-filtered ONLINE — never Viterbi) reads MNQ as QUIET vs ACTIVE and says when price leaves a compression. Built from his read: *"it will run and then hover around vwap for a while. then run again."* ★★★ **NO EDGE IS MEASURED AND THE MESSAGE SAYS SO.** The 1.75× excursion claim it shipped with did not replicate — **1.02× ATR / 1.08× pt** against a matched-hour control on the same 240 sessions with its own parameters (n=752); six control definitions span 0.82–1.32×. Direction held: 0.459/0.513/0.499 vs 0.494/0.498/0.497. It reports a STATE CHANGE, nothing more. ⚠ READ-ONLY, asserted by `tests/test_tunnel_watch.py`. Knobs are systemd `Environment=`. See §1c |
 | **claim fast path** | `gazbot7-day-rider-claim.path` | the Claim button reaches the rider on the inotify write (**measured 0.02s**) instead of waiting for the `*:*:05` tick — which was **up to 60 SECONDS**. On 08-19 the tracked peak was 29458.75 and the claim filled 29470.75: 12pt = $48 |
 | **the profit ladder** | `day_rider.TARGET_USD_PER_LOT` | ★2026-08-20 **4 lots, each banking its own figure: $100 / $200 / $400 / $600 = $1,300** if all four fill (50/100/200/300pt at $2/pt per lot). Reach rates over 231 sessions: **77.5% / 58.0% / 29.4% / ~15%**, so ~$300 is the common case and lots 3-4 are HIS to work |
 | **five claim buttons** | `L1 L2 L3 L4` + `ALL` | one per lot plus flatten-all. ★ They are **ALSO KILL BUTTONS** — there is no stop, so they fire in profit or loss and the confirm dialog says so. The endpoint does not check P&L and must not. `ALL` is unchanged and remains the kill switch |
@@ -73,6 +77,46 @@ halted the desk for 11 minutes).
 
 ★ **He watches only the first ~90 minutes after the open** — *"then it usually calms down"* — which
 is already what `ENTRY_CUTOFF_MIN` encodes (13:30Z cash open → 15:00Z).
+
+---
+
+## 1c. THE TUNNEL WORK — what is established, and what is not (2026-09-03)
+
+The operator's read of the tape — *"it will run and then hover around vwap for a while. then run
+again"* — was measured on both contracts. **The structure is REAL. Every trade built on it so far
+is a coin flip.** Report: `/v7/static/tunnel_2026-09-03.html` · code `scripts/tunnel_fit_mgc.py` ·
+harnesses `reports/tunnel_mgc/`.
+
+| | MGC | MNQ |
+|---|---|---|
+| minutes inside a compression | 63.1% | 66.0% |
+| tunnels ≥25m per session | 7.5 | 7.4 |
+| median length · width | 57m · 12.6pt (**$126**) | 63m · 76.5pt (**$153**) |
+| breaks per session | 5.9 | 5.6 |
+| quiet vs active minute (raw fit) | 1.03pt **$10.34** vs 3.02pt **$30.15** | 5.14pt **$10.28** vs 14.62pt **$29.24** |
+| 60-min excursion after a break | **1.04×** control | **1.02×** control |
+| direction after a break (±1/1.5/2 ATR) | 0.498 / 0.535 / 0.523 | 0.444 / 0.489 / 0.475 |
+| fade the tunnel edge, net of cost | **−$4.29**/trade (gross +$0.21) | **−$4.26**/trade (gross −$2.76) |
+
+Held out: the model is fitted on the first two thirds of each symbol's sessions and every number
+above is measured on the last third (MGC 91 sessions, MNQ 80).
+
+★ **THE TWO CONTRACTS ARE THE SAME INSTRUMENT IN DOLLARS.** Independently fitted, a quiet minute is
+~$10 of range and an active one ~$30 on both, with persistence agreeing to 0.001. Gold is not the
+quieter market; it is the same market at $10/point.
+
+⚠ **GOLD NEEDED ITS OWN FIT AND ITS OWN FEATURE.** 2.5% of MGC minutes have a true range of exactly
+ZERO (MNQ: 0.20%) — the first fit spent a whole state on that spike and produced a dead-tape
+detector. And gold's absolute range drifts with its own vol regime (quiet 0.64 → 1.72 → 1.30pt
+across the year), so a fixed-threshold model rots; the live-worthy feature is TR against a **causal
+trailing median**, which returns the same parameters on all three thirds.
+
+⚠ **NO MGC TUNNEL ALERT IS ARMED, AND THAT IS THE FINDING, NOT AN OMISSION.** There is nothing for
+it to say that the chart does not.
+
+★ **WHAT IS UNTESTED** is the only version left standing: the tunnel as a **filter on when to look**,
+with direction supplied by something else — his own read, the session block, the VWAP stretch. Every
+cell above is a coin flip because the break carries no direction *by itself*.
 
 ---
 

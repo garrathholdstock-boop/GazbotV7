@@ -2523,3 +2523,65 @@ behaviour in the working tree only; one `git checkout` would have reverted it, w
 verbatim. Now committed and, after the restart this session took, actually serving numbers —
 verified against the API rather than the screen: `rvol 0.74` · `block US` · `vwap_stretch −26.37pt
 (−2.69 ATR)` · `adverse flat` · `stayout −2 "leaning DOWN"`.
+
+### §382 — 2026-09-03 · does gold tunnel? Yes. Is the break worth anything? No — and neither is MNQ's
+Operator, after a night on the new gold chart: *"yeah do the gold tunnel fit."* The measurement
+behind *"we will trade between the tunnels. just a few runs per day."*
+
+**HIS READ OF THE TAPE IS RIGHT, AND IT IS RIGHT ABOUT GOLD SPECIFICALLY.** 372,690 front-month gold
+minutes over 272 sessions, fitted on the first two thirds and measured on the last third:
+MGC spends **63.1%** of minutes inside a compression against MNQ's 66.0%, leaves one **5.9** times a
+session against 5.6, median tunnel **57m / 12.6pt ($126)** against 63m / 76.5pt ($153).
+★ And on the raw fit the two contracts are **the same instrument in dollars** — a quiet minute is
+**$10.34** of range on gold and **$10.28** on the index, an active one **$30.15** and **$29.24**, with
+persistence agreeing to 0.001. Independently fitted, never aimed at that result.
+
+**GOLD NEEDED ITS OWN FIT, AND THE FIRST ONE WAS A TRAP.** 2.5% of MGC minutes (9,156) have a true
+range of EXACTLY ZERO — no print, or one print at the previous close. MNQ has 0.20%. On a log scale
+zero is minus infinity, so the first fit spent an entire state on that spike and returned *quiet =
+0.03pt covering 2.5% of minutes*: **a dead-tape detector that would have run green and silent
+forever**, wearing the shape of a real answer. Those minutes are now carried as MISSING — the state
+propagates by transition alone. ★ Second trap: gold's absolute range drifts with its own vol regime
+(quiet **0.64 → 1.72 → 1.30pt** across three thirds while gold went 3350 → 5000 → 4400), so a
+fixed-threshold model ROTS. Scoring TR against a causal trailing median instead returns
+0.73/0.77/0.75 and 1.57/1.62/1.54 on the same three thirds — the same model three times.
+**Copying the MNQ recipe unexamined would have produced a plausible wrong answer twice over.**
+
+**THE BREAK IS WORTH NOTHING — ON EITHER CONTRACT.** Matched-hour control, race from the END of the
+break bar, one break per tunnel: 60-minute excursion **1.04×** control on MGC, **1.02×** on MNQ.
+Direction: MGC 0.498/0.535/0.523 at ±1/±1.5/±2 ATR against a control of ~0.498 — a coin flip; MNQ
+0.444/0.489/0.475 — mildly adverse. Gold is the *less bad* of the two in all three measurements on
+the page, which is not an edge.
+
+**★★★ AND THAT KILLED A NUMBER THAT WAS LIVE.** `tunnel_watch` had been telling him, in every
+message since I armed it nine hours earlier, *"MEASURED: expect ~1.75x normal 60m excursion — SIZE
+only."* **It does not replicate.** Scored with the service's OWN parameters and its own break
+definition over all 240 sessions: **1.02× in ATR, 1.08× in points** (n=752). Six control definitions
+across both contracts (any / quiet-only / active-only minutes, in ATR and in points) span
+**0.82–1.32×**; the most flattering mixed-yardstick variant reaches only 1.13×. The DIRECTION half
+replicated (0.459/0.513/0.499 vs 0.494/0.498/0.497) and is kept.
+**Fixed, not filed:** message rewritten to *"⚠ NO EDGE MEASURED — a STATE CHANGE, not a forecast"*,
+`build_message()` extracted so a test can EXECUTE it, three tests added that forbid the number
+returning, service restarted **05:27Z**. The alert stays running because he asked to see the
+transition, not because an edge exists — and that is now what it says.
+★ The lesson is not "I was wrong yesterday"; it is that **the founding number of a live instrument
+went nine hours without anyone re-deriving it**, and it only fell because a second contract forced
+the same pipeline to be written twice.
+
+**HIS OTHER READING WAS TESTED TOO** — "between the tunnels" can mean fading the box, not trading the
+break. Causally (the tunnel is only ever what has happened SO FAR; using the finished box reads the
+answer off the back of the page): MGC **gross +$0.21/trade**, i.e. exactly zero, **net −$4.29** after
+the $4.50 round trip, −$11,781 over 2,749 held-out trades. MNQ loses before costs.
+
+**Delivered:** report at `/v7/static/tunnel_2026-09-03.html` (reachable now; joins the Reports index
+at the next web restart — `reports_json` now matches `tunnel_<date>`), pipeline in
+`scripts/tunnel_fit_mgc.py` with 11 executing tests, harnesses + fitted parameters in
+`reports/tunnel_mgc/`, STATE **§1c**. 1036 tests green.
+
+**WHAT IS LEFT STANDING, and it is the only thing:** the tunnel as a **filter on WHEN TO LOOK**, with
+direction from something else — his own eye at 65%, the session block, the VWAP stretch. Every cell
+here is a coin flip because the break carries no direction *by itself*. That is a bigger study and
+it has not been done.
+
+**Nothing traded, no gate switched, no MGC alert armed** — the last of those is the finding, not an
+omission.

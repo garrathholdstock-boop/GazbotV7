@@ -19,8 +19,12 @@ Contiguous quiet runs are the "tunnels". There are ~5.6 per session, median 68 m
 independent 1-month and 3-month windows, so the structure is real and not a fit artefact.
 
 ★ WHAT THE BREAK IS WORTH — and it is ONE thing, not two:
-  · MAGNITUDE — REAL. 60 minutes after a break the excursion is ~1.75x a matched-hour control
-    (MFE 5.75 ATR vs 3.27; MAE 5.48 vs 3.13). Both sides scale equally. A bigger move IS coming.
+  · MAGNITUDE — ★★★ WITHDRAWN 2026-09-03, DID NOT REPLICATE. This read "~1.75x a matched-hour
+    control (MFE 5.75 ATR vs 3.27)". Re-derived on the same 240 sessions with THESE parameters and
+    this break definition, matched-hour control, racing from the END of the break bar, one break
+    per tunnel: **1.02x in ATR, 1.08x in points** (n=752). Six control definitions across MNQ and
+    MGC span 0.82-1.32x and none reaches 1.75x. See scripts/tunnel_fit_mgc.py and
+    reports/tunnel_mgc/. A break says the tape woke up; it does not say the next hour is big.
   · DIRECTION — REFUTED, twice, and the second time it was WORSE than a coin flip. First-passage
     in the break's own direction: P(favourable barrier first) = 0.436 / 0.466 / 0.477 at ±1 / ±1.5
     / ±2 ATR, against a control of 0.504 / 0.506 / 0.510 (n=280, 3 months). 91% of breaks return
@@ -39,8 +43,11 @@ independent 1-month and 3-month windows, so the structure is real and not a fit 
 
    The division of labour this is built around: the tape supplies TIMING and SIZE, on which it is
    measurably informative. The operator supplies DIRECTION, at which he is 65% over 20 positions
-   while the tape is 50%. Pointing his 65% at the moments when the move is 1.75x normal is the
-   whole value proposition, and it is the only version of this the evidence supports.
+   while the tape is 50%. ⚠ 2026-09-03: with the 1.75x magnitude claim withdrawn, that division of
+   labour loses its arithmetic — the tape supplies TIMING, and timing alone has not been shown to
+   be worth anything here. This service is kept running because a state change is a real
+   observation the operator asked to see, NOT because an edge was measured. Whether it stays is
+   his call and it is recorded as an open question, not settled.
 
 ────────────────────────────────────────────────────────────────────────────────────────────────
 BOUNDARIES
@@ -219,6 +226,38 @@ def confirm_note(held: bool) -> str:
     return ("still outside after %dm" % CONFIRM_MIN) if held else ("back inside within %dm" % CONFIRM_MIN)
 
 
+def build_message(side, tunnel_n, width, mid, vol_ratio, atr, held_min) -> str:
+    """The alert text. Extracted so a test can EXECUTE it — the numbers in here are the entire
+    product of this service, and a claim nobody re-derives is how the last one survived a month.
+
+    ★★★2026-09-03 THE "1.75x" CLAIM IS WITHDRAWN. It was the whole justification for this alert and
+    it does not replicate. Re-derived on the SAME 240 sessions with this service's OWN parameters
+    and its own break definition, against a matched-hour control, racing from the END of the break
+    bar and counting one break per tunnel: the next 60 minutes run **1.02x** the control in ATR and
+    **1.08x** in points. Six control definitions were tried across MNQ and MGC (any minute / quiet
+    minutes / active minutes, in ATR and in points) and the ratio never left 0.82-1.32x. Nothing
+    reaches 1.75x. The most likely source of the original is normalising the break's excursion by a
+    PRE-break ATR while the control used its own contemporaneous one — that mixes two yardsticks
+    and still only reaches 1.13x.
+    The DIRECTION half held up and is kept: 0.459 / 0.513 / 0.499 at ±1 / ±1.5 / ±2 ATR against a
+    control of 0.494 / 0.498 / 0.497 (n=752 breaks).
+
+    So what this alert now says is what it can defend: the tape LEFT a compression. That is an
+    observation about the present, not a forecast about the next hour.
+    """
+    return (
+        f"MNQ LEFT A COMPRESSION — {side}\n"
+        f"tunnel {tunnel_n}m / {width:.0f}pt wide · broke at {mid:.0f}\n"
+        f"volume {vol_ratio:.1f}x the tunnel's own minute · ATR {atr:.1f}pt\n"
+        f"outside {held_min}m ({confirm_note(held_min >= CONFIRM_MIN)})\n"
+        # No history lesson in the alert: the withdrawal is recorded in this file, in the tests
+        # and in SESSIONS. What he needs at 3am is what the number IS, not what it used to be.
+        f"⚠ NO EDGE MEASURED — a STATE CHANGE, not a forecast.\n"
+        f"Next 60m runs 1.0x a normal minute of this hour · direction "
+        f"0.46-0.51 vs 0.50 random (n=752). Your call, as always."
+    )
+
+
 def main() -> int:
     seen_session = None
     alerts = 0
@@ -273,15 +312,7 @@ def main() -> int:
                 else:
                     break
 
-            msg = (
-                f"MNQ LEFT A COMPRESSION — {side}\n"
-                f"tunnel {armed['n']}m / {width:.0f}pt wide · broke at {mid:.0f}\n"
-                f"volume {vr:.1f}x the tunnel's own minute · ATR {atr:.1f}pt\n"
-                f"outside {held_min}m ({confirm_note(held_min >= CONFIRM_MIN)})\n"
-                f"MEASURED: expect ~1.75x normal 60m excursion — SIZE only.\n"
-                f"NOT a direction call: continuation after a break ran 0.44-0.48 "
-                f"vs 0.50 random (n=280). 91% poke back, median 3m. Your call."
-            )
+            msg = build_message(side, armed["n"], width, mid, vr, atr, held_min)
             # ★ Dedupe on the SITUATION (this tunnel, this side), not on the text — the numbers in
             #   the message move every poll, and keying on text would defeat suppression entirely.
             #   dedupe_ok FAILS OPEN: any error sends. A missed alarm is the expensive direction.

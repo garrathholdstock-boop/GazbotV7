@@ -1651,7 +1651,9 @@ def reports_json(static_dir):
     for fn in sorted(os.listdir(static_dir)):
         # ★2026-08-18 + "dossier": the product/architecture dossier is a report like any other and
         # belongs on the same index, with the same PDF-sibling convention.
-        m = re.match(r"(?:weekly|v7_big_runs|gates|dossier)_(\d{4}-\d{2}-\d{2})\.html$", fn)
+        # ★2026-09-03 + "tunnel": the MGC compression study is a standalone research report and
+        # belongs on the same index as the greenfield/gates pages, same dated-slug convention.
+        m = re.match(r"(?:weekly|v7_big_runs|gates|dossier|tunnel)_(\d{4}-\d{2}-\d{2})\.html$", fn)
         if not m:
             continue
         title = fn

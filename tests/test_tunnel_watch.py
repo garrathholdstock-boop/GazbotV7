@@ -130,3 +130,32 @@ def test_read_minutes_supplies_a_real_close():
     assert "close" in bars[-1], "read_minutes must supply the minute's real close"
     for b in bars[-20:]:
         assert b["lo"] <= b["close"] <= b["hi"], "close must lie inside the minute's range"
+
+
+# ── the message is the product, so the message is tested ─────────────────────
+def test_message_does_not_claim_the_withdrawn_magnitude_edge():
+    """★2026-09-03. The alert used to promise "~1.75x normal 60m excursion". Re-derivation on the
+    same 240 sessions with these very parameters got 1.02x in ATR / 1.08x in points, and six
+    control definitions across MNQ and MGC span 0.82-1.32x. A number that survives in a live alert
+    because nobody re-derives it is this desk's most expensive habit, so the text is asserted."""
+    msg = tw.build_message("UP", 61, 84.0, 29190.0, 3.2, 12.4, 4)
+    assert "1.75" not in msg
+    assert "NO EDGE MEASURED" in msg
+    assert "1.0x a normal minute" in msg
+
+
+def test_message_still_carries_the_facts_the_operator_acts_on():
+    msg = tw.build_message("DOWN", 61, 84.0, 29190.0, 3.2, 12.4, 4)
+    assert "DOWN" in msg and "61m" in msg and "84pt" in msg and "29190" in msg
+    assert "3.2x" in msg          # volume against the tunnel's own minute
+    assert "12.4pt" in msg        # ATR
+    assert "outside 4m" in msg
+
+
+def test_message_never_reads_as_a_direction_call():
+    for side in ("UP", "DOWN", "BOTH SIDES"):
+        msg = tw.build_message(side, 30, 40.0, 100.0, 2.0, 5.0, 1)
+        low = msg.lower()
+        for word in ("buy", "sell", "long ", "short ", "target", "entry"):
+            assert word not in low, (side, word)
+        assert "0.50 random" in msg

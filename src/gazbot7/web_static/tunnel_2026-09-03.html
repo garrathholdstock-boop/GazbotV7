@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAZBOT V7 — Does gold tunnel? The MGC compression study (2026-09-03)</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1b1a17; --ink2:#4a4842; --ink3:#7a776e;
+  --line:#e2ded4; --line2:#efece4;
+  --green:#1f7a4d; --greenbg:#e8f5ee;
+  --red:#a8322a; --redbg:#fbeceb;
+  --amber:#8a6100; --amberbg:#fdf3de;
+  --blue:#1d5c8f; --bluebg:#e9f1f8;
+  --grey:#5c5a53; --greybg:#eeece6;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:34px 26px 90px}
+header.top{border-bottom:3px solid var(--ink);padding-bottom:20px;margin-bottom:34px}
+header.top .kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+header.top h1{font-size:34px;line-height:1.18;margin:10px 0 8px;letter-spacing:-.015em}
+header.top .sub{color:var(--ink2);font-size:15px;margin:0}
+header.top .meta{color:var(--ink3);font-size:13px;margin-top:12px}
+
+h2{font-size:23px;letter-spacing:-.01em;margin:52px 0 6px;padding-top:18px;border-top:2px solid var(--ink);display:flex;align-items:baseline;gap:12px}
+h2 span.n{font-size:13px;font-weight:800;color:#fff;background:var(--ink);padding:3px 9px;border-radius:3px;letter-spacing:.06em;flex:none;position:relative;top:-3px}
+h3{font-size:17px;margin:26px 0 8px;letter-spacing:-.005em}
+h4{font-size:14.5px;margin:20px 0 6px;color:var(--ink2);text-transform:uppercase;letter-spacing:.07em}
+p{margin:0 0 13px}
+p.lead{font-size:18.5px;line-height:1.55;color:var(--ink);margin:14px 0 20px}
+p.note{font-size:13.5px;color:var(--ink3);margin-top:-4px}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:7px}
+strong{font-weight:700}
+em{font-style:italic}
+code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--line2);padding:1px 5px;border-radius:3px}
+pre{background:#faf8f3;border:1px solid var(--line);border-left:3px solid var(--ink3);padding:14px 16px;overflow-x:auto;font:12.5px/1.62 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border-radius:4px;margin:0 0 16px}
+
+div.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px 22px 18px;margin:18px 0}
+div.card>h3{margin-top:0}
+div.card.hl{border-left:4px solid var(--ink)}
+
+div.callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:5px;padding:15px 18px;margin:18px 0}
+div.callout>div.ct{font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);margin-bottom:7px}
+div.callout.bad{border-left-color:var(--red)} div.callout.bad>div.ct{color:var(--red)}
+div.callout.good{border-left-color:var(--green)} div.callout.good>div.ct{color:var(--green)}
+div.callout.info{border-left-color:var(--blue)} div.callout.info>div.ct{color:var(--blue)}
+div.callout p:last-child{margin-bottom:0}
+
+table{width:100%;border-collapse:collapse;margin:14px 0 18px;font-size:13.5px;background:var(--panel)}
+caption{caption-side:top;text-align:left;font-size:13px;color:var(--ink3);padding-bottom:7px;font-weight:600}
+th{text-align:left;font-size:11.5px;letter-spacing:.055em;text-transform:uppercase;color:var(--ink2);
+   border-bottom:2px solid var(--ink);padding:8px 10px;font-weight:800;vertical-align:bottom}
+td{border-bottom:1px solid var(--line2);padding:7px 10px;vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.num{text-align:right}
+td.ln{color:var(--ink2);font-size:13px}
+tbody tr:last-child td{border-bottom:1px solid var(--line)}
+tr.row-hl td{background:var(--greenbg);font-weight:600}
+tr.row-bad td{background:var(--redbg)}
+tr.row-tot td{border-top:2px solid var(--ink);font-weight:800;background:#faf8f3}
+
+span.tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  padding:3px 8px;border-radius:3px;white-space:nowrap;vertical-align:2px}
+span.tag.live{background:var(--greenbg);color:var(--green);border:1px solid #b9dfca}
+span.tag.shadow{background:var(--bluebg);color:var(--blue);border:1px solid #bcd6e9}
+span.tag.parked{background:var(--amberbg);color:var(--amber);border:1px solid #ecd9a8}
+span.tag.refuted{background:var(--redbg);color:var(--red);border:1px solid #eec4c0}
+span.tag.null{background:var(--greybg);color:var(--grey);border:1px solid #d8d5cc}
+span.tag.build{background:#f0eafa;color:#5b3a97;border:1px solid #d6c9ee}
+span.tag.fixed{background:var(--greenbg);color:var(--green);border:1px solid #b9dfca}
+
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:18px 0 22px}
+.kpi div{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:13px 14px}
+.kpi .k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.kpi .v{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.kpi div.g .v{color:var(--green)} .kpi div.r .v{color:var(--red)} .kpi div.a .v{color:var(--amber)}
+
+.sig{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink3)}
+@media (max-width:720px){
+  .wrap{padding:22px 14px 60px} header.top h1{font-size:26px}
+  table{font-size:12.5px} td,th{padding:6px 6px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="kicker">GAZBOT V7 · standalone research report · MGC</div>
+  <h1>Gold tunnels exactly like the index.<br>The break is still worth nothing.</h1>
+  <p class="sub">Commissioned by the operator, 2026-09-02, watching the gold chart added to the dashboard that evening:
+     <em>“mgc shows a nice grind up since open … tunnel. run. tunnel. run. i think we are on to something.
+     we will trade between the tunnels. just a few runs per day.”</em></p>
+  <div class="meta">Written 2026-09-03 · MGC $10.00/point, <strong>$4.50 per round trip</strong> (0.45pt) ·
+     MNQ $2.00/point, $1.50 per round trip (0.75pt) ·
+     372,690 gold minutes over 272 sessions, 2025-07-28 → 2026-08-28 ·
+     code: <code>scripts/tunnel_fit_mgc.py</code></div>
+</header>
+
+<div class="kpi">
+  <div class="g"><div class="k">Structure</div><div class="v">CONFIRMED</div>
+    <div class="d">gold tunnels like MNQ, held-out</div></div>
+  <div><div class="k">Tunnels per session</div><div class="v">7.5</div>
+    <div class="d">MNQ 7.4 · median 57 min · $126 wide</div></div>
+  <div class="r"><div class="k">Break → next 60 min</div><div class="v">1.04×</div>
+    <div class="d">vs a matched-hour control. Not 1.75×</div></div>
+  <div class="r"><div class="k">Direction after a break</div><div class="v">0.50</div>
+    <div class="d">coin flip, n=534</div></div>
+  <div class="r"><div class="k">Fade the tunnel edge</div><div class="v">−$4.29</div>
+    <div class="d">per trade, net of cost, n=2,749</div></div>
+</div>
+
+<p class="lead">Your read of the tape is <strong>right</strong>, and it is right about gold specifically:
+MGC spends 63% of its minutes inside a volatility compression, leaves one about six times a session, and
+the compressions are the same size in dollars as the index’s. That is the good half.
+The other half is that <strong>leaving a tunnel does not predict anything</strong> — not size, not
+direction — and that is true of MNQ as well. Along the way this study had to withdraw the
+<strong>1.75×</strong> magnitude claim that the live MNQ alert has been printing since it was armed.</p>
+
+<h2><span class="n">1</span> DOES GOLD TUNNEL?</h2>
+
+<p>Yes, and the resemblance to MNQ is close enough to be worth staring at. Both columns below are
+<strong>held-out</strong>: the model was fitted on the first two thirds of the sample and every number
+here is measured on the last third, which the fit never saw.</p>
+
+<table>
+<caption>Held-out structure. MGC: 91 sessions, 2026-04-24 → 2026-08-28. MNQ: 80 sessions, same method, same code.</caption>
+<thead><tr><th>Measure</th><th class="num">MGC (gold)</th><th class="num">MNQ (index)</th><th>Read</th></tr></thead>
+<tbody>
+<tr><td>Minutes inside a compression</td><td class="num">63.1%</td><td class="num">66.0%</td><td class="ln">the tape is quiet ~2/3 of the time on both</td></tr>
+<tr><td>Tunnels ≥25 min per session</td><td class="num">7.5</td><td class="num">7.4</td><td class="ln">“a few runs per day” is the right order of magnitude</td></tr>
+<tr><td>Median tunnel length</td><td class="num">57 min</td><td class="num">63 min</td><td class="ln">gold’s are marginally shorter</td></tr>
+<tr><td>Median tunnel width</td><td class="num">12.6 pt = $126</td><td class="num">76.5 pt = $153</td><td class="ln">gold’s box is a bit tighter in money</td></tr>
+<tr><td>Breaks per session</td><td class="num">5.9</td><td class="num">5.6</td><td class="ln">more alerts than anyone can act on, either way</td></tr>
+<tr><td>Break direction split</td><td class="num">251 up / 289 down</td><td class="num">—</td><td class="ln">balanced, as a directionless event should be</td></tr>
+</tbody>
+</table>
+
+<div class="card hl">
+<h3>The two states are the same size in dollars</h3>
+<p>Fitted on raw range (the direct analogue of the live MNQ model), the quiet and active states land here:</p>
+<table>
+<thead><tr><th></th><th class="num">quiet minute</th><th class="num">active minute</th><th class="num">ratio</th><th class="num">P(stay)</th><th class="num">expected dwell</th></tr></thead>
+<tbody>
+<tr><td><strong>MGC</strong></td><td class="num">1.03 pt = <strong>$10.34</strong></td><td class="num">3.02 pt = <strong>$30.15</strong></td><td class="num">2.93×</td><td class="num">0.9912 / 0.9920</td><td class="num">114 / 126 min</td></tr>
+<tr><td><strong>MNQ</strong> <span class="tag live">live params</span></td><td class="num">5.14 pt = <strong>$10.28</strong></td><td class="num">14.62 pt = <strong>$29.24</strong></td><td class="num">2.84×</td><td class="num">0.9912 / 0.9913</td><td class="num">114 / 115 min</td></tr>
+</tbody>
+</table>
+<p class="note">Two different instruments, fitted independently, land within 1% of each other in dollars and within
+0.001 on both persistence probabilities. A quiet minute is ten dollars of range and an active one is thirty,
+whichever contract you are watching. That is not something this study went looking for.</p>
+</div>
+
+<h2><span class="n">2</span> TWO THINGS GOLD DOES THAT THE INDEX DOES NOT</h2>
+
+<div class="callout"><div class="ct">Gold’s tape has holes, and they nearly ate the model</div>
+<p><strong>9,156 gold minutes — 2.5% — have a true range of exactly zero.</strong> No trade printed, or one trade
+at the previous close. MNQ has 648 such minutes, 0.20%. On a log scale zero is not “very small”, it is minus
+infinity: the first fit spent an entire state on that spike and returned <em>quiet = 0.03pt covering 2.5% of
+minutes</em>. That is a detector for a <strong>dead tape</strong>, not for a compression, and it would have run green and
+silent forever. Those minutes are now carried as <em>missing observations</em> — the state propagates through them
+by transition alone, which is what “no information” actually means. Copying the MNQ recipe unexamined would
+have produced a plausible, wrong model, which is the whole reason gold got its own fit.</p></div>
+
+<div class="callout"><div class="ct">Gold’s absolute volatility drifts; a fixed-threshold model would rot</div>
+<p>Fitted on raw range, gold’s quiet state measures <strong>0.64pt</strong> in the first third of the sample,
+<strong>1.72pt</strong> in the second and <strong>1.30pt</strong> in the third — because gold itself went 3350 → 5000 → 4400
+over the year. A model with 2025 thresholds would call an ordinary 2026 minute “active”. The fix is to score each
+minute against the tape’s <em>own</em> recent normal (a causal trailing median), which is what a tunnel is anyway.
+On that feature the same three independent thirds return quiet <strong>0.73 / 0.77 / 0.75</strong>× median and active
+<strong>1.57 / 1.62 / 1.54</strong>× — the same model three times.</p>
+<p class="note">A parameter that has to be re-fitted to stay true is a parameter that will one day not be re-fitted.</p></div>
+
+<h2><span class="n">3</span> IS THE BREAK WORTH TRADING?</h2>
+
+<p>No. Not on gold, and — this is the uncomfortable part — not on MNQ either. Every number below races
+from the <strong>end</strong> of the break minute (racing from its own timestamp replays the decision bar), counts
+<strong>one break per tunnel</strong>, and compares against a control drawn from the <strong>same UTC hour</strong>,
+because gold’s activity is strongly hour-of-day driven and an all-hours average would credit the break with
+the London open.</p>
+
+<table>
+<caption>60 minutes after a break vs a matched-hour control. Held-out sessions.</caption>
+<thead><tr><th></th><th class="num">n</th><th class="num">MFE (ATR)</th><th class="num">control</th><th class="num">ratio</th><th class="num">±1 ATR</th><th class="num">±1.5 ATR</th><th class="num">±2 ATR</th></tr></thead>
+<tbody>
+<tr><td><strong>MGC</strong> break</td><td class="num">534</td><td class="num">5.03</td><td class="num">5.19</td><td class="num">0.97× ATR / 1.04× pt</td><td class="num">0.498</td><td class="num">0.535</td><td class="num">0.523</td></tr>
+<tr><td>MGC control</td><td class="num">6,408</td><td class="num">5.19</td><td class="num">—</td><td class="num">—</td><td class="num">0.497</td><td class="num">0.499</td><td class="num">0.499</td></tr>
+<tr><td><strong>MNQ</strong> break</td><td class="num">441</td><td class="num">4.97</td><td class="num">5.01</td><td class="num">0.99× ATR / 1.02× pt</td><td class="num">0.444</td><td class="num">0.489</td><td class="num">0.475</td></tr>
+<tr><td>MNQ control</td><td class="num">5,292</td><td class="num">5.01</td><td class="num">—</td><td class="num">—</td><td class="num">0.496</td><td class="num">0.498</td><td class="num">0.498</td></tr>
+</tbody>
+</table>
+<p class="note">Columns ±1 / ±1.5 / ±2 ATR are <em>first passage</em>: the probability the break’s own direction is
+reached before the opposite side. Not “did it ever reach” — that ignores whether the stop came first, an error
+that once inflated a win rate on this desk from 29% to 78% and shipped a losing config live.</p>
+
+<div class="callout good"><div class="ct">The one genuine difference, and it is small</div>
+<p>Gold’s breaks are a <strong>coin flip</strong> (0.498 / 0.535 / 0.523 against a control of ~0.498). MNQ’s are
+mildly <strong>adverse</strong> at the near barrier (0.444). So gold at least does not punish you for taking the
+break. “Does not punish” is not an edge, and the 0.535 cell is 1.6 standard errors from a coin flip and one of
+three cells looked at — it is noise until something forward says otherwise.</p></div>
+
+<h2><span class="n">4</span> ★★★ THE 1.75× CLAIM DOES NOT REPLICATE, AND IT WAS LIVE</h2>
+
+<p class="lead">Since it was armed on 2026-09-02 the MNQ tunnel watcher has told the operator, in every message:
+<em>“MEASURED: expect ~1.75x normal 60m excursion — SIZE only.”</em> That was the entire justification for the
+alert existing. <strong>It does not survive re-derivation.</strong></p>
+
+<table>
+<caption>Break vs control 60-minute excursion, every way it was computed. None of them is 1.75×.</caption>
+<thead><tr><th>Definition</th><th class="num">MNQ</th><th class="num">MGC</th></tr></thead>
+<tbody>
+<tr><td>Control = any minute, hour-matched — in ATR</td><td class="num">0.97×</td><td class="num">0.97×</td></tr>
+<tr><td>Control = any minute, hour-matched — in points</td><td class="num">1.02×</td><td class="num">1.04×</td></tr>
+<tr><td>Control = quiet minutes only (inside a tunnel) — ATR</td><td class="num">0.82×</td><td class="num">0.82×</td></tr>
+<tr><td>Control = quiet minutes only — points</td><td class="num">1.00×</td><td class="num">1.02×</td></tr>
+<tr><td>Control = active minutes only — ATR</td><td class="num">1.32×</td><td class="num">1.26×</td></tr>
+<tr><td>Control = active minutes only — points</td><td class="num">1.03×</td><td class="num">1.08×</td></tr>
+<tr class="row-bad"><td>Break scaled by PRE-break ATR, control by its own (mixes two yardsticks — flatters the break)</td><td class="num">1.13×</td><td class="num">—</td></tr>
+<tr class="row-tot"><td>Using the live service’s OWN parameters, all 240 sessions, n=752 breaks</td><td class="num">1.02× ATR · 1.08× pt</td><td class="num">—</td></tr>
+</tbody>
+</table>
+
+<p>The direction half of the claim <em>did</em> replicate and has been kept: measured with the live parameters over
+all 240 sessions, continuation runs <strong>0.459 / 0.513 / 0.499</strong> against a control of 0.494 / 0.498 / 0.497,
+which is the same story as the shipped 0.436 / 0.466 / 0.477 — mildly adverse at the near barrier, nothing at the
+far ones. It is only the magnitude that evaporates.</p>
+
+<div class="callout bad"><div class="ct">Acted on, not filed</div>
+<p>The live alert text was corrected and the service restarted at <strong>05:27Z on 2026-09-03</strong>. It now reads
+<em>“⚠ NO EDGE MEASURED — a STATE CHANGE, not a forecast. Next 60m runs 1.0x a normal minute of this hour ·
+direction 0.46-0.51 vs 0.50 random (n=752).”</em> Three tests were added that build the message and assert the
+withdrawn number cannot come back. A claim that survives in a live alert because nobody re-derives it is this
+desk’s most expensive habit, and the alert had been running for nine hours.</p></div>
+
+<h2><span class="n">5</span> “TRADE BETWEEN THE TUNNELS” — THE OTHER READING</h2>
+
+<p>“We will trade between the tunnels” has two meanings and §3 only answers one of them. The other is
+trading <em>inside</em> the box: fade the edge back toward the middle while the tape is still compressed. It is a
+better-sounding idea than the break, because the compression is the part that is persistent and measurable.
+It was tested on the same held-out sessions, entirely causally — the tunnel’s high, low and mid are only ever
+“what has happened so far”, never the finished box, because the finished box’s edges are by definition where
+price turned around.</p>
+
+<table>
+<caption>Fade a touch of the tunnel edge. Target = the tunnel’s mid so far; stop = 1 ATR beyond the edge; one position at a time.</caption>
+<thead><tr><th></th><th class="num">trades</th><th class="num">per session</th><th class="num">win rate</th><th class="num">avg win</th><th class="num">avg loss</th><th class="num">gross</th><th class="num">net of cost</th></tr></thead>
+<tbody>
+<tr><td><strong>MGC</strong></td><td class="num">2,749</td><td class="num">30.2</td><td class="num">0.401 ± 0.009</td><td class="num">$39</td><td class="num">$26</td><td class="num">+$0.21</td><td class="num">−$4.29</td></tr>
+<tr><td><strong>MNQ</strong></td><td class="num">2,458</td><td class="num">30.7</td><td class="num">0.354 ± 0.010</td><td class="num">$52</td><td class="num">$33</td><td class="num">−$2.76</td><td class="num">−$4.26</td></tr>
+</tbody>
+</table>
+
+<p>Gold’s gross expectancy is <strong>+$0.21 a trade</strong> — which is to say zero, priced exactly as a fair bet, and
+then the $4.50 round trip takes it to <strong>−$4.29</strong>. Over the held-out sample that is <strong>−$11,781</strong>
+across 2,749 trades. MNQ is worse and loses before costs at all. Note the shape though: gold is again the
+<em>less bad</em> of the two, a pattern that now appears in three separate measurements on this page.</p>
+
+<h2><span class="n">6</span> WHAT THIS MEANS FOR THE DESK</h2>
+
+<div class="card">
+<h3>Do</h3>
+<ul>
+<li><strong>Keep watching the gold chart.</strong> The structure is real, held-out and stable, and it is the same
+    structure you already read on the index. Nothing here argues against your eye.</li>
+<li><strong>Keep the MNQ tunnel alert running, with its honest text.</strong> It marks a state change, which you asked
+    to see. It no longer promises a bigger hour.</li>
+</ul>
+<h3>Don’t</h3>
+<ul>
+<li><strong>Don’t arm an MGC tunnel alert.</strong> There is nothing for it to tell you that the chart does not, and
+    an alarm that fires six times a session with no edge behind it spends the channel — the desk has a standing
+    rule that an alarm nobody can act on is an outage of the alarm channel.</li>
+<li><strong>Don’t trade the break, either direction.</strong> Coin flip on gold, mildly adverse on the index.</li>
+<li><strong>Don’t fade the edge.</strong> Zero gross, and the cost is the whole result.</li>
+</ul>
+</div>
+
+<div class="callout info"><div class="ct">What would change the answer</div>
+<p>Everything above conditions on <em>one</em> thing: the tunnel. Every cell is a coin flip because the break
+carries no information by itself — which is exactly what eleven months of direction tests on this desk keep
+returning. The version of this idea that has not been tested is the one where the tunnel supplies the
+<strong>timing</strong> and something else supplies the <strong>direction</strong>: your own read, the session block, the
+VWAP stretch meter, an order-flow tell. The tunnel would then be a <em>filter</em> on when to look, not a signal.
+That is a different study and a much larger one, and it is the only version of “we will trade between the
+tunnels” that this evidence leaves standing.</p></div>
+
+<div class="callout"><div class="ct">Honest limits of this page</div>
+<p>· The gold history has a <strong>15-day hole</strong> (2026-01-08 → 01-23) where the backfill served nothing;
+272 sessions is what remains.<br>
+· The held-out third is 91 gold sessions. That is enough to kill an edge, not to certify one.<br>
+· The lab tape and production’s tape were checked against each other over 25,055 overlapping minutes: range
+correlation <strong>0.985</strong>, closes <strong>100%</strong> identical, volume ratio 1.000. But production sees
+<em>fewer</em> zero-range minutes than the backfill (1.10% vs 2.95%), so the live feed is slightly richer than the
+one the model was fitted on. The scale-free feature absorbs that; a raw-threshold model would not.<br>
+· No parameter was swept looking for a winner. One specification per question, reported whatever it said.</p></div>
+
+<div class="sig">
+GAZBOT V7 · written 2026-09-03 · code <code>scripts/tunnel_fit_mgc.py</code> ·
+raw series from <code>data/backfill/MGC_*_1min.parquet</code> (front month by volume, roll seams dropped) ·
+live-feed check against <code>data/capture.db</code> ·
+MGC $10.00/point, $4.50 per round trip · MNQ $2.00/point, $1.50 per round trip
+</div>
+
+</div>
+</body>
+</html>
