@@ -2585,3 +2585,51 @@ it has not been done.
 
 **Nothing traded, no gate switched, no MGC alert armed** — the last of those is the finding, not an
 omission.
+
+### §383 — 2026-09-03 · web restarted, and a docs pass that found a nineteen-day false alarm
+Operator: *"restart the web and update project docs."*
+
+**WEB RESTARTED** (authorised). The MGC tunnel study is now the top card on the Reports tab —
+`reports_json` matches `tunnel_<date>` — and `/api/futures/bars/MGC` survived the bounce. Gold was
+4436.6 at the restart, still grinding up from the 4400 he was watching last night.
+
+**DECISIONS.md RESUMES AT §364** — the tunnel arc, written as a decision record rather than a result
+list: gold gets its own fit and its own feature (two traps, either of which ships a plausible wrong
+answer), no MGC alert armed, the 1.75× withdrawal, and what survives.
+★ **AND THE GAP IS NAMED RATHER THAN BACKFILLED.** §363 was 2026-08-19; two weeks of decisions —
+the stand-down and its lift, the 4-lot naked rider, the Friday audit, the 08-31 lost-update
+incident, the MGC chart — exist only in SESSIONS. They are NOT re-litigated retrospectively: **a
+rationale invented after the fact is worse than a pointer to the record.** The header now says so
+and points at SESSIONS §370-§382.
+
+**★★★ THE FIND: THE GOLD SHADOW BOOK WAS NEVER DEAD, AND I RECORDED THAT IT MIGHT BE.** §378 flagged
+`shadow_mgc.db` *"unwritten for 230h against a <30h expectation"* while the service read `active`.
+Checked properly today: **201 shadow trades across all three arms, the newest stamped 06:23Z this
+morning.** The store runs in **WAL mode**, where the main `.db` mtime moves on a CHECKPOINT and not
+on a write — it last checkpointed 2026-08-15 while the `-wal` was appended to continuously.
+`data_inventory` was stat'ing the wrong file, and so was I.
+★ The comment already in that file had walked right up to this and stopped one step short: it worked
+out that the mtime *"measures 'did we trade', not 'is anything alive'"* and responded by moving the
+row onto the market clock — treating the symptom. **The cause was that the file being stat'ed is not
+the file being written.**
+**Fixed:** `_written_at()` takes the newest of `.db` and `-wal`, and deliberately NOT `-shm`, whose
+mtime moves on READS (counting it would make any store look fresh the moment something opened it —
+[[an-instrument-that-reports-healthy-about-something-it-does-not-check]] in one line). Four executing
+tests. The inventory now reads gold shadow **0.3h old** and prints *"all sources present and
+current"* where it had printed a fault for nineteen days.
+
+**Also corrected against a live scan, not recall:** `default_slate()` is **35** arms, not the 34
+STATE claimed · `shadow.db` is 14.8M, not 6.2M · §2's roster re-dated to the real
+`gate_switches.env` mtime (**2026-09-02 22:05:14Z** — the 22:00Z Paris reactivation armed the roster
+and the router's 22:05 tick benched it again five minutes later, on chop with no gate exempt) ·
+**§8 item 7 CLOSED** (web restarted, the claim endpoint serves the corrected 0.1s text).
+
+**★ AND IT REOPENED AS SOMETHING ELSE.** `gazbot7-day-rider-claim.path` watches
+`day_rider_claim.txt` **and nothing else**, so the fast path exists for the EXIT only: the
+operator's **manual BUY/SELL still waits up to 60 seconds** on the next rider tick. §363 priced that
+latency at **$48 on a single claim**; the same argument applies to an entry and nobody has made it.
+Recorded as open — not built, not scoped. A stale docstring in `web.py` that still promised
+*"up to ~60s"* for the claim, fifty lines above the response that correctly says 0.1s, was corrected
+in the same pass.
+
+**Nothing traded, no gate switched, no cron armed.** 1040 tests green.

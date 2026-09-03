@@ -45,6 +45,35 @@ _ALARM_COOLDOWN_S = 12 * 3600
 # (label, path, max_age_h or None if it never changes)
 # (label, path, max_age_h, market_clock) — market_clock=True measures staleness against the last
 # instant the MARKET WAS OPEN rather than wall-clock. See _last_market_ts().
+def _written_at(path: str) -> float:
+    """When was this store LAST WRITTEN — counting the write-ahead log, not just the main file.
+
+    ★★★2026-09-03. THIS ROW LIED FOR NINETEEN DAYS AND THE LIE WAS BELIEVED. Every one of these
+    databases runs in WAL mode, and in WAL mode the main `.db` file's mtime does not move on a
+    write — it moves on a CHECKPOINT. `shadow_mgc.db` last checkpointed 2026-08-15 16:40 while its
+    `-wal` was being appended to continuously; a session on 08-30 duly reported the gold shadow
+    book "unwritten for 230h against a <30h expectation" and flagged it as a probable dead writer.
+    It was never dead. Verified 09-03: 201 shadow trades across all three arms, the most recent
+    stamped 06:23Z that morning.
+
+    The comment on `gazbot7.db` below had already walked up to this and stopped one step short —
+    it worked out that the mtime *"measures 'did we trade', not 'is anything alive'"* and responded
+    by moving the row onto the market clock, which treats the symptom. The cause is that the file
+    being stat'ed is not the file being written.
+
+    ⚠ `-shm` is deliberately NOT counted: it is a shared-memory index whose mtime moves on READS,
+      so including it would make any store look fresh the moment anything opened it — an
+      instrument reporting healthy about something it never checked, in one line.
+    """
+    newest = 0.0
+    for suffix in ("", "-wal"):
+        try:
+            newest = max(newest, os.stat(path + suffix).st_mtime)
+        except OSError:
+            pass
+    return newest
+
+
 LOCAL = [
     # ★★2026-08-17 gazbot7.db / shadow.db / shadow_mgc.db MOVED ONTO THE MARKET CLOCK. They were on
     # wall-clock on the stated theory that "nightly jobs write them, so a dead writer would hide all
@@ -179,8 +208,8 @@ def scan() -> dict:
             st = os.stat(path)
             # ★ market_clock files age on OPEN-MARKET time — hours the venue was shut are not
             # staleness, and they stay forgiven after the venue reopens (see _market_hours_between).
-            age_h = (_market_hours_between(st.st_mtime, now) if market_clock
-                     else max(0.0, (now - st.st_mtime) / 3600))
+            age_h = (_market_hours_between(_written_at(path), now) if market_clock
+                     else max(0.0, (now - _written_at(path)) / 3600))
             row = {"label": label, "path": path, "mb": round(st.st_size / 1e6, 1),
                    "age_h": round(age_h, 1), "ok": True}
             if st.st_size == 0:

@@ -7,9 +7,12 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
-> **2026-09-03.** MGC added to the dashboard chart tab; the tunnel structure MEASURED on both
-> contracts (**§1c**) — the structure is real and gold matches MNQ almost exactly, but the break is
-> worth nothing on either, and the live watcher's **1.75× claim was withdrawn**. SESSIONS §381-§382.
+> **Re-scanned 2026-09-03 07:30Z.** MGC added to the dashboard chart tab; the tunnel structure
+> MEASURED on both contracts (**§1c**) — real, and gold matches MNQ almost exactly, but the break is
+> worth nothing on either and the live watcher's **1.75× claim was withdrawn**. Docs pass against the
+> running system: DECISIONS resumes at **§364** after a two-week gap it now names; the gold shadow
+> book was never dead (a WAL-mtime false alarm, §6); `default_slate()` is **35**, not 34; §8 item 7
+> closed and replaced. SESSIONS §381-§383.
 >
 > **Re-scanned 2026-09-02 19:45Z.** Desk flat and reconciling, router deciding, rider **+$1,159.50 on
 > the day (13 trades)**. **TUNNEL WATCH is ARMED** (§1b) — the compression-break alarm, read-only.
@@ -134,7 +137,15 @@ SPECIAL STATUS.**
     grind_long=off   capitulation_long=off   abs_veto_long=off
     rgv_short=off    exhaustion_short=off    abs_veto_short=off
 
-★ **All six reading `off` right now is a LIVE ROUTER BENCH, not the stand-down and not the weekend guard.** `gate_switches.env` was last written **2026-09-02 14:55:34Z** (verified mtime) and the durable tick is deciding every 5 min: at 19:45Z it logs *"STAY-OUT IS LIVE AND LEGAL: meter 66 … 48 straight ticks over the 55 bar … it benches the book with NO gate exempt"*, with direction failing both bars (45-min net +34pt / ER 0.184 against |net|>40 AND ER>=0.20). **Always re-read the mtime and the last trial-log line before reading anything into this roster** — the same six `off` can mean a bench, the weekend guard disarming into a shut venue (§4b), or a stand-down, and only the timestamp separates them.
+★ **All six reading `off` is a LIVE ROUTER BENCH — not the stand-down, not the weekend guard.**
+`gate_switches.env` mtime **2026-09-02 22:05:14Z** (verified): the 22:00Z Paris-midnight
+reactivation armed the roster and the router's 22:05 tick benched it again five minutes later.
+The 07:20Z tick reads *"REGIME: chop — day-ER 0.02, last-hour ER 0.10, ATR 10pt on a 173pt day
+range with 51% given back … benches all momentum on the ordinary chop rule; no gate is exempt"*,
+with direction failing both legs (45-min FLAT +21pt / ER 0.097 against |net|>40 AND ER>=0.20).
+**Always re-read the mtime and the last trial-log line before reading anything into this
+roster** — the same six `off` can mean a bench, the weekend guard disarming into a shut venue
+(§4b), or a stand-down, and only the timestamp separates them.
 
 ⚠ A stand-down must never be done with `PINNED`: a full-roster pin makes `valid` permanently empty,
 which is the silent no-op that ran 411 ticks unnoticed, and it trips the PIN ALARM every tick.
@@ -162,10 +173,11 @@ All `stop_atr_mult=1.0`, `atr_split=22.0`. **Verify via `scaleout_slots()`, NEVE
 slate silently drops things and `grind_long` has two SlotSpecs in source.
 **Quiet-tape clip is LIVE**: ATR<22 → both lots clip $40 / 1.75R floored $60.
 
-## 4. SHADOW — **34 MNQ arms** (`default_slate()`) + **3 MGC** on a SEPARATE desk (`mgc_slate()`)
+## 4. SHADOW — **35 MNQ arms** (`default_slate()`) + **3 MGC** on a SEPARATE desk (`mgc_slate()`)
 
-★ **TWO SLATES, TWO DESKS, ZERO OVERLAP — do not add them up.** `default_slate()` returns **34, ALL
-MNQ, no MGC**; the gold arms are `mgc_slate()`, run by `gazbot7-shadow-mgc` into its own
+★ **TWO SLATES, TWO DESKS, ZERO OVERLAP — do not add them up.** `default_slate()` returns **35, ALL
+MNQ, no MGC** (re-counted by calling it, 2026-09-03 — it read 34 here and the line below already
+says why a number in this file is not evidence); the gold arms are `mgc_slate()`, run by `gazbot7-shadow-mgc` into its own
 `shadow_mgc.db` (§1). **Counted by CALLING both, 2026-08-16** — this line previously read "22 MNQ +
 3 MGC", which merged two slates and was stale the day it was written: 47 was trimmed to 22 on 08-15,
 then the 08-16 BUILD commits (`c9c233a`, `d8ffcde` — #10/#13/#14/#15/#16/#17/#18) armed 9+ more.
@@ -233,7 +245,7 @@ whole 08-06 incident. **Do not "fix" the skip; a test fails if an order path app
 | `data/gazbot7.db` | 932K | the trade record from 2026-07-16 — the P&L truth |
 | `data/capture.db` | **5.5G** | live tape. ⚠ **RETENTION IS PER-TABLE — there is no single "capture keeps N days"** (`prune_capture.RETAIN`): `book`/`quotes`/`ticks` **5 trading days**, `bars` **60**. Measured 2026-09-02: book+quotes from 08-28, ticks 08-27, **bars from 07-15 — 49 days, 929,817 rows**. ATTACHing for TICK history silently sees 5 days (the cause of two degraded nightly audits); a MINUTE-BAR study has ~2 months here and does not need the lake |
 | `data/depth.db` | **2.8G** | L2, 10 levels @250ms, MNQ+MGC. **Gold's book is ONLY here** — `capture.db.book` has no MGC |
-| `data/shadow.db` / `shadow_mgc.db` | 6.2M / 100K | the two shadow books |
+| `data/shadow.db` / `shadow_mgc.db` | 14.8M / 100K | the two shadow books. ⚠ **BOTH ARE WAL — STAT THE `-wal`, NOT THE `.db`.** In WAL mode the main file's mtime moves on a CHECKPOINT, not on a write: `shadow_mgc.db` last checkpointed **2026-08-15** while its `-wal` was being appended to all along, and a session on 08-30 reported the gold book *"unwritten for 230h"* and believed it. It was never dead — 201 shadow trades, newest 2026-09-03 06:23Z. `data_inventory._written_at()` now counts the WAL (and deliberately not the `-shm`, whose mtime moves on READS) |
 | `data/tape/` + `b2raw:gazbotv7/plain/` | Parquet, 07-16 → | **query via `gazbot7.lake.connect()`** |
 | `gaz:v5archive/` | 4,934 trades / 21 tables | the V5 archive — 574 MNQ trades, largely unexamined |
 
@@ -302,7 +314,12 @@ delivery. **Decision deferred until one clean Friday has run and been measured**
    reporting-only in the entry notification. It works only with a claim+stop, never the live trail,
    and P>=0.22 once charged for the full 10-feature search. Recommended next step: shadow it.
    First out-of-sample instance 2026-08-19 (rt 0.48, +$544) — n=1.
-7. **The web endpoint's claim message was corrected but `gazbot7-web` is NOT restarted** — it still
-   serves "up to ~60s" until someone restarts it. ⚠ Warn the operator first; it drops his tab.
+7. ~~The web endpoint's claim message was corrected but `gazbot7-web` is NOT restarted~~ —
+   **CLOSED 2026-09-03.** Web restarted twice with operator authorisation (MGC chart route, then
+   the Reports index). It now serves *"flattens immediately (~0.1s; the 60s tick is the
+   fallback)"*. ⚠ **NEW, and the same shape:** the operator's **manual BUY/SELL still waits up
+   to 60 SECONDS** — `gazbot7-day-rider-claim.path` watches `day_rider_claim.txt` and nothing
+   else, so the fast path exists for the EXIT only. §363 priced that latency at $48 on a single
+   claim; the same argument applies to an entry and nobody has made it. Not built, not scoped.
 8. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
    `gazbot7-router-health.timer` IS the mitigation. If it pages: run `claude` on the box, `/login`.

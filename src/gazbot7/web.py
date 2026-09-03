@@ -1182,9 +1182,13 @@ def dayrider_claim_post(body, data_dir):
     reached the broker directly is how 2026-08-06 happened — a flatten fired
     without checking whose position it was and took the tournament's with it.
 
-    ⚠ Not instant. The day rider ticks every minute, so the fill is up to ~60s
-    after the press and the price will have moved. The response says so rather
-    than letting the operator believe he banked the number he was looking at.
+    ⚠ Not instant, but no longer slow: `gazbot7-day-rider-claim.path` watches this
+    file and starts the rider on the inotify close-write, measured at 0.02s. The
+    60s tick remains the FLOOR if that unit is down. This docstring said "up to
+    ~60s" for a fortnight after the fast path shipped, contradicting the message
+    the same function returns fifty lines below it.
+    ⚠ The manual BUY/SELL path has NO such unit — it is still picked up on the
+    next minute tick, and its response says so.
     ⚠ It ENDS the session: the `closed` latch means no re-entry today.
     """
     try:
