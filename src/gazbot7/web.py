@@ -1385,9 +1385,13 @@ def dayrider_buy_post(body, data_dir):
     except Exception as e:
         return {"ok": False, "error": f"write failed: {e}"}
     lad = " / ".join(f"L{i+1} ${t:g} ({t/2.0:.0f}pt)" for i, t in enumerate(tg))
-    return {"ok": True, "msg": f"{side} {qty} lot(s) requested — the rider places it on its next "
-                               f"tick (~60s).\n{lad}\nTotal if all fill: ${sum(tg):g}. "
-                               f"NO STOP; hard flat 20:40Z."}
+    # ★2026-09-03 was "on its next tick (~60s)". gazbot7-day-rider-buy.path now watches this file
+    # and starts the rider on the inotify close-write — MEASURED at 1.35s to a completed tick, twice,
+    # with the test write deliberately made off the `*:*:05` boundary so no timer tick could be
+    # mistaken for it. The 60s tick stays the FLOOR if that unit is down.
+    return {"ok": True, "msg": f"{side} {qty} lot(s) requested — the rider places it now (~1.4s; "
+                               f"the 60s tick is the fallback).\n{lad}\n"
+                               f"Total if all fill: ${sum(tg):g}. NO STOP; hard flat 20:40Z."}
 
 
 # ── /api/shadow/* — the shadow desk (V5 shadow_desk.html verbatim; V7 data) ────

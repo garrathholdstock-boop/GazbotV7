@@ -2633,3 +2633,49 @@ Recorded as open — not built, not scoped. A stale docstring in `web.py` that s
 in the same pass.
 
 **Nothing traded, no gate switched, no cron armed.** 1040 tests green.
+
+### §384 — 2026-09-03 · the entry fast path — and the button that reports success and does nothing
+Operator, mid-trade: *"do the manual buy fast path. the telegram telling me it had left the
+compression worked. i bought and uts winning. love this."*
+
+**FIRST LIVE USE OF THE TUNNEL ALERT.** He acted on a compression-break message and went **SHORT 4 @
+29182.0 at 09:32:06Z**, manual. At 09:55Z the tape was 29139.5 — **+42.5pt = +$340 open**, 7.5pt off
+the L1 rung. Reconciler clean throughout: `venue -4 = tournament +0 + rider -4`.
+⚠ For the record and against the temptation to read it as vindication: **the alert measured no edge
+and still says so in every message.** This is one trade, his direction, on an alert whose only claim
+is that the tape changed state. n=1 is a story, not evidence — and the study that says so was
+published four hours before this one landed.
+
+**BUILT — `gazbot7-day-rider-buy.path`, armed 09:56:55Z.** The claim button was cut from 60s to 0.02s
+on 08-19 and **the entry button was left behind**; the fast path existed for the exit only. §363
+priced the exit latency at $48 on one claim, and that argument is about a moving tape — a tape moves
+the same way at the start of a trade as at the end, except at the start the money is spent before the
+position exists.
+**MEASURED 1.35s** from write to a *completed* rider tick, twice (1.37s, 1.35s), with the writes made
+at :46 so no `*:*:05` timer tick could be mistaken for the trigger. Against a worst case of 60s.
+★ `PathModified`, never `PathExists`: `BUY_MAX_AGE_S` is 5 minutes and an unread request demonstrably
+sits that long, which under level-triggering is a five-minute restart loop against the shared gateway.
+
+**★ TESTED WITHOUT PLACING AN ORDER, ON A LIVE NAKED POSITION.** The request file was written with a
+deliberately unparseable payload (no pipes, so `buy_requested()` raises on the unpack and can never
+read it as a side/qty/target), and the trigger was proven by watching the rider's own heartbeat move.
+Position asserted byte-for-byte identical before and after, both runs: `qty 4, lots_open 4, entry
+29182.0, entered_at 09:32:06.800708`.
+
+**★★★ AND THE TEST FOUND SOMETHING WORSE THAN THE LATENCY.** The unparseable request was **never
+consumed** — it survived a full timer tick untouched. Cause: `elif owns_position:`
+(`day_rider.py:978`) takes the branch before `elif (_mb := buy_requested()):` (:1017), and that
+branch returns. **A BUY pressed while the rider holds a position is never read, never cleared, and
+ages out in silence after five minutes — while the dashboard has already replied *"requested"*.**
+That is [[a-claim-refusal-says-ownership-when-it-means-kill]] pointed the other way: a button that
+reports success and does nothing.
+**NOT FIXED, and the reason is the point.** `day_rider.py` is `oneshot` and picks up code on the NEXT
+TICK — an edit lands inside a live 4-lot naked position with no stop, whose ladder management is the
+thing that would break. And the real question is his, not mine: should a BUY while holding **add
+lots**, or **refuse loudly**? Recorded in STATE §8, deferred to a flat desk.
+
+**Also changed, and NOT deployed:** the BUY endpoint's reply now reads *"places it now (~1.4s; the 60s
+tick is the fallback)"* instead of *"on its next tick (~60s)"*. `gazbot7-web` was **deliberately not
+restarted** — it drops his tab, and he is holding a winning position. It deploys at the next restart.
+
+**Nothing else touched. No gate switched, no rider code edited, no order placed.** 1045 tests green.

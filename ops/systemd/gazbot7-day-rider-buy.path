@@ -1,0 +1,48 @@
+[Unit]
+# GAZBOT V7 — MANUAL ENTRY FAST PATH.
+#
+# ★2026-09-03. The claim button was cut from up to 60 seconds to 0.02s on 2026-08-19 and the
+# ENTRY button was left behind — the fast path existed for the exit only. The operator pressed BUY
+# on this morning's compression-break alert; the rider's own tick is `Type=oneshot` on `*:*:05`,
+# ONCE A MINUTE, so that press could sit for up to 60 seconds before an order existed.
+#
+# ★ THE LATENCY IS PART OF THE PRICE, AND IT IS NOT SMALLER ON THE ENTRY THAN ON THE EXIT. The
+#   claim measurement that justified the exit path — tracked peak 29458.75, filled 29470.75, 12pt
+#   = $48 on 4 lots — is an argument about a moving tape, and a tape moves the same way at the
+#   start of a trade as at the end. This morning's entry went 42.5pt in his favour inside 23
+#   minutes: on that tape a minute of queue is worth real money in either direction, and unlike the
+#   exit it is money spent before the position even exists.
+#
+# ★ THE INDIRECTION IS NOT THE BUG AND MUST NOT BE REMOVED. The web process never places an order —
+#   it writes the request file and returns — because on 2026-08-06 a button that reached the broker
+#   directly flattened without checking whose position it was, put the tournament's book at +2
+#   against a venue of 0, and halted the desk for 11 minutes with the safety block skipped. This
+#   unit changes only WHEN the rider reads the request. `venue_first_ok()`, the ownership check,
+#   the 20:40Z hard flat and the booking path all stay exactly where they are, inside the rider.
+#
+# ★ PathModified, NOT PathExists — a live hazard, not a style choice. PathExists is LEVEL-triggered
+#   and re-fires for as long as the file is there. `buy_requested()` is age-bounded at
+#   BUY_MAX_AGE_S = 5 MINUTES, so a request the rider declines to act on (the desk switched off,
+#   the venue disagreeing with the book) can legitimately sit on disk for that long. Under
+#   PathExists that orphan would restart the rider in a tight loop for five minutes against the
+#   shared IB gateway. PathModified is EDGE-triggered on the endpoint's write-and-close, so a file
+#   that merely continues to exist fires nothing.
+#
+# ★ WHY THIS IS SAFE TO ADD WHILE A POSITION IS OPEN. It fires only when `day_rider_buy.txt` is
+#   MODIFIED, and only the dashboard's BUY/SELL endpoint writes it. With nobody pressing the
+#   button this unit does nothing at all; the rider's behaviour on every other tick is byte-for-byte
+#   what it was. Both `buy_requested()` call sites `clear_buy()` BEFORE acting, so a request is
+#   consumed exactly once whatever the rider then decides.
+#
+# The 60s timer remains the floor and is untouched: if this unit is dead or stopped, or the file is
+# written some way inotify does not see, the press is picked up on the next tick exactly as before.
+# A fast lane over a working road, never a replacement for it.
+Description=GAZBOT V7 — manual entry fast path (operator presses BUY/SELL -> rider runs NOW, not in up to 60s)
+After=gazbot7-day-rider.timer
+
+[Path]
+PathModified=/home/alphabot/gazbot7/data/day_rider_buy.txt
+Unit=gazbot7-day-rider.service
+
+[Install]
+WantedBy=paths.target

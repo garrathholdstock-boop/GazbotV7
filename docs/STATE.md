@@ -63,6 +63,7 @@ desk's job is therefore to give him PRESENCE and INFORMATION, not to replace the
 | **peak watch** | `gazbot7-rider-peak-watch.service` | 1 Hz open P&L off `MD_STREAM` `tape`. URGENT at **+$200**, ping per **$50** new high, **give-back** $75 off the peak, **stall** at 3 min with no new high. Every message carries extension in ATR. ⚠ READ-ONLY — no order path, asserted by test |
 | **tunnel watch** | `gazbot7-tunnel-watch.service` | ★ARMED 2026-09-02, **claim withdrawn 2026-09-03**. A 2-state HMM (forward-filtered ONLINE — never Viterbi) reads MNQ as QUIET vs ACTIVE and says when price leaves a compression. Built from his read: *"it will run and then hover around vwap for a while. then run again."* ★★★ **NO EDGE IS MEASURED AND THE MESSAGE SAYS SO.** The 1.75× excursion claim it shipped with did not replicate — **1.02× ATR / 1.08× pt** against a matched-hour control on the same 240 sessions with its own parameters (n=752); six control definitions span 0.82–1.32×. Direction held: 0.459/0.513/0.499 vs 0.494/0.498/0.497. It reports a STATE CHANGE, nothing more. ⚠ READ-ONLY, asserted by `tests/test_tunnel_watch.py`. Knobs are systemd `Environment=`. See §1c |
 | **claim fast path** | `gazbot7-day-rider-claim.path` | the Claim button reaches the rider on the inotify write (**measured 0.02s**) instead of waiting for the `*:*:05` tick — which was **up to 60 SECONDS**. On 08-19 the tracked peak was 29458.75 and the claim filled 29470.75: 12pt = $48 |
+| **entry fast path** | `gazbot7-day-rider-buy.path` | ★**ARMED 2026-09-03.** The twin of the claim path, built after the tunnel alert produced a real trade: the BUY/SELL button was still on the 60s tick while the exit had been at 0.02s since 08-19. **Measured 1.35s to a completed rider tick** (twice, written off the `:05` boundary so no timer tick could be mistaken for it). ⚠ `PathModified`, and the request is consumed exactly once — both `buy_requested()` sites `clear_buy()` BEFORE acting |
 | **the profit ladder** | `day_rider.TARGET_USD_PER_LOT` | ★2026-08-20 **4 lots, each banking its own figure: $100 / $200 / $400 / $600 = $1,300** if all four fill (50/100/200/300pt at $2/pt per lot). Reach rates over 231 sessions: **77.5% / 58.0% / 29.4% / ~15%**, so ~$300 is the common case and lots 3-4 are HIS to work |
 | **five claim buttons** | `L1 L2 L3 L4` + `ALL` | one per lot plus flatten-all. ★ They are **ALSO KILL BUTTONS** — there is no stop, so they fire in profit or loss and the confirm dialog says so. The endpoint does not check P&L and must not. `ALL` is unchanged and remains the kill switch |
 | **NO STOP** | `day_rider.PLACE_VENUE_STOP=False` | ⚠ **The 20:40Z hard flat is now the ONLY automatic protection.** Operator: *"i dont want any stop. leave them all naked."* Backed by the desk's own research — the stop *"costs $3,451 of expectancy AND has a WORSE worst-day (−$1,603) than running naked (−$1,531)"*. **EXPOSURE:** median worst-adverse day 160pt = **−$1,284**; worst of 231 sessions 1,084pt = **−$8,672** |
@@ -315,11 +316,18 @@ delivery. **Decision deferred until one clean Friday has run and been measured**
    and P>=0.22 once charged for the full 10-feature search. Recommended next step: shadow it.
    First out-of-sample instance 2026-08-19 (rt 0.48, +$544) — n=1.
 7. ~~The web endpoint's claim message was corrected but `gazbot7-web` is NOT restarted~~ —
-   **CLOSED 2026-09-03.** Web restarted twice with operator authorisation (MGC chart route, then
-   the Reports index). It now serves *"flattens immediately (~0.1s; the 60s tick is the
-   fallback)"*. ⚠ **NEW, and the same shape:** the operator's **manual BUY/SELL still waits up
-   to 60 SECONDS** — `gazbot7-day-rider-claim.path` watches `day_rider_claim.txt` and nothing
-   else, so the fast path exists for the EXIT only. §363 priced that latency at $48 on a single
-   claim; the same argument applies to an entry and nobody has made it. Not built, not scoped.
+   **CLOSED 2026-09-03.** Web restarted with operator authorisation; the claim endpoint serves its
+   corrected 0.1s text. ~~The manual BUY still waits up to 60s~~ — **ALSO CLOSED**:
+   `gazbot7-day-rider-buy.path` armed 09:56Z, measured **1.35s** to a completed tick.
+   ⚠ **BUT IT UNCOVERED A LOUDER DEFECT — A BUY PRESSED WHILE THE RIDER HOLDS IS NEVER READ AT ALL.**
+   `elif owns_position:` (`day_rider.py:978`) takes the branch before `elif (_mb := buy_requested())`
+   (:1017), and the holding branch returns — so the request is never parsed, never cleared, and ages
+   out silently after `BUY_MAX_AGE_S` = 5 min while the dashboard has already replied *"requested"*.
+   **Proven live, not read:** an unparseable request written during an open position survived a full
+   `*:*:05` tick untouched. It is [[a-claim-refusal-says-ownership-when-it-means-kill]] in the other
+   direction — a button that reports success and does nothing.
+   **NOT FIXED, and deliberately:** the fix edits `day_rider.py`, which is `oneshot` and deploys on
+   the NEXT TICK — into a live 4-lot naked position. Whether a BUY while holding should ADD LOTS or
+   REFUSE LOUDLY is the operator's call, not a bug fix.
 8. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
    `gazbot7-router-health.timer` IS the mitigation. If it pages: run `claude` on the box, `/login`.
