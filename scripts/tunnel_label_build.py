@@ -47,6 +47,11 @@ if DETECTOR == "v2":
     v2 = importlib.util.module_from_spec(_v)
     _v.loader.exec_module(v2)
     PREFIX = "tl2_"
+elif DETECTOR == "v3":
+    _v = importlib.util.spec_from_file_location("v3", f"{GB}/scripts/tunnel_v3.py")
+    v3 = importlib.util.module_from_spec(_v)
+    _v.loader.exec_module(v3)
+    PREFIX = "tl3_"
 
 
 def main() -> int:
@@ -79,6 +84,26 @@ def main() -> int:
         ax.plot(x, close, lw=.9, color="#202124", zorder=3)
 
         mine = []
+        if DETECTOR == "v3":
+            # ★ the levels are drawn by the tape: mark the pivots that MADE each level, so he can see
+            #   WHY the ceiling and floor sit where they do rather than take them on trust.
+            for m in v3.detect(sb, k=int(os.environ.get("TL_K", "20"))):
+                ax.add_patch(Rectangle((mdates.date2num(x[m["i0"]]), m["lo"]),
+                                       mdates.date2num(x[m["i1"]]) - mdates.date2num(x[m["i0"]]),
+                                       m["hi"] - m["lo"], facecolor="#FFD400", alpha=.45,
+                                       edgecolor="#B8860B", lw=.6, zorder=1))
+                ax.hlines([m["hi"], m["lo"]], x[m["i0"]], x[m["i1"]], colors="#B8860B", lw=1.1, zorder=2)
+                ax.annotate(f"{m['mins']}m·{m['width']:.0f}pt·ER{m['er']:.2f}·{m['touch_hi']}/{m['touch_lo']}",
+                            (x[m["i0"]], m["hi"]), fontsize=5.5, color="#6b5900",
+                            xytext=(1, 3), textcoords="offset points", zorder=5)
+                rec = {"t0": int(m["t0"]), "t1": int(m["t1"]), "n": m["mins"],
+                       "hi": round(m["hi"], 2), "lo": round(m["lo"], 2)}
+                if m["break"]:
+                    bk = m["break"]
+                    rec.update(bt=int(bk["t"]), bside=bk["side"], bpx=round(bk["px"], 2))
+                    ax.scatter([x[bk["i"]]], [bk["px"]], s=160, facecolor="#00A651", alpha=.35,
+                               edgecolor="#00703C", lw=1.0, zorder=4)
+                mine.append(rec)
         if DETECTOR == "v2":
             for m in v2.detect_boxes(sb):
                 ax.add_patch(Rectangle((mdates.date2num(x[m["i0"]]), m["lo"]),
@@ -93,7 +118,7 @@ def main() -> int:
                     ax.scatter([x[bk["i"]]], [bk["px"]], s=150, facecolor="#00A651", alpha=.35,
                                edgecolor="#00703C", lw=1.0, zorder=4)
                 mine.append(rec)
-        for a, b in ([] if DETECTOR == "v2" else tp.quiet_runs(sp, 1)):
+        for a, b in ([] if DETECTOR in ("v2", "v3") else tp.quiet_runs(sp, 1)):
             seg = sb[a:b + 1]
             n = len(seg)
             hi = max(s["hi"] for s in seg); lo = min(s["lo"] for s in seg)
