@@ -810,8 +810,9 @@ def last_tape_price(capture_path: str, symbol: str, *, max_age_s: float = ENTRY_
         uri = f"file:{capture_path}?mode=ro"
         with sqlite3.connect(uri, uri=True, timeout=5) as c:
             row = c.execute(
-                'select bar_ts, "close" from bars where symbol = ? order by bar_ts desc limit 1',
-                (symbol,)).fetchone()
+                'select bar_ts, "close" from bars where symbol = ? and timeframe = \'5s\' '
+                "and bar_ts <= ? order by bar_ts desc limit 1",
+                (symbol, int(now_ts if now_ts is not None else time.time()))).fetchone()
     except Exception:
         return 0.0
     if not row or not row[1]:
@@ -820,6 +821,60 @@ def last_tape_price(capture_path: str, symbol: str, *, max_age_s: float = ENTRY_
     if age > max_age_s or age < -60:
         return 0.0
     return float(row[1])
+
+
+def last_tape_atr(capture_path: str, symbol: str, *, minutes: int = 60,
+                  max_age_s: float = ENTRY_REF_MAX_AGE_S, now_ts: float | None = None) -> float:
+    """drift's OWN 14-minute ATR, computed on a TRAILING window instead of from the 13:30 open.
+
+    ★★2026-09-04 (operator: *"do the atr one for new entries only"*). `drift_read` returns atr 0.0
+    outside US hours, so an entry made then froze `arm_atr` at 0 and its trail fell back to the
+    FIXED 150pt rule instead of 4 x ATR — at a ~10pt ATR that is 40pt vs 150pt, a materially slower
+    trail than the one that was backtested.
+
+    ★★★ IT CALLS drift.compute() RATHER THAN RE-DERIVING THE FORMULA, AND THAT IS THE POINT.
+    `trail_level`'s docstring warns that scaling the trail off a differently-defined number is the
+    live/lab divergence this desk keeps getting bitten by. Sharing the function means there is
+    exactly ONE definition of "the rider's ATR" — same 1-minute aggregation, same Wilder true range,
+    same 14-period mean — and a test asserts this equals `drift_read().atr` during US hours.
+
+    ⚠ Filters BOTH symbol and timeframe. capture.db carries MGC as well as MNQ, and `bars` is keyed
+    by timeframe — an unpinned query would silently take whichever row was written last.
+    """
+    from .drift import _minute_bars, compute
+    now = now_ts if now_ts is not None else time.time()
+    try:
+        with sqlite3.connect(f"file:{capture_path}?mode=ro", uri=True, timeout=5) as c:
+            # ⚠ BOUNDED AT BOTH ENDS. Without the upper bound a caller passing a past `now_ts`
+            # silently reads TODAY's rows — which made the first version of the equivalence test
+            # below pass for the wrong reason, returning the same ATR for three different times.
+            rows = c.execute(
+                "SELECT bar_ts, high, low, close FROM bars WHERE symbol=? AND timeframe='5s' "
+                "AND bar_ts>=? AND bar_ts<=? ORDER BY bar_ts",
+                (symbol, int(now - minutes * 60), int(now))).fetchall()
+    except Exception:
+        return 0.0
+    if not rows:
+        return 0.0
+    # ⚠ No negative-age guard here, deliberately: the query is bounded at `now`, so the newest row
+    # can never be ahead of it. A guard that cannot fire is false comfort — it reads as protection
+    # against a clock skew this query has already made impossible.
+    if now - float(rows[-1][0]) > max_age_s:     # stale or halted tape: refuse, never guess
+        return 0.0
+    bars = _minute_bars([(a, float(b), float(cc), float(d)) for a, b, cc, d in rows])
+    if len(bars) < 15:                   # 14 true ranges need 15 bars
+        return 0.0
+    return float(compute(bars).atr or 0.0)
+
+
+def entry_atr_reference(rr, cfg, *, now_ts: float | None = None) -> float:
+    """The ATR frozen into a NEW position: the drift read when it has one, else the live tape.
+
+    ⚠ NEW ENTRIES ONLY. `arm_atr` is frozen at entry by design and the manage path carries it
+    forward untouched — an open position keeps the rule it was opened under, whatever this returns.
+    """
+    return float(getattr(rr, "atr", 0.0) or 0.0) or last_tape_atr(
+        cfg.capture_path, cfg.symbol, now_ts=now_ts)
 
 
 def entry_reference(rr, cfg, *, now_ts: float | None = None) -> float:
@@ -947,6 +1002,11 @@ async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify
     # PER-LOT targets in POINTS. One contract is $2/pt, so a lot's $ target is usd/2 — it does NOT
     # divide by quantity. Getting that wrong is what made the ladder bank $269 instead of $1,300.
     _tpts = [round(t / VPP, 2) for t in _tgts]
+    # ★2026-09-04 NEW ENTRIES ONLY (operator's call). drift_read's atr is 0.0 outside US hours, which
+    # froze arm_atr at 0 and put the trail on the FIXED 150pt rule instead of 4 x ATR — ~29pt vs
+    # 150pt at a 7pt tape ATR, a materially slower trail than the one that was backtested. An OPEN
+    # position is untouched: arm_atr is frozen at entry and the manage path carries it forward.
+    _atr = entry_atr_reference(rr, cfg)
     # ★★★2026-08-21 `closed=False` IS LOAD-BEARING — omitting it cost the operator a live position.
     # The once-per-session reset only clears this latch at a SESSION ROLLOVER, and manual entry
     # deliberately bypasses the once-per-session rule, so a hand-press after ANY earlier exit lands
@@ -958,7 +1018,7 @@ async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify
     out.update(entered=True, closed=False, exit_reason=None, entry=_fill, peak=_fill,
                direction=_d, qty=float(_q),
                entered_at=dt.datetime.now(dt.UTC).isoformat(),
-               entry_atr=round(rr.atr, 2), arm_atr=round(rr.atr, 2), venue_stop=None,
+               entry_atr=round(_atr, 2), arm_atr=round(_atr, 2), venue_stop=None,
                lots_open=_q, targets_done=[], manual=True,
                manual_targets_usd=list(_tgts), manual_targets_pt=_tpts,
                note=(f"MANUAL {_side} {_q} lots @ {_fill} · targets "
@@ -1590,6 +1650,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             out["note"] = "drift confirmed but the entry did not fill at the limit — no position"
             save_state(out)
             return out
+        _atr = entry_atr_reference(r, cfg)      # ★2026-09-04 see the manual entry above
         stop_px = round(fill - d * VENUE_STOP_PT, 2)
         if PLACE_VENUE_STOP:
             # ⚠ `_lots`, not LOTS: a stop sized to the REQUEST after a partial fill protects lots
@@ -1602,10 +1663,10 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                    # ★2026-08-11 the state had NO entry timestamp, so a booked trade had no
                    # opened_at and "how long did it hold?" was unanswerable after the fact.
                    entered_at=dt.datetime.now(dt.UTC).isoformat(),
-                   entry_atr=round(r.atr, 2),
+                   entry_atr=round(_atr, 2),
                    # ★ FROZEN at entry and never rewritten — entry_atr above is overwritten every
                    #   tick with the live ATR, so the trail needs its own immutable copy.
-                   arm_atr=round(r.atr, 2), venue_stop=stop_px,
+                   arm_atr=round(_atr, 2), venue_stop=stop_px,
                    lots_open=_lots, targets_done=[],
                    note=f"ENTERED {_lots} lots {r.direction} @ {fill}")
         if notify:

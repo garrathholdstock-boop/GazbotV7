@@ -2865,3 +2865,36 @@ at entry, so the trail is on the **fixed 150pt** rule instead of `4 x ATR`. At t
 that is **~40pt vs 150pt** — a materially slower trail than the backtested rule. Giving `arm_atr` a
 tape-derived ATR would change which rule new entries use, and `trail_level`'s own docstring warns
 that scaling the trail off a different number is a live/lab divergence. Not done silently.
+
+### §390 — 2026-09-04 · A NEW ENTRY FREEZES A REAL ATR (new entries only, as instructed)
+
+Operator: *"do the atr one for new entries only"*. `drift_read` returns atr 0.0 outside US hours, so
+an entry made then froze `arm_atr` at 0 and `trail_level` fell back to the **fixed 150pt** rule. At
+the measured ~7pt tape ATR that is **~29pt vs 150pt** — the trail armed five times later than the
+backtested rule intends.
+
+★★★ **ONE DEFINITION OF THE RIDER'S ATR.** `last_tape_atr()` calls **`drift.compute()`** rather than
+re-deriving the formula, because `trail_level`'s own docstring warns that scaling the trail off a
+differently-defined number is this desk's live/lab divergence. Asserted equal to drift's own ATR on
+real capture data at **five independent times** (14:30/15:00/16:30/19:00/20:30Z — 17.93 / 24.41 /
+8.96 / 6.04 / 3.39, matching to 1e-9).
+
+★ **NEW ENTRIES ONLY, ENFORCED BY TEST.** There are exactly three `arm_atr` writes: the two ENTRY
+sites now freeze the referenced ATR, and the manage path still carries it forward UNTOUCHED. The
+open LONG 4 keeps `arm_atr 0.0` and its fixed-150pt rule — verified live after the change.
+
+★★ **TWO BUGS IN MY OWN WORK, CAUGHT BY WRITING THE TEST.**
+1. The query was unbounded above, so a past `now_ts` silently read TODAY's rows — the first
+   equivalence check "passed" by returning the SAME ATR for three different times of day. Now
+   bounded at both ends, and a test asserts two different times give different answers.
+2. With that bound, the negative-age guard became **unreachable**. Deleted rather than left as false
+   comfort — a guard that cannot fire reads as protection against something already impossible.
+Also pinned `timeframe='5s'` in both readers: `bars` is keyed by timeframe and an unpinned query
+would silently take whichever row was written last if a 1m tier is ever added.
+
+**1084 passed, 1 skipped.**
+
+⚠ **STILL OPEN on the live position:** `entry_atr` is also 0.0 (the manage path only refreshes it
+`if rr.atr > 0`), and that is the input to `should_ask_exit` — so the operator-approval exit-ask is
+silently inert on this trade too, the same way the trail was. Untouched: it is the manage path of an
+open position, and the instruction was new entries only.
