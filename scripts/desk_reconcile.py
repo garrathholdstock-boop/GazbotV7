@@ -55,6 +55,85 @@ DR_ENV = f"{GB}/data/day_rider.env"
 STATE = f"{GB}/data/desk_reconcile_state.json"
 RECON_CLIENT_ID = 8          # reserved for checks (core=0, md=2, rider=4, watchdog=5, eod=6)
 SECOND_READ_DELAY_S = 6.0
+# ★★★2026-09-03 THE CLAIM-FRESHNESS GATE. See require_fresh_claims() below.
+PENDING = f"{GB}/data/desk_reconcile_breach.json"
+
+
+def claim_stamps() -> dict:
+    """When each desk last WROTE its claim. Not the value — the write time.
+
+    The two venue reads below prove the VENUE is settled. Nothing proved the CLAIMS were, and they
+    are the other half of the invariant.
+    """
+    out = {}
+    for name, path, key in (("rider", deskrecon.DR_STATE, "heartbeat"),
+                            ("tournament", deskrecon.STATUS, "ts")):
+        try:
+            with open(path) as fh:
+                out[name] = str(json.load(fh).get(key) or "")
+        except Exception:
+            out[name] = ""          # unreadable -> never counts as advanced
+    return out
+
+
+def require_fresh_claims(prev: dict, now_stamps: dict) -> tuple[bool, str]:
+    """Has every desk REWRITTEN its claim since the imbalance was first seen?
+
+    ★★★ 2026-09-03 THE FALSE KILL. The two-read confirmation samples the VENUE twice, six seconds
+    apart, and treats agreement as proof. But a desk's claim is a FILE it rewrites on its own cycle
+    — the day-rider once a MINUTE — so an imbalance created by the desk's own fill is still present
+    in both reads, identical in both, and confirms. The guard was blind to the very race it was
+    written to catch, because it re-sampled the wrong side of the equation.
+
+    On 2026-09-03T16:42:10Z the operator's manual claim closed a SHORT 4 at the venue. The rider had
+    not yet rewritten its state, so both reads saw `venue +0 = tournament +0 + rider -4`, agreed
+    perfectly, and both desks were stopped for a position that no longer existed. The day-rider
+    switch went off with it — which also takes down the 20:40Z hard flat and every Claim button —
+    and this service never re-arms anything, so a four-hour outage of the BUY button followed.
+
+    The fix does not weaken the kill; it makes the confirmation sample BOTH sides. A breach is
+    confirmed only once every desk has had a chance to write a fresh claim and STILL disagrees with
+    IBKR. A race resolves on the desk's next write (<=60s); a real orphan survives it and is killed
+    on the following tick, ~60-90s later than before.
+
+    ⚠ WHY THAT DELAY IS SAFE. deskrecon.may_place_order() already refuses every new order whenever
+    the invariant does not hold — kill file or not — so nothing can be OPENED during the wait. The
+    kill file's extra job is to bench gates and switch the rider off PERSISTENTLY, and that is
+    exactly the action that must not fire on a race.
+    """
+    for name in ("rider", "tournament"):
+        was, isnow = prev.get(name, ""), now_stamps.get(name, "")
+        if not isnow:
+            return False, f"{name} claim has no readable write-stamp"
+        if isnow == was:
+            return False, (f"{name} has not rewritten its claim since the imbalance was first seen "
+                           f"({isnow}) — cannot tell a stale book from a real orphan yet")
+    return True, "every desk rewrote its claim and the imbalance survived it"
+
+
+def load_pending() -> dict:
+    try:
+        with open(PENDING) as fh:
+            return json.load(fh) or {}
+    except Exception:
+        return {}
+
+
+def save_pending(d: dict) -> None:
+    try:
+        tmp = PENDING + ".tmp"
+        with open(tmp, "w") as fh:
+            json.dump(d, fh)
+        os.replace(tmp, PENDING)
+    except Exception:
+        pass
+
+
+def clear_pending() -> None:
+    try:
+        os.remove(PENDING)
+    except Exception:
+        pass
 
 
 def page(msg: str, critical: bool = True, *, dedupe_key: str | None = None,
@@ -239,6 +318,20 @@ def main() -> int:
                         "reasons": r1.reasons, "orders": len(orders1 or []),
                         "orphan_stops": orph1}}
 
+    # ★ The imbalance is gone: forget it. A pending record left behind would let a LATER, unrelated
+    # imbalance of the same size confirm on its own first sighting — the gate must only ever fast-
+    # track an imbalance that has genuinely persisted.
+    if not r1.breach and not a.dry_run:
+        clear_pending()
+        # ★ RE-ARM THE UNCONFIRMED ALARM TOO. A cooldown must suppress a CONTINUING condition,
+        # never a NEW occurrence of one — the same rule the confirmed-breach key follows below.
+        # Without this, a second race inside the cooldown would pass in silence.
+        try:
+            from gazbot7.notify import dedupe_clear
+            dedupe_clear("reconcile_unconfirmed")
+        except Exception:
+            pass
+
     if (r1.breach or orph1) and not a.dry_run:
         # ★ SECOND, INDEPENDENT READ. A fresh connection a few seconds later — not a re-use of the
         # first snapshot, which would confirm nothing. A fill in flight resolves; an orphan does not.
@@ -250,10 +343,45 @@ def main() -> int:
         orph2 = orphan_stops(net2, orders2) if (net2 is not None and orders2 is not None) else []
         result["read2"] = {"venue": net2, "breach": r2.breach, "unaccounted": r2.unaccounted,
                            "summary": r2.summary(), "orphan_stops": orph2}
-        confirmed = (r2.breach and r1.unaccounted is not None and r2.unaccounted is not None
-                     and abs(r1.unaccounted - r2.unaccounted) < 0.5)
+        venue_agrees = (r2.breach and r1.unaccounted is not None and r2.unaccounted is not None
+                        and abs(r1.unaccounted - r2.unaccounted) < 0.5)
+
+        # ── ★★★ THE CLAIM-FRESHNESS GATE (2026-09-03) ───────────────────────
+        # Two venue reads prove the VENUE is settled. They prove NOTHING about the claims, which
+        # are files each desk rewrites on its own cycle — the rider once a MINUTE. So the old
+        # confirmation could not tell "a book that has not caught up" from "a lot nobody owns",
+        # and stopped both desks for the operator's own claim mid-flight. See require_fresh_claims.
+        stamps = claim_stamps()
+        pend = load_pending()
+        confirmed = False
+        if venue_agrees:
+            same_imbalance = (pend.get("unaccounted") is not None
+                              and abs(float(pend["unaccounted"]) - r2.unaccounted) < 0.5)
+            if pend and same_imbalance:
+                fresh, why = require_fresh_claims(pend.get("stamps") or {}, stamps)
+                confirmed = fresh
+                result["claim_gate"] = why
+            else:
+                # First sighting of this imbalance. Record it and the claim write-stamps; the next
+                # tick (30s) decides, once the desks have had a chance to write.
+                result["claim_gate"] = ("first sighting — held for a fresh claim from every desk "
+                                        "before any kill")
+                save_pending({"unaccounted": r2.unaccounted, "stamps": stamps,
+                              "first_seen": datetime.now(UTC).isoformat(timespec="seconds"),
+                              "summary": r2.summary()})
+            if not confirmed:
+                # ⚠ LOUD, BUT NOT A KILL. Silence here would be the instrument-reports-healthy
+                # failure: an unconfirmed breach is still an account that does not add up, and
+                # may_place_order() is already refusing new orders on it.
+                page(f"⚠ GAZBOT cross-desk imbalance UNCONFIRMED — {r2.summary()}. "
+                     f"{result['claim_gate']}. No kill; new orders are already blocked while this "
+                     f"stands. Next tick decides.", critical=False,
+                     dedupe_key="reconcile_unconfirmed")
+        else:
+            clear_pending()
         result["confirmed"] = confirmed
         if confirmed:
+            clear_pending()
             reason = f"unaccounted {r2.unaccounted:+g} lots — {r2.summary()}"
             actions = bench_everything(reason)
             result["actions"] = actions
@@ -263,6 +391,7 @@ def main() -> int:
                  dedupe_key="reconcile_breach")
         elif r1.breach:
             result["note"] = "not confirmed on the second read — treated as a position-change race"
+            clear_pending()
         if not confirmed:
             # ★ RE-ARM ON RESOLUTION. A cooldown must suppress a CONTINUING condition, never a NEW
             # occurrence of one — otherwise a breach that clears and returns inside 30 minutes is

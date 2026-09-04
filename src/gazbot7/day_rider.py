@@ -509,6 +509,43 @@ def clear_buy() -> None:
         pass
 
 
+def refuse_buy_while_holding(out: dict, notify, *, where: str) -> bool:
+    """★★★2026-09-03 A BUY PRESSED WHILE THE RIDER HOLDS IS REFUSED — AND SAID SO, LOUDLY.
+
+    ⚠ THE BUG THIS REPLACES. `step()` returns on every path of the MANAGE block, so while the rider
+    held a position the entry check at section 3 was NEVER REACHED. The request was not refused, not
+    consumed and not reported — it simply sat in the file and aged out after BUY_MAX_AGE_S (5 min)
+    while the dashboard had already replied *"requested"*. A button that reports success and does
+    nothing is [[a-claim-refusal-says-ownership-when-it-means-kill]] pointed the other way, and it is
+    the same silence that hid a four-hour dead BUY button on 2026-09-03.
+
+    ★ OPERATOR'S CALL, 2026-09-03, asked directly — should a BUY while holding ADD LOTS or REFUSE
+    LOUDLY: **"refuse loudly"**. So this never places anything. It consumes the request (an unread
+    file is what created the silence) and pages CRITICAL, because the operator is acting RIGHT NOW
+    and a refusal he does not see is indistinguishable from the bug.
+
+    ⚠ SELL IS REFUSED TOO, and deliberately. This is the ENTRY button; the exit is the CLAIM
+    buttons, which size from our own book and run behind the ownership check. Letting SELL through
+    here would make one control mean "open" or "close" depending on state — and on a netted shared
+    account an exit sized by an entry path is the 08-06 cascade.
+    """
+    _b = buy_requested()
+    if not _b:
+        return False
+    side, qty, _tgts = _b
+    clear_buy()                       # consume it: an unread file is what made this silent
+    held = f"{abs(float(out.get('qty') or 0)):g} lot(s) " \
+           f"{'LONG' if int(out.get('direction') or 0) > 0 else 'SHORT'} @ {out.get('entry')}"
+    out["buy_refused"] = {"at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
+                          "side": side, "qty": qty, "why": f"already holding ({where})"}
+    if notify:
+        notify(f"⛔ DAY RIDER REFUSED your {side} {qty} — it already holds {held}.\n"
+               f"NOTHING WAS PLACED and the request has been discarded, so it cannot fire later.\n"
+               f"To EXIT use the Claim buttons. To add, claim first, then press {side} again.",
+               critical=True)
+    return True
+
+
 CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
 # Long enough to survive a slow tick or a one-off service restart, far short of
 # the overnight gap that would let a press leak into the next session.
@@ -975,6 +1012,11 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                                    f"Retrying every minute; {mins_left} min until the CME halt.",
                                    critical=True)
             elif owns_position:
+                # ★2026-09-03 Same silence, second branch: this path returns too, so a press made
+                # while the book is torn (venue flat, our book still holding) was also swallowed.
+                # It is refused rather than filled — we do not open a position while our own book
+                # and IBKR disagree about what we already have.
+                refuse_buy_while_holding(out, notify, where="book/venue mismatch being resolved")
                 # ★2026-08-13 THE LEDGER GAP. Venue is flat at the clock but OUR OWN BOOK still
                 # says we are holding (entered and not closed). Both branches above test
                 # `abs(net) > 1e-9`, so before this existed the session fell through to the
@@ -1056,6 +1098,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         # taken from our own book for exactly that reason — but the GUARD deciding whether to run at
         # all was still trusting the shared number. [[md-stream-multi-symbol-filter]]
         if abs(net) > 1e-9 and st.get("entered") and not st.get("closed"):
+            # ★ FIRST, before any management work: a press made while we hold must be answered.
+            # Every path below returns, so this is the only place the request can be seen at all.
+            refuse_buy_while_holding(out, notify, where="managing an open position")
             # ★2026-08-06 — DIRECTION AND SIZE COME FROM OUR OWN BOOK, NEVER FROM THE ACCOUNT NET.
             # This used to read `d = 1 if net > 0 else -1` and then store `qty=abs(net)`, i.e. it
             # inferred its own position from a number that nets EVERY desk on DUQ191770. With the
@@ -1222,10 +1267,22 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     _tr = ib.placeOrder(contract, MarketOrder(v[0], 1))
                     _xpx = await await_fill(_tr, px, what=f"MANUAL_CLAIM lot {_claim+1}",
                                             notify=notify, out=out)
-                    _done = list(st.get("targets_done") or [])
+                    # ★★★2026-09-03 SIZE FROM THE LIVE TICK STATE, NOT THE TICK-START SNAPSHOT.
+                    # `out` starts as dict(st) and the PROFIT LADDER above can bank a lot in THIS
+                    # SAME tick — it writes the reduced count to `out` and leaves `st` untouched.
+                    # Reading `st` here therefore re-applies a count that is already one lot stale:
+                    # TWO lots leave the venue and the book deducts ONE. That is the 2026-08-31
+                    # incident exactly ("two exit paths in one tick both decrement from the stale
+                    # snapshot") and it is not merely cosmetic — the book is then claiming a lot the
+                    # venue does not hold, the reconciler reads the difference as an unaccounted lot
+                    # and kills BOTH desks for a race that never happened.
+                    # ⚠ `targets_done` has the SAME bug and it is the worse half: re-reading `st`
+                    # DISCARDS the rung the ladder just spent, so that rung can fill a second time.
+                    # `own_qty` was already refreshed by the ladder; these two fields were not.
+                    _done = list(out.get("targets_done") or [])
                     if _claim not in _done:
                         _done.append(_claim)          # that rung is spent — never fills later
-                    _left = max(0, int(st.get("lots_open") or own_qty) - 1)
+                    _left = max(0, int(out.get("lots_open") or own_qty) - 1)
                     book_trade(out, _xpx, "MANUAL_CLAIM", notify, qty=1)
                     out["targets_done"] = _done
                     out["lots_open"] = _left

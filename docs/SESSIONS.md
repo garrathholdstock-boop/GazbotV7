@@ -2679,3 +2679,84 @@ tick is the fallback)"* instead of *"on its next tick (~60s)"*. `gazbot7-web` wa
 restarted** — it drops his tab, and he is holding a winning position. It deploys at the next restart.
 
 **Nothing else touched. No gate switched, no rider code edited, no order placed.** 1045 tests green.
+
+### §385 — 2026-09-03 · THE FALSE KILL THAT ATE FOUR HOURS OF THE BUY BUTTON, and the two bugs under it
+
+**Operator: *"trying to buy and its not working"*, then *"its only registering 1 lot sometimes"*.**
+Two separate defects, one shared root: **a book that lags the venue is read as truth.**
+
+**★ WHAT ACTUALLY BROKE THE BUTTON — not the known `owns_position` bug.** At **16:42:10Z** the
+operator's manual claim closed a SHORT 4 at the venue. The rider writes its state once a MINUTE, so
+for a few seconds the books still said `rider -4` against a venue of 0. `desk_reconcile` landed in
+that window, read `venue +0 = tournament +0 + rider -4 → unaccounted +4`, **confirmed it, and
+stopped both desks** — `desk_kill.json` written, `day_rider=off`. It read clean 22 seconds later and
+every 30s since. The kill never re-arms by design, and `day_rider=off` also takes down the 20:40Z
+hard flat and every Claim button ([[a-cross-desk-kill-disarms-the-desk-it-is-protecting]]), so every
+BUY press from then on hit `day_rider.py:828` — `if not enabled(): return` — which sits **before**
+`buy_requested()` at :1016. Four hours of presses aged out in silence.
+
+**★★★ WHY THE TWO-READ GUARD DIDN'T CATCH IT: IT RE-SAMPLED THE WRONG SIDE.** The confirmation takes
+two independent VENUE snapshots six seconds apart and treats agreement as proof. But the claim is a
+FILE the desk rewrites on its own cycle — the rider once a minute — so both reads drew the **same
+unchanged stale claim**, agreed perfectly, and confirmed. *The guard was blind to the exact race it
+was written to catch.* [[an-instrument-that-reports-healthy-about-something-it-does-not-check]]:
+agreement between two reads of one stale file measures nothing.
+
+**FIX — the claim-freshness gate (`scripts/desk_reconcile.py`).** A breach is confirmed only once
+**every desk has REWRITTEN its claim** since the imbalance was first seen and still disagrees with
+IBKR. First sighting records the write-stamps (`day_rider_state.heartbeat`, `status.ts`) to
+`data/desk_reconcile_breach.json`; the next tick decides. A race resolves on the desk's next write; a
+real orphan survives it and is killed ~60-90s later than before.
+⚠ **THE KILL IS NOT WEAKENED, AND THE DELAY IS COVERED:** `deskrecon.may_place_order()` already
+refuses every new order while the invariant fails, kill file or not — nothing can be OPENED during
+the wait. The kill file's extra job is the PERSISTENT bench + rider-off, which is precisely the
+action that must not fire on a race. Unconfirmed imbalances now page (non-critical, own dedupe key,
+re-armed on resolution) rather than passing in silence.
+
+**★ THE "1 LOT" BUG — the 08-31 incident, still live in the code.** The profit LADDER and the
+operator's per-lot CLAIM can both fire in ONE tick. `step()` builds `out = dict(st)`; the ladder
+writes its reduced count to `out` and leaves `st` untouched — but the claim branch re-read
+**`st`**: `_left = max(0, int(st.get("lots_open") or own_qty) - 1)`. **Two lots leave the venue, the
+book deducts one.** `targets_done` had the same bug and is the worse half — re-reading `st` DISCARDS
+the rung the ladder just spent, so it can fill twice. Both now read `out`
+([[two-exit-paths-in-one-tick-both-decrement-from-the-stale-snapshot]]).
+★ This is what FEEDS the false kill: the book is left claiming a lot the venue does not hold.
+
+**VERIFIED, not assumed.** `book_vs_fills.py --days 1`: rider **booked -372.00 = venue -372.00**,
+tournament **+16.50 = +16.50**, **no unexplained divergence** — the P&L was never wrong, only the lot
+STATE. New tests fail on the old code and pass on the new (checked by reverting):
+`tests/test_day_rider_claim_ladder_race.py`, `tests/test_desk_reconcile_claim_freshness.py`.
+**1054 passed, 1 skipped.** Both files are `oneshot` — deployed on their next tick, no restart, and
+`src/gazbot7/deskrecon.py` was deliberately NOT touched (the long-running tournament imports it).
+
+**Operator authorised the release + re-arm** (kill released, `day_rider=on`). The `*:*:05` tick then
+took his still-live 18:02 request: **LONG 4 @ 29573.75**, reconciled `venue +4 = rider +4`.
+
+### §386 — 2026-09-03 · BUY-WHILE-HOLDING NOW REFUSES LOUDLY (operator's call)
+
+Asked directly whether a BUY pressed while the rider holds should **add lots** or **refuse loudly**:
+**"refuse loudly"**. Implemented as `day_rider.refuse_buy_while_holding()`.
+
+**THE SILENCE IT REPLACES.** `step()` returns on every path of the MANAGE block, so section 3's
+manual-entry check was never reached while a position was open. The request was not refused, not
+consumed and not reported — it aged out after `BUY_MAX_AGE_S` (5 min) while the dashboard had
+already answered *"requested"*. A button that reports success and does nothing.
+
+**NOW:** the request is CONSUMED (an unread file is what made it silent, and it could otherwise fire
+later against a tape that has moved on) and it pages **critical** — the operator is acting right now,
+and a refusal he does not see is indistinguishable from the bug. Nothing is ever placed.
+★ **SELL is refused too, deliberately.** This is the ENTRY button; the exit is the CLAIM buttons,
+which size from our own book behind the ownership check. One control meaning "open" or "close"
+depending on state is how a netted shared account gets an exit sized by an entry path.
+
+**TWO call sites, because two branches return while holding:** the MANAGE block, and the
+`elif owns_position:` book/venue-mismatch branch. A behavioural test cannot see a missing call site,
+so `tests/test_day_rider_buy_while_holding.py` asserts both against the SOURCE — verified to fail
+when a call site is removed.
+
+**★ NO WEB CHANGE AND NO RESTART.** `web.py:1363` ALREADY refuses a press while `entered and not
+closed`; the presses that got through did so because the state file had not yet recorded a fill. The
+rider is the only place that can see that, so that is where the refusal belongs — and `gazbot7-web`
+stays up, keeping the operator's tab.
+
+**1059 passed, 1 skipped.** `day_rider.py` is `oneshot` — live on the next tick.
