@@ -77,9 +77,36 @@ def _creds():
         return None
 
 
+def _is_day(name: str) -> bool:
+    try:
+        dt.date.fromisoformat(name)
+        return True
+    except ValueError:
+        return False
+
+
 def _lake_days(stream: str, symbol: str) -> set[str]:
+    """Day-partition basenames only.
+
+    ★2026-09-04 THIS USED TO RETURN EVERY BASENAME AND coverage() THEN CRASHED ON IT. The 08-18
+    backfill writes multi-year files into the SAME directory as the day partitions
+    (`backfill_1min.parquet`, `backfill_1hour.parquet`, ...), and `date.fromisoformat('backfill_1day')`
+    raises — so the one function whose whole job is answering "how much tape do we have" died with a
+    ValueError the moment the backfill landed. Non-day files are excluded from the DAY COUNT (they
+    are not a day) and reported separately by `_lake_extras()`, because silently dropping them would
+    understate the history in exactly the way this module exists to prevent.
+    ⚠ They are still READ by connect(): the parquet glob is unchanged, and the union was verified
+    duplicate-free (MNQ bars 1,282,719 rows = 1,282,719 distinct (bar_ts, timeframe))."""
     return {os.path.basename(f)[:-8]
-            for f in glob.glob(f"{LOCAL}/{stream}/{symbol}/*.parquet")}
+            for f in glob.glob(f"{LOCAL}/{stream}/{symbol}/*.parquet")
+            if _is_day(os.path.basename(f)[:-8])}
+
+
+def _lake_extras(stream: str, symbol: str) -> list[str]:
+    """Non-day parquet files in the lake — the multi-year backfill. Counted, never date-parsed."""
+    return sorted(os.path.basename(f)[:-8]
+                  for f in glob.glob(f"{LOCAL}/{stream}/{symbol}/*.parquet")
+                  if not _is_day(os.path.basename(f)[:-8]))
 
 
 def _sql_days(stream: str, symbol: str) -> set[str]:
@@ -123,7 +150,8 @@ def coverage(symbols=("MNQ", "MGC")) -> list[dict]:
             u = v5 | lake | hot
             if not u:
                 out.append({"stream": stream, "symbol": sym, "days": 0, "weeks": 0.0,
-                            "v5": 0, "lake": 0, "hot": 0, "span": None, "gaps": []})
+                            "v5": 0, "lake": 0, "hot": 0, "span": None, "gaps": [],
+                            "extras": _lake_extras(stream, sym)})
                 continue
             ds = sorted(u)
             gaps = []
@@ -135,7 +163,9 @@ def coverage(symbols=("MNQ", "MGC")) -> list[dict]:
                     gaps.append(f"{a}..{b}")
             out.append({"stream": stream, "symbol": sym, "days": len(u), "weeks": round(len(u)/5, 1),
                         "v5": len(v5), "lake": len(lake), "hot": len(hot),
-                        "span": f"{ds[0]}..{ds[-1]}", "gaps": gaps})
+                        "span": f"{ds[0]}..{ds[-1]}", "gaps": gaps,
+                        # the multi-year backfill files: real history, but not day partitions
+                        "extras": _lake_extras(stream, sym)})
     return out
 
 
