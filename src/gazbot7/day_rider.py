@@ -1125,8 +1125,12 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     # lots. The reconciler saw venue 0 vs rider +4, wrote the kill file, and the
                     # rider went inert — which is why the claim buttons stopped responding. A
                     # fallback price is only ever used if the fill is unreadable; it must exist.
+                    # ★2026-09-04 same blindness: `_fb.price` is 0.0 outside US hours, and a 0
+                    # fallback makes book_trade REFUSE the row — the flatten would execute and the
+                    # ledger would lose it. Order placement is untouched; this is the price used
+                    # only when the venue gives no readable fill.
                     _fb = drift_read(cfg.capture_path, cfg.symbol, now)
-                    _xpx = await await_fill(_tr, (_fb.price or 0.0), what="CLOCK_FLAT exit",
+                    _xpx = await await_fill(_tr, entry_reference(_fb, cfg), what="CLOCK_FLAT exit",
                                             notify=notify, out=out)
                     # ★ VERIFY, then let the minute cadence retry. A market order that does not fill
                     # is exactly why the flatten moved off the halt — silence here would carry the
@@ -1253,7 +1257,18 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             own_qty = float(st.get("qty") or LOTS)
             entry = float(st.get("entry", 0.0))
             rr = drift_read(cfg.capture_path, cfg.symbol, now)
-            px = rr.price or entry
+            # ★★★2026-09-04 THE MANAGE PATH WAS BLIND OUTSIDE US HOURS, AND IT FAILED SILENTLY.
+            # `drift_read` is anchored to the 13:30 cash open and returns price 0.0 outside it, so
+            # this line fell back to `entry` — THE POSITION'S OWN ENTRY PRICE. Everything downstream
+            # then compared the market against itself: `ahead_pt` read 0, `peak` never moved off
+            # entry, the trail could never arm and NO LADDER RUNG COULD EVER FIRE. Observed live at
+            # 06:00Z on a LONG 4 that was $220 down and reported "riding · at +0".
+            # ⚠ THIS IS THE WORST SHAPE THIS DESK HAS: an instrument reporting healthy about
+            #   something it never checked. Nothing errored, the heartbeat advanced, the note read
+            #   "riding", and the exit machinery was simply switched off.
+            # `entry` remains the last-resort fallback: with no fresh tape at all, comparing the
+            # market against itself is at least inert, whereas a stale price could fire a rung.
+            px = entry_reference(rr, cfg) or entry
             if rr.atr > 0:
                 out["entry_atr"] = round(rr.atr, 2)
             peak = float(st.get("peak", entry))

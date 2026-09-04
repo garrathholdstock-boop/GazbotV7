@@ -2827,3 +2827,41 @@ the new path rather than failing for the wrong reason. **1069 passed, 1 skipped.
 the MANAGE path falls back to `px = rr.price or entry`, i.e. the ENTRY price. So the open LONG 4
 reads `ahead_pt 0` and *"trail not armed (need +150 [fixed], at +0)"* — **the trail cannot arm and
 the ladder cannot trigger while the tape reference is blind.** Not touched with a position open.
+
+### §389 — 2026-09-04 · THE MANAGE PATH WAS PRICING THE POSITION OFF ITS OWN ENTRY
+
+Operator: *"fix the trail thing too"* — with the position still open, so the change was made to the
+one line that sources the price and nothing else.
+
+`drift_read` is anchored to the 13:30 UTC cash open and returns **price 0.0 outside it**. The manage
+path read `px = rr.price or entry`, so outside US hours it fell back to **the position's own entry
+price** and compared the market against itself:
+
+    ahead_pt  read 0 on a LONG 4 that was $220 down
+    peak      never moved off entry
+    trail     could never arm      (ahead is measured from PEAK)
+    ladder    no rung could fire   (ahead = d * (px - entry) = 0)
+
+★★★ **NOTHING ERRORED.** The heartbeat advanced every 60s, `venue_ok` was true, the reconciler was
+clean and the note read *"riding · trail not armed (need +150 [fixed], at +0)"*. **The entire exit
+machinery was switched off and every instrument reported healthy** — this desk's signature failure,
+[[an-instrument-that-reports-healthy-about-something-it-does-not-check]], on the money path.
+
+**FIX:** `px = entry_reference(rr, cfg) or entry` — the live symbol-filtered tape when drift_read is
+blind. ⚠ `entry` stays as the LAST-RESORT fallback deliberately: with no fresh tape at all, comparing
+the market against itself is inert, whereas a stale price could fire a rung into a market that moved.
+Also fixed the CLOCK_FLAT fallback price, which was 0.0 outside US hours — and a 0 fallback makes
+`book_trade` REFUSE the row, so the 20:40 flatten would have executed and the ledger lost it. Order
+placement untouched; that price is used only when the venue returns no readable fill.
+
+**VERIFIED LIVE ON THE OPEN POSITION.** Checked first that a real price could not fire anything: peak
+was frozen AT entry and the market was BELOW it, so no rung and no trail. After the tick: `ahead_pt`
+**-19.6** (was a fabricated 0.0), note *"at -20"*, market 29630.00, true open P&L **-$141**, peak
+still at entry, trail still None, nothing exited. Test verified to fail on the old line.
+**1074 passed, 1 skipped.**
+
+⚠ **STILL OPEN — OPERATOR'S CALL.** `arm_atr` is 0.0 on this position because the tape read was blind
+at entry, so the trail is on the **fixed 150pt** rule instead of `4 x ATR`. At the current ~10pt ATR
+that is **~40pt vs 150pt** — a materially slower trail than the backtested rule. Giving `arm_atr` a
+tape-derived ATR would change which rule new entries use, and `trail_level`'s own docstring warns
+that scaling the trail off a different number is a live/lab divergence. Not done silently.
