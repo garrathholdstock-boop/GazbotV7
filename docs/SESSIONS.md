@@ -2760,3 +2760,70 @@ rider is the only place that can see that, so that is where the refusal belongs 
 stays up, keeping the operator's tab.
 
 **1059 passed, 1 skipped.** `day_rider.py` is `oneshot` — live on the next tick.
+
+### §387 — 2026-09-04 · THE FILLS ARE FABRICATED: a 0.1% adverse price that never printed
+
+Operator: *"tape was around 29622. it bought at 29647. thats an immediate $200 loss. why?"*
+**He was right about the tape, and the fill was not a market event.** `rider-2551`:
+
+    05:29:36  BUY 1 @ 29625.50   <- real; the tape printed 29623-29626 that second
+    05:29:37  BUY 3 @ 29655.00   <- 0.1% higher; NEVER PRINTED all session (high 29643.50)
+
+★★★ **EXACTLY 0.1% OF PRICE, ROUNDED TO THE TICK, ALWAYS ADVERSE.** 21/21 multi-lot rider orders
+measure **0.09897–0.09998%** (mean 0.09954%) — invariant across Asia and the US open, BUY and SELL,
+three weeks, every volatility regime. Real slippage varies with liquidity; **this does not vary at
+all, so it is not slippage.** The same signature appears on the tournament's independent order path,
+and genuine book-walking fills sit alongside it at 0.005–0.014% — so it is the BROKER side, and it
+is distinguishable. Verified on 5 orders that the away price never printed within ±10 min.
+
+★★★ **$2,916.50 over 32 orders / 101 lots — MORE THAN THE DESK'S ENTIRE BOOKED LOSS of $1,771.44.**
+Backed out, the book is roughly **+$1,145**. It is charged on 3 of every 4 lots of a rider entry.
+⚠ This does NOT make the desk profitable — the money is really gone inside the paper book. It means
+**the number is not a measurement of the strategy.** Single-lot fills are clean; every multi-lot
+comparison is contaminated. Whether a LIVE account does this is UNKNOWN — do not assume it does not.
+⚠ [[execution-cost-autopsy-stage1]]'s *"the desk bleeds DIRECTION not cost"* was concluded without
+this and needs re-deriving on the clean subset.
+
+**NOT CHANGED — operator's call.** `broker_adapter.py:35` already argues the fix: *"limit forces the
+fill (bounded slippage) and is strictly better live too"*. A marketable LIMIT on multi-lot entries
+caps this at a known number. Nothing touched while a position is open.
+
+### §388 — 2026-09-04 · ENTRIES GO IN ON A MARKETABLE LIMIT (kills the fabricated fill)
+
+Operator: *"do the limit order fix"*, with a position open. **Scope was therefore confined to the
+ENTRY path — his live LONG 4 goes down the MANAGE path, which is byte-identical.**
+
+`place_entry()` replaces the bare `MarketOrder` at BOTH entry sites (manual and automatic) with a
+marketable LIMIT, `ref ± RIDER_ENTRY_LIMIT_BAND_PT` (default **5.0pt**), rounded in the LOOSENING
+direction so it never lands a tick inside the market. **A limit cannot fill worse than its price, so
+the paper engine's 0.1% fabricated fill becomes impossible** — verified on the real 0.25 grid: a BUY
+off 29625.50 limits at 29630.50 against a fabricated 29655.13.
+
+★ **EXITS DELIBERATELY STAY ON MARKET ORDERS.** All six remaining `MarketOrder` sites are exits
+(CLOCK_FLAT / TARGET / OPERATOR_SELL / MANUAL_CLAIM ×2 / TRAIL), asserted by a test. *"NEVER HOLD
+OVERNIGHT. EVER."* is absolute and an exit that does not fill is unbounded; the fabricated fill costs
+a bounded number of points. A limit belongs only where the failure mode is "no position".
+
+⚠⚠ **THE HAZARD THE FIX INTRODUCED, AND CLOSED.** A limit can PARTIAL-fill where a market order
+could not, and both entry paths booked `qty=LOTS` / `qty=_q` from the REQUEST. Booking 4 against a
+venue of 1 is exactly the unaccounted-lot condition §385 was about — the cure would have manufactured
+the false kill it was written beside. `place_entry` returns the FILLED quantity, both call sites book
+it, the target ladder is trimmed to it, the auto path's protective stop is sized from it, and the
+unfilled remainder is CANCELLED (a working entry order left behind is the 08-06 orphan shape).
+
+★★ **A BUG IN MY OWN FIX, CAUGHT LIVE BEFORE IT SHIPPED.** Every price in this file comes from
+`drift_read().price`, which is anchored to the 13:30 cash open and returns **0.0 outside it** —
+confirmed at 06:00Z. Harmless for a market order, fatal for a limit: pricing entries off it alone
+would have **refused every manual press outside US hours**, and manual entry is deliberately live
+across the whole CME session. Added `last_tape_price()` / `entry_reference()` — the live capture
+tape, symbol-filtered, with staleness a REFUSAL rather than a guess.
+
+**Nine existing tests broke and were updated, not deleted** — two counted `await await_fill(` sites
+(7 → 6; the entry moved to `place_entry`, which sources the same `avgFillPrice`), one asserted the
+literal `MarketOrder(_side, _q)`, and the fake brokers needed a real `orderStatus` so they exercise
+the new path rather than failing for the wrong reason. **1069 passed, 1 skipped.**
+
+⚠ **OPEN, NOT FIXED — and it affects the live position.** `drift_read` returning 0.0 in Asia means
+the MANAGE path falls back to `px = rr.price or entry`, i.e. the ENTRY price. So the open LONG 4
+reads `ahead_pt 0` and *"trail not armed (need +150 [fixed], at +0)"* — **the trail cannot arm and
+the ladder cannot trigger while the tape reference is blind.** Not touched with a position open.

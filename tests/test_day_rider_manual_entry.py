@@ -14,15 +14,33 @@ from gazbot7 import day_rider as D
 
 
 class FakeIB:
-    def __init__(self): self.orders = []
+    """★2026-09-04 the fake trade now carries a real `orderStatus`. Entries go in as marketable
+    LIMITS (SESSIONS §387: the paper engine fabricated a 0.1% adverse fill), and place_entry reads
+    `filled`/`avgFillPrice` to book what the VENUE gave rather than what was asked for. A stub
+    without those fields would fail the test for the wrong reason and hide whether the entry works."""
+
+    def __init__(self, filled=4, avg=23000.0):
+        self.orders, self.cancelled = [], []
+        self._filled, self._avg = filled, avg
+
     def placeOrder(self, contract, order):
-        self.orders.append((contract, order)); return types.SimpleNamespace(order=order)
+        self.orders.append((contract, order))
+        return types.SimpleNamespace(
+            order=order,
+            orderStatus=types.SimpleNamespace(status="Filled", filled=self._filled,
+                                              avgFillPrice=self._avg))
+
+    def cancelOrder(self, order):
+        self.cancelled.append(order)
 
 
 def _run(mod_min, *, net=0.0, monkeypatch=None):
     ib = FakeIB(); out = {}
     monkeypatch.setattr(D, "drift_read",
                         lambda *a, **k: types.SimpleNamespace(price=23000.0, atr=25.0))
+    # ★2026-09-04 the manual entry no longer routes through await_fill — it uses place_entry(),
+    # which is exercised for real here against FakeIB's orderStatus. The stub stays for the CLOSE
+    # paths, which still use await_fill.
     async def fake_fill(tr, fallback, **kw): return 23000.0
     monkeypatch.setattr(D, "await_fill", fake_fill)
     monkeypatch.setattr(D, "venue_first_ok", lambda *a, **k: True)

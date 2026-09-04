@@ -48,6 +48,8 @@ import datetime as dt
 import json
 import logging
 import os
+import sqlite3
+import time
 
 from .config import RunConfig
 from .drift import OPEN_UTC_MIN, read as drift_read
@@ -771,6 +773,135 @@ async def _net_position(ib, symbol: str) -> float:
     return sum(p.position for p in ib.positions() if p.contract.symbol == symbol)
 
 
+# ★★★2026-09-04 ENTRIES GO IN ON A MARKETABLE LIMIT, NEVER A BARE MARKET ORDER.
+# The IBKR paper engine fills every lot beyond the first at EXACTLY 0.1% of price, adverse, rounded
+# to the tick — a price that NEVER PRINTS. Measured 0.09897-0.09998% on 21/21 multi-lot rider orders
+# across three weeks, both session halves, both sides; the same signature appears on the tournament's
+# independent order path, so it is the broker, not us. Cost: $2,916.50 over 32 orders / 101 lots,
+# which is MORE than this desk's entire booked loss. See [[paper-fills-fabricate-a-0-1-percent-
+# adverse-price]] and SESSIONS §387.
+# A limit cannot fill worse than its price, so the fabricated fill is simply impossible.
+# ⚠ WIDE ENOUGH TO STAY MARKETABLE. MNQ's spread is 0.25-1pt; this band is many times that, so in a
+#   normal tape it crosses and fills exactly like the market order did. It only bites on the
+#   synthetic 29.5pt fill and on a genuine violent gap — where NOT being filled is the right outcome.
+ENTRY_LIMIT_BAND_PT = float(os.environ.get("RIDER_ENTRY_LIMIT_BAND_PT", "5.0"))
+# How stale a tape print may be and still price a limit. A market we cannot see is one we must not
+# send a bounded order into.
+ENTRY_REF_MAX_AGE_S = 120.0
+
+
+def last_tape_price(capture_path: str, symbol: str, *, max_age_s: float = ENTRY_REF_MAX_AGE_S,
+                    now_ts: float | None = None) -> float:
+    """The most recent printed price for `symbol`, or 0.0 if there is no fresh one.
+
+    ★★2026-09-04 WHY THIS EXISTS. Every price in this file comes from `drift_read().price`, which is
+    anchored to the 13:30 UTC cash open and returns **0.0 outside it** — verified live at 06:00Z.
+    That was harmless while entries were market orders (no reference needed), but a LIMIT must be
+    priced, and the operator's manual BUY/SELL is deliberately live across the WHOLE CME session
+    (2026-08-21). Pricing entries off drift_read alone would have refused every press outside US
+    hours — the fix would have broken the button it was meant to protect.
+
+    ⚠ FILTERS ON symbol. capture.db carries MGC as well as MNQ, and folding the two once made ATR
+    read 1848 against a true 15 ([[md-stream-multi-symbol-filter]]).
+    ⚠ STALENESS IS A REFUSAL, NOT A GUESS. A halted or dead feed returns 0.0 and the caller refuses;
+    an absence of tape is not a measurement of it.
+    """
+    try:
+        uri = f"file:{capture_path}?mode=ro"
+        with sqlite3.connect(uri, uri=True, timeout=5) as c:
+            row = c.execute(
+                'select bar_ts, "close" from bars where symbol = ? order by bar_ts desc limit 1',
+                (symbol,)).fetchone()
+    except Exception:
+        return 0.0
+    if not row or not row[1]:
+        return 0.0
+    age = (now_ts if now_ts is not None else time.time()) - float(row[0])
+    if age > max_age_s or age < -60:
+        return 0.0
+    return float(row[1])
+
+
+def entry_reference(rr, cfg, *, now_ts: float | None = None) -> float:
+    """The price a limit is built from: the drift read when it has one, else the live tape."""
+    return float(getattr(rr, "price", 0.0) or 0.0) or last_tape_price(
+        cfg.capture_path, cfg.symbol, now_ts=now_ts)
+
+
+async def place_entry(ib, contract, side: str, qty: int, ref_px: float, symbol: str,
+                      *, what: str, notify=None) -> tuple[float, int]:
+    """Open a position with a marketable LIMIT. Returns (avg_fill_price, LOTS ACTUALLY FILLED).
+
+    ⚠⚠ THE CALLER MUST BOOK THE RETURNED QUANTITY, NEVER THE REQUESTED ONE. A limit can partial-fill
+    where a market order could not, and both entry paths used to record `qty=LOTS` / `qty=_q` from
+    the REQUEST. Booking 4 against a venue of 1 is precisely the unaccounted-lot condition the
+    cross-desk reconciler stops both desks for — the fix for the fabricated fill must not create the
+    false kill it was written next to.
+
+    ★ EXITS ARE DELIBERATELY LEFT ON MARKET ORDERS. "NEVER HOLD OVERNIGHT. EVER." is absolute, and an
+    exit that does not fill is unbounded risk; the fabricated fill costs a bounded number of points.
+    A limit belongs only where the failure mode is "no position", which is free.
+    """
+    from ib_async import LimitOrder
+
+    from .ticks import round_to_tick, tick_for
+    if not ref_px or ref_px <= 0:
+        # An entry we cannot PRICE is an entry we must not place. The old market order would have
+        # gone in blind here — and the reference price really does come back 0 (the 09-04 entry
+        # recorded entry_atr 0.0 off a degenerate tape read). Refusing costs a re-press.
+        if notify:
+            notify(f"⛔ DAY RIDER {what} REFUSED — no reference price to build a limit from "
+                   f"(got {ref_px!r}). NOTHING WAS PLACED. Re-press when the tape is reading.",
+                   critical=True)
+        return 0.0, 0
+    tick = tick_for(symbol)
+    # Round in the LOOSENING direction so the limit never lands a tick INSIDE the market and sits.
+    lmt = round_to_tick(ref_px + ENTRY_LIMIT_BAND_PT if side == "BUY"
+                        else ref_px - ENTRY_LIMIT_BAND_PT,
+                        tick, mode="ceil" if side == "BUY" else "floor")
+    tr = ib.placeOrder(contract, LimitOrder(side, qty, lmt))
+    for _ in range(20):
+        await asyncio.sleep(0.5)
+        if tr.orderStatus.status == "Filled":
+            break
+
+    def _filled() -> int:
+        try:
+            return int(float(tr.orderStatus.filled or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    got = _filled()
+    if got < qty:
+        # ⚠ CANCEL THE REMAINDER. A working entry order left behind is the 08-06 orphan shape: it can
+        # fill later, unwatched, against a book that has already been written.
+        try:
+            ib.cancelOrder(tr.order)
+        except Exception as e:                       # never die on a cancel
+            if notify:
+                notify(f"⚠ DAY RIDER {what}: could not cancel the unfilled remainder "
+                       f"({type(e).__name__}: {e}). CHECK TWS for a working order.", critical=True)
+        await asyncio.sleep(1.0)
+        got = _filled()                              # re-read: a fill can land during the cancel
+    px = 0.0
+    try:
+        px = float(tr.orderStatus.avgFillPrice or 0.0)
+    except (TypeError, ValueError):
+        px = 0.0
+    if got <= 0:
+        if notify:
+            notify(f"DAY RIDER {what}: NOT FILLED at limit {lmt:.2f} (ref {ref_px:.2f}, band "
+                   f"{ENTRY_LIMIT_BAND_PT:g}pt) — order cancelled, NO POSITION taken. The tape "
+                   f"moved away rather than the fill being fabricated. Re-press to chase it.",
+                   critical=True)
+        return 0.0, 0
+    if got < qty and notify:
+        notify(f"⚠ DAY RIDER {what}: PARTIAL FILL — {got} of {qty} lots @ {px:.2f} (limit "
+               f"{lmt:.2f}). The remainder was cancelled. Your book and the venue both hold "
+               f"{got}; the ladder is sized to {got}.", critical=True)
+    return px, got
+
+
 async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify):
     """Execute an operator BUY/SELL request. ONE implementation, called from BOTH paths.
 
@@ -801,9 +932,18 @@ async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify
         out["note"] = "manual entry refused — venue does not reconcile against desk claims"
         return True
     rr = drift_read(cfg.capture_path, cfg.symbol, now)
-    from ib_async import MarketOrder
-    _tr = ib.placeOrder(contract, MarketOrder(_side, _q))
-    _fill = await await_fill(_tr, rr.price or 0.0, what=f"MANUAL {_side}", notify=notify, out=out)
+    # ★2026-09-04 marketable LIMIT, and the FILLED quantity is what gets booked — see place_entry().
+    _fill, _got = await place_entry(ib, contract, _side, _q, entry_reference(rr, cfg), cfg.symbol,
+                                    what=f"MANUAL {_side} {_q}", notify=notify)
+    if _got <= 0:
+        # Nothing was taken. place_entry() has already said so; leave the book flat and untouched.
+        out["note"] = f"manual {_side} not filled at the limit — no position taken"
+        return True
+    out["exit_px_source"] = "fill"
+    if _got < _q:
+        # ⚠ Book what the VENUE gave us, never what was asked for. The ladder is per-lot, so the
+        # target list must shrink with it or rungs would be assigned to lots that do not exist.
+        _q, _tgts = _got, _tgts[:_got]
     # PER-LOT targets in POINTS. One contract is $2/pt, so a lot's $ target is usd/2 — it does NOT
     # divide by quantity. Getting that wrong is what made the ladder bank $269 instead of $1,300.
     _tpts = [round(t / VPP, 2) for t in _tgts]
@@ -1425,19 +1565,25 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             return out
 
         d = 1 if r.direction == "UP" else -1
-        from ib_async import MarketOrder, StopOrder
-        tr = ib.placeOrder(contract, MarketOrder("BUY" if d > 0 else "SELL", LOTS))
-        for _ in range(20):
-            await asyncio.sleep(0.5)
-            if tr.orderStatus.status == "Filled":
-                break
-        fill = float(tr.orderStatus.avgFillPrice or r.price)
+        from ib_async import StopOrder
+        # ★2026-09-04 marketable LIMIT here too — the automatic entry is 4 lots, so it took the
+        # fabricated 0.1% fill on 3 of them exactly as the manual one did.
+        _side = "BUY" if d > 0 else "SELL"
+        fill, _lots = await place_entry(ib, contract, _side, LOTS, entry_reference(r, cfg),
+                                        cfg.symbol, what=f"AUTO {_side} {LOTS}", notify=notify)
+        if _lots <= 0:
+            out["note"] = "drift confirmed but the entry did not fill at the limit — no position"
+            save_state(out)
+            return out
         stop_px = round(fill - d * VENUE_STOP_PT, 2)
         if PLACE_VENUE_STOP:
-            ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", LOTS, stop_px))
+            # ⚠ `_lots`, not LOTS: a stop sized to the REQUEST after a partial fill protects lots
+            # that do not exist, and on a netted shared account the excess reverses the position
+            # when it triggers.
+            ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", _lots, stop_px))
         else:
             stop_px = None      # naked by operator decision — see PLACE_VENUE_STOP above
-        out.update(entered=True, entry=fill, peak=fill, direction=d, qty=LOTS,
+        out.update(entered=True, entry=fill, peak=fill, direction=d, qty=_lots,
                    # ★2026-08-11 the state had NO entry timestamp, so a booked trade had no
                    # opened_at and "how long did it hold?" was unanswerable after the fact.
                    entered_at=dt.datetime.now(dt.UTC).isoformat(),
@@ -1445,13 +1591,13 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                    # ★ FROZEN at entry and never rewritten — entry_atr above is overwritten every
                    #   tick with the live ATR, so the trail needs its own immutable copy.
                    arm_atr=round(r.atr, 2), venue_stop=stop_px,
-                   lots_open=LOTS, targets_done=[],
-                   note=f"ENTERED {LOTS} lots {r.direction} @ {fill}")
+                   lots_open=_lots, targets_done=[],
+                   note=f"ENTERED {_lots} lots {r.direction} @ {fill}")
         if notify:
             # ⚠ "flat 21:00" was WRONG here for the life of this line: 21:00 IS the CME halt, and
             #   the desk flattens at FLAT_UTC_MIN (20:40). Never restate a clock as a literal.
             band = watch_verdict(r.roundtrip)
-            notify(f"DAY RIDER ENTERED {LOTS} lots {r.direction} @ {fill:.2f} · ATR {r.atr:.1f}pt\n"
+            notify(f"DAY RIDER ENTERED {_lots} lots {r.direction} @ {fill:.2f} · ATR {r.atr:.1f}pt\n"
                    f"rt {r.roundtrip:.2f} → {band}\n"
                    f"eff {r.efficiency:.2f} · stop {stop_px if stop_px else 'NONE (naked)'} · hard flat "
                    f"{FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z · entries stop "

@@ -169,5 +169,14 @@ def test_manual_buy_is_checked_before_the_session_latch():
     latch = src.index('out["note"] = "already traded this session — no re-entry"')
     assert call < latch, "the manual BUY call has fallen below the once-per-session latch"
     # and it must still actually place an order — a gutted helper is worse than no button
-    assert "MarketOrder(_side, _q)" in src, "do_manual_entry no longer places an order"
-    assert src.count("await await_fill(") == 7, "an order path lost its fill-sourced exit"
+    # ★2026-09-04 was `MarketOrder(_side, _q)`. Entries are now marketable LIMITS via place_entry()
+    # because the paper engine fabricated a 0.1%-adverse fill on every lot after the first
+    # (SESSIONS §387). The invariant this line defends — the button reaches the broker — is
+    # unchanged; only the order type is.
+    assert "await place_entry(ib, contract, _side, _q" in src, (
+        "do_manual_entry no longer places an order")
+    # ★2026-09-04 was 7 = 6 closes + the manual ENTRY. The entry moved to place_entry(), which
+    # sources the same avgFillPrice AND returns the filled quantity (entries are marketable limits
+    # now — SESSIONS §387). The six CLOSE paths are what this line is really guarding.
+    assert src.count("await await_fill(") == 6, "a CLOSE path lost its fill-sourced exit"
+    assert src.count("await place_entry(") == 2, "an ENTRY path lost its fill-sourced entry"

@@ -78,9 +78,17 @@ def test_every_close_path_books_the_fill_not_the_market_price():
                  if "book_trade(out, px," in ln and "CLOSED_ELSEWHERE" not in ln]
     assert not offenders, f"a close path still books the market price: {offenders}"
     assert 'book_trade(out, px, "CLOSED_ELSEWHERE"' in src, "the documented exception vanished"
-    assert src.count("await await_fill(") == 7, (
-        "expected 7 await_fill sites: 6 fill-sourced CLOSE paths plus ONE ENTRY.\n"
-        "★2026-08-20 the seventh is the operator's MANUAL BUY/SELL — an entry, not a close, and "
-        "the only await_fill here that is not a close path. It uses await_fill for the same reason "
-        "the closes do: book the FILL, never the market price. If this count changes again, check "
-        "whether the new site is an entry or a close before touching the number.")
+    assert src.count("await await_fill(") == 6, (
+        "expected 6 await_fill sites — the fill-sourced CLOSE paths.\n"
+        "★2026-08-20 there was a SEVENTH: the operator's MANUAL BUY/SELL, an entry rather than a "
+        "close, using await_fill for the same reason the closes do — book the FILL, never the "
+        "market price.\n"
+        "★2026-09-04 that site moved to place_entry(), which sources the same `avgFillPrice` and "
+        "additionally returns the FILLED QUANTITY, because entries are now marketable LIMITS and a "
+        "limit can partial-fill (SESSIONS §387). The property this test defends is unchanged and is "
+        "re-asserted below for both entry paths. If this count changes again, check whether the new "
+        "site is an entry or a close before touching the number.")
+    # ★ THE ENTRY PATHS STILL BOOK THE FILL — now via place_entry, and they book its QUANTITY too.
+    assert src.count("await place_entry(") == 2, "both entry sites must go through place_entry"
+    assert "avgFillPrice" in src[src.index("async def place_entry"):src.index("async def do_manual_entry")], (
+        "place_entry must source the price from the venue's avgFillPrice, not the market price")
