@@ -1,5 +1,20 @@
 # THE FRIDAY REPORT — V7 CANONICAL SCOPE (locked 2026-07-24)
 
+> ═══════════════════════════════════════════════════════════════════════════════════════════════
+> ## ★★★ THIS IS **FRIDAY REPORT — VERSION 1**. FROZEN 2026-09-04 BY OPERATOR INSTRUCTION.
+> Operator, 2026-09-04: *"leave the previous scopes as friday report version 1."*
+>
+> **V1 is the weekly desk review** — census, gate rehab, shadow board, greenfield clusters, the
+> tournament scorecard, the router review. It is NOT retired and NOT superseded; it is the standing
+> weekly report and this file remains its canonical shape.
+>
+> **VERSION 2 is a SEPARATE, NARROWER report** with its own scope in `FRIDAY_V2_TUNNELS_AND_RUNS.md`
+> — a single question (can the break out of a compression tunnel be traded automatically, bought
+> with NO STOP), not a weekly review. **Do not merge the two.** V2 does not inherit V1's phase list,
+> and a V1 phase must never be told to answer a V2 question.
+> ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+
 > **★★★ IF YOU ARE THE FRIDAY-REPORT CRON (fresh Claude session, ~Fri 22:00 UTC / midnight Paris): THIS FILE IS THE REPORT SHAPE. ★★★**
 > **★★2026-08-14 UPDATED — THE DESK IS MNQ-LED, NOT MNQ-ONLY.** The LIVE desk trades **MNQ**; that is
 > still where the P&L and every existing gate live. But we have captured **MGC** (COMEX gold) L1 AND

@@ -1,5 +1,20 @@
 # Friday report — the TOURNAMENT section (scope, NOT built)
 
+> ═══════════════════════════════════════════════════════════════════════════════════════════════
+> ## ★★★ THIS IS **FRIDAY REPORT — VERSION 1**. FROZEN 2026-09-04 BY OPERATOR INSTRUCTION.
+> Operator, 2026-09-04: *"leave the previous scopes as friday report version 1."*
+>
+> **V1 is the weekly desk review** — census, gate rehab, shadow board, greenfield clusters, the
+> tournament scorecard, the router review. It is NOT retired and NOT superseded; it is the standing
+> weekly report and this file remains its canonical shape.
+>
+> **VERSION 2 is a SEPARATE, NARROWER report** with its own scope in `FRIDAY_V2_TUNNELS_AND_RUNS.md`
+> — a single question (can the break out of a compression tunnel be traded automatically, bought
+> with NO STOP), not a weekly review. **Do not merge the two.** V2 does not inherit V1's phase list,
+> and a V1 phase must never be told to answer a V2 question.
+> ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+
 **Status:** SCOPED 2026-07-21. Add a **Tournament Scorecard** to the weekly Friday report so
 the operator's **Saturday relegate/promote decision** has a proper written weekly analysis in
 front of it — not just the live cockpit. Pairs with the standing rule *tournament changes
