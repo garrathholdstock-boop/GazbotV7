@@ -39,6 +39,15 @@ tp = importlib.util.module_from_spec(_s)
 _s.loader.exec_module(tp)
 tw = tp.tw
 
+# ★2026-09-04 v2 = PRICE CONTAINMENT (see tunnel_v2.detect_boxes). The volatility framing was
+# refuted by the operator's own labels, so both renderings exist side by side and he judges them.
+DETECTOR = os.environ.get("TL_DETECTOR", "v1")
+if DETECTOR == "v2":
+    _v = importlib.util.spec_from_file_location("v2", f"{GB}/scripts/tunnel_v2.py")
+    v2 = importlib.util.module_from_spec(_v)
+    _v.loader.exec_module(v2)
+    PREFIX = "tl2_"
+
 
 def main() -> int:
     os.makedirs(OUT, exist_ok=True)
@@ -70,7 +79,21 @@ def main() -> int:
         ax.plot(x, close, lw=.9, color="#202124", zorder=3)
 
         mine = []
-        for a, b in tp.quiet_runs(sp, 1):
+        if DETECTOR == "v2":
+            for m in v2.detect_boxes(sb):
+                ax.add_patch(Rectangle((mdates.date2num(x[m["i0"]]), m["lo"]),
+                                       mdates.date2num(x[m["i1"]]) - mdates.date2num(x[m["i0"]]),
+                                       m["hi"] - m["lo"], facecolor="#FFD400", alpha=.45,
+                                       edgecolor="#B8860B", lw=.6, zorder=1))
+                rec = {"t0": int(m["t0"]), "t1": int(m["t1"]), "n": m["mins"],
+                       "hi": round(m["hi"], 2), "lo": round(m["lo"], 2)}
+                if m["break"]:
+                    bk = m["break"]
+                    rec.update(bt=int(bk["t"]), bside=bk["side"], bpx=round(bk["px"], 2))
+                    ax.scatter([x[bk["i"]]], [bk["px"]], s=150, facecolor="#00A651", alpha=.35,
+                               edgecolor="#00703C", lw=1.0, zorder=4)
+                mine.append(rec)
+        for a, b in ([] if DETECTOR == "v2" else tp.quiet_runs(sp, 1)):
             seg = sb[a:b + 1]
             n = len(seg)
             hi = max(s["hi"] for s in seg); lo = min(s["lo"] for s in seg)
