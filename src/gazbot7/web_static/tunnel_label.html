@@ -1,0 +1,147 @@
+<!doctype html><meta charset="utf-8">
+<title>Tunnel labeller — show me what YOU see</title>
+<style>
+*{box-sizing:border-box}
+body{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#f1f3f4;color:#202124}
+header{background:#fff;border-bottom:1px solid #dadce0;padding:.6rem 1rem;position:sticky;top:0;z-index:9}
+h1{font-size:1rem;margin:0 0 .35rem}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+button{font:inherit;padding:.35rem .7rem;border:1px solid #dadce0;background:#fff;border-radius:6px;cursor:pointer}
+button:hover{background:#f8f9fa}
+button.on{background:#1a73e8;color:#fff;border-color:#1a73e8}
+button.warn{border-color:#d93025;color:#d93025}
+.sp{flex:1}
+.wrap{position:relative;margin:1rem;background:#fff;border:1px solid #dadce0;border-radius:8px;
+      display:inline-block;line-height:0}
+#img{max-width:100%;height:auto;display:block;border-radius:8px}
+#cv{position:absolute;left:0;top:0;cursor:crosshair}
+.hint{color:#5f6368;font-size:.85rem}
+kbd{background:#f1f3f4;border:1px solid #dadce0;border-radius:3px;padding:0 .3rem;font-size:.8rem}
+#out{width:calc(100% - 2rem);height:150px;margin:0 1rem 1rem;font:11px/1.4 ui-monospace,Menlo,monospace}
+.badge{background:#e8f0fe;color:#1967d2;border-radius:10px;padding:.1rem .5rem;font-size:.8rem}
+.warnbox{background:#fef7e0;border-left:3px solid #f9ab00;padding:.5rem .8rem;margin:0 1rem 1rem;font-size:.85rem}
+</style>
+
+<header>
+  <h1>Tunnel labeller — <span id="sess"></span> <span class="badge" id="prog"></span></h1>
+  <div class="row">
+    <button id="prev">← Prev</button><button id="next">Next →</button>
+    <span class="sp"></span>
+    <button class="mode on" data-m="tunnel">Tunnel (drag a box)</button>
+    <button class="mode" data-m="up">Break ↑ (click)</button>
+    <button class="mode" data-m="down">Break ↓ (click)</button>
+    <button class="mode warn" data-m="reject">Mark MINE wrong (click it)</button>
+    <span class="sp"></span>
+    <button id="undo">Undo</button>
+    <button id="clear" class="warn">Clear session</button>
+    <button id="copy">Copy JSON</button>
+    <button id="dl">Download</button>
+  </div>
+  <div class="row hint" style="margin-top:.35rem">
+    <span><kbd>←</kbd><kbd>→</kbd> sessions · <kbd>1</kbd>–<kbd>4</kbd> modes · <kbd>u</kbd> undo ·
+    yellow = my tunnel · green = my break · <b style="color:#1a73e8">blue = yours</b> ·
+    <b style="color:#d93025">red X = mine you rejected</b></span>
+  </div>
+</header>
+
+<div class="warnbox"><b>Saved in this browser as you go</b> (localStorage) — you can stop and come back.
+When you have done a few sessions, hit <b>Copy JSON</b> and paste it to me. You do not need to do all 21;
+even 4 or 5 sessions where my tunnels are wrong will tell me what I am getting wrong.</div>
+
+<div class="wrap"><img id="img" alt=""><canvas id="cv"></canvas></div>
+<textarea id="out" readonly></textarea>
+
+<script>
+let M=null,i=0,mode="tunnel",labels={},drag=null;
+const $=s=>document.querySelector(s), img=$("#img"), cv=$("#cv"), ctx=cv.getContext("2d");
+const LS="tunnel_labels_v1";
+try{labels=JSON.parse(localStorage.getItem(LS)||"{}")}catch(e){labels={}}
+
+fetch("tl_manifest.json").then(r=>r.json()).then(m=>{M=m;show()});
+
+function S(){return M.sessions[i]}
+function L(){const k=S().session; return labels[k]||(labels[k]={tunnels:[],breaks:[],rejects:[]})}
+function save(){try{localStorage.setItem(LS,JSON.stringify(labels))}catch(e){}
+  $("#out").value=JSON.stringify({built:M.built,symbol:M.symbol,labels},null,1)}
+
+// pixel <-> data, using the exact axes bbox baked in at render time
+function sc(){return img.clientWidth/img.naturalWidth}
+function px2t(x){const p=S().px,d=S().data,f=(x/sc()-p.l)/(p.r-p.l);return Math.round(d.t0+f*(d.t1-d.t0))}
+function px2y(y){const p=S().px,d=S().data,f=(p.b-y/sc())/(p.b-p.t);return d.y0+f*(d.y1-d.y0)}
+function t2px(t){const p=S().px,d=S().data;return (p.l+(t-d.t0)/(d.t1-d.t0)*(p.r-p.l))*sc()}
+function y2px(v){const p=S().px,d=S().data;return (p.b-(v-d.y0)/(d.y1-d.y0)*(p.b-p.t))*sc()}
+const hhmm=t=>new Date(t*1000).toISOString().slice(11,16)+"Z";
+
+let _url=null;
+// ⚠ The static route has no content type for .png, so it serves text/plain. Browsers usually sniff
+// an <img>, but "usually" is not good enough for a page he is meant to work in — fetch the bytes and
+// force the MIME ourselves. Costs three lines and avoids restarting gazbot7-web, which would drop
+// his dashboard tab.
+function setImg(u){fetch(u).then(r=>r.arrayBuffer()).then(b=>{
+    if(_url)URL.revokeObjectURL(_url);
+    _url=URL.createObjectURL(new Blob([b],{type:"image/png"}));img.src=_url;})
+  .catch(()=>{img.src=u;});}
+
+function show(){
+  const s=S(); setImg(s.png); $("#sess").textContent=s.session;
+  $("#prog").textContent=`${i+1} / ${M.sessions.length} · ${Object.keys(labels).length} labelled`;
+  img.onload=()=>{cv.width=img.clientWidth;cv.height=img.clientHeight;
+    cv.style.width=img.clientWidth+"px";cv.style.height=img.clientHeight+"px";draw()};
+  if(img.complete)img.onload();
+  save();
+}
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height); const l=L(), s=S();
+  // my detections he rejected
+  l.rejects.forEach(k=>{const m=s.mine[k]; if(!m)return;
+    ctx.strokeStyle="#d93025";ctx.lineWidth=2;
+    const x0=t2px(m.t0),x1=t2px(m.t1),ya=y2px(m.hi),yb=y2px(m.lo);
+    ctx.beginPath();ctx.moveTo(x0,ya);ctx.lineTo(x1,yb);ctx.moveTo(x1,ya);ctx.lineTo(x0,yb);ctx.stroke();});
+  // his tunnels
+  ctx.fillStyle="rgba(26,115,232,.20)";ctx.strokeStyle="#1a73e8";ctx.lineWidth=1.5;
+  l.tunnels.forEach(t=>{const x0=t2px(t.t0),x1=t2px(t.t1),ya=y2px(t.hi),yb=y2px(t.lo);
+    ctx.fillRect(x0,ya,x1-x0,yb-ya);ctx.strokeRect(x0,ya,x1-x0,yb-ya);});
+  // his breaks
+  l.breaks.forEach(b=>{const x=t2px(b.t),y=y2px(b.px);
+    ctx.beginPath();ctx.arc(x,y,9,0,7);ctx.fillStyle="rgba(26,115,232,.35)";ctx.fill();
+    ctx.strokeStyle="#1a73e8";ctx.stroke();
+    ctx.fillStyle="#1a73e8";ctx.font="bold 11px sans-serif";
+    ctx.fillText(b.side==="UP"?"↑":"↓",x+11,y+4);});
+  if(drag){ctx.strokeStyle="#1a73e8";ctx.setLineDash([4,3]);
+    ctx.strokeRect(drag.x0,drag.y0,drag.x-drag.x0,drag.y-drag.y0);ctx.setLineDash([]);}
+}
+cv.addEventListener("mousedown",e=>{const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  if(mode==="tunnel"){drag={x0:x,y0:y,x:x,y:y};return}
+  const l=L();
+  if(mode==="up"||mode==="down"){l.breaks.push({t:px2t(x),px:+px2y(y).toFixed(2),side:mode==="up"?"UP":"DOWN"});}
+  else if(mode==="reject"){ // nearest of mine by time
+    const t=px2t(x); let best=-1,bd=1e18;
+    S().mine.forEach((m,k)=>{const c=(m.t0+m.t1)/2,d=Math.abs(c-t); if(d<bd){bd=d;best=k}});
+    if(best>=0){const p=l.rejects.indexOf(best); p>=0?l.rejects.splice(p,1):l.rejects.push(best);}}
+  save();draw();});
+cv.addEventListener("mousemove",e=>{if(!drag)return;const r=cv.getBoundingClientRect();
+  drag.x=e.clientX-r.left;drag.y=e.clientY-r.top;draw();});
+window.addEventListener("mouseup",()=>{if(!drag)return;
+  const t0=px2t(Math.min(drag.x0,drag.x)),t1=px2t(Math.max(drag.x0,drag.x));
+  const hi=px2y(Math.min(drag.y0,drag.y)),lo=px2y(Math.max(drag.y0,drag.y));
+  if(Math.abs(drag.x-drag.x0)>6) L().tunnels.push({t0,t1,hi:+hi.toFixed(2),lo:+lo.toFixed(2),
+    mins:Math.round((t1-t0)/60),width:+(hi-lo).toFixed(2)});
+  drag=null;save();draw();});
+
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".mode").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");mode=b.dataset.m;});
+$("#prev").onclick=()=>{i=(i-1+M.sessions.length)%M.sessions.length;show()};
+$("#next").onclick=()=>{i=(i+1)%M.sessions.length;show()};
+$("#undo").onclick=()=>{const l=L();(l.breaks.length?l.breaks:l.tunnels).pop();save();draw()};
+$("#clear").onclick=()=>{delete labels[S().session];save();draw()};
+$("#copy").onclick=()=>{$("#out").select();document.execCommand("copy");$("#copy").textContent="Copied ✓";
+  setTimeout(()=>$("#copy").textContent="Copy JSON",1200)};
+$("#dl").onclick=()=>{const b=new Blob([$("#out").value],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="tunnel_labels.json";a.click()};
+addEventListener("keydown",e=>{if(e.target.tagName==="TEXTAREA")return;
+  if(e.key==="ArrowLeft")$("#prev").click(); else if(e.key==="ArrowRight")$("#next").click();
+  else if(e.key==="u")$("#undo").click();
+  else if("1234".includes(e.key))document.querySelectorAll(".mode")[+e.key-1].click();});
+addEventListener("resize",()=>{if(M)show()});
+</script>
