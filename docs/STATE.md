@@ -7,6 +7,14 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
+> **Re-scanned 2026-09-04 06:30Z.** Four fixes shipped and PUSHED (`15ee4b2`..`230d837`), all in the
+> same family: **a book that lags the venue was being read as truth.** The 16:42Z cross-desk kill was
+> a FALSE one (§5) and it cost four hours of a dead BUY button; the ladder/claim same-tick race that
+> fed it is fixed; **entries now go in on a marketable LIMIT** because the paper engine fabricates a
+> 0.1%-adverse fill (§1d — $2,916.50, more than the desk's whole booked loss); and the manage path
+> was pricing the position **off its own entry** outside US hours, which silently switched the trail
+> and ladder OFF. SESSIONS §385-§390.
+>
 > **Re-scanned 2026-09-03 07:30Z.** MGC added to the dashboard chart tab; the tunnel structure
 > MEASURED on both contracts (**§1c**) — real, and gold matches MNQ almost exactly, but the break is
 > worth nothing on either and the live watcher's **1.75× claim was withdrawn**. Docs pass against the
@@ -36,7 +44,7 @@
 | desk | unit | what it does | switch |
 |---|---|---|---|
 | **Tournament** | `gazbot7-tournament` (clientId 0) | ✅ **LIVE AGAIN 2026-08-26** — the 08-20 stand-down is LIFTED. The router holds full ARM and BENCH authority over all 6 gates and applies the regime rules. `HOLD = {rgv_short}` only. **NO GATE HAS SPECIAL STATUS** | `data/gate_switches.env` |
-| **Day Rider** | `gazbot7-day-rider.timer` (clientId 4) | ONE automatic trade/day off the 13:30 cash open (entries stop 15:00Z), **4 lots, ladder $100/$200/$400/$600 = 50/100/200/300pt**, **NO STOP**, hard flat 20:40Z. ★ **MANUAL BUY/SELL is live across the WHOLE CME session** and bypasses the drift confirmation, the entry window and the once-per-session latch — but NOT `venue_first_ok()`, the booking path or the 20:40 flat. ⏳ `GAZBOT7_RIDER_CONFIRM_PERSIST=5` (drop-in): drift must hold the SAME direction for 5 consecutive ticks before an AUTOMATIC entry — operator experiment, not a measured edge | `data/day_rider.env` → **`day_rider=on`** |
+| **Day Rider** | `gazbot7-day-rider.timer` (clientId 4) | ONE automatic trade/day off the 13:30 cash open (entries stop 15:00Z), **4 lots, ladder $100/$200/$400/$600 = 50/100/200/300pt**, **NO STOP**, hard flat 20:40Z. ★ **ENTRIES ARE MARKETABLE LIMITS** (2026-09-04, §1d) at `ref ± RIDER_ENTRY_LIMIT_BAND_PT` (5.0pt); the FILLED quantity is booked, not the requested one, and any remainder is cancelled. **EXITS STAY MARKET ORDERS** — an exit that does not fill is unbounded, and 20:40 is not negotiable. ★ A **BUY pressed while it HOLDS is refused loudly** and the request consumed (operator's call, 09-03). ★ **MANUAL BUY/SELL is live across the WHOLE CME session** and bypasses the drift confirmation, the entry window and the once-per-session latch — but NOT `venue_first_ok()`, the booking path or the 20:40 flat. ⏳ `GAZBOT7_RIDER_CONFIRM_PERSIST=5` (drop-in): drift must hold the SAME direction for 5 consecutive ticks before an AUTOMATIC entry — operator experiment, not a measured edge | `data/day_rider.env` → **`day_rider=on`** |
 | **MGC Shadow** | `gazbot7-shadow-mgc` | gold, observe-only, own store `shadow_mgc.db` | n/a — touches nothing |
 
 ⚠ **THE ACCOUNT IS SHARED AND IBKR NETS BOTH DESKS INTO ONE NUMBER.** You cannot read your own
@@ -121,6 +129,39 @@ it to say that the chart does not.
 ★ **WHAT IS UNTESTED** is the only version left standing: the tunnel as a **filter on when to look**,
 with direction supplied by something else — his own read, the session block, the VWAP stretch. Every
 cell above is a coin flip because the break carries no direction *by itself*.
+
+---
+
+## 1d. THE FABRICATED FILL — the paper engine, not the market (2026-09-04)
+
+Operator: *"tape was around 29622. it bought at 29647. thats an immediate $200 loss. why?"* He read
+the tape correctly. `rider-2551` filled in two pieces one second apart:
+
+    05:29:36   BUY 1 @ 29625.50     real — the tape printed 29623-29626 that second
+    05:29:37   BUY 3 @ 29655.00     0.1% higher; NEVER PRINTED all session (high 29643.50)
+
+★★★ **EXACTLY 0.1% OF PRICE, ROUNDED TO THE TICK, ALWAYS ADVERSE.** 21/21 multi-lot rider orders
+measure **0.09897-0.09998%** (mean 0.09954%) — invariant across Asia and the US open, BUY and SELL,
+three weeks, every volatility regime. **Real slippage varies with liquidity; this does not vary at
+all, so it is not slippage.** The same signature appears on the tournament's independent order path,
+and genuine book-walking fills sit alongside it at 0.005-0.014% — so it is the BROKER, and it is
+distinguishable. Verified on 5 orders that the away price never printed within ±10 minutes.
+
+★★★ **$2,916.50 over 32 orders / 101 lots — MORE THAN THE DESK'S ENTIRE BOOKED LOSS of $1,771.44.**
+Backed out, the book is roughly **+$1,145**. Charged on 3 of every 4 lots of a rider entry.
+⚠ **This does NOT make the desk profitable** — inside the paper book the money is really gone. It
+means **the number is not a measurement of the strategy.** Single-lot fills are clean; every
+multi-lot P&L comparison is contaminated. Whether a LIVE account does this is **UNKNOWN**.
+⚠ `execution-cost-autopsy-stage1`'s *"the desk bleeds DIRECTION not cost"* was concluded without
+this and needs re-deriving on the clean subset.
+
+**FIXED for rider ENTRIES** — a limit cannot fill worse than its price. ⚠ **EXITS ARE STILL EXPOSED**
+on both desks, by choice: an exit that does not fill is unbounded risk.
+★ **PRECEDENT:** `docs/CAPPED_MARKETABLE_LIMIT_ENTRIES.md` fixed exactly this for the TOURNAMENT's
+entries on 2026-07-20 (*"a 2nd lot 29pt off a tight, deep book"*) using **tif=IOC**. The rider was
+never given the same treatment. ⚠ The tournament's 0.1% fills stop after 07-28, but it also moved to
+1-lot-per-slot orders, which avoids multi-lot fills structurally — **the timeline does not prove
+causation** and was not claimed to.
 
 ---
 
@@ -217,7 +258,8 @@ venue is shut. One timer, no second definition of "the weekend" to drift.
 
 | layer | what it guarantees |
 |---|---|
-| `deskrecon.py` / `gazbot7-desk-reconcile.timer` (30s) | `venue == tournament + rider`. Confirms on two reads, then stops BOTH desks. **Never re-arms** — `--release` is a human act. Also the inverse audit: a working STOP with no position. |
+| `deskrecon.py` / `gazbot7-desk-reconcile.timer` (30s) | `venue == tournament + rider`. Confirms on two venue reads **AND a fresh claim from every desk** (★2026-09-04), then stops BOTH desks. **Never re-arms** — `--release` is a human act. Also the inverse audit: a working STOP with no position. |
+| ★ **the claim-freshness gate** (2026-09-04) | The two-read guard sampled the **VENUE** twice but a claim is a FILE each desk rewrites on its own cycle — the rider once a MINUTE — so both reads drew the same STALE claim, agreed, and confirmed. **It was blind to the exact race it was written to catch.** On 09-03T16:42:10Z that stopped both desks for a position the operator's own claim had just closed. Now a breach must survive a REWRITE of every desk's claim (`data/desk_reconcile_breach.json`); a race clears on the next write, a real orphan is killed ~60-90s later. ⚠ Not a weakening: `may_place_order()` already refuses new orders whenever the invariant fails, kill file or not — only the PERSISTENT bench is deferred |
 | `safety.own_flatten_verdict()` | every flatten is ownership-gated — the fix for the 08-06 shared-account cascade |
 | `day_rider.cancel_own_stops()` | on all five close paths, clientId-filtered so it can never cancel the tournament's stops |
 | `venue_first_ok()` | on every rider order path **except** the 20:40 hard flat (refusing to flatten because books disagree is worse than the bug) |
@@ -326,8 +368,30 @@ delivery. **Decision deferred until one clean Friday has run and been measured**
    **Proven live, not read:** an unparseable request written during an open position survived a full
    `*:*:05` tick untouched. It is [[a-claim-refusal-says-ownership-when-it-means-kill]] in the other
    direction — a button that reports success and does nothing.
-   **NOT FIXED, and deliberately:** the fix edits `day_rider.py`, which is `oneshot` and deploys on
-   the NEXT TICK — into a live 4-lot naked position. Whether a BUY while holding should ADD LOTS or
-   REFUSE LOUDLY is the operator's call, not a bug fix.
-8. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
+   **CLOSED 2026-09-04 — the operator was asked and answered "refuse loudly."** The request is now
+   CONSUMED (an unread file was the silence) and pages critical; nothing is placed. SELL is refused
+   too: this is the ENTRY button, the exit is the CLAIM buttons. Two call sites, because two
+   branches return while holding, asserted against the source.
+   ⚠ **AND THE REAL CAUSE OF THE DEAD BUTTON WAS SOMETHING ELSE ENTIRELY** — a FALSE cross-desk kill
+   at 16:42:10Z (§5), which set `day_rider=off`; the switch check at `day_rider.py:828` sits upstream
+   of `buy_requested()`, so every press died there for four hours.
+
+8. ⏳ **NEW 2026-09-04 — `entry_atr` is 0.0 on a position opened while the tape read was blind**, and
+   it is the input to `should_ask_exit`, so **the operator-approval exit-ask is silently inert on
+   that trade** — the same shape as the trail bug (§1d/SESSIONS §389) in the same file. The manage
+   path only refreshes it `if rr.atr > 0`. Not fixed: it is the manage path of an OPEN position and
+   the instruction was *new entries only*. One line when flat.
+
+9. ⏳ **NEW 2026-09-04 — the rider's entry limit RESTS for up to 10s before the remainder is
+   cancelled.** `docs/CAPPED_MARKETABLE_LIMIT_ENTRIES.md` established **tif=IOC** as this desk's
+   pattern for exactly this job on 2026-07-20 — no resting order, so no late or stale fill.
+   The rider's `place_entry()` places a plain limit and cancels what did not fill, which leaves a
+   real (if short) window where a working order could fill late. **Recommend aligning to IOC.**
+
+10. ⏳ **NEW 2026-09-04 — EXITS still take the fabricated 0.1% fill** on both desks (§1d). Deliberate:
+   an exit that does not fill is unbounded risk and 20:40 is absolute. Costed at roughly half of the
+   $2,916.50, and worth a separate decision — a WIDE marketable limit with a market fallback would
+   cap it without risking a miss.
+
+11. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
    `gazbot7-router-health.timer` IS the mitigation. If it pages: run `claude` on the box, `/login`.
