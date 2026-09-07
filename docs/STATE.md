@@ -7,6 +7,21 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
+> **⛔ Re-scanned 2026-09-07 16:15Z — THE DESK IS HALTED AND THE RIDER IS OFF, BY HUMAN DECISION.**
+> `desk_kill.json` is ACTIVE (14:16:10Z) and `data/day_rider.env` = `day_rider=off`, so **the manual
+> BUY button is dead** — `enabled()` (`day_rider.py:1129`) returns before `buy_requested()` (`:1695`)
+> is ever reached. Release is a human act by design: `desk_reconcile.py --release`, then the switch.
+> The venue is **FLAT and fully reconciled** (`venue +0 = tournament +0 + rider +0`) and all six
+> gates are `off`, so nothing can open in the meantime.
+> **What happened:** the rider's own hard flat fired into a SHUT venue on Sunday 09-06 — no
+> day-of-week guard, no idempotency — and queued **11 x SELL 4 = 44 lots** that all filled at the
+> 22:00Z reopen, taking the account to **SHORT 40** against a book reading LONG 4. The dashboard
+> showed a **FALSE +$250** off that phantom book for sixteen hours; the real cost was about
+> **-$8,400**. **The reconciler's kill could not fire** — it wiped its own pending record every tick
+> and logged "position-change race" at a settled breach. All three are fixed, tested, and each
+> verified by reverting it. **P&L deliberately NOT booked** (bug-caused; label, never adjust).
+> SESSIONS §391, DECISIONS §366.
+>
 > **Re-scanned 2026-09-04 06:30Z.** Four fixes shipped and PUSHED (`15ee4b2`..`230d837`), all in the
 > same family: **a book that lags the venue was being read as truth.** The 16:42Z cross-desk kill was
 > a FALSE one (§5) and it cost four hours of a dead BUY button; the ladder/claim same-tick race that
@@ -373,7 +388,8 @@ delivery. **Decision deferred until one clean Friday has run and been measured**
    too: this is the ENTRY button, the exit is the CLAIM buttons. Two call sites, because two
    branches return while holding, asserted against the source.
    ⚠ **AND THE REAL CAUSE OF THE DEAD BUTTON WAS SOMETHING ELSE ENTIRELY** — a FALSE cross-desk kill
-   at 16:42:10Z (§5), which set `day_rider=off`; the switch check at `day_rider.py:828` sits upstream
+   at 16:42:10Z (§5), which set `day_rider=off`; the switch check (`enabled()`, `day_rider.py:1129`
+   as of 2026-09-07) sits upstream
    of `buy_requested()`, so every press died there for four hours.
 
 8. ⏳ **NEW 2026-09-04 — `entry_atr` is 0.0 on a position opened while the tape read was blind**, and
@@ -395,3 +411,19 @@ delivery. **Decision deferred until one clean Friday has run and been measured**
 
 11. **Credential expiry is the #1 fragility** — the operator declined a long-lived key, so
    `gazbot7-router-health.timer` IS the mitigation. If it pages: run `claude` on the box, `/login`.
+
+12. ⏳ **NEW 2026-09-07 — `tests/test_weekend_gates_are_off.py` READS LIVE DESK STATE and fails
+   whenever the desk is actually halted.** Both cases go red while `desk_kill.json` exists, because
+   `reactivate_gates.py:126` opens the **hardcoded** path `/home/alphabot/gazbot7/data/desk_kill.json`
+   and the test monkeypatches `SWITCH` and `_session_is_open` but cannot redirect that. These were
+   the only 2 failures in the full suite on 09-07 and **neither is a code fault** — they pass again
+   the moment the kill is released. Same family as [[tests-must-not-read-the-wall-clock]]: a test
+   whose result depends on the machine it runs on. **Fix: hoist the path to a module constant** so a
+   test can point it somewhere else. One line, not done — it touches a safety refusal and the desk
+   was mid-incident.
+
+13. ⏳ **NEW 2026-09-07 — nothing yet stops a flatten LOOP on the tournament side.** The rider's hard
+   flat is now guarded by `venue_closed()` + `own_working_flatten()` (SESSIONS §391), but that pair
+   was written for `day_rider.py` only. The tournament and `weekend_flatten.py` were not audited for
+   the same shape — a retry that re-places rather than adopting. **`eod_flatten` is clear**: it is
+   two fixed passes, not a loop, and sizes from `safe_flatten_verdict(venue_net)` (IBKR truth).

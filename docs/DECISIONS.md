@@ -18899,3 +18899,61 @@ Started from *"trying to buy and its not working"* and ended four commits later.
 **METHOD NOTE, because three of these were invisible to behavioural tests.** Bugs 2, 4 and the buy-while-holding silence are all *"both versions behave identically unless a second thing happened in the same tick / outside a particular window"*. They are asserted **against the SOURCE**, the way `test_tunnel_watch.py` asserts the read-only boundary — and each guard was verified to FAIL on the old code before landing. Two further bugs were caught by writing those tests: an unbounded ATR window that made an equivalence check pass for the wrong reason (returning the same ATR for three different times of day), and a negative-age guard that the bound then made unreachable, deleted rather than left as false comfort.
 
 **⚠ WHAT THIS DOES NOT LICENCE.** Backing out $2,916.50 would put the book at roughly +$1,145, and that is **not** a claim that the desk is profitable — inside the paper book the money is really gone. It says the number **is not a measurement of the strategy**. Single-lot fills are clean; every multi-lot comparison is contaminated. Whether a LIVE account behaves this way is UNKNOWN and must not be assumed away. `execution-cost-autopsy-stage1`'s *"the desk bleeds DIRECTION not cost"* was concluded without knowing this and needs re-deriving on the clean subset.
+
+## §366 — 2026-09-07 (Mon) — ★★★ AN UNFILLED ORDER IS NOT A FAILED ORDER. Two guards on the hard flat, and the alarm that reported a race at a settled breach. (gazbot7 — see SESSIONS §391.)
+
+**The decision.** The hard flat may no longer place an order while the venue is shut, and may no
+longer place a second order while its first is still working. Both are new refusals on the one path
+in this codebase that was deliberately allowed to refuse nothing.
+
+**Why this path had no guards, and why that was defensible until it wasn't.** "NEVER HOLD OVERNIGHT.
+EVER." is the operator's absolute rule, so the flatten is the one order path that fires even when the
+account fails to reconcile — a bookkeeping fault must not become a carried position, because that
+trade is strictly worse. Everything else in `day_rider.py` refuses on `venue_first_ok()`. The flatten
+proceeds and says so loudly instead. That reasoning is still correct and is untouched.
+
+What it missed is that **an order is not the same thing as a flatten.** The rule says do not hold
+overnight; the code read it as *place an order every minute until the book says flat*. Those coincide
+only while orders actually execute. Against a closed venue the order neither fills nor fails — it
+queues — and the once-a-minute retry, which exists for the good reason that a market order can fill
+slowly, became an unbounded generator of identical orders that all executed together at the reopen.
+Eleven of them: **11 x SELL 4 = 44 lots**, against a venue holding LONG 4, leaving **SHORT 40**.
+
+★★★ **THE GENERAL RULE, and it is the reason this entry exists rather than a bug note:** a retry loop
+must distinguish *not yet done* from *not done*. Re-issuing the ACTION is only safe when the action
+is idempotent at the venue, and an order never is. The correct retry adopts the outstanding attempt
+and waits; only an attempt that is provably dead may be replaced. This is the same class as
+[[two-exit-paths-in-one-tick-both-decrement-from-the-stale-snapshot]] — two decisions taken against
+one stale snapshot of the world — and it will recur anywhere we retry an outward-facing effect.
+
+★★ **A CLOCK THAT DOES NOT KNOW WHAT DAY IT IS.** `hard_flat_window()` took minute-of-day and was
+correct for two months because it was only ever asked on trading days. The failure needed a Sunday.
+⚠ The weekend was NOT the whole of it: the flat window runs to 22:00 while the venue shuts at 21:00,
+so **21:00-22:00 on an ordinary Monday is the identical defect with a 60-order ceiling** and had
+simply never been reached. `venue_closed()` covers both, and a fix that had only handled the weekend
+would have left the more likely case live while reading as complete.
+
+**Explicitly NOT weakened.** `venue_closed()` gates the ORDER, not the window: `hard_flat_window()`
+is unchanged and the rider still manages a position through 20:40-22:00. There is no order that can
+flatten anything while the venue is shut — the rule was never enforceable in that window, and
+pretending otherwise is what did the damage. The 20:40Z clock exists precisely so the flatten happens
+BEFORE it, with ~20 real retries into a live market. What the guard costs is nothing; what it buys is
+arriving at the reopen holding what we actually held.
+
+**One accepted asymmetry, recorded so it is not "fixed" later by someone reading it as an oversight.**
+If the working-order check itself raises, the flatten **places anyway** and pages. Overnight risk
+outranks duplicate risk, and the case where a duplicate was catastrophic — a shut venue — is already
+refused upstream. On an open market a duplicate costs one extra fill that the post-verify sees
+immediately.
+
+★★★ **AND THE PART THAT MATTERS MOST: THE ALARM WAS DEAD, SO NONE OF THIS WAS CAUGHT FOR SIXTEEN
+HOURS.** `desk_reconcile.py` cleared its pending record on every tick of a genuine breach, so the
+two-sighting confirmation could never reach sighting two. For eight hours both venue reads agreed on
+-44 and it logged *"treated as a position-change race"*. **It reported a race while looking straight
+at a settled breach** — an instrument reporting healthy about the one thing it existed to check
+([[an-instrument-that-reports-healthy-about-something-it-does-not-check]]), and the second such
+failure in this file after the 09-03 false kill. The two are mirror images: 09-03 confirmed a breach
+that was not there, 09-06 could not confirm one that was. **09-03 got tests; its inverse got none,
+and that gap is the whole reason this shipped.** Both directions are now covered by tests that drive
+the real `main()`, and every fix in this entry was re-run against a reverted copy to prove the tests
+fail without it.

@@ -389,7 +389,19 @@ def main() -> int:
                  f"{'; '.join(actions)}. IBKR is the truth and it does not match our books. "
                  f"Check TWS; release with scripts/desk_reconcile.py --release.",
                  dedupe_key="reconcile_breach")
-        elif r1.breach:
+        elif r1.breach and not venue_agrees:
+            # ★★★2026-09-07 THE BUG THAT DISARMED THE KILL FOR EIGHT HOURS ON A REAL BREACH.
+            # This branch used to run whenever `confirmed` was False — which is EVERY tick of a
+            # genuine, persisting breach, because confirmation deliberately waits for a second
+            # sighting. So the pending record written microseconds earlier by the first-sighting
+            # path was wiped on the same tick, every tick. The gate could never reach sighting two
+            # and THE KILL COULD NEVER FIRE.
+            # Live cost: at the 2026-09-06 22:00Z reopen the account went to SHORT 40 against a book
+            # claiming LONG 4 — unaccounted -44 — and for eight hours the reconciler read the same
+            # -44 on both venue reads and logged "treated as a position-change race" each time.
+            # It reported a race while looking straight at a settled breach.
+            # ⚠ THE CONDITION IS THE FIX: only a genuine second-read DISAGREEMENT is a race. When
+            # both reads agree, the pending record MUST survive so the next tick can confirm.
             result["note"] = "not confirmed on the second read — treated as a position-change race"
             clear_pending()
         if not confirmed:

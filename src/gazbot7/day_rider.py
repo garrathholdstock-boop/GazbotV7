@@ -147,6 +147,34 @@ def hard_flat_window(mod: int) -> bool:
     return FLAT_UTC_MIN <= mod < REOPEN_UTC_MIN
 
 
+def venue_closed(dow: int, mod: int) -> bool:
+    """Is the CME shut RIGHT NOW? `dow` is Monday=0..Sunday=6, `mod` UTC minute-of-day.
+
+    ★★★2026-09-07 THE SUNDAY RUNAWAY FLATTEN — 44 lots, and the desk ended SHORT 40.
+    `hard_flat_window()` tests MINUTE-OF-DAY ONLY. It has no idea what day it is, so on Sunday
+    2026-09-06 the hard flat entered its 20:40-22:00 window against a market that would not open
+    until 22:00. A market order into a shut venue does not fail — it QUEUES. The fill never comes
+    back, so our book never updates, so the next minute's tick sees the same open position and
+    places the same order again. Eleven got through a flapping gateway; at the 22:00Z reopen all
+    eleven filled inside one second, 11 x SELL 4 = 44 lots against a venue holding LONG 4, and the
+    account was SHORT 40 with nobody claiming it.
+
+    ⚠ THE DAILY HALT IS THE SAME BUG WITH A SHORTER FUSE. The flatten window runs to 22:00 but the
+    venue shuts at 21:00, so 21:00-22:00 on an ordinary Monday is also a closed market this path
+    would queue into — up to 60 orders. Both are covered here; that is why this is not simply a
+    weekend check.
+
+    The session is 22:00Z Sunday -> 21:00Z Friday, with a 21:00-22:00 halt each night between.
+    """
+    if dow == 5:                                    # Saturday — shut end to end
+        return True
+    if dow == 6:                                    # Sunday — shut until the 22:00Z reopen
+        return mod < REOPEN_UTC_MIN
+    if dow == 4 and mod >= HALT_UTC_MIN:            # Friday 21:00Z close, into the weekend
+        return True
+    return HALT_UTC_MIN <= mod < REOPEN_UTC_MIN     # Mon-Thu: the nightly halt
+
+
 def idle_block_applies(mod: int, owned_live: bool) -> bool:
     """Should step() take the pre-session/idle branch instead of MANAGING a position?
 
@@ -186,6 +214,8 @@ ARM_ATR_MULT = 4.0                 # arm the trail once this many ATR ahead
 # goes flat, so a NEW occurrence is never swallowed by a running cooldown.
 _UNOWNED_KEY = "day_rider.unowned_venue_net"
 _UNOWNED_COOLDOWN_S = 6 * 3600
+_SHUT_KEY = "day_rider.flatten_into_shut_venue"
+_SHUT_COOLDOWN_S = 30 * 60
 TRAIL_ATR_MULT = 2.0               # then trail this many ATR off the peak
 
 # ★2026-08-19 REPORTING ONLY — this drives NO switch, NO entry and NO exit.
@@ -404,6 +434,40 @@ def venue_first_ok(net: float | None, what: str, notify=None) -> bool:
         except Exception:
             pass
     return ok
+
+
+async def own_working_flatten(ib, symbol: str):
+    """THIS client's market order that is ALREADY WORKING at the venue, or None.
+
+    ★★★2026-09-07 THE SECOND HALF OF THE SUNDAY RUNAWAY. `venue_closed()` stops us queueing into a
+    shut market, but the deeper defect is that the flatten path had NO memory: it re-derived the
+    verdict from our book every minute and placed a fresh order, never asking whether the one it
+    sent sixty seconds ago was still out there. On an open market that is invisible — the order
+    fills in under a second and the next tick sees a flat book — so the bug survived months of
+    correct behaviour and only detonated when fills stopped coming back.
+
+    ⚠ AN UNFILLED ORDER IS NOT A FAILED ORDER, and that is the whole lesson. The retry loop was
+      written for a market order that fills slowly, and it is right to retry that. What it must not
+      do is retry by placing a SECOND order while the first is still live: the position is closed
+      once, but the orders execute twice, and on a shared netted account the surplus opens a
+      position in the opposite direction that no desk claims. Adopt the working order and wait.
+
+    ⚠ OWNERSHIP FILTER, exactly as cancel_own_stops(): DUQ191770 is shared with the tournament and
+      one of its market orders must never be mistaken for our flatten. clientId is the tag.
+    """
+    await ib.reqAllOpenOrdersAsync()
+    await asyncio.sleep(0.5)
+    for t in list(ib.openTrades()):
+        if getattr(t.contract, "symbol", None) != symbol:
+            continue
+        if int(getattr(t.order, "clientId", -1)) != CLIENT_ID:
+            continue                      # ← NOT OURS. Never adopt the tournament's order.
+        if str(getattr(t.order, "orderType", "")).upper() != "MKT":
+            continue
+        if t.orderStatus.status in ("Cancelled", "ApiCancelled", "Filled", "Inactive"):
+            continue
+        return t
+    return None
 
 
 async def cancel_own_stops(ib, symbol: str, notify=None) -> int:
@@ -1146,6 +1210,33 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 _sig = f"unowned {'SHORT' if net < 0 else 'LONG'} present, entered={out.get('entered')}"
                 if notify and dedupe_ok(_UNOWNED_KEY, _sig, cooldown_s=_UNOWNED_COOLDOWN_S):
                     notify(_msg, critical=False)
+            elif abs(net) > 1e-9 and venue_closed(now.weekday(), mod):
+                # ★★★2026-09-07 DO NOT FIRE A FLATTEN INTO A SHUT VENUE. See venue_closed().
+                # This is the branch that did not exist on 2026-09-06 and cost 44 lots. Everything
+                # below assumes an order either fills or visibly does not; against a closed market
+                # it does neither — it QUEUES, silently, and the once-a-minute retry turns one
+                # correct decision into an unbounded pile of identical orders that all execute at
+                # the reopen.
+                # ⚠ THIS DOES NOT WEAKEN "NEVER HOLD OVERNIGHT". There is no order that can flatten
+                #   a position while the venue is shut — the rule was never enforceable in this
+                #   window, and pretending otherwise is what did the damage. What it costs is
+                #   nothing; what it buys is that we arrive at the reopen holding what we actually
+                #   held, instead of that plus eleven queued sells. The 20:40Z clock exists
+                #   precisely so the flatten happens BEFORE this window, with ~20 real retries.
+                # ⚠ IT ALARMS, LOUDLY. A position sitting into a closed venue is a genuine
+                #   overnight-risk event and the operator has to know; only the REPEAT is
+                #   suppressed, and the signature carries the size so a change re-alarms.
+                _mins = (REOPEN_UTC_MIN - mod) % (24 * 60)
+                out["note"] = (f"HOLDING {net:g} into a SHUT venue — no flatten placed "
+                               f"(dow={now.weekday()}, {mod//60:02d}:{mod%60:02d}Z). An order here "
+                               f"would only queue and fill at the reopen. Flattening when it opens.")
+                if notify and dedupe_ok(_SHUT_KEY, f"shut-venue hold net={net:g}",
+                                        cooldown_s=_SHUT_COOLDOWN_S):
+                    notify(f"⚠⚠ DAY RIDER holds {net:g} MNQ into a CLOSED venue and is NOT placing "
+                           f"a flatten — an order now would queue and all such orders fill together "
+                           f"at the reopen (this is the 2026-09-06 incident: 44 lots). Venue "
+                           f"reopens in ~{_mins} min; the flatten runs then. CHECK IBKR.",
+                           critical=True)
             elif abs(net) > 1e-9:
                 # Size the hard flat from OUR OWN book too (same shared-account reasoning as the
                 # exits below). The one deliberate exception in this file: if our own book is
@@ -1178,7 +1269,31 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                                f"but the sizing comes from a book that may be wrong. CHECK IBKR.",
                                critical=True)
                     from ib_async import MarketOrder
-                    _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
+                    # ★★★2026-09-07 ADOPT BEFORE YOU PLACE. If our previous minute's flatten
+                    # is still working, WAIT ON IT — do not send a second one. See
+                    # own_working_flatten(): the position closes once, but duplicate orders
+                    # execute twice, and the surplus is a brand-new position facing the other way.
+                    # ⚠ A FAILED CHECK PLACES ANYWAY, DELIBERATELY. "NEVER HOLD OVERNIGHT. EVER."
+                    #   outranks this guard, and an API error here must not become a carried
+                    #   position — the same reasoning as the may_place_order block just above. The
+                    #   case that made duplicates catastrophic (a shut venue) is already refused by
+                    #   venue_closed(), so proceeding on an OPEN market costs at worst one extra
+                    #   fill, which the post-verify below sees immediately. It pages either way.
+                    _tr = None
+                    try:
+                        _tr = await own_working_flatten(ib, cfg.symbol)
+                    except Exception as _e:
+                        if notify:
+                            notify(f"⚠ DAY RIDER could not read its own working orders before the "
+                                   f"hard flat ({type(_e).__name__}: {_e}) — placing anyway because "
+                                   f"overnight is ruled out. If this repeats, the flatten can "
+                                   f"DOUBLE-SEND. CHECK IBKR.", critical=True)
+                    if _tr is not None:
+                        out["note"] = (f"hard flat already WORKING at the venue "
+                                       f"({_tr.order.action} {_tr.order.totalQuantity:g}, status "
+                                       f"{_tr.orderStatus.status}) — waiting on it, not re-sending")
+                    else:
+                        _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
                     # ★2026-08-21 `px` was UNBOUND here — it is assigned only in the MANAGE path
                     # below. The order went to the venue and the tick then died on
                     # UnboundLocalError, so the flatten executed while the book still claimed 4

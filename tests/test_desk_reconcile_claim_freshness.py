@@ -81,3 +81,107 @@ def test_pending_store_roundtrips_and_clears(tmp_path):
         assert dr.load_pending() == {}
     finally:
         dr.PENDING = real
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ★★★ THE 2026-09-06/07 SILENT DISARM. The case above has a mirror image, and it had NO COVERAGE
+# — which is exactly why it shipped. `require_fresh_claims` was never the problem the second time:
+# the KILL COULD NOT REACH IT. In main(), the "position-change race" branch fired whenever
+# `confirmed` was False, and on a genuine persisting breach that is EVERY tick, because
+# confirmation deliberately waits for a second sighting. So the pending record written microseconds
+# earlier was wiped on the same tick, forever, and sighting two never arrived.
+#
+# Live cost: at the 2026-09-06T22:00Z reopen the account went to SHORT 40 against a book claiming
+# LONG 4 — unaccounted -44. For eight hours both venue reads agreed on -44 and the service logged
+# "treated as a position-change race" each time. It reported a race while looking at a settled
+# breach, and no alarm ever escalated.
+#
+# ⚠ These drive the REAL main() with the venue and the clock faked — not a replica of its logic.
+# A test that re-implemented the branch would have passed against the bug.
+# ─────────────────────────────────────────────────────────────────────────────
+import json
+
+
+class _R:
+    """A deskrecon.reconcile() result: the breach shape, with nothing else stubbed."""
+
+    def __init__(self, unaccounted):
+        self.unaccounted = float(unaccounted)
+        self.breach = abs(self.unaccounted) > 0.5
+        self.ok = not self.breach
+        self.reasons = ["faked breach"] if self.breach else []
+
+    def summary(self):
+        return f"venue -40 = tournament +0 + rider +4 -> unaccounted {self.unaccounted:+g}"
+
+
+def _run_one_tick(monkeypatch, tmp_path, *, unaccounted1, unaccounted2, stamps):
+    """One full invocation of the real main() against a faked venue. Returns (rc, state, calls)."""
+    calls = {"benched": [], "pages": []}
+
+    async def fake_snapshot(cfg):
+        fake_snapshot.n += 1
+        return (-40.0, [])
+    fake_snapshot.n = 0
+
+    seq = iter([_R(unaccounted1), _R(unaccounted2)])
+    monkeypatch.setattr(dr, "venue_snapshot", fake_snapshot)
+    monkeypatch.setattr(dr.deskrecon, "reconcile", lambda net: next(seq))
+    monkeypatch.setattr(dr, "orphan_stops", lambda net, orders: [])
+    monkeypatch.setattr(dr, "claim_stamps", lambda: dict(stamps))
+    monkeypatch.setattr(dr, "SECOND_READ_DELAY_S", 0.0)
+    monkeypatch.setattr(dr, "STATE", str(tmp_path / "state.json"))
+    monkeypatch.setattr(dr, "PENDING", str(tmp_path / "pending.json"))
+    monkeypatch.setattr(dr, "bench_everything",
+                        lambda reason: calls["benched"].append(reason) or ["STOPPED BOTH DESKS"])
+    monkeypatch.setattr(dr, "page",
+                        lambda msg, critical=True, **kw: calls["pages"].append((critical, msg)))
+    monkeypatch.setattr(sys, "argv", ["desk_reconcile"])
+
+    rc = dr.main()
+    with open(str(tmp_path / "state.json")) as fh:
+        return rc, json.load(fh), calls
+
+
+def test_a_persisting_agreed_breach_keeps_its_pending_record(monkeypatch, tmp_path):
+    """TICK ONE. Both reads agree on -44. This must be RECORDED, not thrown away as a race.
+
+    The bug: `elif r1.breach:` ran here and called clear_pending(), so this assertion failed on
+    every one of the ~960 ticks the -44 was live.
+    """
+    stamps = {"rider": "2026-09-07T06:00:00+00:00", "tournament": "2026-09-07T06:00:00+00:00"}
+    rc, state, calls = _run_one_tick(monkeypatch, tmp_path,
+                                     unaccounted1=-44.0, unaccounted2=-44.0, stamps=stamps)
+    pend = json.loads((tmp_path / "pending.json").read_text())
+    assert pend.get("unaccounted") == -44.0, (
+        "an agreed, persisting breach was discarded as a position-change race — "
+        "the kill can never reach a second sighting")
+    assert state["confirmed"] is False, "one sighting must never kill"
+    assert state.get("note") != "not confirmed on the second read — treated as a position-change race"
+    assert rc == 1
+
+
+def test_the_next_tick_confirms_that_breach_and_stops_both_desks(monkeypatch, tmp_path):
+    """TICK TWO, ~30s later, both desks having rewritten their claims. THE KILL MUST FIRE."""
+    t1 = {"rider": "2026-09-07T06:00:00+00:00", "tournament": "2026-09-07T06:00:00+00:00"}
+    _run_one_tick(monkeypatch, tmp_path, unaccounted1=-44.0, unaccounted2=-44.0, stamps=t1)
+
+    t2 = {"rider": "2026-09-07T06:01:00+00:00", "tournament": "2026-09-07T06:00:30+00:00"}
+    rc, state, calls = _run_one_tick(monkeypatch, tmp_path,
+                                     unaccounted1=-44.0, unaccounted2=-44.0, stamps=t2)
+    assert state["confirmed"] is True, f"a twice-seen, claim-fresh breach did not kill: {state}"
+    assert calls["benched"], "confirmed but nothing was stopped"
+    assert any(critical for critical, _ in calls["pages"]), "a confirmed breach must page CRITICAL"
+    assert not (tmp_path / "pending.json").exists(), "pending must clear on the kill"
+
+
+def test_a_genuine_second_read_disagreement_is_still_treated_as_a_race(monkeypatch, tmp_path):
+    """THE FIX MUST NOT WEAKEN THE 09-03 GUARD. Reads that DISAGREE are a fill in flight, and the
+    pending record must still be dropped so no later imbalance inherits a free first sighting."""
+    stamps = {"rider": "2026-09-07T06:00:00+00:00", "tournament": "2026-09-07T06:00:00+00:00"}
+    rc, state, calls = _run_one_tick(monkeypatch, tmp_path,
+                                     unaccounted1=-44.0, unaccounted2=0.0, stamps=stamps)
+    assert state["confirmed"] is False
+    assert not (tmp_path / "pending.json").exists(), \
+        "a real race must not leave a pending record behind"
+    assert calls["benched"] == []

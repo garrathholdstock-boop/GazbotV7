@@ -2898,3 +2898,74 @@ would silently take whichever row was written last if a 1m tier is ever added.
 `if rr.atr > 0`), and that is the input to `should_ask_exit` — so the operator-approval exit-ask is
 silently inert on this trade too, the same way the trail was. Untouched: it is the manage path of an
 open position, and the instruction was new entries only.
+
+### §391 — 2026-09-07 · ⛔ THE SUNDAY RUNAWAY FLATTEN: 44 lots nobody ordered, and the alarm that could not fire
+
+**What happened.** At the 2026-09-06T22:00:00Z reopen, 29 executions totalling **44 lots** filled in
+one second, all SELL, owner `unknown` (2 @ 29535.25, the rest @ 29504.75). The venue held **LONG 4**;
+44 sold against it left the account **SHORT 40 @ 29506.14**. Our book still read LONG 4 @ 29641.25,
+so `unaccounted -44`, the desk was halted, the claim guard refused, and **the dashboard showed a
+FALSE +$250** — `(px - 29641.25) x $2 x 4` off the phantom book, while the real position was short
+and every point up cost $80. It sat for ~16 hours and about **-$8,400** before the operator
+authorised a flatten.
+
+**Root cause — the rider's OWN hard flat, firing into a market that was shut.** Verified end to end,
+and the arithmetic closes exactly:
+
+1. `hard_flat_window()` tests **minute-of-day and nothing else**. It has no idea what day it is, so
+   at 20:40Z on a **SUNDAY** the rider entered its flatten window against a venue that would not open
+   until 22:00Z.
+2. A market order into a shut venue does not fail — it **QUEUES**. No fill comes back, so the book
+   never updates, so the next minute's tick sees the same open position and places the same order.
+   The retry loop is correct and deliberate (a market order that fills slowly MUST be retried before
+   the halt); what it lacked was any memory that it had already sent one.
+3. The gateway was flapping — `TimeoutError` on `connectAsync`, logged honestly as
+   `ERROR (no action)` — so most attempts placed nothing. **Eleven got through.**
+4. **11 x SELL 4 = 44.** LONG 4 - 44 = **SHORT 40**. Exact, with no residual.
+
+**★ AND THE ALARM COULD NOT FIRE, WHICH IS WHY IT RAN ALL NIGHT.** `desk_reconcile.py`'s
+`elif r1.breach:` branch called `clear_pending()` whenever `confirmed` was False — which is EVERY
+tick of a genuine, persisting breach, because confirmation deliberately waits for a second sighting.
+The pending record written microseconds earlier was wiped on the same tick, every tick, so the gate
+could never reach sighting two and the kill could never fire. For eight hours both venue reads agreed
+on -44 and the service logged *"treated as a position-change race"* — **it reported a race while
+looking straight at a settled breach.** Fixed to `elif r1.breach and not venue_agrees:`; only a real
+second-read DISAGREEMENT is a race. It then confirmed for real at **14:16:10Z** and wrote the kill.
+
+**What shipped.**
+
+* **`venue_closed(dow, mod)`** (`day_rider.py`) — Saturday all day; Sunday before 22:00Z; Friday from
+  21:00Z; and **21:00-22:00Z Mon-Thu**. That last clause is not padding: the flat window runs to
+  22:00 but the venue shuts at 21:00, so **the nightly halt is the same bug with a shorter fuse** —
+  up to 60 queued orders on an ordinary Monday. The flatten placement is gated on it and alarms
+  instead of ordering. `hard_flat_window()` is UNCHANGED: the rider still MANAGES through the window.
+* **`own_working_flatten(ib, symbol)`** — adopt-before-place. If last minute's flatten is still
+  working, wait on that Trade instead of sending a second. clientId-filtered exactly as
+  `cancel_own_stops()` (the tournament shares DUQ191770); **MKT only**, so the 600pt venue stop is
+  neither mistaken for a flatten nor able to block one; live statuses only, so a Filled/Cancelled
+  order cannot block the next flatten — that would be the inverse bug.
+  ⚠ **A FAILED CHECK PLACES ANYWAY, deliberately.** "NEVER HOLD OVERNIGHT. EVER." outranks this
+  guard and an API error must not become a carried position — the same reasoning as the
+  `may_place_order` block beside it. Safe now only because `venue_closed()` already refuses the case
+  that made a duplicate catastrophic. It pages either way.
+* **`desk_reconcile.py`** — the one-condition fix above, plus **three regression tests that drive the
+  REAL `main()`** with the venue and clock faked. The 09-03 false-kill case had tests; this one, its
+  mirror image, had **none** — which is exactly why it shipped.
+
+**Verification — every fix reverted and re-run, because a test that never fails is not a test.**
+Reverting the reconciler condition in a scratch copy fails exactly the 2 new tests and leaves the
+09-03 guard's 6 green. Reverting BOTH rider fixes in a scratch copy of the package fails **6 of 12**,
+including `test_the_incident_shape_end_to_end`, which replays the eleven ticks and asserts 44 lots
+become 0 on the Sunday and exactly **one** order on a trading day. The "20:40-21:00 Mon-Fri is still
+open and still flattens" test passes against the reverted code too, so it is checking the right
+thing. Rider + reconciler suite **198 pass**; full suite **2 failures, neither ours** (below).
+
+**The desk, after.** Flattened by `eod_flatten` on operator authorisation (`pre=-40 post=0`), verified
+independently by the read-only clientId 8 reconciler: `venue +0 = tournament +0 + rider +0`. The book
+was repaired to match IBKR using the rider's own `CLOSED_ELSEWHERE` shape rather than an invented one.
+**P&L deliberately NOT booked** — the loss is bug-caused and the standing rule is *label, never
+adjust*; the state note carries the label and the booking is the operator's call.
+
+⚠ **STILL OPEN AT SESSION END:** `desk_kill.json` is ACTIVE and `day_rider=off`, so the manual BUY
+button is dead — `enabled()` at `day_rider.py:1129` returns before `buy_requested()` at `:1695` ever
+runs. Release is a human act by design. Nothing can open in the meantime: all six gates are `off`.
