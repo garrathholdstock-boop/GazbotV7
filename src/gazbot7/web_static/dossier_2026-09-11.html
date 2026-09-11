@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GAZBOT V7 — Independent audit: is there a desk here? (2026-09-11)</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1b1a17; --ink2:#4a4842; --ink3:#7a776e;
+  --line:#e2ded4; --line2:#efece4;
+  --green:#1f7a4d; --greenbg:#e8f5ee;
+  --red:#a8322a; --redbg:#fbeceb;
+  --amber:#8a6100; --amberbg:#fdf3de;
+  --blue:#1d5c8f; --bluebg:#e9f1f8;
+  --grey:#5c5a53; --greybg:#eeece6;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15.5px;line-height:1.62}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
+h1,h2,h3{margin:0;line-height:1.2}
+h1{font-size:32px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:800;display:flex;align-items:baseline;gap:11px;
+  margin:0 0 4px}
+h2 span.n{font-size:12px;font-weight:800;color:#fff;background:var(--ink);
+  padding:3px 9px;border-radius:3px;letter-spacing:.06em;flex:none;
+  position:relative;top:-3px;font-family:var(--mono)}
+h3{font-size:16px;font-weight:700;margin:0 0 6px}
+p{margin:0 0 12px}
+a{color:var(--blue)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+strong{font-weight:700}
+
+header.top{padding:44px 0 22px;border-bottom:3px solid var(--ink);margin-bottom:30px}
+header.top .kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink3);font-weight:700;margin-bottom:12px}
+header.top .sub{color:var(--ink2);font-size:17px;margin:14px 0 0;max-width:62ch;line-height:1.5}
+header.top .meta{color:var(--ink3);font-size:13px;margin-top:16px;font-family:var(--mono)}
+
+section{margin:0 0 42px}
+.shead{border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:16px}
+
+.box{background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  padding:18px 20px;margin:16px 0}
+.box.verdict{border-left:5px solid var(--blue);background:var(--bluebg)}
+.box.good{border-left:5px solid var(--green);background:var(--greenbg)}
+.box.bad{border-left:5px solid var(--red);background:var(--redbg)}
+.box.warn{border-left:5px solid var(--amber);background:var(--amberbg)}
+.box .lbl{font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:800;margin-bottom:8px;font-family:var(--mono)}
+.box.good .lbl{color:var(--green)} .box.bad .lbl{color:var(--red)}
+.box.warn .lbl{color:var(--amber)} .box.verdict .lbl{color:var(--blue)}
+.box p:last-child{margin-bottom:0}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:14px 0;
+  background:var(--panel)}
+.scroll{overflow-x:auto;margin:14px 0}
+caption{text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink3);font-weight:700;padding:0 0 8px;font-family:var(--mono)}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);
+  font-weight:700;text-align:left;padding:9px 11px;
+  border-bottom:2px solid var(--line);white-space:nowrap;font-family:var(--mono)}
+td{padding:9px 11px;border-bottom:1px solid var(--line2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;
+  white-space:nowrap}
+.pos{color:var(--green);font-weight:700}
+.neg{color:var(--red);font-weight:700}
+.flat{color:var(--ink3);font-weight:700}
+tr.sep td{border-top:2px solid var(--line)}
+
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--greybg);
+  border:1px solid var(--line);border-radius:3px;padding:13px 15px;overflow-x:auto;
+  margin:14px 0;font-variant-numeric:tabular-nums}
+
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  font-weight:700;padding:2px 6px;border-radius:2px;white-space:nowrap}
+.t-v{color:var(--green);background:var(--greenbg);border:1px solid var(--green)}
+.t-a{color:var(--grey);background:var(--greybg);border:1px solid var(--line)}
+.t-q{color:var(--amber);background:var(--amberbg);border:1px solid var(--amber)}
+
+ul{margin:0 0 12px;padding-left:20px} li{margin-bottom:6px}
+
+/* ── action list ── */
+.tier{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:800;padding:7px 11px;background:var(--ink);color:#fff}
+table.actions td{font-size:13.5px}
+table.actions td.id{font-family:var(--mono);font-weight:700;color:var(--ink3);
+  white-space:nowrap;width:38px}
+table.actions td.eff{font-family:var(--mono);font-size:12px;color:var(--ink3);white-space:nowrap}
+.why{color:var(--ink2);font-size:12.5px;display:block;margin-top:3px}
+
+footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--ink2)}
+
+@media print{
+  @page{size:A4;margin:16mm 14mm}
+  body{background:#fff;font-size:10.5pt;line-height:1.5}
+  .wrap{max-width:none;padding:0}
+  header.top{padding-top:0}
+  section{margin-bottom:22px}
+  h2{font-size:15pt} h1{font-size:24pt} h3{font-size:11.5pt}
+  .box,table,pre{break-inside:avoid}
+  tr{break-inside:avoid}
+  h2,h3{break-after:avoid}
+  a{color:var(--ink);text-decoration:none}
+  .page-break{break-before:page}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="kicker">Independent diligence · ten-agent audit · read-only</div>
+  <h1>Is there a desk here?</h1>
+  <p class="sub">Ten agents, four estates, five months of work. The short answer: yes — but not the
+  desk you think you built, and what stands between you and an automated one is plumbing, not
+  research.</p>
+  <p class="meta">GAZBOT V7 · MNQ + MGC · PAPER · DUQ191770 · 45 trading days live · 2026-09-11</p>
+</header>
+
+<section>
+  <div class="box verdict">
+    <div class="lbl">The verdict</div>
+    <p><strong>You are on to something. It is not the thing you have been tending.</strong></p>
+    <p>Five months produced <strong>one detector that works unattended</strong>
+    (<span class="mono">drift.py</span>), <strong>one filter that makes it testable</strong>
+    (<span class="mono">WATCH_RT</span>), and <strong>a measurement estate better than most funded
+    managers run</strong>. None of those three is connected to the thing that trades.</p>
+    <p>Every component that <em>is</em> connected — the polled market-order exits, the manual entry
+    button, the six-gate tournament — is where the money went. That is a wiring diagram, not a
+    verdict on the idea.</p>
+    <p><strong>The honest number:</strong> on the only uncontaminated sample — single-lot trades in
+    the current architecture — the systematic desk is <span class="mono">+$126.50</span> over 432
+    trades, <span class="mono">t = 0.09</span>. Not profitable. Not losing. Sitting on its own cost
+    line, which is where real systems start rather than where they end.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2><span class="n">01</span>How to read the numbers</h2></div>
+  <p>The system and its documentation were largely written by the same AI running this audit. Agents
+  were therefore briefed to treat every document — <span class="mono">CLAUDE.md</span>,
+  <span class="mono">STATE.md</span>, the memory files — as a <em>claim to verify</em>, never a
+  fact. Where a document and the data disagreed, the data won and the disagreement became a
+  finding.</p>
+  <p>Every figure carries its provenance:</p>
+  <ul>
+    <li><span class="tag t-v">re-derived</span> &nbsp;Re-computed by the lead from raw rows, or read
+    directly from the code line. All load-bearing claims got this treatment.</li>
+    <li><span class="tag t-a">agent</span> &nbsp;An agent computed it from primary data and showed
+    its method; not independently reproduced.</li>
+    <li><span class="tag t-q">qualified</span> &nbsp;True only under a stated assumption, named
+    inline.</li>
+  </ul>
+  <p>Three agent claims did not survive checking and are corrected in §07 rather than quietly
+  dropped — including a false alarm about a live naked position that does not exist.</p>
+</section>
+
+<section>
+  <div class="shead"><h2><span class="n">02</span>The central finding</h2></div>
+  <p>Your exits beat the machine. Your entries are worse than a coin flip. And the skill in your
+  hands is not what anyone assumed it was.</p>
+
+  <div class="scroll">
+  <table>
+    <caption>What the operator's hand contributes — decomposed</caption>
+    <thead><tr><th>Component</th><th>Finding</th><th class="num">Effect</th><th>Encodable?</th></tr></thead>
+    <tbody>
+      <tr><td>Exit timing</td><td>Real skill; two independent samples agree</td>
+        <td class="num pos">+$65.70/lot</td><td><strong>Yes — it is a stop</strong></td></tr>
+      <tr><td>Trade selection</td><td>41% went his way first; &minus;$13,235 held to clock</td>
+        <td class="num neg">&minus;$68.94/pos</td><td>Already encoded, and better</td></tr>
+      <tr><td>Sizing</td><td>40 of 41 positions exactly 4 lots</td>
+        <td class="num flat">none</td><td>Nothing to encode</td></tr>
+      <tr><td>Regime presence</td><td>17 of 41 entries outside validated US hours</td>
+        <td class="num neg">negative</td><td>Yes — session filter</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The exit edge is <span class="mono">n=80, t=2.28</span>, 95% CI
+  <span class="mono">[+$10, +$123]</span> <span class="tag t-a">agent</span>. Real, but two months
+  short of the sample it needs.</p>
+
+  <div class="box good">
+    <div class="lbl">The mechanism nobody had named</div>
+    <p>The edge is <strong>entirely loss-cutting</strong>. On the 21 positions the machine would
+    have lost, the hand saved <span class="mono">+$10,718</span>. On the 22 it would have won, the
+    hand gave up <span class="mono">&minus;$2,663</span> by exiting early.</p>
+    <p>You are not top-ticking winners. <strong>You are personally acting as the stop-loss on a desk
+    that, by your own instruction, has no stop.</strong> That is the most encodable object in
+    trading — and it is why "claiming cannot be backtested" was true but aimed one level too low.
+    The 119 calibrations searched for a rule to replace your hands <em>on your trades</em>. The
+    finding is that your trades are the problem.</p>
+  </div>
+
+  <p>Confirming from the other direction — rider positions, flagged rows excluded
+  <span class="tag t-v">re-derived</span>:</p>
+<pre>1st trade of the day    n=23    +$2,505.01    78.3% win
+2nd and beyond          n=30    -$5,069.94    50.0% win
+
+  sequence 2   n=10   -$2,261.94
+  sequence 3   n= 7   -$2,851.50
+  sequence 4   n= 6     -$302.00</pre>
+  <p>A one-trade-per-day rule needs no judgement, no watching and no edge discovery. It is three
+  lines of code, and on this record it flips the rider from negative to positive.</p>
+  <p>The detector, meanwhile, <strong>has not opened a position since 2026-08-26</strong>
+  <span class="tag t-a">agent</span>. For eleven sessions every entry was a button press — trading
+  over the top of your own strategy, while the strategy was doing better.</p>
+</section>
+
+<section>
+  <div class="shead"><h2><span class="n">03</span>Two thirds of the loss never happened</h2></div>
+  <p>The IBKR paper engine fabricates fills: every lot beyond the first in a multi-lot order executes
+  at exactly <span class="mono">0.1%</span> of price, adverse. An agent solved the generating rule —
+  <span class="mono">worst = tick_round(first &times; (1 &plusmn; 0.001))</span>, 44 of 46 exact, and
+  <strong>91 of 91 deviations adverse, not one favourable</strong>.</p>
+
+  <div class="scroll">
+  <table>
+    <caption>Live desk P&amp;L, decontaminated — 879 trades, 45 days</caption>
+    <thead><tr><th>Basis</th><th class="num">P&amp;L</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>As booked</td><td class="num neg">&minus;$5,477</td><td>The headline you have lived with</td></tr>
+      <tr><td>Fabricated lots reversed</td><td class="num neg">&minus;$1,919</td><td>62 lots — 2.8% of all lots ever filled</td></tr>
+      <tr><td>Clean subset only</td><td class="num neg">&minus;$2,030</td><td>812 of 879 trades</td></tr>
+      <tr class="sep"><td>At 1–3 lots, repriced</td><td class="num pos">+$6,200</td><td>853 trades</td></tr>
+      <tr><td>At 4 lots</td><td class="num neg">&minus;$7,742</td><td>25 trades; five carry &minus;$7,394</td></tr>
+      <tr class="sep"><td><strong>Single-lot, current architecture</strong></td>
+        <td class="num flat">+$126.50</td><td><strong>t = 0.09.</strong> The cleanest read available</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="box good">
+    <div class="lbl">And live fills would be better, not worse</div>
+    <p>An agent walked your own captured L2 ladder — 18,692 snapshots. A real 4-lot MNQ market order
+    costs about <span class="mono">$0.43</span>. The paper engine charged
+    <span class="mono">$58–$177</span> for the same order: <strong>130× to 400× too much</strong>.</p>
+    <p>Execution cost was never the problem. What remains is directional and concentrated in
+    twenty-five four-lot trades — a <em>sizing</em> problem, which is fixable.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2><span class="n">04</span>What it earns unattended</h2></div>
+  <p>This is the figure the decision rests on, since you will not be watching. There are only six
+  zero-intervention rider days, so that sample is noise and is not quoted. The defensible
+  figures:</p>
+
+  <div class="scroll">
+  <table>
+    <caption>Unattended configurations, ranked by evidential strength</caption>
+    <thead><tr><th>Configuration</th><th class="num">Result</th><th class="num">t</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Tournament automatic exits<br><span class="why">n = 742 trades</span></td>
+        <td class="num neg">&minus;$9.07/trade</td><td class="num neg">&minus;3.70</td>
+        <td><strong>Established negative.</strong> 11 of 13 gate families lose</td></tr>
+      <tr><td>Drift desk, unfiltered<br><span class="why">n = 42 sessions</span></td>
+        <td class="num flat">+$77/session</td><td class="num flat">0.45</td>
+        <td>Would need ~6.1 years to prove</td></tr>
+      <tr><td><strong>Drift + <span class="mono">rt &lt; 0.50</span></strong><br><span class="why">n = 15 sessions</span></td>
+        <td class="num pos">+$452/session</td><td class="num pos">3.11</td>
+        <td><strong>The only testable lead on the desk</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>That last row is <span class="mono">WATCH_RT</span>, at
+  <span class="mono">day_rider.py:256</span> <span class="tag t-v">re-derived</span>:</p>
+<pre>WATCH_RT = 0.50
+
+def watch_verdict(rt: float) -&gt; str:
+    """One line for the operator at confirmation: is today worth
+    watching by hand?
+
+    Reporting only. Callers must NOT branch trading behaviour on this."""</pre>
+  <p>It is referenced <strong>nowhere else in the codebase</strong>. The one filter that survived the
+  full anti-overfit battery over 231 sessions prints a sentence at you and does nothing. It needs
+  <span class="mono">n=12</span> for power and has 15. Every other lead on this desk needs years.</p>
+
+  <div class="box warn">
+    <div class="lbl">Qualified</div>
+    <p><span class="tag t-q">qualified</span> Those 42 sessions probably overlap the study the filter
+    came from, so this is a <em>replication</em>, not out-of-sample evidence. The confirmed band sits
+    at <span class="mono">rt 0.450–0.485</span> — "barely confirmed", counter-intuitive enough to
+    smell of overfitting. Pre-register it — threshold, size, stop rule and stop date fixed in advance
+    — and it becomes a zero-cost experiment with a defined pass/fail.</p>
+  </div>
+</section>
+
+<section class="page-break">
+  <div class="shead"><h2><span class="n">05</span>Why the exits keep failing</h2></div>
+  <p>The trail was switched off on 2026-09-11 on the reasoning that a polled level is not a stop.
+  That reasoning was right and <strong>aimed at the wrong component</strong>. Reading the ladder,
+  <span class="mono">day_rider.py:1509</span> <span class="tag t-v">re-derived</span>:</p>
+<pre>for _k, _tpt in enumerate(_ladder):
+    if _k in done or lots_open &lt;= 0 or ahead &lt; _tpt: continue
+    _tr = ib.placeOrder(contract, MarketOrder("SELL" if d &gt; 0 else "BUY", 1))</pre>
+  <p>The take-profit ladder is <strong>not a resting limit</strong>. It is a once-a-minute poll that
+  fires a market order — and so was the trail. One was removed and the other left, so the desk now
+  has <em>less</em> automatic protection than before. The proof is in the ledger
+  <span class="tag t-v">re-derived</span>:</p>
+<pre>id 868   LONG 1   29320.25 -&gt; 29240.75   -$160.50   TARGET_100</pre>
+  <p>The +50pt rung sat at <span class="mono">29370.25</span>, and the tape printed
+  <span class="mono">29396.00</span> forty seconds earlier. That take-profit filled <strong>129.5
+  points below its own level</strong> and booked a loss.</p>
+  <p>Faster polling does not fix it — 60s to 5s measures as non-monotonic noise. What dominates is
+  <em>sampling phase</em>: the same rule on the same tape swings <span class="mono">$651</span>
+  depending on which second of the minute the poll lands.</p>
+
+  <div class="box good">
+    <div class="lbl">The fix is already in your codebase</div>
+    <p><span class="mono">LimitOrder</span> at <span class="mono">:1007</span>.
+    <span class="mono">StopOrder</span> at <span class="mono">:1802</span>, gated off by
+    <span class="mono">PLACE_VENUE_STOP = False</span>. The tournament already rests stops at the
+    broker — 312 <span class="mono">stp-*</span> executions in the fills table.</p>
+    <p>Four OCA-grouped limits at 50/100/200/300pt plus one protective stop, <strong>resting at
+    IBKR</strong>. Polling disappears, sampling phase disappears, and the fabricated multi-lot exit
+    fill disappears. One change closes three findings.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2><span class="n">06</span>What is genuinely good</h2></div>
+  <p>Not consolation. Several of these were called better than funded practice, independently and
+  unprompted, by agents that did not know each other's findings.</p>
+
+  <div class="box good">
+    <div class="lbl">The measurement estate</div>
+    <p>Four independent auditors reconstructed five weeks of trading from venue fills, detected a
+    broker-side artifact, and replayed the strategy causally — on someone else's codebase, in an
+    afternoon. Almost no one-person desk can be audited that way. Ledger arithmetic is perfect: 879
+    of 879 rows internally consistent, zero exceptions.</p>
+  </div>
+  <div class="box good">
+    <div class="lbl">The tick repricer</div>
+    <p>Re-run from scratch on a random 250-trade sample: <strong>249 of 250 exact to the cent</strong>.
+    Defensive against the IBKR sentinel, defers rather than freezes a partial window, replays each
+    chandelier variant on its own trail.</p>
+  </div>
+  <div class="box good">
+    <div class="lbl">Intellectual honesty, structurally enforced</div>
+    <p>$1,551 of fictitious profit kept in the table labelled <span class="mono">EXCLUDE:</span>
+    rather than deleted. The rows the desk discards are net <em>positive</em> — it is biased against
+    itself. Controls protected by name with written reasons. A pre-registration file states "an
+    unfavourable result is the most valuable outcome this can produce". One agent:
+    <em>"I have seen funds that do not do this."</em></p>
+  </div>
+  <div class="box good">
+    <div class="lbl">Killing your own headlines</div>
+    <p>The tunnel service's founding 1.75× claim was withdrawn by the people who shipped it. An agent
+    re-derived it independently at 1.02× <strong>and found the arithmetic that manufactured the
+    error</strong>: ATR at a break is only 0.607× an active minute's ATR, so the denominator alone
+    produces 1/0.607 = 1.65×. The withdrawal was correct.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2><span class="n">07</span>Corrections to the audit's own agents</h2></div>
+  <p>Reported because an audit that hides its own misses is not an audit.</p>
+  <div class="box bad">
+    <div class="lbl">False alarm — there is no naked short</div>
+    <p>One agent reported an open 38-lot naked position sitting for five days. It reconstructed that
+    from the <em>fills table</em> — precisely what the desk's cardinal rule forbids. The venue reads
+    <span class="mono">venue +0 = tournament +0 + rider +0</span>, verified twice by the independent
+    read-only reconciler. The &minus;38 is the missing 09-07 cover.
+    <strong>Bookkeeping, not risk.</strong></p>
+  </div>
+  <div class="box warn">
+    <div class="lbl">Inflated headline</div>
+    <p>An agent put the first-trade-of-day bucket at +$3,974.51. Direct query gives
+    <span class="mono">+$2,505.01</span> — its filter admitted phantom rows. The effect replicates
+    strongly; the number did not.</p>
+  </div>
+  <div class="box warn">
+    <div class="lbl">Weakened on challenge</div>
+    <p>The V5 archive was reported as independently reproducing the negative result at
+    <span class="mono">&minus;$2.53/trade, t=&minus;2.26, n=3,008</span>. On challenge the agent
+    corrected itself: V5 booked <em>zero</em> commission, so that applies an assumed fee. Gross it is
+    <span class="mono">&minus;$0.93/trade, t=&minus;0.83</span>. <strong>Two negative samples — not
+    two significant ones.</strong> The direction replicates; the significance rests on a cost
+    constant.</p>
+  </div>
+</section>
+
+<section class="page-break">
+  <div class="shead"><h2><span class="n">08</span>What is broken, ranked</h2></div>
+
+  <div class="box bad">
+    <div class="lbl">1 · The box is open to the internet</div>
+    <p><span class="tag t-v">re-derived</span> Root SSH with password authentication, no firewall,
+    and the dashboard listening on all interfaces returning HTTP 200 from the public IP.</p>
+<pre>permitrootlogin yes      passwordauthentication yes
+ufw: inactive            iptables -P INPUT ACCEPT
+LISTEN 0.0.0.0:8087      &lt;- the dashboard</pre>
+    <p>That app has no authentication — <span class="mono">web.py:1152</span> says so itself — and it
+    serves <span class="mono">/api/control/dayrider-buy</span>, which writes the file the inotify
+    unit turns into a broker order in <strong>1.35 seconds</strong>. nginx has no
+    <span class="mono">auth_basic</span>, so it is reachable via the domain too. Every safety control
+    on this desk stops the <em>desk</em> misbehaving; none asks <em>who sent the request</em>.</p>
+  </div>
+
+  <p><strong>2 · The fail-safe is inverted.</strong> <span class="tag t-a">agent</span>
+  <span class="mono">gate-reactivate</span> arms every gate at 22:00Z regardless of whether the
+  router is alive. On 2026-09-10 the router went blind at 16:30Z with all six gates off; at 22:00Z
+  five were armed and could not be benched for <strong>10h50m</strong>. The stated failure mode is
+  "benched is the cheap error". The actual one is "armed and unbenchable, overnight".</p>
+
+  <p><strong>3 · The shadow book has a 55-second look-ahead.</strong>
+  <span class="tag t-a">agent</span> Entry price is stamped at bar close while the decision is made
+  up to 55s later. It flatters every delayed-confirm arm and defames every tick-triggered one.
+  Corrected, <span class="mono">abs_veto_55s</span> falls from +$9.60 to +$1.17/trade and
+  <strong>nothing survives multiple-comparison correction</strong>. The same defect has been wrongly
+  condemning <span class="mono">capitulation_long</span> at &minus;$15.63/trade when the honest
+  figure is &minus;$0.57.</p>
+
+  <p><strong>4 · The census measures 3-hour runs and calls them 15-minute runs.</strong>
+  <span class="tag t-v">re-derived</span> <span class="mono">run_census.py:36</span> sets
+  <span class="mono">W = 180</span> as a <em>bar count</em> commented "15-min window in 5s bars".
+  With <span class="mono">--lake</span> the selector picks 1-minute bars, so W becomes 180
+  <em>minutes</em> — while the participation window stays hardcoded at
+  <span class="mono">start + W * 5</span>, i.e. 15 minutes. A gate that traded minute 40 of a run
+  scores as having sat out. <strong>That is the accounting behind the greenfield programme's founding
+  "we sat out $8,025".</strong></p>
+
+  <p><strong>5 · The books do not tie.</strong> <span class="tag t-v">re-derived</span> The fills
+  table implies a net position of <span class="mono">&minus;38</span> against a venue of
+  <span class="mono">0</span>, because zero fills were recorded on 09-07 when the runaway short was
+  covered. 89% of booked trades have no <span class="mono">exec_id</span> linkage. The largest loss
+  in the desk's history — roughly &minus;$8,400 — appears in no table at all.</p>
+
+  <p><strong>6 · The router costs more than it can be shown to add.</strong>
+  <span class="tag t-a">agent</span> Of 4,609 gate fires it benched, <strong>80% would have failed
+  the gate's own ATR floor anyway</strong> — a slower, costlier copy of a one-line threshold.
+  Measured benefit $35–350/month with a confidence interval including zero, against $352/month of
+  inference. Its reasoning quality is genuinely high (98.4% numerical fidelity, 0.13% rulebook
+  violations); its <em>substrate</em> is a consumer OAuth subscription with a combined failure MTBF
+  of 4.8 days and a repair path requiring a human at a keyboard.</p>
+</section>
+
+<section class="page-break">
+  <div class="shead"><h2><span class="n">09</span>Action list</h2></div>
+  <p>Everything the audit produced, in the order it should be done. Nothing here is a research
+  programme — <strong>fifteen of the twenty items are plumbing.</strong></p>
+
+  <div class="scroll">
+  <table class="actions">
+    <thead><tr><th>#</th><th>Action</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" class="tier">Tier 0 — today, regardless of the go-live decision</td></tr>
+      <tr><td class="id">A1</td><td>Bind the dashboard to <span class="mono">127.0.0.1</span>
+        <span class="why">Closes the public unauthenticated trade endpoint. nginx keeps serving
+        dashboard.gazbot.dev — zero impact on your access.</span></td><td class="eff">5 min</td></tr>
+      <tr><td class="id">A2</td><td>Install Tailscale on the VPS and your devices
+        <span class="why">Prerequisite for A3 — makes locking down SSH safe rather than a lockout
+        risk, and fixes the dead-desktop access problem at the same time.</span></td><td class="eff">15 min</td></tr>
+      <tr><td class="id">A3</td><td>Key-only SSH, disable root password login, enable <span class="mono">ufw</span>
+        <span class="why">Do only after A2 is confirmed working from a second device.</span></td><td class="eff">20 min</td></tr>
+      <tr><td class="id">A4</td><td>Rotate every credential exposed by the June breach
+        <span class="why">Logged as "in progress" three months ago and never confirmed. The box holds
+        your keys.</span></td><td class="eff">30 min</td></tr>
+      <tr><td class="id">A5</td><td>Put authentication in front of <span class="mono">/v7/</span>
+        <span class="why">Basic auth or Cloudflare Access. Mandatory before any funded account.</span></td><td class="eff">20 min</td></tr>
+
+      <tr><td colspan="3" class="tier">Tier 1 — blocking for any live money</td></tr>
+      <tr><td class="id">B1</td><td>Move every exit to a resting broker order
+        <span class="why">Four OCA'd limits at 50/100/200/300pt plus one protective stop. Both order
+        classes already exist in the code. Closes the polling defect, the sampling-phase lottery and
+        the fabricated multi-lot exit fill at once.</span></td><td class="eff">half day</td></tr>
+      <tr><td class="id">B2</td><td>Re-arm a protective stop
+        <span class="why">A 4-lot naked position with a measured 444-point adverse excursion is the
+        only thing here capable of ending the account.</span></td><td class="eff">included in B1</td></tr>
+      <tr><td class="id">B3</td><td>Cap the rider at 1–2 lots
+        <span class="why">+$6,200 across 853 trades at 1–3 lots; &minus;$7,742 across 25 at 4 lots.
+        Size is the lever.</span></td><td class="eff">1 line</td></tr>
+      <tr><td class="id">B4</td><td>One trade per day — ban same-day re-entry
+        <span class="why">1st of day +$2,505 (n=23, 78% win); 2nd+ &minus;$5,070 (n=30, 50%).</span></td><td class="eff">3 lines</td></tr>
+      <tr><td class="id">B5</td><td>Fix the inverted fail-safe in <span class="mono">reactivate_gates.py</span>
+        <span class="why">Must not arm gates when the router has been silent &gt; 30 min.</span></td><td class="eff">4 lines</td></tr>
+      <tr><td class="id">B6</td><td>Clear the failed <span class="mono">eod-flatten</span> unit and page on its failure
+        <span class="why">The component STATE.md calls the real floor has been red since Wednesday
+        with nothing saying so.</span></td><td class="eff">15 min</td></tr>
+
+      <tr><td colspan="3" class="tier">Tier 2 — the instruments are mis-aimed until these land</td></tr>
+      <tr><td class="id">C1</td><td>Fix <span class="mono">run_census.py</span> W/STEP units, then re-run the census
+        <span class="why">Derive the window from the chosen bar's seconds; fix the participation
+        window and the printed headline. Re-points the whole greenfield effort at a real
+        target.</span></td><td class="eff">4 lines + re-run</td></tr>
+      <tr><td class="id">C2</td><td>Record the true entry wall-clock in the shadow book
+        <span class="why">Add <span class="mono">entry_ms</span>; price from it, not from bar start.
+        Then re-derive every shadow headline — patching is not enough.</span></td><td class="eff">1 day</td></tr>
+      <tr><td class="id">C3</td><td>Bound <span class="mono">drift.read()</span>'s window
+        <span class="why"><span class="mono">AND bar_ts &lt;= ?</span>. Unbounded, it silently
+        look-aheads in any retrospective study and returns a confident wrong direction.</span></td><td class="eff">2 lines</td></tr>
+      <tr><td class="id">C4</td><td>Give <span class="mono">backfill_to_lake.py</span> a roll policy
+        <span class="why">The dedup partitions on its own sort key, so 12 of 291 days carry the
+        expiring contract with 118–289pt level errors.</span></td><td class="eff">1 hour</td></tr>
+      <tr><td class="id">C5</td><td>Fix the fee model and re-price
+        <span class="why">$1.50 per <em>contract</em>, not per trade. Add ~$1.00/RT of spread to any
+        mid-priced backtest — MNQ's median spread is 0.50pt, not 0.25.</span></td><td class="eff">1 hour</td></tr>
+      <tr><td class="id">C6</td><td>Populate <span class="mono">fills.commission</span> and reconcile a month against a broker statement
+        <span class="why">1,802 of 1,802 rows are zero. Every cost number is an assumption never
+        checked.</span></td><td class="eff">half day</td></tr>
+      <tr><td class="id">C7</td><td>Fix <span class="mono">exec_id</span> linkage and assert <span class="mono">sum(fills) == venue</span>
+        <span class="why">89% of booked trades cannot be traced to a fill.</span></td><td class="eff">half day</td></tr>
+      <tr><td class="id">C8</td><td>Route the three unfiltered P&amp;L consumers through the <span class="mono">data_quality</span> filter
+        <span class="why"><span class="mono">hour_watch.py:86</span>,
+        <span class="mono">router_watch.py:226</span>,
+        <span class="mono">telegram_bot.py:163</span>.</span></td><td class="eff">30 min</td></tr>
+
+      <tr><td colspan="3" class="tier">Tier 3 — the experiment that actually answers the question</td></tr>
+      <tr><td class="id">D1</td><td>Wire up what already works
+        <span class="why"><span class="mono">drift.py</span> for entry,
+        <span class="mono">WATCH_RT &lt; 0.50</span> as the filter, one trade per day,
+        13:30–15:00Z only. Every component exists and is tested; none is connected.</span></td><td class="eff">1 day</td></tr>
+      <tr><td class="id">D2</td><td>Pre-register, then run 12 confirmed sessions in paper
+        <span class="why">Threshold, size, stop and stop-date fixed in advance. Judge on the
+        artifact, not the exit code. ~8 weeks to the first honest answer this desk will have
+        produced.</span></td><td class="eff">8 weeks</td></tr>
+
+      <tr><td colspan="3" class="tier">Tier 4 — the router</td></tr>
+      <tr><td class="id">E1</td><td>Ship a deterministic ER/ATR/hysteresis filter as the live switch driver
+        <span class="why">Testable offline, free, cannot expire, provable fail-safe.</span></td><td class="eff">1 day</td></tr>
+      <tr><td class="id">E2</td><td>Demote the LLM to shadow and run the randomised A/B
+        <span class="why">It keeps deciding and being scored; nothing is applied. The only way to
+        settle whether it adds anything. Cost falls ~99%.</span></td><td class="eff">half day</td></tr>
+      <tr><td class="id">E3</td><td>Move off the OAuth subscription to an API key with prompt caching
+        <span class="why">Fixes 94% of observed downtime and ~60% of cost — if the LLM ever returns
+        to the live path.</span></td><td class="eff">1 hour</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="box warn">
+    <div class="lbl">On the $30,000</div>
+    <p><strong>Not yet — and not for the reason you would expect.</strong> The strategy is not
+    disproven; it is <em>untested</em>, because the instruments measuring it were mismeasuring and
+    the components that work were never switched on.</p>
+    <p>What disqualifies today is the risk architecture: a 4-lot naked position with no stop, a
+    documented 444-point adverse excursion, and a weekend runaway that on a $30k account would have
+    been a margin call rather than a drawdown.</p>
+    <p>Do Tier 0 and Tier 1, wire up D1, run the twelve sessions. Then you are deciding on evidence
+    instead of on mood — a far better position than five months of work usually buys.</p>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Method.</strong> Ten agents briefed independently, each instructed to treat project
+  documentation as claims requiring verification. Databases opened read-only; no orders placed, no
+  services restarted, no files modified during the audit. Load-bearing claims were re-derived by the
+  lead before inclusion; three did not survive and are corrected in §07.</p>
+  <p>Sample sizes throughout are small — 45 trading days, one instrument, one volatility regime, on a
+  paper engine that demonstrably fabricates fills. Every positive result in this report has a
+  confidence interval that touches or nearly touches zero. That is the honest state of the evidence,
+  and it is why the recommendation is a twelve-session test rather than a deployment.</p>
+</footer>
+
+</div>
+</body>
+</html>
