@@ -111,11 +111,30 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
 #p-trades th:nth-child(6),#blotter td:nth-child(6){width:14%;text-align:right}
 
 /* ---------- hero chart ---------- */
-/* hero-body is a flex ITEM of .panel (flex:1 gives it height) AND a grid CONTAINER for its
-   children. Grid rows are fixed by ORDER: ribbon · chart(1fr) · tfbar · legend · sec · dtt.
-   The chart row is minmax(170px,1fr) so it stays dominant and CANNOT be squeezed to the bottom
-   when the ribbon/DTT populate at the first data tick (the old flex-column bug). */
-.hero-body{display:grid;grid-template-rows:auto minmax(170px,1fr) auto auto auto auto;gap:8px;padding:9px 11px;overflow:hidden;flex:1;min-height:0}
+/* hero-body is a flex ITEM of .panel (flex:1 gives it height) AND the COLUMN holding the hero
+   chart. The chart must stay dominant and CANNOT be squeezed to the bottom when the ribbon/DTT
+   populate at the first data tick (the original flex-column bug) - that guarantee now comes from
+   an explicit min-height on the chart plus flex:none on every sibling, so nothing can shrink it.
+
+   *** 2026-09-11 THIS WAS A GRID WHOSE ROWS WERE FIXED BY ORDER, AND IT KILLED THE DESKTOP CHART.
+   It declared SIX rows - ribbon, chart(1fr), tfbar, legend, sec, dtt - and sized only the second.
+   On 2026-09-02 the MGC work (6af09e0) added .mstrip and #symbar, making EIGHT children. Grid
+   assigns rows POSITIONALLY, so .mstrip took the one sized row and .chart-host slid into an `auto`
+   one. Its only child (#price-svg) is position:absolute and contributes NO height, so the box
+   measured ZERO - and renderHero()'s `clientHeight === 0` guard, written to skip the HIDDEN phone
+   tab, returned on every tick. Nine days of a blank desktop chart with no error anywhere: the API
+   returned 200, the bars were fresh, the JS threw nothing. Phone was unaffected because its media
+   query sets an explicit .chart-host height, which is why this only ever showed on desktop.
+   !! THE LESSON IS THE COUPLING, NOT THE COUNT: a layout keyed to CHILD ORDER breaks silently when
+      anyone adds a child, and whoever adds it has no reason to open this file. The chart is now
+      selected BY CLASS, so it owns the growing row wherever it sits.
+      Asserted by tests/test_dashboard_hero_layout.py. */
+.hero-body{display:flex;flex-direction:column;gap:8px;padding:9px 11px;overflow:hidden;flex:1;min-height:0}
+/* every sibling keeps its natural height - none may grow OR shrink ... */
+.hero-body > *{flex:none}
+/* ... and the chart absorbs what is left, with a hard floor it cannot be squeezed below.
+   min-height is what replaces the old minmax(170px,1fr) anti-squeeze guarantee. */
+.hero-body > .chart-host{flex:1 1 auto;min-height:170px}
 .ribbon{display:flex;gap:6px;flex-wrap:wrap;min-height:44px;align-items:stretch}
 .rtile{flex:1 1 90px;min-width:84px;border:1px solid var(--line);border-radius:5px;padding:6px 9px;background:var(--panel2)}
 .rtile .l{font-size:9.5px;letter-spacing:.6px;color:var(--mut);white-space:nowrap}
