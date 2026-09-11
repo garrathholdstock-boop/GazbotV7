@@ -59,7 +59,7 @@
     "If the depth capture is down for a session, mark it EXCLUDED with the reason. Do not silently skip it."
   ],
   "why_this_shape": "The desk has one detector that works unattended (drift) and one filter that makes it testable (WATCH_RT), and neither is wired to anything. This test asks whether a THIRD, genuinely new signal - liquidity withdrawal - adds to the first. It is designed so the answer can be no. The discovery measurement was strong (t=-12.45) but it was measured around known pivots; the only thing that can promote it from an observation to an edge is a forward record against a control, fixed in advance.",
-  "status": "ACTIVE - awaiting first eligible session 2026-09-12. Zero sessions counted.",
+  "status": "ACTIVE - held-out backtest run 2026-09-11: DOES NOT SUPPORT (C lost to A by $224.75/trade on n=10, CI includes zero). Forward test continues to 60 sessions per the rules of engagement. Zero forward sessions counted.",
   "verdict": null,
   "sessions": [],
   "_held_out_backtest_declared_before_running": {
@@ -71,6 +71,44 @@
     "rule_frozen": "The registered rule is used EXACTLY as it stands: depth_ratio <= 0.75, drift.compute() confirmed, entry at the next bar's open, ladder as resting limits + 20:40Z flat, 1 lot, $1.50/RT. Nothing is tuned for this window. If it disappoints, that is the result.",
     "verdict_rule_for_this_window": "Same as the forward test: C_both must beat A_drift_only. n=13 sessions cannot CONFIRM anything - it is far below the 25-entry floor - but it CAN refute, and a C arm that loses to its own control out-of-sample is a genuine negative result available today rather than in December.",
     "commitment": "This is run ONCE. The threshold is not moved afterwards. If the result is poor the forward test still runs to 60 sessions, because a 13-day sample is not evidence enough to abandon a pre-registered design either.",
-    "result": "NOT YET RUN \u2014 this block was committed to git BEFORE the backtest was executed, and the commit order is the proof."
+    "result": {
+      "run_on": "2026-09-11, immediately after the declaring commit 3f775f0",
+      "sessions_usable": 10,
+      "sessions_excluded": "2026-08-01, 08-02, 08-08 - weekends, no US session bars. Excluded by the code, not by hand.",
+      "A_drift_only": {
+        "n": 10,
+        "total_usd": 2096.0,
+        "mean_usd": 209.6,
+        "median_usd": 673.25,
+        "win_pct": 80,
+        "t": 0.43
+      },
+      "B_thinning_only": {
+        "n": 10,
+        "total_usd": -210.0,
+        "mean_usd": -21.0,
+        "median_usd": -53.0,
+        "win_pct": 40,
+        "t": -0.23
+      },
+      "C_both": {
+        "n": 10,
+        "total_usd": -151.5,
+        "mean_usd": -15.15,
+        "median_usd": -12.0,
+        "win_pct": 50,
+        "t": -0.16
+      },
+      "difference_C_minus_A_usd_per_trade": -224.75,
+      "bootstrap_95_CI_on_difference": [
+        -1005.75,
+        780.96
+      ],
+      "CI_excludes_zero": false,
+      "verdict_on_this_window": "DOES NOT SUPPORT. C_both (-$15.15/trade) LOST to its own control A_drift_only (+$209.60/trade). The primary criterion - C beats A with a CI excluding zero - is not met, and the point estimate runs the WRONG WAY by $224.75/trade.",
+      "why_it_is_not_yet_a_REFUTATION": "n=10 and the CI spans [-1006, +781]. At this sample nothing is established in either direction; the registration's own rules forbid abandoning a pre-registered design on a look this small, exactly as they forbid adopting one.",
+      "mechanism_of_the_failure": "C enters at max(thinning_time, drift_time), so requiring the book trigger DELAYS entry relative to drift alone. On this window the delay cost money. Watch this forward: the trigger may be adding LATENCY rather than INFORMATION - consistent with the discovery finding that the book says WHEN but not WHICH WAY, and 'when' is precisely the question drift already answers.",
+      "what_was_NOT_tuned_after_seeing_this": "Nothing. The threshold stays 0.75, the arms stay as registered, the forward test still runs to 60 sessions."
+    }
   }
 }
