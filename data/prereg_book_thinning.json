@@ -1,29 +1,24 @@
 {
   "_what_this_is": "PRE-REGISTERED test of the operator's 2026-09-11 hypothesis: that the day is built from a few big directional legs, that the ORDER BOOK announces when one is about to start, and that the desk's existing drift detector can supply the direction. Written down BEFORE any P&L was computed on the combined rule, fixed for 60 forward sessions, and deliberately not tunable. The question it exists to answer is narrow and falsifiable: DOES BOOK THINNING ADD ANYTHING TO DRIFT ALONE?",
-
   "registered_on": "2026-09-11",
   "registered_by": "operator: 'yes build that test. pre register it'",
   "hypothesis": "Liquidity withdraws from the order book shortly before a directional leg begins. Thinning therefore signals WHEN a move is imminent; drift.compute() supplies WHICH WAY. The pair should beat drift alone.",
-
   "_what_is_already_known_and_is_therefore_NOT_evidence": {
     "discovery_window": "2026-08-14 .. 2026-09-11 (21 sessions with depth data)",
     "what_was_measured_there": "At the start of legs >= 40pt, 3-level book depth was 0.72x its matched-control level (54 vs 75, t=-12.45) and touch size 0.79x (11 vs 14, t=-7.79). Signed order-book imbalance at those moments was ~0.000 with only ~20% agreeing with the leg's direction - the book said a move was coming but NOT its direction.",
     "why_this_disqualifies_the_window": "The thinning effect was FOUND on that window, so a P&L computed there is a description of it, not a test of it. Those 21 sessions may be used only to verify the code runs and produces trades. Their P&L IS NOT EVIDENCE and must never be quoted as a result.",
     "caveat_on_the_discovery_itself": "The +/-2 minute measurement window straddles the pivot, so it cannot separate 'a thin book let price move' from 'the move consumed the book'. The forward test uses a STRICTLY CAUSAL trigger (below) which is immune to this, but the underlying mechanism remains unproven."
   },
-
   "instrument": "MNQ",
   "session": "US only, 13:30-20:40 UTC",
   "size_lots": 1,
   "_why_one_lot": "The IBKR paper engine fabricates a 0.1%-adverse fill on every lot beyond the first (91 of 91 deviations adverse, 62 lots carrying 66% of the desk's reported loss). At one lot the mechanism cannot engage, so every fill in this test is a real measurement. Size is NOT part of the hypothesis.",
-
   "arms": {
     "A_drift_only": "THE CONTROL, and the incumbent. Enter on drift.compute().confirmed, in drift's direction, first confirmation of the session.",
     "B_thinning_only": "Enter on the thinning trigger alone, direction taken from drift's CURRENT direction field even if unconfirmed.",
     "C_both": "THE HYPOTHESIS. Enter only when the thinning trigger fires AND drift is confirmed, in drift's direction."
   },
   "_why_three_arms": "The claim is not 'C makes money' - it is 'thinning ADDS to drift'. That is only answerable against A. If C and A are indistinguishable, the thinning trigger is decoration and the honest verdict is REFUTED even if both are positive.",
-
   "trigger_thinning": {
     "feature": "depth_ratio",
     "definition": "median(3-level total book size over the trailing 3 minutes) / median(3-level total book size over this session from 13:30Z up to 15 minutes ago)",
@@ -33,24 +28,20 @@
     "hygiene": "Minutes are dropped if the snapshot count is < 5, if ask1p <= bid1p (9% of snapshots are crossed or locked), or if ask1p takes only ONE distinct value in the minute - the last of these excludes the documented 19.6-hour frozen-ask window (200,708 consecutive snapshots) and any repeat of it.",
     "minimum_baseline_minutes": 20
   },
-
   "trigger_direction": {
     "source": "gazbot7.drift.compute() over minute bars from 13:30Z to the entry minute",
     "requires": "r.confirmed is True and r.direction in ('UP','DOWN')",
     "causality": "drift.read() is NOT used - it has no upper time bound and silently look-aheads when called retrospectively, returning a confident WRONG direction (measured on 2026-09-10: causal UP vs unbounded DOWN). Bars are sliced to the entry minute and passed to compute() directly."
   },
-
   "entry": "The OPEN of the next 1-minute bar after both conditions hold. Never a price inside the signal bar and never a level that has already passed - a fill that never printed is not a measurement.",
   "exit": "The desk's live rule: per-lot ladder at +50/+100/+200/+300 pt modelled as RESTING LIMIT orders, remainder flat at 20:40Z. No stop, matching the operator's standing instruction.",
   "_secondary_diagnostic_only": "A 150pt protective stop variant is recorded alongside but CANNOT change the verdict. It exists because the measured heat on a stopless hold is median 124pt and p90 346pt - $995 and $2,767 on 4 lots - and the operator should see what a stop would have cost or saved.",
   "fees": "MNQ $1.50 per round turn per contract.",
   "max_entries_per_session": 1,
-
   "sessions_required": 60,
   "first_eligible_session": "2026-09-12",
   "expires_after_session": 60,
   "hard_stop_date": "2026-12-31",
-
   "verdict_rule": {
     "primary": "C_both beats A_drift_only on mean P&L per trade, by a margin whose 95% bootstrap CI (day-clustered, 10000 resamples) excludes zero.",
     "supporting": "C_both mean P&L per trade > 0 with t >= 2.0, net of fees.",
@@ -58,7 +49,6 @@
     "REFUTED": "primary not met - i.e. thinning adds nothing detectable to drift.",
     "INCONCLUSIVE": "fewer than 25 C-arm entries accumulated by session 60. This is the most likely outcome and must be reported as such rather than dressed up either way."
   },
-
   "rules_of_engagement": [
     "DO NOT tune the 0.75 threshold. Not once. A moved threshold restarts the count at zero.",
     "DO NOT add a third feature. Two is the entire design: one for WHEN, one for WHICH WAY.",
@@ -68,10 +58,19 @@
     "RECORD every session whether anything fired or not - the sessions with no trigger are half the test.",
     "If the depth capture is down for a session, mark it EXCLUDED with the reason. Do not silently skip it."
   ],
-
   "why_this_shape": "The desk has one detector that works unattended (drift) and one filter that makes it testable (WATCH_RT), and neither is wired to anything. This test asks whether a THIRD, genuinely new signal - liquidity withdrawal - adds to the first. It is designed so the answer can be no. The discovery measurement was strong (t=-12.45) but it was measured around known pivots; the only thing that can promote it from an observation to an edge is a forward record against a control, fixed in advance.",
-
   "status": "ACTIVE - awaiting first eligible session 2026-09-12. Zero sessions counted.",
   "verdict": null,
-  "sessions": []
+  "sessions": [],
+  "_held_out_backtest_declared_before_running": {
+    "declared_on": "2026-09-11",
+    "why_it_exists": "Local depth.db starts 2026-08-14, which is the discovery window, so no out-of-sample depth appeared to exist. It does: B2 (b2raw:gazbotv7/plain/tape/book/MNQ/) archives the L2 book back to 2026-07-31. BACKBLAZE IS THE RECORD; the local disk is a CACHE.",
+    "window": "2026-07-31 .. 2026-08-13",
+    "sessions_available": 13,
+    "status_at_declaration": "NEVER EXAMINED. No feature, threshold or arm has been computed on these days by anyone, at any point.",
+    "rule_frozen": "The registered rule is used EXACTLY as it stands: depth_ratio <= 0.75, drift.compute() confirmed, entry at the next bar's open, ladder as resting limits + 20:40Z flat, 1 lot, $1.50/RT. Nothing is tuned for this window. If it disappoints, that is the result.",
+    "verdict_rule_for_this_window": "Same as the forward test: C_both must beat A_drift_only. n=13 sessions cannot CONFIRM anything - it is far below the 25-entry floor - but it CAN refute, and a C arm that loses to its own control out-of-sample is a genuine negative result available today rather than in December.",
+    "commitment": "This is run ONCE. The threshold is not moved afterwards. If the result is poor the forward test still runs to 60 sessions, because a 13-day sample is not evidence enough to abandon a pre-registered design either.",
+    "result": "NOT YET RUN \u2014 this block was committed to git BEFORE the backtest was executed, and the commit order is the proof."
+  }
 }
