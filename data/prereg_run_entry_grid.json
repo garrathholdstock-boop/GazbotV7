@@ -1,0 +1,70 @@
+{
+  "_what_this_is": "PRE-REGISTERED GRID SEARCH + WALK-FORWARD for the operator's run-entry idea: a WHEN filter (volume) says a move is imminent, price then confirms a direction by travelling K points, and we ask whether a RUN of R points follows in that direction before R points against. No exits, no P&L - pure directional classification, because the operator has deliberately not specified an exit rule and inventing one buries the question.",
+
+  "registered_on": "2026-09-11",
+  "registered_by": "operator: 'pre register it and run it on the held out data. but run a grid of variations on those thresholds... if you find some good combos walk them forward in another period in the lake.'",
+
+  "_the_tension_and_how_it_is_resolved": "A grid search is the opposite of a pre-registration: with enough cells something always clears any bar. So what is registered here is NOT a threshold - it is the PROTOCOL. The grid, the chronological split, the selection rule, the walk-forward and the pass criterion are all fixed below BEFORE any of it is run, and the commit that carries this file precedes the first result. The grid may propose; only held-out data may confirm.",
+
+  "hypothesis": "Conditional on elevated volume, a K-point directional confirmation is followed by an R-point run in the confirmed direction MORE often than an R-point move against it. Null is exactly 0.500 by construction of the symmetric race.",
+
+  "_what_is_already_known_and_is_NOT_evidence": {
+    "in_sample_look": "On all 240 sessions, P(run|fire) showed a monotone gradient with the volume filter: none 0.506 -> vol>=1.5x 0.517 -> vol>=2.5x 0.535 at K=15/R=60, and 0.503 -> 0.515 -> 0.531 at K=30/R=60. Two cells had bootstrap CIs excluding 0.500.",
+    "why_it_is_not_evidence": "That was 15 cells examined on the whole sample with no split. It is the reason for running this protocol, not a result of it. It must never be quoted as validation."
+  },
+
+  "instrument": "MNQ 1-minute bars from data/backfill/ (the lake), front month chosen per date by volume.",
+  "session": "Full CME session, 22:00Z-20:40Z. The operator trades by hand all day; restricting to US cash hours was an artefact of the automatic rider's window, not a finding.",
+
+  "measurement": {
+    "fire": "At minute i, price has travelled K points beyond the extreme of the PRIOR 30 minutes, in exactly one direction (both directions in the same bar = no fire).",
+    "when_filter": "vol_rel at minute i >= V, where vol_rel = that minute's volume divided by the MEDIAN volume for that minute-of-day across the sample. Time-of-day normalisation is mandatory: raw volume at 04:00Z and 14:00Z are not comparable.",
+    "entry_reference": "The OPEN of bar i+1. Never a price inside the signal bar, never a level already passed.",
+    "outcome": "Symmetric race over the next 240 minutes: +R in the confirmed direction (WIN) vs -R against (LOSS). A bar touching both resolves as a LOSS. Unresolved within 240 minutes is discarded, not counted either way.",
+    "cooldown": "30 minutes between fires, so one impulse is not counted six times.",
+    "statistic": "P(run|fire) = WIN / (WIN + LOSS). Null = 0.500."
+  },
+
+  "grid": {
+    "K_confirmation_pt": [10, 15, 20, 30, 40, 50],
+    "R_run_pt": [40, 60, 80, 100, 150],
+    "V_volume_multiple": [1.0, 1.5, 2.0, 2.5, 3.0],
+    "total_cells": 150,
+    "_expected_false_positives": "At a nominal 5% level, 150 cells yield ~7.5 apparent winners by chance alone. That is why TRAIN may only NOMINATE; it may never confirm."
+  },
+
+  "split": {
+    "method": "CHRONOLOGICAL, never random. Random splits leak regime across folds and are the standard way this kind of study fools itself.",
+    "TRAIN": "the earliest 40% of sessions - the grid runs here and NOWHERE else",
+    "VALIDATE": "the next 30% - only the nominated cells are tested here, once",
+    "TEST": "the final 30% - looked at ONCE, only by cells that survived VALIDATE, and the result stands whatever it is"
+  },
+
+  "selection_rule": {
+    "nominate_from_TRAIN": "P(run|fire) >= 0.520 AND at least 200 decided fires. Both fixed here in advance.",
+    "survive_VALIDATE": "P(run|fire) >= 0.510 on VALIDATE. Deliberately lower than the nomination bar - demanding the same number twice is demanding luck twice, and a genuine effect is expected to shrink out of sample.",
+    "confirm_on_TEST": "P(run|fire) > 0.500 with a day-clustered bootstrap 95% CI excluding 0.500.",
+    "_no_reselection": "If nothing survives, nothing is promoted. The grid is NOT re-run with different thresholds afterwards; that would make the whole protocol theatre."
+  },
+
+  "verdict_rule": {
+    "CONFIRMED": "At least one cell passes all three stages, and its family (neighbouring K/R/V) behaves consistently rather than it being an isolated island in the grid.",
+    "REFUTED": "No cell survives VALIDATE, or survivors fail TEST.",
+    "FRAGILE": "A cell survives all three but sits alone in the grid with poor neighbours - reportable, but not promotable to live risk."
+  },
+
+  "rules_of_engagement": [
+    "The grid runs on TRAIN ONLY. VALIDATE and TEST are not looked at until their stage.",
+    "DO NOT re-run the grid with a different span, cooldown or normalisation after seeing a result.",
+    "DO NOT promote a cell that passes TEST but whose neighbours are all at 0.50 - that is an island and islands do not replicate.",
+    "REPORT the full grid, not just the survivors. The distribution of all 150 cells is how a reader judges whether the winners are special.",
+    "A result near 0.53 is a THIN edge. Say so plainly; do not let three percentage points be described as an edge that would carry a desk.",
+    "No exits and no P&L anywhere in this test. The operator has not specified an exit and inventing one has already buried this question once today."
+  ],
+
+  "why_this_shape": "Everything tested on 2026-09-11 says the tape announces WHEN but not WHICH WAY: break-then-join is 0.469-0.506 over 24 cells, book imbalance at leg starts is ~0.000, book thinning lost to its own control out of sample. The one thing that moved was conditioning the confirmation on volume. This protocol exists to find out whether that gradient is real or whether it is the 150-cell search talking.",
+
+  "status": "REGISTERED - committed before the grid was run. No stage has been executed.",
+  "verdict": null,
+  "results": null
+}
