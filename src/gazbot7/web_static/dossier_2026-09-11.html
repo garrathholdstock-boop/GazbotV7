@@ -358,6 +358,25 @@ def watch_verdict(rt: float) -&gt; str:
     error</strong>: ATR at a break is only 0.607× an active minute's ATR, so the denominator alone
     produces 1/0.607 = 1.65×. The withdrawal was correct.</p>
   </div>
+
+  <div class="box good">
+    <div class="lbl">The data estate — your hypothesis was right, for a reason you had not stated</div>
+    <p><span class="tag t-a">agent</span> Priced against vendor list rates, <strong>the raw data is
+    worth about $250</strong>: 40 days of MBP-10 depth for MNQ + MGC costs $2–$55, ten years of
+    1-minute bars across NQ/MNQ/GC/MGC is a $199 subscription, and real-time L2 to keep capturing is
+    $15/month. The bytes are a commodity.</p>
+    <p>The <em>pipeline</em> that makes those bytes trustworthy would cost $150k–$400k to rebuild.
+    <strong>That ratio is roughly 1,000 : 1, and it is the evidence for your belief that the R&amp;D
+    facility is the real asset.</strong> The durably valuable core is narrower than the whole
+    repository, though — roughly the 6,000-line capture-and-archive layer, not the 107k lines of
+    which much is single-use study code.</p>
+    <p><strong>One hard constraint worth knowing before you ever plan to sell or license it:</strong>
+    CME's Historical Distribution Licence is $35,220/year <em>per exchange</em> — $70,440 for CME +
+    COMEX — and its agreement bans redistribution "in any format, to any other party" including
+    derived data products. You are fully within your rights capturing at $12.10/month under a
+    display-device licence, but <strong>this estate can never be sold or licensed onward.</strong>
+    Its worth is captive to this operation.</p>
+  </div>
 </section>
 
 <section>
@@ -434,7 +453,17 @@ LISTEN 0.0.0.0:8087      &lt;- the dashboard</pre>
   covered. 89% of booked trades have no <span class="mono">exec_id</span> linkage. The largest loss
   in the desk's history — roughly &minus;$8,400 — appears in no table at all.</p>
 
-  <p><strong>6 · The router costs more than it can be shown to add.</strong>
+  <p><strong>6 · The captured order book contains a twenty-hour lie.</strong>
+  <span class="tag t-v">re-derived</span> In <span class="mono">depth.db</span>, the MNQ best ask
+  sat frozen at <span class="mono">30151.75</span> across <strong>200,708 consecutive snapshots
+  spanning 19.6 hours</strong>. Any study reading the book through that window gets garbage, silently.
+  An agent root-caused it to a weekend-restart failure — <strong>so it will recur</strong>. Three more
+  data defects sit alongside it: a driftlab study anchored to the wrong DST offset on 47.5% of its
+  sessions <em>that goes live on 2026-11-01</em>, an 89.4% orphan-fill rate specific to the current
+  gate slate, and no live↔shadow pairing at all — which is why the 55-second look-ahead above went
+  eight weeks undetected.</p>
+
+  <p><strong>7 · The router costs more than it can be shown to add.</strong>
   <span class="tag t-a">agent</span> Of 4,609 gate fires it benched, <strong>80% would have failed
   the gate's own ATR floor anyway</strong> — a slower, costlier copy of a one-line threshold.
   Measured benefit $35–350/month with a confidence interval including zero, against $352/month of
@@ -446,7 +475,7 @@ LISTEN 0.0.0.0:8087      &lt;- the dashboard</pre>
 <section class="page-break">
   <div class="shead"><h2><span class="n">09</span>Action list</h2></div>
   <p>Everything the audit produced, in the order it should be done. Nothing here is a research
-  programme — <strong>fifteen of the twenty items are plumbing.</strong></p>
+  programme — <strong>eighteen of the twenty-three items are plumbing.</strong></p>
 
   <div class="scroll">
   <table class="actions">
@@ -512,6 +541,16 @@ LISTEN 0.0.0.0:8087      &lt;- the dashboard</pre>
         <span class="why"><span class="mono">hour_watch.py:86</span>,
         <span class="mono">router_watch.py:226</span>,
         <span class="mono">telegram_bot.py:163</span>.</span></td><td class="eff">30 min</td></tr>
+      <tr><td class="id">C9</td><td>Detect and flag frozen quotes in the capture layer
+        <span class="why">200,708 consecutive L2 snapshots carried a stale best ask for 19.6 hours
+        and nothing noticed. A staleness assertion at write time turns a silent corruption into an
+        alarm — and the weekend-restart cause means it recurs until fixed.</span></td><td class="eff">2 hours</td></tr>
+      <tr><td class="id">C10</td><td>Fix the driftlab DST anchoring <strong>before 2026-11-01</strong>
+        <span class="why">47.5% of sessions are anchored to the wrong offset, and the clocks change
+        on that date. This one has a deadline.</span></td><td class="eff">1 hour</td></tr>
+      <tr><td class="id">C11</td><td>Pair every live trade with its shadow twin, and run the gap test on a schedule
+        <span class="why">No pairing exists today, which is precisely why the 55-second look-ahead
+        survived eight weeks. One scheduled query would have caught it in July.</span></td><td class="eff">half day</td></tr>
 
       <tr><td colspan="3" class="tier">Tier 3 — the experiment that actually answers the question</td></tr>
       <tr><td class="id">D1</td><td>Wire up what already works
