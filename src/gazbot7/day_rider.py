@@ -204,6 +204,32 @@ def idle_block_applies(mod: int, owned_live: bool) -> bool:
 #   optimistic; the RANKING is unaffected because all rules share the entries. Deployed on the ranking.
 # REVERT: set USE_ATR_TRAIL = False — the fixed constants below are retained and still used as the
 # fallback whenever the frozen entry ATR is unavailable.
+# ── THE TRAIL IS OFF. OPERATOR DECISION 2026-09-11 ────────────────────────────────────────────────
+# Operator: "turn all exits and stops for day rider off except the 4 levels of take profit. the rest
+# is up to me to do manually."
+#
+# ★★★ THE TRADE THAT ENDED IT, and it is not a tuning failure — the level never existed as a price.
+# LONG 4 @ 29320.25 (10:39Z). Peak 29397.50 printed in the 12:30:00 bar, so the trail sat at
+# 29384.36 (peak - 2xATR 6.57). In the NEXT 5-second bar the tape fell to 29268.25 — 116 points
+# through the trail in under thirty seconds — and by 12:31:00 the low was 29244.25. The rider
+# evaluates once a MINUTE, so it did not sell at 29384: it woke at ~12:31, saw price far below the
+# level, and sent a MARKET order that filled 29255.25 / 29226.00. Two minutes later the tape was
+# back at 29303.
+#   trail level .......... 29384.36   (+64 vs entry)
+#   actual fills ......... 29255.25, 29226.00, and 29240.75 on the lot before
+#   given up ............. ~130-158 points BELOW the level the rule named
+# A once-a-minute software trail does not exit at its level. It exits wherever price happens to be
+# on the next tick, which on a fast tape is the bottom of the move. It sold the low and the move
+# retraced. This is a STRUCTURAL property of polling a level, not a bad parameter, so no arming
+# multiple or trail width fixes it.
+#
+# ⚠ THIS IS A REVERSIBLE SWITCH, NOT A DELETION. trail_level() and its tests are untouched and the
+#   exit path below still works — flip this to True and the trail is back exactly as it was.
+# ⚠ WHAT REPLACES IT IS THE OPERATOR'S HANDS, which is the desk's best-evidenced exit anyway
+#   ([[the-operators-hands-are-the-exit]]: 3/3 manual claims, $726 in 23 min, and no fixed level
+#   reproduced it). The claim buttons, the ladder and the 20:40 hard flat are all unaffected.
+# REVERT: set USE_TRAIL_EXIT = True.
+USE_TRAIL_EXIT = False
 USE_ATR_TRAIL = True
 ARM_ATR_MULT = 4.0                 # arm the trail once this many ATR ahead
 
@@ -1453,7 +1479,13 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             out.update(entry=entry, peak=peak, direction=d, qty=own_qty, venue_net=net)
             arm_atr = float(st.get("arm_atr") or 0.0)
             out["arm_atr"] = arm_atr            # carry it forward untouched every tick
-            tl = trail_level(d, entry, peak, arm_atr)
+            # ★★2026-09-11 THE ONE CHOKE POINT. `tl = None` makes every consumer inert at once:
+            # the exit test below, the `trail` field in state, and the dashboard readout. Gating
+            # HERE rather than inside trail_level() keeps that function PURE, as its own docstring
+            # promises, so its six arithmetic tests still guard the rule for the day the operator
+            # flips the switch back. Gating inside it broke all six, which is the tell that it was
+            # the wrong place.
+            tl = trail_level(d, entry, peak, arm_atr) if USE_TRAIL_EXIT else None
             out["trail"] = tl
             out["ahead_pt"] = round(d * (px - entry), 1)
 
@@ -1682,12 +1714,24 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 # note overstated the distance to arming by ~19pt every time the operator read it,
                 # and shaped a belief that the trail "was still too low" on days it was closer than
                 # shown. Report the threshold the RULE uses, and say which rule that is.
-                arm_need = (ARM_ATR_MULT * arm_atr
-                            if (USE_ATR_TRAIL and arm_atr and arm_atr > 0) else ARM_PT)
-                basis = f"{ARM_ATR_MULT:.0f}xATR {arm_atr:.1f}" if arm_need != ARM_PT else "fixed"
-                out["note"] = ("riding · trail " + (f"{tl:.1f}" if tl else
-                               f"not armed (need +{arm_need:.0f} [{basis}], "
-                               f"at {d*(px-entry):+.0f})"))
+                # ★2026-09-11 "not armed" would be a LIE once the trail is switched off — it
+                # implies a level is coming that never will, which is the readout-lied bug of
+                # 08-13 in a new form. Say which state we are actually in.
+                # ⚠ ONLY d/px/entry/FLAT_UTC_MIN here. The ladder locals are bound further up on a
+                # conditional path, and referencing one that did not bind is the 2026-08-21
+                # UnboundLocalError that killed a tick AFTER its order reached the venue. The else
+                # branch below already proves these four are safe.
+                if not USE_TRAIL_EXIT:
+                    out["note"] = (f"riding · NO TRAIL (operator 2026-09-11: manual exit only) · "
+                                   f"at {d*(px-entry):+.0f} · hard flat "
+                                   f"{FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z")
+                else:
+                    arm_need = (ARM_ATR_MULT * arm_atr
+                                if (USE_ATR_TRAIL and arm_atr and arm_atr > 0) else ARM_PT)
+                    basis = f"{ARM_ATR_MULT:.0f}xATR {arm_atr:.1f}" if arm_need != ARM_PT else "fixed"
+                    out["note"] = ("riding · trail " + (f"{tl:.1f}" if tl else
+                                   f"not armed (need +{arm_need:.0f} [{basis}], "
+                                   f"at {d*(px-entry):+.0f})"))
             save_state(out)
             return out
 
