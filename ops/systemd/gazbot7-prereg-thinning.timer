@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — record the pre-registered book-thinning session (Mon-Fri, after the flat)
+
+[Timer]
+# 21:10 UTC — after the 20:40 flat and the 21:00 halt, before the 22:00 reopen.
+OnCalendar=Mon..Fri *-*-* 21:10:00
+Persistent=true
+Unit=gazbot7-prereg-thinning.service
+
+[Install]
+WantedBy=timers.target

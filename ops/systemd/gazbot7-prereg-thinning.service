@@ -1,0 +1,15 @@
+[Unit]
+Description=GAZBOT V7 — pre-registered book-thinning test: record one session
+Documentation=file:///home/alphabot/gazbot7/data/prereg_book_thinning.json
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=/home/alphabot/gazbot7/src
+# Records the session that has just closed. Read-only against capture.db/depth.db;
+# appends one row to the registration and places NO order of any kind.
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/prereg_book_thinning.py
+TimeoutStartSec=900
+MemoryMax=1G
