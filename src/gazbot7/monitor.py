@@ -71,6 +71,39 @@ def heartbeat_status(path: str, now_iso: str, *, max_age_s: float = 120.0) -> tu
     return "OK", f"core alive ({age:.0f}s)"
 
 
+# ★★2026-09-12 — THE ALARM WAS VENUE-BLIND AND UNDEDUPED, AND IT PAGED 13 TIMES ON A SHUT VENUE.
+# Two separate faults, both in this file, neither in the desk it watches:
+#   (1) a stale heartbeat and zero fills are the EXPECTED reading while the venue is closed — the
+#       desk restarts into an IBKR gateway that has no upstream link every weekend — so CRIT on a
+#       Saturday morning is true and useless;
+#   (2) it called notify() bare on every 10-minute tick, and the one dedupe helper this desk owns
+#       keys on MESSAGE TEXT, which this alarm defeats by carrying a live second-count ("stale
+#       7984s") that changes every tick. A counter in an alarm body is a dedupe bypass.
+# The fix must not make it blind: it still PRINTS every tick, it pages through the whole open
+# session, and it pages in the 45 minutes BEFORE a reopen so a desk that is still down reaches him
+# BEFORE the bell rather than after it.
+PRE_OPEN_PAGE_MIN = 45.0
+
+
+def page_decision(status: str, *, mins_to_open: float | None,
+                  pre_open_min: float = PRE_OPEN_PAGE_MIN) -> tuple[bool, str]:
+    """Should a CRIT reach his phone right now? `mins_to_open` is None when the venue is OPEN."""
+    if status != "CRIT":
+        return False, "not critical"
+    if mins_to_open is None:
+        return True, "venue open"
+    if mins_to_open <= pre_open_min:
+        return True, f"venue reopens in {mins_to_open:.0f}min"
+    return False, f"venue shut for another {mins_to_open/60:.1f}h — expected while closed"
+
+
+def situation(*parts: str) -> str:
+    """The dedupe key's payload: the SAME words with every live number removed, so a condition
+    that persists is said once per cooldown instead of once per tick."""
+    import re
+    return " | ".join(re.sub(r"\d+", "N", p) for p in parts)
+
+
 def _worst(*statuses: str) -> str:
     return max(statuses, key=lambda s: _ORDER[s])
 
@@ -90,9 +123,22 @@ def main() -> int:  # `python -m gazbot7.monitor` — the external 10-min sweep
     status = _worst(ex.status, hb_status)
     line = f"MONITOR {status}: exec[{ex.detail}] hb[{hb_detail}]"
     print(line)
-    if status == "CRIT":  # judged on FILLS, not submits — a real wedge/outage pages
-        from .notify import notify
-        notify(f"Garrath — V7 {line} (need you on Termius to check the desk)", critical=True)
+
+    from .session import minutes_to_next_open
+    send, why = page_decision(status, mins_to_open=minutes_to_next_open(now))
+    if send:  # judged on FILLS, not submits — a real wedge/outage pages
+        from .notify import dedupe_ok, notify
+        sit = situation(ex.detail, hb_detail)
+        if dedupe_ok("monitor.desk", sit, cooldown_s=3600.0):
+            notify(f"Garrath — V7 {line} (need you on Termius to check the desk)", critical=True)
+            print(f"  PAGED — {why}")
+        else:
+            print(f"  page SUPPRESSED — same situation inside the 60min cooldown ({why})")
+    else:
+        print(f"  no page — {why}")
+        if status != "CRIT":
+            from .notify import dedupe_clear
+            dedupe_clear("monitor.desk")  # condition resolved → the next occurrence alarms at once
     return 0  # a monitor must never fail its host
 
 

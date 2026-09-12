@@ -57,6 +57,24 @@ def minutes_to_next_close(now: datetime) -> float | None:
     return (close_dt - et).total_seconds() / 60.0
 
 
+def minutes_to_next_open(now: datetime) -> float | None:
+    """Minutes until the next reopen while CLOSED. None when the venue is already open.
+
+    ★2026-09-12. The mirror of minutes_to_next_close, and it exists so an alarm can tell
+    "the desk is down and the bell is in 20 minutes" apart from "the desk is down and it is
+    Saturday morning". Candidates are tested through is_open() itself rather than re-deriving
+    the weekend rule — one definition of the session, never two that can drift.
+    """
+    if is_open(now):
+        return None
+    et = _et(now)
+    for d in range(0, 4):
+        cand = datetime.combine(et.date() + timedelta(days=d), DAILY_OPEN, tzinfo=_ET)
+        if cand > et and is_open(cand + timedelta(minutes=1)):
+            return (cand - et).total_seconds() / 60.0
+    return None
+
+
 # ── ★★2026-08-05 ASIA IS BENCHED PERMANENTLY (operator: "bench asia permanently") ─────────────────
 # Measured on the SHADOW book, which fires regardless of benching and is therefore the unconfounded
 # counterfactual — n=6,324 MNQ sims:

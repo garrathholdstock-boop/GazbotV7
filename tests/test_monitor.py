@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 
-from gazbot7.monitor import classify_execution, execution_health, heartbeat_status
+from gazbot7.monitor import (classify_execution, execution_health, heartbeat_status,
+                             page_decision, situation)
 from gazbot7.store import Fill, open_store, record_fill, record_signal
 
 
@@ -58,3 +59,43 @@ def test_heartbeat_status(tmp_path):
     assert heartbeat_status(str(p), now, max_age_s=120)[0] == "OK"
     p.write_text(json.dumps({"ts": "2026-07-15T17:50:00+00:00"}))  # 10 min old
     assert heartbeat_status(str(p), now, max_age_s=120)[0] == "CRIT"  # stale → hung
+
+
+# ── ★2026-09-12 the alarm's own two faults: venue-blindness, and a counter that bypassed dedupe ──
+
+def test_no_page_while_the_venue_is_shut_for_hours():
+    send, why = page_decision("CRIT", mins_to_open=2332.0)   # Saturday morning
+    assert send is False and "expected while closed" in why
+
+
+def test_pages_before_the_reopen_so_he_hears_it_before_the_bell():
+    send, why = page_decision("CRIT", mins_to_open=20.0)     # Sunday 21:40Z
+    assert send is True and "reopens" in why
+
+
+def test_pages_through_the_open_session():
+    assert page_decision("CRIT", mins_to_open=None)[0] is True
+
+
+def test_a_non_critical_reading_never_pages():
+    assert page_decision("WARN", mins_to_open=None)[0] is False
+    assert page_decision("OK", mins_to_open=2332.0)[0] is False
+
+
+def test_situation_strips_the_live_counter_that_defeated_dedupe():
+    a = situation("0 fills / 0 submitted / 0 rejects", "core heartbeat stale 7984s (hung/dead)")
+    b = situation("0 fills / 0 submitted / 0 rejects", "core heartbeat stale 8584s (hung/dead)")
+    assert a == b                      # ten minutes later is the SAME situation
+    c = situation("0 fills / 0 submitted / 0 rejects", "core heartbeat missing (core down?)")
+    assert c != a                      # a DIFFERENT failure still gets through
+
+
+def test_dedupe_suppresses_the_repeat_but_a_new_failure_gets_through(tmp_path):
+    from gazbot7.notify import dedupe_ok
+    p = str(tmp_path / "d.json")
+    sit = situation("0 fills / 0 submitted / 0 rejects", "core heartbeat stale 7984s (hung/dead)")
+    assert dedupe_ok("monitor.desk", sit, path=p) is True
+    later = situation("0 fills / 0 submitted / 0 rejects", "core heartbeat stale 8584s (hung/dead)")
+    assert dedupe_ok("monitor.desk", later, path=p) is False        # the flood, stopped
+    other = situation("0 fills / 0 submitted / 0 rejects", "core heartbeat missing (core down?)")
+    assert dedupe_ok("monitor.desk", other, path=p) is True         # not blind to a new fault
