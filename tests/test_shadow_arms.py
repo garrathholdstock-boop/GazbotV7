@@ -80,3 +80,59 @@ def test_it_judges_the_slate_not_the_individual_arm(monkeypatch, tmp_path):
     cfg = _mk(tmp_path, mnq_sims=390, mgc_sims=1, mgc_bars=16000)
     _point_mgc_at(monkeypatch, tmp_path)
     assert sweep.check_shadow_arms(cfg, NOW)["status"] == sweep.OK
+
+
+# ── ★2026-09-12 THE GOLD CLOCK ARMS. `side` only FILTERS a clock arm's momentum-derived direction,
+#    so side="SHORT" alone would have fired only on the sessions where the prior 15 minutes happened
+#    to fall — a different and untested gate that would have reported like the one we specified.
+
+def _clock_bars(ts: int, n: int = 40, rising: bool = True):
+    from gazbot7.deciders import Bar
+    return [Bar(ts - (n - i) * 60, 100.0, 101.0, 99.0,
+                100.0 + (i if rising else -i), 10.0) for i in range(n)]
+
+
+def test_fixed_side_ignores_momentum_in_both_directions():
+    """The hour is the trigger. A rising tape must not turn a SHORT clock arm long."""
+    from gazbot7.shadow import ShadowSim, mgc_slate
+    v = next(a for a in mgc_slate() if a.name == "mgc_clock_short_1400")
+    sim = ShadowSim.__new__(ShadowSim)                    # no store needed for _rider_entry
+    ts = (14 * 3600)                                      # exactly 14:00:00Z
+    for rising in (True, False):
+        got = ShadowSim._rider_entry(sim, v, _clock_bars(ts, rising=rising), ts)
+        assert got is not None, "the clock arm must fire at 14:00Z"
+        side = got[0] if isinstance(got, tuple) else got
+        assert "SHORT" in str(side), f"rising={rising} produced {got!r}, not SHORT"
+
+
+def test_the_clock_arm_fires_only_inside_its_own_minute():
+    from gazbot7.shadow import ShadowSim, mgc_slate
+    v = next(a for a in mgc_slate() if a.name == "mgc_clock_short_1400")
+    sim = ShadowSim.__new__(ShadowSim)
+    assert ShadowSim._rider_entry(sim, v, _clock_bars(14 * 3600 - 60), 14 * 3600 - 60) is None
+    assert ShadowSim._rider_entry(sim, v, _clock_bars(14 * 3600 + 120), 14 * 3600 + 120) is None
+
+
+def test_fixed_side_is_refused_where_nothing_would_read_it():
+    """A config field carried but consumed by nobody is this desk's trap #9 — so it raises."""
+    import pytest
+    from gazbot7.shadow import ShadowVariant
+    with pytest.raises(ValueError, match="clock_rider"):
+        ShadowVariant("bogus", "level_break", rider_fixed_side="SHORT")
+    with pytest.raises(ValueError, match="LONG or SHORT"):
+        ShadowVariant("bogus2", "clock_rider", rider_fixed_side="short")
+
+
+def test_the_three_clock_arms_are_a_spike_test_not_one_arm():
+    """Shipping 14:00Z without 13:35Z and 15:00Z would make the question unanswerable."""
+    from gazbot7.shadow import default_slate, mgc_slate
+    arms = {v.name: v for v in mgc_slate()}
+    assert {"mgc_clock_short_1400", "mgc_clock_short_1335",
+            "mgc_clock_short_1500"} <= set(arms)
+    assert arms["mgc_clock_short_1400"].rider_win_start_s == 14 * 3600
+    assert arms["mgc_clock_short_1335"].rider_win_start_s == 13 * 3600 + 2100
+    assert arms["mgc_clock_short_1500"].rider_win_start_s == 15 * 3600
+    for a in arms.values():
+        assert a.symbol == "MGC"
+    # the gold arms must never reach the MNQ slate: one value_per_point reprices the whole store
+    assert not {v.name for v in default_slate()} & set(arms)

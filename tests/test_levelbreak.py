@@ -200,13 +200,27 @@ def test_the_mgc_slate_is_two_gates_with_the_gold_exit():
     # The no-book CONTROL arm ships alongside the two candidates (audit #12): without it the book
     # cut cannot be attributed, and attributing a filter to itself is how the router-filtered gold
     # attack fooled us. It is expected to LOSE — that is the point of it.
-    assert [v.name for v in sl] == ["mgc_break_fade_nobook",
-                                    "mgc_holebreak_fade_long", "mgc_holebreak_fade_short"]
+    # ★2026-09-12 the slate is now TWO FAMILIES: the three level_break arms below, and the three
+    # fixed-side clock arms (14:00Z + its 13:35Z/15:00Z controls) shipped to settle spike-vs-plateau.
+    brk = [v for v in sl if v.gate == "level_break"]
+    clk = [v for v in sl if v.gate == "clock_rider"]
+    assert [v.name for v in brk] == ["mgc_break_fade_nobook",
+                                     "mgc_holebreak_fade_long", "mgc_holebreak_fade_short"]
+    assert [v.name for v in clk] == ["mgc_clock_short_1400", "mgc_clock_short_1335",
+                                     "mgc_clock_short_1500"]
+    for v in clk:
+        # the hour IS the trigger: a fixed side, never the momentum sign `side` alone would filter
+        assert v.rider_fixed_side == "SHORT" and v.rider_cadence_min == 1
+        assert v.chandelier is False and v.stop_atr_mult == 7.0, \
+            "the clock arms ship the year-grid exit, NOT the level_break arms' MGC_EXIT"
+    assert len(sl) == len(brk) + len(clk), "an arm belongs to neither family"
     ctl = [v for v in sl if v.name == "mgc_break_fade_nobook"]
     assert len(ctl) == 1 and ctl[0].params["require_book"] is False
     assert "obstacle_max" not in ctl[0].params, "the control must NOT carry the book cut"
-    for v in [v for v in sl if v.name != "mgc_break_fade_nobook"]:
-        assert v.symbol == "MGC" and v.gate == "level_break"
+    for v in sl:
+        assert v.symbol == "MGC"
+    for v in [v for v in brk if v.name != "mgc_break_fade_nobook"]:
+        assert v.gate == "level_break"
         # the exit IS the finding: wide chandelier, single lot, no profit lock
         assert v.chandelier is True and v.qty == 1.0 and v.stop_atr_mult == 3.0
         assert v.lock_r == 99.0, "the profit lock must never tighten this trail"
@@ -316,7 +330,11 @@ def test_the_45_minute_cooldown_is_enforced(tmp_path):
     $2.67 a trade instead of $12.47 — 79% of the edge — and inflates n with correlated re-entries of
     one move, breaking the independence every robustness test assumes."""
     from gazbot7.shadow import mgc_slate
-    v = [x for x in mgc_slate() if x.side == "SHORT"][0]
+    # ★2026-09-12 BY NAME, never "the first SHORT arm". When the clock shorts shipped, that
+    # positional pick silently selected mgc_clock_short_1400 and armed the cooldown on the wrong
+    # arm — the test then failed for a reason that had nothing to do with cooldowns. Same shape as
+    # the sim-registry trap: a positional fallback invents a WRONG answer instead of an error.
+    v = [x for x in mgc_slate() if x.name == "mgc_holebreak_fade_short"][0]
     sim, mb, _st = _sim(tmp_path)
     t = _break(mb, _grind(mb, 70))
     sim._cool_until[v.name] = float(t) + 45 * 60            # as if a trade had just closed
@@ -395,6 +413,11 @@ def test_chand_arm_k_holds_the_trail_until_the_peak_earns_it():
     pins that the field is carried and is what the MGC slate ships."""
     from gazbot7.shadow import ShadowVariant, mgc_slate
 
-    assert all(v.chand_arm_k == 2.0 for v in mgc_slate()), "the gold exit must not arm early"
+    # ★2026-09-12 scoped to the arms that actually run a chandelier. The clock arms ship
+    # chandelier=False (stop-and-clock, the year grid's answer), so chand_arm_k is meaningless on
+    # them — asserting it there would pin a field nothing reads, this desk's trap #9.
+    chand = [v for v in mgc_slate() if v.chandelier]
+    assert len(chand) == 3, "the three level_break arms are the chandelier family"
+    assert all(v.chand_arm_k == 2.0 for v in chand), "the gold exit must not arm early"
     assert ShadowVariant("x", "level_break").chand_arm_k == 0.0, \
         "MNQ variants must be unaffected — 0.0 is arm-immediately, the pre-existing behaviour"

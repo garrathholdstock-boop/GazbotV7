@@ -1,0 +1,42 @@
+{
+ "_what_this_is": "PRE-REGISTERED FORWARD TRIAL of the regime-join direction call, opened 2026-09-12 after the operator asked the right question: 'if everything is a null we will never put anything into trial will we'. It exists because the bar this desk had been applying - t>2 and a CI excluding zero - is UNACHIEVABLE BY CONSTRUCTION on one year of one instrument (min detectable edge 2.84-23.57pt against a 1.05-1.50pt ceiling). A bar nothing can pass is not a standard, it is a way of never deciding.",
+ "registered_on": "2026-09-12",
+ "registered_by": "operator: 'are you being too harsh on everything? if everything is a null we will never put anything into trial will we'",
+ "hypothesis": "Entering in the direction of an ESTABLISHED regime (not a break) and holding to a clock carries a small positive directional edge. Measured gross: MNQ/NQ +0.15 to +0.34pt over 10.5 years and 33,000 trades; MGC +0.15 to +0.28pt over 13 months. Positive in 12 of 12 NQ cells and every MGC cell against a sign-flip control at identical bars.",
+ "why_it_is_a_TRIAL_and_not_a_LIVE_promotion": "It has never once cleared t=2, and on MNQ costs it is a quarter of the fee. It is trialled because the SIGN is consistent across 12 cells, two instruments and eleven years, and because the only reason it cannot be proven is a sample size this desk cannot buy at MNQ's event rate. Forward evidence is the only thing that settles it, and forward evidence costs nothing to collect.",
+ "instrument": "MGC (gold) \u2014 chosen because its friction is 0.45pt against MNQ's 1.25, so the SAME measured edge is 16-62% of cost instead of 12-27%, and the 120m cells are the only net-positive cells this study has produced on any instrument.",
+ "rule_frozen": {
+  "bars": "15-minute, front month by session volume \u2014 never backfill_1min.parquet (22.46% dying contract)",
+  "states": "4-state diagonal-covariance GMM, features z-scored on the fit window, fitted ONCE on 2025-07-27..2026-04-30 and NEVER refitted",
+  "guard": "d8_gap between BULLISH and BEARISH must exceed 0.5 ATR or the session is skipped and logged as DEGENERATE \u2014 the defect that made 8 of 72 fitted models trade a direction label carrying no direction",
+  "entry": "the open of the next bar after a clean transition INTO a directional state (the state absent in the prior 2 bars)",
+  "hold": "120 minutes, no target, no stop, flat by 20:40Z regardless",
+  "size": "1 lot \u2014 the paper engine fabricates a 0.1% adverse fill on every lot beyond the first",
+  "fees": "MGC $4.50 per round trip = 0.45pt at $10/point. The 0.30pt spread is crossed ONCE."
+ },
+ "controls_logged_every_session": {
+  "SIGN_FLIP": "the identical entries at the identical bars with the direction reversed \u2014 the control that cannot move the entry population, after the 5-way label permutation was retired for swinging entry counts +33%",
+  "ALWAYS_LONG": "the same bars, always long \u2014 the drift baseline",
+  "RANDOM_TIME": "the same COUNT of entries at random times in the same sessions, 100 draws averaged \u2014 never one draw, which has a +-4.2pt standard error and once invented a bull drift that did not exist"
+ },
+ "THE_BAR_AND_WHY_IT_IS_THIS_ONE": {
+  "primary": "mean gross per trade > the SIGN_FLIP control's mean, with the difference's day-clustered 95% bootstrap CI excluding zero, at 200 trades",
+  "secondary": "net of the 0.45pt fee, the mean is positive",
+  "explicitly_NOT_required": "t >= 2 on the trade sample. That threshold needs ~4,400 to 27,000 trades at this effect size and is unreachable inside a year; requiring it is how a desk books eleven months of nulls and promotes nothing.",
+  "CONFIRMED": "primary AND secondary -> propose a shadow slot, still not live money",
+  "REFUTED": "the sign-flip control matches or beats it at 200 trades",
+  "INCONCLUSIVE": "fewer than 200 trades by 2026-12-31 \u2014 report as inconclusive, never as either verdict"
+ },
+ "rules_of_engagement": [
+  "DO NOT refit the GMM. The fit window is closed and the parameters are frozen.",
+  "DO NOT tune the 120-minute hold, the state count, or the z-scoring. A moved knob restarts the count at zero.",
+  "DO NOT read the interim and act on it. n<200 is not evidence by construction.",
+  "The 2015-2026 measurement window is where the effect was FOUND. Its P&L is NOT a result.",
+  "Read-only. This places no orders and touches no service."
+ ],
+ "first_eligible_session": "2026-09-15",
+ "expires": "2026-12-31",
+ "status": "REGISTERED \u2014 not yet wired to a timer; awaiting the operator's go",
+ "verdict": null,
+ "sessions": []
+}

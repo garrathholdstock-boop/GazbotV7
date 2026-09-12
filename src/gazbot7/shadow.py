@@ -151,6 +151,12 @@ class ShadowVariant:
     # refuse rider entries against it. Entries BEFORE confirmation stay completely unguarded — that
     # asymmetry is the whole design; see _rider_entry.
     rider_gate_drift: bool = False
+    # ★2026-09-12 CLOCK ARMS TAKE A FIXED SIDE. `_rider_entry` derives direction from
+    # sign(close - close[-lookback]); `side` only FILTERS that, so side="SHORT" on a clock arm would
+    # fire only on the sessions where the previous 15 minutes happened to fall — a different and
+    # untested gate. When this is set the momentum sign is skipped entirely. Read ONLY by
+    # _rider_entry, and __post_init__ refuses it anywhere else, exactly as it refuses rider_win_*.
+    rider_fixed_side: str = ""                   # "" | "LONG" | "SHORT"; clock_rider only
 
     def __post_init__(self) -> None:
         if self.gate == "clock_rider":
@@ -164,6 +170,14 @@ class ShadowVariant:
                 f"{self.name}: rider_win_start_s/rider_win_end_s are read ONLY by "
                 f"gate='clock_rider' (this arm is gate='{self.gate}'). Setting them here changes "
                 f"NOTHING. A board arm's window is hh_lo/hh_hi in params.")
+        if self.rider_fixed_side:
+            if self.gate != "clock_rider":
+                raise ValueError(
+                    f"{self.name}: rider_fixed_side is read ONLY by gate='clock_rider' "
+                    f"(this arm is gate='{self.gate}'). Setting it here changes NOTHING.")
+            if self.rider_fixed_side not in ("LONG", "SHORT"):
+                raise ValueError(f"{self.name}: rider_fixed_side must be LONG or SHORT, "
+                                 f"got {self.rider_fixed_side!r}")
 
 
 def _brk_2h(bars, price: float) -> bool:
@@ -302,13 +316,19 @@ class ShadowSim:
             return None
         if (sec // 60) % max(v.rider_cadence_min, 1):
             return None                      # not on a cadence boundary
-        lb = v.rider_lookback_min
-        if len(bars) < lb + 1:
-            return None                      # not enough history to measure the move
-        mom = bars[-1].close - bars[-1 - lb].close
-        if mom == 0:
-            return None
-        side = "LONG" if mom > 0 else "SHORT"
+        if v.rider_fixed_side:
+            # ★2026-09-12 A FIXED-SIDE CLOCK ARM. No signal and no momentum read: the hour IS the
+            # trigger. There is deliberately no lookback requirement here — needing lb+1 bars would
+            # silently skip the first fire of a session, which for a once-a-day arm is the trade.
+            side = v.rider_fixed_side
+        else:
+            lb = v.rider_lookback_min
+            if len(bars) < lb + 1:
+                return None                  # not enough history to measure the move
+            mom = bars[-1].close - bars[-1 - lb].close
+            if mom == 0:
+                return None
+            side = "LONG" if mom > 0 else "SHORT"
 
         # ★★2026-08-13 THE DRIFT-DIRECTION GATE (gated arms only).
         # Measured on the 4 days the rider has run (n=68, tick-repriced), the ungated book is
@@ -625,7 +645,10 @@ def mgc_slate() -> list[ShadowVariant]:
     ★ Runs in its OWN service instance against its OWN store (data/shadow_mgc.db). That is not
     tidiness: `reprice_pending()` reprices every unprocessed trade with ONE value_per_point, so two
     services sharing a store would price gold at MNQ's $2 instead of $10 — and the fee at $1.50
-    instead of $7.50 — depending on which called first. A RACE, silent, and 5x wrong.
+    instead of $4.50 — depending on which called first. A RACE, silent, and 5x wrong.
+    ⚠ $7.50 (which this docstring carried until 2026-09-12) is the WITHDRAWN gold fee:
+    it double-counted the 0.30pt spread, and it was used once to declare a live lead
+    DEAD. A round trip crosses that spread ONCE: $3.00 + $1.50 = MGC_FEE_RT $4.50.
     """
     return [
         # ★★2026-08-15 (audit #12) THE CONTROL ARM, which the spec ships and I had omitted:
@@ -638,6 +661,34 @@ def mgc_slate() -> list[ShadowVariant]:
                       params={"look_min": 60, "margin_atr": 0.10, "fade": True,
                               "book_band_pt": 1.0, "require_book": False,
                               "cooldown_min": 45}, **MGC_EXIT),
+
+        # ── ★★NEW 2026-09-12 — THE 14:00Z CLOCK SHORT AND ITS TWO CONTROLS.
+        # Specified by the 09-04 gold section with verdict SHADOW and never shipped; shipped now
+        # because the operator asked the right question — "if everything is a null we will never put
+        # anything into trial will we".
+        # WHAT IT IS: not one of the four cells that were hunted, but the CONSTANT that beat all
+        # four. Sell one lot at 14:00Z, no signal. +$41.57/trade over 225 sessions, +$23.51 out of
+        # sample, +$22.89 after stripping the best three sessions.
+        # ⚠ ITS MECHANISM IS ALREADY REFUTED — the DST natural experiment says it is NOT the London
+        # fix, and its neighbours at 13:35 and 14:30 fail out of sample. It is a SPIKE, not a
+        # plateau, and this desk has been fooled by a spike before. A backtest cannot settle that
+        # and forward evidence can, which is the whole reason it ships to shadow rather than to a
+        # gate. THE CONTROLS ARE THE POINT: if 14:00Z is a real hour these two lose while it wins;
+        # if the surface is noise all three wander together. 13:35Z was +$38.91 in sample and
+        # −$17.37 out; 15:00Z was +$25.62 and +$5.77.
+        # NO ROUTER RULE, deliberately — a condition would make the spike-vs-plateau question
+        # unanswerable. The only condition they need is symbol == MGC.
+        # EXIT: stop 7.0×ATR, no target, no chandelier, 8h cap — the year-long grid's answer for
+        # gold, and NOT the MGC_EXIT the three level_break arms run, whose comparison would be
+        # destroyed by changing it under them.
+        *[ShadowVariant(name, "clock_rider", symbol="MGC", side="SHORT",
+                        rider_fixed_side="SHORT", rider_cadence_min=1,
+                        rider_win_start_s=start, rider_win_end_s=start + 60,
+                        stop_atr_mult=7.0, target_r=99.0, chandelier=False,
+                        time_cap_s=480 * 60, params={"cooldown_min": 600})
+          for name, start in (("mgc_clock_short_1400", 14 * 3600),
+                              ("mgc_clock_short_1335", 13 * 3600 + 2100),
+                              ("mgc_clock_short_1500", 15 * 3600))],
         ShadowVariant("mgc_holebreak_fade_long", "level_break", symbol="MGC", side="LONG",
                       params={"look_min": 60, "margin_atr": 0.10, "fade": True,
                               "book_band_pt": 1.0, "obstacle_max": 0,
