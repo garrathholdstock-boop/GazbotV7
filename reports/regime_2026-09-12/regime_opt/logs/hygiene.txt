@@ -1,0 +1,34 @@
+TWELVE LARGEST BAR-TO-BAR CLOSE CHANGES (a roll shows up as a jump with no range)
+                 dt       sess  d_close  bar_range
+2026-03-23 11:00:00 2026-03-23   840.75     887.25
+2026-06-14 22:00:00 2026-06-15   684.00     283.00
+2025-10-12 22:00:00 2025-10-13   498.25     292.00
+2026-06-25 13:45:00 2026-06-25  -451.50     521.25
+2026-03-08 22:00:00 2026-03-09  -427.25     284.00
+2026-06-25 13:30:00 2026-06-25  -383.75     452.75
+2026-06-09 15:15:00 2026-06-09  -382.75     407.00
+2026-06-24 20:00:00 2026-06-24   368.50     402.75
+2026-06-11 17:15:00 2026-06-11   343.00     414.75
+2026-08-02 22:00:00 2026-08-03   339.75      92.00
+2026-04-12 22:00:00 2026-04-13  -331.50     105.50
+2026-07-08 08:15:00 2026-07-08  -328.25     350.50
+
+PER-SESSION close-to-close gaps at the session seam (21:00Z->22:00Z) are normal;
+what matters is an INTRA-session jump. Counting bars where |dclose| > 6x the bar range:
+Empty DataFrame
+Columns: [dt, d]
+Index: []
+
+SESSIONS TO EXCLUDE AS ROLL-CONTAMINATED: []
+
+REAL   n=1983 long%=55  mean net=0.80  mean raw move (long-equivalent)=-1.40
+ shift    n  long_pct   net   raw
+   -53 1975     55.14 -1.63  0.89
+   -37 1966     54.98  0.87  2.27
+   -23 1971     55.10 -3.34 -0.11
+    17 1967     55.06 -2.05  1.42
+    31 1968     55.18 -0.76  0.53
+    47 1972     55.12 -3.96  3.30
+
+SIGN CONTROL (same entries, random sides, day-blocked): mean -1.22 sd 2.16  observed 0.80  p=0.182
+BUY-AND-HOLD control, 90-min hold, every bar: {'n': 20481, 'mean': -0.27261852448610907}

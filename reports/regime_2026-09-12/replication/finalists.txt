@@ -1,0 +1,120 @@
+
+==============================================================================================================
+SIGNAL A — 3846 constructions. paper: t=5.83, mean=15.77pt
+t-distribution across the space: mean -0.98 sd 1.48 | cells t>=2: 169 (4.4%) | cells t>=5.83: 4 | cells mean>0: 857 (22.3%)
+session-clustered t: mean -0.46 sd 0.75 | cells t_cl>=2: 17 | cells t_cl>=5.83: 0
+
+--- TOP 12 by raw t ---
+  feat  K  seed      lab   tr          exec   n  mean    t  t_cl  gap  tr_m  va_m  te_m  ho_n    ho_m  ho_t
+F3desk  6     7 Lret_mid conf  none/0/entry  34 73.52 7.26  2.17 5.78   NaN 91.07   NaN    19 -117.54 -3.48
+F3desk  6     7 Lret_mid conf none/0/signal  34 73.52 7.26  2.17 5.78   NaN 91.07   NaN    19 -117.54 -3.48
+F3desk  6     7   Ldrift conf  none/0/entry  34 73.52 7.26  2.17 5.78   NaN 91.07   NaN    19 -117.54 -3.48
+F3desk  6     7   Ldrift conf none/0/signal  34 73.52 7.26  2.17 5.78   NaN 91.07   NaN    19 -117.54 -3.48
+F3desk  6    23 Lret_mid conf  none/0/entry  39 59.17 5.46  1.99 5.00  2.20 91.07   NaN     6     NaN   NaN
+F3desk  6    23 Lret_mid conf none/0/signal  39 59.17 5.46  1.99 5.00  2.20 91.07   NaN     6     NaN   NaN
+F3desk  6    23   Ldrift conf  none/0/entry  39 59.17 5.46  1.99 5.00  2.20 91.07   NaN     6     NaN   NaN
+F3desk  6    23   Ldrift conf none/0/signal  39 59.17 5.46  1.99 5.00  2.20 91.07   NaN     6     NaN   NaN
+F6full  6    11 Lret_mid conf  none/0/entry 213 24.32 4.04  1.55 3.87 23.88 31.88  4.01    51  -17.96 -1.56
+F6full  6    11 Lret_mid conf none/0/signal 213 24.32 4.04  1.55 3.87 23.88 31.88  4.01    51  -17.96 -1.56
+F6full  6    11   Ldrift conf  none/0/entry 213 24.32 4.04  1.55 3.87 23.88 31.88  4.01    51  -17.96 -1.56
+F6full  6    11   Ldrift conf none/0/signal 213 24.32 4.04  1.55 3.87 23.88 31.88  4.01    51  -17.96 -1.56
+
+--- TOP 8 by session-clustered t (the day-block-honest statistic) ---
+    feat  K  seed       lab   tr           exec  n  mean    t  t_cl  gap  tr_m  va_m  te_m  ho_n   ho_m  ho_t
+   F1dir  5     7      Lact conf   none/0/entry 76 52.00 3.38  2.71 4.01 21.86 42.25 76.87    27 -51.54 -2.53
+   F1dir  5     7      Lact conf  none/0/signal 76 52.00 3.38  2.71 4.01 21.86 42.25 76.87    27 -51.54 -2.53
+  F6full  6     3 Lret_top3 conf fix25/3/signal 38 43.03 2.72  2.61 3.30 22.39 99.25 23.71     2    NaN   NaN
+   F1dir  5     7      Lact conf fix25/3/signal 51 52.62 2.71  2.28 2.59 34.48 38.62 72.17    20 -36.48 -1.38
+F2diract  6     3 Lret_top3 conf fix25/3/signal 29 39.08 2.46  2.26 2.75 29.71   NaN 20.20     2    NaN   NaN
+F2diract  6    23 Lret_top3 conf fix25/3/signal 29 39.08 2.46  2.26 2.75 29.71   NaN 20.20     2    NaN   NaN
+   F1dir  5     7      Lact conf fix25/6/signal 55 48.83 2.69  2.25 2.77 35.93 28.09 70.71    22 -37.73 -1.58
+   F1dir  5     7      Lact conf  fix25/3/entry 51 52.53 2.53  2.25 2.36 35.71 34.14 73.97    20 -40.06 -1.46
+
+OUR BAR step by step:
+  (a) beats zero @1.25pt friction ............   857 / 3846
+  (b) + beats same-entry control by >1 ctrl sd    363
+  (c) + session-clustered t >= 1.96 ..........    22
+  (d) + positive in TRAIN, VALIDATE and TEST ..     8
+  (e) + positive on the PRIOR-PERIOD HOLDOUT ..     0
+
+  cells clearing (a)-(d):
+  feat  K  seed       lab   tr           exec  n  mean    t  t_cl  gap  tr_m  va_m  te_m  ho_n   ho_m  ho_t
+ F1dir  5     7      Lact conf   none/0/entry 76 52.00 3.38  2.71 4.01 21.86 42.25 76.87    27 -51.54 -2.53
+ F1dir  5     7      Lact conf  fix25/3/entry 51 52.53 2.53  2.25 2.36 35.71 34.14 73.97    20 -40.06 -1.46
+ F1dir  5     7      Lact conf  fix25/6/entry 55 46.73 2.34  2.04 2.43 36.32 11.66 76.62    22 -43.57 -1.74
+ F1dir  5     7      Lact conf fix25/3/signal 51 52.62 2.71  2.28 2.59 34.48 38.62 72.17    20 -36.48 -1.38
+ F1dir  5     7      Lact conf fix25/6/signal 55 48.83 2.69  2.25 2.77 35.93 28.09 70.71    22 -37.73 -1.58
+ F1dir  5     7      Lact conf  none/0/signal 76 52.00 3.38  2.71 4.01 21.86 42.25 76.87    27 -51.54 -2.53
+F6full  6     3 Lret_top3 conf  fix25/3/entry 38 40.03 2.32  2.21 3.05 15.22 86.60 34.29     2    NaN   NaN
+F6full  6     3 Lret_top3 conf fix25/3/signal 38 43.03 2.72  2.61 3.30 22.39 99.25 23.71     2    NaN   NaN
+
+SEARCH CHARGE: P(pure-noise search of 3846 cells has best t >= paper's 5.83) = 0.130;  best t observed here = 7.26, charged p = 0.015
+
+==============================================================================================================
+SIGNAL B — 1180 constructions. paper: t=5.15, mean=5.77pt
+t-distribution across the space: mean +0.11 sd 1.04 | cells t>=2: 45 (3.8%) | cells t>=5.15: 0 | cells mean>0: 636 (53.9%)
+session-clustered t: mean +0.12 sd 0.99 | cells t_cl>=2: 29 | cells t_cl>=5.15: 0
+
+--- TOP 12 by raw t ---
+ feat  K  seed      lab     tr     exec   n  mean    t  t_cl  gap  tr_m  va_m  te_m  ho_n  ho_m  ho_t
+F7raw  5     1   Ldrift strict simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     1   Ldrift simple simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     7   Ldrift strict simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     7   Ldrift simple simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5    11   Ldrift strict simple/0 159 17.19 2.77  2.77 2.56 12.19 25.72 12.16     6   NaN   NaN
+F7raw  5    11   Ldrift simple simple/0 159 17.19 2.77  2.77 2.56 12.19 25.72 12.16     6   NaN   NaN
+F7raw  6     1 Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     1 Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     3 Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     3 Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     7 Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     7 Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+
+--- TOP 8 by session-clustered t (the day-block-honest statistic) ---
+ feat  K  seed      lab     tr     exec   n  mean    t  t_cl  gap  tr_m  va_m  te_m  ho_n  ho_m  ho_t
+F7raw  5     1   Ldrift strict simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     1   Ldrift simple simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     7   Ldrift strict simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     7   Ldrift simple simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5    11   Ldrift strict simple/0 159 17.19 2.77  2.77 2.56 12.19 25.72 12.16     6   NaN   NaN
+F7raw  5    11   Ldrift simple simple/0 159 17.19 2.77  2.77 2.56 12.19 25.72 12.16     6   NaN   NaN
+F7raw  6     1 Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     1 Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+
+OUR BAR step by step:
+  (a) beats zero @1.25pt friction ............   636 / 1180
+  (b) + beats same-entry control by >1 ctrl sd    228
+  (c) + session-clustered t >= 1.96 ..........    31
+  (d) + positive in TRAIN, VALIDATE and TEST ..    26
+  (e) + positive on the PRIOR-PERIOD HOLDOUT ..     3
+
+  cells clearing (a)-(d):
+ feat  K  seed       lab     tr     exec   n  mean    t  t_cl  gap  tr_m  va_m  te_m  ho_n  ho_m  ho_t
+F1dir  4     1 Lret_top3 strict simple/0 113 10.83 2.03  2.08 2.66 20.86  8.73  1.17    29 -0.29 -0.04
+F5vol  6     1      Lact strict simple/0  56 13.30 2.17  2.19 2.82 11.70 13.19 15.22    13 -2.25 -0.24
+F5vol  6     7      Lact strict simple/0  56 13.30 2.17  2.19 2.82 11.70 13.19 15.22    13 -2.25 -0.24
+F7raw  5     1    Ldrift strict simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     1    Ldrift  loose simple/0 263  9.87 2.01  2.10 1.91 10.02 17.40  4.12    11 11.64  1.15
+F7raw  5     1    Ldrift simple simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     3    Ldrift strict simple/0 198 11.91 2.26  2.28 2.27  8.59 18.35  7.87     7   NaN   NaN
+F7raw  5     3    Ldrift simple simple/0 198 11.91 2.26  2.28 2.27  8.59 18.35  7.87     7   NaN   NaN
+F7raw  5     7    Ldrift strict simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5     7    Ldrift  loose simple/0 263  9.87 2.01  2.10 1.91 10.02 17.40  4.12    11 11.64  1.15
+F7raw  5     7    Ldrift simple simple/0 160 17.66 2.86  2.85 2.63 12.19 25.72 13.21     6   NaN   NaN
+F7raw  5    11    Ldrift strict simple/0 159 17.19 2.77  2.77 2.56 12.19 25.72 12.16     6   NaN   NaN
+F7raw  5    11    Ldrift  loose simple/0 262  9.55 1.95  2.03 1.85 10.02 17.40  3.40    11 11.64  1.15
+F7raw  5    11    Ldrift simple simple/0 159 17.19 2.77  2.77 2.56 12.19 25.72 12.16     6   NaN   NaN
+F7raw  5    23    Ldrift strict simple/0 198 11.91 2.26  2.28 2.27  8.59 18.35  7.87     7   NaN   NaN
+F7raw  5    23    Ldrift simple simple/0 198 11.91 2.26  2.28 2.27  8.59 18.35  7.87     7   NaN   NaN
+F7raw  6     1  Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     1  Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     3  Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     3  Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     7  Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6     7  Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6    11  Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6    11  Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6    23  Lret_mid strict simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+F7raw  6    23  Lret_mid simple simple/0 166 15.43 2.55  2.61 2.38 12.46 21.00 11.98     1   NaN   NaN
+
+SEARCH CHARGE: P(pure-noise search of 1180 cells has best t >= paper's 5.15) = 0.005;  best t observed here = 2.86, charged p = 0.575

@@ -1,0 +1,12 @@
+GMM: 3 states, 15-min bars, fitted on BACKFILL TRAIN (2025-09-15..2026-01-28, 96 sessions). Applied unchanged to capture tape.
+ state    label  TRAIN share  TRAIN mean ret  BOOKWIN share  BOOKWIN mean ret
+     0  BULLISH          26%           10.38            22%             15.40
+     1  BEARISH          19%          -14.93            18%            -15.84
+     2     CHOP          56%            0.62            60%             -0.16
+
+transitions on the capture tape total      : 488
+transitions inside the BOOK window        : 355  over 31 sessions
+  of which CLEAN                          : 283
+  BULLISH / BEARISH                       : 192 / 163
+
+★ POWER, up front: a 60m-hold cell has n=339 (all) / 269 (clean). Per-trade sd of raw60 is 64.4pt, so the sd of the MEAN is 3.50pt. Any book effect smaller than ~2x that is UNDETECTABLE here and will be reported as such.

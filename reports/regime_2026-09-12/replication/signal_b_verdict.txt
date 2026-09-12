@@ -1,0 +1,23 @@
+SIGNAL B — CONTROLS AND VERDICT
+paper trade rate 0.305/session; this lake has 240 London sessions
+
+--- FREQUENCY-MATCHED  F3desk/K3/Lret/loose ---
+REAL n=76 (0.317/session; paper 0.305) mean=+0.14pt t=+0.03 win=51.3% PF=1.01 Sharpe(per-trade ann. n/a)=0.003
+(c) day-block bootstrap 95% CI [-9.02,+9.18]pt  P(<=0)=0.502  INCLUDES ZERO -> FAILS (c)
+(b) C2 within-session LABEL-ROTATION control: mean=+8.98 sd=5.57 p(ctrl>=real)=0.9480  gap=-1.59sd -> FAILS
+(b) C3 RANDOM-ENTRY control (same n/session, same hold, long): mean=+11.25 sd=4.66 p(ctrl>=real)=0.9960 gap=-2.38sd -> FAILS
+1-BAR-DELAY: n=74 mean=-1.53 t=-0.34  (paper: +5.15 -> -3.56, a SIGN REVERSAL). Here: +0.03 -> -0.34 = reversal
+
+--- BEST-t (overfit pick) F1dir/K3/Lret/loose ---
+REAL n=50 (0.208/session; paper 0.305) mean=+10.04pt t=+1.48 win=66.0% PF=1.71 Sharpe(per-trade ann. n/a)=0.210
+(c) day-block bootstrap 95% CI [-2.24,+23.09]pt  P(<=0)=0.061  INCLUDES ZERO -> FAILS (c)
+(b) C2 within-session LABEL-ROTATION control: mean=-3.30 sd=5.39 p(ctrl>=real)=0.0010  gap=+2.47sd -> PASSES
+(b) C3 RANDOM-ENTRY control (same n/session, same hold, long): mean=-9.78 sd=8.96 p(ctrl>=real)=0.0120 gap=+2.21sd -> PASSES
+1-BAR-DELAY: n=49 mean=+3.37 t=+0.49  (paper: +5.15 -> -3.56, a SIGN REVERSAL). Here: +1.48 -> +0.49 = NO reversal
+
+--- PRIMARY pre-spec    F2diract/K3/Lact/strict ---
+REAL n=34 (0.142/session; paper 0.305) mean=-11.15pt t=-1.47 win=44.1% PF=0.47 Sharpe(per-trade ann. n/a)=-0.252
+(c) day-block bootstrap 95% CI [-25.88,+3.11]pt  P(<=0)=0.939  INCLUDES ZERO -> FAILS (c)
+(b) C2 within-session LABEL-ROTATION control: mean=-0.21 sd=7.88 p(ctrl>=real)=0.9160  gap=-1.39sd -> FAILS
+(b) C3 RANDOM-ENTRY control (same n/session, same hold, long): mean=+0.56 sd=7.01 p(ctrl>=real)=0.9520 gap=-1.67sd -> FAILS
+1-BAR-DELAY: n=30 mean=-13.43 t=-1.21  (paper: +5.15 -> -3.56, a SIGN REVERSAL). Here: -1.47 -> -1.21 = NO reversal

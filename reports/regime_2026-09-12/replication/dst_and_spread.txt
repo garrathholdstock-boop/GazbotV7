@@ -1,0 +1,43 @@
+DST PROOF — London window 03:00-08:30 ET expressed in UTC, either side of each change
+
+EST (Nov-Mar):
+                            et_first                   et_last  utc_h    n
+sess                                                                      
+2025-11-05 2025-11-05 03:00:00-05:00 2025-11-05 08:29:00-05:00  08:00  330
+2025-11-06 2025-11-06 03:00:00-05:00 2025-11-06 08:29:00-05:00  08:00  330
+2025-11-07 2025-11-07 03:00:00-05:00 2025-11-07 08:29:00-05:00  08:00  330
+
+DST change Nov 2:
+                            et_first                   et_last  utc_h    n
+sess                                                                      
+2025-10-31 2025-10-31 03:00:00-04:00 2025-10-31 08:29:00-04:00  07:00  330
+2025-11-03 2025-11-03 03:00:00-05:00 2025-11-03 08:29:00-05:00  08:00  330
+2025-11-04 2025-11-04 03:00:00-05:00 2025-11-04 08:29:00-05:00  08:00  330
+
+DST change Mar 8:
+                            et_first                   et_last  utc_h    n
+sess                                                                      
+2026-03-05 2026-03-05 03:00:00-05:00 2026-03-05 08:29:00-05:00  08:00  330
+2026-03-06 2026-03-06 03:00:00-05:00 2026-03-06 08:29:00-05:00  08:00  330
+2026-03-09 2026-03-09 03:00:00-04:00 2026-03-09 08:29:00-04:00  07:00  330
+2026-03-10 2026-03-10 03:00:00-04:00 2026-03-10 08:29:00-04:00  07:00  330
+2026-03-11 2026-03-11 03:00:00-04:00 2026-03-11 08:29:00-04:00  07:00  330
+
+EDT (Apr):
+                            et_first                   et_last  utc_h    n
+sess                                                                      
+2026-04-06 2026-04-06 03:00:00-04:00 2026-04-06 08:29:00-04:00  07:00  330
+2026-04-07 2026-04-07 03:00:00-04:00 2026-04-07 08:29:00-04:00  07:00  330
+2026-04-08 2026-04-08 03:00:00-04:00 2026-04-08 08:29:00-04:00  07:00  330
+
+UTC start hours present across the sample: ['07:00', '08:00']
+-> both 07:00Z (EDT) and 08:00Z (EST) appear: the ET window is held FIXED across DST,
+   which is the point the brief flags. A fixed 08:00-13:30 UTC would have tested a
+   different session on 88 of 240 sessions.
+
+
+CONSTRUCTION SPREAD — how much the paper's UNSTATED choices move the answer
+SIGNAL B (London): 12 constructions with n>=25/30 | ALL-period net/trade @1.25pt: min -19.83  median -3.03  max +10.96  spread 30.8pt
+   positive cells: 4/12   |t|>=2: 0   t>=+2: 0
+SIGNAL A (RTH): 30 constructions with n>=25/30 | ALL-period net/trade @1.25pt: min -23.19  median -12.21  max -2.96  spread 20.2pt
+   positive cells: 0/30   |t|>=2: 7   t>=+2: 0

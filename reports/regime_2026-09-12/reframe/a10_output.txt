@@ -1,0 +1,41 @@
+
+=== MNQ: 3 front-month changes in 240 sessions ===
+  2025-12-15 19:00:00-05:00  20251219->20260320  jump   +248.75 pt = $     +498  mlin   60 (OVERNIGHT 16:00-09:30)
+  2026-03-15 20:00:00-04:00  20260320->20260618  jump   +232.25 pt = $     +464  mlin  120 (OVERNIGHT 16:00-09:30)
+  2026-06-14 18:00:00-04:00  20260618->20260918  jump   +654.00 pt = $    +1308  mlin    0 (OVERNIGHT 16:00-09:30)
+  total roll jump booked as price change: +1135.00 pt = $+2,270 on one lot
+  session-sum of 1-min changes: RAW +3525.75 pt   ROLL-ADJUSTED +3044.75 pt   difference +481.00
+                    net_pt_ROLLADJ  gross_abs  net_usd_1lot  pct_of_movement
+bk                                                                          
+1 ASIA 18:00-02:00          463.75  463640.25         927.5            25.33
+2 EU   02:00-09:30         2521.75  508196.25        5043.5            27.76
+3 US   09:30-16:00         -429.75  799613.25        -859.5            43.68
+4 LATE 16:00-17:00          489.00   59144.00         978.0             3.23
+
+  ONITE arm, MNQ: 3 of 239 sessions have a roll inside the overnight window
+    ALL (as reported in §2)  n=239  net   19.65pt = $  39.29/session  t= 1.30  total $   9,390
+    ROLL-CLEAN               n=236  net   12.78pt = $  25.56/session  t= 0.87  total $   6,032
+    INTRA ALL                n=240  net   -0.59pt = $  -1.19/session  t=-0.04  total $    -286
+    INTRA ROLL-CLEAN         n=240  net   -0.59pt = $  -1.19/session  t=-0.04  total $    -286
+
+=== MGC: 6 front-month changes in 272 sessions ===
+  2025-09-24 18:00:00-04:00  20251029->20251229  jump     +5.80 pt = $      +58  mlin    0 (OVERNIGHT 16:00-09:30)
+  2025-11-24 19:00:00-05:00  20251229->20260225  jump    +33.80 pt = $     +338  mlin   60 (OVERNIGHT 16:00-09:30)
+  2026-01-22 18:00:00-05:00  20260225->20260428  jump   +496.00 pt = $    +4960  mlin    0 (OVERNIGHT 16:00-09:30)
+  2026-03-26 20:00:00-04:00  20260428->20260626  jump    +34.90 pt = $     +349  mlin  120 (OVERNIGHT 16:00-09:30)
+  2026-05-26 20:00:00-04:00  20260626->20260827  jump    +35.60 pt = $     +356  mlin  120 (OVERNIGHT 16:00-09:30)
+  2026-07-29 20:00:00-04:00  20260827->20261028  jump    +30.50 pt = $     +305  mlin  120 (OVERNIGHT 16:00-09:30)
+  total roll jump booked as price change: +636.60 pt = $+6,366 on one lot
+  session-sum of 1-min changes: RAW +297.10 pt   ROLL-ADJUSTED +162.30 pt   difference +134.80
+                    net_pt_ROLLADJ  gross_abs  net_usd_1lot  pct_of_movement
+bk                                                                          
+1 ASIA 18:00-02:00           212.3   159852.7        2123.0            33.41
+2 EU   02:00-09:30           501.0   152567.2        5010.0            31.89
+3 US   09:30-16:00          -456.2   152697.2       -4562.0            31.92
+4 LATE 16:00-17:00           -94.8    13291.4        -948.0             2.78
+
+  ONITE arm, MGC: 6 of 271 sessions have a roll inside the overnight window
+    ALL (as reported in §2)  n=271  net    5.07pt = $  50.65/session  t= 1.21  total $  13,727
+    ROLL-CLEAN               n=265  net    2.87pt = $  28.67/session  t= 0.74  total $   7,596
+    INTRA ALL                n=272  net   -1.85pt = $ -18.48/session  t=-0.71  total $  -5,027
+    INTRA ROLL-CLEAN         n=272  net   -1.85pt = $ -18.48/session  t=-0.71  total $  -5,027

@@ -1,0 +1,34 @@
+=== are the rider's qty=1 rows independent positions, or pieces of one? ===
+rows sharing an identical opened_at timestamp:
+ 1     5
+2    10
+4     5
+distinct opened_at among the 45 rider qty=1 rows: 20
+
+=== gate roster qty=1 P&L quantiles ($) ===
+count    667.00
+mean      -2.45
+std       66.39
+min     -216.00
+1%      -103.34
+5%       -72.85
+25%      -45.00
+50%      -25.00
+75%       38.50
+95%      101.35
+99%      209.23
+max      536.00
+win rate 39.6%  |  avg win $62.26  avg loss $-44.85
+
+=== exit_reason mix, gate roster qty=1 ===
+                count      sum    mean
+exit_reason                           
+STOP              358 -16177.0  -45.19
+STOP_UNFILLED      18   -688.0  -38.22
+ABSORPTION_CUT     19   -541.5  -28.50
+MAX_HOLD            2   -387.0 -193.50
+ADVERSE_CUT         5   -226.5  -45.30
+GIVEBACK           36   1195.5   33.21
+MANUAL_CLAIM       37   2701.5   73.01
+CHANDELIER         68   5064.0   74.47
+TARGET            124   7422.0   59.85

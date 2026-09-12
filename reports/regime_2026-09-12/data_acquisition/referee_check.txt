@@ -1,0 +1,36 @@
+
+================================================================================
+TEST B — DOES OUR OWN TAPE AGREE WITH ITSELF? (MNQ 1-hour vs MNQ 1-minute)
+================================================================================
+   n  mean_diff     sd  max_abs  pct_within_1_tick
+5483    -392.64 255.72  1004.25              17.89
+
+→ Our own 1-hour and 1-minute MNQ bars disagree. The 1-minute tape is the one with volume;
+  the 1-hour/1-day series is the suspect.
+
+================================================================================
+TEST B2 — WHY: zero-volume, open==high==low==close 'bars' in our own backfill
+================================================================================
+timeframe   n  zero_volume  flat_ohlc
+     1day 483           76         76
+timeframe    n  zero_volume  flat_ohlc
+    1hour 8683         1346       2008
+
+→ ROOT CAUSE. scripts/backfill_history.py could only pull expiries IBKR still LISTS. Every contract
+  that was front-month before ~Oct-2025 had already expired and been purged, so it is simply absent
+  from data/backfill/. backfill_to_lake.py then deduped on bar_ts "keeping the FIRST — the
+  front-month print"; with the real front months missing, the first available file is a DEFERRED
+  expiry. On 2024-09-23 the only file holding that date is MNQ_20251219 — the Dec-2025 contract,
+  then 15 months out — printing 20786.25 on ZERO volume against a true front-month 20080.00.
+  MNQ_CONTFUT is no better: 21388.50 for the same day, +1308 points.
+
+================================================================================
+TEST A — SCORE ALL THREE TAPES AGAINST THE REFEREE (Yahoo NQ=F front-month daily)
+================================================================================
+             tape    n  level_corr  mean_diff  median_abs_diff  pct_within_25pt
+HF NQ 1-min (new) 2655    0.999962       2.73             6.75             82.1
+    OUR MNQ 1-min  233    0.999398      15.11            16.00             67.0
+    OUR MNQ 1-day  479    0.997949     269.81           225.25             47.8
+
+→ VERDICT. The HuggingFace tape and our own 1-MINUTE tape both track the referee. Our 1-DAY/1-HOUR
+  backfill does not. The new source is USABLE; the desk's own long-dated daily history is NOT.

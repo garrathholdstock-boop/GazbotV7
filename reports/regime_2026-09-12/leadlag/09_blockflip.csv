@@ -1,0 +1,4 @@
+split,n,n_blocks,real_pt,blockflip_mean,blockflip_sd,sd_units,db_ci
+train,6096,378,13.17,-0.54,6.16,2.22,"[2.5,23.2]"
+validate,6969,369,3.6,-1.96,5.31,1.05,"[-7.1,14.1]"
+test,3590,273,-3.65,-0.75,12.81,-0.23,"[-22.7,16.2]"

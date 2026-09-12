@@ -1,0 +1,22 @@
+leg_thresh_pt,n_legs,control,pre_depth_ratio,t_per_observation,dayblock_lo,dayblock_hi,dayblock_sig
+10,4698,time-of-day matched,1.0007,0.32,0.959,1.04,False
+10,4698,SESSION matched (day mean),0.9955,-0.98,0.985,1.007,False
+10,4698,GLOBAL mean (wrong),1.0007,0.13,0.95,1.049,False
+20,4141,time-of-day matched,0.9822,-7.13,0.939,1.027,False
+20,4141,SESSION matched (day mean),1.0156,3.09,1.004,1.027,True
+20,4141,GLOBAL mean (wrong),1.0042,0.74,0.952,1.054,False
+30,2664,time-of-day matched,0.9688,-9.4,0.917,1.02,False
+30,2664,SESSION matched (day mean),1.0255,4.11,1.012,1.04,True
+30,2664,GLOBAL mean (wrong),1.0043,0.63,0.949,1.061,False
+40,1592,time-of-day matched,0.9459,-12.13,0.889,1.004,False
+40,1592,SESSION matched (day mean),1.0108,1.49,0.991,1.031,False
+40,1592,GLOBAL mean (wrong),0.97,-3.79,0.915,1.028,False
+60,648,time-of-day matched,0.9339,-8.75,0.858,1.006,False
+60,648,SESSION matched (day mean),1.012,1.25,0.984,1.043,False
+60,648,GLOBAL mean (wrong),0.9572,-3.93,0.884,1.031,False
+80,332,time-of-day matched,0.8948,-9.51,0.818,0.977,True
+80,332,SESSION matched (day mean),0.9759,-1.98,0.928,1.023,False
+80,332,GLOBAL mean (wrong),0.904,-7.16,0.833,0.979,True
+120,68,time-of-day matched,0.7673,-9.27,0.67,0.917,True
+120,68,SESSION matched (day mean),0.8899,-4.43,0.821,0.97,True
+120,68,GLOBAL mean (wrong),0.7723,-7.78,0.673,0.934,True

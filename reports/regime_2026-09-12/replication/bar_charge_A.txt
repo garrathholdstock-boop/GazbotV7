@@ -1,0 +1,5 @@
+BAR CHARGE — signal A
+constructions: 3846   placebo searches: 60
+cells passing (a)+(b)+(c)+(d) under the NULL: mean 22.5  median 10  90th pct 47  max 216
+cells passing on the REAL tape: 8
+p(null search yields >= 8 survivors) = 0.583

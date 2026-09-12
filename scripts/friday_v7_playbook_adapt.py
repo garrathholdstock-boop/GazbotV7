@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 
 SRC = "/home/alphabot/gazbot7/reports/friday_v7/plays.json"
 DST = "/home/alphabot/gazbot7/reports/friday_v7/plays_playbook.json"
@@ -38,8 +39,33 @@ TIER_TO_CLASS = {
 MODE_TO_DEFAULT = {
     "deploy": "live", "config": "live",
     "shadow-first": "shadow", "build": "shadow",
+    # ★2026-08-29 — "shadow" and "observe" were MISSING from this map, so every play using them
+    # fell through to "skip". That is the safe direction to fail in, but it is still wrong: a
+    # shadow-first play defaulting to Skip reads on the picker as "we decided not to", which is the
+    # opposite of what the report said about it.
+    "shadow": "shadow", "observe": "skip",
     "no-op": "skip",
 }
+
+
+def plain(t: str) -> str:
+    """Strip HTML to plain text for the picker.
+
+    The V5 picker runs every field through html.escape(), so a V7 play's markup arrives on the
+    operator's card as LITERAL "<code>" and "<strong>" — 165 of them on the 08-26 build. The
+    report's own action card wants the markup; the picker cannot use it. So it is removed here,
+    in the DERIVED file, rather than by writing plainer plays: the report is the source of truth
+    and the picker is the consumer that has to adapt.
+    """
+    t = re.sub(r"<[^>]+>", "", t or "")
+    for a, b in (("&mdash;", "—"), ("&ndash;", "–"), ("&minus;", "−"), ("&nbsp;", " "),
+                 ("&rarr;", "→"), ("&times;", "×"), ("&ge;", "≥"), ("&le;", "≤"),
+                 ("&rsquo;", "'"), ("&lsquo;", "'"), ("&ldquo;", '"'), ("&rdquo;", '"'),
+                 ("&hellip;", "…"), ("&amp;", "&"), ("&plusmn;", "±"), ("&asymp;", "≈"),
+                 ("&#9733;", "★"), ("&pound;", "£"), ("&sect;", "§"), ("&middot;", "·"),
+                 ("&em;", ""), ("&lt;", "<"), ("&gt;", ">")):
+        t = t.replace(a, b)
+    return re.sub(r"\s+", " ", t).strip()
 
 
 def main():
@@ -67,10 +93,13 @@ def main():
             body = f"{body}  ·  Proven wrong by: {p['verification']}"
         out.append({**p,
                     "verification": vclass,
-                    "verification_test": p.get("verification", ""),
+                    "verification_test": plain(p.get("verification", "")),
                     "suggested_mode": default,
-                    "rationale": body,
-                    "section_ref": f'{p["window"]} #{p["rank"]} · {p.get("section_ref", "")}'})
+                    "topic": plain(p.get("topic", "")),
+                    "play": plain(p.get("play", "")),
+                    "rationale": plain(body),
+                    "section_ref": plain(f'{p["window"]} #{p["rank"]} · '
+                                         f'{p.get("section_ref", "")}')})
 
     pathlib.Path(DST).write_text(json.dumps(out, indent=1))
     counts = {}

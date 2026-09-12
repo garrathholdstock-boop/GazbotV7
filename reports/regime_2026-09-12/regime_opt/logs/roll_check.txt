@@ -1,0 +1,22 @@
+FRONT-MONTH MAP - roll dates (the day the highest-volume expiry changes)
+         d      exp        vv     prev
+2025-12-16 20260320 1713633.0 20251219
+2026-03-16 20260618  970873.0 20260320
+2026-06-14 20260918  120734.0 20260618
+
+CONTRACT BASIS AT EACH ROLL (new minus old, same minute, that day)
+               date      old      new  mean_basis_pt  overlap_min
+2025-12-16 00:00:00 20251219 20260320         245.12         1380
+2026-03-16 00:00:00 20260320 20260618         213.32         1380
+2026-06-14 00:00:00 20260618 20260918         296.30          120
+
+  TOTAL basis stepped through by the stitched series: 754.7 pt over 3 rolls
+
+ROLL DAYS: [datetime.date(2025, 12, 16), datetime.date(2026, 3, 16), datetime.date(2026, 6, 14)]
+
+ENTRIES NEAR A ROLL, AND THE RESULT WITH THEM REMOVED (+/-20 bars of the stitch)
+                             cell    n  n_near_roll  pct  net_all  net_clean  delta  clean_lo  clean_hi
+  INCUMBENT 15m/3/base clean2 90m 1983           32 1.61     0.80       1.22   0.42     -2.52      4.99
+  INCUMBENT 15m/3/base clean2 60m 2042           33 1.62     0.27       0.58   0.31     -2.43      3.63
+GRIDA 30m/3/base_vol c2 EUUS 180m  502           10 1.99    16.00      16.67   0.67      5.20     29.41
+ GRIDA 30m/3/base_vol c2 LDN 180m  268            5 1.87    20.26      20.09  -0.17      2.59     38.03

@@ -1,0 +1,33 @@
+
+=== MNQ  friction 1.25 pt = $2.50 per round trip ===
+      hold  median |move|  mean |move|   BREAK-EVEN CAPTURE
+     1 min           3.50         5.60                35.7%
+     2 min           4.75         7.96                26.3%
+ 3 min  <-           6.00         9.74                20.8%
+     5 min           7.75        12.65                16.1%
+    10 min          11.25        17.99                11.1%
+    20 min          15.75        25.63                 7.9%
+ 46 min <-          24.50        39.64                 5.1%
+    60 min          28.25        45.71                 4.4%
+       2 h          42.50        66.38                 2.9%
+ 1 RTH day          88.50       126.79                 1.4%
+ 1 CME day         198.00       255.64                 0.6%
+
+=== MGC  friction 0.45 pt = $4.50 per round trip ===
+      hold  median |move|  mean |move|   BREAK-EVEN CAPTURE
+     1 min           0.80         1.29                56.2%
+     2 min           1.10         1.82                40.9%
+ 3 min  <-           1.40         2.22                32.1%
+     5 min           1.80         2.85                25.0%
+    10 min           2.50         4.02                18.0%
+    20 min           3.50         5.67                12.9%
+ 46 min <-           5.40         8.69                 8.3%
+    60 min           6.20         9.97                 7.3%
+       2 h           9.00        14.41                 5.0%
+ 1 RTH day          18.50        27.84                 2.4%
+ 1 CME day          37.40        56.36                 1.2%
+
+'<-' marks this desk's own measured median holding periods: 3.0 minutes for the automated gate
+roster and 46 minutes for the day rider (data/gazbot7.db, qty=1, data_quality IS NULL).
+READ IT AS: the gate roster must keep ~1 point in 5 of every move it catches, entering from a
+signal whose direction its own tests score at 0.50, just to pay the broker.

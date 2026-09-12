@@ -1,0 +1,75 @@
+====================================================================================================
+PART 1 — UNCONDITIONAL BASELINE PER SIGNAL (the corrected control)
+====================================================================================================
+B London 60m: overlapping n=4320 mean=+1.30pt sd=53.6 t_cl=+0.88 | NON-OVERLAP n=1200 mean=+1.51 t=+0.91
+A RTH 65m: overlapping n=15253 mean=-0.23pt sd=96.4 t_cl=-0.09 | NON-OVERLAP n=1179 mean=+0.05 t=+0.02
+
+-> London +1.3pt/hr (n.s.), RTH ~0. These, not a bull drift, are what a long cell must beat.
+
+====================================================================================================
+PART 2 — SURVIVORS RE-GRADED AGAINST THE UNCONDITIONAL POPULATION
+====================================================================================================
+
+SIGNAL A: 8 cells clear (a)-(d). Against the UNCONDITIONAL population (-1.48pt net):
+  feat  K  seed       lab   tr           exec  n  mean  t_cl  gap  vs_pop_pt  vs_pop_sd  ho_n   ho_m  ho_t
+ F1dir  5     7      Lact conf   none/0/entry 76 52.00  2.71 4.01      53.48       4.84    27 -51.54 -2.53
+ F1dir  5     7      Lact conf  fix25/3/entry 51 52.53  2.25 2.36      54.02       4.00    20 -40.06 -1.46
+ F1dir  5     7      Lact conf  fix25/6/entry 55 46.73  2.04 2.43      48.21       3.71    22 -43.57 -1.74
+ F1dir  5     7      Lact conf fix25/3/signal 51 52.62  2.28 2.59      54.10       4.01    20 -36.48 -1.38
+ F1dir  5     7      Lact conf fix25/6/signal 55 48.83  2.25 2.77      50.31       3.87    22 -37.73 -1.58
+ F1dir  5     7      Lact conf  none/0/signal 76 52.00  2.71 4.01      53.48       4.84    27 -51.54 -2.53
+F6full  6     3 Lret_top3 conf  fix25/3/entry 38 40.03  2.21 3.05      41.51       2.65     2    NaN   NaN
+F6full  6     3 Lret_top3 conf fix25/3/signal 38 43.03  2.61 3.30      44.51       2.85     2    NaN   NaN
+  of these, positive on the prior-period HOLDOUT: 0
+
+SIGNAL B: 26 cells clear (a)-(d). Against the UNCONDITIONAL population (+0.05pt net):
+ feat  K  seed       lab     tr     exec   n  mean  t_cl  gap  vs_pop_pt  vs_pop_sd  ho_n  ho_m  ho_t
+F1dir  4     1 Lret_top3 strict simple/0 113 10.83  2.08 2.66      10.78       2.14    29 -0.29 -0.04
+F5vol  6     1      Lact strict simple/0  56 13.30  2.19 2.82      13.25       1.85    13 -2.25 -0.24
+F5vol  6     7      Lact strict simple/0  56 13.30  2.19 2.82      13.25       1.85    13 -2.25 -0.24
+F7raw  5     1    Ldrift strict simple/0 160 17.66  2.85 2.63      17.61       4.15     6   NaN   NaN
+F7raw  5     1    Ldrift  loose simple/0 263  9.87  2.10 1.91       9.81       2.97    11 11.64  1.15
+F7raw  5     1    Ldrift simple simple/0 160 17.66  2.85 2.63      17.61       4.15     6   NaN   NaN
+F7raw  5     3    Ldrift strict simple/0 198 11.91  2.28 2.27      11.85       3.11     7   NaN   NaN
+F7raw  5     3    Ldrift simple simple/0 198 11.91  2.28 2.27      11.85       3.11     7   NaN   NaN
+F7raw  5     7    Ldrift strict simple/0 160 17.66  2.85 2.63      17.61       4.15     6   NaN   NaN
+F7raw  5     7    Ldrift  loose simple/0 263  9.87  2.10 1.91       9.81       2.97    11 11.64  1.15
+F7raw  5     7    Ldrift simple simple/0 160 17.66  2.85 2.63      17.61       4.15     6   NaN   NaN
+F7raw  5    11    Ldrift strict simple/0 159 17.19  2.77 2.56      17.14       4.03     6   NaN   NaN
+F7raw  5    11    Ldrift  loose simple/0 262  9.55  2.03 1.85       9.50       2.87    11 11.64  1.15
+F7raw  5    11    Ldrift simple simple/0 159 17.19  2.77 2.56      17.14       4.03     6   NaN   NaN
+F7raw  5    23    Ldrift strict simple/0 198 11.91  2.28 2.27      11.85       3.11     7   NaN   NaN
+F7raw  5    23    Ldrift simple simple/0 198 11.91  2.28 2.27      11.85       3.11     7   NaN   NaN
+F7raw  6     1  Lret_mid strict simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6     1  Lret_mid simple simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6     3  Lret_mid strict simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6     3  Lret_mid simple simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6     7  Lret_mid strict simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6     7  Lret_mid simple simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6    11  Lret_mid strict simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6    11  Lret_mid simple simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6    23  Lret_mid strict simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+F7raw  6    23  Lret_mid simple simple/0 166 15.43  2.61 2.38      15.37       3.69     1   NaN   NaN
+  of these, positive on the prior-period HOLDOUT: 3
+
+====================================================================================================
+PART 3 — THE SAMPLE-ERA QUESTION
+====================================================================================================
+MNQ level: paper era Dec2021-Aug2025 avg ~16,000 (external knowledge, NOT in this
+lake - flagged as an estimate); this lake avg ~27,000. ratio 1.69x
+A POINT EDGE IS NOT SCALE-FREE. Friction is fixed in points; an edge is not.
+
+ sig  paper sd implied  our measured sd   ratio  level-scaled expect
+   A              62.7             96.4    1.54                 57.1
+   B              19.0             53.6    2.82                 31.8
+
+-> A: paper-implied sd 62.7 vs our 96.4; level-scaled expectation 57.1. CONSISTENT.
+-> B: paper-implied sd 19.1 vs our 53.6; level-scaled expectation 31.8. The paper's London
+   dispersion is ~40% BELOW what a 60-min MNQ hold plausibly had in that era.
+
+POWER: sessions needed to detect the paper's effect at 80% power, alpha=0.05 two-sided,
+assuming the edge scales with price level (so effect = paper_mean * 27/16):
+  signal A: effect +26.6pt -> 103 trades = 181 sessions (0.7 yr)   | unscaled +15.8pt -> 516 sessions (2.0 yr)
+  signal B: effect +9.7pt -> 238 trades = 780 sessions (3.1 yr)   | unscaled +5.8pt -> 2222 sessions (8.8 yr)
+
+WE HAVE 239 RTH / 240 London sessions, plus a 62-session prior-period holdout.

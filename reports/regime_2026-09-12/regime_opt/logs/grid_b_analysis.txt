@@ -1,0 +1,102 @@
+=== GRID B - entry/exit refinements ===
+CELLS SEARCHED (real): 776    null worlds: 6  null cells: 4599
+
+SCREEN: net>0 at 1.25pt AND positive in TRAIN, VALIDATE and TEST
+  REAL passes   260 / 776  =  33.5%
+  NULL passes   252 / 4599  =   5.5%   (per world: 3.2%, 3.6%, 0.9%, 0.0%, 24.4%, 0.5%)
+  -> the search returns 33.5% survivors where nothing-there returns 5.5%
+
+BEST-CELL TEST (the only multiple-testing-honest comparison):
+  best net pt/trade REAL   25.74   NULL worlds  20.11  23.74  23.15   8.07  29.37  15.00   null max  29.37
+  best t-stat       REAL    2.71   NULL worlds   1.40   1.49   1.23   0.86   2.37   1.18   null max   2.37
+
+  best net among three-period survivors: REAL 25.74
+  same for each null world: 20.11 23.74 23.15 20.91 7.75
+
+TOP 20 REAL CELLS BY NET (all three periods shown)
+ bar  states    fset  clean  win  hold_min   n  gross  gross_sd   net    t  TR_n    TR  VA_n    VA  TE_n    TE  allpos
+  10       5 base_sp      0 OPEN       180 127  26.99    165.76 25.74 1.75    53 10.09    43 32.06    31 43.73    True
+  10       5 base_sp      0 OPEN       180 138  26.54    159.52 25.29 1.86    55  9.83    45 33.17    38 38.32    True
+  10       5 base_sp      0 OPEN       180 112  23.41    171.45 22.16 1.37    48 10.07    36 24.91    28 39.34    True
+  10       5 base_sp      0 OPEN       150 127  22.45    178.11 21.20 1.34    53 10.36    43 14.75    31 48.67    True
+  10       5 base_sp      0 OPEN       150 138  20.99    171.51 19.74 1.35    55  8.96    45 14.93    38 41.06    True
+  10       5 base_sp      0 OPEN       150 112  20.37    186.32 19.12 1.09    48 12.38    36  9.51    28 43.02    True
+  10       4    full      2 OPEN       180 294  19.58    199.36 18.33 1.58   133 22.56    94  4.84    67 28.88    True
+  10       5    full      2 OPEN        60 298  19.42    116.81 18.17 2.68   130 25.44   100 16.37    68  6.90    True
+  10       4    full      2 OPEN       150 294  19.27    183.14 18.02 1.69   133 27.70    94  3.04    67 19.82    True
+  10       4    full      2 OPEN       180 319  19.05    193.95 17.80 1.64   139 21.42    99  8.23    81 23.27    True
+  10       4    full      2 OPEN       150 320  18.87    178.61 17.62 1.76   140 25.69    99  6.02    81 17.86    True
+  10       4    full      2 OPEN       120 295  18.85    168.67 17.60 1.79   133 22.72    94 14.44    68 11.96    True
+  10       5    full      2 OPEN        60 324  18.36    113.61 17.11 2.71   136 23.16   108 16.86    80  7.15    True
+  10       5 base_sp      0 OPEN       120 127  18.33    164.31 17.08 1.17    53 13.84    43  8.04    31 35.17    True
+  10       4    full      2 OPEN       150 331  18.03    176.85 16.78 1.73   141 23.87   101  4.70    89 19.27    True
+  10       4    full      2 OPEN       180 330  17.86    191.53 16.61 1.58   140 20.08   101  6.48    89 22.65    True
+  10       5 base_sp      0 OPEN       120 138  17.83    158.14 16.58 1.23    55 12.88    45  7.88    38 32.21    True
+  10       5 base_sp      0 OPEN       150 319  17.51    192.63 16.26 1.51   152 29.47    89  9.73    78 -2.03   False
+  10       5 base_sp      0 OPEN       120 112  17.45    172.58 16.20 0.99    48 15.38    36  5.15    28 31.79    True
+  10       4    full      2 OPEN       120 321  17.39    164.78 16.14 1.76   140 21.15    99 15.47    82  8.42    True
+
+TOP 15 REAL CELLS THAT PASS THE THREE-PERIOD SCREEN
+ bar  states    fset  clean  win  hold_min   n  gross  gross_sd   net    t  TR_n    TR  VA_n    VA  TE_n    TE  allpos
+  10       5 base_sp      0 OPEN       180 127  26.99    165.76 25.74 1.75    53 10.09    43 32.06    31 43.73    True
+  10       5 base_sp      0 OPEN       180 138  26.54    159.52 25.29 1.86    55  9.83    45 33.17    38 38.32    True
+  10       5 base_sp      0 OPEN       180 112  23.41    171.45 22.16 1.37    48 10.07    36 24.91    28 39.34    True
+  10       5 base_sp      0 OPEN       150 127  22.45    178.11 21.20 1.34    53 10.36    43 14.75    31 48.67    True
+  10       5 base_sp      0 OPEN       150 138  20.99    171.51 19.74 1.35    55  8.96    45 14.93    38 41.06    True
+  10       5 base_sp      0 OPEN       150 112  20.37    186.32 19.12 1.09    48 12.38    36  9.51    28 43.02    True
+  10       4    full      2 OPEN       180 294  19.58    199.36 18.33 1.58   133 22.56    94  4.84    67 28.88    True
+  10       5    full      2 OPEN        60 298  19.42    116.81 18.17 2.68   130 25.44   100 16.37    68  6.90    True
+  10       4    full      2 OPEN       150 294  19.27    183.14 18.02 1.69   133 27.70    94  3.04    67 19.82    True
+  10       4    full      2 OPEN       180 319  19.05    193.95 17.80 1.64   139 21.42    99  8.23    81 23.27    True
+  10       4    full      2 OPEN       150 320  18.87    178.61 17.62 1.76   140 25.69    99  6.02    81 17.86    True
+  10       4    full      2 OPEN       120 295  18.85    168.67 17.60 1.79   133 22.72    94 14.44    68 11.96    True
+  10       5    full      2 OPEN        60 324  18.36    113.61 17.11 2.71   136 23.16   108 16.86    80  7.15    True
+  10       5 base_sp      0 OPEN       120 127  18.33    164.31 17.08 1.17    53 13.84    43  8.04    31 35.17    True
+  10       4    full      2 OPEN       150 331  18.03    176.85 16.78 1.73   141 23.87   101  4.70    89 19.27    True
+
+MARGINALS - mean net pt by each dimension (real cells only)
+
+  bar:
+     cells  mean_net    best  pass_rate  null_net
+bar                                              
+5      272    -0.794  13.476      0.169    -2.012
+10     504     8.456  25.740      0.425    -5.080
+
+  states:
+        cells  mean_net    best  pass_rate  null_net
+states                                              
+3         216     7.106  13.850      0.245    -6.512
+4         168     8.041  18.333      0.500    -4.317
+5         392     2.958  25.740      0.314    -2.468
+
+  fset:
+          cells  mean_net    best  pass_rate  null_net
+fset                                                  
+base         72     7.519  13.850      0.375    -6.286
+base_sp     216     7.824  25.740      0.431    -3.010
+base_vol    176    -4.479   7.599      0.000    -1.692
+drift        96     5.960  13.476      0.479    -2.580
+full        216     9.400  18.333      0.435    -6.709
+
+  clean:
+       cells  mean_net    best  pass_rate  null_net
+clean                                              
+0        320     1.287  25.740      0.219    -1.490
+2        456     7.969  18.333      0.417    -5.731
+
+  win:
+      cells  mean_net   best  pass_rate  null_net
+win                                              
+OPEN    776     5.213  25.74      0.335    -4.013
+
+  hold_min:
+          cells  mean_net    best  pass_rate  null_net
+hold_min                                              
+30          118     2.551   7.121      0.237    -3.376
+45           34     1.926  13.476      0.294    -1.594
+60          118     6.040  18.167      0.237    -4.026
+75           34    -0.933   8.352      0.118    -2.372
+90          118     4.568  12.202      0.263    -4.392
+120         118     6.564  17.605      0.458    -4.445
+150         118     7.433  21.199      0.441    -4.691
+180         118     6.843  25.740      0.449    -4.307

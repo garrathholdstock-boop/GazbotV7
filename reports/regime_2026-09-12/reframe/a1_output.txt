@@ -1,0 +1,29 @@
+tape: 328845 1-min bars, 240 sessions, 2025-09-14..2026-08-18
+
+=== (i) HOLDING HORIZON vs 1.25pt FRICTION  (MNQ points) ===
+   horizon       n  med|move|  mean|move|      p75  fric % of med  ann.turns  fric/yr $
+     1 min  328844       3.50        5.60     7.00          35.7%     347760    869,400
+     5 min  328840       7.75       12.65    16.00          16.1%      69552    173,880
+    15 min  328830      13.75       22.12    28.00           9.1%      23184     57,960
+    30 min  328815      19.50       31.60    40.25           6.4%      11592     28,980
+    60 min  328785      28.25       45.71    59.25           4.4%       5796     14,490
+       2 h  328725      42.50       66.38    87.00           2.9%       2898      7,245
+ 1 RTH day  328455      88.50      126.79   171.75           1.4%        892      2,229
+ 1 cal day  327465     198.00      255.64   361.75           0.6%        252        630
+    1 week  321945     456.50      564.82   815.00           0.3%         50        126
+
+=== (ii) WHERE THE 240 SESSIONS' POINTS WERE MADE (MNQ points, 1 lot) ===
+                                        net_points  minutes  gross_abs_points  net_usd_1lot  share_of_movement
+bk                                                                                                            
+ASIA 22:00-07:00Z (desk entry-BLOCKED)      1540.5   124080          502708.5        3081.0               27.5
+EU   07:00-13:30Z                           2555.5    93585          440477.0        5111.0               24.1
+LATE 20:40-21:00Z (flat by rule)            -644.8     9600           39936.2       -1289.5                2.2
+US   13:30-20:40Z (desk's window)             74.5   101340          847953.0         149.0               46.3
+
+TOTAL net over the 240 sessions: 3525.8 pt = $7,052 on ONE lot
+
+per-session mean / sd / t (day-clustered, n=240 sessions):
+  ASIA 22:00-07:00Z (desk entry-BLOCKED)     mean    6.42pt  sd  146.72  t= 0.68  $    3,235/yr 1 lot
+  EU   07:00-13:30Z                          mean   10.65pt  sd  125.90  t= 1.31  $    5,367/yr 1 lot
+  LATE 20:40-21:00Z (flat by rule)           mean   -2.69pt  sd   42.58  t=-0.98  $   -1,354/yr 1 lot
+  US   13:30-20:40Z (desk's window)          mean    0.31pt  sd  258.55  t= 0.02  $      156/yr 1 lot

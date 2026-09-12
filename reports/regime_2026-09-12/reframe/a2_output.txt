@@ -1,0 +1,27 @@
+sessions usable: 151  2025-09-15 00:00:00..2026-08-17 00:00:00
+
+    arm       period    n  mean pt  net pt/RT      sd      t   $/yr 1lot        boot95 net $/tr
+ HOLD24          ALL  151    34.69      33.44   376.5   1.09      16,853   [  -49.03,  175.07]
+ HOLD24           P1   51    -3.65      -4.90   288.7  -0.12      -2,471   [     nan,     nan]
+ HOLD24           P2   50   122.74     121.49   361.8   2.37      61,231   [     nan,     nan]
+ HOLD24           P3   50   -14.26     -15.51   453.9  -0.24      -7,815   [     nan,     nan]
+  ONITE          ALL  151    40.31      39.06   260.1   1.85      19,689   [   15.86,  147.02]
+  ONITE           P1   51    46.98      45.73   179.3   1.82      23,046   [     nan,     nan]
+  ONITE           P2   50    39.76      38.51   235.2   1.16      19,407   [     nan,     nan]
+  ONITE           P3   50    34.08      32.83   344.8   0.67      16,546   [     nan,     nan]
+  INTRA          ALL  151     5.58       4.33   255.8   0.21       2,183   [  -72.80,   89.52]
+  INTRA           P1   51   -34.56     -35.81   218.7  -1.17     -18,048   [     nan,     nan]
+  INTRA           P2   50    86.47      85.22   229.8   2.62      42,948   [     nan,     nan]
+  INTRA           P3   50   -34.36     -35.61   298.0  -0.85     -17,947   [     nan,     nan]
+ EUONLY          ALL  151    14.18      12.93   136.7   1.16       6,519   [   -9.00,   58.09]
+ EUONLY           P1   51    18.73      17.48   140.0   0.89       8,810   [     nan,     nan]
+ EUONLY           P2   50    15.44      14.19   126.5   0.79       7,152   [     nan,     nan]
+ EUONLY           P3   50     8.29       7.04   145.3   0.34       3,548   [     nan,     nan]
+
+RISK of the overnight arm (points, 1 lot, $2/pt):
+  worst session -1,998$  best 2,023$  5th pct -772$
+  max peak-to-trough drawdown on 1 lot: $3,376   final $11,798
+  HOLD24: maxDD $8,900  final $10,098
+  INTRA : maxDD $7,631  final $1,308
+
+CONTROL (a control is supposed to lose): sign-flipped ONITE = -41.56pt/session net

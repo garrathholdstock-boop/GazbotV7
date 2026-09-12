@@ -1,0 +1,13 @@
+feature,window,n,ratio,lo,hi,sig
+depth,"[-10,-6] before",4141,0.9833,0.938,1.027,False
+depth,"[-5,-1] STRICTLY BEFORE",4141,0.9822,0.938,1.025,False
+depth,"[-2,+2] STRADDLING the event",4141,0.9807,0.937,1.021,False
+depth,"[0,+4] DURING the move",4141,0.9834,0.94,1.026,False
+depth,"[+5,+9] after",4141,0.9887,0.943,1.031,False
+depth,"[+10,+14] after",4141,0.9842,0.939,1.027,False
+touch,"[-10,-6] before",4141,0.9878,0.942,1.031,False
+touch,"[-5,-1] STRICTLY BEFORE",4141,0.9874,0.942,1.031,False
+touch,"[-2,+2] STRADDLING the event",4141,0.9871,0.942,1.029,False
+touch,"[0,+4] DURING the move",4141,0.9898,0.946,1.031,False
+touch,"[+5,+9] after",4141,0.9943,0.947,1.037,False
+touch,"[+10,+14] after",4141,0.9906,0.947,1.033,False

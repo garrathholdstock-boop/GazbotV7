@@ -1,0 +1,5 @@
+bk,net_points,minutes,gross_abs_points,net_usd_1lot,share_of_movement
+ASIA 22:00-07:00Z (desk entry-BLOCKED),1540.5,124080,502708.5,3081.0,27.454
+EU   07:00-13:30Z,2555.5,93585,440477.0,5111.0,24.056
+LATE 20:40-21:00Z (flat by rule),-644.75,9600,39936.25,-1289.5,2.181
+US   13:30-20:40Z (desk's window),74.5,101340,847953.0,149.0,46.309

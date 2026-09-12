@@ -1,0 +1,17 @@
+feature,scope,n,tr_mean,ctl_mean,ratio_to_matched_control,z_vs_matched,z_lo,z_hi,sig
+depth,transition,344,45.825,46.509,1.0031,0.0105,-0.291,0.291,False
+depth,clean transition,273,45.881,46.509,1.0005,-0.0126,-0.32,0.276,False
+b0s,transition,344,4.528,4.586,1.0027,0.0073,-0.298,0.283,False
+b0s,clean transition,273,4.537,4.586,1.0016,-0.0057,-0.319,0.277,False
+a0s,transition,344,4.527,4.586,1.0021,0.0005,-0.308,0.279,False
+a0s,clean transition,273,4.536,4.586,1.0009,-0.0156,-0.34,0.266,False
+spread,transition,344,0.529,0.528,1.003,0.0356,-0.249,0.372,False
+spread,clean transition,273,0.531,0.528,1.0058,0.0494,-0.262,0.399,False
+qint,transition,344,0.68,0.673,1.0035,-0.0076,-0.302,0.239,False
+qint,clean transition,273,0.681,0.673,1.0025,-0.0367,-0.345,0.212,False
+depth_tr,transition,344,1.029,1.026,1.006,0.0998,-0.008,0.212,False
+depth_tr,clean transition,273,1.033,1.026,1.0089,0.1299,-0.01,0.265,False
+trade_sz,transition,351,2.002,1.968,1.0171,0.2887,0.063,0.485,True
+trade_sz,clean transition,280,2.001,1.968,1.0165,0.2747,0.055,0.471,True
+vol,transition,351,28360.481,26430.659,1.0264,0.0694,-0.125,0.256,False
+vol,clean transition,280,29045.518,26430.659,1.0309,0.0917,-0.103,0.293,False

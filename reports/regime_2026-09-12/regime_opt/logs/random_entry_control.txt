@@ -1,0 +1,8 @@
+RANDOM-ENTRY AND BUY-AND-HOLD CONTROLS (400 draws, matched entry count per session)
+                             cell    n  real_net  rand_entry_mean  rand_entry_sd  rand_entry_p  buyhold_n  buyhold_mean
+      INCUMBENT 15m/3/base c2 90m 1983      0.80            -1.20           1.85          0.12      20481         -0.27
+      INCUMBENT 15m/3/base c2 60m 2042      0.27            -1.32           1.54          0.16      20961         -0.52
+GRIDA 30m/3/base_vol c2 EUUS 180m  502     16.00            -1.32           5.46          0.00       9521          0.08
+ GRIDA 30m/3/base_vol c2 LDN 180m  268     20.26            -0.36           7.70          0.00       9521          0.08
+
+  p = fraction of random-entry draws scoring at least the real arm.

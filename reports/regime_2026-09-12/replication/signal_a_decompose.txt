@@ -1,0 +1,24 @@
+SIGNAL A — CONDITION DECOMPOSITION (13-bar/65-min long, net @1.25pt, entry next bar open)
+judged against a TIME-OF-DAY-MATCHED control, not against zero
+
+--- K sweep, feature spec F2diract, labelling Lret ---
+  K  R1 share  (b) hit    ALL3      n   net pt      t  ctrl mean   gap sd
+  2        0%       0%    0.0%      0   (too few)
+  3       34%     100%    3.8%    620     0.02   0.00      -4.49     1.00
+  4       31%     100%    7.7%   1246    -1.99  -0.50      -3.16     0.32
+  5       63%      22%    3.1%    462     7.60   1.36      -3.71     1.98
+  6       67%      13%    1.1%    176    16.24   1.26      -2.72     1.86
+
+--- single conditions and pairs (F2diract/Lret/K=3) ---
+condition                               n   net pt      t   win%  ctrl mean  gap (sd)   verdict
+(a) state == R1 Active Flow          5184    -1.01  -0.84    52%      -1.08      0.06        no
+(a') state == R2 Bullish Drift       7599     0.43   0.43    53%      -1.07      1.48     BEATS
+(b) rolling P(R1->R2) > 0.15        15202    -1.52  -1.94    52%      -1.47     -0.06        no
+(c) 50-bar volume z > 0.5            3840    -6.07  -2.85    51%      -4.00     -1.06        no
+(c') volume z > 1.5                  1836    -8.28  -2.48    51%      -4.35     -1.26        no
+(a)+(c)                               620     0.02   0.00    53%      -4.49      1.00        no
+(a)+(b)+(c)  THE SIGNAL               620     0.02   0.00    53%      -4.49      1.00        no
+ALL BARS (baseline)                 15252    -1.48  -1.90    52%      -1.39     -0.12        no
+
+note: the time-of-day control has n equal to the condition's own n, so its sd is the
+honest yardstick for a gap. 'BEATS' means real > control mean + 1 control sd.

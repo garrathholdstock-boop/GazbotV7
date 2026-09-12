@@ -1,0 +1,6 @@
+control,n,overlap_pct,long_pct,mean_net,note
+REAL (the arm itself),1983,100.0,55.01765002521432,0.7958900655572365,
+"SIGN-FLIP (day-blocked), same bars",1983,100.0,48.86535552193646,-2.8347201210287443,"identical entry set by construction - verified, not asserted"
+"ALWAYS-LONG, same bars",1983,100.0,100.0,-2.6546898638426626,"same bars, direction fixed"
+LABEL PERMUTATION (mean of 5),2433,60.0,48.99646999495714,-1.6591780131114473,ENTRY SET MOVES - measures selection and direction at once
+SESSION-SHIFT (mean of 6),1969,10.615229450327785,55.097668499596374,-1.8104911932795231,"entry TIMES move by design - a structural null, NOT like-for-like"

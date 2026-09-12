@@ -10,6 +10,69 @@
 
 ---
 
+## 2026-09-12 (Sat) — seven research agents on "can we trade between the regimes", and the answer is a data purchase we did not have to make
+
+**What ran.** The six agents launched 2026-09-11 21:19-21:22Z died with their parent session four
+minutes in and wrote nothing. Relaunched 07:15Z from briefs banked in `ops/research_briefs/`, plus a
+seventh (data acquisition) added on the operator's *"be relentless"*. All seven completed; artifacts
+in `reports/regime_2026-09-12/`.
+
+**The headline: SIX NULLS AND ONE UNLOCK.**
+* **Regime-transition entry — REFUTED.** 7,092 configurations. Two real cells cleared all three bars
+  (zero at 1.25pt, beat the twin, day-block CI) — and so did the winner of a NULL world whose state
+  series was rotated away from price, matching to two decimals (+20.31 vs +20.26). **6 of 6 null
+  worlds produced a winner positive in all three periods.**
+* **The operator's SUSTAINED-EFFICIENCY dwell arm — REFUTED, and it is LATENCY.** The matched curve
+  falls **-11.02 pt per extra dwell bar** while surrendering **+0.34 ATR of the leg per bar waited**.
+  The one good cell (er4>=0.7, K=4, +6.04) is flanked by K=5 -7.81 and K=6 -13.18 — sign reversal at
+  both neighbours, the single-spiking-K pattern.
+* **Mesfin's two PASSING signals — A REFUTED, B not refutable here.** They are the author's own
+  declared positive controls, in-sample, and B has no OOS split at all. A 5,026-construction search
+  contains t=7.26 (beating the paper) but a null search reaches t>=5.83 **13%** of the time; that
+  cell loses -117.5 pt/trade on holdout. **B needs 780 London sessions; we have 240.**
+* **Cross-instrument lead-lag — REFUTED.** Every non-zero lag |corr| <= 0.034. 805 cells carry a CI;
+  **12 exclude zero on the upside = 1.5%, fewer than chance would give.**
+* **The order book at transitions — REFUTED.** Familywise p=0.4617 over 240 cells; 0 of 240 clear all
+  three bars. Positive control fired: OFI is r=+0.688 CONTEMPORANEOUS and **-0.001 at +60 min**.
+* **★ THE UNLOCK — a free multi-regime tape.** MIT-licensed **NQ 1-minute, 3,666,547 bars,
+  2015-01-02 -> 2025-07-25**, plus daily to 2000-09-18, now in the lake at `data/tape/bars/NQ/` via
+  `scripts/external_to_lake.py`. Verified independently: COVID 6,629->12,918, the 2022 bear
+  16,564->10,485, recovery to 22,388. **$0.** Databento closes MNQ/MGC specifically for ~$7 inside a
+  $125 signup credit.
+
+**★ THE STRUCTURAL FINDING, re-derived by hand and now the desk's frame.** On 239 sessions the
+smallest per-trade edge reaching t=2 is **2.84pt at a 5-min hold rising to 23.57pt at a session** —
+against a gross ceiling of **1.05-1.50pt**. Duration escapes a fixed cost and escapes statistical
+power at the same sqrt rate and they cancel. Only 5- and 15-minute holds are provable inside a year,
+and at the full ceiling they are worth **$430 and $1,158/yr on one lot**. Every null this desk has
+booked is **uninformative, not confirmatory** — and the same arithmetic forbids believing its
+positives. The unused lever is BREADTH, not a better predictor. Memory
+[[duration-escapes-friction-and-power-at-the-same-rate]].
+
+**Two numbers withdrawn, one by me.** (1) *"a random 60-min London long makes +11.25 pt"* — the
+control drew only from the 52 sessions its own cell fired on (+8.27/hr vs -0.62 for the other 188).
+Re-derived unconditionally: **+1.80 pt, t=1.33**; three independent re-derivations agree (+1.30,
++1.506, +1.80). (2) The book-thinning **t=-12.45** is per-observation and ~10x inflated; the 0.72x
+EFFECT replicates (0.767x, CI [0.670, 0.917]), its t-stat does not.
+
+**⚠ DATA DEFECT FOUND, NOT YET QUARANTINED.** `data/tape/bars/MNQ/backfill_1day.parquet` — **76 of
+483 daily bars are volume 0 with open==high==low==close**, all from 2024-09-23, because IBKR purged
+the real front months and `keep the FIRST` now resolves to a DEFERRED expiry (Dec-2025 quoted 15
+months early at 20,786.25 against a true 20,080.00). Hourly disagrees with our own minute bars by
+**393 pt**; `MNQ_CONTFUT` by 1,308. **The "1.9 years of history" is ~158 real bars.** Awaiting the
+operator's call on quarantining both files. Same family as the 22.46% gold contract-mix defect.
+
+**Also fixed tonight (separate commit `0c1a8d8`):** the V7 monitor paged CRIT 13 times on a shut
+venue. Two faults in the alarm, none in the desk — venue-blind, and a live second-count in the
+message body defeated the text-keyed dedupe. Now silent while shut, pages through the open session,
+pages 45 min BEFORE a reopen, +7 tests. The desk itself is in an IBKR weekend-maintenance restart
+loop and self-heals; `gazbot7-tournament` NRestarts=14, all other units clean.
+
+**Revert:** nothing here changes a trading path. `git revert` the doc/memory commit; `0c1a8d8` for
+the monitor; delete `data/tape/bars/NQ/` to undo the tape.
+
+---
+
 ## 2026-08-20 (Thu) — the rider goes 4-lot/naked/laddered, five buttons, a stay-out light, and the P0 safety list
 
 ### Trading changes (all live, full suite green)

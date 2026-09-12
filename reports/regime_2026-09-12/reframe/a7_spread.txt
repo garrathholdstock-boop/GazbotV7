@@ -1,0 +1,39 @@
+[('MGC', 1396136, 1788739200007, 1789170318290), ('MNQ', 7001743, 1788739200005, 1789170318387)]
+
+MNQ: n=72,207 sampled quotes
+  spread points: median 0.5000  mean 0.4960  p90 0.7500
+  spread in TICKS: median 2.00   share at exactly 1 tick: 17.3%
+  spread in $ per contract: median $1.00
+  top-of-book size: median bid 4 ask 4 contracts
+
+MGC: n=14,375 sampled quotes
+  spread points: median 0.3000  mean 0.3493  p90 0.5000
+  spread in TICKS: median 3.00   share at exactly 1 tick: 0.8%
+  spread in $ per contract: median $3.00
+  top-of-book size: median bid 3 ask 3 contracts
+
+=== THE LIQUIDITY-PROVISION ARITHMETIC (MNQ) ===
+A perfect market maker buys the bid and sells the offer: it earns the FULL spread, once, per
+round turn. On MNQ that is 1 tick = 0.25 pt = $0.50 gross.
+This desk's commission is $1.50 per round trip per contract (CLAUDE.md, and the fills table's
+own commission column). $0.50 gross - $1.50 commission = -$1.00 per round turn, BEFORE adverse
+selection, BEFORE queue position, and BEFORE the fact that a retail order joins the back of a
+queue that is hundreds of contracts deep.
+=> Providing liquidity in MNQ at a retail commission schedule is arithmetically loss-making on
+   every single fill. It is not a hard edge; it is a negative constant.
+window: 2026-09-06 20:00:00.826000-04:00 -> 2026-09-11 17:00:00.200000-04:00   n=131,730
+                        n  median   mean   p90  median_ticks  median_usd  round_trip_cost_usd
+bk                                                                                           
+1 ASIA 18:00-02:00  35398     0.5  0.504  0.50           2.0         1.0                  2.5
+2 EU   02:00-09:00  38429     0.5  0.593  0.75           2.0         1.0                  2.5
+3 US   09:00-16:00  55377     0.5  0.425  0.50           2.0         1.0                  2.5
+4 LATE 16:00-18:00   2526     0.5  0.506  0.75           2.0         1.0                  2.5
+
+MNQ round-trip cost by session, in POINTS: {'1 ASIA 18:00-02:00': 1.25, '2 EU   02:00-09:00': 1.25, '3 US   09:00-16:00': 1.25, '4 LATE 16:00-18:00': 1.25}
+
+=== LIQUIDITY PROVISION, with the MEASURED spread ===
+Median MNQ spread is 0.50 pt = 2 ticks = $1.00, not 1 tick (only 17.3%% of quotes are 1 tick wide).
+A market maker capturing the FULL measured spread once per round turn earns $1.00 gross and pays
+$1.50 commission: -$0.50 per round turn, before adverse selection and before queue priority.
+Top of book is a MEDIAN OF 4 CONTRACTS on MNQ, so a retail resting order is behind a queue it
+cannot see the front of. The idea is dead on arithmetic, not on difficulty.

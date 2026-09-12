@@ -306,6 +306,8 @@ whole 08-06 incident. **Do not "fix" the skip; a test fails if an order path app
 | `data/shadow.db` / `shadow_mgc.db` | 14.8M / 100K | the two shadow books. ⚠ **BOTH ARE WAL — STAT THE `-wal`, NOT THE `.db`.** In WAL mode the main file's mtime moves on a CHECKPOINT, not on a write: `shadow_mgc.db` last checkpointed **2026-08-15** while its `-wal` was being appended to all along, and a session on 08-30 reported the gold book *"unwritten for 230h"* and believed it. It was never dead — 201 shadow trades, newest 2026-09-03 06:23Z. `data_inventory._written_at()` now counts the WAL (and deliberately not the `-shm`, whose mtime moves on READS) |
 | `data/tape/` + `b2raw:gazbotv7/plain/` | Parquet, 07-16 → | **query via `gazbot7.lake.connect()`** |
 | `gaz:v5archive/` | 4,934 trades / 21 tables | the V5 archive — 574 MNQ trades, largely unexamined |
+| `data/tape/bars/NQ/` | **3,666,547 1-min bars, 2015-01-02 → 2025-07-25** + daily to 2000-09-18 | ★**NEW 2026-09-12, and it is the only MULTI-REGIME tape this desk owns.** MIT-licensed, $0, verified: 2018 vol shock, COVID 6,629→12,918, the **2022 bear 16,564→10,485**, recovery to 22,388. Loaded by `scripts/external_to_lake.py`, which writes **DAY PARTITIONS** because `lake.connect()` gates its glob on `_lake_days()` finding a `YYYY-MM-DD.parquet` — a monolithic file is silently invisible to research |
+| ⚠ `data/tape/bars/MNQ/backfill_1day.parquet` · `backfill_1hour.parquet` | **PARTLY SYNTHETIC — DO NOT USE** | **76 of 483 daily bars are volume 0 with open==high==low==close**, all from 2024-09-23 on. IBKR purged the real front months, so `backfill_to_lake.py`'s "keep the FIRST" resolves to a **DEFERRED** expiry — Dec-2025 quoted 15 months early at 20,786.25 against a true 20,080.00. Hourly disagrees with our own MINUTE bars by **393 pt**, `MNQ_CONTFUT` by **1,308**. The "483 bars / 1.9 years" figure is **~158 real bars**. Awaiting an operator call on quarantine; same family as the 22.46% gold contract-mix defect in `backfill_1min.parquet` |
 
 ★ **BACKBLAZE IS THE RECORD; the local disk is a CACHE.** Never conclude data does not exist without
 checking B2 — V5's `alphabot.db` is **0 bytes locally** and its full history is on B2.
@@ -421,6 +423,18 @@ delivery. **Decision deferred until one clean Friday has run and been measured**
    whose result depends on the machine it runs on. **Fix: hoist the path to a module constant** so a
    test can point it somewhere else. One line, not done — it touches a safety refusal and the desk
    was mid-incident.
+
+14. ⏳ **NEW 2026-09-12 — the two broken MNQ history files above are still readable and unmarked.**
+   Quarantining them is a one-line move and the operator's call; every study that read them needs
+   revisiting, including any year-length MNQ conclusion.
+
+15. ⏳ **NEW 2026-09-12 — the desk cannot detect an edge of the size that exists in this instrument.**
+   Smallest per-trade edge reaching t=2 on 239 sessions: **2.84pt at a 5-min hold → 23.57pt at a
+   session**, against a measured gross ceiling of **1.05–1.50pt**. Duration escapes the fixed fee and
+   escapes statistical power at the same rate. Only 5- and 15-minute holds are provable inside a
+   year, and at the full ceiling they pay **$430 / $1,158 per year on one lot**. This is not a bug to
+   fix; it is the frame every future study is scored in. The unused lever is **BREADTH**, and the new
+   NQ tape (§6) is the first thing that widens the sample rather than the search.
 
 13. ⏳ **NEW 2026-09-07 — nothing yet stops a flatten LOOP on the tournament side.** The rider's hard
    flat is now guarded by `venue_closed()` + `own_working_flatten()` (SESSIONS §391), but that pair

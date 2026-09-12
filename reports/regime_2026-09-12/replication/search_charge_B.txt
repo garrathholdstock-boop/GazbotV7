@@ -1,0 +1,13 @@
+SEARCH CHARGE — signal B
+constructions searched: 1180
+placebo draws: 200 (session-permuted outcome, execution + time-of-day preserved)
+
+BEST-OF-SEARCH under the null:  max t  mean 3.02  sd 0.55  median 2.93  95th pct 4.09  max 5.21
+BEST-OF-SEARCH under the null:  max mean pt  median 23.05  95th pct 35.59
+
+OBSERVED best t in the real search: 2.86
+OBSERVED best mean in the real search: 21.16 pt
+SEARCH-CHARGED p-value for the best cell: p = 0.575  (fraction of placebo searches whose BEST cell beat it)
+
+*** P(a PURE-NOISE search of this size yields a best cell with t >= the paper's 5.15) = 0.005
+*** P(noise search best t >= 2.0, the paper's own bar) = 1.000

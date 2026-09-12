@@ -86,8 +86,33 @@ def discover():
     except Exception:
         pass
 
-    con = _ro(SHADOW)
-    if con:
+    # ★2026-08-19 THE DASHBOARD'S FLEET, EXPLICITLY. The introspection above walks `runner` and
+    # `shadow` for slate-shaped attributes, but web.shadow_overview_json() renders
+    # `default_slate() + CB_STRATEGIES + CL_GATES` — a DIFFERENT definition of "the fleet", living in
+    # a different module. So a CL gate that had not yet traded was invisible here, got no number, and
+    # rendered as "?" on the board: four were (CL-abs_veto_long, CL-exhaustion_short, CL-nipc_long,
+    # CL-nipc_short). Two components each computing the fleet their own way, the discrepancy showing
+    # only as a silent "?", is this desk's signature failure. The registrar must see EXACTLY what the
+    # board renders, so import the same names rather than re-deriving them.
+    # tests/test_sim_registry_covers_dashboard_fleet.py fails if the two ever drift apart again.
+    for mod_name, attr in (("gazbot7.cb", "CB_STRATEGIES"), ("gazbot7.cl_sims", "CL_GATES")):
+        try:
+            mod = __import__(mod_name, fromlist=[attr])
+            for n in getattr(mod, attr, ()) or ():
+                add(n, "slate")
+        except Exception:
+            continue
+    try:                                       # the gold desk runs its own slate and its own store
+        from gazbot7.shadow_mgc import mgc_slate
+        for v in mgc_slate() or []:
+            add(getattr(v, "name", None), "slate")
+    except Exception:
+        pass
+
+    for path in (SHADOW, f"{GB}/data/shadow_mgc.db"):
+        con = _ro(path)
+        if not con:
+            continue
         for tbl in ("shadow_real", "shadow_trades"):
             try:
                 for (n,) in con.execute(

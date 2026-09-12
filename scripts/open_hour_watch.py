@@ -62,6 +62,14 @@ import sys
 GB = "/home/alphabot/gazbot7"
 PY = f"{GB}/.venv/bin/python"
 CLAUDE = "/root/.local/bin/claude"
+# ★★2026-08-19 HEADLESS CONTEXT ISOLATION — the prompt must be the ONLY instruction.
+# Claude Code auto-loads a CLAUDE.md from the cwd chain AND the per-project auto-memory index
+# (~/.claude/projects/<slug-of-cwd>/memory/). Running from the repo injected ~1,720 words of
+# unreviewed trading opinion into every headless decision. Must be OUTSIDE the repo: Claude Code
+# walks UP to the repo root, so a dir inside gazbot7 still loads gazbot7's memory.
+# See ops/ROUTER_CONTEXT_ISOLATION.md.
+HEADLESS_CTX = "/var/lib/gazbot7/router_ctx"
+
 ALERTS = f"{GB}/data/open_hour_alerts.log"     # the session tails THIS -> in-chat interrupt
 RUNLOG = f"{GB}/data/open_hour_watch.log"      # heartbeat: every tick, so a dead watcher is visible
 STATE = f"{GB}/data/open_hour_state.json"      # last alert fingerprint (dedup)
@@ -366,8 +374,9 @@ def main() -> int:
         return 0
 
     try:
+        os.makedirs(HEADLESS_CTX, exist_ok=True)   # missing cwd => subprocess.run raises => no arming
         r = subprocess.run([CLAUDE, "-p", PROMPT + ctx, "--allowedTools", ""],
-                           capture_output=True, text=True, timeout=200,
+                           capture_output=True, text=True, timeout=200, cwd=HEADLESS_CTX,
                            env={**os.environ, "PATH": "/root/.local/bin:/usr/local/bin:/usr/bin:/bin"})
         raw = (r.stdout or "").strip()
         s, e = raw.find("{"), raw.rfind("}")

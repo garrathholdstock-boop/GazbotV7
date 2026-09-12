@@ -1,0 +1,19 @@
+STRUCTURES CARRIED TO GRID B - ranked by TRAIN-period mean only
+ bar  states     fset  clean  win     TR  cells
+  10       4     full      2 OPEN 18.788      6
+  10       3     full      2 OPEN 17.457      6
+  10       3  base_sp      2 OPEN 16.753      6
+   5       4    drift      2 OPEN 14.908      8
+  10       5  base_sp      0 OPEN 14.852      6
+  10       3     base      2 OPEN 14.737      6
+  10       5     full      2 OPEN 13.959      6
+   5       5 base_vol      0 OPEN 12.763      8
+  5m K=4 drift rows=672 4s
+  5m K=5 base_vol rows=1872 11s
+  10m K=3 base rows=2376 13s
+  10m K=3 base_sp rows=2880 14s
+  10m K=3 full rows=3384 16s
+  10m K=4 full rows=3888 18s
+  10m K=5 base_sp rows=4871 22s
+  10m K=5 full rows=5375 25s
+TOTAL 5375 rows, real 776  (25s)

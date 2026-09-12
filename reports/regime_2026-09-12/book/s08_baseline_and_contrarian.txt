@@ -1,0 +1,36 @@
+(A) BASELINE — the regime-transition strategy on the BOOK WINDOW (2026-07-31..09-11),
+    straight from S02's transition table. Book features play no part in this number.
+  hold  clean     n   net pt   win%      day-block 95% CI   $/trade
+   30m       no   346    -3.48    49%        [-7.36, +0.48]     -6.95
+   30m      yes   275    -3.67    48%        [-7.85, +0.55]     -7.34
+   60m       no   339    -4.74    49%       [-11.33, +1.76]     -9.48
+   60m      yes   269    -5.41    47%       [-13.69, +2.87]    -10.82
+   90m       no   331    -7.46    47%       [-16.84, +1.29]    -14.92
+   90m      yes   264    -9.00    46%       [-19.96, +1.91]    -17.99
+    for contrast, the SAME cells over the incumbent's full span (all sessions on the
+    capture tape 2026-07-15..09-11 is still short; this is the whole transition table):
+      60m clean=False n=468   net -2.24 pt
+      60m clean=True  n=370   net -1.24 pt
+      90m clean=False n=455   net -4.56 pt
+      90m clean=True  n=361   net -5.33 pt
+
+(B) CONTRARIAN — fade the book instead of following it. 360 cells, 1.25pt friction.
+    best gross |edge| anywhere in the grid = 11.458 pt
+    day-block sign-flip null, max over the grid: 95th pct = 15.410 pt, 99th = 17.674 pt
+    FAMILYWISE p = 0.4285
+    cells with contrarian net > 0 : 178 / 360
+    cells with contrarian CI excluding 0 : 11 / 360
+    cell-level perm p<0.05 : 32 (expected by chance: 18)
+
+    top 10 contrarian cells by net pt:
+               scope        feat hold   n  pro_pt  contra_pt  contra_lo  contra_hi  contra_hit  perm_p_cell
+L2 clean transitions   imb3_L_zs  90m 253 -12.708     10.208       0.14      20.32      0.5397      0.03700
+L2 clean transitions      imb3_L  90m 253 -12.657     10.157       0.39      20.01      0.5238      0.03275
+      L2 transitions     tsi5_zs  90m 326 -11.810      9.310       2.33      16.81      0.5231      0.00800
+L2 clean transitions    tsi_ztod  90m 260 -11.681      9.181       0.41      18.56      0.5328      0.03225
+L2 clean transitions imb3_L_ztod  90m 253 -11.101      8.601      -0.41      18.19      0.5278      0.05850
+L2 clean transitions         tsi  60m 266 -10.732      8.232       1.32      15.09      0.5263      0.01475
+L2 clean transitions imb3_5_ztod  90m 253 -10.478      7.978       0.44      15.82      0.5357      0.02550
+L2 clean transitions      imbT_L  90m 253 -10.419      7.919      -2.22      18.53      0.4444      0.08475
+      L2 transitions imbT_L_ztod  90m 319 -10.418      7.918      -1.71      18.25      0.5126      0.07475
+L2 clean transitions imbT_L_ztod  90m 253 -10.370      7.870      -2.56      18.46      0.5278      0.10475

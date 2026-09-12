@@ -1,0 +1,26 @@
+[
+  {
+    "symbol": "MNQ",
+    "rows_all_expiries": 376904,
+    "rows_front": 328845,
+    "pct_rows_dropped": 12.75,
+    "vol_all": 498652390.0,
+    "vol_front": 492924801.0,
+    "pct_vol_in_nonfront": 1.15,
+    "first": "2025-09-14",
+    "last": "2026-08-18",
+    "sessions": 240
+  },
+  {
+    "symbol": "MGC",
+    "rows_all_expiries": 563981,
+    "rows_front": 373950,
+    "pct_rows_dropped": 33.69,
+    "vol_all": 91327654.0,
+    "vol_front": 90405675.0,
+    "pct_vol_in_nonfront": 1.01,
+    "first": "2025-07-27",
+    "last": "2026-08-28",
+    "sessions": 272
+  }
+]

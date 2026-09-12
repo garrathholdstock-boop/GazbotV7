@@ -1,0 +1,82 @@
+    5m K=3 base      cells=   560       3s
+    5m K=3 drift     cells=  1120       6s
+    5m K=3 base_vol  cells=  1680       9s
+    5m K=3 base_vz   cells=  2240      12s
+    5m K=3 base_sp   cells=  2800      14s
+    5m K=3 full      cells=  3360      17s
+    5m K=4 base      cells=  3920      21s
+    5m K=4 drift     cells=  4480      25s
+    5m K=4 base_vol  cells=  5040      29s
+    5m K=4 base_vz   cells=  5600      33s
+    5m K=4 base_sp   cells=  6160      36s
+    5m K=4 full      cells=  6720      39s
+    5m K=5 base      cells=  7280      44s
+    5m K=5 drift     cells=  7840      48s
+    5m K=5 base_vol  cells=  8400      54s
+    5m K=5 base_vz   cells=  8960      59s
+    5m K=5 base_sp   cells=  9520      63s
+    5m K=5 full      cells= 10080      68s
+   10m K=3 base      cells= 10500      69s
+   10m K=3 drift     cells= 10920      71s
+   10m K=3 base_vol  cells= 11340      72s
+   10m K=3 base_vz   cells= 11760      74s
+   10m K=3 base_sp   cells= 12180      75s
+   10m K=3 full      cells= 12600      76s
+   10m K=4 base      cells= 13020      78s
+   10m K=4 drift     cells= 13440      80s
+   10m K=4 base_vol  cells= 13860      82s
+   10m K=4 base_vz   cells= 14280      84s
+   10m K=4 base_sp   cells= 14700      85s
+   10m K=4 full      cells= 15120      87s
+   10m K=5 base      cells= 15540      90s
+   10m K=5 drift     cells= 15960      93s
+   10m K=5 base_vol  cells= 16380      95s
+   10m K=5 base_vz   cells= 16800      97s
+   10m K=5 base_sp   cells= 17220      99s
+   10m K=5 full      cells= 17640     102s
+   15m K=3 base      cells= 18200     104s
+   15m K=3 drift     cells= 18760     105s
+   15m K=3 base_vol  cells= 19320     107s
+   15m K=3 base_vz   cells= 19856     108s
+   15m K=3 base_sp   cells= 20416     109s
+   15m K=3 full      cells= 20976     110s
+   15m K=4 base      cells= 21536     112s
+   15m K=4 drift     cells= 22096     113s
+   15m K=4 base_vol  cells= 22656     115s
+   15m K=4 base_vz   cells= 23216     117s
+   15m K=4 base_sp   cells= 23776     118s
+   15m K=4 full      cells= 24336     120s
+   15m K=5 base      cells= 24896     122s
+   15m K=5 drift     cells= 25456     124s
+   15m K=5 base_vol  cells= 26016     126s
+   15m K=5 base_vz   cells= 26576     128s
+   15m K=5 base_sp   cells= 27136     130s
+   15m K=5 full      cells= 27696     131s
+   30m K=3 base      cells= 28116     132s
+   30m K=3 drift     cells= 28536     133s
+   30m K=3 base_vol  cells= 28956     134s
+   30m K=3 base_vz   cells= 29376     135s
+   30m K=3 base_sp   cells= 29796     135s
+   30m K=3 full      cells= 30216     136s
+   30m K=4 base      cells= 30636     137s
+   30m K=4 drift     cells= 31056     138s
+   30m K=4 base_vol  cells= 31476     139s
+   30m K=4 base_vz   cells= 31896     140s
+   30m K=4 base_sp   cells= 32316     140s
+   30m K=4 full      cells= 32736     141s
+   30m K=5 base      cells= 33156     142s
+   30m K=5 drift     cells= 33576     143s
+   30m K=5 base_vol  cells= 33996     144s
+   30m K=5 base_vz   cells= 34416     145s
+   30m K=5 base_sp   cells= 34836     146s
+   30m K=5 full      cells= 35256     147s
+
+TOTAL ROWS 35256  (148s)
+world
+REAL       5040
+NULL17     5040
+NULL31     5040
+NULL47     5040
+NULL-53    5032
+NULL-37    5032
+NULL-23    5032

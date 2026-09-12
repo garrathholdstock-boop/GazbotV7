@@ -1,0 +1,23 @@
+BEST CELL PER WORLD (n >= 250) out of 4612 eligible cells each
+  world  bar  states     fset  clean  win  hold_min   n   net    t    TR    VA    TE
+NULL-23   30       5  base_sp      0  RTH       180 267 12.14 1.18 22.81  6.26  0.24
+NULL-37   30       3  base_vz      0  RTH       150 327 16.74 1.96 22.17  1.05 25.81
+NULL-53    5       5    drift      0 OPEN       180 267 19.01 1.59 21.36 11.70 22.47
+ NULL17   15       5     full      2 OPEN       180 283 17.55 1.44 16.48 15.67 21.24
+ NULL31   30       5  base_vz      0  LDN       180 251 20.08 1.74  2.40 27.41 37.77
+ NULL47    5       5    drift      2  LDN       180 294 20.31 2.44  6.57 25.04 34.31
+   REAL   30       3 base_vol      2  LDN       180 268 20.26 2.21 10.05 42.17 12.07
+
+THE SAME GAUNTLET, APPLIED TO EACH WORLD'S OWN WINNER
+  world                       cell   n   net    TR    VA    TE  twin_sd  edge_sd    p    lo    hi    a    b     c  three  ALL_BARS
+NULL-23  30m/5/base_sp/c0/RTH/180m 267 12.14 22.81  6.26  0.24    11.51     1.19 0.12 -7.23 32.54 True True False   True     False
+NULL-37  30m/3/base_vz/c0/RTH/150m 327 16.74 22.17  1.05 25.81    10.56     1.67 0.05 -2.60 36.03 True True False   True     False
+NULL-53    5m/5/drift/c0/OPEN/180m 267 19.01 21.36 11.70 22.47    14.87     1.36 0.09 -4.74 44.71 True True False   True     False
+ NULL17    15m/5/full/c2/OPEN/180m 283 17.55 16.48 15.67 21.24    14.77     1.26 0.10 -3.97 39.84 True True False   True     False
+ NULL31  30m/5/base_vz/c0/LDN/180m 251 20.08  2.40 27.41 37.77    14.35     1.48 0.07 -5.32 48.12 True True False   True     False
+ NULL47     5m/5/drift/c2/LDN/180m 294 20.31  6.57 25.04 34.31     9.56     2.26 0.01  2.77 38.21 True True  True   True      True
+   REAL 30m/3/base_vol/c2/LDN/180m 268 20.26 10.05 42.17 12.07     9.50     2.27 0.01  2.11 38.52 True True  True   True      True
+
+NULL worlds whose winner clears all three bars: 1 of 6
+NULL worlds whose winner is positive in all three periods: 6 of 6
+REAL winner clears all three bars: True

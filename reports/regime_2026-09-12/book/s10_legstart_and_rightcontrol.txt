@@ -1,0 +1,47 @@
+(A) EVENT-LEVEL POSITIVE CONTROL — book in the 5 minutes STRICTLY BEFORE a leg start.
+    Prior desk result to reproduce: 3-level depth 0.72x, touch 0.79x.
+  leg = |10-min move| >= 15pt after a quiet 10 min · n=4691 legs, 31 sessions
+      PRE-leg depth        = 0.989x its matched time-of-day control   95% CI [0.945, 1.028]   ns
+      PRE-leg touch        = 0.992x its matched time-of-day control   95% CI [0.949, 1.031]   ns
+      PRE-leg spread_mean  = 1.005x its matched time-of-day control   95% CI [0.979, 1.034]   ns
+  leg = |10-min move| >= 20pt after a quiet 10 min · n=4141 legs, 31 sessions
+      PRE-leg depth        = 0.982x its matched time-of-day control   95% CI [0.939, 1.024]   ns
+      PRE-leg touch        = 0.987x its matched time-of-day control   95% CI [0.942, 1.032]   ns
+      PRE-leg spread_mean  = 1.008x its matched time-of-day control   95% CI [0.980, 1.039]   ns
+  leg = |10-min move| >= 30pt after a quiet 10 min · n=2664 legs, 31 sessions
+      PRE-leg depth        = 0.969x its matched time-of-day control   95% CI [0.918, 1.020]   ns
+      PRE-leg touch        = 0.976x its matched time-of-day control   95% CI [0.921, 1.027]   ns
+      PRE-leg spread_mean  = 1.015x its matched time-of-day control   95% CI [0.982, 1.051]   ns
+
+(B) FADE-THE-BOOK vs its real control, FADE-THE-REGIME, on the same transitions.
+                        cell     n  follow regime  FADE regime   FADE book  book increment     95% CI of increment
+                  imb3_L 60m   328          -5.31         2.81        2.44           -0.36        [-10.43, +10.32]
+               imb3_L_zs 60m   328          -5.31         2.81        2.62           -0.19        [-10.30, +10.58]
+                     tsi 60m   335          -4.78         2.28        5.94            3.65         [-2.78, +10.06]
+                 tsi5_zs 60m   335          -4.78         2.28        3.80            1.52         [-9.07, +10.89]
+                tsi_ztod 60m   335          -4.78         2.28        5.01            2.73         [-4.51, +10.56]
+                  imbT_L 60m   328          -5.31         2.81        2.44           -0.37         [-10.36, +9.37]
+                  ofi5_n 60m   328          -5.31         2.81        2.33           -0.48        [-12.10, +10.65]
+            imb3_L 60m clean   259          -6.13         3.63        3.61           -0.02        [-10.87, +11.60]
+         imb3_L_zs 60m clean   259          -6.13         3.63        3.88            0.26        [-10.69, +12.39]
+               tsi 60m clean   266          -5.61         3.11        8.23            5.12         [-1.28, +12.74]
+           tsi5_zs 60m clean   266          -5.61         3.11        0.50           -2.61         [-14.74, +9.69]
+          tsi_ztod 60m clean   266          -5.61         3.11        7.34            4.23         [-3.26, +12.13]
+            imbT_L 60m clean   259          -6.13         3.63        3.38           -0.25        [-12.89, +11.77]
+            ofi5_n 60m clean   259          -6.13         3.63        4.48            0.85        [-11.91, +13.65]
+                  imb3_L 90m   319          -7.96         5.46        7.24            1.78        [-10.98, +14.72]
+               imb3_L_zs 90m   319          -7.96         5.46        7.38            1.92        [-11.55, +15.56]
+                     tsi 90m   326          -7.56         5.06        5.01           -0.05          [-9.16, +8.99]
+                 tsi5_zs 90m   326          -7.56         5.06        9.31            4.25         [-7.32, +15.29]
+                tsi_ztod 90m   326          -7.56         5.06        6.45            1.39         [-7.44, +10.21]
+                  imbT_L 90m   319          -7.96         5.46        5.54            0.08        [-12.32, +12.48]
+                  ofi5_n 90m   319          -7.96         5.46        1.44           -4.02         [-18.05, +9.42]
+            imb3_L 90m clean   253          -9.42         6.92       10.16            3.24        [-11.49, +17.59]
+         imb3_L_zs 90m clean   253          -9.42         6.92       10.21            3.29        [-11.68, +18.71]
+               tsi 90m clean   260          -9.35         6.85        7.62            0.78         [-7.93, +10.05]
+           tsi5_zs 90m clean   260          -9.35         6.85        5.59           -1.26        [-15.63, +13.13]
+          tsi_ztod 90m clean   260          -9.35         6.85        9.18            2.33         [-6.08, +10.75]
+            imbT_L 90m clean   253          -9.42         6.92        7.92            1.00        [-14.12, +16.61]
+            ofi5_n 90m clean   253          -9.42         6.92        3.54           -3.38        [-19.43, +12.80]
+
+    increments over the fade-the-regime control: 17/28 positive, 0/28 with a day-block CI excluding zero.

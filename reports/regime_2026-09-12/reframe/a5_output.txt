@@ -1,0 +1,31 @@
+=== THE LIVE RECORD, 2026-07-16..2026-09-11, 45 sessions ===
+ALL booked trades          n= 872  lots=  1091  net $ -6,690.93  commissions $1,464.00
+qty=1 (uncontaminated)     n= 712  net $  1,835.26  gross-of-commission $ 2,903.26  =   2.04 pt/trade  median hold   3.3 min
+  of which GATE roster     n= 667  net $ -1,637.00  gross-of-commission $  -636.50  =  -0.48 pt/trade  median hold   3.0 min
+  of which DAY RIDER       n=  45  net $  3,472.26  gross-of-commission $ 3,539.76  =  39.33 pt/trade  median hold  46.0 min
+qty>1 (FABRICATED FILLS)   n= 160  lots=   379  net $ -8,526.19   <- not a measurement
+
+=== PER-TRADE DISPERSION (qty=1, gate roster) ===
+n=667  mean $-2.45  sd $66.39  = 33.2 MNQ points per trade
+trade rate: 19.4 trades/session (872 trades / 45 sessions)
+
+=== WHAT IT COSTS JUST TO PLAY, per year, at the desk's own trade rate ===
+   19.4 trades/session (the desk's actual rate  ) -> $   9,766/yr per lot =  32.6% of a $30,000 account, BEFORE any P&L
+   11.0 trades/session (the brief's ~11 signals/day) -> $   5,544/yr per lot =  18.5% of a $30,000 account, BEFORE any P&L
+    1.0 trades/session (one trade a day         ) -> $     504/yr per lot =   1.7% of a $30,000 account, BEFORE any P&L
+
+=== HOW LONG TO PROVE AN EDGE AT THE DOCUMENTED CEILING ===
+  net edge = gross ceiling - 1.25pt friction; sd = this desk's measured 33.2 pt/trade
+   gross pt  net pt  $/trade  trades for t=2   sessions @19/day   years
+       1.05   -0.20    -0.40   never - negative expectancy
+       1.25    0.00     0.00   never - negative expectancy
+       1.50    0.25     0.50          70,525              3,639    14.4
+       1.75    0.50     1.00          17,631                910     3.6
+       2.00    0.75     1.50           7,836                404     1.6
+       3.00    1.75     3.50           1,439                 74     0.3
+
+=== THE SAME ARITHMETIC FOR A ONE-TRADE-A-DAY, OVERNIGHT-HORIZON BOOK ===
+  MNQ overnight arm: net 19.65pt, sd 234.5pt -> sessions for t=2 = 570 = 2.3 years
+  ratio of sd to edge:  intraday gate roster 133x (at a +0.25pt net edge)   overnight 11.9x
+
+NOTE the direction of that comparison: the overnight arm's edge-to-noise ratio is ~11x better

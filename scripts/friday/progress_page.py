@@ -85,15 +85,25 @@ def rows(db=DB, as_of=AS_OF):
         GROUP BY 1 ORDER BY 1""", (as_of,)))
 
 
-def _rider_worst_day(db=DB, as_of=AS_OF):
+def _rider_worst_day(db=DB, as_of=AS_OF, since=None):
     """The day rider's worst single SESSION in the most recent week, named and priced from the book
     rather than typed. The sentence this feeds used to carry a literal -$1,294.50, which was the
-    fee-double-counted Thursday; the true figure is -$1,288.50 and a hard-coded one cannot notice."""
+    fee-double-counted Thursday; the true figure is -$1,288.50 and a hard-coded one cannot notice.
+
+    ★★2026-09-04 REV2 — `since` IS NOW REQUIRED IN PRACTICE, AND THIS IS WHY. The docstring said
+    "in the most recent week" and the query said no such thing: it took the worst rider session of
+    ALL TIME up to `as_of`. That is how the 2026-09-04 page came to splice a W35 session into a W36
+    total — "+613.50 across 35 legs in the most recent week, of which -2,149.44 landed on Monday
+    08-24 alone", when 08-24 is not in W36 at all and W36's own worst day is -381.50. The paragraph
+    then subtracted a number from outside the window from a total inside it and reported the
+    remainder as "the rider's other 4 days", which was arithmetic on two different weeks. The window
+    is now passed in and applied."""
     c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     r = c.execute(
         "SELECT date(closed_at), round(sum(pnl_usd),2) v FROM trades WHERE data_quality IS NULL "
-        "AND gate LIKE 'day_rider%' AND date(closed_at) <= ? GROUP BY 1 ORDER BY v LIMIT 1",
-        (as_of,)).fetchone()
+        "AND gate LIKE 'day_rider%' AND date(closed_at) <= ? AND date(closed_at) >= ? "
+        "GROUP BY 1 ORDER BY v LIMIT 1",
+        (as_of, since or "1970-01-01")).fetchone()
     c.close()
     if not r:
         return "session", 0.0
@@ -208,7 +218,8 @@ def build(rs, as_of: str = None) -> str:
     # ★ Split at the router go-live. The first draft compared the ALL-TIME worst day against "the
     # pre-router worst" — which is the same day, so the sentence compared a number with itself and
     # read as if nothing had improved. Compute both sides.
-    rider_worst_d, rider_worst = _rider_worst_day(DB, as_of)
+    _wk_start = min(d for d, _ in wk[-1][1])
+    rider_worst_d, rider_worst = _rider_worst_day(DB, as_of, since=_wk_start)
     # ★2026-08-29 REV2 — the rest of the rider's most recent week, so the comparison sentence is
     # arithmetic rather than the typed "the other four sessions". The count moves; the claim must not.
     rider_rest = round(rider_wk - rider_worst, 2)
@@ -279,16 +290,20 @@ the first green week is the one it landed in. Its measured effect is on the <em>
 <strong style="color:{RED}">{post_worst:+,.2f}</strong>, and green days went from
 <strong>{pre_green} of {pre_n}</strong> to <strong style="color:{GRN}">{post_green} of {post_n}</strong>.
 The day-rider joined on 08-06 as a second, slower engine, and it is no longer unbeaten:
-<strong style="color:{RED}">{rider_wk:+,.2f}</strong> across {rider_n} legs in the most recent week,
-of which <strong style="color:{RED}">{rider_worst:+,.2f}</strong> landed on {rider_worst_d} alone.
-Strip that one session out and the rider's other {rider_rest_days} days come to
-<strong style="color:{GRN if rider_rest>0 else RED}">{rider_rest:+,.2f}</strong> &mdash; so one
-session is the whole of the week's loss and more.
-<strong>&#9733; And that session is not a decision this week made.</strong> The
-{rider_worst_d} row is the four-lot position the rider opened on Friday 2026-08-21 at 13:13:06Z,
-carried unmanaged through the CME halt and closed by hand on the Monday; it is booked on its CLOSE
-date, which is why it lands in this week's bar. The rider is still the engine that produced the
-desk&rsquo;s best days; it is no longer the one that cannot lose.</p>
+<strong style="color:{GRN if rider_wk>0 else RED}">{rider_wk:+,.2f}</strong> across {rider_n} legs
+in the most recent week ({_wk_start} &rarr; {as_of}), whose worst single session is
+<strong style="color:{RED}">{rider_worst:+,.2f}</strong> on {rider_worst_d}. Strip that one session
+out and the rider's other {rider_rest_days} days come to
+<strong style="color:{GRN if rider_rest>0 else RED}">{rider_rest:+,.2f}</strong>.
+<strong>&#9733;&nbsp;REV2 &mdash; this paragraph used to splice two different weeks together.</strong>
+It read &ldquo;{rider_wk:+,.2f} across {rider_n} legs in the most recent week, of which
+&minus;2,149.44 landed on Monday 08-24 alone&rdquo;, and then subtracted the one from the other. But
+08-24 is in <strong>W35</strong> and the most recent week here is <strong>W36</strong>: the query
+behind &ldquo;the worst session&rdquo; had no week filter and was returning the worst rider day of
+all time. It is now scoped to the week it is describing, so the subtraction is arithmetic on one
+window. The &minus;2,149.44 carry belongs to the W35 row and is described there, in the body of this
+report, not here. The rider is still the engine that produced the desk&rsquo;s best days; it is no
+longer the one that cannot lose.</p>
 
 <p class="caveat"><strong>Read it honestly.</strong> The cumulative total across all {len(rs)} days is
 still <strong style="color:{RED if tot<0 else GRN}">{tot:+,.2f}</strong> &mdash; this is a desk that

@@ -16,12 +16,17 @@ side/pnl for participation). DuckDB. Read-only. Feeds the report's closing green
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import datetime as dt
+import os
 
 import duckdb
 
 CAP = "/home/alphabot/gazbot7/data/capture.db"
 DB = "/home/alphabot/gazbot7/data/gazbot7.db"
+# MGC L2 — capture.db.book is MNQ-only (three IBKR depth subscriptions, and gold's
+# went here). 250ms 10-deep sample, not the 41ms event stream.
+DEPTH = "/home/alphabot/gazbot7/data/depth.db"
 # ★★2026-08-13 PER-SYMBOL MULTIPLIER. Operator: "make sure the census, greenfield and associated
 # sections include mgc. we want to find some gates that work for mgc."
 # MGC is $10/point — FIVE TIMES MNQ. Pricing a gold move with the MNQ multiplier understates every
@@ -83,6 +88,11 @@ def main():
     ap.add_argument("--symbol", default="MNQ", choices=sorted(VPP_BY_SYMBOL),
                     help="which instrument to census (MGC prices at $10/pt, MNQ at $2/pt)")
     ap.add_argument("--days", type=int, default=7)
+    # ★2026-08-22 REV2. Without this the window end is "now", so re-running the census to fix one
+    # column silently re-cuts the run set against a different tape. Pin it and the census reproduces.
+    ap.add_argument("--until", type=str, default=None,
+                    help="ISO8601 UTC end of the window (default: now). Pins the census so a "
+                         "re-run reproduces an earlier one row-for-row.")
     ap.add_argument("--min-atr", type=float, default=1.5)
     ap.add_argument("--html", type=str, default=None, help="write the Movement-1 light-theme HTML fragment here")
     # ★★★2026-08-18 --lake: census the FULL HISTORY, not just the hot tier.
@@ -93,7 +103,8 @@ def main():
     ap.add_argument("--lake", action="store_true",
                     help="read the full history (V5 + Parquet lake + hot) instead of only capture.db")
     a = ap.parse_args()
-    t1 = dt.datetime.now(dt.UTC).timestamp()
+    t1 = (dt.datetime.fromisoformat(a.until).timestamp() if a.until
+          else dt.datetime.now(dt.UTC).timestamp())
     t0 = t1 - a.days * 86400
     global VPP
     SYM = a.symbol
@@ -150,6 +161,12 @@ def main():
     if len(bars) < 400:
         print("too few 5s bars")
         return
+    # ★2026-08-22 REV2 — the census's REAL window, for the lede. `--days` is a request; capture.db is
+    # a 5-trading-day rolling window, so what the census actually saw is the bar span, not the flag.
+    _w0 = dt.datetime.fromtimestamp(bars[0][0], dt.UTC).strftime("%Y-%m-%d %H:%M")
+    _w1 = dt.datetime.fromtimestamp(bars[-1][0], dt.UTC).strftime("%Y-%m-%d %H:%M")
+    print(f"[window] {_w0} .. {_w1} UTC  ({(bars[-1][0]-bars[0][0])/86400:.1f} days of tape, "
+          f"--days {a.days} requested)")
     trades = con.execute(f"""
         SELECT epoch(opened_at::TIMESTAMPTZ) te, side, gate, pnl_usd FROM g.trades
         WHERE symbol='{SYM}' AND epoch(opened_at::TIMESTAMPTZ)>={t0 - 600} ORDER BY te""").fetchall()
@@ -182,6 +199,13 @@ def main():
         if cur is None:
             return None
         t0 = ts - FLOW_Z_LOOKBACK
+        # ★2026-08-26 REV2 MEASUREMENT KNOB (not the fix — that is BUILD #3). The bucket origin is
+        # anchored to the RUN'S OWN timestamp, so a run that is not minute-aligned slices the
+        # comparison population on a different phase from one that is, and the z-score — and with it
+        # the FLOW-LED / VACUUM / UNCLASS label — moves on nothing but where the run happened to
+        # start. GAZBOT7_CENSUS_BUCKET_OFFSET_S shifts that origin so the phase-dependence can be
+        # MEASURED by freezing the census twice. Unset => byte-identical to the shipped behaviour.
+        t0 -= int(os.environ.get("GAZBOT7_CENSUS_BUCKET_OFFSET_S", "0"))
         row = con.execute(f"""
             WITH s AS (
               SELECT CAST((ts_ms/1000 - {t0}) / 60 AS INTEGER) AS b,
@@ -194,11 +218,38 @@ def main():
             return None
         return (float(cur) - float(mu)) / float(sd)
 
+    # ★★2026-08-22 REV2 — THE SECOND INSTRUMENT HAS A BOOK TOO, IT IS JUST IN A DIFFERENT FILE.
+    # capture.db.book is MNQ-ONLY: IBKR allows three depth subscriptions and MGC's went to
+    # depth.db.depth_snap, a 250ms 10-deep sample (against book's 41ms event-driven stream). Rev1
+    # queried c.book for gold, got nothing, and printed "—" on all 68 rows — the scope's mandated
+    # per-run L2 read simply absent for the instrument the desk is hunting gates for, and not for
+    # lack of data: depth_snap holds 918,431 MGC snapshots inside the report week.
+    # The two are NOT the same measurement and the legend says so: MNQ is 3-deep over 30s from the
+    # event stream, MGC is 5-deep over 60s from the sample. Same sign convention either way —
+    # far-side share below 0.50 means the side price ran toward was thin.
+    _has_book = con.execute(
+        f"SELECT COUNT(*) FROM c.book WHERE symbol='{SYM}'").fetchone()[0] > 0
+    # depth.db is read on a PLAIN sqlite3 connection, not ATTACHed into duckdb: depth_snap carries
+    # ix_depth_sym_ts, and duckdb's sqlite scanner does not use it — the ATTACHed version scans
+    # 3.5M rows x 40 columns per run and does not finish.
+    _depth = sqlite3.connect(f"file:{DEPTH}?mode=ro", uri=True) if not _has_book else None
+    _BOOK_SRC = ("capture.db.book, 3 deep, 30s" if _has_book
+                 else "depth.db.depth_snap, 5 deep, 60s")
+
     def book_depletion(ts, direction):  # far-side (the side price ran toward) depth vs near-side, pre-run
-        row = con.execute(f"""
-            WITH b AS (SELECT side, size FROM c.book WHERE symbol='{SYM}' AND ts_ms<{ts * 1000}
-                       AND ts_ms>={(ts - 30) * 1000} AND level<=3)
-            SELECT COALESCE(SUM(CASE WHEN side='bid' THEN size END),0), COALESCE(SUM(CASE WHEN side='ask' THEN size END),0) FROM b""").fetchone()
+        if _has_book:
+            row = con.execute(f"""
+                WITH b AS (SELECT side, size FROM c.book WHERE symbol='{SYM}' AND ts_ms<{ts * 1000}
+                           AND ts_ms>={(ts - 30) * 1000} AND level<=3)
+                SELECT COALESCE(SUM(CASE WHEN side='bid' THEN size END),0), COALESCE(SUM(CASE WHEN side='ask' THEN size END),0) FROM b""").fetchone()
+        else:
+            row = _depth.execute(
+                "SELECT COALESCE(SUM(COALESCE(bid1s,0)+COALESCE(bid2s,0)+COALESCE(bid3s,0)"
+                "+COALESCE(bid4s,0)+COALESCE(bid5s,0)),0),"
+                " COALESCE(SUM(COALESCE(ask1s,0)+COALESCE(ask2s,0)+COALESCE(ask3s,0)"
+                "+COALESCE(ask4s,0)+COALESCE(ask5s,0)),0) "
+                "FROM depth_snap WHERE symbol=? AND ts_ms>=? AND ts_ms<?",
+                (SYM, (ts - 60) * 1000, ts * 1000)).fetchone()
         bid, ask = row
         far = ask if direction == "UP" else bid   # price ran UP → into the asks
         near = bid if direction == "UP" else ask
@@ -218,7 +269,15 @@ def main():
         start = b0[0]
         direction = "UP" if mv > 0 else "DN"
         ceil = abs(mv) * VPP
-        lo, hi = start - 300, start + 300
+        # ★★2026-09-04 REV2 — ATTRIBUTE OVER THE RUN'S OWN BODY, NOT ±5 MIN AROUND ITS START.
+        # The old window was `start-300 .. start+300` while a run IS W=180 five-second bars = 15
+        # minutes long. Any entry more than five minutes into a run's own body was therefore
+        # invisible and the run was scored "sat out" — the desk was IN it. Measured on the week to
+        # 2026-09-04 that mis-scored four live entries, incl. grind_long buying the 09-03 13:36
+        # +130pt run at 13:42:05 (6m05s in) and being stopped at 13:56, inside the run it was
+        # credited with sitting out. Window is now [start - 300, start + W*STEP_SECONDS]: a lead-in
+        # of five minutes for an early entry, then the run's whole body.
+        lo, hi = start - 300, start + W * 5
         near_trades = [(sd, gt, p) for te, sd, gt, p in trades if lo <= te <= hi]
         took = [(gt, p) for sd, gt, p in near_trades
                 if (sd in ("LONG", "BUY") and mv > 0) or (sd in ("SHORT", "SELL") and mv < 0)]
@@ -283,17 +342,41 @@ def main():
         h = [
             f'<h2><span class="n">M1</span> The biggest runs on {SYM} this week &mdash; did we show up?</h2>',
             f'<p class="lead">Forget what the desk did this week &mdash; start from the raw tape. {SYM} printed '
-            f'<strong>{len(runs)} runs of 1.5&times;ATR or bigger</strong> in the last seven days (a 15-minute move of at '
+            f'<strong>{len(runs)} runs of 1.5&times;ATR or bigger</strong> between <strong>{_w0}</strong> and '
+            f'<strong>{_w1} UTC</strong> (a 15-minute move of at '
             f'least {thr:.0f} points, against a typical 15-min range of {typ:.0f}). That is the whole tape, not a top-ten. '
+            # ★2026-08-22 REV2 — the window is the TAPE'S, not the flag's. `--days 7` asks for seven
+            # days; capture.db holds five trading ones, so the census silently gets what it gets. Rev1
+            # printed "in the last seven days" over a table that starts mid-Sunday. Print the bounds.
             f'We <strong>caught {caught}</strong>, we were positioned <em>against</em> <strong>{fought}</strong>, and we '
-            f'<strong>sat out {sat}</strong>. The runs we aligned with banked <strong>+${real_caught:.0f}</strong> of honest '
-            f'money &mdash; but that is only {conv:.0f}% of their ${ceil_caught:.0f} hindsight ceiling, and the {sat} we sat out '
-            f'left <strong>${ceil_sat:.0f}</strong> on the table. The bleed is not the runs; it is the fading we do around them.</p>',
+            f'<strong>sat out {sat}</strong>. '
+            # ★2026-08-22 REV2 — branch on caught==0. The gold census shipped the MNQ template
+            # verbatim: "+$0 of honest money, but that is only 0% of their $0 ceiling" (a
+            # divide-by-zero artefact) and "the bleed is not the runs; it is the fading we do around
+            # them" — a sentence about a book that does not exist. The desk has never traded MGC.
+            + (f'<strong>We have no gate on {SYM}</strong>, so all {sat} runs and '
+               f'<strong>${ceil_sat:,.0f}</strong> of hindsight ceiling were sat out by construction, not by a '
+               f'decision that went wrong. Nothing here is a bleed &mdash; it is an empty seat, and the '
+               f'question the next movements ask is what could sit in it.</p>' if caught == 0 else
+               f'The runs we aligned with banked <strong>+${real_caught:,.0f}</strong> of honest '
+               # ★★2026-09-04 REV2 — BRANCH ON conv >= 100%. The template hard-coded "only {conv}%
+               # of", so a week in which the caught runs BEAT their own hindsight ceiling printed as
+               # a shortfall ("only 359% of"). It can exceed 100% legitimately: the ceiling is the
+               # run's own 15-minute move at one lot, and a position that is still open when the run
+               # ends keeps earning outside the census window.
+               + (f'money &mdash; which is {conv:.0f}% of their ${ceil_caught:,.0f} hindsight ceiling. Over 100% is not a '
+                  f'typo and not an error: the ceiling prices the run\'s own 15-minute move at one lot, and a position '
+                  f'still open when the run ends goes on earning outside the census window. '
+                  if conv >= 100 else
+                  f'money &mdash; but that is only {conv:.0f}% of their ${ceil_caught:,.0f} hindsight ceiling. ')
+               + f'The {sat} we sat out '
+               f'left <strong>${ceil_sat:,.0f}</strong> on the table. The bleed is not the runs; it is the fading we do around them.</p>'),
             '<div class="callout"><div class="ct">THE FULL CENSUS</div><p>Every qualifying run, in order. '
             f'<strong>Move</strong> is the swing in points; <strong>$ 1lot</strong> is that move on one {SYM} lot (${VPP:.0f}/pt) &mdash; '
             'the hindsight ceiling. <strong>real $</strong> is what a gate actually banked near it. <strong>Flow</strong> is '
             'net aggressor volume in the 60s before; <strong>amp</strong> is pre-run amplitude; <strong>book</strong> is the '
-            'far-side L2 depth share (below 0.50 = the side price ran toward was thin). Green = we caught it, red = we fought it.</p></div>',
+            'far-side L2 depth share (below 0.50 = the side price ran toward was thin), read from '
+            f'<code>{_BOOK_SRC}</code>. Green = we caught it, red = we fought it.</p></div>',
             '<table><tr><th>Time (UTC)</th><th>Dir</th><th>Move</th><th>$ 1lot</th><th>Us</th><th>Gate</th>'
             '<th>real $</th><th>Flow</th><th>Amp</th><th>Book</th><th>Cluster</th></tr>']
         for tm, d, mv, ceil, us, gate, realv, flow, amp, book, cl in crows:
@@ -318,14 +401,34 @@ def main():
         h.append('</table></div>')
         h.append('<div class="callout"><div class="ct">HONEST MONEY &mdash; ceiling vs what we banked</div>'
                  '<table><tr><th></th><th>Runs</th><th>Hindsight ceiling</th><th>What we really made</th></tr>'
-                 f'<tr class="row-hl"><td>Caught (aligned)</td><td class="num">{caught}</td><td class="num">${ceil_caught:.0f}</td>'
-                 f'<td class="num">+${real_caught:.0f} &nbsp;({conv:.0f}%)</td></tr>'
-                 f'<tr class="row-bad"><td>Fought (against)</td><td class="num">{fought}</td><td class="num">${ceil_fought:.0f}</td>'
-                 f'<td class="num">${real_fought:+.0f}</td></tr>'
-                 f'<tr><td>Sat out</td><td class="num">{sat}</td><td class="num">${ceil_sat:.0f}</td>'
+                 f'<tr class="row-hl"><td>Caught (aligned)</td><td class="num">{caught}</td><td class="num">${ceil_caught:,.0f}</td>'
+                 f'<td class="num">+${real_caught:,.0f}{"" if caught == 0 else f" &nbsp;({conv:.0f}%)"}</td></tr>'
+                 # ★2026-09-04 REV2 — a real minus sign and the $ on the right side of it.
+                 # "${v:+.0f}" renders a loss as "$-1278"; the desk's house format is "&minus;$1,278".
+                 f'<tr class="row-bad"><td>Fought (against)</td><td class="num">{fought}</td><td class="num">${ceil_fought:,.0f}</td>'
+                 f'<td class="num">{"&minus;$" if real_fought < 0 else "+$"}{abs(real_fought):,.0f}</td></tr>'
+                 f'<tr><td>Sat out</td><td class="num">{sat}</td><td class="num">${ceil_sat:,.0f}</td>'
                  f'<td class="num">$0 &larr; the money on the table</td></tr></table>'
-                 '<p>The runs made money and the fading gave it back; we convert a fraction of the ceiling and ignore the rest. '
-                 'The next two movements ask whether we can do better &mdash; first with the gates we own, then with new ones.</p></div>')
+                 + ('<p>Every row is a sat-out row because there is no gate on this instrument to catch or '
+                    'fight anything. The ceiling is what one lot would have made on a perfect entry and a '
+                    'perfect exit, so treat it as the size of the seat, never as money forgone. '
+                    'The next two movements ask what could fill it.</p></div>' if caught == 0 else
+                    '<p>The runs made money and the fading gave it back; we convert a fraction of the ceiling and ignore the rest. '
+                    'The next two movements ask whether we can do better &mdash; first with the gates we own, then with new ones.</p>'
+                    # ★★2026-09-04 REV2 — SAY WHY THE FOUGHT ROW CAN BE POSITIVE, because it looks
+                    # like a typo and it is not. FOUGHT means the desk's position was on the WRONG
+                    # SIDE of the run's direction at entry; it does not mean the trade lost. A short
+                    # opened into an UP run that reverses inside the run's 15 minutes, or one that
+                    # is claimed out by hand before the run resolves, books a profit while still
+                    # being counted as fighting the tape. Direction of the RUN and outcome of the
+                    # TRADE are different columns; only the first decides the bucket.
+                    + (f'<p><strong>Why the FOUGHT row can be green.</strong> The bucket is decided by which '
+                       f'SIDE the desk was on relative to the run, not by whether the trade won. A position '
+                       f'opened against a run that reverses inside its own 15 minutes &mdash; or is claimed out '
+                       f'by hand before the run resolves &mdash; books money while still counting as fighting it. '
+                       f'Read <strong>${real_fought:+,.0f}</strong> on the FOUGHT row as &ldquo;we were on the wrong side '
+                       f'and got away with it&rdquo;, never as a reason to fight runs on purpose.</p>' if real_fought > 0 else '')
+                    + '</div>'))
         import pathlib
         pathlib.Path(a.html).parent.mkdir(parents=True, exist_ok=True)
         pathlib.Path(a.html).write_text("\n".join(h))

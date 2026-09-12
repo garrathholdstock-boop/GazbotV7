@@ -1,0 +1,27 @@
+=== CORRECTION: the UNCONDITIONAL London 60-minute long, all bars ===
+overlapping (every 15-min bar as a start): n=4320  mean=+1.30pt  sd=53.6  nominal t=+1.60  <-- t is INFLATED by overlap
+NON-OVERLAPPING (slot%4==0):              n=1200  mean=+1.51pt  sd=57.2  t=+0.91
+overlapping but SESSION-CLUSTERED:        n=4320  mean=+1.30pt  t_cl=+0.88
+-> agrees with the coordinator's +1.80 pt/hour, not significant. My +11.25 was NOT this.
+
+=== WHERE MY +11.25 CAME FROM ===
+Traceback (most recent call last):
+  File "<stdin>", line 28, in <module>
+ValueError: too many values to unpack (expected 3)
+=== WHERE MY +11.25 CAME FROM ===
+frequency-matched cell fired on 52 of 240 London sessions
+  60-min long IN THOSE SESSIONS: n=936 mean=+8.27pt
+  60-min long in OTHER sessions: n=3384 mean=-0.62pt
+-> ROOT CAUSE: my control was conditioned on the CELL'S OWN SESSIONS, which happened to be
+   strongly up-drifting. It is a legitimate TIMING control but it is NOT 'the London drift',
+   and I wrote it up as a general property of the lake. That sentence was wrong.
+
+=== CORRECTED ADJUDICATION — Signal B, frequency-matched cell ===
+real: n=76 mean=+0.14pt t=+0.03
+(i) vs UNCONDITIONAL London 60-min long (+0.05pt net): diff=+0.09pt = +0.01 sd of an n=76 draw -> INDISTINGUISHABLE
+(ii) vs SESSION-CONDITIONED control (2000 draws): mean=+11.14 sd=4.48 -> real is -2.45 control-sd
+
+CORRECTED STATEMENT: the cell picked sessions that drifted +12.39pt/hour and its
+timing captured +1.39pt gross of that. It is not 'worse than random' in any
+absolute sense - it is indistinguishable from the London population (+1.30pt gross),
+and its day-selection is not skill either. WITHDRAWN: '2.38 control-sd worse than random'.

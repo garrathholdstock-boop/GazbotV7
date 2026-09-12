@@ -1,0 +1,35 @@
+THE 5-WAY LABEL PERMUTATION (the incumbent control) - all five arrangements
+                          perm    n  overlap_pct  long_pct  mean_net
+('BULLISH', 'BEARISH', 'CHOP') 2646        55.02     41.23     -1.98
+('CHOP', 'BULLISH', 'BEARISH') 2447        44.98     63.55      1.20
+('CHOP', 'BEARISH', 'BULLISH') 2447        44.98     36.45     -3.70
+('BEARISH', 'BULLISH', 'CHOP') 2646        55.02     58.77     -0.52
+('BEARISH', 'CHOP', 'BULLISH') 1983       100.00     44.98     -3.30
+
+  -> entry count swings 1983..2646 against the real arm's 1983; bar overlap 45-100%.
+
+SESSION-SHIFT NULL - rotate the fitted state series by whole sessions
+ shift    n  overlap_pct  long_pct  mean_net
+   -53 1975        11.04     55.14     -1.63
+   -37 1966        11.04     54.98      0.87
+   -23 1971        10.99     55.10     -3.34
+    17 1967        10.39     55.06     -2.05
+    31 1968        10.94     55.18     -0.76
+    47 1972         9.28     55.12     -3.96
+
+========================================================================================================
+CONTROL AUDIT - cell: 15-min, 3 states, base features, clean=2, 90-min hold, 1.25pt
+                           control    n  overlap_pct  long_pct  mean_net                                                              note
+             REAL (the arm itself) 1983       100.00     55.02      0.80                                                                  
+SIGN-FLIP (day-blocked), same bars 1983       100.00     48.87     -2.83      identical entry set by construction - verified, not asserted
+            ALWAYS-LONG, same bars 1983       100.00    100.00     -2.65                                        same bars, direction fixed
+     LABEL PERMUTATION (mean of 5) 2433        60.00     49.00     -1.66        ENTRY SET MOVES - measures selection and direction at once
+         SESSION-SHIFT (mean of 6) 1969        10.62     55.10     -1.81 entry TIMES move by design - a structural null, NOT like-for-like
+
+VERDICT ON THE CONTROLS:
+  SIGN-FLIP and ALWAYS-LONG take the identical bars (100% overlap) and change only
+  direction -> these are the like-for-like controls, and the ones this study decides on.
+  The LABEL PERMUTATION moves the entry set and is reported for comparison only.
+  The SESSION-SHIFT answers a different question (is the state series aligned to price
+  at all) and is used for the multiple-testing null over the whole grid, never as a
+  single cell's twin.

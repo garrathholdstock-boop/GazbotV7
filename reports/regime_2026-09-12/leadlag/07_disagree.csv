@@ -1,0 +1,10 @@
+horizon,split,n,hit,net_pt,ci
+us_60m,train,28,0.464,,"[nan,nan]"
+us_60m,validate,12,0.333,,"[nan,nan]"
+us_60m,POOLED,48,0.458,-11.41,"[-38.4,12.8]"
+us_120m,train,28,0.464,,"[nan,nan]"
+us_120m,validate,12,0.417,,"[nan,nan]"
+us_120m,POOLED,48,0.479,9.43,"[-36.6,57.0]"
+us_full,train,28,0.607,,"[nan,nan]"
+us_full,validate,12,0.333,,"[nan,nan]"
+us_full,POOLED,48,0.562,32.0,"[-33.0,96.2]"

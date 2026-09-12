@@ -1,0 +1,28 @@
+
+=== MNQ: where the points were made, 240 CME sessions, 2025-09-15..2026-08-18 ===
+                     net_pt  gross_abs  net_usd_1lot  pct_of_movement
+bk                                                                   
+1 ASIA 18:00-02:00   944.75  464121.25        1889.5            25.35
+2 EU   02:00-09:30  2521.75  508196.25        5043.5            27.75
+3 US   09:30-16:00  -429.75  799613.25        -859.5            43.67
+4 LATE 16:00-17:00   489.00   59144.00         978.0             3.23
+  TOTAL 3525.75 pt = $7,052 on one lot
+  ONITE  n=239  net  19.645pt = $  39.29/session  sd $    469  t= 1.30  total $   9,390   P1   +62.2 P2    -7.1 P3   +63.1
+  INTRA  n=239  net  -0.040pt = $  -0.08/session  sd $    495  t=-0.00  total $     -19   P1   -33.5 P2   +36.5 P3    -3.3
+
+=== MGC: where the points were made, 272 CME sessions, 2025-07-28..2026-08-28 ===
+                    net_pt  gross_abs  net_usd_1lot  pct_of_movement
+bk                                                                  
+1 ASIA 18:00-02:00   347.1   159987.5        3471.0            33.43
+2 EU   02:00-09:30   501.0   152567.2        5010.0            31.88
+3 US   09:30-16:00  -456.2   152697.2       -4562.0            31.91
+4 LATE 16:00-17:00   -94.8    13291.4        -948.0             2.78
+  TOTAL 297.10 pt = $2,971 on one lot
+  ONITE  n=271  net   5.065pt = $  50.65/session  sd $    692  t= 1.21  total $  13,727   P1   +73.8 P2   +92.0 P3   -14.1
+  INTRA  n=271  net  -1.308pt = $ -13.08/session  sd $    424  t=-0.51  total $  -3,543   P1   +16.2 P2   -50.6 P3    -5.2
+
+=== PAIRED, 228 common trade dates ===
+correlation of the two overnight legs (daily $): 0.37
+  MNQ overnight alone          mean $  41.34/session sd $    473 t= 1.32 total $   9,425 maxDD $  4,094
+  MGC overnight alone          mean $  47.18/session sd $    743 t= 0.96 total $  10,756 maxDD $  9,020
+  both overnight, 1 lot each   mean $  88.51/session sd $   1018 t= 1.31 total $  20,181 maxDD $  9,319

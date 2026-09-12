@@ -1,0 +1,43 @@
+CELLS SEARCHED
+  GRID A structural          5040   (+30216 null-world cells)
+  GRID B refinements          776   (+4599 null-world cells)
+  DWELL arm                   960
+  DWELL by block              221
+  stage-0 friction cells       80
+  adjudicated candidates       15
+  TOTAL                      7092
+
+GROSS EDGE, cells with n>=1000 (the only ones with any power at all)
+  GRID A: 2384 such cells; best gross 7.75 pt, median 0.24, mean 0.29
+ bar  states     fset  clean  win  hold_min    n  gross  gross_sd  net    t   TR    VA    TE
+  30       3    drift      0  ALL       180 1123   7.75    134.18 6.50 1.62 4.74 16.24 -0.23
+  30       4  base_sp      2  ALL       180 1022   7.71    129.52 6.46 1.60 8.57  9.94  0.09
+  30       3 base_vol      0  ALL       180 1150   7.69    129.11 6.44 1.69 6.43 17.38 -3.83
+   5       5  base_vz      0 OPEN        60 1028   7.21    116.89 5.96 1.64 6.64  6.08  4.90
+   5       5  base_vz      0 OPEN       120 1024   6.79    162.08 5.54 1.09 3.88 -0.01 13.47
+  10       3     full      0  RTH       120 1024   6.52    144.58 5.27 1.17 6.34  3.37  5.76
+
+NULL-WORLD gross for the same n>=1000 population:
+  14183 cells; best 10.85, median -0.54, mean -0.67
+
+DWELL: mean net by K, STATE arm, pooled over holds (unmatched = tradeable)
+   cells        n   net  forfeit
+K                               
+1      8  2567.00 -0.33     0.00
+2      8  1598.00 -0.99     0.34
+3      8  1140.75  0.57     0.68
+4      8   886.50 -0.05     1.04
+5      8   696.50  0.26     1.41
+6      8   574.00  0.79     1.72
+
+DWELL: MATCHED (runs that reach 6 bars) - the cost-of-waiting diagnostic, NOT tradeable
+        n    net  forfeit
+K                        
+1  593.00  55.99     0.00
+2  591.00  40.90     0.49
+3  586.25  29.50     0.89
+4  583.25  17.86     1.24
+5  577.00   8.15     1.53
+6  574.00   0.79     1.72
+
+  slope: net per extra dwell bar = -11.02 pt
