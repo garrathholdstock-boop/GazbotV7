@@ -1,0 +1,52 @@
+{
+ "_what_this_is": "PRE-REGISTERED TRIAL of THE JUDGED CUT \u2014 the operator's cut-and-flip, but with the cut decided by a READER looking at the day rather than by a fixed point-distance. Registered 2026-09-12 after the mechanical version was measured at zero over 10.5 years, and because the difference between the mechanical rule and what he actually does is the entire question.",
+ "registered_on": "2026-09-12",
+ "registered_by": "operator: 'we start automating our entries using when and the 10 minute delay... if it starts grinding the other way. we cut it quickly. and then buy in that direction too... i know youre going to tell me this is risky behaviour. but when i have time and i can focus. i do this manually and it works'",
+ "_why_the_mechanical_version_is_NOT_what_is_being_trialled": {
+  "measured": "2,656 sessions, 2015-01-02..2025-07-24, entry from drift.compute() replayed causally (validated against the driftlab record: 232 agree, 0 disagree)",
+  "A_hold_naked_to_2040": "+0.9 pt/session, 95% CI [-4.0, +5.9]",
+  "B_cut_at_40pt": "+1.0 pt/session, 95% CI [-1.0, +3.1]",
+  "C_cut_and_flip": "+0.8 pt/session, 95% CI [-2.0, +3.7]",
+  "the_cut_B_minus_A": "+0.1 pt/session, 95% CI [-4.5, +4.5] \u2014 ZERO",
+  "the_flip_C_minus_B": "-0.2 pt/session, 95% CI [-2.3, +1.9] \u2014 ZERO",
+  "and_the_number_that_was_withdrawn": "On the 13-month driftlab window the same code said A = -26.4 (NQ) / -38.4 (MNQ) pt/session and that a cut was worth +21 to +43. Over 10.5 years A is +0.9. THE WINDOW WAS THE FINDING, NOT THE RULE \u2014 the third time in one night a promising short-window result dissolved on the long tape.",
+  "year_instability": "Cutting HURT in 2018 (A +8.6 vs B +1.3) and HELPED in 2020 (A -8.8 vs C -0.6). The sign flips by era, which is the dominant failure mode the falsification literature names."
+ },
+ "hypothesis": "A reader that looks at the whole day can tell when a position is genuinely grinding against us, and cutting on THAT judgement beats both holding and cutting at a fixed distance. The fixed-distance version is now known to be worth zero, so any value here is in the JUDGEMENT, not in the cutting.",
+ "_why_this_is_not_the_119_failed_calibrations": "Those all searched for a LEVEL - $100 to $600, ATR-scaled, two-lot - and every one lost. This registers no level at all. It is the operator's own stated mechanism ('when it starts grinding the other way'), with the reader supplying the read.",
+ "instrument": "MNQ",
+ "session": "US, 13:30-20:40Z",
+ "size_lots": 1,
+ "arms": {
+  "A_hold": "THE INCUMBENT. Enter on drift's first confirmation, hold to the 20:40Z flat, no stop. What the rider does today. Measured at +0.9 pt/session over 10.5 years.",
+  "B_fixed_cut": "THE MECHANICAL CONTROL, and it is expected to add nothing: same entry, cut at 40pt, target 100pt, up to 3 flips. Measured at +1.0. It is in the trial precisely BECAUSE it is known to be zero \u2014 it is the yardstick the judgement has to beat.",
+  "C_judged_cut": "THE HYPOTHESIS. Same entry. The tape reader (gazbot7-tape-reader, phase 1, read-only) judges the open position every 2 minutes and its first CUT or CLAIM call is taken as the exit. No level, no distance, no threshold."
+ },
+ "_the_reader": "scripts/tape_reader.py. It sees the session open, the range and where price sits in it, VWAP stretch in ATR, six hours of 5-minute structure, the causal drift read, the position and each lot's distance to its rung. It answers HOLD/CLAIM/CUT/ADD with a reason. IT PLACES NOTHING \u2014 this trial grades a counterfactual built from its log.",
+ "verdict_rule": {
+  "primary": "C beats B on mean pt/session, day-clustered 95% bootstrap CI on the difference excluding zero",
+  "secondary": "C beats A on the same test",
+  "CONFIRMED": "both -> propose phase 2 (the reader gets ONE lot, claim/cut only, never add)",
+  "REFUTED": "C does not beat B -> the judgement adds nothing a fixed distance does not, and the reader stays read-only",
+  "INCONCLUSIVE": "fewer than 60 judged exits by the expiry",
+  "_the_power_problem_stated_honestly": "At the per-session sd measured on this rule (213-239pt) a +20pt effect needs ~450 sessions for 80% power. THIS TRIAL CANNOT PROVE A SMALL EDGE AND IS NOT DESIGNED TO. It is designed to detect a LARGE one and to falsify the mechanics. If the reader's judged exits are merely indistinguishable from a fixed 40pt cut, that is a REFUTATION of the interesting claim and it is reachable at n=60."
+ },
+ "what_this_trial_CAN_settle_in_60_sessions": [
+  "Does the reader actually fire? A CUT call rate near zero, or on every session, both falsify it as a judge.",
+  "Does it fire on the sessions a human would? Graded against the operator's own manual claims on the sessions he was present.",
+  "Do its exits beat a fixed 40pt cut by a LARGE margin, or not at all.",
+  "Does the live implementation behave like the model - fill quality, timing, and whether 20:40 catches what is left."
+ ],
+ "rules_of_engagement": [
+  "DO NOT give the reader an order path during this trial. C is a counterfactual built from its log.",
+  "DO NOT tune the reader's prompt mid-trial. A changed prompt restarts the count at zero.",
+  "DO NOT drop arm B because it is known to be zero. It is the yardstick; without it a good C cannot be attributed to judgement.",
+  "DO NOT read the interim and act on it.",
+  "The 10.5-year measurement above is the PRIOR, not a result of this trial."
+ ],
+ "first_eligible_session": "2026-09-15",
+ "expires": "2026-12-31",
+ "status": "REGISTERED \u2014 the reader is armed and logging; arm C accrues as soon as a position is open",
+ "verdict": null,
+ "sessions": []
+}
