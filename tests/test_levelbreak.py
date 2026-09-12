@@ -213,7 +213,19 @@ def test_the_mgc_slate_is_two_gates_with_the_gold_exit():
         assert v.rider_fixed_side == "SHORT" and v.rider_cadence_min == 1
         assert v.chandelier is False and v.stop_atr_mult == 7.0, \
             "the clock arms ship the year-grid exit, NOT the level_break arms' MGC_EXIT"
-    assert len(sl) == len(brk) + len(clk), "an arm belongs to neither family"
+    # ★2026-09-12 a THIRD family: the six live MNQ gates run on gold, where a round trip costs
+    # 0.45pt instead of 1.25. Same rules, cheaper instrument - no new signal to overfit.
+    live = [v for v in sl if v.gate in ("grind", "capitulation", "thrust")]
+    assert {v.name for v in live} == {"mgc_grind_long", "mgc_capit_long",
+                                      "mgc_absveto_long", "mgc_absveto_short"}
+    for v in live:
+        # ⚠ THE SCALE-DEPENDENT ONE. The live gates carry atr_max=22.0, which is the 91st percentile
+        # of MNQ's ATR and the 99.9th of gold's - copied verbatim it filters NOTHING while reading
+        # like a working filter. 4.64 is the percentile-matched value.
+        assert v.atr_max == 4.64, "gold's ATR ceiling must be percentile-matched, never copied"
+        assert v.stop_atr_mult == 7.0 and v.chandelier is False, \
+            "the gold arms ship the year-grid exit, not MNQ's"
+    assert len(sl) == len(brk) + len(clk) + len(live), "an arm belongs to no family"
     ctl = [v for v in sl if v.name == "mgc_break_fade_nobook"]
     assert len(ctl) == 1 and ctl[0].params["require_book"] is False
     assert "obstacle_max" not in ctl[0].params, "the control must NOT carry the book cut"

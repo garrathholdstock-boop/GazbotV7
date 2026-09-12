@@ -681,6 +681,35 @@ def mgc_slate() -> list[ShadowVariant]:
         # EXIT: stop 7.0×ATR, no target, no chandelier, 8h cap — the year-long grid's answer for
         # gold, and NOT the MGC_EXIT the three level_break arms run, whose comparison would be
         # destroyed by changing it under them.
+        # ── ★★NEW 2026-09-12 — THE LIVE MNQ GATES, RUN ON GOLD. The operator, after a day of
+        # nulls: "surely there are things that show promise?" This is the one shadow addition that
+        # risks NO new overfitting, because these are not new signals — they are the SIX RULES
+        # ALREADY LIVE ON MNQ, pointed at an instrument where the cost is 0.45pt instead of 1.25.
+        # THE ARGUMENT, measured: the same regime signal's edge/cost ratio is 16-62% on MGC against
+        # 12-27% on MNQ, purely because gold's round trip is 2.8x cheaper in points. A signal too
+        # small to pay MNQ's fee can clear gold's.
+        # ⚠ atr_max IS SCALE-DEPENDENT AND WAS SET BY PERCENTILE, NOT COPIED. The live 22.0 sits at
+        # the 91st percentile of MNQ's 1-min ATR14 (median 9.2pt); gold's median is 1.95pt, so a
+        # verbatim 22.0 would bind on 99.9% of gold minutes and FILTER NOTHING - a carried parameter
+        # that reads as a working filter, this desk's trap #9. The percentile-matched value is 4.64.
+        # ⚠ CONFOUND, STATED: these ship with GOLD's exit (stop 7xATR, no chandelier, 8h cap - the
+        # year-grid's answer, and what gf_MGC found: dual-slot -$1,649 vs single wide lot +$9,202 on
+        # identical entries), NOT MNQ's. So a difference between these and their MNQ twins is
+        # instrument AND exit, not instrument alone. The MNQ originals in default_slate() are the
+        # comparison; read them side by side knowing that.
+        *[ShadowVariant(f"mgc_{nm}", kind, prm, symbol="MGC", side=sd,
+                        atr_max=4.64, qty=1.0, decouple_target=True, target_r=tr,
+                        stop_atr_mult=7.0, chandelier=False, time_cap_s=480 * 60,
+                        **({"confirm_s": 55} if kind == "thrust" else {}))
+          for nm, kind, prm, sd, tr in (
+            ("grind_long", "grind", {"slope_min": 0.4, "fast_slope": True, "ext_hi": 2.0},
+             "LONG", 2.5),
+            ("capit_long", "capitulation",
+             {"climax_min": 2.5, "dom_min": 0.60, "require_flip": True}, "LONG", 2.0),
+            ("absveto_long", "thrust", {"thr": 1.5, "amp_floor": 0.0004}, "LONG", 1.0),
+            ("absveto_short", "thrust", {"thr": 1.5, "amp_floor": 0.0004}, "SHORT", 1.0),
+          )],
+
         *[ShadowVariant(name, "clock_rider", symbol="MGC", side="SHORT",
                         rider_fixed_side="SHORT", rider_cadence_min=1,
                         rider_win_start_s=start, rider_win_end_s=start + 60,
