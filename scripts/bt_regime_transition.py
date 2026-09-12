@@ -33,19 +33,35 @@ FRICTION_PT = 2.0          # Mesfin's convention: ~$4/micro RT, covers spread+fe
 # killed the first version of this study (shuffled labels scored the same as the real ones).
 
 
-def tape(bar_min):
+def tape(bar_min, source="mnq_backfill"):
+    """Minute bars -> bar_min bars. TWO SOURCES, and they are not interchangeable.
+
+    ★2026-09-12 `nq_lake` is the MULTI-REGIME tape: 3,666,547 NQ 1-min bars, 2015-01-02 ->
+      2025-07-25, day-partitioned under data/tape/bars/NQ/. It is a continuous series already, so
+      there is no front-month pick to make. NQ and MNQ track the same index at the same 0.25 tick,
+      so POINTS carry across; DOLLARS do not (NQ $20/pt, MNQ $2/pt) and nothing here prices dollars.
+    ⚠ THE PRICE LEVEL MOVES 7x ACROSS THIS TAPE (3,862 -> 23,435). Friction is fixed in points
+      (~1.25) but the EDGE scales with level, so a pooled points-P&L silently weights 2024-25 far
+      above 2015-16. Every result must be read per era, and the ATR column is the scale-free one.
+    """
     con = duckdb.connect()
-    files = sorted(glob.glob(f"{GB}/data/backfill/MNQ_*_1min.parquet"))
-    rows = [f"select '{f.split('_')[-2]}' exp, ts,open,high,low,close,volume "
-            f"from read_parquet('{f}')" for f in files]
-    df = con.execute(f"""
-     with a as ({' union all '.join(rows)}),
-     t as (select *, cast(to_timestamp(ts) at time zone 'UTC' as date) d from a),
-     v as (select d,exp,sum(volume) vv from t group by 1,2),
-     fr as (select d,exp from (select *,row_number() over
-            (partition by d order by vv desc) rn from v) where rn=1)
-     select t.ts,t.open,t.high,t.low,t.close,t.volume
-     from t join fr on t.d=fr.d and t.exp=fr.exp order by t.ts""").df()
+    if source == "nq_lake":
+        df = con.execute("""
+          select bar_ts ts, open, high, low, close, volume
+          from read_parquet('/home/alphabot/gazbot7/data/tape/bars/NQ/*.parquet')
+          where timeframe='1min' order by bar_ts""").df()
+    else:
+        files = sorted(glob.glob(f"{GB}/data/backfill/MNQ_*_1min.parquet"))
+        rows = [f"select '{f.split('_')[-2]}' exp, ts,open,high,low,close,volume "
+                f"from read_parquet('{f}')" for f in files]
+        df = con.execute(f"""
+         with a as ({' union all '.join(rows)}),
+         t as (select *, cast(to_timestamp(ts) at time zone 'UTC' as date) d from a),
+         v as (select d,exp,sum(volume) vv from t group by 1,2),
+         fr as (select d,exp from (select *,row_number() over
+                (partition by d order by vv desc) rn from v) where rn=1)
+         select t.ts,t.open,t.high,t.low,t.close,t.volume
+         from t join fr on t.d=fr.d and t.exp=fr.exp order by t.ts""").df()
     s = bar_min * 60
     df["bt"] = (df.ts // s) * s
     g = df.groupby("bt").agg(open=("open", "first"), high=("high", "max"),
@@ -118,15 +134,28 @@ def main():
     ap.add_argument("--states", type=int, default=3)
     ap.add_argument("--friction", type=float, default=FRICTION_PT,
                     help="points per round trip. 2.0 = the paper's; ~1.25 = this desk's measured")
+    ap.add_argument("--source", default="mnq_backfill", choices=["mnq_backfill", "nq_lake"])
+    ap.add_argument("--zscore", action="store_true", help="standardise features on TRAIN")
+    ap.add_argument("--by-era", action="store_true", help="report per calendar year as well")
     ap.add_argument("--shuffle", type=int, default=0,
                     help="draws of the permuted-label control (0 = skip)")
     a = ap.parse_args()
-    g = tape(a.bar)
+    g = tape(a.bar, a.source)
     X = features(g)
+    Xraw = X.copy()
     g["state"] = -1
     ss = sorted(g.sess.unique()); n = len(ss)
     TR = set(ss[:int(n*.40)]); VA = set(ss[int(n*.40):int(n*.70)]); TE = set(ss[int(n*.70):])
     tr_mask = g.sess.isin(TR).values & np.isfinite(X).all(axis=1)
+    if a.zscore:
+        # ★2026-09-12 STANDARDISE ON TRAIN ONLY. The raw features are on two scales — signed drift
+        # in ATR units (±several) and efficiency ratios in [0,1] — and a diagonal-covariance mixture
+        # weights whichever happens to be wider. On 11 months of MNQ that was drift; on 10.5 years of
+        # NQ it was EFFICIENCY, which produced perfectly persistent states whose "bullish" and
+        # "bearish" both drifted UP. Scaling is not cosmetic here; it decides what a state MEANS.
+        mu_tr = np.nanmean(X[tr_mask], axis=0)
+        sd_tr = np.nanstd(X[tr_mask], axis=0) + 1e-9
+        X = (X - mu_tr) / sd_tr
     mu, sd, w = fit_gmm(X[tr_mask], a.states)
     g["state"] = predict(X, mu, sd, w)
 
@@ -157,6 +186,21 @@ def main():
               f"{np.nanmean(X[m.index,1]):>11.2f}{np.nanmean(X[m.index,3]):>11.2f}"
               f"  {names[k]}")
 
+    # ── ★★ THE DEGENERATE-LABEL GUARD (banked 2026-09-12: 8 of 72 fitted models produced states
+    #    whose BULLISH and BEARISH differed in 8-bar drift by <0.5 ATR, because the mixture had
+    #    clustered on efficiency instead of direction. They traded a direction label carrying no
+    #    direction and reported like any other cell. CHECK d8_gap BEFORE BELIEVING A STATE NAME.)
+    d8_raw = {k: np.nanmean(Xraw[sub[sub.state == k].index, 1]) for k in range(a.states)
+              if len(sub[sub.state == k])}
+    bull = [k for k in names if names[k] == "BULLISH"]
+    bear = [k for k in names if names[k] == "BEARISH"]
+    d8_gap = (d8_raw.get(bull[0], np.nan) - d8_raw.get(bear[0], np.nan)) if bull and bear else np.nan
+    print(f"\n  d8_gap = {d8_gap:.2f} ATR between BULLISH and BEARISH", end="  ")
+    if not np.isfinite(d8_gap) or abs(d8_gap) < 0.5:
+        print("→ ⛔ DEGENERATE: these states do not carry direction. The cells below are noise.")
+    else:
+        print("→ ok, the states are directional")
+
     st = g.state.values
     close, op = g.close.values, g.open.values
     sess = g.sess.values
@@ -180,10 +224,19 @@ def main():
                     if clean and (st[i-1] == cur or st[i-2] == cur):
                         continue      # no contamination by the target state in the prior 2 bars
                     side = 1 if names_map[cur] == "BULLISH" else -1
-                    rec.append((sess[i], side*(close[i+hold]-op[i+1]) - fric))
-                out[(hold, clean)] = pd.DataFrame(rec, columns=["sess", "pt"]) if rec else None
+                    rec.append((sess[i], side, close[i+hold]-op[i+1]))
+                if not rec:
+                    out[(hold, clean)] = None
+                    continue
+                R = pd.DataFrame(rec, columns=["sess", "side", "mv"])
+                R["gross"] = R.side*R.mv
+                R["pt"] = R.gross - fric          # the real arm
+                R["flip"] = -R.gross - fric       # ★ SIGN-FLIP CONTROL: identical bars, identical
+                R["yr"] = pd.to_datetime(R.sess.astype(str)).dt.year   # count, only the side changes
+                out[(hold, clean)] = R
         return out
 
+    lvl = g.assign(yr=g.dt.dt.year).groupby("yr").close.mean().to_dict()
     real = run(names, a.friction)
     print(f"\n{'hold':>7}{'clean':>7}" + "".join(f"{p:>22}" for p in ("TRAIN", "VALIDATE", "TEST"))
           + f"{'ALL':>16}")
@@ -202,33 +255,39 @@ def main():
         line += f"{R.pt.mean():>8.2f}{100*(R.pt > 0).mean():>7.0f}%"
         print(line)
 
-    # ── ★ THE CONTROL. Permute which STATE carries which LABEL and re-run everything. The states,
-    #    their persistence and the transition times are untouched; only the claim "this state means
-    #    up" is randomised. A cell that does not beat this is reading its own labels off noise.
-    if a.shuffle:
-        rng = np.random.default_rng(11)
-        vals = [names[k] for k in range(a.states)]
-        reps = {}
-        for _ in range(a.shuffle):
-            perm = list(rng.permutation(vals))
-            if perm == vals:
+    # ── ★ THE SIGN-FLIP CONTROL — identical entries at identical bars, only the direction
+    #    changes, so the entry population cannot move. 2026-09-12: the 5-way label PERMUTATION was
+    #    retired after it was measured swinging the entry count 1,983 -> 2,646 (+33%) and scoring
+    #    +1.20 net on one arrangement. A control that trades a different population, or that makes
+    #    money, is broken.
+    print(f"\n  SIGN-FLIP CONTROL — same bars, same n, direction reversed")
+    print(f"{'hold':>7}{'clean':>7}{'n':>7}{'real':>9}{'flipped':>10}{'GROSS':>9}"
+          f"{'t(gross)':>10}{'t>2?':>9}")
+    for (hold, clean), R in real.items():
+        if R is None or len(R) < 60:
+            continue
+        rm, fm = R.pt.mean(), R.flip.mean()
+        t = rm/(R.pt.std(ddof=1)/np.sqrt(len(R)))
+        gt = R.gross.mean()/(R.gross.std(ddof=1)/np.sqrt(len(R)))
+        print(f"{hold*a.bar:>5}m{'  yes' if clean else '   no':>9}{len(R):>7}{rm:>9.2f}{fm:>10.2f}"
+              f"{R.gross.mean():>9.2f}{gt:>10.2f}{('  YES' if gt > 2 else '  no'):>9}")
+
+    if a.by_era:
+        print(f"\n  BY CALENDAR YEAR — the whole point of the long tape. "
+              f"⚠ points are NOT comparable across a 7x price level; read the sign and the t.")
+        for (hold, clean), R in real.items():
+            if R is None or len(R) < 200 or not clean:
                 continue
-            r = run({k: perm[k] for k in range(a.states)}, a.friction)
-            for key, R in r.items():
-                if R is not None and len(R) >= 60:
-                    reps.setdefault(key, []).append(R.pt.mean())
-        print(f"\n  SHUFFLED-LABEL CONTROL · {a.shuffle} draws · same states, same transitions, "
-              f"randomised meaning")
-        print(f"{'hold':>7}{'clean':>7}{'real':>10}{'shuffled mean':>16}{'shuffled sd':>14}"
-              f"{'  beats control?':>17}")
-        for key in sorted(reps):
-            hold, clean = key
-            if real.get(key) is None or len(real[key]) < 60:
-                continue
-            rm = real[key].pt.mean(); arr = np.array(reps[key])
-            print(f"{hold*a.bar:>5}m{'  yes' if clean else '   no':>9}{rm:>10.2f}"
-                  f"{arr.mean():>16.2f}{arr.std(ddof=1) if len(arr) > 1 else 0:>14.2f}"
-                  f"{('  YES' if rm > arr.mean() + (arr.std(ddof=1) if len(arr) > 1 else 0) else '  no'):>17}")
+            print(f"\n  hold {hold*a.bar}m, clean:")
+            print(f"{'year':>8}{'n':>7}{'GROSS pt':>10}{'t':>8}{'net':>8}{'mean px':>10}"
+                  f"{'gross as bp':>13}")
+            for yr, sub in R.groupby("yr"):
+                if len(sub) < 30:
+                    continue
+                gt = sub.gross.mean()/(sub.gross.std(ddof=1)/np.sqrt(len(sub)))
+                px = lvl.get(yr, float("nan"))
+                print(f"{yr:>8}{len(sub):>7}{sub.gross.mean():>10.2f}{gt:>8.2f}"
+                      f"{sub.pt.mean():>8.2f}{px:>10.0f}{1e4*sub.gross.mean()/px:>13.2f}")
 
     print(f"\n  net points AFTER {a.friction:g}pt friction · entry = next bar open · "
           f"exit = fixed hold, no target, no stop")
