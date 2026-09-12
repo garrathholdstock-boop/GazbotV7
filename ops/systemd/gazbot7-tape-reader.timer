@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — tape reader cadence (every 2 min; it self-skips when flat)
+
+[Timer]
+# Every 2 minutes, offset 20s off the boundary so it never races the rider's *:*:05 tick or the
+# router's *:0/5 write. A decision about an open position is a 1-to-10-minute judgement — a
+# headless call takes 10-60s, so this can never be a scalper and does not pretend to be one.
+OnCalendar=*:0/2:20
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

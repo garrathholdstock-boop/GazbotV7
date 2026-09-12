@@ -1,0 +1,27 @@
+[Unit]
+Description=GAZBOT V7 — the TAPE READER (phase 1: reads the whole day, judges the open position, ACTS ON NOTHING)
+# ★★★ READ-ONLY BY CONSTRUCTION. It writes exactly one file: data/tape_reader_log.jsonl.
+# tests/test_tape_reader.py asserts against the SOURCE that it references none of the rider's
+# request files, no switch file, and no broker vocabulary. Phase 2 (one lot, claim/cut only, never
+# add) is a separate decision that only the forward grading can earn.
+#
+# Built 2026-09-12 after the operator asked for the third time why the desk cannot read the tape
+# the way he does. The honest answer was that it already does — the router, 5-min cadence, 290
+# graded calls (GOOD 82 / BAD 27 / CHURN 36 / NEUTRAL 145) — but it is wired to arm/bench, the one
+# lever that cannot make money, and it is handed a pre-digested dashboard rather than the day.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+# MemoryMax: the box is 7.5GB with a history of global_oom kills that have taken the DESK down.
+# The reader is never allowed to be the process that does that.
+MemoryMax=900M
+# The headless call is ~10-60s; four minutes is a hung call, not a slow one.
+TimeoutStartSec=240
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/tape_reader.py
+# A reader that cannot decide must never take the desk with it.
+SuccessExitStatus=0 1
