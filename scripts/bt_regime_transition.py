@@ -45,7 +45,23 @@ def tape(bar_min, source="mnq_backfill"):
       above 2015-16. Every result must be read per era, and the ATR column is the scale-free one.
     """
     con = duckdb.connect()
-    if source == "nq_lake":
+    if source == "mgc_front":
+        # ★ The CORRECTED front-month gold minute tape (rebuilt 2026-09-12). NEVER use
+        # data/tape/bars/MGC/backfill_1min.parquet: 22.46% of its bars are a dying contract, a
+        # median 30.1 points ($301 a lot) from where gold actually was.
+        df = con.execute("""
+          select ts, open, high, low, close, volume from read_parquet(
+            '/home/alphabot/gazbot7/reports/regime_2026-09-12/leadlag/front_MGC_1min.parquet')
+          order by ts""").df()
+    elif source == "gc_daily":
+        # ⚠ DAILY bars, 2000-08-30 -> 2026-09-11. A hold here is HELD OVERNIGHT, which this desk
+        # does not do ("NEVER HOLD OVERNIGHT. EVER."). It is run to learn whether the effect exists
+        # at a horizon where cost cannot bind, NOT as a candidate.
+        df = con.execute("""
+          select bar_ts ts, open, high, low, close, volume
+          from read_parquet('/home/alphabot/gazbot7/data/tape/bars/GC/*.parquet')
+          where timeframe='1day' order by bar_ts""").df()
+    elif source == "nq_lake":
         df = con.execute("""
           select bar_ts ts, open, high, low, close, volume
           from read_parquet('/home/alphabot/gazbot7/data/tape/bars/NQ/*.parquet')
@@ -134,7 +150,9 @@ def main():
     ap.add_argument("--states", type=int, default=3)
     ap.add_argument("--friction", type=float, default=FRICTION_PT,
                     help="points per round trip. 2.0 = the paper's; ~1.25 = this desk's measured")
-    ap.add_argument("--source", default="mnq_backfill", choices=["mnq_backfill", "nq_lake"])
+    ap.add_argument("--source", default="mnq_backfill", choices=["mnq_backfill", "nq_lake", "mgc_front", "gc_daily"])
+    ap.add_argument("--overnight", action="store_true",
+                    help="allow a hold to span sessions — ONLY for the daily tape")
     ap.add_argument("--zscore", action="store_true", help="standardise features on TRAIN")
     ap.add_argument("--by-era", action="store_true", help="report per calendar year as well")
     ap.add_argument("--shuffle", type=int, default=0,
@@ -212,7 +230,7 @@ def main():
             for clean in (True, False):
                 rec = []
                 for i in range(3, len(g)-hold-1):
-                    if sess[i] != sess[i+hold] or sess[i] != sess[i-2]:
+                    if not a.overnight and (sess[i] != sess[i+hold] or sess[i] != sess[i-2]):
                         continue
                     cur, prv = st[i], st[i-1]
                     if cur < 0 or prv < 0 or cur == prv:

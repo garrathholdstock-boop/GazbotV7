@@ -78,3 +78,52 @@ TRAIN's best quintile is TEST's worst; TEST's only significant cell is the one T
 regime-transition direction call is worth **+0.15 to +0.34 points a trade** and costs **1.25** to
 take. This is the first time the desk has had enough tape to say the edge is *real and too small*
 rather than *undetectable*, and that is the difference between a null and a measurement.
+
+---
+
+# THE SAME STUDY ON GOLD — 2026-09-12
+
+**Gold has no long intraday tape.** `data/tape/bars/GC/` is **daily only** (6,532 bars,
+2000-08-30 → 2026-09-11); the minute history is 13 months. So gold gets two runs, and neither is
+the multi-regime intraday test NQ got.
+
+**Friction is gold's own constant: 0.45pt.** `MGC_FEE_RT = $4.50` at $10/point — a round trip
+crosses the 0.30pt spread ONCE ($3.00) plus $1.50 of commission. Not MNQ's 1.25pt, and not the
+$7.50 that once killed a gold lead by mistake.
+
+## 1. INTRADAY — corrected front-month MGC, 13 months, 15-min bars
+
+States are directional (d8_gap **4.39 ATR**, BULLISH +2.47 mean return vs BEARISH −2.89). Run on
+the **rebuilt** front-month series, never `backfill_1min.parquet`, 22.46% of which is a dying contract.
+
+| hold | n | real net | flipped | **GROSS** | t |
+|---|---|---|---|---|---|
+| 30m | 3,630 | −0.30 | −0.60 | **+0.15** | 0.75 |
+| 60m | 3,577 | −0.19 | −0.71 | **+0.26** | 1.03 |
+| 75m | 3,541 | −0.17 | −0.73 | **+0.28** | 0.94 |
+
+**Same shape as MNQ: real beats its flipped twin in every cell, and it is still too small.** But the
+RATIO is much better — gold's gross edge is **16–62% of its friction**, against MNQ's 12–27%, because
+gold's cost in points is 2.8× smaller while the edge is comparable. The 120m cells are the first
+positive net this study has produced anywhere (+0.16 / +0.17 pooled), on t = 0.2–1.7. Not a finding;
+the first thing that is not obviously dead.
+
+## 2. DAILY — GC, 26 years, holds of 2 to 8 DAYS
+
+⚠ Held overnight, which this desk does not do. Run to learn whether the effect exists where cost
+cannot bind, not as a candidate.
+
+**The sign REVERSES.** Gross is negative in **all 12 cells** (−0.36 to −3.91 pt, t to −1.87): on
+daily gold, joining the established regime is worse than fading it. Not significant, and the
+disagreement with the intraday result is the point — the effect does not survive a change of
+instrument AND horizon together.
+
+## ★ THE LESSON THAT QUALIFIES LAST NIGHT'S CONCLUSION
+
+**A long tape is not a large sample.** 26 years of daily gold yields **627–848 transitions — about
+24 a year**, so not one calendar year clears a 30-event floor and the per-era table is empty. The
+daily design fires too rarely to ever accumulate power, no matter how far back the history goes.
+
+Last night's blocker was stated as "we need more data". The precise version is: **we need more
+EVENTS, and only intraday bars generate them.** For gold that means buying intraday history —
+depth of years does nothing on its own.
