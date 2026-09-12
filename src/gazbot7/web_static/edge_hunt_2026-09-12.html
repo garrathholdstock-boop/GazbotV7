@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAZBOT V7 — The edge hunt: 36 hypotheses, zero edges (2026-09-12)</title>
+<style>
+:root{
+  --bg:#12131a; --panel:#1a1c25; --panel2:#20222d; --ink:#e9e7e1; --ink2:#b3b0a8; --ink3:#807d76;
+  --line:#2e313d; --line2:#262933;
+  --green:#5fd39b; --greenbg:#16301f;
+  --red:#f2786c; --redbg:#33191a;
+  --amber:#e8b45c; --amberbg:#332a12;
+  --blue:#6fb6e8; --bluebg:#152738;
+  --grey:#9a978f; --greybg:#25272f;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:34px 26px 90px}
+header.top{border-bottom:3px solid var(--ink);padding-bottom:20px;margin-bottom:34px}
+header.top .kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+header.top h1{font-size:34px;line-height:1.18;margin:10px 0 8px;letter-spacing:-.015em}
+header.top .sub{color:var(--ink2);font-size:15px;margin:0}
+header.top .meta{color:var(--ink3);font-size:13px;margin-top:12px}
+
+h2{font-size:23px;letter-spacing:-.01em;margin:52px 0 6px;padding-top:18px;border-top:2px solid var(--ink);display:flex;align-items:baseline;gap:12px}
+h2 span.n{font-size:13px;font-weight:800;color:var(--bg);background:var(--ink);padding:3px 9px;border-radius:3px;letter-spacing:.06em;flex:none;position:relative;top:-3px}
+h3{font-size:17px;margin:26px 0 8px;letter-spacing:-.005em}
+h4{font-size:14.5px;margin:20px 0 6px;color:var(--ink2);text-transform:uppercase;letter-spacing:.07em}
+p{margin:0 0 13px}
+p.lead{font-size:18.5px;line-height:1.55;color:var(--ink);margin:14px 0 20px}
+p.note{font-size:13.5px;color:var(--ink3);margin-top:-4px}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:7px}
+strong{font-weight:700;color:#fff}
+em{font-style:italic}
+code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--line2);padding:1px 5px;border-radius:3px;color:var(--ink2)}
+pre{background:#171923;border:1px solid var(--line);border-left:3px solid var(--ink3);padding:14px 16px;overflow-x:auto;font:12.5px/1.62 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border-radius:4px;margin:0 0 16px;color:var(--ink2)}
+
+div.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px 22px 18px;margin:18px 0}
+div.card>h3{margin-top:0}
+div.card.hl{border-left:4px solid var(--ink)}
+
+div.callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:5px;padding:15px 18px;margin:18px 0}
+div.callout>div.ct{font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);margin-bottom:7px}
+div.callout.bad{border-left-color:var(--red)} div.callout.bad>div.ct{color:var(--red)}
+div.callout.good{border-left-color:var(--green)} div.callout.good>div.ct{color:var(--green)}
+div.callout.info{border-left-color:var(--blue)} div.callout.info>div.ct{color:var(--blue)}
+div.callout p:last-child{margin-bottom:0}
+
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0 18px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--panel)}
+caption{caption-side:top;text-align:left;font-size:13px;color:var(--ink3);padding-bottom:7px;font-weight:600}
+th{text-align:left;font-size:11.5px;letter-spacing:.055em;text-transform:uppercase;color:var(--ink2);
+   border-bottom:2px solid var(--ink);padding:8px 10px;font-weight:800;vertical-align:bottom}
+td{border-bottom:1px solid var(--line2);padding:7px 10px;vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.num{text-align:right}
+td.ln{color:var(--ink2);font-size:13px}
+td.id{font-weight:800;white-space:nowrap;color:var(--ink3);font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:1px solid var(--line)}
+tr.row-hl td{background:var(--greenbg)}
+tr.row-bad td{background:var(--redbg)}
+tr.row-tot td{border-top:2px solid var(--ink);font-weight:800;background:var(--panel2)}
+
+span.tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  padding:3px 8px;border-radius:3px;white-space:nowrap;vertical-align:2px}
+span.tag.live{background:var(--greenbg);color:var(--green);border:1px solid #2c5a41}
+span.tag.shadow{background:var(--bluebg);color:var(--blue);border:1px solid #2b4a63}
+span.tag.parked{background:var(--amberbg);color:var(--amber);border:1px solid #5a4a22}
+span.tag.refuted{background:var(--redbg);color:var(--red);border:1px solid #5e2f2c}
+span.tag.null{background:var(--greybg);color:var(--grey);border:1px solid #3a3d47}
+
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:18px 0 22px}
+.kpi div{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:13px 14px}
+.kpi .k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.kpi .v{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.kpi div.g .v{color:var(--green)} .kpi div.r .v{color:var(--red)} .kpi div.a .v{color:var(--amber)}
+
+.sig{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink3)}
+@media (max-width:720px){
+  .wrap{padding:22px 14px 60px} header.top h1{font-size:25px}
+  p.lead{font-size:17px}
+  table{font-size:12.5px} td,th{padding:6px 7px}
+  h2{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="kicker">GAZBOT V7 · the edge hunt · standalone research report</div>
+  <h1>36 hypotheses. 10.5 years of tape.<br>Zero edges.</h1>
+  <p class="sub">Commissioned by the operator, 2026-09-12:
+    <em>“i want you to find me the best edge you can. any style. momentum. reversion. long all day trade.
+    scalp. any stop. any take profit. complete blank canvas. read the web. find me some gold.
+    take all day if you have to. find me something.”</em></p>
+  <div class="meta">Written 2026-09-12 · Costs charged throughout:
+    <strong>MNQ/NQ 1.25 pt all-in per round trip</strong> ($1.50 commission + 0.50 pt spread crossed once = $2.50) ·
+    <strong>MGC 0.45 pt = $4.50</strong> · never $7.50, never $5 ·
+    3,666,547 NQ 1-minute bars, 2015-01-02 → 2025-07-25, plus our own MNQ/MGC lake and L2 ·
+    working: <code>reports/edge_hunt_2026-09-12/</code></div>
+</header>
+
+<div class="kpi">
+  <div class="r"><div class="k">Hypotheses tested</div><div class="v">36</div>
+    <div class="d">six families, pre-registered</div></div>
+  <div class="r"><div class="k">Survivors</div><div class="v">0</div>
+    <div class="d">one reached verification, then died</div></div>
+  <div><div class="k">Configurations charged</div><div class="v">2,011</div>
+    <div class="d">each re-run inside null worlds</div></div>
+  <div class="g"><div class="k">Vol forecast R²</div><div class="v">0.589</div>
+    <div class="d">held-out. ATR14 scores −0.057</div></div>
+  <div class="g"><div class="k">Friction recoverable</div><div class="v">~$4,000</div>
+    <div class="d">per year, by not crossing the spread</div></div>
+  <div class="r"><div class="k">MNQ ↔ MGC overnight ρ</div><div class="v">+0.425</div>
+    <div class="d">we had been assuming −0.011</div></div>
+</div>
+
+<h2><span class="n">1</span> The answer</h2>
+
+<p class="lead"><strong>No. We did not find an edge.</strong> Thirty-six hypotheses went in — momentum,
+reversion, scalp, all-day-hold, volatility, order book, portfolio construction — and thirty-six came
+out refuted. One of them, the European-open drift window, cleared every one of its own
+pre-registered kill conditions and was carried forward as a survivor; three independent teams were
+then pointed at it with instructions to break it, and all three did, on separate grounds.
+<strong>The final count of things I would put money on is zero.</strong></p>
+
+<p>I am not going to dress that up. There is no rule in this report that you should trade on Monday,
+and the honest reason is not that we looked in the wrong places. It is that we now have a very good
+measurement of <em>how big</em> an edge would have to be before this desk could both profit from it
+and prove it exists — and nothing we found is within a factor of two of that size.</p>
+
+<p>What the hunt did produce is real, just not a trade. <strong>Volatility is genuinely forecastable
+on this tape and direction is not</strong>, confirmed four separate ways. <strong>Gold is not the
+diversifier we have been assuming.</strong> And there is about <strong>$4,000 a year of pure
+friction</strong> sitting in how the desk places its orders, which has nothing to do with finding a
+signal at all.</p>
+
+<h2><span class="n">2</span> What survived</h2>
+
+<div class="callout bad">
+  <div class="ct">Nothing</div>
+  <p>There is no survivor card, because there is no survivor. Below is the one candidate that got to
+  the last round and then died, followed by the two by-products that <em>are</em> worth real money
+  even though neither is an edge.</p>
+</div>
+
+<h3>2a. The near-miss — European-open drift window <span class="tag refuted">refuted in verification</span></h3>
+
+<div class="card">
+<p><strong>The rule as written.</strong> At 01:30 ET, if the prior US cash session closed down, buy one
+MNQ at the open of that minute's bar and sell at 03:29 ET. One trade a day. No stop.</p>
+
+<h4>What it scored before verification</h4>
+<div class="tw"><table>
+<tbody>
+<tr><td>Trades, 10.5 years</td><td class="num">1,140</td></tr>
+<tr><td>Gross</td><td class="num">+3.00 pt / +3.31 bp</td></tr>
+<tr class="row-hl"><td><strong>Net after 1.25 pt</strong></td><td class="num"><strong>+1.75 pt/trade</strong></td></tr>
+<tr class="row-bad"><td>Session-clustered 95% CI on net points</td><td class="num"><strong>[−0.53, +4.01] — already spans zero</strong></td></tr>
+<tr><td>Hit rate / payoff</td><td class="num">0.527 / 1.195</td></tr>
+<tr><td>Held-out half (2020–25)</td><td class="num">+3.22 pt net</td></tr>
+<tr><td>Conditioner (dip minus up), bootstrap p</td><td class="num">0.0218</td></tr>
+<tr><td>Years positive</td><td class="num">10 of 11</td></tr>
+<tr><td>Forward estimate the author quoted</td><td class="num">~$1,374/yr per lot, CI [$390, $2,360]</td></tr>
+</tbody>
+</table></div>
+
+<p><strong>What its own control did.</strong> The control was clean — same window, same bars, only the
+conditioning bit flipped (prior day down vs. up). Dip minus up was +2.70 bp, and it held inside every
+volatility stratum, so it was not a volatility selector in disguise. That is why it survived the
+first pass.</p>
+
+<h4>What the three refuters threw at it, and why it did not hold</h4>
+<div class="tw"><table>
+<thead><tr><th>Lens</th><th>The killing blow</th></tr></thead>
+<tbody>
+<tr><td class="id">ARTEFACT</td><td class="ln">The author's null world sampled only the 250 rotations
+ <em>adjacent to the truth</em>, and drew the single most favourable block in the file. Run over
+ <strong>all 3,281 whole-session rotations</strong>, p = 0.113 and the registered kill fires. The
+ search was declared as 2 configs; <strong>177 were live</strong> (window start × length), and the
+ chosen cell ranks 6th of 177 on its own data. <strong>Three of the four half-hours in the window
+ contain nothing</strong> — the entire effect is 03:00–03:29 ET, which was never registered.</td></tr>
+<tr><td class="id">CONTROL</td><td class="ln">The author declared <strong>two</strong> configs “both
+ from the paper” and reported only the winner. The published 02:00–03:00 ET hour — the externally
+ pre-registered one — nets <strong>−0.36 pt</strong> and its conditioner is a coin (t = 0.72,
+ positive in 6 of 11 years). Reporting only the winner of two declared cells <em>is</em> the search.
+ And the strongest half-hour in the whole night (01:00–01:30, t = 2.42) is one the strategy does not
+ trade.</td></tr>
+<tr><td class="id">COSTS</td><td class="ln"><strong>98.2% of the trades are a pure fee bleed.</strong>
+ Gross +3,419 pt, of which the <strong>top 20 days are +3,369 pt</strong>. The other 1,120 trades make
+ <strong>+50 pt gross against 1,456 pt of fees = −$2,811</strong> on one lot. Those 20 days are COVID,
+ the 2022 bear and the April-2025 tariff crash. Excluding 2020–2022 the conditioner falls to +1.11 bp
+ with a CI through zero, and both last complete years (2023, 2024) fail to cover their own fee.</td></tr>
+</tbody>
+</table></div>
+
+<p><strong>Out of sample, on data nobody had touched.</strong> Our own MNQ lake, 238 sessions from
+2025-09, starting seven weeks after the research tape ends: the <em>window</em> replicates (+1.96 bp),
+the <em>conditioner</em> has the <strong>wrong sign</strong> (−0.62 bp). Underpowered, so a
+non-replication rather than a refutation — but it is the only genuinely fresh evidence in the file
+and it points the wrong way.</p>
+
+<p><strong>What it is worth per year on one lot at real cost.</strong> The author said $1,374
+[$390, $2,360]. The honest re-estimate after the cost lens is <strong>$0 to $500/yr, CI spanning
+zero</strong>, and contingent on two or three macro crashes recurring on schedule.
+<strong>Do not trade it.</strong></p>
+
+<p><strong>What it would take to promote it past shadow.</strong> It cannot be promoted. The block that
+carries it (03:00–03:29 ET) was not registered, so testing it now is a <em>new</em> hypothesis, not a
+promotion — and it would need roughly two more years of our own lake before the conditioner's
+standard error is small enough to settle even the sign.</p>
+</div>
+
+<h3>2b. By-product worth money #1 — post AT the touch, don't cross <span class="tag shadow">shadow</span></h3>
+
+<div class="card">
+<p>Out of <code>microstructure-2</code>. The desk currently enters with a marketable limit — it crosses
+the spread. A resting limit <strong>at the touch</strong> (not <em>inside</em> it; inside was the
+hypothesis, and inside failed) is worth:</p>
+<div class="tw"><table>
+<tbody>
+<tr><td>Per leg, 13:00–19:00Z</td><td class="num"><strong>+$0.478</strong> [+$0.405, +$0.554]</td></tr>
+<tr><td>Sessions positive</td><td class="num"><strong>35 of 35</strong>, worst +$0.388</td></tr>
+<tr><td>Per round trip (two legs)</td><td class="num"><strong>≈$0.95 = 0.48 pt = 38% of MNQ's all-in friction</strong></td></tr>
+<tr class="row-hl"><td>At the desk's ~18 round trips a session</td><td class="num"><strong>roughly $4,000/yr</strong></td></tr>
+</tbody>
+</table></div>
+<p><strong>This does not create an edge.</strong> It moves the take-profit grid from “every cell nets
+−$2.50 to −$3.50” to “every cell nets −$1.55 to −$2.55”. Still every cell negative. And three risks
+are unpriced by any historical tape: our own order is not in the replayed book, the miss-fallback
+assumes the signal tolerates a 30-second entry, and the payoff shape is 97.5% small wins against a
+−$8.88 tail. <strong>Shadow it, measure it live, then decide.</strong></p>
+</div>
+
+<h3>2c. By-product worth keeping #2 — we can forecast volatility, properly</h3>
+
+<div class="card">
+<p>Four independent hypotheses landed on the same finding from four directions:</p>
+<div class="tw"><table>
+<thead><tr><th>Source</th><th>What it measured</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td class="id">MD-4</td><td class="ln">HAR(1,5,22) on log realised vol, fit once on 2015–19, never refit</td>
+ <td class="ln"><strong>held-out R² 0.589</strong> on 1,379 sessions; beats the random walk in
+ <strong>6 of 6</strong> held-out years; beats the desk's own <strong>ATR14 incumbent by R² +0.610</strong>
+ — ATR14 scores <strong>−0.057</strong>, i.e. worse than a constant</td></tr>
+<tr><td class="id">V-1</td><td class="ln">overnight range added to trailing ATR as a range forecast</td>
+ <td class="ln"><strong>+0.091</strong> incremental held-out R² on NQ, <strong>+0.187</strong> frozen onto our own MNQ tape</td></tr>
+<tr><td class="id">ST-4</td><td class="ln">HAR + midnight-to-open range</td>
+ <td class="ln"><strong>+0.056</strong> OOS R² over a proper HAR baseline</td></tr>
+<tr><td class="id">V-6</td><td class="ln">HAR on 26 years of daily bars</td>
+ <td class="ln">R² <strong>0.479</strong> NQ / 0.180 GC — against <strong>−0.004</strong> for the identical design on <em>returns</em></td></tr>
+</tbody>
+</table></div>
+<p><strong>Volatility is roughly 100× more forecastable than direction on this tape.</strong> That is
+the single most solid quantitative fact the hunt produced.</p>
+<p><strong>And it does not convert into money.</strong> Sizing by 1/σ̂ moves Sharpe by
+<strong>+0.0029</strong>, CI [−0.0123, +0.0177], and a randomly scrambled forecast sizes just as well
+(p = 0.45) — because the RTH risk premium is <em>proportional</em> to forecast volatility, so dividing
+exposure by σ divides the mean and the standard deviation by the same number. Gating on it made the
+desk <strong>worse</strong> in 13 of 15 cells. Using it as a router affordability floor captured
+<strong>−2.4%</strong> of what a perfect oracle was worth.</p>
+<p><strong>So it is a stop-width and risk-budget input — not a lot-count input, and not a gate.</strong>
+Refit per instrument: the NQ coefficients frozen onto gold score <strong>−0.210</strong>, i.e. worse
+than nothing.</p>
+</div>
+
+<h2><span class="n">3</span> The graves</h2>
+
+<p>All 36, by name, with the one line that killed each. The <code>momentum_daily-1</code> line is the
+post-verification verdict.</p>
+
+<h3>Reversion — 6 of 6 refuted</h3>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th class="num">Net</th><th>Killed by</th></tr></thead>
+<tbody>
+<tr><td class="id">R1</td><td>Extension-scaled break fade (ATR-normalised)</td><td class="num">−1.83 pt</td>
+ <td class="ln">The same-entry <strong>mirror</strong> control earned the same money in TRAIN and <strong>more</strong> in TEST (−0.198 ATR paired, CI excludes zero) — the 2.5:1 target/stop geometry was the edge, the direction was decoration. 100% of 200 null worlds beat the chosen cell out of sample.</td></tr>
+<tr><td class="id">R2</td><td>Closing-imbalance overnight reversion, 01:30–03:30 ET</td><td class="num">−1.11 pt</td>
+ <td class="ln">The closing return carries no <strong>signed</strong> information: both extremes of the conditioner pay (it is a volatility effect), the unconditional control performs identically, and a rotated-label null reproduces the result <strong>81%</strong> of the time.</td></tr>
+<tr><td class="id">R3</td><td>VWAP dislocation fade gated on participation</td><td class="num">−2.06 pt</td>
+ <td class="ln">The participation gate is a 2015–18 in-sample effect that decayed to zero by 2022 (A−B: +0.205 → +0.102 → +0.041 ATR). The fade is gross-<strong>negative</strong> while its own mirror is gross-positive.</td></tr>
+<tr><td class="id">R4</td><td>Path-monotonicity exhaustion after a clean run</td><td class="num">−1.34 pt</td>
+ <td class="ln">A matched non-run control of identical displacement raced at the same ~0.49, and the race was on the wrong side of 0.50 anyway. 39% of null worlds reached the real cell.</td></tr>
+<tr><td class="id">R5</td><td>Opening-gap fade conditioned on the overnight path</td><td class="num">+0.05 pt</td>
+ <td class="ln">The path conditioner has no consistent sign: +0.80 / +5.38 / <strong>−2.80</strong> pt across the three splits. The unconditional gap fade — the honest fallback — is also dead (−0.29 pt).</td></tr>
+<tr><td class="id">R6</td><td>Far-side resting depth as the fade's selector <em>(declared pilot)</em></td><td class="num">−0.90 pt</td>
+ <td class="ln">The book does not partition the break: MNQ THICK−THIN is +0.085 ATR with a CI spanning zero that <strong>2 in 5 pure-noise worlds beat</strong>, and on gold the MIDDLE bucket — which the mechanism requires to be ~zero — is the biggest earner of the three.</td></tr>
+</tbody>
+</table></div>
+
+<h3>Daily momentum — 6 of 6 refuted</h3>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th class="num">Net</th><th>Killed by</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td class="id">M1</td><td>European-open drift window, dip-conditioned</td><td class="num">+1.75 pt <em>(pre-verification)</em></td>
+ <td class="ln"><strong>REFUTED IN VERIFICATION.</strong> Exact randomisation over all 3,281 rotations fires the registered kill (p = 0.113); only the winner of two declared configs was reported; 98.2% of trades are a fee bleed and 20 crisis days carry 99% of the gross.</td></tr>
+<tr><td class="id">M2</td><td>Overnight vs. intraday decomposition of NQ's drift</td><td class="num">+2.30 pt</td>
+ <td class="ln"><strong>The contract roll.</strong> An unadjusted stitched front month prints the whole quarterly cost-of-carry as one 17:00–18:00 ET price step, supplying <strong>18.8% of the overnight leg from 28 minutes</strong>. Scrub it and the gap is +0.06 pt/day, CI [−6.45, +6.66], and the ordering reverses out of sample.</td></tr>
+<tr><td class="id">M3</td><td>Daily trend/vol state predicts the coming session's trendiness</td><td class="num">—</td>
+ <td class="ln">Vol expansion forecasts next-session <strong>size</strong> (ρ +0.31) but carries nothing about next-session <strong>efficiency</strong> (ρ +0.009 full, −0.014 held-out), and trend strength predicts efficiency <strong>backwards</strong>. A high-state session is the same coin flipped on a bigger table.</td></tr>
+<tr><td class="id">M4</td><td>HAR vol forecast as a <strong>sizing</strong> rule</td><td class="num">+3.12 pt <em>(shared base, not an increment)</em></td>
+ <td class="ln">The RTH premium is proportional to forecast vol, so 1/σ divides mean and sd by the same number: ΔSharpe <strong>+0.0029</strong>, CI [−0.012, +0.018], and a scrambled forecast sizes just as well. <em>The forecast half survives — see 2c.</em></td></tr>
+<tr><td class="id">M5</td><td>Long-only Donchian breakout with a chandelier stop</td><td class="num">+17.9 pt/yr</td>
+ <td class="ln">A breakout with a wide stop is a synthetic <strong>half-size buy-and-hold</strong>: 0 of 8 matched-exposure cells clear a year-clustered CI, the one that does is negative, and a 4-config search in a pure-noise world beats the observed best <strong>79%</strong> of the time. Excising roll weeks flips the best cell from +17.9 to −54.9 pt/yr.</td></tr>
+<tr><td class="id">M6</td><td>Thresholded intraday momentum (first 30 min → last 30 min)</td><td class="num">−2.61 pt</td>
+ <td class="ln"><strong>Negative gross, before any fee</strong> (−1.36 pt at a 0.472 hit rate), and the threshold selects the <em>worst</em> days, not the best. Same sign on our own MNQ tape. The fee never became the binding constraint.</td></tr>
+</tbody>
+</table></div>
+
+<h3>Session &amp; clock — 6 of 6 refuted</h3>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th class="num">Net</th><th>Killed by</th></tr></thead>
+<tbody>
+<tr><td class="id">S1</td><td>The NQ premium lives entirely in the overnight half</td><td class="num">+2.29 pt</td>
+ <td class="ln">It captures 56.9% of the drift while occupying <strong>65.5% of the clock</strong> — daylight earns 1.44× more per minute. Held-out CI spans zero, Sharpe is 38.7% <em>below</em> 24h buy-and-hold where +25% was required, and 410 of 515 alternative clock placements beat the 18:00 anchor out of sample.</td></tr>
+<tr><td class="id">S2</td><td>Fade the opening 30 minutes into the cash close</td><td class="num">−0.98 pt</td>
+ <td class="ln"><strong>A session-boundary bug.</strong> <code>o0930</code> was the <em>prior evening's 18:00 ET price</em>, because a CME session opens at 18:00. The published signal was never actually tested. Tested correctly it is +0.27 pt gross — inside the fee and inside the noise; 64% of null worlds beat the real best cell.</td></tr>
+<tr><td class="id">S3</td><td>Quarterly expiry week is a range-expansion regime</td><td class="num">+0.78 pt</td>
+ <td class="ln">Remove ATR20 and both the extra range and the fade profit vanish: residual excess range +2.32%, CI [−5.43%, +10.69%], and dropping 2020+2021 gives <strong>−0.46%</strong>. The +1.34 pt fade was the fixed fee being a smaller slice of a bigger number.</td></tr>
+<tr><td class="id">S4</td><td>Hour-of-day mis-sizes every ATR-scaled stop</td><td class="num">−1.31 pt</td>
+ <td class="ln">The 5.45× clock multiplier is real but moves the stop's <em>hit probability</em> only 1.16–1.26× — first passage is a flat function of barrier/σ. Worth ≤0.069 pt against a 0.25 pt bar, and it loses to a shuffled-hour null in 3 of 6 cells.</td></tr>
+<tr><td class="id">S5</td><td>European-open unwind, scored as excess over the drift it sits inside</td><td class="num">−0.76 pt</td>
+ <td class="ln"><strong>88.6%</strong> of the conditioner's gap is pro-rata drift of the window it sits inside. Two placebo conditioners with no inventory meaning produce a gap <strong>10–46× larger</strong> than the real closing half-hour.</td></tr>
+<tr><td class="id">S6</td><td>Gold as the discriminator for the overnight split</td><td class="num">+3.26 pt</td>
+ <td class="ln">MNQ-overnight and MGC-overnight correlate <strong>+0.425</strong> [+0.307, +0.543] against a 0.35 bar; the two-instrument book's t is <strong>0.968×</strong> the better single leg's where 1.15× was required; the real pairing sits at the <strong>0th percentile</strong> of 200 random re-pairings.</td></tr>
+</tbody>
+</table></div>
+
+<h3>Volatility — 6 of 6 refuted</h3>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th>Killed by</th></tr></thead>
+<tbody>
+<tr><td class="id">V1</td><td>Overnight range as a session gate</td>
+ <td class="ln">The forecast leg is real (+0.091 held-out R²) and gating on it makes the desk <strong>worse</strong> — it lost in 13 of 15 cells and 5 of 5 on TEST, and <strong>94%</strong> of rotated null worlds beat the real TEST score. A better forecast of range is not a better gate on P&amp;L.</td></tr>
+<tr><td class="id">V2</td><td>ATR as a biased forward-excursion forecast (the compression premium)</td>
+ <td class="ln">The correction multiplies stop <strong>and</strong> target by the same factor, so the target/stop ratio is untouched — and a 1-min bracket's stop-hit rate is the driftless gambler's-ruin value <code>T/(S+T)</code> to within 0.034 in all 27 cells. There was nothing for it to move.</td></tr>
+<tr><td class="id">V3</td><td>Exit in accumulated range, not minutes (the volatility clock)</td>
+ <td class="ln">The spec's own 2×ATR stop <strong>already performs the subordination</strong>: with it in place the sd ratio is ≤1.023 everywhere and falls to 0.83 at k=30 — more variance, not less. A 17-fold collapse in the dispersion of “amount of market” buys a 7.6% reduction in P&amp;L dispersion.</td></tr>
+<tr><td class="id">V4</td><td>The units test: does an edge live in points or in ATR?</td>
+ <td class="ln">It is not a units test — it tests whether 1/ATR happens to be a variance-reducing weight. On synthetic ground truth it recovers the right unit on <strong>1 of 4</strong> known forms, and is wrong <strong>60 times out of 60</strong> on the two shapes this tape actually has.</td></tr>
+<tr><td class="id">V5</td><td>The vol-affordability fade as a cross-instrument constant</td>
+ <td class="ln">Pooled TEST CI spans zero (+0.107 ATR); ex-top-5%-of-trades the pooled net is <strong>−0.47 ATR / −$16.32</strong> at a 24% hit rate; and the null world's <strong>median</strong> best cell (+0.50 ATR) beats the real best (+0.36 ATR).</td></tr>
+<tr><td class="id">V6</td><td>Volatility affordability as a router dimension</td>
+ <td class="ln">The effect is real and huge — but it lives entirely on the <strong>range surprise</strong>, which a day-ahead forecast is by construction blind to. The forecast with held-out R² 0.479 captures <strong>0.0%</strong> of the +7.38 pt/trade the oracle is worth; 0 of 16 cells reach the 30% bar.</td></tr>
+</tbody>
+</table></div>
+
+<h3>Microstructure — 6 of 6 refuted</h3>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th>Killed by</th></tr></thead>
+<tbody>
+<tr><td class="id">μ1</td><td>Banded stop execution</td>
+ <td class="ln">The band is worth <strong>−$0.81/stop</strong> and is negative in 9 of 12 cells. The premise spliced two populations — <strong>there are no 4-lot STOP exits at all</strong> — and two rows out of 32 carried the whole “$3.20 worse than touch”. A side-shuffled null reproduces it 95.3% of the time.</td></tr>
+<tr><td class="id">μ2</td><td>Post INSIDE the spread (queue-jump), never at the touch</td>
+ <td class="ln">Against its own pre-registered control, improve minus touch = <strong>−$0.0097/leg</strong>, CI [−$0.064, +$0.042], positive in 20 of 35 sessions; adverse selection is −$0.027 whether the fill takes 1.0s or 2.8s. Gold: −$0.415, negative in 26 of 27 sessions. <em>The touch control itself is the keeper — see 2b.</em></td></tr>
+<tr><td class="id">μ3</td><td>The friction-era split has been declaring live edges dead</td>
+ <td class="ln"><strong>An arithmetic no-op.</strong> $1.50/RT ÷ $2.00/pt <strong>plus</strong> a 0.50 pt spread is 1.25 points in 2015 and 1.25 points in 2025 — both components are already fixed in points. And the gross edge in bp is not flat, so the era with the highest index is the <em>worst</em> of the three.</td></tr>
+<tr><td class="id">μ4</td><td>Cost-normalised fire selection</td>
+ <td class="ln">The +$8.18/trade gap is <strong>100% gate composition</strong> — the formula routes <code>day_rider</code> (the only +$83/tr gate) into the top half. Drop it and the gap flips to −$3.63; on the 18,289-trade shadow arm, ranking by R is <strong>worse</strong> than not ranking at all (decile rank-corr +0.014).</td></tr>
+<tr><td class="id">μ5</td><td>MNQ gives 1.8× the move per dollar of friction</td>
+ <td class="ln">The statistic is degenerate: <code>net/cost = gross/cost − 1</code>, so with gross ≈ 0 every instrument scores −1.00 by arithmetic. And the “1.8×” is a reading of the 2025-26 index level — NQ's ratio swung from 1.2× in 2017 to 8.8× in 2025.</td></tr>
+<tr class="row-hl"><td class="id">μ6</td><td>Paper-fill bias changes the gate ranking</td>
+ <td class="ln">Re-priced against 5.2M real L1 snapshots the ranking is <strong>Spearman 0.9909</strong> against a 0.90 kill bar. The one sign flip is a gate at −$0.53/trade with a CI of [−17, +23] that appears in neither half. <strong>Every per-gate ranking in the repo stands as written.</strong></td></tr>
+</tbody>
+</table></div>
+
+<h3>Portfolio &amp; construction — 6 of 6 refuted</h3>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Hypothesis</th><th>Killed by</th></tr></thead>
+<tbody>
+<tr><td class="id">P1</td><td>The netted clock-window book</td>
+ <td class="ln">Netting saves <strong>14%</strong> of the fee, not 43.9%, and physically it is negative — a same-side adjacent pair carries the opposite of the move it is carried through (<strong>−19.4 pt per carry</strong>). TEST nets −0.79 pt/decision with a CI excluding zero on the losing side.</td></tr>
+<tr><td class="id">P2</td><td>Does best-of-K clear the √K bar?</td>
+ <td class="ln">TOP-1's held-out gross Sharpe is <strong>0.20×</strong> ALL-K's against a required 2.65×, and it sits at the <strong>37th percentile of its own random-1 null</strong>. Choosing the window at random cut the session loss <em>more</em> than choosing the highest-relvol one.</td></tr>
+<tr><td class="id">P3</td><td>Dollar-neutral cross-sectional NQ/GC</td>
+ <td class="ln">The 12-month relative-strength timing signal is worse than useless: Sharpe +0.008 against its own static control's +0.086, <strong>53.9%</strong> of null worlds beat it, <strong>0 of 36</strong> grid cells clear the floor.</td></tr>
+<tr><td class="id">P4</td><td>Constant-$-risk sizing, and the integer-lattice tax</td>
+ <td class="ln">It <strong>lowers</strong> Sharpe (−2.65 TRAIN, −1.64 VALIDATE, CIs excluding zero) because the fee is fixed in points <em>per lot</em>: reaching $150 of risk needs 23 lots in the quiet 2015-18 regime vs 4.9 in 2022-25, so the fee goes from 8.1% to <strong>38.8%</strong> of the risk taken. A rotated vol estimate beats the real one in 100% of null worlds.</td></tr>
+<tr><td class="id">P5</td><td>Is the desk's validated set one bet or five?</td>
+ <td class="ln"><strong>It cannot even be assembled</strong> — the five members share <strong>1</strong> common session-day, not 41, and two left no per-trade record at any date. Asked of the arms that <em>do</em> have positive t: all nine are <code>abs_veto</code> shorts, mean pairwise ρ <strong>+0.75</strong>, <strong>1.29 effective independent bets</strong>, and held-out that one bet scores <strong>t = −0.01</strong>.</td></tr>
+<tr><td class="id">P6</td><td>The live book is paying for positions it never flattened</td>
+ <td class="ln">The only window where netting is genuinely free (W=0) matches <strong>zero</strong> pairs and saves <strong>$0</strong>; every window that saves money changes gross P&amp;L by 11–53% against a 0.5% bar. On fills the paper engine did not fabricate, the netting is <strong>−$1,191/yr</strong> — it costs more than the fee it saves.</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout info">
+  <div class="ct">Search charged</div>
+  <p>The 18 hypotheses that reported a configuration count declared <strong>2,011</strong> configurations
+  between them, and every one of those hypotheses re-ran its <em>entire</em> selection procedure inside
+  rotated or shuffled null worlds. That discipline is what killed most of this report. It is also why
+  I trust the zero.</p>
+</div>
+
+<h2><span class="n">4</span> What changed about what we believe</h2>
+
+<p>The brief listed ten settled nulls and one significant result. Here is what happened to each.</p>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>What we believed going in</th><th>What this hunt did</th></tr></thead>
+<tbody>
+<tr><td class="id">1</td><td class="ln">Direction from MNQ's own data is ~0.50 at every horizon</td>
+ <td class="ln"><strong>CONFIRMED and extended.</strong> Four more independent routes hit 0.50 — a monotone run of 6–10 minutes races at 0.489 (R4), the opening 30 minutes predicts the last 30 <strong>backwards</strong> (M6, negative gross), the opening-gap fade drifts at 0.499–0.522 at every horizon (R5), and the corrected opening fade is +0.27 pt inside the noise (S2). The wall is now measured five more ways.</td></tr>
+<tr><td class="id">2</td><td class="ln">The book says <em>when</em>, never <em>which way</em></td>
+ <td class="ln"><strong>CONFIRMED and extended to resting depth.</strong> Far-side depth does not partition a break (R6: THICK−THIN +0.085 ATR, 41.5% of null worlds beat it). Queue position carries nothing forward either — adverse selection is identical at 1.0s and 2.8s fills (μ2).</td></tr>
+<tr><td class="id">3</td><td class="ln">Mesfin's OHLCV families are falsified; gross ceiling 1.05–1.50 pt</td>
+ <td class="ln"><strong>REINFORCED.</strong> M6 is <em>negative gross</em>. R3's fade is gross-negative. Nothing in 36 hypotheses beat that ceiling out of sample.</td></tr>
+<tr><td class="id">4</td><td class="ln">430 exit configs and 25 variants, all ≤ simply holding</td>
+ <td class="ln"><strong>EXTENDED to a new family.</strong> The volatility clock (V3) is the first exit idea with a genuine mechanism — it collapses the dispersion of “amount of market” 17-fold — and it still transmits nothing, because P&amp;L variance is governed by how the sign resolves. The 2×ATR stop was already doing the job.</td></tr>
+<tr><td class="id">5</td><td class="ln">The regime-join direction call is +0.15 to +0.34 pt, every t ≈ 1</td>
+ <td class="ln"><strong>RE-DERIVED BYTE-IDENTICALLY</strong> by an independent rebuild (μ3: +0.069935 pt vs +0.069935 pt, per-session correlation 0.99987) — and the proposed rescue (charging cost at the contemporaneous index) turned out to be arithmetically impossible. It stays exactly where it was.</td></tr>
+<tr><td class="id">6</td><td class="ln">Cut-and-flip on the rider's drift entry is zero</td>
+ <td class="ln">Untouched this round. Stands.</td></tr>
+<tr><td class="id">7</td><td class="ln">Every take-profit cell nets −$2.50 to −$3.50, i.e. exactly minus the cost</td>
+ <td class="ln"><strong>REPRODUCED independently</strong> (μ3's rebuild, best cell +0.0858 pt gross). <strong>Partially moved:</strong> with touch entry instead of crossing, the grid becomes −$1.55 to −$2.55. Every cell is still negative.</td></tr>
+<tr><td class="id">8</td><td class="ln">Payoff asymmetry does not rescue a 0.50 hit rate</td>
+ <td class="ln"><strong>CONFIRMED.</strong> Measured payoffs across the hunt cluster 0.84–1.20; the only high-payoff cells (R3 at 3.22, M5 at 2.39) pair with 20–52% hit rates and still lose.</td></tr>
+<tr class="row-bad"><td class="id">9</td><td class="ln">MNQ↔MGC lead-lag: every non-zero lag |corr| ≤ 0.034, lag-0 only</td>
+ <td class="ln"><strong>★ OVERTURNED, and not in our favour.</strong> Lag-0 correlation is <em>not</em> small. MNQ-overnight vs MGC-overnight daily returns correlate <strong>+0.425</strong> [+0.307, +0.543]; 2026 daily ρ is <strong>+0.302</strong>. The “ρ = −0.011 over 26 years” figure is a 26-year average that does not describe the current tape. <strong>Gold is not a diversifier for this desk right now</strong>, and any breadth arithmetic that assumed it was needs redoing.</td></tr>
+<tr><td class="id">10</td><td class="ln">119 calibrations cannot reproduce the operator's manual claim exits</td>
+ <td class="ln">Untouched. Stands.</td></tr>
+<tr class="row-hl"><td class="id">★</td><td class="ln">Joining a 60-minute break is significantly adverse (−0.69 to −0.86 pt/day); <strong>the fade carries the expectancy</strong></td>
+ <td class="ln"><strong>HALF CONFIRMED, HALF OVERTURNED — the most important correction in this report.</strong> The <em>join</em> really is adverse, three more times: joining a 60-min break nets −3.84 pt in expiry week and −2.41 pt elsewhere (S3), and the mirror control loses on both instruments in R6. <strong>But the fade is not the other side of that coin.</strong> R1's mirror control earns the same money in TRAIN and <em>more</em> in TEST — so the fade's profit was its 2.5:1 target/stop geometry, not its direction. And conditioned on displacement size, a 60-minute break <strong>continues</strong>, monotonically, in all three splits. <strong>The correct reading: the break fade is less bad than the break join. Neither is an edge.</strong></td></tr>
+</tbody>
+</table></div>
+
+<h4>Two new facts we did not have before</h4>
+<ul>
+<li><strong>Volatility is ~100× more forecastable than direction on this tape</strong> (V6's clean
+ comparison: R² 0.479 on vol vs −0.004 on returns, identical design). Four hypotheses confirmed it
+ independently. It has resisted every attempt to convert it into money — sizing, gating, affordability
+ floors — and the reason is mechanical, not bad luck.</li>
+<li><strong>The desk's “validated object set” is one bet wearing nine hats</strong> (P5): nine
+ <code>abs_veto</code> shorts, mean pairwise ρ +0.75, 1.29 effective independent bets, and held-out
+ that single bet is t = −0.01.</li>
+</ul>
+
+<h2><span class="n">5</span> What I would do Monday</h2>
+
+<div class="callout bad">
+  <div class="ct">Say this once, plainly</div>
+  <p><strong>Nothing here is a live promotion. Nothing found this weekend is ready to trade.</strong>
+  Thin n means SHADOW, always.</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Action</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">1</td><td class="ln"><strong>Shadow the touch-entry change.</strong> Stop crossing the
+ spread on entries; rest at the touch with a 30-second tolerance and a marketable fallback. Measured
+ +$0.478/leg, 35 of 35 sessions positive, ≈$4,000/yr. It is a cost cut, not an edge — but it is the
+ only number in this report with a tight CI and a clean control.</td>
+ <td><span class="tag shadow">shadow</span><div class="ln" style="margin-top:6px">Needs a live fill-rate
+ measurement before it touches the rider's entry path — our own order was not in the replayed book.</div></td></tr>
+<tr><td class="id">2</td><td class="ln"><strong>Replace ATR14 with HAR + overnight range as the desk's
+ volatility number</strong> — for stop widths, risk budget, and “is today worth being awake for”
+ displays only. ATR14 scores held-out R² <strong>−0.057</strong>; HAR scores <strong>+0.589</strong>.
+ Free, already fitted, and the current incumbent is worse than a constant. <strong>Refit per
+ instrument</strong> — the NQ coefficients frozen onto gold score −0.210.</td>
+ <td><span class="tag parked">build</span><div class="ln" style="margin-top:6px">Non-trading path only.
+ Do <strong>not</strong> wire it to lot count or to a gate; both were tested and both made things worse.</div></td></tr>
+<tr><td class="id">3</td><td class="ln"><strong>Stop treating gold as diversification.</strong>
+ MNQ-overnight vs MGC-overnight ρ = <strong>+0.425</strong>. Any sizing, risk or breadth argument on
+ this desk that assumed gold was uncorrelated needs revisiting.</td>
+ <td><span class="tag null">belief change</span><div class="ln" style="margin-top:6px">No code.</div></td></tr>
+<tr><td class="id">4</td><td class="ln"><strong>Stop counting the <code>abs_veto</code> family as nine
+ validated things.</strong> It is 1.29 effective bets at ρ +0.75, and held-out it is t = −0.01. This
+ matters for the Saturday review and for anything that reads the shadow board as a roster.</td>
+ <td><span class="tag null">belief change</span><div class="ln" style="margin-top:6px">No code.</div></td></tr>
+<tr><td class="id">5</td><td class="ln"><strong>Do not promote momentum_daily-1</strong>, and do not
+ chase the 03:00–03:29 ET block that carried it. That block was not registered, so testing it now is a
+ new hypothesis — and it would need ~2 more years of our own lake to settle the conditioner's sign.</td>
+ <td><span class="tag refuted">not ready</span></td></tr>
+<tr><td class="id">6</td><td class="ln"><strong>Bank the two method traps this hunt found</strong>, because
+ both have the shape of things that recur: <strong>(a) a null world sampled near the truth is not a null
+ world</strong> — the author drew 250 adjacent rotations, got the most favourable block in the file, and
+ the registered verdict flipped on it; <strong>(b) a CME session opens at 18:00 ET</strong>, so an
+ <code>arg_min</code> on session minute finds the prior evening's price where you meant the 09:30 open.
+ That bug manufactured an entire published finding (S2).</td>
+ <td><span class="tag parked">memory files</span></td></tr>
+</tbody>
+</table></div>
+
+<p>Everything else stays exactly as it is. The router framework, the bench rules, the gate rankings —
+μ6 confirmed those explicitly (Spearman 0.9909; every ranking in the repo stands as written) — none of
+this changes.</p>
+
+<h2><span class="n">6</span> The next dig</h2>
+
+<p class="lead">The one direction left that we have not actually tried is <strong>BREADTH</strong> — and
+it is the only lever whose arithmetic beats the wall.</p>
+
+<p>Here is why it is the answer and nothing else is. The structural wall says the smallest per-trade
+edge that reaches t = 2 on one instrument is <strong>2.84 pt at a 5-minute hold</strong>, against a
+gross ceiling of 1.05–1.50 pt. Duration escapes the fee and escapes statistical power at the same √
+rate, so they cancel — you cannot hold your way out. The brief named two levers: <strong>sample</strong>
+and <strong>breadth</strong>. This hunt spent itself on sample: 10.5 years, 3.7 million minutes, 2,011
+configurations, every one charged against its own null world. <strong>Sample is done, and it returned
+zero.</strong> Breadth is untouched — 35 of the 36 hypotheses tested one instrument, and the 36th
+tested K=2 using the two most correlated things on the board.</p>
+
+<h4>The arithmetic of breadth, which is the part that actually moves</h4>
+<pre>diversification ratio   DR = sqrt( K / (1 + (K-1)·rho) )
+portfolio Sharpe        S  = s · DR
+t after T years         t  = S · sqrt(T)</pre>
+
+<div class="tw"><table>
+<thead><tr><th>Average pairwise ρ</th><th class="num">K=2</th><th class="num">K=8</th><th class="num">K=12</th><th class="num">ceiling</th></tr></thead>
+<tbody>
+<tr><td>0.74 — index micros, what we have now</td><td class="num">1.07</td><td class="num">1.14</td><td class="num">1.15</td><td class="num">1.16</td></tr>
+<tr class="row-hl"><td>0.31 — mixed micros, measured on our own V5 archive</td><td class="num">1.24</td><td class="num"><strong>1.62</strong></td><td class="num">1.68</td><td class="num">1.80</td></tr>
+<tr><td>0.20 — AQR sleeves</td><td class="num">1.29</td><td class="num">1.83</td><td class="num">1.94</td><td class="num">2.24</td></tr>
+</tbody>
+</table></div>
+
+<p>At ρ = 0.31, <strong>eight markets is a 1.62× multiplier on whatever per-market edge exists — and
+critically, n grows without paying the fee more often</strong>, because each market takes one decision.
+That is the only structure in this whole problem where the statistics and the economics move in the
+same direction instead of cancelling.</p>
+
+<h4>What it needs, concretely — about two days and $0</h4>
+<ol>
+<li><strong>Land the daily data.</strong> <code>scripts/fetch_yahoo_daily.py</code> already exists.
+ 28 roots, ~25 years of front-month daily OHLCV. <em>Gate: ≥20 roots with ≥15 years.</em> If Yahoo
+ stays blocked, one month of Norgate is ~$70.</li>
+<li><strong>Measure what we cannot currently measure.</strong> Per-contract $-vol, integer-lattice vol
+ as a % of $30k, and the full correlation matrix over 25 years. <strong>Today we have measured $-vol
+ for seven micros and correlation for two properly — and one of those two just came back at +0.425
+ instead of the −0.011 we had assumed.</strong> <em>Gate: a basket of ≥8 markets with pairwise ρ &lt; 0.5
+ whose 1-lot vol is ≤20% of $30k.</em> This gate is genuinely at risk — the granular instruments (FX,
+ yield, grains) are exactly the ones we have never priced.</li>
+<li><strong>Run the existing <code>nq_gc_trend.py</code> unchanged across the whole basket</strong>, with
+ three arms: trend, <strong>always-long</strong>, and cross-sectional momentum. <strong>The gate is the
+ real one: the candidate must beat ALWAYS-LONG, out of sample, after cost.</strong> It did not on
+ NQ+GC. If it does not on twelve markets either, <strong>breadth is REFUTED for this desk and that is
+ the deliverable</strong> — and at that point I would tell you plainly that a one-man micro-futures desk
+ with a no-overnight rule does not have a tradeable statistical edge available to it, and the
+ conversation should move to execution quality and to your hands on the claim button, which remain the
+ only two things on this desk that have ever demonstrably made money.</li>
+</ol>
+
+<div class="callout">
+  <div class="ct">★ The decision that comes first, and it is yours, not mine</div>
+  <p>Every breadth construction holds for <strong>weeks to months</strong>. Your standing rule is
+  <em>“NEVER HOLD OVERNIGHT. EVER.”</em> A daily-horizon breadth book breaks that on night one, and the
+  same-day-flat version pays the fee 252 times a year and lands straight back on the wall.</p>
+  <p><strong>If the overnight rule stands, the breadth lever is closed and this report is the end of the
+  search, not the middle of it.</strong> I am not going to build something you will not run. Tell me
+  which it is.</p>
+</div>
+
+<p><strong>Costed, if you open the door:</strong> 12 markets, 1 lot each, ≈$11k margin (37% of the
+account), ≈<strong>$250/yr all-in friction</strong> (0.8% of the account), target 12–15% annualised vol.
+The sizing engine has to be integer-aware from day one — on several of those markets the minimum lot is
+too big to hold on a given day, and that is a design constraint, not a rounding afterthought.</p>
+
+<div class="sig">
+GAZBOT V7 · the edge hunt · 2026-09-12 · PAPER, IBKR DUQ191770 ·
+working, scripts and per-trade CSVs: <code>reports/edge_hunt_2026-09-12/</code> — 36 hypothesis
+directories each with its own <code>VERDICT.md</code>, plus three independent refutation directories for
+<code>momentum_daily-1</code>. Markdown twin: <code>reports/edge_hunt_2026-09-12/REPORT.md</code>.<br>
+Costs charged throughout: MNQ/NQ 1.25 pt all-in per round trip, MGC 0.45 pt. Never $7.50, never $5.
+</div>
+
+</div>
+</body>
+</html>

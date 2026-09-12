@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>What showed promise — 2026-09-12</title>
+<style>
+@page { size: A4; margin: 16mm 14mm; }
+body { font: 10.5pt/1.45 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #15181d; }
+h1 { font-size: 19pt; margin: 0 0 2mm; letter-spacing: -0.4pt; }
+h2 { font-size: 13pt; margin: 9mm 0 2.5mm; padding-bottom: 1.5mm;
+     border-bottom: 2px solid #15181d; letter-spacing: -0.2pt; }
+h3 { font-size: 11pt; margin: 5mm 0 1.5mm; color: #2a3a52; }
+.sub { color: #5d6470; font-size: 9.5pt; margin: 0 0 6mm; }
+table { border-collapse: collapse; width: 100%; margin: 2.5mm 0 4mm; font-size: 9.3pt; }
+th { text-align: left; border-bottom: 1.5px solid #15181d; padding: 1.6mm 2mm; font-size: 8.6pt;
+     text-transform: uppercase; letter-spacing: 0.4pt; color: #3a4250; }
+td { border-bottom: 0.5px solid #d7dbe2; padding: 1.6mm 2mm; vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.good { color: #0a6b3d; font-weight: 600; }
+.bad  { color: #9b1c1c; }
+.tag { display: inline-block; font-size: 7.6pt; font-weight: 700; letter-spacing: 0.5pt;
+       padding: 0.7mm 1.6mm; border-radius: 2px; text-transform: uppercase; }
+.t-ship { background: #0a6b3d; color: #fff; }
+.t-shadow { background: #1d4ed8; color: #fff; }
+.t-watch { background: #92400e; color: #fff; }
+.lede { background: #f4f6f9; border-left: 3px solid #15181d; padding: 4mm 5mm; margin: 4mm 0 6mm; }
+.lede p { margin: 0 0 2.5mm; } .lede p:last-child { margin: 0; }
+.note { font-size: 9pt; color: #5d6470; margin: 2mm 0 0; }
+ul { margin: 1.5mm 0 3mm; padding-left: 5mm; } li { margin: 0 0 1.2mm; }
+.small { font-size: 8.8pt; color: #5d6470; }
+.rule { border: 0; border-top: 0.5px solid #d7dbe2; margin: 6mm 0; }
+</style></head><body>
+
+<h1>What actually showed promise</h1>
+<p class="sub">GAZBOT V7 &middot; Saturday 2026-09-12 &middot; one day's work: 50 research agents,
+36 hypotheses, 10.5 years of minute tape, 26 years of daily across 14 markets.
+Costs charged throughout: <strong>MNQ 1.25 points all-in per round trip</strong>
+($1.50 commission + the half-point spread crossed once = $2.50).
+<strong>MGC 0.45 points = $4.50.</strong></p>
+
+<div class="lede">
+<p><strong>The honest headline: nothing found today is ready for money, and I am not going to
+dress that up.</strong> But that is a different sentence from "nothing is worth doing", and I spent
+most of today confusing the two. Below is everything with a mechanism and a live number, split by
+instrument, ranked by how sure I am.</p>
+<p><strong>Two items are not edges at all — they are money you are currently leaving on the
+table</strong>, and they are the most valuable things on this page. <strong>One signal cleared a
+confidence interval today</strong>, and it is on gold. Everything else is shadow material: worth
+forward evidence, not worth capital.</p>
+</div>
+
+<h2>1. Ship — these cannot lose money</h2>
+<p class="small">Not bets. Strictly better versions of things the desk already does.</p>
+<table>
+<tr><th>#</th><th>What</th><th class="n">The number</th><th>Why it is certain</th></tr>
+<tr><td>1</td><td><strong>Stop crossing the spread.</strong> Rest at the touch instead of sending a
+marketable limit. <span class="tag t-ship">ship</span></td>
+<td class="n good">+$0.478 / leg<br><span class="small">&asymp;$4,000&nbsp;/&nbsp;yr</span></td>
+<td><strong>35 of 35 sessions positive</strong>, worst +$0.388. CI [+$0.405, +$0.554]. It is a
+cheaper version of an order you already send &mdash; 38% of MNQ's entire friction.
+<em>Posting INSIDE the spread was the actual hypothesis and it failed (&minus;$0.0097/leg); only the
+touch works.</em></td></tr>
+<tr><td>2</td><td><strong>Replace ATR14 with a HAR volatility forecast</strong> everywhere it feeds
+a stop width or an entry floor. <span class="tag t-ship">ship</span></td>
+<td class="n good">R&sup2; 0.589<br><span class="small">vs &minus;0.057</span></td>
+<td><strong>The best-replicated finding of the day</strong> &mdash; four independent agents hit it
+from different angles. Beats a random walk in <strong>6 of 6</strong> held-out years. Every stop on
+this desk is currently sized off a number with <em>negative</em> predictive power.</td></tr>
+</table>
+<p class="note"><strong>Caveat on #1:</strong> three risks are unpriced by any historical tape &mdash;
+our own order is not in the replayed book, the miss-fallback, and adverse selection. It should go to
+shadow before it goes to the live order path, and passive entry was killed here once before.</p>
+
+<h2>2. Gold (MGC) — where the promise actually is</h2>
+<table>
+<tr><th>#</th><th>What</th><th class="n">Gross edge</th><th class="n">95% CI</th><th>Read</th></tr>
+<tr><td>3</td><td><strong>Short-side thrust fade</strong> (<code>abs_veto_short</code>) on gold
+<span class="tag t-shadow">shadow</span></td>
+<td class="n good">+1.137 pt<br><span class="small">+$6.87 net/trade</span></td>
+<td class="n good">[+0.105, +2.180]</td>
+<td><strong>The only cell all day whose interval clears zero</strong>, n=1,468 over 13 months,
+against a same-entry sign-flip control. And it is the same family as <code>abs_veto_55s</code>,
+the best arm in the live MNQ book at +$4,745. The short thrust fade is the one thing that
+<strong>repeats across instruments</strong>.</td></tr>
+<tr><td>4</td><td><strong>The regime-join at a 120-minute hold</strong>, on gold
+<span class="tag t-shadow">shadow</span></td>
+<td class="n">+0.15 to +0.28 pt</td><td class="n">spans zero</td>
+<td>The <strong>only net-positive cells</strong> the regime study produced on any instrument
+(+0.16/+0.17). Gold's edge/cost ratio is <strong>16&ndash;62%</strong> against MNQ's 12&ndash;27%,
+purely because a gold round trip costs 2.8&times; less in points. <em>A signal too small to pay
+MNQ's fee can clear gold's</em> &mdash; that is the whole argument for gold.</td></tr>
+<tr><td>5</td><td>The 14:00Z fixed-time short + its 13:35 / 15:00 controls
+<span class="tag t-shadow">shadow</span></td>
+<td class="n">+$41.57/trade<br><span class="small">in sample</span></td><td class="n">&mdash;</td>
+<td>Beat all six purpose-built gold gates. Its <em>mechanism</em> is already refuted (the DST test
+says it is not the London fix) and both neighbours fail out of sample, so it is a spike. Only
+forward evidence settles a spike; the two controls are the point.</td></tr>
+</table>
+
+<h2>3. Nasdaq (MNQ) — thinner, and one thing that is definitely true</h2>
+<table>
+<tr><th>#</th><th>What</th><th class="n">Number</th><th>Read</th></tr>
+<tr><td>6</td><td><strong>Joining a 60-minute break is adverse</strong></td>
+<td class="n bad">&minus;0.86 pt/day<br><span class="small">CI [&minus;1.25, &minus;0.47]</span></td>
+<td>n&asymp;195,000 over 10.5 years &mdash; a real, significant, <em>negative</em> result. Do not
+build momentum breakout entries. <strong>Correction from yesterday:</strong> I said the fade must
+therefore be the other side. It is not &mdash; the mirror control earns more out of sample, so the
+fade's profit was 2.5:1 target/stop geometry, not direction. <strong>The fade is less bad, not an
+edge.</strong></td></tr>
+<tr><td>7</td><td>Short-side thrust fade on MNQ <span class="tag t-shadow">shadow</span></td>
+<td class="n">+$6.79/trade<br><span class="small">CI spans zero</span></td>
+<td>Same family as #3, positive point estimate on n=1,141, not significant. Already live in the
+MNQ shadow book as <code>abs_veto_55s</code> at +$4,745.</td></tr>
+<tr><td>8</td><td>The regime-join direction call <span class="tag t-shadow">shadow</span></td>
+<td class="n">+0.15 to +0.34 pt<br><span class="small">every t &asymp; 1</span></td>
+<td>Positive in <strong>12 of 12 cells</strong> across two instruments and eleven years against a
+sign-flip control &mdash; and a quarter of what MNQ's fee costs. Real and too small <em>here</em>,
+which is exactly why it is being trialled on gold.</td></tr>
+<tr><td>9</td><td><strong>Quarterly expiry week</strong> <span class="tag t-watch">unexplained</span></td>
+<td class="n">+8.79 pt/session<br><span class="small">to a holder</span></td>
+<td>n=203 sessions. Holding earns +8.79 while cutting loses 2.41 &mdash; a 16&times; swing on 7.6% of
+sessions, and nobody has explained it. Not a strategy yet. Worth a dig.</td></tr>
+<tr><td>10</td><td><strong>Volatility affordability</strong> <span class="tag t-watch">untested</span></td>
+<td class="n">+7.38 pt/trade<br><span class="small">to an oracle</span></td>
+<td>Described by the agent that killed it as <em>"real and huge"</em>. It died because a
+<strong>day-ahead</strong> forecast captures 0.0% of it &mdash; the effect lives on the
+<em>range surprise</em>. But the desk watches the range develop all day. <strong>The nowcast version
+has never been tested</strong> and this is the largest single number in the study.</td></tr>
+</table>
+
+<h2>4. The structural finding, and why it governs everything above</h2>
+<div class="lede">
+<p>On 239 sessions the smallest per-trade edge that reaches statistical significance is
+<strong>2.84 points at a 5-minute hold, rising to 23.57 points at a full-session hold</strong>
+&mdash; against a gross edge ceiling in this instrument of <strong>1.05 to 1.50 points</strong>.
+Holding longer escapes the fixed fee and escapes statistical power <em>at the same rate</em>, so
+they cancel exactly.</p>
+<p><strong>On one year of one instrument there is no holding period at which this desk can both
+profit and prove it.</strong> That is not a reason to stop; it is the reason the answer keeps coming
+back "not proven" and why the bar for <em>shadow</em> must be lower than the bar for money.</p>
+</div>
+<table>
+<tr><th>Hold</th><th class="n">Move sd</th><th class="n">Fee as % of move</th>
+<th class="n">Edge needed to prove it</th></tr>
+<tr><td>5 minutes</td><td class="n">0.18%</td><td class="n bad">2.3%</td><td class="n">0.001%</td></tr>
+<tr><td>1 session</td><td class="n">1.62%</td><td class="n">0.3%</td><td class="n">0.064%</td></tr>
+<tr><td>1 week</td><td class="n">3.61%</td><td class="n good">0.1%</td><td class="n">0.323%</td></tr>
+<tr><td>1 month</td><td class="n">7.41%</td><td class="n good">0.1%</td><td class="n bad">1.352%</td></tr>
+<tr><td>1 quarter</td><td class="n">12.83%</td><td class="n good">0.0%</td><td class="n bad">4.056%</td></tr>
+</table>
+<p class="note"><strong>Breadth is the one lever that beats this</strong>, and it was confirmed at
+theory today: 14 markets at an average strategy correlation of +0.099 give <strong>6.1 effective
+bets</strong> and a realised multiplier of <strong>2.27&times;</strong> against a predicted 2.47&times;.
+The mechanism works. It is multiplying a per-market Sharpe of 0.13 into 0.39, and vol-targeted
+buy-and-hold on the same markets does 0.54 &mdash; so breadth is real, measurable, and on this
+evidence still too small. It also requires multi-week overnight holds.</p>
+
+<h2>5. What died, so you can see the work</h2>
+<table>
+<tr><th>Family</th><th class="n">Tested</th><th>Cause of death, in one line</th></tr>
+<tr><td>Reversion &amp; fading</td><td class="n">6</td><td>Mirror controls matched or beat them; the
+participation gate was a 2015&ndash;18 effect that decayed to zero by 2022.</td></tr>
+<tr><td>Daily / multi-day momentum</td><td class="n">6</td><td>The contract roll. An unadjusted
+front month prints the whole quarterly cost-of-carry as one bar &mdash; excising roll weeks flipped
+the best breakout from +17.9 to <strong>&minus;54.9</strong> pt/yr.</td></tr>
+<tr><td>Session, clock &amp; calendar</td><td class="n">6</td><td>A session-boundary bug (a CME
+session opens at 18:00 ET, so "the 09:30 open" was the prior evening's price) manufactured an entire
+published finding.</td></tr>
+<tr><td>Volatility</td><td class="n">6</td><td>Every route converts a good forecast into nothing:
+sizing &Delta;Sharpe +0.0029, gating worse in 13 of 15 cells.</td></tr>
+<tr><td>Microstructure</td><td class="n">6</td><td>All negative except the touch entry (#1). The
+paper engine's fill bias does <em>not</em> change any gate ranking &mdash; Spearman 0.9909 against
+5.2M real book snapshots.</td></tr>
+<tr><td>Portfolio</td><td class="n">6</td><td>The desk's nine "validated" <code>abs_veto</code> arms
+are <strong>1.29 effective bets</strong> at &rho;&nbsp;+0.75 &mdash; and held-out, that one bet is
+t&nbsp;=&nbsp;&minus;0.01.</td></tr>
+<tr><td colspan="3" class="small">Plus, outside the hunt: the cut-and-flip (the cut is +0.1 pt/session
+CI [&minus;4.5,+4.5], the flip &minus;0.2), the ATR-scaled scalping grid (every target/stop cell nets
+exactly minus the cost; a $5 take-profit needs a 75% hit rate and the tape gives 39.7%), and trend
+across 14 markets losing to buy-and-hold 0.39 to 0.54.</td></tr>
+</table>
+
+<h2>6. Five things I got wrong today, corrected</h2>
+<table>
+<tr><th>What I told you</th><th>What it actually is</th><th>Why I was wrong</th></tr>
+<tr><td>A random London long earns +11.25 pt</td><td class="good">+1.80 pt, t = 1.33</td>
+<td>The control drew its entries only from the 52 sessions its own signal fired on. Those drifted
++8.27/hr; the other 188 drifted &minus;0.62.</td></tr>
+<tr><td>Holding naked bleeds &minus;26 to &minus;38 pt/session</td><td class="good">+0.9 pt over
+10.5 years</td><td>That was the 2025&ndash;26 window, not the strategy. The window was the finding.</td></tr>
+<tr><td>14-market trend beats buy-and-hold 0.84 to 0.65</td><td class="good">0.39 to 0.54 &mdash;
+it loses</td><td>Fourteen markets keep fourteen holiday calendars; a 60-day rolling window needs 60
+<em>consecutive</em> values, so NQ computed on 56% of rows and Russell on none.</td></tr>
+<tr><td>The break is adverse, so the fade is the edge</td><td class="good">The fade is less bad,
+not an edge</td><td>Its mirror control earns more out of sample &mdash; the profit was 2.5:1
+geometry, not direction.</td></tr>
+<tr><td>Gold's cheaper cost means the MNQ gates belong there</td><td class="good">3 of the 4 are
+negative on gold</td><td>I inferred it from a cost ratio measured on a <em>different</em> signal and
+never tested these gates. Tested now: only the short thrust fade survives.</td></tr>
+</table>
+
+<h2>7. What is running right now</h2>
+<table>
+<tr><th>What</th><th>Where</th><th>Status</th></tr>
+<tr><td>Gold shadow book</td><td><code>mgc_slate()</code></td><td>3 arms &rarr; <strong>10</strong>.
+⚠ 3 of the 4 gate ports measure negative on gold &mdash; recommend dropping all but
+<code>mgc_absveto_short</code>. <strong>Your call.</strong></td></tr>
+<tr><td>The tape reader</td><td><code>gazbot7-tape-reader</code>, every 2 min</td><td>Reads the whole
+day and judges the open position &mdash; HOLD / CLAIM / CUT / ADD. <strong>Read-only</strong>, no
+order path, asserted by test. Grading itself from Monday.</td></tr>
+<tr><td>Regime-join trial</td><td><code>prereg_regime_join.json</code></td><td>Registered, frozen,
+bar stated up front. Not yet wired to a timer &mdash; needs your go.</td></tr>
+<tr><td>Judged-cut trial</td><td><code>prereg_judged_cut.json</code></td><td>Your cut-and-flip, with
+the cut decided by judgement instead of a fixed distance. The fixed 40pt version is the control and
+is known to be zero.</td></tr>
+<tr><td>Book-thinning trial</td><td><code>prereg_book_thinning.json</code></td><td>Running since
+09-11. 60 sessions.</td></tr>
+</table>
+
+<h2>8. Tomorrow</h2>
+<ul>
+<li><strong>Decide on the three negative gold gates</strong> &mdash; drop or leave. I shipped them
+without asking; that was my error and I have not touched them since.</li>
+<li><strong>Say go on the two ship-now items</strong> (touch entry to shadow, HAR swap on the
+non-trading path). Together they are worth about $4,000 a year and neither is a bet.</li>
+<li><strong>The one genuinely unexplored dig:</strong> volatility affordability as a
+<em>nowcast</em> rather than a forecast. Largest number in the study, and the reason it died does
+not apply to the intraday version.</li>
+<li><strong>The overnight question is yours and it is the big one.</strong> Breadth is the only
+lever that beats the power arithmetic, and it needs multi-week holds. If "never hold overnight"
+stands, that lever is closed &mdash; and this report is the end of the search rather than the
+middle of it.</li>
+</ul>
+
+<hr class="rule">
+<p class="small">Every number here is reproducible from <code>reports/edge_hunt_2026-09-12/</code>
+(36 hypothesis directories, each with its scripts and VERDICT.md),
+<code>reports/regime_2026-09-12/</code>, and the committed scripts
+<code>bt_regime_transition.py</code>, <code>bt_cut_and_flip.py</code>,
+<code>bt_cut_flip_long.py</code>, <code>bt_breadth_daily.py</code>,
+<code>bt_gates_on_gold.py</code>, <code>null_expectancy_rescore.py</code>.
+Full working: <code>/v7/static/edge_hunt_2026-09-12.html</code></p>
+
+</body></html>
