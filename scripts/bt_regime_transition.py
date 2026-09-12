@@ -27,6 +27,10 @@ import duckdb, numpy as np, pandas as pd
 GB = "/home/alphabot/gazbot7"
 VPP = 2.0
 FRICTION_PT = 2.0          # Mesfin's convention: ~$4/micro RT, covers spread+fees+slippage
+# ★2026-09-12 --friction and --shuffle added. THIS DESK'S MEASURED COST IS NOT MESFIN'S ASSUMPTION:
+# $1.50/RT = 0.75pt, plus the 0.25pt tick crossed once on entry = ~1.00-1.25pt, not 2.0. A cell can
+# only claim that difference if it ALSO beats its own shuffled twin - the 2026-09-11 control that
+# killed the first version of this study (shuffled labels scored the same as the real ones).
 
 
 def tape(bar_min):
@@ -112,6 +116,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bar", type=int, default=15, help="bar size, minutes")
     ap.add_argument("--states", type=int, default=3)
+    ap.add_argument("--friction", type=float, default=FRICTION_PT,
+                    help="points per round trip. 2.0 = the paper's; ~1.25 = this desk's measured")
+    ap.add_argument("--shuffle", type=int, default=0,
+                    help="draws of the permuted-label control (0 = skip)")
     a = ap.parse_args()
     g = tape(a.bar)
     X = features(g)
@@ -152,43 +160,77 @@ def main():
     st = g.state.values
     close, op = g.close.values, g.open.values
     sess = g.sess.values
-    bars_per_hold = {}
+
+    def run(names_map, fric):
+        """Every (hold, clean) cell for one label assignment. Returns {(hold,clean): (n, mean)}."""
+        out = {}
+        for hold in (2, 3, 4, 5, 6, 8):
+            for clean in (True, False):
+                rec = []
+                for i in range(3, len(g)-hold-1):
+                    if sess[i] != sess[i+hold] or sess[i] != sess[i-2]:
+                        continue
+                    cur, prv = st[i], st[i-1]
+                    if cur < 0 or prv < 0 or cur == prv:
+                        continue
+                    if names_map.get(cur) not in ("BULLISH", "BEARISH"):
+                        continue
+                    if names_map.get(prv) == names_map.get(cur):
+                        continue
+                    if clean and (st[i-1] == cur or st[i-2] == cur):
+                        continue      # no contamination by the target state in the prior 2 bars
+                    side = 1 if names_map[cur] == "BULLISH" else -1
+                    rec.append((sess[i], side*(close[i+hold]-op[i+1]) - fric))
+                out[(hold, clean)] = pd.DataFrame(rec, columns=["sess", "pt"]) if rec else None
+        return out
+
+    real = run(names, a.friction)
     print(f"\n{'hold':>7}{'clean':>7}" + "".join(f"{p:>22}" for p in ("TRAIN", "VALIDATE", "TEST"))
           + f"{'ALL':>16}")
     print(f"{'':>14}" + "".join(f"{'n':>6}{'net pt':>8}{'t':>8}" for _ in range(3))
           + f"{'net pt':>8}{'win%':>8}")
-    for hold in (2, 3, 4, 5, 6, 8):
-        for clean in (True, False):
-            rec = []
-            for i in range(3, len(g)-hold-1):
-                if sess[i] != sess[i+hold] or sess[i] != sess[i-2]:
-                    continue
-                cur, prv = st[i], st[i-1]
-                if cur < 0 or prv < 0 or cur == prv:
-                    continue
-                if names.get(cur) not in ("BULLISH", "BEARISH"):
-                    continue
-                if names.get(prv) == names.get(cur):
-                    continue
-                if clean and (st[i-1] == cur or st[i-2] == cur):
-                    continue          # no contamination by the target state in the prior 2 bars
-                side = 1 if names[cur] == "BULLISH" else -1
-                e = op[i+1]
-                x = close[i+hold]
-                rec.append((sess[i], side*(x-e) - FRICTION_PT))
-            if len(rec) < 60:
+    for (hold, clean), R in real.items():
+        if R is None or len(R) < 60:
+            continue
+        line = f"{hold*a.bar:>5}m{'  yes' if clean else '   no':>9}"
+        for P in (TR, VA, TE):
+            s2 = R[R.sess.isin(P)]
+            if len(s2) < 15:
+                line += f"{len(s2):>6}{'-':>8}{'-':>8}"; continue
+            t = s2.pt.mean()/(s2.pt.std(ddof=1)/np.sqrt(len(s2)))
+            line += f"{len(s2):>6}{s2.pt.mean():>8.2f}{t:>8.2f}"
+        line += f"{R.pt.mean():>8.2f}{100*(R.pt > 0).mean():>7.0f}%"
+        print(line)
+
+    # ── ★ THE CONTROL. Permute which STATE carries which LABEL and re-run everything. The states,
+    #    their persistence and the transition times are untouched; only the claim "this state means
+    #    up" is randomised. A cell that does not beat this is reading its own labels off noise.
+    if a.shuffle:
+        rng = np.random.default_rng(11)
+        vals = [names[k] for k in range(a.states)]
+        reps = {}
+        for _ in range(a.shuffle):
+            perm = list(rng.permutation(vals))
+            if perm == vals:
                 continue
-            R = pd.DataFrame(rec, columns=["sess", "pt"])
-            line = f"{hold*a.bar:>5}m{'  yes' if clean else '   no':>9}"
-            for P in (TR, VA, TE):
-                s2 = R[R.sess.isin(P)]
-                if len(s2) < 15:
-                    line += f"{len(s2):>6}{'-':>8}{'-':>8}"; continue
-                t = s2.pt.mean()/(s2.pt.std(ddof=1)/np.sqrt(len(s2)))
-                line += f"{len(s2):>6}{s2.pt.mean():>8.2f}{t:>8.2f}"
-            line += f"{R.pt.mean():>8.2f}{100*(R.pt > 0).mean():>7.0f}%"
-            print(line)
-    print(f"\n  net points AFTER {FRICTION_PT:g}pt friction · entry = next bar open · "
+            r = run({k: perm[k] for k in range(a.states)}, a.friction)
+            for key, R in r.items():
+                if R is not None and len(R) >= 60:
+                    reps.setdefault(key, []).append(R.pt.mean())
+        print(f"\n  SHUFFLED-LABEL CONTROL · {a.shuffle} draws · same states, same transitions, "
+              f"randomised meaning")
+        print(f"{'hold':>7}{'clean':>7}{'real':>10}{'shuffled mean':>16}{'shuffled sd':>14}"
+              f"{'  beats control?':>17}")
+        for key in sorted(reps):
+            hold, clean = key
+            if real.get(key) is None or len(real[key]) < 60:
+                continue
+            rm = real[key].pt.mean(); arr = np.array(reps[key])
+            print(f"{hold*a.bar:>5}m{'  yes' if clean else '   no':>9}{rm:>10.2f}"
+                  f"{arr.mean():>16.2f}{arr.std(ddof=1) if len(arr) > 1 else 0:>14.2f}"
+                  f"{('  YES' if rm > arr.mean() + (arr.std(ddof=1) if len(arr) > 1 else 0) else '  no'):>17}")
+
+    print(f"\n  net points AFTER {a.friction:g}pt friction · entry = next bar open · "
           f"exit = fixed hold, no target, no stop")
     return 0
 
