@@ -10,6 +10,93 @@
 
 ---
 
+## 2026-09-13 (Sun) — the clean book is POSITIVE, the contract rolled, and the operator rewrote how I do R&D
+
+### ★★★ THE FINDING THAT REFRAMES THE DESK
+The MAE study (queue item #1, nominated by three independent research lenses, absent from this desk's
+entire history) walked the 5-second tape for all 879 closed trades. Split by lot size:
+* **single lot — 715 trades, +$1,498 (+$2.10/trade)**
+* multi lot — 164 trades, **−$6,975** (−$42.53/trade)
+The paper engine's fabricated 0.1%-adverse fill on their 223 extra lots is worth an estimated
+**$12,934**, more than the whole multi-lot loss. **Every dollar of the reported −$5,477 sits in
+trades the simulator mis-prices.** ⚠ t=0.77 and the day-clustered CI spans zero — this is "positive
+and indistinguishable from zero", NOT a claim of profitability. But that is a different sentence from
+"losing", which is what has been reported for months. **Until fills are trustworthy, size 1.**
+★ And it corrected the arithmetic the whole literature report was built on: my "25% hit rate at
+1.26:1" came from exit_reason buckets, the wrong denominator. At TRADE level the single-lot book is
+**42.1% at 1.48:1**, which is 1.8 points ABOVE its own break-even of 40.3%.
+★ MAE proper: winners go against us a median 9.0pt, losers 22.8pt — they separate — but **every stop
+width from 5 to 60pt makes the clean book WORSE**, because winners already capture 70% of their
+favourable move. Neither a stop problem nor a target problem. On the CONTAMINATED population a 40pt
+stop looks worth +$871: the opposite conclusion, drawn from simulator noise.
+
+### The rest of the ten-item queue
+* **Daily losses are SINGLE-SESSION DOMINATED** — worst day −$817 against a median losing day of
+  −$242 (3.4x), and the **5 worst days are 52% of all loss**. A $250 daily limit takes the book from
+  +$35 to **+$87/day**. The highest-value change available and it needs no edge at all.
+* **Trades 11+ are −$1.86 each** over 387 trades. Capping at 5/day keeps 96% of the profit on 26% of
+  the trades: +$2.10 → **+$7.83/trade**.
+* **RelVol works, BACKWARDS.** The published dose-response increases with relative volume; on this
+  book it DECREASES, monotonically, in all three windows (15/30/60-min). Quiet-third +$15.52/+$17.92/
+  +$11.99 per trade against busy-third −$0.74/−$3.45/−$1.40. **Coherent, not anomalous**: that filter
+  was measured on BREAKOUTS, which need participation, and the only green live gate here is
+  `capitulation_long`, a REVERSION gate. It predicts the desk's own "don't bench a coiled gate on
+  quiet tape" memory from outside.
+* **The 2x2 (stop x target) cannot be resolved on 39 days** — all four cells span zero once
+  day-clustered. The pre-registered STRUCTURAL prediction held (stop-only: 15% hit at 7.66:1 against
+  the status quo's 53% at 0.92:1). ⚠ Its naive numbers were spectacular and false: cell (d) showed
+  +$157/trade because 666 trades held to the SAME close are 39 day-bets counted ~17x, and the 3 best
+  days carry 108% of the total. The overlapping "hold everything" book also needs 14 lots on a median
+  day and 78 at peak — **unfundable on 13 of 43 days**.
+* **One trade per day, held to close, on 2,656 sessions** (the only powered configuration): +1.81
+  pt/day at a 15pt stop, CI [−0.12, +3.91], beating its sign-flipped control in **5 of 5** stop
+  widths. ≈$4/day per lot — which lands inside the verified-record band the literature sweep found.
+* **Item 10 REFUTED, and it is the important one.** The sweep reported ATR14 at held-out R²=−0.057
+  against HAR's 0.589 and FOUR agents "replicated" it. Re-derived: **ATR14 BEATS HAR** (0.311 vs
+  0.217 in levels, 0.231 vs 0.164 in logs) and the two forecasts correlate **0.911** — the same
+  signal. The −0.057 compared ATR14 in POINTS (median 3.8) with realised vol as a FRACTION (median
+  0.00978). **A units artefact replicated four times reads as confirmation and is worse than one
+  unchecked claim.** Banked as [[agreement-is-not-independence]].
+* **Item 9 (touch entry) verified in size, registered for forward test.** 5.2M depth snapshots: mean
+  US spread 0.410pt, so resting at the touch saves ~$0.41/leg against the sweep's $0.478. But fill
+  probability is UNMEASURABLE from history — our order is not in the replayed book, 37.9% of
+  snapshots are already at one tick and the median touch is 6 lots deep. `prereg_touch_entry.json`
+  kills on the MECHANISM (touch fills under 40%, or adverse post-fill drift), not the headline.
+
+### The contract roll, and the desk going down again
+`gazbot7-tournament` was in a 150-restart boot loop: the IBKR gateway wedged at 04:29 and port 4002
+timed out from 05:34. `docker restart alphabot-gateway` fixed it in 15 seconds. ★ And the roll was
+real: ContFuture now resolves **MNQZ6 (2026-12-18)** and **MGCV6** — the long-running services were
+pinned to MNQU6, expiring 09-18, while `day_rider` re-qualifies every tick and would have moved
+alone. All restarted. `tournament` and `capture` now LOG the contract; **md had NO logging config at
+all** — the feed, the most important input on the desk, was its only silent service.
+⚠ `capture.db.bars` has no contract column, so the tape splices ~297pt of basis unmarked;
+`gazbot7-splice-guard.timer` (one-shot, self-expiring) re-benched all six gates at 22:02Z because
+`gate-reactivate` arms them at 22:00Z in the same instant.
+
+### And the reports page was hiding three reports
+`reports_json()` matched a WHITELIST of five slugs, so `edge_hunt_`, `promise_` and `litreview_` were
+invisible — while serving correctly at their own URLs, so every "is it published?" check passed. Now
+a denylist: a new report appears BY DEFAULT. 21 → 24 listed.
+
+### ★★★ NEW STANDING RULES — HOW I DELIVER R&D (CLAUDE.md)
+Operator: *"stop being so conservative and only giving me proven numbers or nothings... its becoming
+a bit demoralising when you kill everything."* He is right and the diagnosis is precise: DECIDING
+whether something is true needs strict evidence; GENERATING AND RANKING candidates worth his time
+needs a ranked list under uncertainty. He asks for the second and I delivered the first every time —
+running a hostile review of my own output and reporting the review instead of the output. **The
+asymmetry was self-serving**: a trial costs him a little paper P&L, my being wrong costs me
+credibility, so I optimised my error rate instead of his outcomes. Eight rules written into
+CLAUDE.md; the key ones are a RANKED SHORTLIST as the output of every study, POINT ESTIMATE FIRST,
+three outcomes (REFUTED / **PROMISING** / PROVEN) instead of two, killing only on evidence of
+absence, and a bar that SCALES with what is at risk. The method traps are untouched and stay strict:
+rigour decides how much to risk, not whether to look.
+
+**Revert:** everything here is analysis, logging or shadow. `git revert` the day's commits;
+`systemctl stop gazbot7-splice-guard.timer` to disarm the one-shot.
+
+---
+
 ## 2026-09-12 (Sat) — seven research agents on "can we trade between the regimes", and the answer is a data purchase we did not have to make
 
 **What ran.** The six agents launched 2026-09-11 21:19-21:22Z died with their parent session four

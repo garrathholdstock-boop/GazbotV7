@@ -7,6 +7,22 @@
 > **Never edit this file without a matching SESSIONS.md entry in the same breath.**
 > **Re-SCAN code / systemd / health — never recall.** STATE is stale until proven fresh.
 >
+> **Re-scanned 2026-09-13 08:30Z.** ★ **THE CLEAN BOOK IS POSITIVE.** Split by lot size, the live
+> record is **single-lot 715 trades +$1,498 (+$2.10/trade)** against **multi-lot 164 trades −$6,975**
+> — and the paper engine's fabricated 0.1%-adverse fill on the 223 extra lots accounts for an
+> estimated $12,934, MORE than the whole multi-lot loss. **Every dollar of the reported −$5,477 lives
+> in trades the simulator mis-prices.** ⚠ Not a claim of profitability: t=0.77, day-clustered CI
+> spans zero. But "positive and indistinguishable from zero" is not "losing", which is what has been
+> reported for months. **Until fills are trustworthy, SIZE 1** — every multi-lot number this desk has
+> booked is measuring the simulator, so the 4-lot ladder cannot be evaluated on paper as configured.
+> ★ **THE CONTRACT ROLLED.** MNQU6 → **MNQZ6** (expiry 2026-12-18) and MGC → **MGCV6**. Long-running
+> services qualify ContFuture ONCE at startup, so they were pinned to a contract expiring 09-18 while
+> `day_rider` (a oneshot) would have moved on its own — two desks, two contracts, one netted account.
+> All restarted; `tournament` and `capture` now LOG the contract they hold, and md — which had **no
+> logging configuration at all** — now logs too. ⚠ `capture.db.bars` has NO contract column, so the
+> tape splices ~297pt of basis with no marker: `gazbot7-splice-guard.timer` re-benched the gates at
+> 22:02Z on 09-13 for that reason. SESSIONS §392-§394.
+>
 > **⛔ Re-scanned 2026-09-07 16:15Z — THE DESK IS HALTED AND THE RIDER IS OFF, BY HUMAN DECISION.**
 > `desk_kill.json` is ACTIVE (14:16:10Z) and `data/day_rider.env` = `day_rider=off`, so **the manual
 > BUY button is dead** — `enabled()` (`day_rider.py:1129`) returns before `buy_requested()` (`:1695`)
@@ -255,7 +271,15 @@ the live exit); `bank20_grindA_ctl`; `capit_live_mirror`; `capit_flip_live`; `cx
 ⚠ The old "EIGHT of the 22" was a pre-08-16-builds count and has **NOT** been re-derived. The list
 above is a verified FLOOR, not a census — a P&L sort once put the control top of a kill pile.
 
-MGC (`mgc_slate()`, n=3): `mgc_holebreak_fade_long/short` + `mgc_break_fade_nobook` (the control).
+MGC (`mgc_slate()`, **n=7 as of 2026-09-13**): the three `level_break` arms
+(`mgc_holebreak_fade_long/short` + `mgc_break_fade_nobook`, the control) · the three fixed-side
+**clock shorts** (14:00Z + its 13:35Z/15:00Z controls — a spike test, mechanism already refuted, only
+forward evidence settles it) · and **`mgc_absveto_short`**, the one MNQ gate that survived being
+tested on gold. ★ Four were ported on a cost-ratio argument measured on a DIFFERENT signal; tested
+properly, three are NEGATIVE on gold (−$10.65 / −$8.71 / −$7.13 per trade) and were removed. The
+survivor is the only cell measured that weekend on either instrument whose CI clears zero (+1.137pt
+gross, [+0.105, +2.180], n=1,468) and it is the same family as `abs_veto_55s`, the best MNQ arm.
+**The short-side thrust fade is the one thing that repeats across instruments.**
 ⚠ Its headline +$1,387/+$1,261 are **depth-mid** numbers; the service folds **trade bars** and only
 41% of the lab's fires exist there — see `MGC_SHADOW_SCOPE.md` §8.
 
