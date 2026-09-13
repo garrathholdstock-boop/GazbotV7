@@ -474,6 +474,14 @@ async def _build_live(cfg: RunConfig, gates, stop_mult: dict | None = None):
     ref: dict = {}
     await gw.start()
     (contract,) = await gw._ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
+    # ★2026-09-13 SAY WHICH CONTRACT. ContFuture resolves at STARTUP and this service runs for days,
+    # so across a roll it keeps the expiring month while day_rider - a oneshot that re-qualifies
+    # every tick - moves to the new one. That is two desks on two contracts on one netted account,
+    # and until now nothing logged it: the roll was inferable but not verifiable. MNQU6 -> MNQZ6 was
+    # 2026-09-13, and the only reason it was caught was a literature review mentioning the date.
+    log.info("contract resolved: %s expiry=%s conId=%s (ContFuture at startup — a roll needs a "
+             "RESTART of this service)", contract.localSymbol,
+             contract.lastTradeDateOrContractMonth, contract.conId)
     # Protective stops must REST on the concrete front-month Future, NOT the ContFuture: IBKR
     # intermittently never fires a resting stop's trigger on a continuous contract (stuck
     # PreSubmitted/whyHeld='trigger' → the stop-breach guard market-flattens = STOP_UNFILLED). The

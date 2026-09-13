@@ -80,6 +80,11 @@ async def run(cfg: RunConfig, *, tape_interval_s: float = 1.0,
 
 
 def main() -> None:  # `python -m gazbot7.md`
+    # ★2026-09-13 md HAD NO LOGGING CONFIG AT ALL. tournament.py calls basicConfig and md
+    # never did, so every application log line the FEED emitted went nowhere — including
+    # the contract it resolves at startup, which is exactly what a roll needs to be
+    # verifiable. The most important input on the desk was the only silent service.
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     asyncio.run(run(RunConfig()))
 
 

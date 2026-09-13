@@ -14,6 +14,7 @@ from ``NO_DATA`` (market closed / feed fully down). Clean-room: nothing copied.
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -227,6 +228,13 @@ class CaptureManager:
             exch = exch or self._exchange
             (qc,) = await ib.qualifyContractsAsync(ContFuture(sym, exch))
             self._contracts[sym] = qc
+            # ★2026-09-13 NAME THE CONTRACT. This resolves ONCE at startup and the feed runs for
+            # days, so across a roll it keeps publishing the expiring month into MD_STREAM and
+            # capture.db — and capture.db.bars has NO contract column, so the tape silently splices
+            # two contracts with the basis (MNQU6->MNQZ6 was ~297pt) printed as a real move.
+            logging.getLogger("capture").info(
+                "contract resolved: %s %s expiry=%s conId=%s (a roll needs a RESTART)",
+                sym, qc.localSymbol, qc.lastTradeDateOrContractMonth, qc.conId)
             bars = ib.reqRealTimeBars(qc, 5, "TRADES", False)
             bars.updateEvent += self._bar_handler(sym)
             tkr = ib.reqMktData(qc, "", False, False)
