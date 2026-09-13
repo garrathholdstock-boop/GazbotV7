@@ -1,0 +1,19 @@
+[Unit]
+Description=GAZBOT V7 — the $250 DAILY LOSS LIMIT (benches the gates; never arms, never flattens)
+# ★★★ ONE-DIRECTIONAL BY CONSTRUCTION. Writes `off` and never `on`, places no order, closes no
+# position, does not touch the rider or the 20:40Z hard exit. Asserted against the source by
+# tests/test_daily_loss_limit.py. SELF-CLEARING: gate-reactivate arms every `off` gate at 22:00Z,
+# so a bench lasts exactly one session and needs no human release — deliberately unlike the
+# cross-desk kill, which once disarmed the desk it was protecting for four hours.
+# Pre-registered in data/prereg_daily_loss_limit.json; the $250 is FROZEN for 60 sessions.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=256M
+TimeoutStartSec=60
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/daily_loss_limit.py

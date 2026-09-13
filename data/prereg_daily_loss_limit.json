@@ -1,0 +1,50 @@
+{
+ "_what_this_is": "PRE-REGISTERED FORWARD TEST of a $250 HARD DAILY LOSS LIMIT on the tournament gates. Registered 2026-09-13 BEFORE any forward session, because the level was chosen on 43 historical sessions and is therefore overfit until proven forward.",
+ "registered_on": "2026-09-13",
+ "first_eligible_session": "2026-09-13 22:00Z",
+ "registered_by": "operator: 'run the $250 daily loss limit forward from tonight'",
+ "why": {
+  "losses_are_single_session_dominated": "single-lot book, 43 sessions: worst day -$817 against a median losing day of -$242 = 3.4x, and THE FIVE WORST DAYS ARE 52% OF ALL LOSS",
+  "retrospective_effect": "applying a $250 limit takes the book from +$35/day to +$87/day; a $400 limit gives +$62/day",
+  "it_needs_no_edge": "a loss limit cannot create expectancy. It truncates the left tail of the DAILY distribution. That is why it is the highest-value change available and why it is testable without a signal.",
+  "external_support": "every professional hard rule in the industry is on LOSS, never on win rate or target (6 independent traditions). Topstep's own figure: 'over 63% of traders have lost account in a single day.'"
+ },
+ "\u26a0_the_honest_caveat": "THE $250 WAS SELECTED ON THE SAME 43 SESSIONS IT IS SCORED ON. Tighter limits looked MONOTONICALLY better in backtest ($200 gave +$4,326), and a monotone improvement to the tightest value tested usually means 'stop trading' is the optimum - which is exactly the shape that does not survive forward. The level is frozen here precisely so that cannot be re-fitted.",
+ "the_rule": {
+  "level": "-$250.00 of REALISED session P&L, frozen",
+  "session": "the CME session, 22:00Z reopen to 22:00Z - NOT the calendar day. A midnight reset would clear the limit mid-session, which is the one moment it must not.",
+  "action": "bench all six tournament gates. It writes `off` and NEVER `on` - asserted against the source by tests/test_daily_loss_limit.py",
+  "what_it_does_NOT_do": [
+   "place any order",
+   "close any position",
+   "touch the day rider",
+   "touch the 20:40Z hard exit",
+   "require a human release"
+  ],
+  "self_clearing": "gazbot7-gate-reactivate arms every `off` gate at 22:00Z, so a bench lasts exactly one session. This is deliberate: the desk has been bitten by a protective mechanism that disarmed the desk it was protecting and needed a human to undo.",
+  "cadence": "every 2 minutes, offset off the router's 5-minute write and the reconciler's 30s tick",
+  "fires": "once per session (latched in data/daily_loss_limit_state.json)"
+ },
+ "what_is_recorded_every_session": [
+  "session realised P&L",
+  "whether the limit fired, and at what time and trade count",
+  "which gates were benched",
+  "the P&L the session went on to make AFTER the fire time (the counterfactual: what the limit saved or cost)"
+ ],
+ "verdict_rule": {
+  "primary": "mean $/session WITH the limit beats mean $/session WITHOUT it (the counterfactual, reconstructed from the trades that would have followed), day-clustered 95% CI on the difference excluding zero",
+  "sessions_required": 60,
+  "expected_fire_rate": "about 6 of 43 sessions historically, so ~8 fires in 60 - and THAT IS THE PROBLEM WITH THIS TEST: the evidence accrues only on the days it fires. Expect INCONCLUSIVE and report it as such.",
+  "REFUTED": "the limit costs money forward - i.e. sessions it truncated would have recovered",
+  "_not_required": "statistical significance. This is a risk rule, not an edge. If it is merely neutral on P&L and cuts the worst day, that is a PASS on its own terms."
+ },
+ "rules_of_engagement": [
+  "DO NOT move the $250. A changed level restarts the count at zero.",
+  "DO NOT add a second condition (time of day, trade count, gate).",
+  "DO NOT extend it to the rider without a separate decision - the rider is the desk's only automatic protection path and a loss limit that silences it is the cross-desk-kill failure again.",
+  "Read the interim only to check it FIRED correctly, never to judge it."
+ ],
+ "status": "ARMED - first eligible session 2026-09-13 22:00Z",
+ "verdict": null,
+ "sessions": []
+}

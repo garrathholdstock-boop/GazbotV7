@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — daily loss limit cadence
+
+[Timer]
+# Every 2 minutes at :40 — clear of the router's *:0/5 write to the same file and of the
+# reconciler's *:*:0/30, so two processes never touch gate_switches.env in the same second.
+OnCalendar=*:0/2:40
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
