@@ -1,0 +1,37 @@
+{
+ "_what_this_is": "PRE-REGISTERED FORWARD TRIAL of TOUCH ENTRY - resting a limit at the touch instead of crossing the spread with a marketable limit. Registered 2026-09-13 because the PRIZE is verified but the RISK is unmeasurable from history, so only a forward record can settle it.",
+ "registered_on": "2026-09-13",
+ "registered_by": "queue item 9, operator: 'i want them all done'",
+ "the_prize_VERIFIED": {
+  "claim_from_the_sweep": "+$0.478 per leg, 35 of 35 sessions positive, worst +$0.388, about $4,000/yr at ~18 round trips a session",
+  "independent_re_derivation": "5,239,579 MNQ depth snapshots over 24 sessions: US-hours mean spread 0.410pt, median 0.50pt. Crossing pays the full spread; resting pays none of it, so the saving per leg is half the spread = 0.205pt = $0.410. The sweep's $0.478 implies 0.48pt. CONSISTENT.",
+  "what_it_is_not": "NOT an edge. It is 38% of MNQ's all-in friction. It moves every take-profit cell from about -$2.50 to about -$1.55 and every cell stays negative."
+ },
+ "\u2605_why_a_BACKTEST_CANNOT_SETTLE_IT": "The saving is conditional on being FILLED and our own order is not in the replayed book. Fill probability and adverse selection are therefore unmeasurable from history, at any sample size. 37.9% of snapshots are already at ONE TICK and the median touch is 6 lots deep, so a resting order joins the back of a real queue. A backtest that assumes the fill measures nothing but the spread.",
+ "arms": {
+  "A_cross": "THE INCUMBENT. Marketable limit at ref +/- band, as the rider does today. Always fills.",
+  "B_touch_then_cross": "THE HYPOTHESIS. Rest at the touch for TIMEOUT_S; if unfilled, fall back to the incumbent marketable limit. Never leaves the desk without a position it intended to have.",
+  "C_touch_only": "DIAGNOSTIC ONLY, never live: rest at the touch and abandon the trade if unfilled. Measures the miss rate cleanly and is NOT a candidate - a missed entry is not free, it is a silently different strategy."
+ },
+ "what_must_be_recorded_per_attempt": [
+  "timestamp, side, the touch price, the marketable-limit price",
+  "outcome: FILLED_AT_TOUCH | FILLED_ON_FALLBACK | MISSED",
+  "seconds to fill",
+  "the price at fallback vs the price at the original decision (the chase cost)",
+  "the subsequent 60s move (to expose adverse selection: did the touch fill only when price was about to run against us?)"
+ ],
+ "verdict_rule": {
+  "primary": "realised saving per ROUND TRIP, net of the chase cost on fallbacks, > 0 with a day-clustered 95% CI excluding zero at 200 round trips",
+  "kill": "if FILLED_AT_TOUCH is below 40%, or if the 60s post-fill move is systematically adverse on touch fills relative to crossed fills, the mechanism is adverse selection and the arm comes off regardless of the headline saving",
+  "_not_required": "statistical significance on P&L. This is a COST measurement, not an edge - the fill rate and the chase cost are the whole question."
+ },
+ "rules_of_engagement": [
+  "Phase 1 is READ-ONLY: log the touch price beside every entry the desk already makes and accumulate the counterfactual. NO order-path change.",
+  "Phase 2 - actually resting an order - TOUCHES THE LIVE ORDER PATH and requires the operator's explicit go. Not authorised by this registration.",
+  "\u26a0 PASSIVE ENTRY WAS KILLED ON THIS DESK ONCE BEFORE (docs/memory/execution-cost-autopsy-stage1.md). Read that before phase 2; this registration does not overrule it, it re-opens it with a fill-rate measurement the first attempt did not have.",
+  "DO NOT tune TIMEOUT_S mid-trial."
+ ],
+ "status": "REGISTERED - phase 1 (read-only counterfactual logging) pending; phase 2 needs an explicit operator decision",
+ "verdict": null,
+ "attempts": []
+}
