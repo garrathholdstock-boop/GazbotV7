@@ -1,0 +1,51 @@
+{
+ "_what_this_is": "PRE-REGISTERED FORWARD TEST of RELATIVE VOLUME as a DAY-SELECTION filter \u2014 the first selection filter of any kind this desk has ever run. Registered 2026-09-13; START IS DELAYED, see below.",
+ "registered_on": "2026-09-13",
+ "registered_by": "operator: 'run the relvol filter forward too'",
+ "the_finding": {
+  "measured": "single-lot live book, 31 sessions after the 14-session warm-up, roll-excluded",
+  "15min": "LOW +$15.52/trade \u00b7 MID +$4.27 \u00b7 HIGH -$0.74",
+  "30min": "LOW +$17.92/trade \u00b7 MID -$1.11 \u00b7 HIGH -$3.45",
+  "60min": "LOW +$11.99/trade \u00b7 MID +$10.54 \u00b7 HIGH -$1.40",
+  "shape": "MONOTONE DECREASING in all three windows independently, and the quietest quintile is +$20 to +$31/trade"
+ },
+ "\u2605_it_runs_BACKWARDS_to_the_literature_and_that_is_the_point": "The published dose-response INCREASES with relative volume (-0.02R / +0.08R / +0.38R, Crabel 1990 and replicated since). It was measured on BREAKOUTS, which need participation to follow through. This desk's only green live gate is capitulation_long, a REVERSION gate, which needs the opposite: a quiet tape that mean-reverts rather than trends. The sign flip is therefore a PREDICTION of the mechanism, not an anomaly \u2014 and it independently predicts this desk's own banked memory, 'DON'T BENCH A COILED GATE ON QUIET TAPE'.",
+ "the_rule": {
+  "feature": "RelVol(30) = volume in the first 30 minutes of the US session (13:30-14:00Z) / the mean of the same window over the trailing 14 sessions",
+  "window_choice": "30 minutes, FROZEN. It is the median of the three tested and matches the opening-range period the practitioner literature uses. Choosing it because it scored best would be fitting; all three are logged every session so the choice can be AUDITED later, but only the 30-minute value acts.",
+  "threshold": "RelVol > 1.00 -> BENCH. Not a fitted parameter: 1.00 is the natural boundary of the ratio, i.e. 'busier than the trailing average'. The measured HIGH bucket began at 1.01.",
+  "evaluated_at": "14:00Z, once. It cannot be known earlier - the first 30 minutes must finish.",
+  "action": "bench all six tournament gates for the remainder of the session. Writes `off`, never `on`.",
+  "what_it_does_NOT_do": [
+   "place any order",
+   "close any position",
+   "touch the rider",
+   "touch the 20:40Z hard exit",
+   "act on trades already open or already taken before 14:00Z"
+  ],
+  "self_clearing": "gate-reactivate arms every `off` gate at 22:00Z"
+ },
+ "\u26a0\u26a0_WHY_THE_START_IS_DELAYED": {
+  "problem": "The denominator is a trailing 14-session volume mean and capture.db.bars HAS NO CONTRACT COLUMN. The MNQ contract rolled MNQU6 -> MNQZ6 on 2026-09-13, and first-30-min volume fell 0.79x across the trailing window as the September contract died. After the roll, volume on the new front month jumps back \u2014 so RelVol would read ~1.3-1.5 on EVERY session for 14 sessions and the filter would bench every day for a reason that has nothing to do with participation.",
+  "also": "2026-09-07 (US Labor Day) sits in the baseline at 32,242 against a ~292,697 mean \u2014 a tenth of normal. A holiday in the denominator inflates every subsequent ratio.",
+  "decision": "FIRST ELIGIBLE SESSION IS THE 15TH CLEAN POST-ROLL SESSION, on or about 2026-10-02. Until then the script LOGS RelVol every session and acts on nothing, so the warm-up is observable rather than assumed.",
+  "build_item": "add a contract column to capture.db.bars so this is fixable properly rather than waited out. Until it exists, EVERY volume ratio on this desk is roll-blind."
+ },
+ "verdict_rule": {
+  "primary": "mean $/trade on ACTED sessions (RelVol <= 1.00) beats mean $/trade on BENCHED sessions, day-clustered 95% CI on the difference excluding zero",
+  "sessions_required": 60,
+  "REFUTED": "the benched sessions are as profitable as the acted ones - the filter is decoration",
+  "INCONCLUSIVE": "fewer than 20 sessions in either bucket by session 60",
+  "_a_second_reading_that_matters": "if the filter is neutral on $/trade but cuts trade COUNT materially, it still wins on friction - report that separately."
+ },
+ "rules_of_engagement": [
+  "DO NOT change the window from 30 minutes.",
+  "DO NOT move the 1.00 threshold.",
+  "DO NOT start before the 15th clean post-roll session, however tempting the interim looks.",
+  "Log all three windows; act on one.",
+  "The 31-session measurement is where the effect was FOUND. Its P&L is not a result."
+ ],
+ "status": "REGISTERED \u2014 logging only until ~2026-10-02, then ARMED",
+ "verdict": null,
+ "sessions": []
+}
