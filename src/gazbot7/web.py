@@ -1661,7 +1661,16 @@ def reports_json(static_dir):
         # belongs on the same index, with the same PDF-sibling convention.
         # ★2026-09-03 + "tunnel": the MGC compression study is a standalone research report and
         # belongs on the same index as the greenfield/gates pages, same dated-slug convention.
-        m = re.match(r"(?:weekly|v7_big_runs|gates|dossier|tunnel)_(\d{4}-\d{2}-\d{2})\.html$", fn)
+        # ★★2026-09-13 A WHITELIST MADE EVERY NEW REPORT INVISIBLE, SILENTLY. The operator could not
+        # find three reports written for him in 24h (edge_hunt, promise, litreview) because the
+        # pattern named five slugs and nothing else matched — the files WERE served at their URLs, so
+        # every check of "is it published?" passed while the page he actually reads showed nothing.
+        # Now it is a DENYLIST: any <slug>_<date>.html is a report unless it is a known sibling
+        # (monday_ playbooks are rendered as the `play` link on another card) or a superseded copy.
+        # A new report appears by DEFAULT; forgetting to register one can no longer hide it.
+        m = re.match(r"([a-z0-9_]+)_(\d{4}-\d{2}-\d{2})\.html$", fn)
+        if m and (m.group(1) in ("monday", "superseded_weekly") or "partial" in fn):
+            continue
         if not m:
             continue
         title = fn
@@ -1674,9 +1683,9 @@ def reports_json(static_dir):
             pass
         pdf = fn[:-5] + ".pdf"  # weekly_<date>.pdf sibling, if a PDF was rendered
         has_pdf = os.path.exists(os.path.join(static_dir, pdf))
-        play = "monday_" + m.group(1) + ".html"  # the Monday playbook for this week, if built
+        play = "monday_" + m.group(2) + ".html"  # the Monday playbook for this week, if built
         has_play = os.path.exists(os.path.join(static_dir, play))
-        out.append({"date": m.group(1), "file": fn, "title": title,
+        out.append({"date": m.group(2), "file": fn, "title": title,
                     "pdf": pdf if has_pdf else None, "play": play if has_play else None})
     out.sort(key=lambda r: r["date"], reverse=True)
     # ★2026-08-13 PIN THE PROGRESS PAGE AT THE TOP. Operator: "put it on reports page."
