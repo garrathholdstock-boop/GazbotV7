@@ -1,0 +1,23 @@
+[Unit]
+Description=GAZBOT V7 — snapshot the operator's read at a buy press (READ-ONLY, never consumes the request)
+# ★★★ IT MUST NEVER TOUCH data/day_rider_buy.txt. day_rider consumes and clears that file; a second
+# reader that cleared, moved or rewrote it would SILENTLY EAT THE OPERATOR'S PRESS. This opens it
+# read-only and writes only data/operator_reads.jsonl — asserted by tests/test_capture_operator_read.py.
+# It runs as a SEPARATE oneshot on the same inotify event as gazbot7-day-rider-buy.path, so it cannot
+# delay the order: the rider still reaches a completed tick ~1.35s after the write.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=900M
+TimeoutStartSec=180
+# ★ THE COPY MUST HAPPEN BEFORE THE INTERPRETER STARTS — day_rider consumes the request ~1.35s
+# after the write and python takes ~1.7s to reach its first read. '-' so a missing file never fails.
+ExecStartPre=-/bin/cp -f /home/alphabot/gazbot7/data/day_rider_buy.txt /run/gazbot7_press_buy.txt
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/capture_operator_read.py buy
+# A failed snapshot must never affect trading.
+SuccessExitStatus=0 1

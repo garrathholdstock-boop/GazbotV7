@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — watch for a claim press and snapshot the tape
+
+[Path]
+# ⚠ PathModified, NEVER PathExists — the desk's documented trap. An orphaned request flag survives
+# up to 5 (buy) or 15 (claim) minutes, and level-triggering would re-snapshot in a tight loop for
+# that whole window.
+PathModified=/home/alphabot/gazbot7/data/day_rider_claim.txt
+Unit=gazbot7-capture-read-claim.service
+
+[Install]
+WantedBy=paths.target
