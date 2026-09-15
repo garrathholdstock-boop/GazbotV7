@@ -204,8 +204,39 @@ def open_store(path: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA busy_timeout=5000")  # tolerate a concurrent writer (V5's locked-DB lesson)
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)
+    _migrate(conn)
     conn.commit()
     return conn
+
+
+# ★★2026-09-15 ADDITIVE MIGRATIONS. `trades` is the desk's oldest table and its history is the
+# record — it is never rebuilt, so a new field arrives by ALTER. Conditional on the column being
+# absent so this is idempotent and so fixtures and older databases still open.
+# ⚠ Adding a field is only half the job. `data_quality` was added on 08-05, fixed in pnl.py, and
+# SIX web.py queries went on reading unfiltered for eight days — a right number beside a wrong one.
+# Whatever is added here, AUDIT EVERY CONSUMER before considering it done.
+_TRADE_COLUMNS = {
+    # ★ WHO DECIDED TO OPEN THIS POSITION. Added because the operator's own record could not be
+    # separated from the desk's: nothing recorded who initiated an entry, so "are his trades
+    # profitable" was answerable only by journald archaeology that reaches back 5 days.
+    # 'manual' = the operator pressed BUY/SELL · 'auto' = drift confirmed and the rider entered
+    # NULL = UNKNOWN, and it must STAY NULL for rows written before this column existed. An
+    # inferred value here would be indistinguishable from a recorded one, and the whole reason
+    # the column exists is that inference ran out.
+    "entry_source": "TEXT",
+}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    try:
+        have = {r[1] for r in conn.execute("PRAGMA table_info(trades)")}
+    except sqlite3.Error:
+        return
+    if not have:
+        return
+    for col, decl in _TRADE_COLUMNS.items():
+        if col not in have:
+            conn.execute(f"ALTER TABLE trades ADD COLUMN {col} {decl}")
 
 
 def record_fill(conn: sqlite3.Connection, fill: Fill) -> bool:
@@ -275,17 +306,28 @@ def record_trade(
     entry_exec_id: str | None = None,
     exit_exec_id: str | None = None,
     gate: str | None = None,
+    entry_source: str | None = None,
 ) -> bool:
     """Record a closed round-trip. Idempotent on ``exit_exec_id`` (the fill that
     brought the position flat) — completing the same close twice is a no-op.
-    Returns True if newly written, False if it was already recorded."""
+    Returns True if newly written, False if it was already recorded.
+
+    ``entry_source`` is 'manual' (the operator pressed BUY/SELL) or 'auto' (drift confirmed).
+    ⚠ Pass None when it is genuinely not known — NEVER a guess. See _TRADE_COLUMNS.
+    """
+    # ⚠ Written conditionally: fixtures and pre-migration databases have no such column, and a
+    # view that throws is worse than one that stores less.
+    _cols = {r[1] for r in conn.execute("PRAGMA table_info(trades)")}
+    _extra = ", entry_source" if "entry_source" in _cols else ""
+    _ph = ",?" if _extra else ""
+    _vals = (entry_source,) if _extra else ()
     cur = conn.execute(
         "INSERT OR IGNORE INTO trades "
         "(symbol, side, qty, entry_price, exit_price, entry_exec_id, exit_exec_id, "
-        " opened_at, closed_at, pnl_usd, fees_usd, exit_reason, gate) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        f" opened_at, closed_at, pnl_usd, fees_usd, exit_reason, gate{_extra}) "
+        f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?{_ph})",
         (symbol, side, qty, entry_price, exit_price, entry_exec_id, exit_exec_id,
-         opened_at, closed_at, pnl_usd, fees_usd, exit_reason, gate),
+         opened_at, closed_at, pnl_usd, fees_usd, exit_reason, gate) + _vals,
     )
     conn.commit()
     return cur.rowcount == 1

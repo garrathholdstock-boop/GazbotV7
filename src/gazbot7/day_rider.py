@@ -516,6 +516,14 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float |
             closed_at=dt.datetime.now(dt.UTC).isoformat(),
             pnl_usd=round(gross - fees, 2), fees_usd=round(fees, 2),
             exit_reason=reason, gate=DAY_RIDER_GATE,
+            # ★★2026-09-15 WHO OPENED THIS. `manual_targets_pt` is written by do_manual_entry()
+            # and by nothing else, so its presence IS the record of an operator press — this reads
+            # the fact rather than re-deriving it, and it is the same state the exit ladder already
+            # trusts to size its rungs (:1615).
+            # ⚠ Two days of P&L could not be attributed without this: the trades table had no
+            # entry-source field, journald reaches back only 5 days, and the exit ladders are
+            # identical (manual defaults to TARGET_PT), so no exit_reason discriminates either.
+            entry_source="manual" if out.get("manual_targets_pt") else "auto",
             # The exit fill id would make this idempotent; the rider places a plain market
             # order and does not capture one, so a same-second double-book is possible in
             # principle. One entry per session and a `closed` latch make it not possible in
