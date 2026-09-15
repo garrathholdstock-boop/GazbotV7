@@ -1,0 +1,40 @@
+[Unit]
+Description=GAZBOT V7 — LEG WATCH (a directional leg is running; here is what legs like it did next)
+# ★★★ READ-ONLY. No order path, asserted against the source by tests/test_leg_watch.py.
+# ★★ DESCRIPTIVE, NEVER PREDICTIVE. Every message carries a REFERENCE CLASS — what legs of this age
+# have historically gone on to do — and says in the message that it is not a forecast. All four tape
+# states measure 49-50% forward. tunnel_watch shipped a 1.75x claim that did not replicate and ran
+# nine hours on it before withdrawal; this one states its own limit in every alert.
+# ★ THE ESCALATION IS THE THROTTLE: 17 legs start per session, so the first notice is SILENT and 30
+# and 45 minutes are quiet log lines. Only 60/90/120/180 page — and only 33%/16%/9%/5% of legs reach
+# those, so they fire ~2.7/1.5/0.85 times a session. The rarer the milestone, the more it has to say.
+After=network-online.target gazbot7-md.service
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+Environment=GAZBOT7_CAPTURE=/home/alphabot/gazbot7/data/capture.db
+Environment=LEG_SYMBOL=MNQ
+Environment=LEG_POLL_S=30
+Environment=LEG_START_ATR=1.0
+Environment=LEG_START_MIN=8
+# ⚠ THE PARAMETER THAT MATTERS. At 1xATR the operator's 2026-09-14 morning leg dies on the +20.5pt
+# bounce at 08:40 he correctly held through; at 3xATR it survives. Changing this INVALIDATES the
+# frozen reference class in leg_watch.REFCLASS — re-derive with scripts/leg_survival.py first.
+Environment=LEG_RETRACE_ATR=3.0
+Environment=LEG_QUIET=30,45
+Environment=LEG_LOUD=60,90,120,180
+Environment=LEG_STALE_S=300
+WorkingDirectory=/home/alphabot/gazbot7
+# ⚠ 400M, NOT 256M. gazbot7-tunnel-watch was OOM-killed FOUR times on 2026-09-12 at exactly 256M
+# (rss 261MB) while systemd still reported ActiveState=active — a watcher that dies quietly is worse
+# than one that never ran.
+MemoryMax=400M
+Restart=always
+RestartSec=20
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/leg_watch.py
+
+[Install]
+WantedBy=multi-user.target
