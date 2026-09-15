@@ -178,5 +178,9 @@ def test_manual_buy_is_checked_before_the_session_latch():
     # ★2026-09-04 was 7 = 6 closes + the manual ENTRY. The entry moved to place_entry(), which
     # sources the same avgFillPrice AND returns the filled quantity (entries are marketable limits
     # now — SESSIONS §387). The six CLOSE paths are what this line is really guarding.
-    assert src.count("await await_fill(") == 6, "a CLOSE path lost its fill-sourced exit"
+    # ★2026-09-15 6->5: the three MULTI-LOT closes moved into place_exit() (marketable limits,
+    # after the engine fabricated 3 lots at a price that never printed). It sources the same
+    # avgFillPrice, so a close still books its FILL — asserted on both counts here.
+    assert src.count("await await_fill(") == 5, "a CLOSE path lost its fill-sourced exit"
+    assert src.count("await place_exit(") == 3, "a MULTI-LOT close lost its fill-sourced exit"
     assert src.count("await place_entry(") == 2, "an ENTRY path lost its fill-sourced entry"

@@ -12,9 +12,14 @@ order could not. Both entry paths used to book `qty=LOTS` / `qty=_q` from the RE
 against a venue of 1 is exactly the unaccounted-lot condition the cross-desk reconciler stops both
 desks for — the cure must not manufacture the false kill it was written beside.
 
-★ EXITS STAY ON MARKET ORDERS. "NEVER HOLD OVERNIGHT. EVER." is absolute and an exit that does not
-fill is unbounded; the fabricated fill costs a bounded number of points. A limit belongs only where
-the failure mode is "no position", which is free.
+★★ 2026-09-15 UPDATE — MULTI-LOT EXITS ARE LIMITS TOO NOW, by operator decision, after the same
+fabrication booked 3 lots at 29262.00 (a price that never printed; the six-minute low was 29274.75)
+and turned a -$115 claim into -$304.50. This file used to say "EXITS STAY ON MARKET ORDERS", on the
+grounds that an unfilled exit is unbounded risk while a fabricated fill is bounded. THAT ARGUMENT
+WAS NEVER WRONG — place_exit() removes its PREMISE instead, by escalating to a market order for
+whatever the limit has not filled inside RIDER_EXIT_LIMIT_WAIT_S. The position always closes.
+⚠ What did NOT change, and is asserted below: the 20:40Z HARD FLAT is a market order,
+unconditionally, and single-lot exits are untouched because the fabrication cannot reach them.
 """
 import asyncio
 import sys
@@ -118,18 +123,45 @@ def test_an_unpriceable_entry_is_refused_and_nothing_is_placed():
     assert any("REFUSED" in m and c for m, c in notes.sent)
 
 
-def test_exits_are_still_market_orders():
-    """★ THE SAFETY PROPERTY. Every remaining MarketOrder in this file must be an EXIT; an exit that
-    cannot fill is unbounded risk, and the 20:40 hard flat is not negotiable."""
+def test_every_market_order_is_an_exit():
+    """★ No ENTRY may ever be a market order — that is what the fabricated fill taught, and it is
+    the half of the old safety property that is untouched by the 09-15 exit change."""
     src = open(SRC).read()
-    exits = ("CLOCK_FLAT", "TARGET", "OPERATOR_SELL", "MANUAL_CLAIM", "TRAIL", "flat")
+    exits = ("CLOCK_FLAT", "TARGET", "OPERATOR_SELL", "MANUAL_CLAIM", "TRAIL", "flat",
+             "place_exit", "remainder", "ESCALATE")
     n = 0
     for i, line in enumerate(src.splitlines()):
         if "MarketOrder(" in line and "import" not in line:
             n += 1
-            ctx = "\n".join(src.splitlines()[max(0, i - 16):i + 2])
+            ctx = "\n".join(src.splitlines()[max(0, i - 20):i + 2])
             assert any(e in ctx for e in exits), f"a MarketOrder at line {i+1} is not an exit:\n{ctx}"
-    assert n >= 5, f"expected the exit paths to still place market orders, found {n}"
+    assert n >= 3, f"expected market orders to survive on the exit paths, found {n}"
+
+
+def test_the_hard_flat_is_never_a_limit():
+    """★★★ THE SAFETY PROPERTY THAT SURVIVES THE 2026-09-15 CHANGE, and the reason place_exit() is
+    NOT wired everywhere. "NEVER HOLD OVERNIGHT. EVER." is absolute: the 20:40Z flatten must not
+    acquire a fill condition of any kind, not even one that escalates. A limit there would be a
+    strictly worse trade than the fabricated fill it prevents."""
+    src = open(SRC).read().splitlines()
+    hard = [i for i, ln in enumerate(src) if "CLOCK_FLAT" in ln]
+    assert hard, "could not locate the 20:40Z hard flat — this test has gone blind"
+    lo, hi = min(hard) - 60, max(hard) + 20
+    block = "\n".join(src[max(0, lo):hi])
+    assert "MarketOrder(" in block, "the hard flat no longer places a MARKET order"
+    assert "place_exit(" not in block, (
+        "the 20:40Z HARD FLAT was routed through place_exit(). It must not be: an exit that can "
+        "wait, even briefly, is not an unconditional flatten.")
+
+
+def test_single_lot_exits_were_left_alone():
+    """★ The fabrication hits only lots BEYOND THE FIRST, so a 1-lot exit has nothing to prevent.
+    Changing them would be risk taken for no measured benefit on the desk's most-used exit."""
+    src = open(SRC).read()
+    for needle in ('MarketOrder("SELL" if d > 0 else "BUY", 1)', "MarketOrder(v[0], 1)"):
+        assert needle in src, (
+            f"a single-lot exit ({needle}) is no longer a plain market order — the 09-15 change "
+            f"was scoped to MULTI-LOT exits and this one has drifted out of that scope")
 
 
 def test_both_entry_paths_go_through_place_entry():

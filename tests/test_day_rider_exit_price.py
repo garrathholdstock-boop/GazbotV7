@@ -78,8 +78,8 @@ def test_every_close_path_books_the_fill_not_the_market_price():
                  if "book_trade(out, px," in ln and "CLOSED_ELSEWHERE" not in ln]
     assert not offenders, f"a close path still books the market price: {offenders}"
     assert 'book_trade(out, px, "CLOSED_ELSEWHERE"' in src, "the documented exception vanished"
-    assert src.count("await await_fill(") == 6, (
-        "expected 6 await_fill sites — the fill-sourced CLOSE paths.\n"
+    assert src.count("await await_fill(") == 5, (
+        "expected 5 await_fill sites — the fill-sourced CLOSE paths.\n"
         "★2026-08-20 there was a SEVENTH: the operator's MANUAL BUY/SELL, an entry rather than a "
         "close, using await_fill for the same reason the closes do — book the FILL, never the "
         "market price.\n"
@@ -87,7 +87,22 @@ def test_every_close_path_books_the_fill_not_the_market_price():
         "additionally returns the FILLED QUANTITY, because entries are now marketable LIMITS and a "
         "limit can partial-fill (SESSIONS §387). The property this test defends is unchanged and is "
         "re-asserted below for both entry paths. If this count changes again, check whether the new "
-        "site is an entry or a close before touching the number.")
+        "site is an entry or a close before touching the number.\n"
+        "★2026-09-15 THE COUNT MOVED 6->5 AND THREE SITES MOVED TO place_exit(). The MULTI-LOT "
+        "closes (OPERATOR_SELL, MANUAL_CLAIM, TRAIL) are marketable LIMITS now, after the paper "
+        "engine fabricated 3 lots at 29262.00 — a price that never printed — turning a -$115 claim "
+        "into -$304.50. place_exit() sources the SAME avgFillPrice and is asserted to below, so "
+        "the property this test defends is unchanged. 5 = 2 inside place_exit() + the hard 20:40Z "
+        "flat + the two SINGLE-LOT closes, which keep plain market orders because the fabrication "
+        "cannot reach a first lot.")
+    # ★★2026-09-15 THE MOVED SITES STILL BOOK THE FILL — the whole point of allowing the count to
+    # drop. A limit that booked the market price would reintroduce the 08-14 bug under a new name.
+    assert src.count("await place_exit(") == 3, (
+        "the three MULTI-LOT close paths must go through place_exit()")
+    _pe = src[src.index("async def place_exit"):src.index("def _zero_size_if_flat")]
+    assert "avgFillPrice" in _pe, (
+        "place_exit must source the price from the venue's avgFillPrice, not the market price")
+    assert "book_trade" not in _pe, "place_exit must not book — the caller owns that"
     # ★ THE ENTRY PATHS STILL BOOK THE FILL — now via place_entry, and they book its QUANTITY too.
     assert src.count("await place_entry(") == 2, "both entry sites must go through place_entry"
     assert "avgFillPrice" in src[src.index("async def place_entry"):src.index("async def do_manual_entry")], (

@@ -368,6 +368,109 @@ async def await_fill(tr, fallback: float, *, what: str, notify=None, out: dict |
     return float(fallback)
 
 
+async def place_exit(ib, contract, side: str, qty: int, ref_px: float, symbol: str,
+                     *, what: str, notify=None, out: dict | None = None) -> float:
+    """Close ``qty`` lots with a marketable LIMIT that ESCALATES TO MARKET. Returns the avg fill.
+
+    ★★★2026-09-15 WHY THIS EXISTS. The operator claimed a 4-lot position when his screen showed
+    -$115 and the desk booked -$304.50. The fills: 1 lot @ 29291.25 (real, the tape was 29290-92)
+    and 3 lots @ 29262.00 — 29.25pt worse, which is 0.0999% of price, the IBKR paper engine's
+    fabricated-fill signature. 29262.00 NEVER PRINTED: the lowest trade in the surrounding six
+    minutes was 29274.75. $175.50 of that loss is a price that does not exist.
+
+    ★★ WHY A LIMIT FIXES IT, mechanically: the engine cannot fill THROUGH the limit, so the band is
+    a hard ceiling on the fabrication. The entry side already proves it — the same morning's 4-lot
+    entry spread only 5.5pt across its lots, which is ENTRY_LIMIT_BAND_PT, not 0.1%.
+
+    ⚠⚠⚠ AND WHY IT ESCALATES. place_entry()'s docstring argued exits must stay on market orders:
+    *"an exit that does not fill is unbounded risk; the fabricated fill costs a bounded number of
+    points."* THAT ARGUMENT IS CORRECT and this does not overturn it — it removes its premise. The
+    limit is given EXIT_LIMIT_WAIT_S; whatever has not filled is CANCELLED and sent as a MARKET
+    order for the remainder. The position always closes. A limit that could hang would be a strictly
+    worse trade than the fabrication it prevents.
+
+    ⚠ ONE LOT IS UNCHANGED, DELIBERATELY. The fabrication hits only lots BEYOND THE FIRST — the
+    first lot of every multi-lot order today filled at the true touch — so at qty<=1 there is
+    nothing to prevent and this returns the exact market-order path it replaced. The narrowest
+    change that fixes the actual defect is the one least likely to break a live exit.
+    ⚠ THE HARD 20:40Z FLAT IS NOT ROUTED THROUGH HERE. It stays a market order, unconditionally.
+    """
+    from ib_async import LimitOrder, MarketOrder
+
+    from .ticks import round_to_tick, tick_for
+    try:
+        qty = int(qty)
+    except (TypeError, ValueError):
+        qty = 0
+    if qty <= 0:
+        return float(ref_px or 0.0)
+    # ⚠ NO REFERENCE PRICE = NO LIMIT. Unlike an entry we must NOT refuse — refusing to exit is the
+    # unbounded failure — so fall through to the plain MARKET exit the caller used to place. This
+    # branch is also the single-lot TARGET / MANUAL_CLAIM path, unchanged by design.
+    if qty <= 1 or not ref_px or ref_px <= 0 or EXIT_LIMIT_BAND_PT <= 0:
+        return await await_fill(ib.placeOrder(contract, MarketOrder(side, qty)),
+                                ref_px, what=what, notify=notify, out=out)
+
+    tick = tick_for(symbol)
+    # THROUGH the touch, rounded in the AGGRESSIVE direction so it never lands a tick inside the
+    # market and rests there — the same reasoning as place_entry(), mirrored.
+    lmt = round_to_tick(ref_px - EXIT_LIMIT_BAND_PT if side == "SELL"
+                        else ref_px + EXIT_LIMIT_BAND_PT,
+                        tick, mode="floor" if side == "SELL" else "ceil")
+    tr = ib.placeOrder(contract, LimitOrder(side, qty, lmt))
+
+    def _filled(t) -> int:
+        try:
+            return int(float(t.orderStatus.filled or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    def _avg(t) -> float:
+        try:
+            return float(t.orderStatus.avgFillPrice or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    for _ in range(max(1, int(EXIT_LIMIT_WAIT_S / 0.5))):
+        await asyncio.sleep(0.5)
+        if tr.orderStatus.status == "Filled":
+            break
+    got = _filled(tr)
+    if got >= qty:
+        if out is not None:
+            out["exit_px_source"] = "limit"
+        return _avg(tr) or float(ref_px)
+
+    # ── ESCALATE. Cancel what is resting, then MARKET the remainder. ──────────────────────────
+    try:
+        ib.cancelOrder(tr.order)
+    except Exception as e:                                   # never die on a cancel
+        if notify:
+            notify(f"⚠ DAY RIDER {what}: could not cancel the resting exit limit "
+                   f"({type(e).__name__}: {e}). CHECK TWS for a working order.", critical=True)
+    await asyncio.sleep(1.0)
+    got = _filled(tr)                                        # a fill can land during the cancel
+    left = qty - got
+    if left <= 0:
+        if out is not None:
+            out["exit_px_source"] = "limit"
+        return _avg(tr) or float(ref_px)
+    if notify:
+        notify(f"DAY RIDER {what}: limit {lmt:.2f} filled {got}/{qty} in "
+               f"{EXIT_LIMIT_WAIT_S:g}s — sending the remaining {left} at MARKET. The position "
+               f"closes; those lots are exposed to the engine's fabricated fill.", critical=False)
+    mpx = await await_fill(ib.placeOrder(contract, MarketOrder(side, left)),
+                           ref_px, what=f"{what} (market remainder)", notify=notify, out=out)
+    if out is not None:
+        out["exit_px_source"] = "limit+market" if got else "FALLBACK:market"
+    lpx = _avg(tr)
+    if got <= 0 or lpx <= 0:
+        return float(mpx)
+    # ⚠ WEIGHTED, not the mean of two prices — the lots are not equal in number and the booked
+    # round-trip price must be what the venue actually averaged.
+    return (lpx * got + float(mpx) * left) / float(qty)
+
+
 def _zero_size_if_flat(out: dict, qty: float | None) -> None:
     """★2026-08-20 After a WHOLE-POSITION close, size fields must read zero.
 
@@ -875,6 +978,14 @@ async def _net_position(ib, symbol: str) -> float:
 #   normal tape it crosses and fills exactly like the market order did. It only bites on the
 #   synthetic 29.5pt fill and on a genuine violent gap — where NOT being filled is the right outcome.
 ENTRY_LIMIT_BAND_PT = float(os.environ.get("RIDER_ENTRY_LIMIT_BAND_PT", "5.0"))
+# ★★2026-09-15 THE EXIT BAND. Wider than the entry's 5.0 because the two sides fail in opposite
+# directions: an unfilled ENTRY is free (no position), an unfilled EXIT is an open position, and
+# "NEVER HOLD OVERNIGHT. EVER." makes that the expensive error. 10pt is therefore the CEILING ON
+# SLIPPAGE, not a target — the engine cannot fill through the limit, so the band IS the worst case.
+# Measured against the real event: 3 lots were fabricated 29.25pt away at a cost of $175.50; the
+# same exit under a 10pt band caps at $60, and the escalation below still guarantees it closes.
+EXIT_LIMIT_BAND_PT = float(os.environ.get("RIDER_EXIT_LIMIT_BAND_PT", "10.0"))
+EXIT_LIMIT_WAIT_S = float(os.environ.get("RIDER_EXIT_LIMIT_WAIT_S", "4.0"))
 # How stale a tape print may be and still price a limit. A market we cannot see is one we must not
 # send a bounded order into.
 ENTRY_REF_MAX_AGE_S = 120.0
@@ -1549,10 +1660,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     v = (own_flatten_verdict(d, own_qty)  # ours, not the shared account net
                          if venue_first_ok(net, "exit on OPERATOR_SELL", notify) else None)
                     if v:
-                        from ib_async import MarketOrder
-                        _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                        _xpx = await await_fill(_tr, px, what="OPERATOR_SELL exit",
-                                                notify=notify, out=out)
+                        # ★2026-09-15 marketable LIMIT with a market escalation — see place_exit().
+                        _xpx = await place_exit(ib, contract, v[0], v[1], px, cfg.symbol,
+                                                what="OPERATOR_SELL exit", notify=notify, out=out)
                         out["closed"] = True
                         out["exit_reason"] = "OPERATOR_SELL"
                         # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
@@ -1662,9 +1772,10 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     save_state(out)
                     return out
                 if v:
-                    from ib_async import MarketOrder
-                    _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                    _xpx = await await_fill(_tr, px, what="MANUAL_CLAIM exit", notify=notify, out=out)
+                    # ★★2026-09-15 THIS IS THE EXACT PATH THAT BOOKED 3 FABRICATED LOTS AT
+                    # 29262.00, a price that never printed. Marketable LIMIT now — see place_exit().
+                    _xpx = await place_exit(ib, contract, v[0], v[1], px, cfg.symbol,
+                                            what="MANUAL_CLAIM exit", notify=notify, out=out)
                     out["closed"] = True
                     out["exit_reason"] = "MANUAL_CLAIM"
                     # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
@@ -1695,9 +1806,9 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                 v = (own_flatten_verdict(d, own_qty)      # ours, not the shared account net
                      if venue_first_ok(net, "exit on TRAIL", notify) else None)
                 if v:
-                    from ib_async import MarketOrder
-                    _tr = ib.placeOrder(contract, MarketOrder(v[0], v[1]))
-                    _xpx = await await_fill(_tr, px, what="TRAIL exit", notify=notify, out=out)
+                    # ★2026-09-15 marketable LIMIT with a market escalation — see place_exit().
+                    _xpx = await place_exit(ib, contract, v[0], v[1], px, cfg.symbol,
+                                            what="TRAIL exit", notify=notify, out=out)
                     out["closed"] = True
                     out["exit_reason"] = "TRAIL"
                     # ★2026-08-13 take the venue stop down WITH the position. Placed at entry, it used to
