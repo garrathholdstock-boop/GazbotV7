@@ -119,11 +119,46 @@ def describe(age: int) -> str:
             f"THIS IS A REFERENCE CLASS, NOT A FORECAST — direction from here measures ~50/50.")
 
 
+def seed_last_end(bars, a: float):
+    """★ RESTART-TRANSPARENCY. `last_end` lives only in memory, so every restart used to reset the
+    tunnel clock to zero — and because a break needs >=25min of measured quiet, THE FIRST LEG AFTER
+    ANY RESTART COULD NEVER FIRE ONE. That is not a rare edge: there were SIX starts on 2026-09-15
+    alone (all config edits, NRestarts=0), so the blind spot was most of the morning. Worse, the log
+    line asserted "0min quiet", which is a CLAIM, not a gap — the desk's own failure signature of an
+    instrument reporting healthy about something it never checked.
+    So replay the same open/retrace rule over the 600min warmup and return when the last leg DIED.
+    Returns None — meaning QUIET UNKNOWN, suppress the first break — when the history ends INSIDE a
+    leg, because then the tunnel has not started yet and any number would be invented.
+    ⚠ It seeds the CLOCK ONLY. It deliberately does not adopt an in-flight leg: that is the live
+    loop's job on its own terms, and adopting one here would put a mid-leg position's milestones on
+    a code path no forward session has ever graded."""
+    closes = [b[3] for b in bars]
+    n, i, last_end = len(closes), START_MIN, None
+    while i < n:
+        mv = closes[i] - closes[i - START_MIN]
+        if abs(mv) < START_ATR * a:
+            i += 1; continue
+        sgn = 1 if mv > 0 else -1
+        ext, j = closes[i], i
+        while j + 1 < n:
+            j += 1
+            if sgn * (closes[j] - ext) > 0:
+                ext = closes[j]
+            elif sgn * (ext - closes[j]) >= RETRACE_ATR * a:
+                break
+        else:
+            return None                      # history ends mid-leg → the tunnel has not begun
+        last_end = bars[j][0]
+        i = j + 1
+    return last_end
+
+
 def main() -> int:
     log(f"leg_watch up · symbol={SYMBOL} start={START_ATR}xATR/{START_MIN}min "
         f"retrace={RETRACE_ATR}xATR quiet={QUIET_MILES} loud={LOUD_MILES}")
     leg = None
     last_end = 0            # when the previous leg died — the tunnel is the gap since
+    seeded = False
     while True:
         try:
             bars = minute_bars()
@@ -139,13 +174,24 @@ def main() -> int:
             if a <= 0:
                 time.sleep(POLL_S); continue
             closes = [b[3] for b in bars]
+            if not seeded:
+                last_end = seed_last_end(bars, a)
+                seeded = True
+                log(f"tunnel clock seeded from {len(bars)}min of warmup: "
+                    + (f"last leg ended {(bars[-1][0]-last_end)/60:.0f}min ago" if last_end
+                       else "QUIET UNKNOWN (history ends mid-leg) — first break suppressed"))
             now_px = closes[-1]
             if leg:
                 sgn = leg["sgn"]
                 if sgn * (now_px - leg["ext"]) > 0:
                     leg["ext"] = now_px
                 elif sgn * (leg["ext"] - now_px) >= RETRACE_ATR * a:
-                    log(f"leg OVER after {leg['age']}min, travel {sgn*(leg['ext']-leg['px0']):+.1f}pt")
+                    tv = sgn * (leg["ext"] - leg["px0"])
+                    d0 = "UP" if sgn > 0 else "DOWN"
+                    # ⚠ travel is FAVOURABLE-signed, so a DOWN leg printed "+28.5pt" — a number
+                    # reading as its own negation. Name the direction and the sign separately.
+                    log(f"{d0} leg OVER after {leg['age']}min, travel {tv:.1f}pt "
+                        f"{'up' if sgn > 0 else 'down'}")
                     last_end = bars[-1][0]
                     leg = None
             if leg is None:
@@ -156,10 +202,14 @@ def main() -> int:
                                "ext": now_px, "t0": bars[-1 - START_MIN][0], "age": START_MIN,
                                "fired": []}
                         d0 = "UP" if leg["sgn"] > 0 else "DOWN"
-                        quiet_min = (bars[-1][0] - last_end) / 60.0 if last_end else 0.0
-                        log(f"leg OPEN {d0} from {leg['px0']:.2f} after {quiet_min:.0f}min quiet "
+                        # ⚠ None means UNKNOWN, not zero. "after 0min quiet" is a CLAIM about a gap
+                        # nothing measured, and it is the sentence a later session would trust.
+                        quiet_min = (bars[-1][0] - last_end) / 60.0 if last_end else None
+                        q_txt = f"after {quiet_min:.0f}min quiet" if quiet_min is not None \
+                            else "quiet UNKNOWN (no prior leg seen since startup)"
+                        log(f"leg OPEN {d0} from {leg['px0']:.2f} {q_txt} "
                             f"(silent — 17 legs/session, most die young)")
-                        if quiet_min >= TUNNEL_MIN:
+                        if quiet_min is not None and quiet_min >= TUNNEL_MIN:
                             msg = (f"TUNNEL BREAK · {d0} from {leg['px0']:.2f} after "
                                    f"{quiet_min:.0f}min going nowhere · ATR {a:.1f} — legs that "
                                    f"start after a quiet stretch run a median 42min / 54pt. "
