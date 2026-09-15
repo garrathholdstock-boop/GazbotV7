@@ -45,7 +45,14 @@ START_ATR = float(os.environ.get("LEG_START_ATR", "1.0"))      # 8-min move to o
 START_MIN = int(os.environ.get("LEG_START_MIN", "8"))
 RETRACE_ATR = float(os.environ.get("LEG_RETRACE_ATR", "3.0"))  # gives back this much -> leg over
 QUIET_MILES = tuple(int(x) for x in os.environ.get("LEG_QUIET", "30,45").split(","))
-LOUD_MILES = tuple(int(x) for x in os.environ.get("LEG_LOUD", "60,90,120,180").split(","))
+LOUD_MILES = tuple(int(x) for x in os.environ.get("LEG_LOUD", "60,120,180").split(","))
+# ★★2026-09-15 THE SIZE GATE, and it is what makes the alert usable at all. Measured: alerting at
+# 60 minutes on every leg fires 5.5x a session, and with a message at each milestone a long leg
+# produces four - about 10 messages a session, which is wallpaper. Requiring the leg to have
+# travelled >= LEG_MIN_ATR x ATR cuts it to 2.3/session AND improves the content, because bigger
+# legs have more left: median remaining goes 29min/29pt at >=3 ATR to 45min/57pt at >=9 ATR.
+# ⚠ ONE ALERT PER LEG. The milestones above only decide WHEN it may first speak, never how often.
+MIN_ATR = float(os.environ.get("LEG_MIN_ATR", "9.0"))
 STALE_S = float(os.environ.get("LEG_STALE_S", "300"))
 STATE = f"{GB}/data/leg_watch_state.json"
 LOG = f"{GB}/data/leg_watch.log"
@@ -147,9 +154,23 @@ def main() -> int:
                 for m in sorted(QUIET_MILES + LOUD_MILES):
                     if leg["age"] >= m and m not in leg["fired"]:
                         leg["fired"].append(m)
+                        # the size gate applies to the PAGING milestones only
+                        if m in LOUD_MILES and travel < MIN_ATR * a:
+                            log(f"held {m}min (only {travel:.0f}pt = {travel/a:.1f} ATR, "
+                                f"needs {MIN_ATR:g}) — not paging")
+                            continue
+                        if m in LOUD_MILES and leg.get("paged"):
+                            continue                       # ONE alert per leg
+                        if m in LOUD_MILES:
+                            leg["paged"] = True
                         d = "UP" if sgn > 0 else "DOWN"
-                        head = (f"{d} LEG · {leg['age']}min · {travel:+.1f}pt · "
-                                f"{rate:+.2f}pt/min · ATR {a:.1f}")
+                        # ⚠ SIGN THE DISPLAY BY DIRECTION, not by the leg's own frame. `travel`
+                        # is measured in the leg's direction so a DOWN leg that fell 36 points
+                        # carries +35.8 — correct arithmetic that reads as the OPPOSITE of what
+                        # happened. Caught live 2026-09-15: "DOWN LEG · 45min · +35.8pt".
+                        head = (f"{d} LEG · {leg['age']}min · {sgn*travel:+.1f}pt "
+                                f"({travel:.1f}pt {'up' if sgn > 0 else 'down'}) · "
+                                f"{sgn*rate:+.2f}pt/min · ATR {a:.1f}")
                         if m in LOUD_MILES:
                             body = f"{head} — {describe(leg['age'])}"
                             if dedupe_ok(f"leg.{SYMBOL}.{leg['t0']}.{m}", body, cooldown_s=3600):

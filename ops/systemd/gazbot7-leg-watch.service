@@ -25,7 +25,12 @@ Environment=LEG_START_MIN=8
 # frozen reference class in leg_watch.REFCLASS — re-derive with scripts/leg_survival.py first.
 Environment=LEG_RETRACE_ATR=3.0
 Environment=LEG_QUIET=30,45
-Environment=LEG_LOUD=60,90,120,180
+Environment=LEG_LOUD=60,120,180
+# ⚠ THE SIZE GATE — without it this fires ~10 times a session and becomes wallpaper. 9xATR gives
+# ★2026-09-15 SET TO 6.0 BY THE OPERATOR: ~4 fires/session, median 36min / 41pt left. He chose
+# coverage over rarity — at 9xATR the morning leg he watched (36-48pt on an 8.6 ATR) would not have
+# paged, and being told about 40-point legs is worth the extra message or two a day.
+Environment=LEG_MIN_ATR=6.0
 Environment=LEG_STALE_S=300
 WorkingDirectory=/home/alphabot/gazbot7
 # ⚠ 400M, NOT 256M. gazbot7-tunnel-watch was OOM-killed FOUR times on 2026-09-12 at exactly 256M
