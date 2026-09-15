@@ -31,6 +31,10 @@ Environment=LEG_LOUD=60,120,180
 # coverage over rarity — at 9xATR the morning leg he watched (36-48pt on an 8.6 ATR) would not have
 # paged, and being told about 40-point legs is worth the extra message or two a day.
 Environment=LEG_MIN_ATR=6.0
+# ★ THE TUNNEL BREAK, on the displacement axis: a tunnel is the ABSENCE of a leg. >=25min gives
+# ~1.5 breaks/session. ⚠ A longer tunnel produces a SMALLER leg (70pt after 0-15min vs 49pt after
+# 60min+), so this is a rarity filter and the message says so — never a coiled-spring forecast.
+Environment=LEG_TUNNEL_MIN=25
 Environment=LEG_STALE_S=300
 WorkingDirectory=/home/alphabot/gazbot7
 # ⚠ 400M, NOT 256M. gazbot7-tunnel-watch was OOM-killed FOUR times on 2026-09-12 at exactly 256M

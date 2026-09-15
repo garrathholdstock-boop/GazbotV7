@@ -53,6 +53,15 @@ LOUD_MILES = tuple(int(x) for x in os.environ.get("LEG_LOUD", "60,120,180").spli
 # legs have more left: median remaining goes 29min/29pt at >=3 ATR to 45min/57pt at >=9 ATR.
 # ⚠ ONE ALERT PER LEG. The milestones above only decide WHEN it may first speak, never how often.
 MIN_ATR = float(os.environ.get("LEG_MIN_ATR", "9.0"))
+# ★★2026-09-15 THE TUNNEL BREAK, REBUILT ON DISPLACEMENT. gazbot7-tunnel-watch needs 25 minutes of
+# VOLATILITY-COMPRESSED tape to arm, so on a noisy-but-directionless morning it cannot fire at all —
+# which is exactly why the operator got no alert when the tape broke on 2026-09-15. A tunnel is not
+# quiet, it is DIRECTIONLESS, so here a tunnel is simply THE ABSENCE OF A LEG: one definition, two
+# states, no second vocabulary to drift. The break IS the leg opening.
+# ⚠ AND THE COILED-SPRING IDEA IS REFUTED, so the message must not imply it: legs after a 0-15min
+# tunnel travel a median 70pt and after a 60min+ tunnel only 49pt. A LONGER WAIT PRODUCES A SMALLER
+# LEG. The tunnel length is a RARITY filter (>=25min gives 1.5 breaks/session), never a size forecast.
+TUNNEL_MIN = float(os.environ.get("LEG_TUNNEL_MIN", "25"))
 STALE_S = float(os.environ.get("LEG_STALE_S", "300"))
 STATE = f"{GB}/data/leg_watch_state.json"
 LOG = f"{GB}/data/leg_watch.log"
@@ -114,6 +123,7 @@ def main() -> int:
     log(f"leg_watch up · symbol={SYMBOL} start={START_ATR}xATR/{START_MIN}min "
         f"retrace={RETRACE_ATR}xATR quiet={QUIET_MILES} loud={LOUD_MILES}")
     leg = None
+    last_end = 0            # when the previous leg died — the tunnel is the gap since
     while True:
         try:
             bars = minute_bars()
@@ -136,6 +146,7 @@ def main() -> int:
                     leg["ext"] = now_px
                 elif sgn * (leg["ext"] - now_px) >= RETRACE_ATR * a:
                     log(f"leg OVER after {leg['age']}min, travel {sgn*(leg['ext']-leg['px0']):+.1f}pt")
+                    last_end = bars[-1][0]
                     leg = None
             if leg is None:
                 if len(closes) > START_MIN:
@@ -144,8 +155,20 @@ def main() -> int:
                         leg = {"sgn": 1 if mv > 0 else -1, "px0": closes[-1 - START_MIN],
                                "ext": now_px, "t0": bars[-1 - START_MIN][0], "age": START_MIN,
                                "fired": []}
-                        log(f"leg OPEN {'UP' if leg['sgn']>0 else 'DOWN'} "
-                            f"from {leg['px0']:.2f} (silent — 17 legs/session, most die young)")
+                        d0 = "UP" if leg["sgn"] > 0 else "DOWN"
+                        quiet_min = (bars[-1][0] - last_end) / 60.0 if last_end else 0.0
+                        log(f"leg OPEN {d0} from {leg['px0']:.2f} after {quiet_min:.0f}min quiet "
+                            f"(silent — 17 legs/session, most die young)")
+                        if quiet_min >= TUNNEL_MIN:
+                            msg = (f"TUNNEL BREAK · {d0} from {leg['px0']:.2f} after "
+                                   f"{quiet_min:.0f}min going nowhere · ATR {a:.1f} — legs that "
+                                   f"start after a quiet stretch run a median 42min / 54pt. "
+                                   f"⚠ A LONGER WAIT DOES NOT MEAN A BIGGER MOVE (0-15min quiet -> "
+                                   f"70pt median; 60min+ -> 49pt). REFERENCE CLASS, NOT A FORECAST "
+                                   f"— direction from here measures ~50/50.")
+                            if dedupe_ok(f"legbreak.{SYMBOL}.{leg['t0']}", msg, cooldown_s=1800):
+                                notify(msg, critical=False)
+                            log(f"ALERT break: {d0} after {quiet_min:.0f}min quiet")
             if leg:
                 leg["age"] = int((bars[-1][0] - leg["t0"]) / 60)
                 sgn = leg["sgn"]
