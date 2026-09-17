@@ -1,0 +1,26 @@
+[Unit]
+Description=GAZBOT V7 — UNREAD-REQUEST ALARM (did the operator's button reach anybody?)
+# ★★★ READ-ONLY BY CONSTRUCTION. It writes exactly one file: data/request_watch.log.
+# tests/test_request_watch.py asserts against the SOURCE that it never removes, clears, rewrites or
+# creates a request file and holds no order path — a second reader that consumed a request would
+# silently EAT THE OPERATOR'S PRESS.
+#
+# Built 2026-09-17 after a Claim pressed at 05:39:31 on a +$262 position sat UNREAD for 27 minutes
+# and EXPIRED. The gateway's accept queue was full, so the rider timed out 244 times, exited 0 every
+# time, and wrote a fresh heartbeat every minute. Every instrument read green because every
+# instrument was asking "is the rider alive?" — and it was. Nobody asked whether the PRESS landed.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+# The box is 7.5GB with a history of global_oom kills that have taken the DESK down. An alarm is
+# never allowed to be the process that does that.
+MemoryMax=200M
+TimeoutStartSec=60
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/request_watch.py
+# An alarm that cannot decide must never take the desk with it.
+SuccessExitStatus=0 1

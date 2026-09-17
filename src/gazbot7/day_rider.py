@@ -1281,6 +1281,18 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         ib, contract = await _venue(cfg)
         net = await _net_position(ib, cfg.symbol)
         out["venue_ok"] = True          # we are genuinely talking to the broker this tick
+        # ★★2026-09-17 A GOOD READ ENDS THE BLIND STREAK, AND IT MUST BE CLEARED *HERE*.
+        # The first version of this put the reset beside the last `save_state(out)` — but step()
+        # has TWELVE of them and the ordinary riding branches return at :1854-:1929, so a healthy
+        # tick never reached it. The counter would only ever grow, and the SECOND outage would open
+        # at streak 244 and skip 3/10/30 — every page that lands early enough to save a live claim.
+        # This line sits immediately after the venue read succeeds, so EVERY path that got to the
+        # broker clears it and no path that did not can.
+        out["blind_holding"] = False
+        try:
+            os.remove(os.path.join(os.path.dirname(STATE), "day_rider_blind.json"))
+        except Exception:
+            pass                        # absent is the healthy case, not an error
         # ★2026-08-11 STAMP THE VENUE READ HERE, ON EVERY PATH, WITH ITS OWN TIMESTAMP.
         # venue_net used to be written only inside the position-management branch, so once the
         # rider closed it FROZE at its last in-position value while save_state kept stamping a
@@ -2007,8 +2019,49 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                           "(docker restart alphabot-gateway) — nothing else can do this.")
                 if dedupe_ok("rider_cannot_flatten", _msg, cooldown_s=300.0):
                     notify(_msg, critical=True)
+            # ★★★2026-09-17 BLIND AND HOLDING IS AN ALARM AT ANY HOUR, not only in the flatten
+            # window. The 08-22 alarm above is gated on `mod >= FLAT_UTC_MIN` because its case was
+            # an overnight carry — but on 2026-09-17 the gateway's accept queue filled at 00:40Z
+            # and this handler ran 244 CONSECUTIVE TIMES holding 4 lots, writing a FRESH HEARTBEAT
+            # every minute and exiting 0 every time. systemd green, sweep green, dashboard green,
+            # and the operator's Claim sat unread for 27 minutes and EXPIRED. He found it himself.
+            # A position the rider cannot see is unmanaged at 01:00 exactly as much as at 20:50.
+            # ⚠ STREAK-GATED, not instant: a single timed-out tick is a blip and the desk already
+            # pays for noisy alarms in swiped-past criticals. 3/10/30/120 ticks at a 60s cadence =
+            # ~3 min, 10 min, 30 min, 2 h — the first page lands while a claim is still LIVE
+            # (CLAIM_MAX_AGE_S is 15 min), which is the whole point.
+            # ⚠ The streak is DURABLE because the rider is a ONESHOT: an in-memory counter resets
+            # every tick and would never reach 2.
+            _blind_f = os.path.join(os.path.dirname(STATE), "day_rider_blind.json")
+            if _held:
+                try:
+                    _bs = json.load(open(_blind_f))
+                except Exception:
+                    _bs = {"streak": 0}
+                _bs["streak"] = int(_bs.get("streak", 0)) + 1
+                _bs["last"] = f"{type(e).__name__}: {str(e)[:120]}"
+                _bs["since"] = _bs.get("since") or dt.datetime.now(dt.UTC).isoformat()
+                try:
+                    json.dump(_bs, open(_blind_f, "w"))
+                except Exception:
+                    pass
+                if _bs["streak"] in (3, 10, 30, 120) and notify:
+                    _q2 = out.get("qty") or st.get("qty")
+                    _e2 = out.get("entry") or st.get("entry")
+                    # Stable text per escalation step — dedupe_ok re-sends on ANY change, so a live
+                    # minute count in here would page every tick.
+                    _bmsg = (f"⚠⚠ DAY RIDER IS BLIND AND HOLDING — {_bs['streak']} consecutive "
+                             f"ticks unable to reach the broker ({type(e).__name__}), with "
+                             f"{_q2} lot(s) @ {_e2} open. IT CANNOT SEE THE POSITION, CANNOT READ "
+                             f"YOUR CLAIM, AND A CLAIM EXPIRES AFTER "
+                             f"{CLAIM_MAX_AGE_S//60} MIN. The unit exits 0 and the heartbeat stays "
+                             f"fresh, so nothing else will show this. "
+                             f"CHECK THE GATEWAY (docker restart alphabot-gateway).")
+                    if dedupe_ok(f"rider_blind_holding.{_bs['streak']}", _bmsg, cooldown_s=300.0):
+                        notify(_bmsg, critical=True)
             # a durable marker so the watchdog and sweep can see it without parsing a log
             out["flatten_blocked"] = bool(_held and mod >= FLAT_UTC_MIN)
+            out["blind_holding"] = bool(_held)
         except Exception:
             pass                                  # an alarm must never mask the original failure
 

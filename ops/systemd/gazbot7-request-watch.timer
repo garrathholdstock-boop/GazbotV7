@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — unread-request alarm cadence (every minute)
+
+[Timer]
+# EVERY MINUTE, offset 45s so it never races the rider's *:*:05 tick, the claim path's inotify run,
+# or the watchdog's *:0/2:35. A press is time-critical money — the claim this was built for expired
+# at 15 minutes, so detection has to be in minutes, not tens of them.
+OnCalendar=*:*:45
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
