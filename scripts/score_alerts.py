@@ -140,11 +140,30 @@ def main() -> int:
               f"{(f'{g:+.0f}m' if g is not None else '—'):>8}  {x['what'] if x else ''}")
 
     ign = [A[i] for i in range(len(A)) if i not in used]
-    print(f"\n--- IGNORED: {len(ign)} alert(s) he did not act on, priced by what followed ---")
+    # ★★2026-09-18 AN IGNORED ALERT SPLITS IN TWO, and only one half means anything. Operator:
+    # "im looking at it periodically during the work day when i have time. not all day and reading
+    # every telegram." An alert he never saw is not a rejection. scripts/presence.py separates them
+    # from the nginx log — and MEASURED, 12 of 17 fired while he was demonstrably looking, so the
+    # alert's problem is SELECTION, not his absence.
+    try:
+        sys.path.insert(0, f"{GB}/scripts")
+        import presence as _pr
+    except Exception:
+        _pr = None
+    print(f"\n--- IGNORED: {len(ign)} alert(s) he did not act on ---")
+    rejected = 0
     for x in ign:
         mv = move_after(x["t"], 60)
-        print(f"  {x['t'].strftime('%d %H:%M')}  {x['src']:<12} {x['what']:<22} "
+        seen = _pr.looked_around(x["t"], window_min=20, strong_only=False) if _pr else None
+        if seen == "LOOKED":
+            rejected += 1
+        print(f"  {x['t'].strftime('%d %H:%M')}  {x['src']:<12} {x['what'][:22]:<22} "
+              f"{(seen or 'NOT PRESENT'):<15} "
               f"{'next 60min ranged ' + format(mv, '.0f') + 'pt' if mv else 'no tape'}")
+    if _pr:
+        print(f"\n  ★ {rejected} of {len(ign)} fired while he WAS looking — those are TRUE "
+              f"REJECTIONS and are the negative examples the leg-selection question needs. "
+              f"The other {len(ign)-rejected} are alerts nobody saw.")
 
     from collections import Counter
     c = Counter(o for o, _, _, _ in rows)

@@ -50,6 +50,19 @@ REPLICATING them.
 schema as a buy, it places no order (asserted against the SOURCE, like the capture path), and
 `operator_reads_join.py` counts passes separately from presses.
 
+### [x] 2. PRESENCE HEARTBEAT — **DONE 2026-09-18**, `scripts/presence.py`
+★ **It needed NO code change.** nginx is the front door and had logged every request all along —
+patching `web.py`'s no-op `log_message` would have recorded LESS (no static reports, no phone) and
+needed a restart that drops his tab.
+⚠⚠ **The devices are not interchangeable:** desktop **134 requests/MINUTE** (an open tab fakes
+presence forever) vs phone **10 distinct sessions** in six hours. Phone = `LOOKED`, desktop =
+`DASHBOARD-OPEN` (weak). They are sessionised separately and `strong_only` defaults to True.
+★★ **THE RESULT:** of 16 alerts he ignored in the week to 09-18, **11 fired while he was
+demonstrably looking** — so the alert's problem is **SELECTION, not absence**, and those 11 are the
+first genuine NEGATIVE EXAMPLES this desk has had.
+
+<details><summary>original entry</summary>
+
 ### [ ] 2. PRESENCE HEARTBEAT  ·  size: S
 `web.py:2026` `log_message` is a deliberate no-op, so **not one dashboard request is logged
 anywhere.** Make it write a timestamp.
@@ -60,6 +73,8 @@ currently invisible to it. This is the first instrument that would see it.
 **Definition of done:** a rolling `data/operator_presence.jsonl` (or equivalent) with a bounded
 size, from which "was he at the screen in the 10 min before/after this entry" is answerable. ⚠ It
 must not log anything identifying beyond a timestamp and a coarse path.
+
+</details>
 
 ### [ ] 3. HIS WORDS AT THE MOMENT  ·  size: S–M
 A free-text field on the press — three words is enough. *"choppy grind up"*, *"left the tunnel"*,
