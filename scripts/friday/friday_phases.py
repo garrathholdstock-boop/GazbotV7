@@ -110,9 +110,23 @@ DATA = (
 PRE = (f"You are writing one section of the GAZBOT V7 Friday report. Repo {GB} (cd there; venv .venv). "
        f"Read {SCOPE} for the mission. {DATA}")
 
-# The census is frozen out-of-band by the driver before any phase runs (multi-minute tick crunch;
-# running it inside a schema'd agent is what timed out the very first attempt back on 07-24).
-PHASES = [
+# ★★★2026-09-18 THE REPORT WAS REFOCUSED, AND ALMOST ALL OF IT WAS RETIRED.
+# Operator: *"the friday report is now vastly different. it doesnt need everything it had. all it
+# needs now is a deep analysis of my trades and to see if we can automate them."*
+#
+# WHY THAT IS THE RIGHT CALL, in the desk's own numbers: his manual trading is the only book on
+# this desk that has ever cleared zero. 61 entries over the rider's life — under 3 hours held:
+# +$5,262 over 44; over 8 hours: -$6,612 over 4, none of them winners. Meanwhile the six-gate
+# tournament's automated entries run at +$2.10/trade against his +$78. Nine of the fifteen phases
+# below were analysing books that are not where the money is.
+#
+# ⚠ THE OLD PHASES ARE RETIRED, NOT DELETED. `RETIRED_2026_09_18` keeps every prompt intact — years
+# of accumulated method traps live in that prose (the first-confirmation scan, the drift.confirmed
+# gate, the exit-variant battery that must not be re-run). Restoring one is a one-line move back
+# into PHASES; rewriting it from memory is not.
+# ⚠ The four TAIL phases are NOT retired — CLAUDE.md reserves them ("you lose a greenfield cluster,
+# never the revision"). They are redefined below with deps pointing at the new body.
+RETIRED_2026_09_18 = [
     dict(key="part1_live", artifact=f"{SEC}/part1_live.html", deps=[], timeout_s=2700, prompt=PRE +
          f"Read {SCOPE} Part 1. Write the LIVE DESK section (this week's P&L of the 6-gate tournament, per-gate cards, "
          f"the whippy trend/chop days, the STOP_UNFILLED self-heals, the direction-router trial, day-type splits). "
@@ -522,68 +536,181 @@ PHASES = [
          f"because the reports index reads that title straight off the file for the card. Inline all "
          f"CSS; no external assets."),
 
-    dict(key="assemble", artifact=f"{WEB}/weekly_{WEEK}.html",
-         deps=["part1_live", "day_rider", "part2_shadow", "part25_musings", "part2_6_router", "movement2_idle", "rehab", "movement3", "run_charts"],
-         timeout_s=3600, prompt=PRE +
-         f"Assemble the full V7 report for the completed week (outputs weekly_{WEEK}.html/.pdf + monday_{WEEK}.html). "
-         f"Sections live in {SEC}: part1_live, part1_5_rehab, part2_shadow, part25_musings, part2_6_router_review, "
-         f"movement1_census, movement2_idle_gates, movement3_greenfield, run_charts. Extend scripts/friday_v7_build.py so it stitches ALL of "
-         f"them into the light-theme shell in that order (Rehabilitation is a headline live-desk section — right after the live "
-         f"desk, not buried; the RUN CHARTS fragment goes INSIDE Part 1 with the case-study days, not in an appendix), then run it with system python3 to render HTML + PDF into {WEB}/. ★ A rehab dossier filename may "
-         f"contain a '/' that became a DIRECTORY — make any rehab_*.md glob tolerant of that rather than choking. Regenerate "
-         f"reports/friday_v7/plays.json from THIS week's findings only — each play must trace to a verdict a section actually "
-         f"reached; the file on disk is a STALE prior-week one, overwrite it. Then build the Monday playbook via "
-         f"/home/alphabot/alphabot2/scripts/friday/build_playbook.py as monday_{{WEEK}}.html. Verify all three outputs exist and "
-         f"every section is present, then report file paths + word count + pdfinfo page count. Do NOT publish a thin report. "
-         f"★ If a section fragment is MISSING because its phase failed, still assemble — insert a visible honest placeholder "
-         f"naming the missing section rather than silently omitting it, and say so in your report."),
-
-    dict(key="proofread", artifact=f"{SEC}/proofread.json", deps=["assemble"], timeout_s=3600, prompt=PRE +
-         f"ADVERSARIAL PROOF-READER — read the just-built report as GARRATH will, and be HARD on it. Read the newest "
-         f"{WEB}/weekly_*.html IN FULL, plus {SCOPE}. Grade: (1) MISSION — sticks to the V7 shadow-desk/regime mission, LEADS "
-         f"with what SURVIVED, honest baselines, no gate benched at face value. (2) READS WELL — plain English to Garrath, "
-         f"money-first, no jargon, lots of fact-tables. (3) THOROUGH — no thin/placeholder/TODO bits, every number a REAL "
-         f"computation, every grave shown. (4) MAKES SENSE — no contradictions, shadow-vs-live reconciled, each verdict follows "
-         f"its own numbers, and NO stale prior-week content survived the stitch (check dates and named findings). (5) UNANSWERED "
-         f"QUESTIONS he WILL poke at — his tells: a shadow number without the live cross-check; thin-n stated as fact; 'so what "
-         f"do I actually DO Monday'; a $ figure without its baseline; a gate called bad without a rehab attempt; an exit-ladder "
-         f"rung left unproven; a 'why' not chased to root cause; a promotion call without the robustness battery. ★ Do NOT flag "
-         f"win-rate as a defect on its own — the desk runs ~39% and is profitable; expectancy is the measure. Write STRICT JSON "
-         f"to {SEC}/proofread.json: {{\"mission_ok\":bool,\"reads_ok\":bool,\"thorough_ok\":bool,\"sensible_ok\":bool,"
-         f"\"issues\":[{{\"section\":str,\"problem\":str,\"fix\":str}}],\"unanswered\":[{{\"question\":str,\"how_to_answer\":str}}]}}"),
-
-    dict(key="rev2", artifact=f"{SEC}/rev2_done.txt", deps=["proofread"], timeout_s=5400, prompt=PRE +
-         f"REVISION 2. Read {SEC}/proofread.json. For EACH entry in `unanswered`, ANSWER it fully from REAL data (tick-honest, "
-         f"regime-segmented) and for EACH entry in `issues`, FIX it — editing the SOURCE FRAGMENTS in {SEC} (never the built "
-         f"HTML, which is re-rendered from them). Recompute anything numeric; never hand-wave a number. Then re-run "
-         f"scripts/friday_v7_build.py with system python3 to re-render HTML+PDF, and re-run the publish gate "
-         f"(scripts/publish_report.py) if present. {JUDGE} {STYLE} Finally write a Rev1->Rev2 changelog to "
-         f"{SEC}/rev2_done.txt listing every question closed and every fix applied. If proofread.json listed nothing, write "
-         f"'no changes required' to that file and stop."),
-
-    # ★★★2026-08-30 `final` HAS NEVER SUCCEEDED — not once, in any run on record. Every instance:
-    # rc=-1, timed out at its own cap, artifact MISSING (08-29 03:20, 08-29 15:22, and again earlier
-    # in the chain). It was asked to RE-DERIVE the same four criteria `proofread` had already spent a
-    # full 60-minute phase computing, re-read the entire rendered report, shell out to pdfinfo, fix
-    # any gap it found AND re-render — all inside a 45m cap, TIGHTER than proofread's 60m for
-    # strictly more work. It was never achievable.
-    # ★ AND IT OWNED THE OPERATOR'S ONLY "DONE" MESSAGE. Because the Telegram ping was the LAST
-    #   instruction in a prompt that never reached its end, the operator has never once been told by
-    #   this pipeline that his report was ready. A notification that depends on an LLM finishing a
-    #   long narrative task is not a notification; it is a lottery ticket.
-    #   The ping now fires DETERMINISTICALLY from serial_runner.py after the tail — file exists, size,
-    #   section count — and this phase is purely a written judgement it can no longer suppress.
-    dict(key="final", artifact=f"{SEC}/final_check.txt", deps=["rev2"], timeout_s=3600, prompt=PRE +
-         f"FINAL CHECK — the wake-up standard. ★ DO NOT RE-DERIVE THE GRADE: read {SEC}/proofread.json, "
-         f"which already scored MISSION / READS-WELL / THOROUGH / MAKES-SENSE this run. Your job is to "
-         f"confirm its open questions were CLOSED by rev2 and that no stale prior-week content survived — "
-         f"spot-check, do not re-read end to end. Verify weekly_<date>.html exists and report its size and "
-         f"section count. ⚠ Do NOT re-render and do NOT attempt to fix gaps yourself: rev2 is the revision "
-         f"pass and a second editor at this stage has twice cost the whole phase its budget. If a MATERIAL "
-         f"gap remains, NAME IT in your summary and leave it — a named gap is worth more than a missed "
-         f"deadline. ⚠ Do NOT send Telegram; serial_runner pings the operator itself. Write a one-page "
-         f"summary of the final state to {SEC}/final_check.txt."),
 ]
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+# ★★★ THE REPORT, AS OF 2026-09-18: HIS TRADES, AND WHETHER THEY CAN BE AUTOMATED.
+# Four body phases and the reserved tail. Declared budget ~150 min against a ~228 min window — the
+# old manifest declared 1,485 against the same window, so clock order silently decided what got
+# built. This one fits.
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+# The facts every phase must be handed, so no phase re-derives them wrongly or contradicts another.
+OPS = (
+    "THE SUBJECT IS THE OPERATOR'S OWN TRADING. Facts you are given and must NOT re-derive: "
+    "(a) `trades.entry_source` exists as of 2026-09-15 — 'manual' = he pressed BUY/SELL, 'auto' = "
+    "drift confirmed, NULL = UNKNOWN and it MUST stay unknown (83 rows predate the column; "
+    "journald reaches ~5 days and nothing else recorded it). NEVER infer a source for a NULL row. "
+    "(b) GROUP BY ENTRY, NOT BY TRADE ROW. The rows are scale-out EXITS of one decision: 20 rows "
+    "over 2026-09-14/15 are 9 entries. Counting rows inflates n by ~2.5x and every entry on record "
+    "is 4 lots, so there is no single-lot-vs-multi-lot comparison of DECISIONS to make. "
+    "(c) FILTER data_quality: `EXCLUDE:` rows are gone, `BADFILL:` rows are real trades whose PRICE "
+    "came from a broken fill — show them, never count them. "
+    "(d) THE PAPER ENGINE FABRICATES FILLS: every lot beyond the first fills at exactly 0.1% "
+    "adverse, a price that never printed. Any P&L ranking including a multi-lot order is "
+    "contaminated. Multi-lot EXITS became marketable limits on 2026-09-15, so the contamination has "
+    "a before/after boundary — respect it. "
+    "(e) MNQ $2.00/pt, $1.50/RT. MGC $10/pt, MGC_FEE_RT $4.50 ($7.50 is a WITHDRAWN figure). "
+)
+
+LIMITS = (
+    "⚠⚠⚠ THE HARD LIMITS ON THIS ANALYSIS, and breaking them is the failure mode, not the finding: "
+    "(1) NO FITTING BELOW 30 LABELLED PRESSES — and that rule was written for POSITIVES AND "
+    "NEGATIVES. There are ~28 captured presses and ZERO records of him looking and NOT trading. "
+    "You cannot learn a decision boundary from one side of it; with positives only the best "
+    "possible output is a DESCRIPTION of what his entries look like. Say that plainly rather than "
+    "dressing a description up as a model. "
+    "(2) CLAIMING CANNOT BE BACKTESTED. 119 calibrations have failed to reproduce his exits (86% "
+    "capture, 18% headroom). DO NOT RUN A 120th. If you want to say something about his exits, "
+    "describe what they DID; do not search for a rule that reproduces them. "
+    "(3) n IS TINY AND THE SPLITS ARE POST-HOC. 61 entries, 5 event days. Report the point estimate "
+    "FIRST and the uncertainty SECOND — never 'spans zero therefore nothing' — but never launder a "
+    "post-hoc split into a rule either. "
+    "(4) HIS UNITS ARE $/DAY AT A STATED LOT SIZE. Not points, not R-squared, not Sharpe. "
+    "(5) EVERY SECTION ENDS WITH A RANKED SHORTLIST, NEVER A VERDICT. A study that ends with "
+    "nothing to try is a failure of the study. Three outcomes: REFUTED / PROMISING / PROVEN — and "
+    "most honest results belong in the middle. "
+)
+
+PHASES = [
+    dict(key="op_record", artifact=f"{SEC}/op_record.html", deps=[], timeout_s=2700, prompt=PRE + OPS + LIMITS +
+         "SECTION 1 — THE RECORD. What does his trading actually look like, on the completed week AND "
+         "cumulatively? Build the definitive table of HIS entries: time of day, side, lots, hold "
+         "duration, $/entry, and how it exited (his hand vs a ladder rung vs the clock). Then the "
+         "cuts that have already earned their place, refreshed with this week's data: "
+         "(i) BY HOLD TIME — the standing finding is under-3h +$5,262 over 44 entries vs over-3h "
+         "-$5,406 over 17, with over-8h at 0 winners from 4 and -$6,612. ⚠ State the confound "
+         "honestly: hold time is partly an OUTCOME (a losing trade gets held in hope), so some of "
+         "that gap is the disposition effect — but the >8h bucket is abandonment, not hope. "
+         "(ii) BY HOUR OF DAY — he trades 05:00-11:00Z almost exclusively (26 of 28 presses); does "
+         "the edge live in a particular part of that window? "
+         "(iii) BY EVENT DAY — on the 5 FOMC/CPI/NFP days in the record he is -$1,518 over 12 "
+         "entries vs +$1,076 over 67 ordinary ones. Refresh with any new event day. "
+         "(iv) WHAT DID THE WEEK COST OR MAKE, and which single entry dominated it? His weeks are "
+         "dominated by one or two trades — name them rather than averaging them away. "
+         "Money first, plain tables, no jargon. Write the HTML fragment to the artifact."),
+
+    dict(key="op_conditions", artifact=f"{SEC}/op_conditions.html", deps=[], timeout_s=2700, prompt=PRE + OPS + LIMITS +
+         "SECTION 2 — WHAT THE TAPE LOOKED LIKE WHEN HE PRESSED. `data/operator_reads.jsonl` "
+         "snapshots the WHOLE DAY's tape at the instant of every BUY/SELL/CLAIM press — price, ATR, "
+         "VWAP stretch, position-in-range, day open/high/low, plus a ~3,200-char narrative of the "
+         "session. Join it to the outcome with scripts/operator_reads_join.py. "
+         "DESCRIBE THE PRESS POPULATION: at the moment he buys, where is price in the day's range? "
+         "How far from VWAP in ATR? What is ATR relative to its own recent distribution? Is a leg "
+         "already open (scripts/leg_survival.py defines one: 1xATR in 8 min, dies on 3xATR retrace "
+         "from the extreme) and if so how old and how far travelled? "
+         "★ THE ONE COMPARISON THAT IS LEGITIMATE WITHOUT NEGATIVES: compare the press population "
+         "against ALL MINUTES of the same sessions. 'He presses when price is at X% of range' means "
+         "nothing until you know that all minutes sit at Y%. Do that comparison explicitly. "
+         "⚠ Report it as a DESCRIPTION of a population, not as a filter, and do not tune a threshold "
+         "on it. ⚠ And say how many presses the sample now holds — the fitting threshold is 30 and "
+         "the count is the headline number of this section. Write the HTML fragment to the artifact."),
+
+    dict(key="automation_gap", artifact=f"{SEC}/automation_gap.html", deps=["op_record", "op_conditions"], timeout_s=3600, prompt=PRE + OPS + LIMITS +
+         "SECTION 3 — CAN THIS BE AUTOMATED? THE HONEST ANSWER, AND THE ROUTE TO A BETTER ONE. "
+         "This is the section the operator asked for and it must not flinch in either direction: "
+         "not 'no' (eleven months of that is why he asked for the R&D rules), and not a fitted "
+         "fantasy on 28 positives. "
+         "(1) WHAT IS ALREADY AUTOMATABLE AND PROVEN: the desk ALREADY beat him to one leg — on "
+         "2026-09-15 leg_watch logged the DOWN leg at 06:50:38 and he entered SHORT at 06:56, and on "
+         "the 15th its 60-min page preceded his +$343 entry by 58 seconds. Score every alert the "
+         "watchers fired this week against what he actually did: did the alert PRECEDE his press, "
+         "follow it, or fire on a leg he ignored? THAT is the automatable half — telling him when to "
+         "look — and it is measurable NOW without negatives. "
+         "(2) WHAT IS NOT, AND EXACTLY WHY: no negative examples, so no decision boundary; and his "
+         "exits are unreproducible by 119 attempts. Quantify the gap rather than asserting it — how "
+         "many labelled presses, how many passes, what would be needed. "
+         "(3) THE PIECES THAT COULD BE AUTOMATED WITHOUT LEARNING HIS JUDGEMENT AT ALL: a hold-time "
+         "guard (the >8h abandonment bucket is 0/4 and -$6,612 — a rule that needs no model), the "
+         "event-day stand-aside, the $250 daily loss limit already running. Score each on this "
+         "week's data. "
+         "(4) RANKED SHORTLIST, best first, each with its measured $/day, its uncertainty, and "
+         "whether it is REFUTED / PROMISING / PROVEN. Write the HTML fragment to the artifact."),
+
+    dict(key="run_charts", artifact=f"{SEC}/run_charts.html", deps=[], timeout_s=1800, prompt=PRE + OPS +
+         "SECTION 4 — THE CHARTS. The operator reads tables for stats but LOVES run charts. Draw "
+         "EVERY one of his entries from the completed week: the session's 1-min bars, his entry "
+         "marked, every scale-out exit marked, and the MFE/MAE envelope of the trade. Where an alert "
+         "from leg_watch or the event calendar fired that session, mark it on the same chart — the "
+         "point is for him to SEE whether the machine saw what he saw. Use scripts/friday/run_charts.py "
+         "if it fits; extend it rather than rewriting it. Write the HTML fragment to the artifact."),
+
+
+    # ── THE RESERVED TAIL. CLAUDE.md: "you lose a greenfield cluster, never the revision." ────────
+    dict(key="assemble", artifact=f"{WEB}/weekly_{WEEK}.html",
+         deps=["op_record", "op_conditions", "automation_gap", "run_charts"],
+         timeout_s=2700, prompt=PRE +
+         f"Assemble the V7 report for the completed week into {WEB}/weekly_{WEEK}.html (+ .pdf). "
+         f"★ THE REPORT WAS REFOCUSED ON 2026-09-18 and is now ONE SUBJECT: the operator's own "
+         f"trading and whether it can be automated. Sections in {SEC}, in this order: op_record, "
+         f"op_conditions, automation_gap, run_charts. ⚠ DO NOT pull in part1_live, part2_shadow, "
+         f"part25_musings, part2_6_router, movement*, rehab or gf_* — those phases are RETIRED and "
+         f"any such file on disk is STALE from a previous week. Stitching one in would publish last "
+         f"month's tournament review as if it were this week's work. "
+         f"Extend scripts/friday_v7_build.py for the new, shorter section list rather than "
+         f"rewriting it, then render HTML + PDF with system python3. "
+         f"★ HEADLINE THE WEEK WITH THE EVENT CALENDAR: read data/event_calendar.json and open the "
+         f"report with THE WEEK THAT WAS and THE WEEK COMING — every FOMC/CPI/NFP/earnings date, in "
+         f"Paris time, with our measured impact (FOMC ran 2.7-3.5x a normal 30-min window on both "
+         f"days in our tape; MGC 6.6x). Add the macro backdrop from data/macro_watch.jsonl (oil, "
+         f"DXY, 10y, VIX) — ⚠ MEASURED 2026-09-18: all four CO-MOVE and NONE predicts the next day "
+         f"(VIX<->MNQ same-day r=-0.669, DXY<->MGC -0.408, oil unrelated to both), so present it as "
+         f"what EXPLAINS the week, never as a forecast. "
+         f"Regenerate reports/friday_v7/plays.json from THIS week only — the file on disk is stale. "
+         f"Verify the outputs exist, report path + word count + pdfinfo page count. ★ If a fragment "
+         f"is MISSING because its phase failed, still assemble and insert a visible honest "
+         f"placeholder naming it rather than silently omitting it."),
+
+    dict(key="proofread", artifact=f"{SEC}/proofread.json", deps=["assemble"], timeout_s=2700, prompt=PRE +
+         f"ADVERSARIAL PROOF-READER — read the just-built report as GARRATH will, and be HARD on it. "
+         f"Read the newest {WEB}/weekly_*.html IN FULL. The report has ONE subject now: his own "
+         f"trading and whether it can be automated. Grade: (1) ON SUBJECT — is every section about "
+         f"HIS trades? Any surviving tournament/shadow/greenfield content is STALE and is a defect. "
+         f"(2) READS WELL — plain English, money-first, $/day at a stated lot size, fact-tables. "
+         f"(3) HONEST ABOUT n — 61 entries, ~28 presses, ZERO negative examples. Any section that "
+         f"presents a fitted rule, a tuned threshold, or a 'model' of his judgement on that sample "
+         f"is the PRIMARY defect to catch. Equally: any section that ends in a verdict with nothing "
+         f"to try is ALSO a defect — the standing rule is a ranked shortlist, three outcomes "
+         f"(REFUTED / PROMISING / PROVEN), and most honest results are PROMISING. "
+         f"(4) MAKES SENSE — grouped by ENTRY not by trade row; data_quality filtered; no multi-lot "
+         f"P&L presented as clean; no claim that a NULL entry_source is manual. "
+         f"(5) UNANSWERED QUESTIONS he WILL poke at: 'so what do I actually DO Monday'; a $ figure "
+         f"without its baseline; a post-hoc split presented as a rule; an alert scored against "
+         f"nothing. Write STRICT JSON to {SEC}/proofread.json: {{\"on_subject_ok\":bool,"
+         f"\"reads_ok\":bool,\"honest_about_n_ok\":bool,\"sensible_ok\":bool,"
+         f"\"issues\":[{{\"section\":str,\"problem\":str,\"fix\":str}}],"
+         f"\"unanswered\":[{{\"question\":str,\"how_to_answer\":str}}]}}"),
+
+    dict(key="rev2", artifact=f"{SEC}/rev2_done.txt", deps=["proofread"], timeout_s=3600, prompt=PRE +
+         f"REVISION 2. Read {SEC}/proofread.json. ANSWER every `unanswered` from REAL data and FIX "
+         f"every `issue`, editing the SOURCE FRAGMENTS in {SEC} (never the built HTML, which is "
+         f"re-rendered from them). Recompute anything numeric; never hand-wave a number. ⚠ If the "
+         f"fix for an issue would require fitting on <30 labelled presses, the correct fix is to "
+         f"REMOVE the claim, not to compute it more carefully. Re-run scripts/friday_v7_build.py "
+         f"with system python3 to re-render. {JUDGE} {STYLE} Write a Rev1->Rev2 changelog to "
+         f"{SEC}/rev2_done.txt listing every question closed and every fix applied. If proofread "
+         f"listed nothing, write 'no changes required' and stop."),
+
+    dict(key="final", artifact=f"{SEC}/final_check.txt", deps=["rev2"], timeout_s=1800, prompt=PRE +
+         f"FINAL CHECK. ★ DO NOT RE-DERIVE THE GRADE: read {SEC}/proofread.json, which already "
+         f"scored this run. Confirm its open questions were CLOSED by rev2 and that no retired-phase "
+         f"content survived the stitch — spot-check, do not re-read end to end. Verify "
+         f"weekly_{WEEK}.html exists and report its size and section count. ⚠ Do NOT re-render and "
+         f"do NOT fix gaps yourself; rev2 is the revision pass and a second editor here has twice "
+         f"cost the whole phase its budget. A NAMED gap is worth more than a missed deadline. "
+         f"⚠ Do NOT send Telegram; serial_runner pings the operator itself. Write a one-page "
+         f"summary to {SEC}/final_check.txt."),
+]
+
 
 PHASES_BY_KEY = {p["key"]: p for p in PHASES}
 
