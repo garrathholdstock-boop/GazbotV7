@@ -580,6 +580,35 @@
            ⚠ Relative URL, no leading slash: the dashboard is mounted under /v7/ and a leading
            slash resolves to the domain ROOT, which is not routed to this backend. That spelling
            once failed as "no connection" without ever leaving the browser. */
+        /* ★★ STEP AWAY. ARM is one tap and no PIN; DISARM asks, because removing a guard is the
+           direction that exposes him. */
+        const sb = $("sa-btn");
+        if (sb) {
+          sb.onclick = () => {
+            const armed = !!(STATE.ctx && STATE.ctx.step_away && STATE.ctx.step_away.armed);
+            const body = { armed: !armed };
+            if (armed) {
+              const pin = window.prompt("PIN to DISARM the step-away guard");
+              if (!pin) return;
+              body.pin = pin;
+            } else {
+              const el = $("sa-loss");
+              body.limit_usd = (el && Number(el.value)) || 200;
+              if (!window.confirm(`Arm STEP AWAY?\n\nIf the open position runs to −$${body.limit_usd} `
+                + `it will be flattened at market, through the rider's own ownership check.\n\n`
+                + `It disarms the moment it fires, and at the 22:00Z reopen.`)) return;
+            }
+            sb.disabled = true;
+            fetch("api/control/step-away", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+              .then((j) => { window.alert(j && j.ok ? j.msg : "Failed: " + ((j && j.error) || "?"));
+                             sb.disabled = false; })
+              .catch((e) => { window.alert("Failed: " + e.message); sb.disabled = false; });
+          };
+        }
+
         const pb = $("pass-btn");
         if (pb) {
           pb.onclick = () => {
@@ -962,6 +991,15 @@
     const po = c.position;
     set("ctx-posage", po ? `${po.dir} ${po.age_min}m` : "flat",
         po ? (po.band === "ABANDONED" ? "neg" : po.band === "long" ? "warn" : "") : "");
+    /* ⚠ A GUARD HE CANNOT SEE IS ONE HE CANNOT TRUST — and one he forgets he armed. */
+    const sa = c.step_away || {};
+    const sbtn = $("sa-btn"), sst = $("sa-state");
+    if (sbtn) { sbtn.textContent = sa.armed ? "DISARM" : "ARM"; sbtn.className = "claimbtn" + (sa.armed ? " on" : ""); }
+    if (sst) {
+      sst.textContent = sa.armed ? `ARMED −$${Math.round(sa.limit_usd)}`
+        : (sa.fired_at ? `fired ${String(sa.fired_at).slice(11, 16)} at ${sa.fired_pnl}` : "off");
+      sst.className = sa.armed ? "neg" : "dim3";
+    }
     const ev = c.next_event;
     set("ctx-event", ev ? `${ev.kind} ${ev.in_hours < 24 ? ev.in_hours + "h" : ev.paris}` : "—",
         ev && ev.in_hours < 2 ? "neg" : "");

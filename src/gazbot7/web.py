@@ -198,6 +198,14 @@ def context_json(cap_path, data_dir, store_path):
     except Exception as e:
         out["desk_error"] = f"{type(e).__name__}: {e}"
 
+    # ★ THE ARMED STATE MUST BE VISIBLE. A guard he cannot see is one he cannot trust, and one he
+    # forgets he armed. It rides on the same fetch as everything else in the strip.
+    try:
+        with open(os.path.join(data_dir, "step_away.json")) as fh:
+            out["step_away"] = json.load(fh)
+    except Exception:
+        out["step_away"] = {"armed": False}
+
     # ── NEXT SCHEDULED EVENT ─────────────────────────────────────────────────────────────────
     try:
         with open(os.path.join(data_dir, "event_calendar.json")) as fh:
@@ -1378,6 +1386,61 @@ def claim_post(body, data_dir):
 
 
 # ── POST /api/control/dayrider-claim — operator "Claim profit" on the day rider ─
+def step_away_post(body, data_dir):
+    """ARM / DISARM the step-away guard. Writes a state file; places NO order.
+
+    ★★ ARMING NEEDS NO PIN, AND THAT IS DELIBERATE. The PIN guards actions that ADD risk — an
+    order, or DISARMING a guard. Arming one REDUCES risk, and friction at the exact moment he is
+    walking into a meeting is friction that costs money. DISARMING asks for the PIN, because that
+    is the direction that exposes him.
+
+    ⚠ The watcher (scripts/step_away.py) does the acting, and it acts by writing the claim file his
+    own button writes — the web process never touches the broker.
+    """
+    try:
+        req = json.loads(body or b"{}")
+    except Exception:
+        return {"ok": False, "error": "bad request"}
+    arm = bool(req.get("armed"))
+    path = os.path.join(data_dir, "step_away.json")
+    if not arm:
+        pin = str(req.get("pin", "")).strip()
+        try:
+            want = open(os.path.join(data_dir, "claim_pin.txt")).read().strip()
+        except Exception:
+            want = ""
+        if not want or pin != want:
+            return {"ok": False, "error": "wrong PIN — disarming removes a guard"}
+        try:
+            with open(path, "w") as fh:
+                json.dump({"armed": False, "disarmed_at": datetime.now(UTC).isoformat()}, fh)
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+        return {"ok": True, "armed": False, "msg": "Step-away DISARMED. You are watching it again."}
+    try:
+        lim = abs(float(req.get("limit_usd") or 200))
+    except Exception:
+        lim = 200.0
+    tp = req.get("take_profit_usd")
+    try:
+        tp = abs(float(tp)) if tp else None
+    except Exception:
+        tp = None
+    # the session is the 22:00Z reopen — an arming must never survive it
+    now = datetime.now(UTC)
+    sess = (now.date() if now.hour >= 22 else (now - timedelta(days=1)).date()).isoformat()
+    st = {"armed": True, "limit_usd": lim, "take_profit_usd": tp,
+          "armed_at": now.isoformat(), "session": sess}
+    try:
+        with open(path, "w") as fh:
+            json.dump(st, fh, indent=1)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "armed": True, "limit_usd": lim, "take_profit_usd": tp,
+            "msg": f"Step-away ARMED — flatten at −${lim:.0f}"
+                   + (f" or +${tp:.0f}" if tp else "") + ". Disarms at the 22:00Z reopen."}
+
+
 def operator_pass_post(body, data_dir):
     """★★★ "LOOKED AND PASSED" — he considered a trade and decided against it. NO ORDER.
 
@@ -2202,6 +2265,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._json(dayrider_claim_post(body, data_dir))
                 elif path == "/api/control/pass":
                     self._json(operator_pass_post(body, data_dir))
+                elif path == "/api/control/step-away":
+                    self._json(step_away_post(body, data_dir))
                 else:
                     self._send(b"not found", "text/plain", 404)
             except Exception as e:

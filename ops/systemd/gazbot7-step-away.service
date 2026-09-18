@@ -1,0 +1,26 @@
+[Unit]
+Description=GAZBOT V7 — STEP AWAY guard ("I'm in a meeting, look after this")
+# ★★★ IT NEVER TOUCHES THE BROKER. On breach it writes data/day_rider_claim.txt — the SAME file the
+# operator's own Claim button writes — and the rider executes it on its own cycle through its own
+# ownership check, picked up by the existing inotify fast path in ~0.02s. A button that reached the
+# broker directly is how 2026-08-06 happened.
+# ★★ MEASURED CASE FOR ARM-WHEN-AWAY (49 entries): armed while he WATCHES it is worth +$95 and
+# costs him two big winners; armed while he is AWAY it is worth +$3,257. The value is entirely in
+# the trades nobody was watching.
+# ⚠ ONE-SHOT: disarms the instant it fires, and at the 22:00Z reopen — an arming forgotten on Friday
+# must not flatten Monday's position seconds after it opens.
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=200M
+Restart=always
+RestartSec=5
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/step_away.py
+
+[Install]
+WantedBy=multi-user.target
