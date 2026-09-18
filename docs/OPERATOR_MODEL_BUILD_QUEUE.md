@@ -37,6 +37,18 @@ and the 09-10 case ran 13.6 hours to −331pt. That is ABANDONMENT, and it is wh
 
 ## THE QUEUE — best first
 
+### [x] 1. THE "LOOKED AND PASSED" BUTTON — **DONE 2026-09-18**
+`PASS` sits under BUY/SELL with an optional "why not?" note. **No PIN and no confirm**, deliberately
+— the PIN guards an ORDER and this places none, and friction that makes him skip recording a pass
+defeats the point: the sample IS the product.
+★★★ **THE SAFETY PROPERTY IS STRUCTURAL.** It writes `data/operator_pass.txt`, a filename
+`day_rider` has never heard of — there is no code path from it to the broker, and a test asserts
+the rider's source never names it. ⚠ `PathModified`, never `PathExists`: nothing consumes a pass
+file, so `PathExists` would re-fire forever and fabricate presses he never made.
+⚠ **Needs a `gazbot7-web` restart to go live** (it drops his tab — ask first).
+
+<details><summary>original entry</summary>
+
 ### [ ] 1. THE "LOOKED AND PASSED" BUTTON  ·  size: S  ·  **the blocker**
 One tap, places no order, writes the identical snapshot with `kind: "pass"`.
 
@@ -49,6 +61,10 @@ REPLICATING them.
 **Definition of done:** a `pass` record lands in `data/operator_reads.jsonl` with the same `facts`
 schema as a buy, it places no order (asserted against the SOURCE, like the capture path), and
 `operator_reads_join.py` counts passes separately from presses.
+✅ Verified end-to-end 2026-09-18: `kind: pass`, note captured, full 3,162-char tape snapshot,
+request grabbed in 0.02s, rider untouched. The synthetic test row was removed from the dataset.
+
+</details>
 
 ### [x] 2. PRESENCE HEARTBEAT — **DONE 2026-09-18**, `scripts/presence.py`
 ★ **It needed NO code change.** nginx is the front door and had logged every request all along —

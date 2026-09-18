@@ -123,6 +123,14 @@
         <div class="row"><span class="k">&nbsp;</span><span class="val">
           <button class="claimbtn" id="buy-long">BUY</button>
           <button class="claimbtn" id="buy-short">SELL</button></span></div>
+        <!-- ★★★2026-09-18 LOOKED AND PASSED — the NEGATIVE EXAMPLE. Every other record the desk
+             holds is a "yes"; a decision boundary cannot be learned from one side of it, and that
+             is why 119 calibrations failed to reproduce his judgement. This places NO ORDER: it
+             writes operator_pass.txt, a file no order path reads. -->
+        <div class="row"><span class="k dim3">looked, not trading</span><span class="val">
+          <input id="pass-note" type="text" maxlength="120" placeholder="why not? (optional)"
+                 style="width:11em">
+          <button class="claimbtn" id="pass-btn" title="Records what the tape looked like right now and that you decided AGAINST trading it. Places no order.">PASS</button></span></div>
       </div>
 
       <div class="sec">DESK · TODAY</div>

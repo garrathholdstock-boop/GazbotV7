@@ -1173,6 +1173,42 @@ def claim_post(body, data_dir):
 
 
 # ── POST /api/control/dayrider-claim — operator "Claim profit" on the day rider ─
+def operator_pass_post(body, data_dir):
+    """★★★ "LOOKED AND PASSED" — he considered a trade and decided against it. NO ORDER.
+
+    THE GAP IT CLOSES (2026-09-18). Every record in operator_reads.jsonl is a "yes". You cannot
+    learn a decision boundary from one side of it, and that is precisely why 119 calibrations
+    failed to reproduce his judgement: they all reverse-engineered from the OUTCOME because nobody
+    had ever recorded the times he looked and did nothing.
+
+    ⚠⚠⚠ IT WRITES `operator_pass.txt`, WHICH NO ORDER PATH READS. day_rider consumes
+    day_rider_buy.txt and day_rider_claim.txt and has never heard of this file, so the button
+    cannot place an order however it is pressed, replayed or aged. That is a STRUCTURAL guarantee,
+    not a check that could be forgotten — and `tests/test_looked_and_passed.py` asserts the rider's
+    source never names it.
+
+    ⚠ NO PIN, DELIBERATELY. The PIN on claim/buy guards an order. This places none, and a friction
+    that makes him skip recording a pass would defeat the whole point — the sample is the product.
+    ⚠ NOT age-bounded and never consumed: nothing acts on it, so a stale file is inert. It is
+    overwritten by the next press; the RECORD lives in operator_reads.jsonl, written by the path
+    unit, not here.
+    """
+    try:
+        req = json.loads(body or b"{}")
+    except Exception:
+        req = {}
+    # His own words at the moment, if he typed any — build-queue item 3, free here.
+    note = str(req.get("note", ""))[:200].replace("|", " ").replace("\n", " ")
+    stamp = datetime.now(UTC).isoformat()
+    try:
+        with open(os.path.join(data_dir, "operator_pass.txt"), "w") as fh:
+            fh.write(f"{stamp}|PASS|{note}")
+    except Exception as e:
+        return {"ok": False, "error": f"could not record: {e}"}
+    return {"ok": True, "recorded": stamp,
+            "msg": "Noted — looked and passed. No order placed."}
+
+
 def dayrider_claim_post(body, data_dir):
     """PIN-guarded REQUEST to bank the day rider's open position.
 
@@ -1959,6 +1995,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._json(dayrider_buy_post(body, data_dir))
                 elif path == "/api/control/dayrider-claim":
                     self._json(dayrider_claim_post(body, data_dir))
+                elif path == "/api/control/pass":
+                    self._json(operator_pass_post(body, data_dir))
                 else:
                     self._send(b"not found", "text/plain", 404)
             except Exception as e:

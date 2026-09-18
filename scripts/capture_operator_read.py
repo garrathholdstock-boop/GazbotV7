@@ -37,14 +37,25 @@ import sys
 
 GB = "/home/alphabot/gazbot7"
 LOG = f"{GB}/data/operator_reads.jsonl"
-WATCHED = {"buy": f"{GB}/data/day_rider_buy.txt", "claim": f"{GB}/data/day_rider_claim.txt"}
+WATCHED = {"buy": f"{GB}/data/day_rider_buy.txt", "claim": f"{GB}/data/day_rider_claim.txt",
+           # ★★★2026-09-18 THE "LOOKED AND PASSED" PRESS — the NEGATIVE EXAMPLE, and the thing
+           # eleven months of study never had. Every other record here is a "yes"; a decision
+           # boundary cannot be learned from one side of it, which is why 119 calibrations failed.
+           # ⚠⚠⚠ ITS FILE IS DELIBERATELY ONE NO ORDER PATH READS. day_rider consumes
+           # day_rider_buy.txt and day_rider_claim.txt; it has never heard of operator_pass.txt, so
+           # this button is INCAPABLE of placing an order however it is pressed or replayed. A
+           # test asserts the rider's source never names it.
+           "pass": f"{GB}/data/operator_pass.txt"}
 # ★★2026-09-14 THE RACE THAT ATE THE LABEL. day_rider reaches a completed tick ~1.35s after the
 # write and CONSUMES the request; this snapshot spends ~1.7s starting Python and building the
 # day's context, so by the time it looked, the file was already empty and every captured row read
 # `request: {}` — a dataset of presses with no record of WHAT WAS PRESSED. Measured, not guessed:
 # the first live test captured an empty request. systemd copies the file in ExecStartPre, before
 # the interpreter exists, and we read that snapshot instead. The original is never touched.
-PRE = {"buy": "/run/gazbot7_press_buy.txt", "claim": "/run/gazbot7_press_claim.txt"}
+PRE = {"buy": "/run/gazbot7_press_buy.txt", "claim": "/run/gazbot7_press_claim.txt",
+       # ⚠ A pass is not consumed by anything, so it cannot lose its own race — but it takes the
+       # same ExecStartPre copy so all three kinds read through one code path.
+       "pass": "/run/gazbot7_press_pass.txt"}
 
 
 def peek(path: str) -> dict:

@@ -629,6 +629,33 @@
         };
         $("buy-long").onclick = () => send("BUY");
         $("buy-short").onclick = () => send("SELL");
+        /* ★★★ LOOKED AND PASSED. No PIN and no confirm dialog, deliberately: the PIN on BUY/SELL
+           guards an ORDER and this places none, and any friction that makes him skip recording a
+           pass defeats the whole point — the sample IS the product.
+           ⚠ Relative URL, no leading slash: the dashboard is mounted under /v7/ and a leading
+           slash resolves to the domain ROOT, which is not routed to this backend. That spelling
+           once failed as "no connection" without ever leaving the browser. */
+        const pb = $("pass-btn");
+        if (pb) {
+          pb.onclick = () => {
+            const n = $("pass-note");
+            pb.disabled = true;
+            fetch("api/control/pass", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ note: (n && n.value) || "" }),
+            }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+              .then((j) => {
+                pb.textContent = j && j.ok ? "noted" : "failed";
+                if (n) n.value = "";
+                setTimeout(() => { pb.textContent = "PASS"; pb.disabled = false; }, 2000);
+              })
+              .catch((e) => {
+                pb.textContent = "failed";
+                window.alert("Pass NOT recorded: " + e.message);
+                setTimeout(() => { pb.textContent = "PASS"; pb.disabled = false; }, 2000);
+              });
+          };
+        }
       }
     }
 

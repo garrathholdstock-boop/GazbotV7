@@ -1,0 +1,26 @@
+[Unit]
+Description=GAZBOT V7 — capture the operator's read when he LOOKS AND PASSES (the negative example)
+# ★★★ THE GAP THIS CLOSES. Every other record in operator_reads.jsonl is a "yes". A decision
+# boundary cannot be learned from one side of it — which is exactly why 119 calibrations failed to
+# reproduce his judgement: every one reverse-engineered from the OUTCOME, because nobody had ever
+# recorded the times he looked and did nothing.
+# ⚠⚠⚠ THERE IS NO ORDER PATH HERE, STRUCTURALLY. It watches data/operator_pass.txt, a file
+# day_rider has never heard of (it consumes day_rider_buy.txt and day_rider_claim.txt). The button
+# cannot place an order however it is pressed, replayed or aged.
+# ⚠ PathModified, never PathExists — a pass file is never consumed, so PathExists would re-fire
+# forever and fabricate a press every few seconds.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=900M
+TimeoutStartSec=120
+# Grab the label BEFORE the interpreter exists — the same ExecStartPre the buy/claim units use, so
+# all three kinds read through one code path. Nothing consumes a pass, so this cannot lose its race.
+ExecStartPre=-/bin/cp -f /home/alphabot/gazbot7/data/operator_pass.txt /run/gazbot7_press_pass.txt
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/capture_operator_read.py pass
+SuccessExitStatus=0 1

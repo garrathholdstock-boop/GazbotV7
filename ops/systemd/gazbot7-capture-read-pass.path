@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V7 — watch for a LOOKED-AND-PASSED press
+
+[Path]
+# ⚠ PathModified, NEVER PathExists. Nothing ever consumes operator_pass.txt, so PathExists would
+# re-trigger continuously and manufacture a stream of presses he never made — poisoning the very
+# dataset this exists to build.
+PathModified=/home/alphabot/gazbot7/data/operator_pass.txt
+
+[Install]
+WantedBy=multi-user.target
