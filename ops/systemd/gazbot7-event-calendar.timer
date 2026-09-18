@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — event calendar refresh (nightly, inside the halt)
+
+[Timer]
+# 21:25Z — inside the CME halt, after the tape mirror (21:05) and before the reopen (22:00), so an
+# ~3-minute run of outbound HTTP never competes with a live session. Earnings dates are confirmed
+# ~3-4 weeks ahead, so daily is the right cadence: it picks each one up the day it is published.
+OnCalendar=*-*-* 21:25:00
+AccuracySec=1m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

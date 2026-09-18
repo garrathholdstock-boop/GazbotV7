@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — pre-event alert cadence (every 5 min)
+
+[Timer]
+# Every 5 min at :30 past, clear of the rider's *:*:05, the router's *:0/5 and request-watch's :45.
+# ⚠ THE ALERT BANDS MUST BE WIDER THAN THIS TICK (they are 60->50 and 15->8) or a page can fall
+# between two runs and never fire at all.
+OnCalendar=*:0/5:30
+AccuracySec=10s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

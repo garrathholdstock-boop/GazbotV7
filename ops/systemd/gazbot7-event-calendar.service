@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V7 — refresh the event calendar (FOMC from the Fed, earnings from Nasdaq)
+# ★★ WHAT IT CAN AND CANNOT REACH, measured from this box 2026-09-18:
+#      federalreserve.gov 200 · api.nasdaq.com 200 · bls.gov 403 UNDER ANY User-Agent.
+# So CPI/NFP are SEEDED from a human-verified fetch and cannot self-renew — `--check` pages before
+# they run out. A calendar that quietly empties is this desk's signature failure.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=300M
+# The earnings fetch asks Nasdaq once per weekday over the horizon — ~85 sequential calls, ~3 min.
+TimeoutStartSec=900
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/event_calendar.py --refresh
+ExecStartPost=/home/alphabot/gazbot7/.venv/bin/python scripts/event_calendar.py --check
+SuccessExitStatus=0 1

@@ -1,0 +1,656 @@
+{
+ "generated_at": "2026-09-18T07:03:25.328983+00:00",
+ "notes": [
+  "FOMC: fetched 40",
+  "EARNINGS: fetched 8",
+  "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+ ],
+ "impact_measured_2026_09_18": {
+  "FOMC": "MNQ ran 2.7-3.5x a normal 30-min window on both FOMC days in our tape (98th/100th pct); MGC ran 6.6x its median and 2.8x its previous MAXIMUM",
+  "CPI": "MNQ 205-272pt in the 30-min window (95th-100th pct vs a 69pt median); MGC 3-6x",
+  "NFP": "MNQ 218-220pt in the 30-min window (100th pct both times); MGC 3-6x",
+  "EARNINGS": "NOT MEASURED on our tape yet \u2014 included because it moves the index, not because we have tested it. Treat as unquantified."
+ },
+ "events": [
+  {
+   "date": "2021-01-27",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-03-17",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-04-28",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-06-16",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-07-28",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-09-22",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-11-03",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2021-12-15",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-01-26",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-03-16",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-05-04",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-06-15",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-07-27",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-09-21",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-11-02",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2022-12-14",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-01-31",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-03-20",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-05-01",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-06-12",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-07-31",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-09-18",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-11-07",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2024-12-18",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-01-28",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-03-18",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-04-29",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-06-17",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-07-29",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-09-16",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-10-02",
+   "et_time": "08:30",
+   "kind": "NFP",
+   "name": "Employment Situation (Sep)",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+  },
+  {
+   "date": "2026-10-14",
+   "et_time": "08:30",
+   "kind": "CPI",
+   "name": "CPI (Sep)",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+  },
+  {
+   "date": "2026-10-20",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "NFLX earnings",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": true,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-10-28",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-10-28",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "TSLA earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-10-29",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "AAPL earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-10-29",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "AMZN earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-11-04",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "GOOG earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-11-04",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "GOOGL earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-11-04",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "MSFT earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-11-04",
+   "et_time": "16:05",
+   "kind": "EARNINGS",
+   "name": "META earnings (time UNCONFIRMED \u2014 assumed after close)",
+   "symbols": [
+    "MNQ"
+   ],
+   "confirmed": false,
+   "source": "api.nasdaq.com/api/calendar/earnings"
+  },
+  {
+   "date": "2026-11-06",
+   "et_time": "08:30",
+   "kind": "NFP",
+   "name": "Employment Situation (Oct)",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+  },
+  {
+   "date": "2026-11-10",
+   "et_time": "08:30",
+   "kind": "CPI",
+   "name": "CPI (Oct)",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+  },
+  {
+   "date": "2026-12-04",
+   "et_time": "08:30",
+   "kind": "NFP",
+   "name": "Employment Situation (Nov)",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+  },
+  {
+   "date": "2026-12-09",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2026-12-10",
+   "et_time": "08:30",
+   "kind": "CPI",
+   "name": "CPI (Nov)",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "bls.gov (human-verified 2026-09-18; this box cannot fetch it \u2014 HTTP 403)"
+  },
+  {
+   "date": "2027-01-27",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-03-17",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-04-28",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-06-09",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-07-28",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-09-15",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-10-27",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  },
+  {
+   "date": "2027-12-08",
+   "et_time": "14:00",
+   "kind": "FOMC",
+   "name": "FOMC decision + projections & press conference",
+   "symbols": [
+    "MNQ",
+    "MGC"
+   ],
+   "confirmed": true,
+   "source": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=GAZBOT V7 — PRE-EVENT ALERT (T-60 and T-15 before a scheduled market event)
+# ★★★ READ-ONLY. No order path, no gate, no request file — tests/test_event_alert.py asserts that
+# against the SOURCE. It says WHEN, never WHICH WAY: every direction study on this desk is a coin,
+# and the 2026-09-16 loss that motivated this was a DIRECTION error, not a timing one.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=200M
+TimeoutStartSec=120
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/event_alert.py
+SuccessExitStatus=0 1
