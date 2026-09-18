@@ -457,7 +457,14 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 #days-tbl table.sub tr.dt.w > td:first-child{border-left-color:var(--grn)}
 #days-tbl table.sub tr.dt.l > td:first-child{border-left-color:var(--red)}
 #days-tbl table.sub tr.dt:hover > td{background:var(--panel)}
-#days-tbl .sub td.tm{font-family:var(--mono);color:var(--txt2);white-space:nowrap}
+/* ⚠ FIXED COLUMN WIDTHS. Without them one long value re-flows the whole table — the 2026-09-15
+   drill opened misaligned because its BADFILL row carries an averaged, 4-decimal price. Widths
+   here mean a rogue value is CLIPPED rather than allowed to shove every other column sideways. */
+#days-tbl table.sub{table-layout:fixed}
+#days-tbl .sub td.tm{font-family:var(--mono);color:var(--txt2);white-space:nowrap;width:46px}
+#days-tbl .sub td:nth-child(2){width:78px}
+#days-tbl .sub td.pt{width:62px} #days-tbl .sub td.pl{width:72px}
+#days-tbl .sub td.meta{width:52px;overflow:hidden;text-overflow:ellipsis}
 #days-tbl .sub .q{font-family:var(--mono);color:var(--mut);margin-left:5px;font-size:10.5px}
 #days-tbl .sub td.px{font-family:var(--mono);color:var(--mut);white-space:nowrap;font-size:10.5px}
 #days-tbl .sub td.px .ar{color:var(--line2);margin:0 2px}

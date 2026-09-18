@@ -1012,16 +1012,26 @@
         const pts = (t.entry != null && t.exit != null) ? (t.exit - t.entry) * sgn : null;
         const held = (new Date(t.closed) - new Date(t.opened)) / 60000;
         const cls = win ? "pos" : "neg";
+        /* ⚠ FIXED WIDTHS, or one row wrecks the column. On 2026-09-15 the BADFILL row is an
+           AVERAGE of fabricated fills and carries FOUR decimals (29306.625 -> 29269.3125) where
+           every other row is clean 2dp, so that day's drill opened visibly misaligned. MNQ ticks
+           in 0.25 so 2dp is exact for any real price; an averaged one rounds, and that row is
+           flagged anyway. Same for qty: the DB stores it as a float, so "4.0" not "4". */
+        const px = (v) => (v == null ? "—" : Number(v).toFixed(2));
+        /* ⚠ And a 421-minute hold sat beside 16m neighbours as a raw "421m". Hours past two. */
+        const dur = !isFinite(held) ? "—"
+          : held < 120 ? Math.round(held) + "m"
+          : Math.floor(held / 60) + "h" + String(Math.round(held % 60)).padStart(2, "0");
         return `<tr class="dt ${win ? "w" : "l"}${t.flag ? " flagged" : ""}"` +
                (t.flag ? ` title="${t.flag}"` : "") + `>` +
                `<td class="tm">${(t.opened || "").slice(11, 16)}</td>` +
                `<td><span class="pill ${t.side === "SHORT" ? "short" : "long"}">${t.side}</span>` +
-               `<span class="q">${t.qty}</span></td>` +
-               `<td class="px">${t.entry} <span class="ar">→</span> ${t.exit}</td>` +
+               `<span class="q">${Math.round(t.qty)}</span></td>` +
+               `<td class="px">${px(t.entry)} <span class="ar">→</span> ${px(t.exit)}</td>` +
                `<td class="pt ${cls}">${pts == null ? "—" : (pts > 0 ? "+" : "") + pts.toFixed(1)}</td>` +
                `<td class="pl ${cls}">${money(t.pnl, 0)}</td>` +
-               `<td class="meta">${isFinite(held) ? Math.round(held) + "m" : "—"}</td>` +
-               `<td class="meta">${(t.reason || "").replace("MANUAL_CLAIM", "hand").replace("TARGET_", "T")}</td>` +
+               `<td class="meta">${dur}</td>` +
+               `<td class="meta">${(t.reason || "").replace("MANUAL_CLAIM", "hand").replace("TARGET_", "T").replace("CLOCK_FLAT", "20:40 flat")}</td>` +
                `</tr>`;
       }).join("");
       dr.innerHTML = `<td colspan="5"><table class="sub">${sub}</table>` +

@@ -192,3 +192,42 @@ def test_the_drill_degrades_rather_than_wraps_on_a_narrow_phone():
     css = open(CSS).read()
     i = css.rindex("@media(max-width:560px)")
     assert "td.px{display:none}" in css[i:]
+
+
+def test_prices_are_fixed_to_two_decimals():
+    """★★ WHY 2026-09-15 "opened very strangely". Its BADFILL row is an AVERAGE of fabricated fills
+    and carries FOUR decimals (29306.625 -> 29269.3125) where every other row is clean 2dp, so that
+    one row re-flowed the whole table. MNQ ticks in 0.25, so 2dp is exact for any real price; an
+    averaged one rounds, and that row is struck through anyway."""
+    js = open(JS).read()
+    i = js.index("const sub = (r.trades || []).map")
+    block = js[i:i + 2600]
+    assert "Number(v).toFixed(2)" in block, "prices are no longer width-stable"
+    assert "${px(t.entry)}" in block and "${px(t.exit)}" in block
+
+
+def test_the_sub_table_has_fixed_column_widths():
+    """⚠ Formatting alone is not enough — a rogue value must be CLIPPED, not allowed to shove every
+    other column sideways."""
+    css = open(CSS).read()
+    assert "#days-tbl table.sub{table-layout:fixed}" in css
+    for w in ("td.tm{", "td.pt{", "td.pl{"):
+        assert w in css, f"{w} lost its pinned width"
+
+
+def test_quantity_renders_as_an_integer():
+    """⚠ The DB stores qty as a float, so it rendered "4.0" on every single row."""
+    js = open(JS).read()
+    i = js.index("const sub = (r.trades || []).map")
+    assert "Math.round(t.qty)" in js[i:i + 2600]
+
+
+def test_long_holds_render_as_hours():
+    """⚠ 2026-09-15's last trade ran 421 minutes to the 20:40 flat and sat beside 16m neighbours as
+    a raw "421m". It is also the ABANDONMENT pattern — over-8h holds are 0 winners from 4 — so it
+    should read as what it is."""
+    js = open(JS).read()
+    i = js.index("const sub = (r.trades || []).map")
+    block = js[i:i + 2600]
+    assert "held < 120" in block and 'padStart(2, "0")' in block
+    assert '"20:40 flat"' in block, "CLOCK_FLAT no longer reads as the hard flat"
