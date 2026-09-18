@@ -17,6 +17,13 @@ MemoryMax=900M
 TimeoutStartSec=180
 # ★ THE COPY MUST HAPPEN BEFORE THE INTERPRETER STARTS — day_rider consumes the request ~1.35s
 # after the write and python takes ~1.7s to reach its first read. '-' so a missing file never fails.
+# ★★★2026-09-18 CLEAR THE COPY FIRST. `cp` is prefixed `-` so a MISSING original is tolerated —
+# but then the PREVIOUS press's copy survives in /run and the snapshot reads it as if it were
+# current. Observed live: deleting operator_pass.txt fired this unit, the cp failed, and the
+# run wrote a SECOND row carrying the EARLIER press's stamp at file_age_s 12.03 — a capture
+# labelled with a press that had already been recorded. For a buy or claim the same stale copy
+# would attach the WRONG press to a new snapshot, which is worse than losing the label.
+ExecStartPre=-/bin/rm -f /run/gazbot7_press_buy.txt
 ExecStartPre=-/bin/cp -f /home/alphabot/gazbot7/data/day_rider_buy.txt /run/gazbot7_press_buy.txt
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/capture_operator_read.py buy
 # A failed snapshot must never affect trading.

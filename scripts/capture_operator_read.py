@@ -77,13 +77,67 @@ def main() -> int:
     now = dt.datetime.now(dt.UTC)
     # the ExecStartPre copy first; fall back to the live file if the copy is missing
     req = peek(PRE.get(kind, ""))
+    # ⚠⚠ A SNAPSHOT COPY OLDER THAN THE PRESS IS NOT THIS PRESS. The ExecStartPre copy is taken
+    # milliseconds before the interpreter starts, so a genuine one reads ~0.03s old. Anything
+    # materially older is a leftover from a PREVIOUS press that a failed `cp` left in /run — belt
+    # and braces behind the `rm -f` now in the units, because a MISLABELLED record is worse than a
+    # missing one: it is indistinguishable from real data once it is in the file.
+    if req.get("raw") and (req.get("file_age_s") or 0) > 5.0:
+        print(f"discard: {kind} snapshot copy is {req['file_age_s']:.1f}s old — a stale /run file "
+              f"from an earlier press, not this one")
+        req = {}
     if not req.get("raw"):
         live = peek(WATCHED.get(kind, ""))
         if live.get("raw"):
             req = live
         else:
+            # ⚠⚠2026-09-18 KIND-AWARE, because the old message was a FALSE EXPLANATION for a pass.
+            # day_rider consumes day_rider_buy.txt and day_rider_claim.txt; it has never heard of
+            # operator_pass.txt, so "consumed by day_rider" on a pass row would send a future
+            # session hunting a race that cannot exist. A wrong cause is worse than no cause.
+            if kind not in ("buy", "claim"):
+                # ★★★2026-09-18 A STAMPLESS PASS IS A PHANTOM, AND IT MUST NOT BE RECORDED.
+                # Nothing consumes operator_pass.txt, so a genuine pass ALWAYS finds its own file.
+                # An empty one means inotify fired for some other reason — and DELETING the file
+                # is itself a PathModified event, observed live: a cleanup `rm` at 10:24:26 fired
+                # this unit 24 seconds after the real press and wrote a second, stampless row.
+                # ⚠ That row is the worst possible kind of data: an unlabelled NEGATIVE EXAMPLE in
+                # the very dataset built to learn his rejections — a pass he never made, at a
+                # moment he was not even looking. A buy or claim in the same state is still
+                # evidence (the press provably happened; the rider ate the label), which is why
+                # only the non-order kinds are dropped.
+                print(f"skip: {kind} fired with no request file — phantom (a delete is also a "
+                      f"PathModified event). Nothing recorded.")
+                return 0
             req = {**req, "note": "request already consumed by day_rider before the snapshot ran"}
     rec = {"ts": now.isoformat(), "kind": kind, "request": req}
+
+    # ★★★2026-09-18 SUPPRESS THE DOUBLE FIRE AT THE SOURCE. `PathModified` triggers TWICE for one
+    # write — measured over 2026-09-14..18, 52 of the consecutive same-kind gaps are UNDER TWO
+    # SECONDS carrying an IDENTICAL request.raw, so 110 captured records were only ~57 real presses.
+    # Downstream readers can dedupe a BUY or CLAIM on that stamp, but the second fire of a PASS
+    # arrives with NO stamp at all (the ExecStartPre copy has already been overwritten), so it is
+    # undedupable and would enter the dataset as a phantom press he never made — poisoning the very
+    # negative-example sample this exists to build.
+    # ⚠ Keyed on (kind, seconds since the last record of that kind), not on content: the phantom's
+    # whole problem is that its content is empty.
+    try:
+        with open(LOG) as _fh:
+            _last = None
+            for _ln in _fh:
+                _last = _ln
+        if _last:
+            _p = json.loads(_last)
+            if _p.get("kind") == kind:
+                _gap = (now - dt.datetime.fromisoformat(_p["ts"])).total_seconds()
+                # 5s: the twin fires land ~1-2s apart; his own fastest genuine repeat press on
+                # record is 83 seconds (2026-09-14 14:51:43 -> 14:53:06).
+                if 0 <= _gap < 5.0:
+                    print(f"skip: duplicate {kind} {_gap:.2f}s after the last one "
+                          f"(PathModified fires twice per write)")
+                    return 0
+    except Exception:
+        pass                      # a dedupe that cannot read must never LOSE a press
     # THE READ ITSELF: the same whole-day context the tape reader judges from, so a press and a
     # reader decision are directly comparable later.
     try:

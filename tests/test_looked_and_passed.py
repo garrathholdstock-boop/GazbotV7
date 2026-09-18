@@ -97,3 +97,47 @@ def test_the_button_exists_in_the_page_with_a_note_field():
     h = open(HTML).read()
     assert 'id="pass-btn"' in h and 'id="pass-note"' in h
     assert "Places no order" in h, "the button must say plainly that it trades nothing"
+
+
+def test_a_stampless_pass_is_DISCARDED_not_recorded():
+    """★★★ THE PHANTOM. Nothing consumes operator_pass.txt, so a genuine pass ALWAYS finds its own
+    file. An empty one means inotify fired for another reason — and DELETING the file is itself a
+    PathModified event, observed live: a cleanup `rm` fired this unit 24 seconds after a real press
+    and wrote a second, stampless row.
+
+    ⚠ That row is the worst possible data: an unlabelled NEGATIVE EXAMPLE in the very dataset built
+    to learn his rejections — a pass he never made, at a moment he was not even looking. A buy or
+    claim in the same state is still evidence (the press provably happened, the rider ate the
+    label), which is why only the non-order kinds are dropped."""
+    # ⚠ Assert the CODE, not the prose. A character-window search kept landing inside the comment
+    # that explains the guard — a test tripping over its own documentation, which has now happened
+    # four times on this desk. Strip comments first, every time.
+    code = "\n".join(l for l in open(CAP).read().splitlines()
+                     if l.strip() and not l.strip().startswith("#"))
+    assert 'if kind not in ("buy", "claim"):' in code
+    i = code.index('if kind not in ("buy", "claim"):')
+    block = code[i:i + 400]
+    assert "return 0" in block, "a stampless pass is still written"
+    assert "phantom" in block.lower(), "the skip no longer says WHY it dropped the row"
+
+
+def test_the_run_copy_is_CLEARED_before_it_is_taken():
+    """⚠⚠ THE MISLABEL, and it affected BUY and CLAIM too. `cp` is prefixed `-` so a missing
+    original is tolerated — but the PREVIOUS press's copy then survives in /run and the snapshot
+    reads it as current. Observed: a second row carrying the EARLIER press's stamp at
+    file_age_s 12.03. For a buy or claim that would attach the WRONG press to a new snapshot, which
+    is worse than losing the label — a mislabelled record is indistinguishable from real data."""
+    for kind in ("buy", "claim", "pass"):
+        u = open(f"/home/alphabot/gazbot7/ops/systemd/gazbot7-capture-read-{kind}.service").read()
+        pre = [l.strip() for l in u.splitlines()
+               if l.startswith("ExecStartPre=") and not l.strip().startswith("#")]
+        assert len(pre) == 2, f"{kind}: expected rm-then-cp, got {pre}"
+        assert "/bin/rm" in pre[0], f"{kind}: the stale /run copy is not cleared first"
+        assert "/bin/cp" in pre[1], f"{kind}: the copy no longer follows the clear"
+
+
+def test_a_stale_snapshot_copy_is_rejected_by_age():
+    """★ Belt and braces behind the rm: a genuine ExecStartPre copy reads ~0.03s old."""
+    src = open(CAP).read()
+    assert 'req.get("file_age_s") or 0) > 5.0' in src
+    assert "stale /run file" in src

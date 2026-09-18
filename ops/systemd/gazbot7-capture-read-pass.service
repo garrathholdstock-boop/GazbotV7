@@ -21,6 +21,13 @@ MemoryMax=900M
 TimeoutStartSec=120
 # Grab the label BEFORE the interpreter exists — the same ExecStartPre the buy/claim units use, so
 # all three kinds read through one code path. Nothing consumes a pass, so this cannot lose its race.
+# ★★★2026-09-18 CLEAR THE COPY FIRST. `cp` is prefixed `-` so a MISSING original is tolerated —
+# but then the PREVIOUS press's copy survives in /run and the snapshot reads it as if it were
+# current. Observed live: deleting operator_pass.txt fired this unit, the cp failed, and the
+# run wrote a SECOND row carrying the EARLIER press's stamp at file_age_s 12.03 — a capture
+# labelled with a press that had already been recorded. For a buy or claim the same stale copy
+# would attach the WRONG press to a new snapshot, which is worse than losing the label.
+ExecStartPre=-/bin/rm -f /run/gazbot7_press_pass.txt
 ExecStartPre=-/bin/cp -f /home/alphabot/gazbot7/data/operator_pass.txt /run/gazbot7_press_pass.txt
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/capture_operator_read.py pass
 SuccessExitStatus=0 1
