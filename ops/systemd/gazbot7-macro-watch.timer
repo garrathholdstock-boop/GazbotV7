@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V7 — macro tracker cadence (hourly)
+
+[Timer]
+# Hourly at :52 — clear of the rider's *:*:05, the router's *:0/5, request-watch's :45 and
+# event-alert's :30, and it lands before the top of the hour so a reading exists for each hour.
+OnCalendar=*:52:00
+AccuracySec=30s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

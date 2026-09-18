@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V7 — MACRO TRACKER (oil, DXY, 10y, VIX — hourly context)
+# ★★★ ONE SHORT-LIVED READ-ONLY IBKR CONNECTION, disconnected in a finally. On 2026-09-17 the
+# gateway's accept queue filled and every NEW connection hung for 5.5 hours while the rider held 4
+# lots blind. A CONTEXT tracker must never be the thing that costs the desk a claim — so it is
+# hourly (not per-minute), it fails quietly, and it pages only on a 6-hour streak.
+# ⚠ clientId 9. Taken: core=0 md=2 day_rider=4 watchdog=5 eod=6 checks=8.
+# ⚠⚠ IT MEASURES NO EDGE. Whether these four predict anything for MNQ/MGC is UNTESTED.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=300M
+TimeoutStartSec=180
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/macro_watch.py
+SuccessExitStatus=0 1
