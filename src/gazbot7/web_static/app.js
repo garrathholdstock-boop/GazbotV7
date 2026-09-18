@@ -997,17 +997,35 @@
       if (!DAYS_OPEN.has(r.day)) return;
       const dr = document.createElement("tr");
       dr.className = "drill";
+      /* ★★2026-09-18 REBUILT. Operator: "everything dark grey and not colour coded. not showing
+         the things i want. i want time of day. points. p&l green or red. do it in an elegant drop
+         down please its ugly the way it is."
+         So: TIME, side pill, entry→exit, POINTS, P&L — points and P&L both coloured by sign, and a
+         left accent bar per row so a winning and a losing trade are distinguishable at a glance on
+         a phone without reading a single digit.
+         ⚠ POINTS ARE DIRECTION-CORRECTED: a SHORT that falls is a WINNER. Rendering exit-minus-
+         entry raw would show every profitable short as negative — a number reading as its own
+         negation, the same defect fixed in leg_watch's messages on 09-15. */
       const sub = (r.trades || []).map((t) => {
-        const flag = t.flag ? ' class="flagged" title="' + t.flag + '"' : "";
+        const win = (t.pnl || 0) >= 0;
+        const sgn = t.side === "SHORT" ? -1 : 1;
+        const pts = (t.entry != null && t.exit != null) ? (t.exit - t.entry) * sgn : null;
         const held = (new Date(t.closed) - new Date(t.opened)) / 60000;
-        return `<tr${flag}><td>${(t.opened || "").slice(11, 16)}</td><td>${t.side}</td>` +
-               `<td>${t.qty}</td><td>${t.entry}</td><td>${t.exit}</td>` +
-               `<td>${isFinite(held) ? Math.round(held) + "m" : "—"}</td>` +
-               `<td>${t.reason || ""}</td>` +
-               `<td class="${(t.pnl || 0) >= 0 ? "pos" : "neg"}" style="text-align:right">${money(t.pnl, 0)}</td></tr>`;
+        const cls = win ? "pos" : "neg";
+        return `<tr class="dt ${win ? "w" : "l"}${t.flag ? " flagged" : ""}"` +
+               (t.flag ? ` title="${t.flag}"` : "") + `>` +
+               `<td class="tm">${(t.opened || "").slice(11, 16)}</td>` +
+               `<td><span class="pill ${t.side === "SHORT" ? "short" : "long"}">${t.side}</span>` +
+               `<span class="q">${t.qty}</span></td>` +
+               `<td class="px">${t.entry} <span class="ar">→</span> ${t.exit}</td>` +
+               `<td class="pt ${cls}">${pts == null ? "—" : (pts > 0 ? "+" : "") + pts.toFixed(1)}</td>` +
+               `<td class="pl ${cls}">${money(t.pnl, 0)}</td>` +
+               `<td class="meta">${isFinite(held) ? Math.round(held) + "m" : "—"}</td>` +
+               `<td class="meta">${(t.reason || "").replace("MANUAL_CLAIM", "hand").replace("TARGET_", "T")}</td>` +
+               `</tr>`;
       }).join("");
       dr.innerHTML = `<td colspan="5"><table class="sub">${sub}</table>` +
-        (r.flagged ? `<div class="dim3" style="padding:4px 2px">${r.flagged} row(s) struck through: a real trade whose PRICE came from a fabricated fill — shown, never counted.</div>` : "") +
+        (r.flagged ? `<div class="note">${r.flagged} row(s) struck through: a real trade whose PRICE came from a fabricated fill — shown, never counted.</div>` : "") +
         `</td>`;
       body.appendChild(dr);
     });

@@ -143,3 +143,52 @@ def test_the_trade_count_badge_no_longer_reads_the_tournament_only_field():
     js = open(JS).read()
     i = js.index('$("tb-trades")')
     assert "trades_rider" in js[max(0, i - 700):i + 120], "the count badge still reads tournament-only"
+
+
+def test_drill_points_are_DIRECTION_CORRECTED():
+    """★★★ A SHORT THAT FALLS IS A WINNER. Rendering exit-minus-entry raw would print every
+    profitable short as a negative number — a value reading as its own negation, the same defect
+    fixed in leg_watch's own messages on 2026-09-15. Verified against the live book: the 08:11
+    SHORT on 2026-09-18 ran 29913.00 -> 29890.25 for +$176, and must read +22.8pt."""
+    js = open(JS).read()
+    i = js.index("const sub = (r.trades || []).map")
+    block = js[i:i + 1800]
+    assert 't.side === "SHORT" ? -1 : 1' in block, "points are no longer direction-corrected"
+    assert "(t.exit - t.entry) * sgn" in block
+
+
+def test_the_drill_shows_what_he_asked_for():
+    """Operator: "i want time of day. points. p&l green or red." """
+    js = open(JS).read()
+    i = js.index("const sub = (r.trades || []).map")
+    block = js[i:i + 1800]
+    assert 'class="tm"' in block, "time of day missing"
+    assert 'class="pt ' in block, "points column missing"
+    assert 'class="pl ' in block, "P&L column missing"
+    # both the points and the P&L must carry the sign colour, not just the P&L
+    assert block.count("${cls}") >= 2, "points and P&L are not both colour-coded"
+
+
+def test_the_green_palette_variable_is_the_real_one():
+    """⚠ It is --grn, NOT --green. The first cut wrote var(--green,#3fbf7f): the variable does not
+    exist, so every positive number silently rendered in an off-palette fallback while negatives
+    used the real --red. A colour that is nearly right is harder to spot than one obviously wrong."""
+    css = open(CSS).read()
+    rules = [ln for ln in css.splitlines() if not ln.strip().startswith("/*") and "--green" in ln]
+    assert not rules, f"an undefined --green survives in a rule: {rules}"
+    assert ".pos{color:var(--grn)}" in css
+
+
+def test_a_winner_and_a_loser_are_separable_without_reading_a_digit():
+    """★ Phone-first: a left accent bar coloured by outcome, so the row reads at a glance."""
+    css = open(CSS).read()
+    assert "tr.dt.w > td:first-child{border-left-color:var(--grn)}" in css
+    assert "tr.dt.l > td:first-child{border-left-color:var(--red)}" in css
+
+
+def test_the_drill_degrades_rather_than_wraps_on_a_narrow_phone():
+    """⚠ Seven columns will not fit a phone. Dropping the two least important beats a wrapped row
+    or a sideways scroll — he reads this one-handed."""
+    css = open(CSS).read()
+    i = css.rindex("@media(max-width:560px)")
+    assert "td.px{display:none}" in css[i:]
