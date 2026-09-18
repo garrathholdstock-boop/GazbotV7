@@ -248,16 +248,23 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
    row2 (tournament/holding/exec activity) fills the remainder to 100vh. Left rail stacks DESK
    STATS over EXECUTION; TODAY·TRADES spans full height at right. */
 .tabbar{display:none}
+/* ★★★2026-09-18 REBUILT AROUND THE CHART. Operator: "for desktop most of the desk stats arent
+   needed. the tournament section isnt needed... the chart is essential... the chart could be
+   bigger." p-exec and p-tourn are GONE (execution measured the tournament's order flow and the
+   tournament no longer trades — the endpoint returns two non-empty values in the whole payload),
+   and the chart now spans three of four columns on a TALLER top row.
+   ⚠ Row 1 is 1.4fr against row 2's 1fr, with a 360px floor so the chart never collapses on a
+   short window — the 09-02 bug was a chart box measuring ZERO with no error anywhere for nine
+   days, and a floor is the cheap guard against that class. */
 .grid{display:grid;gap:8px;padding:8px;
-  grid-template-columns:minmax(0,22fr) minmax(0,30fr) minmax(0,26fr) minmax(0,22fr);
-  grid-template-rows:minmax(280px,0.9fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,26fr) minmax(0,26fr) minmax(0,26fr) minmax(0,22fr);
+  grid-template-rows:minmax(360px,1.4fr) minmax(0,1fr);
   height:calc(100vh - 49px);overflow:hidden}
-#p-desk{grid-column:1;grid-row:1}
-#p-exec{grid-column:1;grid-row:2}
-#p-chart{grid-column:2 / span 2;grid-row:1}
-#p-tourn{grid-column:2;grid-row:2}
+#p-chart{grid-column:1 / span 3;grid-row:1}
+#p-desk{grid-column:4;grid-row:1}
+#p-days{grid-column:1 / span 2;grid-row:2}
 #p-hold{grid-column:3;grid-row:2}
-#p-trades{grid-column:4;grid-row:1 / span 2}
+#p-trades{grid-column:4;grid-row:2}
 @media (min-width:900px){ .hero-body{flex:1} }
 
 /* ---------- phone / narrow: tabs + stack (priority format) ---------- */
@@ -402,3 +409,30 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 .mstrip .val.neg{color:var(--neg,#f85149)}
 .mstrip .val.mut{opacity:.5}
 @media(max-width:520px){.mstrip{gap:4px 12px;font-size:11px}}
+
+
+/* ★★★2026-09-18 THE 14-DAY TABLE. Operator: "line by line the last 14 days with key stats trades
+   PF and red or green p&L number. then i can click on that like and it opens up and shows me all
+   the trades." Built for the PHONE FIRST — "i live on the iphone app all day" — so the row is a
+   touch target, not a hover affordance: 44px min height, no hover-only state, and the drill opens
+   INLINE rather than in a modal that would need a second tap to dismiss. */
+#days-tbl{width:100%;border-collapse:collapse;font-size:12px}
+#days-tbl td{padding:7px 6px;border-bottom:1px solid var(--line,#243);vertical-align:middle}
+#days-tbl tr.dayrow{cursor:pointer;min-height:44px}
+#days-tbl tr.dayrow:active{background:var(--panel2,rgba(255,255,255,.05))}
+#days-tbl tr.dayrow.open{background:var(--panel2,rgba(255,255,255,.04))}
+#days-tbl td.d{font-family:var(--mono);white-space:nowrap}
+#days-tbl td.p{font-family:var(--mono);text-align:right;font-weight:600;white-space:nowrap}
+#days-tbl td.s{text-align:right;color:var(--txt2);white-space:nowrap;font-family:var(--mono)}
+#days-tbl .chev{display:inline-block;width:10px;opacity:.5}
+#days-tbl tr.drill td{padding:0 6px 8px;background:var(--panel2,rgba(255,255,255,.03))}
+#days-tbl table.sub{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+#days-tbl table.sub td{padding:4px 5px;border-bottom:1px dotted var(--line,#243)}
+#days-tbl .flagged{opacity:.55;text-decoration:line-through}
+.pos{color:var(--green,#3fbf7f)} .neg{color:var(--red,#e0555f)}
+/* the metric strip must wrap cleanly on a phone rather than scroll sideways */
+@media(max-width:899px){
+  #days-tbl td{padding:9px 5px}
+  #days-tbl tr.dayrow{min-height:48px}
+  .mstrip{gap:5px 14px}
+}

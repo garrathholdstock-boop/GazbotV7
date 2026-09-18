@@ -21,7 +21,7 @@ import http.server
 import json
 import os
 import sqlite3
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
@@ -65,6 +65,211 @@ def _dq(c, show_badfill: bool = False) -> str:
     except Exception:
         pass
     return ""
+
+
+
+def context_json(cap_path, data_dir, store_path):
+    """THE METRIC STRIP + THE FOUR THINGS HE ACTUALLY TRADES ON.
+
+    Operator, 2026-09-18: bigger chart, and around it "current rvol. atr. efficiency. session high.
+    session low." plus leg state, tunnel age, position age and the next event.
+
+    ★★★ LEG STATE IS READ FROM leg_watch's OWN LOG, NOT RE-DERIVED. The alert and the dashboard must
+    never be able to disagree about whether a leg is open — two implementations of one definition is
+    how this desk's numbers drift apart (the slate/SlotSpec case, the drift.ok case). The watcher is
+    the single source; this reads what it wrote.
+    ⚠ 24 of his 26 presses in the week to 09-18 landed INSIDE a live leg, and nothing on the
+    dashboard showed it. That is why this exists.
+
+    ⚠⚠ RVOL IS CONTRACT-BLIND AND SAYS SO. capture.db.bars stores symbol='MNQ' with NO contract
+    column, so a comparison spanning a roll compares two different instruments. Build-queue item 5.
+    The field carries `rvol_caveat` rather than pretending precision it does not have.
+    """
+    import sqlite3 as _sq
+    out = {"ts": datetime.now(UTC).isoformat()}
+
+    # ── session shape: high / low / where price sits / VWAP stretch in ATR ────────────────────
+    try:
+        c = _sq.connect(cap_path)
+        # the CME session opens 22:00Z; anything else mixes yesterday's range into today's
+        now = datetime.now(UTC)
+        open_ts = int((now.replace(hour=22, minute=0, second=0, microsecond=0)
+                       - timedelta(days=(0 if now.hour >= 22 else 1))).timestamp())
+        r = c.execute("select min(low), max(high), sum(volume), "
+                      "       sum(close*volume), sum(volume) "
+                      "from bars where symbol='MNQ' and timeframe='5s' and bar_ts>=?",
+                      (open_ts,)).fetchone()
+        last = c.execute("select close from bars where symbol='MNQ' and timeframe='5s' "
+                         "order by bar_ts desc limit 1").fetchone()
+        lo, hi, vol = (r[0], r[1], r[2]) if r else (None, None, None)
+        px = last[0] if last else None
+        vwap = (r[3] / r[4]) if r and r[4] else None
+        out["session"] = {
+            "high": hi, "low": lo, "last": px,
+            "pos_in_range": (round((px - lo) / (hi - lo), 3) if px and hi and lo and hi > lo else None),
+            "vwap": round(vwap, 2) if vwap else None,
+        }
+
+        # ── RVOL: this hour's volume vs the same hour on the previous sessions ────────────────
+        hr0 = int(now.replace(minute=0, second=0, microsecond=0).timestamp())
+        cur = c.execute("select sum(volume) from bars where symbol='MNQ' and timeframe='5s' "
+                        "and bar_ts>=?", (hr0,)).fetchone()[0] or 0
+        hist = [x[0] for x in c.execute(
+            "select sum(volume) from bars where symbol='MNQ' and timeframe='5s' "
+            "and bar_ts >= ?-10*86400 and bar_ts < ? "
+            "and cast(strftime('%H', bar_ts, 'unixepoch') as int) = ? "
+            "group by date(bar_ts,'unixepoch')", (hr0, hr0, now.hour)).fetchall() if x[0]]
+        base = (sum(hist) / len(hist)) if hist else None
+        # ⚠ Compare a PARTIAL hour against the same fraction of the baseline, or every reading in
+        # the first minutes of an hour reads as a volume collapse.
+        frac = max(1e-6, (now.minute * 60 + now.second) / 3600.0)
+        out["rvol"] = round(cur / (base * frac), 2) if base else None
+        out["rvol_n_days"] = len(hist)
+        out["rvol_caveat"] = ("bars carry no contract column — a window spanning a roll compares "
+                              "two different instruments")
+        c.close()
+    except Exception as e:
+        out["session_error"] = f"{type(e).__name__}: {e}"
+
+    # ── ER + ATR: reuse the EXISTING meter rather than compute a second one ───────────────────
+    try:
+        t = tradeability_json(cap_path)
+        out["er30"] = t.get("er30")
+        out["atr"] = t.get("atr")
+        out["tradeability"] = {"score": t.get("score"), "label": t.get("label")}
+        if out.get("session", {}).get("vwap") and out.get("session", {}).get("last") and t.get("atr"):
+            out["session"]["vwap_stretch_atr"] = round(
+                (out["session"]["last"] - out["session"]["vwap"]) / t["atr"], 2)
+    except Exception as e:
+        out["tradeability_error"] = f"{type(e).__name__}: {e}"
+
+    # ── LEG STATE + TUNNEL AGE, from the watcher's own log ───────────────────────────────────
+    try:
+        import re as _re
+        open_t = None; direction = None; px0 = None; last_end = None
+        with open(os.path.join(data_dir, "leg_watch.log")) as fh:
+            for ln in fh:
+                m = _re.search(r"^(\S+) leg OPEN (UP|DOWN) from ([\d.]+)", ln)
+                if m:
+                    open_t = m.group(1); direction = m.group(2); px0 = float(m.group(3)); continue
+                if " leg OVER" in ln:
+                    last_end = ln.split(" ", 1)[0]; open_t = None
+        nowt = datetime.now(UTC)
+        def _age(stamp):
+            return round((nowt - datetime.fromisoformat(stamp.replace("Z", "+00:00"))).total_seconds() / 60)
+        if open_t:
+            px = out.get("session", {}).get("last")
+            out["leg"] = {"open": True, "dir": direction, "age_min": _age(open_t), "from": px0,
+                          "travel_pt": (round((px - px0) * (1 if direction == "UP" else -1), 1)
+                                        if px else None)}
+            out["tunnel_min"] = 0
+        else:
+            out["leg"] = {"open": False}
+            out["tunnel_min"] = _age(last_end) if last_end else None
+    except Exception as e:
+        out["leg_error"] = f"{type(e).__name__}: {e}"
+
+    # ── POSITION AGE. Over-8h holds are 0 winners from 4 at -$6,612 — the clock IS the guard ──
+    try:
+        with open(os.path.join(data_dir, "day_rider_state.json")) as fh:
+            st = json.load(fh)
+        if st.get("qty") and not st.get("closed") and st.get("entered_at"):
+            age = (datetime.now(UTC) - datetime.fromisoformat(st["entered_at"])).total_seconds() / 60
+            out["position"] = {
+                "qty": st.get("qty"), "entry": st.get("entry"),
+                "dir": "LONG" if (st.get("direction") or 0) > 0 else "SHORT",
+                "age_min": round(age),
+                # the measured buckets, so the colour means something rather than looking pretty
+                "band": ("ok" if age < 180 else "long" if age < 480 else "ABANDONED"),
+            }
+        else:
+            out["position"] = None
+    except Exception as e:
+        out["position_error"] = f"{type(e).__name__}: {e}"
+
+    # ── THE SAFETY CHIP. ★★★ IT MUST NEVER GO DARK. Removing the tournament PANEL also removed
+    # its fetch, and renderSafety() read STATE.tour — so the chip that says HALTED / NAKED /
+    # UNVERIFIED would have sat at "SAFETY —" forever. It is GUARDED, so nothing would have thrown
+    # and nothing would have complained: a safety indicator failing silently to a neutral face is
+    # precisely the instrument-reports-healthy failure this desk keeps meeting. The fields move
+    # here so the chip lives on the one fetch the page still makes.
+    try:
+        out["desk"] = (tournament_json(store_path, data_dir, cap_path) or {}).get("desk")
+    except Exception as e:
+        out["desk_error"] = f"{type(e).__name__}: {e}"
+
+    # ── NEXT SCHEDULED EVENT ─────────────────────────────────────────────────────────────────
+    try:
+        with open(os.path.join(data_dir, "event_calendar.json")) as fh:
+            cal = json.load(fh)
+        from zoneinfo import ZoneInfo as _Z
+        nxt = None
+        for e in cal.get("events", []):
+            d = date.fromisoformat(e["date"])
+            hh, mm = (int(x) for x in e["et_time"].split(":"))
+            t = datetime(d.year, d.month, d.day, hh, mm,
+                         tzinfo=_Z("America/New_York")).astimezone(UTC)
+            if t > datetime.now(UTC) and (nxt is None or t < nxt[0]):
+                nxt = (t, e)
+        if nxt:
+            out["next_event"] = {
+                "name": nxt[1]["name"], "kind": nxt[1]["kind"],
+                "in_hours": round((nxt[0] - datetime.now(UTC)).total_seconds() / 3600, 1),
+                "utc": nxt[0].isoformat(),
+                "paris": nxt[0].astimezone(_Z("Europe/Paris")).strftime("%a %d %b %H:%M"),
+            }
+    except Exception as e:
+        out["event_error"] = f"{type(e).__name__}: {e}"
+    return out
+
+
+def days_json(store_path, n=14):
+    """LAST N SESSIONS, LINE BY LINE — trades, profit factor, and a red/green number he can click.
+
+    ⚠⚠ GROUPED BY ENTRY, NOT BY TRADE ROW. The rows in `trades` are scale-out EXITS of one decision
+    — 20 rows over 2026-09-14/15 are 9 entries — so a per-row count overstates his activity ~2.5x.
+    The drill-down shows the individual exits; the headline count is DECISIONS.
+    ⚠ data_quality filtered: EXCLUDE: rows are gone, BADFILL: rows are shown in the drill and never
+    counted (a real trade whose PRICE came from a fabricated fill).
+    """
+    import sqlite3 as _sq
+    c = _sq.connect(store_path)
+    c.row_factory = _sq.Row
+    rows = [dict(r) for r in c.execute(
+        "SELECT * FROM trades WHERE closed_at IS NOT NULL "
+        "AND date(opened_at) >= date('now', ?) ORDER BY opened_at, id", (f"-{n} days",))]
+    c.close()
+    by_day = {}
+    for r in rows:
+        d = r["opened_at"][:10]
+        by_day.setdefault(d, []).append(r)
+    out = []
+    for d in sorted(by_day, reverse=True):
+        rs = by_day[d]
+        clean = [x for x in rs if not x.get("data_quality")]
+        wins = [x["pnl_usd"] for x in clean if (x["pnl_usd"] or 0) > 0]
+        loss = [x["pnl_usd"] for x in clean if (x["pnl_usd"] or 0) <= 0]
+        entries = {(x["opened_at"], x["entry_price"], x["side"]) for x in clean}
+        gross_w, gross_l = sum(wins), abs(sum(loss))
+        out.append({
+            "day": d,
+            "pnl": round(sum(x["pnl_usd"] or 0 for x in clean), 2),
+            "entries": len(entries),
+            "exits": len(clean),
+            "wins": len(wins), "losses": len(loss),
+            "win_rate": round(len(wins) / len(clean), 3) if clean else None,
+            # ⚠ PF is UNDEFINED with no losing trade — report null, never a fake infinity.
+            "pf": (round(gross_w / gross_l, 2) if gross_l > 0 else None),
+            "flagged": len(rs) - len(clean),
+            "trades": [{
+                "id": x["id"], "side": x["side"], "qty": x["qty"],
+                "entry": x["entry_price"], "exit": x["exit_price"],
+                "pnl": x["pnl_usd"], "opened": x["opened_at"], "closed": x["closed_at"],
+                "reason": x["exit_reason"], "src": x.get("entry_source"),
+                "flag": x.get("data_quality"),
+            } for x in rs],
+        })
+    return {"days": out, "n": n}
 
 
 def _status(data_dir):
@@ -2025,6 +2230,10 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                                        os.path.join(data_dir, "shadow_mgc.db"))))
                 elif path.startswith("/api/futures/router"):
                     self._json(router_json(store_path, cap_path, data_dir))
+                elif path.startswith("/api/futures/context"):
+                    self._json(context_json(cap_path, data_dir, store_path))
+                elif path.startswith("/api/futures/days"):
+                    self._json(days_json(store_path, min(60, int(qs.get("n", ["14"])[0]))))
                 elif path.startswith("/api/tradeability"):
                     self._json(tradeability_json(cap_path))
                 elif path.startswith("/api/reports"):

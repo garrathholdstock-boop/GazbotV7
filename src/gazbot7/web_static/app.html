@@ -51,14 +51,14 @@
 <!-- phone tab bar (hidden on desktop) -->
 <nav class="tabbar" id="tabbar">
   <button class="tab on" data-tab="desk">DESK<span class="b" id="tb-desk">—</span></button>
-  <button class="tab" data-tab="tourn">TOURNEY<span class="b" id="tb-tourn">—</span></button>
+  <!-- ★2026-09-18 TOURNEY -> DAYS. The tournament stopped trading and his own book is the desk
+       now; this slot is the 14-day history he asked to live in. -->
+  <button class="tab" data-tab="days">DAYS<span class="b" id="tb-days">—</span></button>
   <!-- ★ the empty .b is deliberate: every other tab stacks label-over-value, and without a value
        cell CHART's label centred across both rows and sat off-baseline from its neighbours. -->
   <button class="tab" data-tab="chart">CHART<span class="b">&nbsp;</span></button>
   <button class="tab" data-tab="hold">HOLD<span class="b" id="tb-hold">—</span></button>
   <button class="tab" data-tab="trades">TRADES<span class="b" id="tb-trades">—</span></button>
-  <button class="tab" data-tab="exec">EXEC<span class="b" id="tb-exec">—</span></button>
-  <a class="tab" href="cube">CUBE</a>
 </nav>
 </div><!-- /topstick -->
 
@@ -153,6 +153,21 @@
 
   <!-- HERO — PRICE CHART (MNQ or MGC) -->
   <section class="panel" id="p-chart" data-tab="chart">
+    <!-- ★★2026-09-18 THE METRIC STRIP. Everything he reads before pressing, in one line.
+         LEG is first because 24 of his 26 presses in the week to 09-18 landed INSIDE a live leg and
+         the dashboard showed nothing about them. POS AGE is a guard, not a stat: over-8h holds are
+         0 winners from 4 at -$6,612. -->
+    <div class="mstrip" id="ctx-strip">
+      <span class="ms"><b id="ctx-leg">—</b><i>leg</i></span>
+      <span class="ms"><b id="ctx-tunnel">—</b><i>tunnel</i></span>
+      <span class="ms"><b id="ctx-er">—</b><i>ER 30m</i></span>
+      <span class="ms"><b id="ctx-atr">—</b><i>ATR</i></span>
+      <span class="ms"><b id="ctx-rvol">—</b><i>RVOL</i></span>
+      <span class="ms"><b id="ctx-range">—</b><i>session H/L</i></span>
+      <span class="ms"><b id="ctx-vwap">—</b><i>VWAP ±ATR</i></span>
+      <span class="ms"><b id="ctx-posage">—</b><i>pos age</i></span>
+      <span class="ms"><b id="ctx-event">—</b><i>next event</i></span>
+    </div>
     <div class="ph"><h2><span id="hero-sym">MNQ</span> · <span id="hero-expiry">—</span></h2><span class="live" id="hero-state">● price · triggers · fills</span></div>
     <div class="hero-body">
       <div class="ribbon" id="ribbon"></div>
@@ -200,24 +215,16 @@
   </section>
 
   <!-- TOURNAMENT — the 6-gate scoreboard (the headline) -->
-  <section class="panel" id="p-tourn" data-tab="tourn">
-    <div class="ph"><h2>TOURNAMENT</h2><span class="sub" id="tourn-meta">6 gates · relegate bottom 2</span></div>
-    <div class="pb">
-      <div class="sec">LIVE SLOTS <span class="dim3">· open right now</span></div>
-      <div class="slot-strip" id="tourn-slots"><div class="empty">flat — no open slots</div></div>
-      <div class="sec">SCOREBOARD · TODAY · realized + open · ranked <span class="dim3">· W$/L$/Δ = week-to-date avg winner / avg loser / delta</span></div>
-      <table class="tourn-tbl"><thead><tr><th>#</th><th>GATE</th><th>S</th><th>OPEN</th><th>TODAY</th><th>TOTAL</th><th>N</th><th>WIN</th><th>PF</th><th class="wk wkstart" title="average winning trade, week-to-date">W$</th><th class="wk" title="average losing trade, week-to-date">L$</th><th class="wk" title="avg winner − avg loser (week-to-date). Positive = winners bigger than losers on average.">Δ</th></tr></thead>
-        <tbody id="tourn-rows"><tr><td class="empty" colspan="12">loading…</td></tr></tbody></table>
-      <div class="subval" style="margin-top:6px">🔻 <span class="dim3">bottom 2 = relegation zone · <span class="live-dot"></span> = live now</span></div>
-
-      <div class="sec" style="margin-top:12px">SHADOW · PROMOTION FEEDER <span class="dim3">· nominate ↑, don't auto-promote</span></div>
-      <table class="tourn-tbl"><thead><tr><th></th><th>VARIANT</th><th>FAMILY</th><th>N</th><th>ALL-TIME</th><th>TODAY</th><th>WIN</th></tr></thead>
-        <tbody id="promo-rows"><tr><td class="empty" colspan="7">shadow warming up…</td></tr></tbody></table>
-      <div class="subval dim3" id="promo-note">★ = candidate (net+ · n≥20) · shadow OVERSTATES (optimistic feeder) — paper is the judge</div>
-    </div>
-  </section>
 
   <!-- HOLDINGS -->
+  <!-- ★★★2026-09-18 LAST 14 SESSIONS, clickable. ⚠ "entries" are DECISIONS, not rows: the rows in
+       `trades` are scale-out EXITS of one entry, so counting them overstates activity ~2.5x. The
+       drill shows the individual exits. -->
+  <section class="panel" id="p-days" data-tab="days">
+    <div class="sec">LAST 14 SESSIONS <span class="dim3" id="days-sum"></span></div>
+    <div class="pb" id="days-wrap"><table class="t" id="days-tbl"><tbody></tbody></table></div>
+  </section>
+
   <section class="panel" id="p-hold" data-tab="hold">
     <div class="ph"><h2>HOLDING</h2><span class="sub" id="hold-meta">—</span></div>
     <div class="pb" id="hold-body"><div class="empty">loading…</div></div>
@@ -235,31 +242,6 @@
   </section>
 
   <!-- EXECUTION HEALTH — signal → fill through-rate + slippage + blocks -->
-  <section class="panel" id="p-exec" data-tab="exec">
-    <div class="ph"><h2>EXECUTION</h2><span class="sub" id="exec-meta">what we say → what we buy · today</span></div>
-    <div class="pb">
-      <div class="sec">FILL-THROUGH RATE <span class="dim3">· of entries submitted, % that filled</span></div>
-      <div class="big" id="exec-pct">—</div>
-      <div class="subval" id="exec-sub">…</div>
-
-      <div class="sec">ENTRY FUNNEL · TODAY <span class="dim3">· said → bought</span></div>
-      <div class="funnel" id="exec-funnel"><div class="empty">—</div></div>
-
-      <div class="sec">SLIPPAGE · intended ref → fill</div>
-      <div class="row"><span class="k">Avg adverse</span><span class="val" id="exec-slip">—</span></div>
-
-      <div class="sec">MISSES · why entries didn't fill</div>
-      <table><thead><tr><th>REASON</th><th>N</th></tr></thead>
-        <tbody id="exec-blocks"><tr><td class="empty" colspan="2">none</td></tr></tbody></table>
-
-      <div class="sec">PER-GATE · submitted → filled</div>
-      <table><thead><tr><th>GATE</th><th>S</th><th>SUB</th><th>FILL</th><th>%</th><th>MISS</th><th>SLIP</th></tr></thead>
-        <tbody id="exec-pergate"><tr><td class="empty" colspan="7">—</td></tr></tbody></table>
-
-      <div class="sec">TREND · hourly fill-through</div>
-      <div class="exec-trend" id="exec-trend"><div class="empty">—</div></div>
-    </div>
-  </section>
 
 </div>
 

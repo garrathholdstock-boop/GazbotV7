@@ -116,11 +116,14 @@
     try {
       const us = await getJSON("api/futures/us-terminal").catch(() => null);
       if (us) STATE.us = us;
-      const tour = await getJSON("api/futures/tournament").catch(() => null);
-      if (tour) STATE.tour = tour;
+      /* ★2026-09-18 the tournament fetch is gone with its panel — it no longer trades, and its
+         payload was two non-empty values. `api/futures/context` replaces it with the things he
+         actually reads before pressing. */
+      const ctx = await getJSON("api/futures/context").catch(() => null);
+      if (ctx) STATE.ctx = ctx;
       if (STATE.tfMode === "session") STATE.tf = tfMinutes("session");   // DAY keeps extending
       try { STATE.bars = await getJSON("api/futures/bars/" + STATE.sym + "?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
-      try { renderConn(us != null); renderSafety(); renderRibbonAndDTT(); renderHero(); renderHolding(); renderTournament(); } catch (e) { console.error("fast", e); }
+      try { renderConn(us != null); renderSafety(); renderRibbonAndDTT(); renderHero(); renderHolding(); renderContext(); } catch (e) { console.error("fast", e); }
     } finally { _fastBusy = false; }
   }
   async function slowTick() {
@@ -128,13 +131,12 @@
     try {
       const mnq = await getJSON("api/futures/mnq").catch(() => null);
       if (mnq) STATE.mnq = mnq;
-      const ex = await getJSON("api/futures/execution").catch(() => null);
-      if (ex) STATE.exec = ex;
-      const promo = await getJSON("api/futures/promotion").catch(() => null);
-      if (promo) STATE.promo = promo;
+      /* execution + promotion fetches retired with their panels (2026-09-18). */
+      const days = await getJSON("api/futures/days?n=14").catch(() => null);
+      if (days) STATE.days = days;
       const m = STATE.mnq || {};
       try {
-        renderHeader(m); renderDesk(m); renderTrades(m); renderTabBadges(m); renderExec(STATE.exec); renderPromotion();
+        renderHeader(m); renderDesk(m); renderTrades(m); renderTabBadges(m); renderDays();
         if (STATE.drill) reAggregateDrill();
       } catch (e) { console.error("slow", e); }
     } finally { _slowBusy = false; }
@@ -154,75 +156,18 @@
     renderSafety();
     renderDesk(m);
     renderHolding();
-    renderTournament();
-    renderPromotion();
+    /* ★2026-09-18 renderTournament / renderPromotion / renderExec retired with their panels.
+       Their DOM ids no longer exist, and $() returns null for a missing element — so leaving the
+       calls in would throw inside the render loop on every tick and take the WHOLE dashboard with
+       them, which is how a removed panel turns into a blank page. */
+    renderContext();
+    renderDays();
     renderTrades(m);
     renderTabBadges(m);
-    renderExec(STATE.exec);
     if (STATE.drill) reAggregateDrill(); // keep an open drill live
   }
 
   /* ---------- EXECUTION HEALTH (signal → fill through-rate + slippage + blocks) ---------- */
-  function renderExec(e) {
-    e = e || {};
-    const c = e.current || null;
-    const f = e.funnel || {};
-    const pctEl = $("exec-pct"), subEl = $("exec-sub"), badge = $("tb-exec");
-    if (!c || !f.submitted) {           // no entries yet today → honest empty state (not "broken")
-      pctEl.textContent = "—"; pctEl.className = "big mut";
-      subEl.textContent = c ? "no entries submitted yet today" : "monitor warming up…";
-      $("exec-funnel").innerHTML = '<div class="empty">no entries yet today</div>';
-      $("exec-blocks").innerHTML = '<tr><td class="empty" colspan="2">none</td></tr>';
-      $("exec-pergate").innerHTML = '<tr><td class="empty" colspan="7">—</td></tr>';
-      $("exec-slip").textContent = "—";
-      if (badge) badge.textContent = "—";
-      return;
-    }
-    const pct = c.pct;
-    pctEl.textContent = pct + "%";
-    pctEl.className = "big " + (c.level === "CRIT" ? "neg" : (pct >= 90 ? "pos" : pct >= 70 ? "warn" : "neg"));
-    subEl.textContent = f.filled + "/" + f.submitted + " entries filled" + (f.nofill ? " · " + f.nofill + " no-fill" : "");
-    if (badge) badge.textContent = pct + "%";
-
-    // the funnel: submitted → filled, with the misses called out
-    const miss = (f.nofill || 0) + (f.rejected || 0);
-    const seg = (label, n, klass) => n > 0
-      ? `<div class="fn-seg ${klass}" style="flex:${n}"><b>${n}</b><span>${label}</span></div>` : "";
-    $("exec-funnel").innerHTML =
-      `<div class="fn-bar">${seg("filled", f.filled, "fn-ok")}${seg("no-fill", f.nofill, "fn-miss")}${seg("rejected", f.rejected, "fn-rej")}</div>`
-      + `<div class="fn-cap">${f.submitted} submitted → <span class="grn">${f.filled} bought</span>${miss ? ` · <span class="red">${miss} missed</span>` : ""}</div>`;
-
-    const slip = $("exec-slip");
-    if (c.slip_ticks != null) {
-      slip.textContent = (c.slip_ticks > 0 ? "+" : "") + nf(c.slip_ticks, 1) + " tk (" + money(c.slip_usd, 2) + ")";
-      slip.className = "val" + (c.slip_ticks > 4 ? " neg" : "");
-    } else { slip.textContent = "—"; slip.className = "val"; }
-
-    const bt = $("exec-blocks"), bl = c.blocks || {};
-    const keys = Object.keys(bl).filter((k) => bl[k] > 0);
-    bt.innerHTML = keys.length
-      ? keys.map((k) => "<tr><td>" + esc(k) + "</td><td class='neg'>" + bl[k] + "</td></tr>").join("")
-      : '<tr><td class="empty" colspan="2">none — every entry filled</td></tr>';
-
-    const pg = e.per_gate || [];
-    $("exec-pergate").innerHTML = pg.length ? pg.map((r) =>
-      `<tr><td>${esc(gateAbbr(r.gate))}</td><td class="${r.side === "SHORT" ? "red" : "grn"}">${(r.side || "")[0] || ""}</td>`
-      + `<td>${r.submitted}</td><td>${r.filled}</td>`
-      + `<td class="${r.through == null ? "" : (r.through >= 90 ? "grn" : "amb")}">${r.through == null ? "—" : r.through + "%"}</td>`
-      + `<td class="${r.nofill ? "red" : ""}">${r.nofill || 0}</td>`
-      + `<td>${r.slip_ticks == null ? "—" : (r.slip_ticks > 0 ? "+" : "") + nf(r.slip_ticks, 1) + "tk"}</td></tr>`
-    ).join("") : '<tr><td class="empty" colspan="7">—</td></tr>';
-
-    const tr = $("exec-trend"), t = e.trend || [];
-    tr.innerHTML = t.length
-      ? t.map((x) => {
-          const col = x.level === "CRIT" ? "neg" : (x.level === "WARN" ? "warn" : "pos");
-          const h = Math.max(6, Math.round((x.pct / 100) * 40));
-          return '<span class="exec-bar ' + col + '" title="' + x.pct + "% · " + x.events + 'ev" style="height:' + h + 'px"></span>';
-        }).join("")
-      : '<div class="empty">—</div>';
-  }
-
   function renderConn(ok) {
     const conn = $("conn"), lbl = $("conn-label");
     const act = mnqActivity();
@@ -824,9 +769,13 @@
     });
   }
 
-  /* ---------- tournament — the 6-gate scoreboard ---------- */
+  /* ---------- the SAFETY chip ---------- */
+  /* ★★★2026-09-18 NOW FED BY api/futures/context. Retiring the tournament PANEL also retired its
+     fetch, and this read STATE.tour — the chip would have shown "SAFETY —" forever while HALTED and
+     NAKED went unreported. It is guarded, so nothing throws and nothing complains. The desk block
+     moved onto context precisely so this could not happen. */
   function renderSafety() {
-    const d = (STATE.tour && STATE.tour.desk) || null;
+    const d = (STATE.ctx && STATE.ctx.desk) || null;
     const chip = $("safety-chip");
     if (!chip) return;
     if (!d) { chip.textContent = "SAFETY —"; chip.className = "chip"; return; }
@@ -839,74 +788,6 @@
     if (halt) halt.classList.toggle("on", !!d.halted);
   }
 
-  function renderTournament() {
-    const t = STATE.tour;
-    if (!t) return;
-    const holds = mnqHoldings();
-    $("tourn-slots").innerHTML = holds.length ? holds.map((h) => {
-      const side = h.side || "LONG";
-      const prot = h.protected ? `<span class="prot-ok">◈ stop</span>` : `<span class="prot-naked">⚠ NAKED</span>`;
-      return `<div class="slot-tile">
-        <div class="st-top">${sidePill(side)}<b>${esc(gateAbbr(h.entry_gate))}</b>${prot}</div>
-        <div class="st-pnl ${cls(h.pnl_usd)}">${money(h.pnl_usd, 2)}</div>
-        <div class="st-sub">${Math.abs(h.qty || 0)} @ ${nf(h.avg, 1)} · ${holdStr(h.held_seconds)}</div>
-      </div>`;
-    }).join("") : `<div class="empty">flat — no open slots</div>`;
-
-    const g = t.gates || [];
-    $("tourn-rows").innerHTML = g.length ? g.map((r, i) => {
-      const dot = r.live ? `<span class="live-dot" title="live now"></span>` : "";
-      // armed (taking new entries) vs benched (off in gate_switches.env). This is the
-      // "what gates are live" the operator couldn't read off the dashboard before.
-      const status = r.enabled === false
-        ? `<span class="gpill off" title="benched — takes no new entries">BENCHED</span>`
-        : `<span class="gpill on" title="armed — taking new entries">ON</span>`;
-      const clk = r.n ? "clickable" : "";       // only gates with trades have a drill
-      // week-to-date winner/loser expectancy (operator's low-win-rate/big-winner lens):
-      // avg winner $, avg loser $ (both shown as plain magnitudes), and their delta.
-      const plain = (v) => v == null ? "·" : "$" + nf(Math.abs(v), 0);
-      const wkT = r.wk_n
-        ? `week-to-date: ${r.wk_wins}W / ${r.wk_losses}L · expectancy ${money(r.wk_exp, 1)}/trade`
-        : "no trades this week";
-      return `<tr class="${r.enabled === false ? "benched " : ""}${r.relegate ? "releg " : ""}${clk}" data-key="${esc(r.gate)}|${r.side}">
-        <td>${r.relegate ? "🔻" : (i + 1)}</td>
-        <td>${dot}${esc(gateAbbr(r.gate))} ${status}</td>
-        <td class="${r.side === "SHORT" ? "red" : "grn"}">${r.side[0]}</td>
-        <td class="${r.live ? cls(r.open_unreal) : "mut"}">${r.live ? money(r.open_unreal, 0) : "·"}</td>
-        <td class="${r.n ? cls(r.realized) : "mut"}">${r.n ? money(r.realized, 0) : "·"}</td>
-        <td class="tot ${cls(r.total)}">${money(r.total, 0)}</td>
-        <td>${r.n}</td>
-        <td>${r.win_pct == null ? "—" : r.win_pct + "%"}</td>
-        <td>${r.pf == null ? "—" : nf(r.pf, 2)}</td>
-        <td class="wk ${r.wk_avg_win == null ? "mut" : "pos"}" title="${r.wk_wins || 0} winners this week">${plain(r.wk_avg_win)}</td>
-        <td class="wk ${r.wk_avg_loss == null ? "mut" : "neg"}" title="${r.wk_losses || 0} losers this week">${plain(r.wk_avg_loss)}</td>
-        <td class="wk ${cls(r.wk_delta)}" title="${esc(wkT)}">${r.wk_delta == null ? "·" : money(r.wk_delta, 0)}</td>
-      </tr>`;
-    }).join("") : `<tr><td class="empty" colspan="12">—</td></tr>`;
-    document.querySelectorAll("#tourn-rows tr.clickable").forEach((tr) => {
-      tr.onclick = () => openDrill(tr.getAttribute("data-key"));
-    });
-
-    const d = t.desk || {};
-    $("tourn-meta").textContent =
-      `${d.enabled_count}/${d.roster_count} armed · ${d.live_count} live · today ${money(d.realized_today, 0)} · open ${money(d.open_unreal, 0)}`;
-  }
-
-  function renderPromotion() {
-    const el = $("promo-rows");
-    if (!el) return;
-    const c = (STATE.promo && STATE.promo.candidates) || [];
-    el.innerHTML = c.length ? c.slice(0, 10).map((r) =>
-      `<tr class="${r.candidate ? "promo-cand" : ""}">`
-      + `<td>${r.candidate ? "★" : ""}</td>`
-      + `<td>${esc(r.variant)}</td>`
-      + `<td class="dim3">${esc(r.family)}</td>`
-      + `<td>${r.n}</td>`
-      + `<td class="${cls(r.net)}">${money(r.net, 0)}</td>`
-      + `<td class="${r.today_n ? cls(r.today) : "mut"}">${r.today_n ? money(r.today, 0) : "·"}</td>`
-      + `<td>${r.win == null ? "—" : r.win + "%"}</td></tr>`
-    ).join("") : '<tr><td class="empty" colspan="7">shadow warming up…</td></tr>';
-  }
   // Position chart for the HOLD tab — modelled on the old futures_terminal drawHoldingChart:
   // price line coloured by P&L + an IN (entry) ref line always, STOP, and a gold LOCK line ONLY
   // when profit is actually locked (est_locked_profit>0 at avg×(1∓lp%)) — else it'd pin to the floor.
@@ -1049,15 +930,106 @@
   }
   function closeDrill() { STATE.drill = null; $("drill-back").style.display = "none"; }
 
+  /* ---------- the metric strip: what he reads before pressing ---------- */
+  function renderContext() {
+    const c = STATE.ctx; if (!c) return;
+    const set = (id, txt, cls) => {
+      const el = $(id); if (!el) return;
+      el.textContent = txt;
+      el.className = cls || "";
+    };
+    const n = (v, d) => (v == null ? "—" : Number(v).toFixed(d === undefined ? 1 : d));
+    /* ★ LEG FIRST. 24 of his 26 presses in the week to 09-18 landed inside a live leg and the
+       dashboard showed nothing about it. Direction is spelled out, never a bare signed number —
+       a DOWN leg reading "+32pt" is a number that reads as its own negation. */
+    const lg = c.leg || {};
+    set("ctx-leg",
+        lg.open ? `${lg.dir} ${lg.age_min}m ${n(lg.travel_pt)}pt` : "none",
+        lg.open ? (lg.dir === "UP" ? "pos" : "neg") : "");
+    set("ctx-tunnel", lg.open ? "—" : (c.tunnel_min == null ? "—" : c.tunnel_min + "m"));
+    set("ctx-er", n(c.er30, 3));
+    set("ctx-atr", n(c.atr));
+    /* RVOL is contract-blind across a roll (bars carry no contract column) — the title says so
+       rather than the number pretending to a precision it does not have. */
+    const rv = $("ctx-rvol");
+    if (rv) rv.title = (c.rvol_caveat || "") + (c.rvol_n_days ? ` · baseline ${c.rvol_n_days}d` : "");
+    set("ctx-rvol", c.rvol == null ? "—" : c.rvol.toFixed(2) + "x");
+    const ss = c.session || {};
+    set("ctx-range", (ss.low == null || ss.high == null) ? "—"
+        : `${n(ss.low, 0)}/${n(ss.high, 0)}` + (ss.pos_in_range == null ? "" : ` ${Math.round(ss.pos_in_range * 100)}%`));
+    set("ctx-vwap", ss.vwap_stretch_atr == null ? "—" : (ss.vwap_stretch_atr > 0 ? "+" : "") + ss.vwap_stretch_atr);
+    /* ★★ POSITION AGE IS A GUARD, NOT A STAT: over-8h holds are 0 winners from 4 at -$6,612. */
+    const po = c.position;
+    set("ctx-posage", po ? `${po.dir} ${po.age_min}m` : "flat",
+        po ? (po.band === "ABANDONED" ? "neg" : po.band === "long" ? "warn" : "") : "");
+    const ev = c.next_event;
+    set("ctx-event", ev ? `${ev.kind} ${ev.in_hours < 24 ? ev.in_hours + "h" : ev.paris}` : "—",
+        ev && ev.in_hours < 2 ? "neg" : "");
+  }
+
+  /* ---------- last 14 sessions, tap a row to open it ---------- */
+  const DAYS_OPEN = new Set();
+  function renderDays() {
+    const d = STATE.days; const tb = $("days-tbl"); if (!d || !tb) return;
+    const body = tb.querySelector("tbody"); if (!body) return;
+    const rows = d.days || [];
+    const tot = rows.reduce((s, x) => s + (x.pnl || 0), 0);
+    const sum = $("days-sum");
+    if (sum) sum.textContent = rows.length ? `· ${rows.length} sessions · ${money(tot, 0)}` : "";
+    body.innerHTML = "";
+    rows.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.className = "dayrow" + (DAYS_OPEN.has(r.day) ? " open" : "");
+      const pf = r.pf == null ? "—" : r.pf.toFixed(2);
+      /* ⚠ "entries" are DECISIONS. The rows in `trades` are scale-out EXITS of one entry, so a
+         per-row count overstates his activity ~2.5x — the drill below shows the exits. */
+      tr.innerHTML =
+        `<td class="d"><span class="chev">${DAYS_OPEN.has(r.day) ? "▾" : "▸"}</span> ${r.day.slice(5)}</td>` +
+        `<td class="s">${r.entries}t</td>` +
+        `<td class="s">${r.wins}/${r.losses}</td>` +
+        `<td class="s">PF ${pf}</td>` +
+        `<td class="p ${(r.pnl || 0) >= 0 ? "pos" : "neg"}">${money(r.pnl, 0)}</td>`;
+      tr.onclick = () => {
+        if (DAYS_OPEN.has(r.day)) DAYS_OPEN.delete(r.day); else DAYS_OPEN.add(r.day);
+        renderDays();
+      };
+      body.appendChild(tr);
+      if (!DAYS_OPEN.has(r.day)) return;
+      const dr = document.createElement("tr");
+      dr.className = "drill";
+      const sub = (r.trades || []).map((t) => {
+        const flag = t.flag ? ' class="flagged" title="' + t.flag + '"' : "";
+        const held = (new Date(t.closed) - new Date(t.opened)) / 60000;
+        return `<tr${flag}><td>${(t.opened || "").slice(11, 16)}</td><td>${t.side}</td>` +
+               `<td>${t.qty}</td><td>${t.entry}</td><td>${t.exit}</td>` +
+               `<td>${isFinite(held) ? Math.round(held) + "m" : "—"}</td>` +
+               `<td>${t.reason || ""}</td>` +
+               `<td class="${(t.pnl || 0) >= 0 ? "pos" : "neg"}" style="text-align:right">${money(t.pnl, 0)}</td></tr>`;
+      }).join("");
+      dr.innerHTML = `<td colspan="5"><table class="sub">${sub}</table>` +
+        (r.flagged ? `<div class="dim3" style="padding:4px 2px">${r.flagged} row(s) struck through: a real trade whose PRICE came from a fabricated fill — shown, never counted.</div>` : "") +
+        `</td>`;
+      body.appendChild(dr);
+    });
+  }
+
   /* ---------- tab badges (phone) ---------- */
   function renderTabBadges(m) {
     const h = m.header || {};
     const hold = mnqHoldings();
     $("tb-desk").textContent = deskToday(h) != null ? money(deskToday(h), 0) : "—";
     $("tb-hold").textContent = hold.length ? money(hold.reduce((s, x) => s + (x.pnl_usd || 0), 0), 0) : "flat";
-    $("tb-trades").textContent = (h.trades_today != null ? h.trades_today : "—");
-    const d = (STATE.tour && STATE.tour.desk) || null;
-    $("tb-tourn").textContent = d ? (d.live_count + "/" + d.roster_count) : "—";
+    /* ★★2026-09-18 `trades_today` is TOURNAMENT-ONLY, exactly like `today` was. The P&L badge was
+       fixed on 08-13 via deskToday() and the COUNT beside it was left reading the tournament — so
+       on 2026-09-18 it showed "0 trades" next to "+$1,630" on a fifteen-trade day. A right number
+       beside a wrong one is worse than either alone. */
+    const nTr = (h.trades_rider != null || h.trades_tournament != null)
+      ? (h.trades_rider || 0) + (h.trades_tournament || 0)
+      : h.trades_today;
+    $("tb-trades").textContent = (nTr != null ? nTr : "—");
+    const dd = (STATE.days && STATE.days.days) || null;
+    const tbd = $("tb-days");
+    if (tbd) tbd.textContent = dd && dd.length ? money(dd.reduce((s, x) => s + (x.pnl || 0), 0), 0) : "—";
   }
 
   /* ---------- tabs + clock ---------- */
@@ -1070,7 +1042,7 @@
         document.querySelectorAll(".panel[data-tab]").forEach((p) => p.classList.toggle("on", p.getAttribute("data-tab") === name));
         // the just-shown panel now has real dimensions — redraw its chart at the true size (charts skip
         // while hidden, so this is what draws them crisply on show; requestAnimationFrame lets layout settle)
-        requestAnimationFrame(() => { try { renderHero(); renderHolding(); renderTournament(); renderPromotion(); } catch (e) { } });
+        requestAnimationFrame(() => { try { renderHero(); renderHolding(); renderDays(); } catch (e) { } });
       };
     });
   }
