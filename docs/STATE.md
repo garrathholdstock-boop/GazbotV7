@@ -196,6 +196,35 @@ causation** and was not claimed to.
 
 ---
 
+## 1e. THE OPERATOR-MODEL INSTRUMENTATION (2026-09-18) — the desk now watches HIM
+
+**His manual trading is the only book on this desk that has ever cleared zero.** 92 entries since
+08-10 = **+$352**; remove the five worst and it is **+$9,200**. Those five are **48% of all money
+lost** and share one property — **all LONG, all held 3h+** (median 543 min vs 51). Remove the five
+BEST as well and he is still **+$5,514 over 82** — the core book is positive, not tail luck.
+
+| instrument | what it records | status |
+|---|---|---|
+| `trades.entry_source` | `manual` / `auto` / **NULL = UNKNOWN and stays NULL** (83 rows predate it) | live |
+| `data/operator_reads.jsonl` | whole-day tape at every BUY/SELL/CLAIM **and now PASS** | 118 rows |
+| **PASS button** | the NEGATIVE example. Writes `operator_pass.txt` — **a file no order path reads** | live, 0 presses |
+| `scripts/presence.py` | **phone = LOOKED** (10 sessions/day), **desktop = weak** — it polls 134/min so an open tab fakes presence. nginx already had it; no code change needed | on demand |
+| `scripts/score_alerts.py` | the machine led **3 of 24** entries (12%) | on demand |
+| `data/prereg_breadth.json` | breadth at leg open — **120 legs required** | forward |
+
+★★ **THE TWO FINDINGS THAT SHAPE THE NEXT BUILD:**
+1. **TIMING IS STRUCTURALLY WRONG.** He presses at a **median leg age of 17 minutes**; the leg alert
+   fires at **60**. It is ~43 min late BY CONSTRUCTION, and cannot simply be moved earlier — leg age
+   is the only thing keeping it quiet (17min ⇒ ~30 fires/day, wallpaper). It needs a filter
+   selective on something OTHER than age.
+2. **SELECTION IS ALSO WRONG, AND WE NOW HAVE NEGATIVES.** Of 16 alerts he ignored, **11 fired while
+   he was demonstrably looking** — real rejections, the first genuine negative examples this desk
+   has had. ⚠ **COLLECT, DO NOT FIT:** 11 is the start of a training set, not one.
+
+⚠ **NO FITTING BELOW 30 LABELLED PRESSES — positives AND negatives.** The pass side starts at zero.
+
+---
+
 ## 2. GATES — 6 live, 3 long / 3 short
 
 ✅ **THE 08-20 STAND-DOWN IS LIFTED (2026-08-26) — the router holds FULL ARM AND BENCH

@@ -10,6 +10,52 @@
 
 ---
 
+## 2026-09-18 (Fri) — THE DESK TURNED TOWARDS HIS OWN TRADING
+
+**The through-line of the whole week: the desk stopped analysing books that do not make money and
+started instrumenting the one that does.** His manual trading is the only book here that has ever
+cleared zero.
+
+### THE NUMBER THAT REFRAMED EVERYTHING
+92 entries since 08-10 total **+$352**. Remove the five worst and it is **+$9,200**. Those five are
+**48% of every dollar he has lost** and they share ONE property: **all LONG, all held over three
+hours** (median 543 min against 51 for the book). Not a market condition, not a setup — a position
+left running.
+★ And the honest control: remove the five BEST too and he is still **+$5,514 over 82 entries**. The
+core book is genuinely positive; this is not tail luck.
+⚠ CORRECTION BANKED: the 08-21 −$2,149 (held 4,247 min) was **the gateway wedging**, not a
+discretionary hold — the rider could not flatten through 20:40 and four naked lots went through the
+halt into the weekend. An earlier claim this session that "the wedges have not cost him money" was
+scoped to September and should not have been generalised.
+
+### BUILT TODAY
+| what | why |
+|---|---|
+| **`trades.entry_source`** | attributing two days of P&L had needed 461,738 lines of journald |
+| **PASS button** + path unit | every record was a "yes"; a boundary cannot be learned from one side. Writes a file NO order path reads |
+| **`presence.py`** | nginx already had it — no code change. **Phone = LOOKED, desktop = weak** (it polls 134×/min, so an open tab fakes presence) |
+| **`score_alerts.py`** | the machine led **3 of 24** entries. Structural: he presses at a median leg age of **17 min**, the alert fires at **60** |
+| **Event calendar + pre-event alert** | FOMC/CPI/NFP, measured at **2.7–3.5× a normal window**; the 09-16 FOMC cost him $1,272 |
+| **Macro tracker** | oil/DXY/10y/VIX — **all co-move, NONE predicts the next day** |
+| **Dashboard rebuilt** | tournament + execution panels retired (execution returned 2 non-empty values); bigger chart, metric strip, 14-day clickable history |
+| **STEP AWAY guard** | armed-while-watching is worth **+$95**; armed-while-away **+$3,257** |
+| **Gateway watch** | the leak has blinded the desk on **10 of the last 17 days, ~33 hours** |
+| **Breadth**, pre-registered | broad legs run **2.05 pt/min vs 1.73**, CIs non-overlapping, confound killed |
+
+### THE FRIDAY REPORT WAS REFOCUSED
+15 phases → 8. Body is now `op_record` · `op_conditions` · `automation_gap` · `run_charts`. The
+other nine are **RETIRED, NOT DELETED** (`RETIRED_2026_09_18`) because years of method traps live in
+those prompts. Budget finally fits: 105 min body against 228, 180 tail against a 200 reserve.
+⚠ `assemble` now explicitly REFUSES the retired fragments — their HTML is still on disk from
+previous weeks and stitching one in would publish last month's work as this week's.
+
+### TO REVERT
+Every item is its own systemd unit and its own commit; `systemctl disable --now <unit>` restores
+the prior behaviour. The Friday phases revert by moving entries from `RETIRED_2026_09_18` back into
+`PHASES`.
+
+---
+
 ## 2026-09-13 (Sun) — the clean book is POSITIVE, the contract rolled, and the operator rewrote how I do R&D
 
 ### ★★★ THE FINDING THAT REFRAMES THE DESK
