@@ -1,0 +1,22 @@
+[Unit]
+Description=GAZBOT V7 — LIVE BREADTH (is the run broad?) · US cash hours only · READING ONLY
+# ⚠⚠ ONE PERSISTENT connection (clientId 16), not a poll: the gateway leaks a socket under some
+# condition and the desk already opens ~5,000 short-lived connections a day. Adding churn to
+# diagnose churn would be absurd. It disconnects outside US hours rather than idling a session open.
+# ⚠⚠⚠ A READING. No gate, no switch, no order path. Pre-registered in data/prereg_breadth.json for
+# 120 legs before anyone is entitled to an opinion about whether it works.
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=300M
+Restart=always
+RestartSec=15
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/breadth_watch.py
+
+[Install]
+WantedBy=multi-user.target

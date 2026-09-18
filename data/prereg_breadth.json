@@ -1,0 +1,48 @@
+{
+  "name": "BREADTH AT LEG OPEN — is the run broad?",
+  "registered": "2026-09-18",
+  "registered_by": "operator asked: 'pull all the data from ibkr to be able to tell me if a run is broad or not. and backtest it well to see if true.'",
+
+  "hypothesis": "An MNQ leg whose OPENING 8 MINUTES are accompanied by >70% of the ten NDX megacaps moving the same way runs FURTHER and FASTER than one where <=40% do.",
+
+  "frozen_definition": {
+    "names": ["NVDA","AAPL","MSFT","AMZN","META","GOOGL","AVGO","TSLA","NFLX","COST"],
+    "leg": "the desk's standing definition — opens on 1xATR in 8 min, dies on 3xATR back from the extreme (scripts/leg_survival.py). NOT to be re-derived here.",
+    "window": "+8 minutes from leg open — the SAME bars the leg detector needs, so both are known at the same instant",
+    "breadth": "share of names whose 5-min close moved the leg's way across that window; a name is skipped if its last print is over 15 min stale",
+    "min_names": 8,
+    "bands": {"narrow": "<=0.40", "mixed": "0.40-0.70", "broad": ">0.70"},
+    "hours": "US cash only, 13:30-20:00Z — outside them the constituents are SHUT and a reading would be manufactured from a stale close"
+  },
+
+  "in_sample_result_2026_08_19_to_09_18": {
+    "n_legs_us_hours": 346,
+    "narrow": {"n": 79, "median_travel_pt": 41.0, "mean_pt": 56.0, "ci95": [48.0, 65.5], "pt_per_min_mean": 1.73, "pt_per_min_ci95": [1.50, 1.93]},
+    "broad":  {"n": 118, "median_travel_pt": 55.2, "mean_pt": 82.5, "ci95": [67.0, 100.3], "pt_per_min_mean": 2.05, "pt_per_min_ci95": [1.77, 2.37]},
+    "confound_tested": "survives WITHIN every duration band (+12.8pt short, +7.0 mid, +20.2 long) and on points-per-minute, which is size-neutral. So it is not merely a proxy for a bigger opening push — which mattered, because MNQ IS those stocks.",
+    "day_clustered": true
+  },
+
+  "what_was_REFUTED_and_must_not_be_re-run": "Breadth measured over the 15 minutes BEFORE the leg opens carries NO signal: broad came in 3.5pt WORSE than narrow with fully overlapping CIs (n=354). Prior participation tells you nothing. Only the leg's OWN opening move does.",
+
+  "the_search_being_charged": "THREE windows were tried (-15, +5, +8) and the best two are reported. That is a search, and this desk charges for searches. The in-sample numbers above are therefore NOT the expected forward effect — they are an upper bound on it.",
+
+  "forward_test": {
+    "first_eligible_leg": "2026-09-19",
+    "n_required": 120,
+    "verdict_rule": "BROAD must beat NARROW on points-per-minute with non-overlapping day-clustered 95% CIs. Median travel is secondary. If they are indistinguishable the finding is REFUTED even if both are positive.",
+    "do_not": [
+      "do NOT tune the 0.40/0.70 bands — moving them restarts the count at zero",
+      "do NOT add or drop names from the ten",
+      "do NOT change the +8 window; anything longer leaks the outcome into the predictor",
+      "do NOT read the interim before 120 legs — n<120 is not evidence by construction",
+      "do NOT wire it to any gate, switch or order path; it is a READING on the dashboard and nothing else"
+    ]
+  },
+
+  "known_limits": [
+    "applies to roughly 37% of his entries — the rest happen while the constituents are shut",
+    "30 days in sample, one market regime",
+    "the ten names are a proxy for the index's top weights, not the true float-cap weighting"
+  ]
+}

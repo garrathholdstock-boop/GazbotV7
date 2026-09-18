@@ -991,6 +991,21 @@
     const po = c.position;
     set("ctx-posage", po ? `${po.dir} ${po.age_min}m` : "flat",
         po ? (po.band === "ABANDONED" ? "neg" : po.band === "long" ? "warn" : "") : "");
+    /* ★ BREADTH. US cash hours only — outside them it says so rather than showing a number built
+       from a stale close. PRE-REGISTERED and not yet proven: in-sample a broad leg ran 2.05 pt/min
+       against a narrow leg's 1.73, but three windows were searched to find that, so it is an upper
+       bound on the forward effect, not the expected one. It informs; it decides nothing. */
+    const br = c.breadth || {};
+    const bel = $("ctx-breadth");
+    if (bel) {
+      bel.textContent = br.available ? `${br.agree}/${br.of}` : "—";
+      bel.className = br.available ? (br.band === "broad" ? "pos" : br.band === "narrow" ? "neg" : "") : "";
+      bel.title = br.available
+        ? `${br.band.toUpperCase()} — ${br.agree} of ${br.of} megacaps moving with MNQ over 8 min. `
+          + `Pre-registered, unproven: 120 legs required.`
+        : (br.why || "no reading");
+    }
+
     /* ⚠ A GUARD HE CANNOT SEE IS ONE HE CANNOT TRUST — and one he forgets he armed. */
     const sa = c.step_away || {};
     const sbtn = $("sa-btn"), sst = $("sa-state");

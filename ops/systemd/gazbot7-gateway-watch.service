@@ -1,0 +1,24 @@
+[Unit]
+Description=GAZBOT V7 — GATEWAY WATCH (measure the CLOSE-WAIT leak; restart on the climb, flat only)
+# ★★★ THE CONDITION: IB Gateway leaks sockets in CLOSE-WAIT until the 50-slot accept queue fills.
+# Connections ALREADY OPEN keep working while every NEW one hangs — so every health light stays
+# green while the rider, the watchdog and the reconciler all go blind. 25 episodes, TEN of the last
+# SEVENTEEN DAYS, ~33 hours. On 2026-09-17 one ate a Claim pressed on a +$262 position.
+# ⚠⚠⚠ FLAT ONLY. A restart blinds every consumer for ~15s; doing that to an open position would be
+# the cure causing the disease. It declines LOUDLY rather than silently.
+# ⚠ COOLDOWN 1h: the thing that takes a desk down is never the first restart, it is the fourth.
+After=network-online.target docker.service
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=200M
+Restart=always
+RestartSec=10
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/gateway_watch.py
+
+[Install]
+WantedBy=multi-user.target

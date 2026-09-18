@@ -198,6 +198,14 @@ def context_json(cap_path, data_dir, store_path):
     except Exception as e:
         out["desk_error"] = f"{type(e).__name__}: {e}"
 
+    # ★ LIVE BREADTH — US cash hours only. Pre-registered (data/prereg_breadth.json); it is a
+    # READING, not a signal, and it reports UNAVAILABLE rather than inventing one from a stale close.
+    try:
+        with open(os.path.join(data_dir, "breadth.json")) as fh:
+            out["breadth"] = json.load(fh)
+    except Exception:
+        out["breadth"] = {"available": False, "why": "no reading"}
+
     # ★ THE ARMED STATE MUST BE VISIBLE. A guard he cannot see is one he cannot trust, and one he
     # forgets he armed. It rides on the same fetch as everything else in the strip.
     try:
