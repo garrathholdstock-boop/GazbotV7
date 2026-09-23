@@ -1028,7 +1028,10 @@
     const rows = d.days || [];
     const tot = rows.reduce((s, x) => s + (x.pnl || 0), 0);
     const sum = $("days-sum");
-    if (sum) sum.textContent = rows.length ? `· ${rows.length} sessions · ${money(tot, 0)}` : "";
+    /* ★ SAY WHICH QUESTION THIS ANSWERS. The header and this table once disagreed by $330 on a
+       carry-in trade and nothing on the page said which to believe. */
+    if (sum) sum.textContent = rows.length
+      ? `· ${rows.length} sessions · ${money(tot, 0)} · realised` : "";
     body.innerHTML = "";
     rows.forEach((r) => {
       const tr = document.createElement("tr");
@@ -1075,9 +1078,12 @@
         const dur = !isFinite(held) ? "—"
           : held < 120 ? Math.round(held) + "m"
           : Math.floor(held / 60) + "h" + String(Math.round(held % 60)).padStart(2, "0");
+        /* ⚠ A carried trade was OPENED on an earlier day — showing a bare time would imply it
+           started today. Mark it, or the time column lies. */
+        const car = t.carried ? `<span class="car" title="opened ${(t.opened || "").slice(0, 10)}">↱</span>` : "";
         return `<tr class="dt ${win ? "w" : "l"}${t.flag ? " flagged" : ""}"` +
                (t.flag ? ` title="${t.flag}"` : "") + `>` +
-               `<td class="tm">${(t.opened || "").slice(11, 16)}</td>` +
+               `<td class="tm">${car}${(t.opened || "").slice(11, 16)}</td>` +
                `<td><span class="pill ${t.side === "SHORT" ? "short" : "long"}">${t.side}</span>` +
                `<span class="q">${Math.round(t.qty)}</span></td>` +
                `<td class="px">${px(t.entry)} <span class="ar">→</span> ${px(t.exit)}</td>` +

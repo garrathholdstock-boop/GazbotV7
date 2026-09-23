@@ -251,13 +251,21 @@ def days_json(store_path, n=14):
     import sqlite3 as _sq
     c = _sq.connect(store_path)
     c.row_factory = _sq.Row
+    # ★★2026-09-23 BY closed_at, NOT opened_at — the header and this table disagreed by $330 on a
+    # single carry-in trade (id 986: opened 09-22 14:33, closed 09-23 06:59, +$330), so the
+    # dashboard showed 857.50 in one place and 527.50 in another. Both were defensible answers to
+    # DIFFERENT questions, which is worse than one wrong number: nothing told the operator which to
+    # believe, and he spent an evening doubting a book that reconciles to IBKR to the cent.
+    # "Money realised on this day" is the question he is actually asking, and it is the one the
+    # header already answered — so this moves to match it rather than the other way round.
+    # ⚠ A trade can therefore appear under a day it was not OPENED on; the drill marks those.
     rows = [dict(r) for r in c.execute(
         "SELECT * FROM trades WHERE closed_at IS NOT NULL "
-        "AND date(opened_at) >= date('now', ?) ORDER BY opened_at, id", (f"-{n} days",))]
+        "AND date(closed_at) >= date('now', ?) ORDER BY closed_at, id", (f"-{n} days",))]
     c.close()
     by_day = {}
     for r in rows:
-        d = r["opened_at"][:10]
+        d = r["closed_at"][:10]
         by_day.setdefault(d, []).append(r)
     out = []
     for d in sorted(by_day, reverse=True):
@@ -283,9 +291,13 @@ def days_json(store_path, n=14):
                 "pnl": x["pnl_usd"], "opened": x["opened_at"], "closed": x["closed_at"],
                 "reason": x["exit_reason"], "src": x.get("entry_source"),
                 "flag": x.get("data_quality"),
+                # ⚠ opened on an EARLIER day — the drill must say so or the time column lies
+                "carried": x["opened_at"][:10] != x["closed_at"][:10],
             } for x in rs],
         })
-    return {"days": out, "n": n}
+    return {"days": out, "n": n, "basis": "closed_at",
+            "basis_note": "money REALISED on the day — matches the header. A trade opened on an "
+                          "earlier day counts on the day it closed, and is marked in the drill."}
 
 
 def _status(data_dir):

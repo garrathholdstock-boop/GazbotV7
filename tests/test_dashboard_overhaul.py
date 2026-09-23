@@ -231,3 +231,25 @@ def test_long_holds_render_as_hours():
     block = js[i:i + 2600]
     assert "held < 120" in block and 'padStart(2, "0")' in block
     assert '"20:40 flat"' in block, "CLOCK_FLAT no longer reads as the hard flat"
+
+
+def test_the_day_table_counts_by_CLOSED_at_like_the_header():
+    """★★★ 2026-09-23: the header said $857.50 and this table said $527.50 — a $330 gap caused by a
+    SINGLE carry-in trade (id 986: opened 09-22 14:33, closed 09-23 06:59). Both were defensible
+    answers to DIFFERENT questions, which is worse than one wrong number: nothing on the page told
+    him which to believe, and he spent an evening doubting a book that reconciles to IBKR to the
+    cent. Every surface must answer the SAME question."""
+    w = open(WEB).read()
+    i = w.index("def days_json(")
+    body = w[i:i + 3600]
+    assert "date(closed_at) >= date('now', ?)" in body, "the day table is back on opened_at"
+    assert 'r["closed_at"][:10]' in body, "days are keyed on the wrong timestamp"
+    assert '"basis": "closed_at"' in body, "the basis is no longer declared in the payload"
+
+
+def test_a_carried_trade_is_MARKED_in_the_drill():
+    """⚠ A trade that opened on an earlier day shows only a TIME in the drill. Unmarked, that time
+    implies it started today — the column would simply lie."""
+    w, js = open(WEB).read(), open(JS).read()
+    assert '"carried": x["opened_at"][:10] != x["closed_at"][:10]' in w
+    assert "t.carried" in js and "opened " in js, "the drill does not mark or explain a carry-in"
