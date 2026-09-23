@@ -145,23 +145,33 @@ def test_the_trade_count_badge_no_longer_reads_the_tournament_only_field():
     assert "trades_rider" in js[max(0, i - 700):i + 120], "the count badge still reads tournament-only"
 
 
+
+def _drill_block(js: str) -> str:
+    """The drill-row builder, sliced at a STRUCTURAL boundary.
+
+    ⚠ This used a fixed character window (js[i:i+1800]) and broke the moment a comment was added
+    above the return — the FIFTH time on this desk a fixed-width slice has failed for reasons
+    unrelated to the invariant it was guarding. Slice to the end of the .map(...).join("") instead:
+    that boundary moves with the code.
+    """
+    i = js.index("const sub = (r.trades || []).map")
+    j = js.index('.join("");', i)
+    return js[i:j]
+
+
 def test_drill_points_are_DIRECTION_CORRECTED():
     """★★★ A SHORT THAT FALLS IS A WINNER. Rendering exit-minus-entry raw would print every
     profitable short as a negative number — a value reading as its own negation, the same defect
     fixed in leg_watch's own messages on 2026-09-15. Verified against the live book: the 08:11
     SHORT on 2026-09-18 ran 29913.00 -> 29890.25 for +$176, and must read +22.8pt."""
-    js = open(JS).read()
-    i = js.index("const sub = (r.trades || []).map")
-    block = js[i:i + 1800]
+    block = _drill_block(open(JS).read())
     assert 't.side === "SHORT" ? -1 : 1' in block, "points are no longer direction-corrected"
     assert "(t.exit - t.entry) * sgn" in block
 
 
 def test_the_drill_shows_what_he_asked_for():
     """Operator: "i want time of day. points. p&l green or red." """
-    js = open(JS).read()
-    i = js.index("const sub = (r.trades || []).map")
-    block = js[i:i + 1800]
+    block = _drill_block(open(JS).read())
     assert 'class="tm"' in block, "time of day missing"
     assert 'class="pt ' in block, "points column missing"
     assert 'class="pl ' in block, "P&L column missing"
@@ -199,9 +209,7 @@ def test_prices_are_fixed_to_two_decimals():
     and carries FOUR decimals (29306.625 -> 29269.3125) where every other row is clean 2dp, so that
     one row re-flowed the whole table. MNQ ticks in 0.25, so 2dp is exact for any real price; an
     averaged one rounds, and that row is struck through anyway."""
-    js = open(JS).read()
-    i = js.index("const sub = (r.trades || []).map")
-    block = js[i:i + 2600]
+    block = _drill_block(open(JS).read())
     assert "Number(v).toFixed(2)" in block, "prices are no longer width-stable"
     assert "${px(t.entry)}" in block and "${px(t.exit)}" in block
 
@@ -217,18 +225,14 @@ def test_the_sub_table_has_fixed_column_widths():
 
 def test_quantity_renders_as_an_integer():
     """⚠ The DB stores qty as a float, so it rendered "4.0" on every single row."""
-    js = open(JS).read()
-    i = js.index("const sub = (r.trades || []).map")
-    assert "Math.round(t.qty)" in js[i:i + 2600]
+    assert "Math.round(t.qty)" in _drill_block(open(JS).read())
 
 
 def test_long_holds_render_as_hours():
     """⚠ 2026-09-15's last trade ran 421 minutes to the 20:40 flat and sat beside 16m neighbours as
     a raw "421m". It is also the ABANDONMENT pattern — over-8h holds are 0 winners from 4 — so it
     should read as what it is."""
-    js = open(JS).read()
-    i = js.index("const sub = (r.trades || []).map")
-    block = js[i:i + 2600]
+    block = _drill_block(open(JS).read())
     assert "held < 120" in block and 'padStart(2, "0")' in block
     assert '"20:40 flat"' in block, "CLOCK_FLAT no longer reads as the hard flat"
 
