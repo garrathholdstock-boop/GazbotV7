@@ -994,6 +994,68 @@
           + "  Fires bearish above 85·50, bullish below 15·50.";
     }
 
+    /* ★★★2026-09-24 THE TWO RANGE GAUGES. He asked for these the moment he understood that
+       PX·CVD % is a POSITION ON A SCALE and not a share of a quantity — "can you put the high and
+       low of both price and that somewhere for me?"
+       ⚠ A percentage without its endpoints is a number he has to TAKE ON TRUST. With the low and
+       high beside it he can do the arithmetic himself, and the difference between an instrument he
+       can check and an oracle he cannot is the difference between one he uses and one he ignores.
+       ⚠ The dot is placed from the SAME px_pos/cvd_pos the flag uses — never recomputed here, or
+       the gauge and the flag could disagree and nothing would say which was right. */
+    (function ranges() {
+      const se = c.session || {};
+      const put = (loId, hiId, dotId, lo, hi, pos, fmt) => {
+        setTxt(loId, lo == null ? "—" : fmt(lo));
+        setTxt(hiId, hi == null ? "—" : fmt(hi));
+        const dot = $(dotId);
+        if (dot) dot.style.left = (pos == null ? 50 : Math.max(0, Math.min(1, pos)) * 100) + "%";
+      };
+      put("rg-px-lo", "rg-px-hi", "rg-px-dot", se.low, se.high, cv.px_pos,
+          (x) => nf(x, 2));
+      put("rg-cv-lo", "rg-cv-hi", "rg-cv-dot", cv.cvd_lo, cv.cvd_hi, cv.cvd_pos,
+          (x) => (x > 0 ? "+" : "") + Math.round(x).toLocaleString());
+      /* ★★★ WHERE ZERO FALLS ON THAT SCALE. The range is anchored to TODAY'S extremes, so zero is
+         NOT the midpoint: on 2026-09-24 it sat at 39% against -8,072/+12,469. He read 43% as "back
+         on the sellers side" within a minute of seeing the gauge, and he was reading it exactly as
+         the design invited. Dot RIGHT of the tick = buyers cumulatively ahead. Dot LEFT = sellers.
+         ⚠ Hidden when zero is outside the range — a one-sided session would otherwise pin the tick
+         to an end and imply a neutral point that is not on the scale at all. */
+      const z = $("rg-cv-zero");
+      const lo = cv.cvd_lo, hi = cv.cvd_hi;
+      const inside = lo != null && hi != null && hi > lo && lo <= 0 && hi >= 0;
+      if (z) {
+        z.hidden = !inside;
+        if (inside) z.style.left = ((0 - lo) / (hi - lo)) * 100 + "%";
+      }
+      /* ★★★2026-09-24 HEAT THE CVD TRACK BY SIDE — his ask: "heat map code them to show buy or
+         sell? the cvd one at least."
+         The track splits AT ZERO, not at the midpoint: red left of zero is sellers' territory,
+         green right of it is buyers'. So the gauge answers "which side are we on" by colour and
+         "how far into today's swing" by position, and the two no longer have to be held in the
+         head at once — which is the confusion that produced "does 43% mean its back on the
+         sellers side?" (it did not; zero sat at 39%).
+         ⚠ FAINT (0.20/0.16 alpha). This is a 3px background behind a marker that must stay the
+         most legible thing on the strip — a saturated track would read as the data.
+         ⚠ When zero is off the scale the WHOLE track takes the one side it is on. A split drawn
+         at a boundary that is not on the scale would be a lie about where neutral is.
+         ⚠ The DOT takes its colour from the SIGN of cvd, never from its position in the range —
+         those disagree whenever the range is lopsided, and the sign is the thing he asked for. */
+      const tk = z && z.parentNode;
+      if (tk) {
+        if (inside) {
+          const zp = ((0 - lo) / (hi - lo)) * 100;
+          tk.style.background =
+            "linear-gradient(to right, rgba(192,57,43,.20) 0%, rgba(192,57,43,.20) " + zp
+            + "%, rgba(31,111,67,.20) " + zp + "%, rgba(31,111,67,.20) 100%)";
+        } else if (lo != null && hi != null) {
+          tk.style.background = (lo > 0 ? "rgba(31,111,67,.16)" : "rgba(192,57,43,.16)");
+        }
+      }
+      const cdot = $("rg-cv-dot");
+      if (cdot) cdot.style.background = cv.cvd == null ? "var(--txt)"
+        : (cv.cvd > 0 ? "#4ade80" : (cv.cvd < 0 ? "#ef6a5c" : "var(--txt)"));
+    })();
+
     /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are
        measured, not decorative: over-8h holds are 0 winners from 4. */
     const po = c.position, pa = $("ctx-posage");

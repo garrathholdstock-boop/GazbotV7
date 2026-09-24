@@ -136,3 +136,98 @@ def test_the_verdict_word_is_not_what_gets_displayed():
     js = open(JS, encoding="utf-8").read()
     body = js.split("if (dvEl)", 1)[1].split("dvEl.title", 1)[0]
     assert "toUpperCase()" not in body, "the verdict word is back in the cell, hiding the inputs"
+
+
+# ── THE RANGE GAUGES — a percentage needs its endpoints (2026-09-24) ─────────────────────────────
+# Operator, the moment he understood PX·CVD % is a POSITION and not a share of a quantity: "can you
+# put the high and low of both price and that somewhere for me?"
+# ⚠ A percentage without its endpoints is a number he must TAKE ON TRUST. With them he can do the
+# arithmetic himself — the difference between an instrument he checks and an oracle he ignores.
+
+def test_both_ranges_show_their_endpoints():
+    html = open(HTML, encoding="utf-8").read()
+    for i in ("rg-px-lo", "rg-px-hi", "rg-cv-lo", "rg-cv-hi", "rg-px-dot", "rg-cv-dot"):
+        assert i in html, f"{i} missing from the range strip"
+
+
+def test_the_dot_reuses_the_flags_own_positions():
+    """⚠⚠ NEVER RECOMPUTE THE POSITION HERE. If the gauge derived its own, the gauge and the
+    divergence flag could disagree and nothing on the page would say which was right — two
+    surfaces answering one question differently is this desk's $330 lesson."""
+    js = open(JS, encoding="utf-8").read()
+    fn = js.split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "cv.px_pos" in fn and "cv.cvd_pos" in fn
+    # ⚠ SCOPE THE BAN TO THE MARKER PLACEMENT. The first version of this test forbade ALL division
+    # in the function, and then failed on the ZERO TICK — a genuinely different quantity (where 0
+    # falls on the scale) that the server does not send and which MUST be derived here. A test that
+    # bans a technique rather than naming the invariant blocks correct work; the invariant is that
+    # the DOT's position is the server's, so the gauge and the flag can never disagree.
+    put = fn.split("const put =", 1)[1].split("};", 1)[0]
+    assert "/ (" not in put, "the dot position is being recomputed instead of reusing the server's"
+
+
+def test_the_dot_is_clamped():
+    """⚠ px_pos is computed server-side from bars while `last` comes from a possibly newer bar, so
+    a value fractionally outside 0..1 is reachable — and would park the marker outside its track."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "Math.max(0, Math.min(1," in fn
+
+
+def test_the_marker_is_centred_on_its_value():
+    """⚠ Without translateX(-50%) every reading sits half a marker high — the kind of quiet offset
+    nobody goes looking for because the display still looks correct."""
+    css = open("/home/alphabot/gazbot7/src/gazbot7/web_static/app.css", encoding="utf-8").read()
+    rule = css.split(".rg .tk em{", 1)[1].split("}", 1)[0]
+    assert "translateX(-50%)" in rule
+
+
+def test_the_strip_cannot_push_the_page_into_a_scroll():
+    """⚠ The whole TRADE tab is built to fit one phone screen. A growing strip would undo that;
+    fixed height means the elastic chart above gives up the space instead."""
+    css = open("/home/alphabot/gazbot7/src/gazbot7/web_static/app.css", encoding="utf-8").read()
+    rule = css.split(".ranges{", 1)[1].split("}", 1)[0]
+    assert "flex:0 0 auto" in rule
+
+
+def test_the_cvd_gauge_marks_where_zero_falls():
+    """★★★ Operator, reading 43%: "so does 43% mean its back on the sellers side?" — NO, and the
+    gauge could not tell him. The scale is anchored to TODAY'S EXTREMES, so zero is NOT the
+    midpoint: against a −8,072/+12,469 range it sat at 39%. Without the tick, anything under 50%
+    reads as "sellers ahead" when it can mean "still above flat". He made that exact misreading
+    within a minute, which is the design inviting it rather than him misreading it."""
+    html = open(HTML, encoding="utf-8").read()
+    assert 'id="rg-cv-zero"' in html
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "(0 - lo) / (hi - lo)" in fn
+
+
+def test_the_zero_tick_hides_when_zero_is_off_the_scale():
+    """⚠ A one-sided session (CVD never crosses zero) would otherwise pin the tick to an end and
+    imply a neutral point that is not on the scale at all."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "lo <= 0 && hi >= 0" in fn and "z.hidden" in fn
+
+
+def test_the_cvd_track_is_heat_coded_by_SIDE_not_by_position():
+    """★ Operator: "heat map code them to show buy or sell? the cvd one at least."
+    ⚠⚠ THE SPLIT IS AT ZERO, NOT AT THE MIDPOINT. Colouring the left half red and the right half
+    green would repeat the exact error that made him ask "does 43% mean its back on the sellers
+    side?" — zero sat at 39% of the range that day, so the midpoint is not neutral."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "linear-gradient(to right" in fn
+    assert "(0 - lo) / (hi - lo)" in fn, "the split must be computed at zero"
+    assert "50%" not in fn.split("linear-gradient", 1)[1][:200], "the split is hard-coded to mid"
+
+
+def test_the_dot_colour_follows_the_SIGN_of_cvd():
+    """⚠ Sign and range-position DISAGREE whenever the range is lopsided — on 2026-09-24 CVD was
+    +1,137 (buyers ahead) while sitting at 45% of its range. He asked which SIDE we are on, and
+    that is the sign."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "cv.cvd > 0" in fn and "cv.cvd < 0" in fn
+
+
+def test_a_one_sided_session_colours_the_whole_track():
+    """⚠ Drawing a split at a zero that is not on the scale would be a lie about where neutral is."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "lo > 0 ?" in fn

@@ -158,6 +158,23 @@
       <span class="tm" title="CUMULATIVE DELTA since the 22:00Z session open: every aggressive buy adds, every aggressive sell subtracts, 'neutral' counts nothing. Unlike FLOW it does not decay, so sustained pressure accumulates. ⚠ Its correlation with the session move is near-TAUTOLOGICAL (aggressive buying is largely what moves price) — the value is in the DIVERGENCE cell, not in this number agreeing with the chart."><i>CVD</i><b id="ctx-cvd">—</b></span>
       <span class="tm" title="LEFT = where PRICE sits in today's range (0-100). RIGHT = where CVD sits in ITS range. Amber when they disagree: price at one end on aggression that is not. Price at its highs on aggression that is not at its highs = the move is not being paid for. ⚠ DESCRIPTIVE: it says the two disagree, NOT which one wins — every direction study of a disagreement on this desk has come back a coin."><i>PX·CVD %</i><b id="ctx-div">—</b></span>
     </div>
+    <!-- ★★★2026-09-24 THE TWO RANGES, his ask: "can you put the high and low of both price and
+         that somewhere for me?" — asked immediately after he worked out that PX·CVD % is a
+         POSITION ON A SCALE, not a share of a quantity. A percentage with no endpoints is a
+         number he has to take on trust; with them he can check it himself, which is the whole
+         difference between an instrument and an oracle.
+         ⚠ Fixed height (~26px). The chart above is `flex:1`, so this takes its space from the
+         chart rather than pushing the page into a scroll — the one-screen budget is preserved. -->
+    <div class="ranges" id="ranges">
+      <div class="rg"><i>PX</i><b id="rg-px-lo">—</b><span class="tk"><em id="rg-px-dot"></em></span><b id="rg-px-hi">—</b></div>
+      <!-- ★★★ THE ZERO TICK. Operator, reading 43%: "so does 43% mean its back on the sellers
+           side?" — NO, and the gauge could not tell him so. The scale is anchored to TODAY'S
+           EXTREMES, and today's low is -8,072 while its high is +12,469, so ZERO sits at 39% of
+           the range, not at 50%. Without the tick, 43% looks like "below the middle = sellers"
+           when it actually means "just above flat". A gauge whose neutral point is invisible
+           invites precisely the wrong reading, and he made it within a minute of seeing it. -->
+      <div class="rg"><i>CVD</i><b id="rg-cv-lo">—</b><span class="tk"><u id="rg-cv-zero"></u><em id="rg-cv-dot"></em></span><b id="rg-cv-hi">—</b></div>
+    </div>
     <div class="passrow">
       <input id="pass-note" type="text" maxlength="120" placeholder="looked but didn't trade — why not?">
       <button id="pass-btn" title="Records what the tape looks like right now and that you decided AGAINST trading it. Places no order.">PASS</button>

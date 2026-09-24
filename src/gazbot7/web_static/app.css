@@ -713,3 +713,29 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 .daysbars svg{width:100%;height:100%;display:block}
 .daysbars-note{padding:1px 8px 5px;font-size:9px;letter-spacing:.04em;text-align:right;
   flex:0 0 auto;font-family:var(--mono)}
+
+/* ── THE TWO RANGE GAUGES (2026-09-24) ───────────────────────────────────────────────────────
+   Where price and CVD each sit between TODAY'S OWN extremes. The endpoints are the point: a bare
+   "43%" is a number he must take on trust, and with the low and high beside it he can check it.
+   ⚠ Fixed height — the chart above is flex:1 and gives up the space, so the page still fits one
+   screen without scrolling. */
+.ranges{padding:2px 8px 3px;flex:0 0 auto;display:flex;flex-direction:column;gap:2px}
+.rg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:8.5px;
+  color:var(--mut2);line-height:1.4}
+.rg i{font-style:normal;width:22px;letter-spacing:.06em;color:var(--mut2);flex:0 0 auto}
+.rg b{font-weight:500;color:var(--txt2);white-space:nowrap;flex:0 0 auto;min-width:52px}
+.rg b:first-of-type{text-align:right}
+.rg .tk{flex:1 1 auto;height:3px;background:var(--line2);border-radius:2px;position:relative;
+  min-width:40px}
+/* ⚠ translateX(-50%) so the marker is CENTRED on its value — without it every reading is
+   half a dot high, which is exactly the kind of quiet offset nobody ever goes looking for. */
+.rg .tk em{position:absolute;top:-2.5px;width:7px;height:8px;border-radius:2px;
+  background:var(--txt);transform:translateX(-50%);transition:left .2s ease-out}
+@media (prefers-reduced-motion:reduce){.rg .tk em{transition:none}}
+
+/* ⚠ THE ZERO TICK on the CVD gauge. The scale is anchored to today's extremes, so zero is NOT at
+   the midpoint — it sat at 39% on 2026-09-24 against a -8,072/+12,469 range. Without this mark a
+   reading below 50% looks like "sellers ahead" when it can mean "still above flat". Drawn UNDER
+   the marker so the marker is never obscured by it. */
+.rg .tk u{position:absolute;top:-3px;width:1px;height:9px;background:var(--mut2);opacity:.85;
+  transform:translateX(-50%);text-decoration:none}
