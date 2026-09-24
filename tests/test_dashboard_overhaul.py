@@ -578,3 +578,22 @@ def test_the_symbol_toggles_are_shaded_apart_and_never_wrap():
     assert "#p-trade .tf.sym{" in css and "#p-trade .tf.sym.on{" in css
     j = css.index("#p-trade .tf.sym{")
     assert "background:#1b232b" in css[j:j + 200], "the symbol pair is not shaded apart"
+
+
+def test_the_phone_grid_is_a_single_cell():
+    """★★★2026-09-24 "days and trades tabs not loading."
+
+    The phone media query never reset the DESKTOP grid template (1.9fr/1fr columns, 1.25fr/1fr
+    rows) or the per-panel placements — so with one panel visible at a time, DAYS and TRADES were
+    still placed in COLUMN 2, the narrow one, while TRADE took column 1 across both rows. Harmless
+    while the rows sized to content; the moment the grid gained a constrained height they rendered
+    into a sliver.
+    ⚠ Two layouts sharing one stylesheet is exactly where this hides: desktop was correct
+    throughout, and he is on the phone 96% of the time."""
+    css = _css_rules(open(CSS).read())
+    i = css.rindex("@media(max-width:899px)")
+    blk = css[i:]
+    assert "grid-template-columns:1fr" in blk, "the phone still inherits the desktop column split"
+    assert "grid-template-rows:1fr" in blk, "the phone still inherits the desktop row split"
+    assert "#p-trade,#p-days,#p-trades{grid-column:1;grid-row:1" in blk, (
+        "the per-panel desktop placements are not overridden — panels land in the wrong cell")

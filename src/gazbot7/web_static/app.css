@@ -610,8 +610,16 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
      (2) nothing else in the column can shrink (they are all flex:0 0 auto by design), so when the
          total overshoots by even a few px it is the LAST child that gets clipped by overflow
          hidden. The chart is the only elastic element, so it needs room to give. */
-  .grid{flex:1 1 auto;min-height:0;overflow:hidden;gap:4px;height:auto;
+  /* ★★★2026-09-24 ONE CELL ON THE PHONE. The desktop template (1.9fr/1fr columns, 1.25fr/1fr
+     rows) and the per-panel placements were NEVER reset here — so with only one panel visible at a
+     time, DAYS and TRADES were still being placed in COLUMN 2, the narrow one, and TRADE got
+     column 1 across both rows. It only became visible when the grid gained a constrained height:
+     until then the rows sized to content and it merely looked odd.
+     ⚠ Every panel now shares the single cell; `display:none` keeps all but one out of the way. */
+  .grid{flex:1 1 auto;min-height:0;overflow:hidden;gap:0;height:auto;
+        grid-template-columns:1fr;grid-template-rows:1fr;
         padding:4px 4px calc(4px + env(safe-area-inset-bottom, 0px))}
+  #p-trade,#p-days,#p-trades{grid-column:1;grid-row:1;min-height:0}
   .panel{margin-bottom:0}
   #p-trade{overflow:hidden;display:flex;flex-direction:column}
   /* ⚠ THE CHART TAKES WHATEVER IS LEFT — but keeps a floor. A flex:1 child CAN resolve to zero,
