@@ -157,7 +157,6 @@
       try { STATE.bars = await getJSON("api/futures/bars/" + STATE.sym + "?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
       guard("fast.renderConn", () => renderConn(us != null));
       guard("fast.renderSafety", renderSafety);
-      guard("fast.renderRibbonAndDTT", renderRibbonAndDTT);
       guard("fast.renderHero", renderHero);
       guard("fast.renderHolding", renderHolding);
       guard("fast.renderContext", renderContext);
@@ -190,7 +189,6 @@
     const m = STATE.mnq || {};
     renderConn(ok);
     renderHeader(m);
-    renderRibbonAndDTT();
     renderHero();
     renderSafety();
     renderTrade(m);
@@ -250,46 +248,6 @@
   }
 
   /* ---------- ribbon + distance-to-trigger ---------- */
-  function renderRibbonAndDTT() {
-    const a = mnqActivity();
-    const rib = $("ribbon");
-    if (!a || !a.is_known) {
-      rib.innerHTML = `<div class="empty" style="width:100%">no live tape — md-daemon dark or session closed</div>`;
-      setHtml("dtt", `<div class="empty">—</div>`);
-      setTxt("hero-state", "● no tape");
-      return;
-    }
-    setTxt("hero-state", "● " + (a.state || a.session_regime || "live"));
-    const violCls = { asleep: "v-dead", calm: "v-dead", normal: "v-ok", elevated: "v-warn", violent: "v-hot" };
-    const erCls = { trend: "v-ok", mixed: "v-warn", chop: "v-dead" };
-    const erWord = { trend: "clean · ride", chop: "messy · chop", mixed: "mixed" };
-    const tiles = [
-      { l: "ATR · how big", v: a.atr_pts == null ? "—" : nf(a.atr_pts, 1) + "pt",
-        sub: a.atr_usd == null ? "" : "$" + a.atr_usd + "/lot · " + (a.violence || "").toUpperCase(),
-        cls: violCls[a.violence] || "" },
-      { l: "EFFICIENCY · how clean", v: a.er == null ? "—" : nf(a.er, 2),
-        sub: a.day_type ? (a.day_type.toUpperCase() + " · " + (erWord[a.day_type] || "")) : "",
-        cls: erCls[a.day_type] || "" },
-      { l: "LAST", v: a.last == null ? "—" : nf(a.last, 1), sub: "price", cls: "" },
-      { l: "VWAP", v: a.vwap == null ? "—" : nf(a.vwap, 1),
-        sub: (a.last != null && a.vwap != null) ? (a.last >= a.vwap ? "▲ above" : "▼ below") : "", cls: "" },
-    ];
-    rib.innerHTML = tiles.map((t) =>
-      `<div class="rtile ${t.cls}"><div class="l">${t.l}</div><div class="v">${esc(t.v)}</div><div class="l dim3">${esc(t.sub || "")}</div></div>`
-    ).join("")
-      + `<div class="read-hint">📖 <b>real move</b> = ATR ≥16pt (big/violent) · a <b>clean line</b> (ER ≥0.18) · price travels 8+ ATR one way. Small ATR or messy ER = sit.</div>`;
-
-    const gates = a.gates || [];
-    setHtml("dtt", gates.length ? gates.map((g) => {
-      const p = Math.max(0, Math.min(100, g.prox || 0));
-      const fire = p >= 100;
-      return `<div class="dtt-row">
-        <span class="dl">${esc(gateAbbr(g.gate))} ${g.side && g.side !== "—" ? sideMini(g.side) : ""}</span>
-        <span class="dbar"><span class="dfill ${fire ? "fire" : ""}" style="width:${p}%"></span></span>
-        <span class="dpct">${p}</span>
-        <span class="dblk">${esc(fire ? "FIRE" : (g.blocker || ""))}</span></div>`;
-    }).join("") : `<div class="empty">no armed-gate telemetry (md tape idle)</div>`);
-  }
   const sideMini = (s) => `<span class="${s === "SHORT" ? "red" : "grn"}">${s}</span>`;
 
   /* ---------- hero price chart ---------- */
@@ -343,7 +301,7 @@
     const W = Math.max(320, Math.round(host.clientWidth));
     const H = Math.max(160, Math.round(host.clientHeight));
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2).toFixed(0)}" y="${(H / 2).toFixed(0)}" fill="#5c6b78" font-size="15" text-anchor="middle">no bars yet</text>`; $("chart-legend").innerHTML = ""; return; }
+    if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2).toFixed(0)}" y="${(H / 2).toFixed(0)}" fill="#5c6b78" font-size="15" text-anchor="middle">no bars yet</text>`; return; }
     const ML = 56, MT = 10, MB = 20;              // margins: left = price axis, bottom = time axis
     // bar.ts is an ISO string ("2026-07-13T16:40:00+00:00") — parse to epoch SECONDS so the time axis
     // is numeric AND aligns with the fills (which use Date.parse(...)/1000). Without this every X was NaN.
@@ -425,15 +383,6 @@
       g += `<text x="${(plotR - tw / 2).toFixed(1)}" y="${by + 12.5}" fill="#04110f" font-size="12" font-weight="700" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="middle">${txt}</text>`;
     }
     svg.innerHTML = g;
-    const leg = [];
-    leg.push(`<span><span class="sw" style="background:#c6d2db"></span>${got} price</span>`);
-    if (!isMNQ) leg.push(`<span class="dim3">watch-only · MNQ desk overlays (vwap · fills · stop · ATR axis) hidden</span>`);
-    if (a && a.vwap) leg.push(`<span><span class="sw" style="background:#37c9c9"></span>VWAP ${nf(a.vwap, 1)}</span>`);
-    if (holds.some((h) => h.stop)) leg.push(`<span><span class="sw" style="background:#ff5a5f"></span>stop</span>`);
-    leg.push(`<span>▲ entry · ▼ exit · <span class="grn">long</span>/<span class="red">short</span></span>`);
-    if (atrPts) leg.push(`<span>right axis = ATR from price · 1 ATR ≈ ${nf(atrPts, 1)}pt (${nf(a.atr_pct, 2)}%)</span>`);
-    if (a && a.last) leg.push(`<span class="cyan">last ${nf(a.last, 2)}</span>`);
-    $("chart-legend").innerHTML = leg.join("");
   }
   const line = (x1, y1, x2, y2, c, dash) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="1" stroke-dasharray="${dash}" opacity="0.7"/>`;
   function tri(x, y, col, up) {

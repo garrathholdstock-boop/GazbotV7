@@ -462,3 +462,28 @@ def test_the_chart_and_the_controls_are_SIBLINGS_not_nested_in_the_holding():
     close = s.index("</div>", i)
     assert s.index('class="actions"') > close, (
         "the action buttons are INSIDE hold-body — renderHolding will erase them")
+
+
+def test_the_chart_has_no_furniture_around_it():
+    """★2026-09-24 "remove the large widgets above the chart. atr, efficiency, last and vwap. also
+    remove the 3 lines of text above the chart starting with Real move... under the chart remove
+    the 3 lines of text and the blue text saying last price. nice and clean no old bullshit."
+    The ribbon (ATR/EFFICIENCY/LAST/VWAP tiles + the "real move" hint) and the chart legend are
+    gone, along with the renderers that fed them — a renderer left pointing at a deleted element
+    throws on every tick and takes the rest of the pass with it."""
+    h, js = open(HTML).read(), open(JS).read()
+    for gone in ('id="ribbon"', 'id="chart-legend"'):
+        assert gone not in h, f"{gone} survived"
+    for gone in ("renderRibbonAndDTT", "chart-legend", "read-hint", "const leg = []"):
+        assert gone not in js, f"{gone} is still referenced in the page script"
+
+
+def test_the_trade_panel_order_is_final():
+    """holding → actions → chart → time toggles → the occasional metrics → pass."""
+    import re as _re
+    s = open(HTML).read()
+    i = s.index('id="p-trade"')
+    blk = s[i:s.index("</section>", i)]
+    order = [m.group(1) for m in _re.finditer(
+        r'<div class="(holdcard|actions|chart-host|tfbar|tstrip|passrow)"', blk)]
+    assert order == ["holdcard", "actions", "chart-host", "tfbar", "tstrip", "passrow"], order
