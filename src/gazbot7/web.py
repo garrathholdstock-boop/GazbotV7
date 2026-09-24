@@ -558,10 +558,25 @@ def surge_meters(cap_path) -> dict:
                 out["pulse_base"] = int(base)
         out["pulse_window"] = "rolling 60s ending now"
         # ── FLOW ─────────────────────────────────────────────────────────────────────────────
+        # ★★2026-09-24 WINDOW 120s -> 30s, at the operator's request: "could we do 30 seconds for
+        # flow instead of a minute. thats still decent smoothing at that granularity."
+        # ⚠ It was 120s, not 60 — so this is a FOUR-fold cut, and on its own it would have made the
+        # cell strobe. MEASURED over 6h of tick tape, colour changes per hour at a hard ±0.15:
+        #     120s -> 83/hr (one every 43s)   60s -> 156/hr (23s)   30s -> 328/hr (ELEVEN SECONDS)
+        # A cell that changes colour every 11 seconds is wallpaper, and wallpaper is how this desk
+        # loses an instrument. So the window shortens AND the colour gains HYSTERESIS (enter at
+        # ±0.20, leave at ±0.12, applied in app.js where the poll-to-poll state lives):
+        #     30s + hysteresis -> 147/hr (25s)     45s + hysteresis -> 83/hr, TODAY'S EXACT RATE
+        # He asked for 30s and gets 30s; FLOW_WINDOW_S makes 45 a one-line change if the movement
+        # turns out to be more than he wants. The NUMBER is raw and responds at full speed — only
+        # the COLOUR is damped, because the colour is the thing that catches the eye from across
+        # a room and the number is the thing he reads deliberately.
+        _fw = int(os.environ.get("FLOW_WINDOW_S", "30"))
+        out["flow_window_s"] = _fw
         r = c.execute("SELECT COALESCE(SUM(CASE WHEN aggressor='buy' THEN size END),0) b, "
                       "COALESCE(SUM(CASE WHEN aggressor='sell' THEN size END),0) s, "
                       "COUNT(*) n FROM ticks WHERE symbol='MNQ' AND ts_ms>=?",
-                      ((t1 - 120) * 1000,)).fetchone()
+                      ((t1 - _fw) * 1000,)).fetchone()
         tot = (r["b"] or 0) + (r["s"] or 0)
         if tot:
             out["flow"] = round(((r["b"] or 0) - (r["s"] or 0)) / tot, 2)

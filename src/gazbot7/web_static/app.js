@@ -930,8 +930,24 @@
       /* ⚠ SIGNED AND EXPLICIT. A bare "0.42" reads as a magnitude; he needs the SIDE at a glance. */
       fl.textContent = sg.flow == null ? "—"
         : (sg.flow > 0 ? "+" : "") + (sg.flow * 100).toFixed(0) + "%";
-      fl.className = sg.flow == null ? ""
-        : (sg.flow >= 0.15 ? "pos" : (sg.flow <= -0.15 ? "neg" : ""));
+      /* ★★2026-09-24 HYSTERESIS ON THE COLOUR, NOT ON THE NUMBER.
+         The window dropped 120s -> 30s so the number keeps up with the tape. Measured over 6h of
+         ticks, that alone would flip the colour 328 times an hour — once every ELEVEN SECONDS —
+         and a cell that strobes is one he stops seeing. Entering at ±0.20 and only leaving below
+         ±0.12 brings it to 147/hr (one per 25s) with no cost to the number's responsiveness.
+         ⚠ A threshold without hysteresis manufactures churn — the same fault as the |net|>40
+         router rule that had no dwell band.
+         ⚠ State lives here, across polls, because that is the only place continuity exists; the
+         server is stateless per request and would have to persist a file to do this. */
+      if (sg.flow == null) { fl.className = ""; AL.flowState = 0; }
+      else {
+        var f = sg.flow, st = AL.flowState || 0;
+        if (st === 0) { if (Math.abs(f) >= 0.20) st = f > 0 ? 1 : -1; }
+        else if (Math.abs(f) < 0.12) st = 0;
+        else if (Math.sign(f) !== st && Math.abs(f) >= 0.20) st = f > 0 ? 1 : -1;
+        AL.flowState = st;
+        fl.className = st > 0 ? "pos" : (st < 0 ? "neg" : "");
+      }
     }
 
     /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are

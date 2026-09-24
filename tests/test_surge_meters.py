@@ -165,3 +165,39 @@ def test_the_logger_keeps_the_minute_block_form_on_purpose():
     ever fails, decide which one changed and whether the pre-registration still holds."""
     src = _code(open(LOGGER, encoding="utf-8").read())
     assert "m0 + 60" in src or "_minute(c, m0, m0 + 60)" in src
+
+
+# ── FLOW: SHORTER WINDOW, DAMPED COLOUR (2026-09-24) ────────────────────────────────────────────
+# Operator: "could we do 30 seconds for flow instead of a minute. thats still decent smoothing at
+# that granularity." ⚠ It was 120s, not 60 — a FOUR-fold cut. Measured over 6h of tick tape, colour
+# changes per hour at a hard ±0.15: 120s -> 83 · 60s -> 156 · 30s -> 328, i.e. one every ELEVEN
+# SECONDS. A cell that strobes is one he stops seeing, which is how this desk loses an instrument.
+
+def test_flow_window_is_configurable_and_defaults_to_30s():
+    c = _code(_fn(WEB, "surge_meters"))
+    assert 'os.environ.get("FLOW_WINDOW_S", "30")' in c
+    assert "(t1 - _fw) * 1000" in c, "the query must use the configured window, not a literal"
+
+
+def test_the_colour_has_hysteresis_but_the_number_does_not():
+    """★ THE SPLIT IS THE POINT. The NUMBER is raw and responds at full speed — he reads it
+    deliberately. The COLOUR is damped — it is what catches the eye from across a room, and a
+    threshold without hysteresis manufactures churn (the same fault as the |net|>40 router rule
+    that shipped with no dwell band)."""
+    js = open(JS, encoding="utf-8").read()
+    blk = js.split("HYSTERESIS ON THE COLOUR", 1)[1].split("POSITION AGE IS A GUARD", 1)[0]
+    assert "0.20" in blk and "0.12" in blk, "enter and leave bands must differ"
+    # the number is written before any colour state is consulted
+    fl = js.split("if (fl) {", 1)[1].split("POSITION AGE IS A GUARD", 1)[0]
+    assert fl.index("fl.textContent") < fl.index("AL.flowState")
+
+
+def test_the_hysteresis_band_actually_brackets_the_old_threshold():
+    """⚠ enter ABOVE the old ±0.15 and leave BELOW it — a band that sat entirely one side would
+    just be a moved threshold wearing the word 'hysteresis'."""
+    js = open(JS, encoding="utf-8").read()
+    blk = js.split("HYSTERESIS ON THE COLOUR", 1)[1].split("POSITION AGE IS A GUARD", 1)[0]
+    import re
+    on = float(re.search(r">=\s*0\.20", blk).group().split(">=")[1])
+    off = float(re.search(r"<\s*0\.12", blk).group().split("<")[1])
+    assert off < 0.15 < on
