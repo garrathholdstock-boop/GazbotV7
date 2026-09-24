@@ -463,7 +463,7 @@
           fl.disabled = true;
           fetch("api/control/dayrider-claim", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lot: "all" }),
+            body: JSON.stringify({ lot: "all", flatten: true }),
           }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
             .then((j) => { if (!j || !j.ok) window.alert("Not sent: " + ((j && j.error) || "?")); })
             .catch((e) => window.alert("Not sent: " + e.message))

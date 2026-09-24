@@ -1581,13 +1581,24 @@ def dayrider_claim_post(body, data_dir):
         req = json.loads(body or b"{}")
     except Exception:
         return {"ok": False, "error": "bad request"}
-    pin = str(req.get("pin", "")).strip()
-    try:
-        want = open(os.path.join(data_dir, "claim_pin.txt")).read().strip()
-    except Exception:
-        return {"ok": False, "error": "claim PIN not set on server"}
-    if not want or pin != want:
-        return {"ok": False, "error": "wrong PIN"}
+    # ★★★2026-09-24 A FULL FLATTEN NEEDS NO PIN. Operator: "yes drop pin on flatten and keep on
+    # sell... for flatten just keep the pop up confirm window but i can just click ok."
+    # THE ASYMMETRY IS THE POINT: a PIN guards actions that ADD risk. Flattening everything can
+    # only ever REDUCE it — it cannot open, size or reverse anything, and the worst a spurious one
+    # does is close a position early. Friction on a kill switch costs money, and this is the button
+    # he reaches for when something is already going wrong.
+    # ⚠ A PER-LOT claim KEEPS the PIN: that is a discretionary exit of PART of a position, not a
+    # kill switch, and a mis-tap leaves the rest running against a ladder that has silently moved.
+    _lot = req.get("lot", None)
+    _flatten_all = _lot in (None, "", "all") or bool(req.get("flatten"))
+    if not _flatten_all:
+        pin = str(req.get("pin", "")).strip()
+        try:
+            want = open(os.path.join(data_dir, "claim_pin.txt")).read().strip()
+        except Exception:
+            return {"ok": False, "error": "claim PIN not set on server"}
+        if not want or pin != want:
+            return {"ok": False, "error": "wrong PIN"}
     # Refuse when there is nothing to claim, so the button cannot leave a stale
     # request file lying in wait to fire against tomorrow's position.
     try:
@@ -2334,11 +2345,41 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
         def _json(self, obj):
             self._send(json.dumps(obj).encode(), "application/json")
 
+        # ★★★2026-09-24 THE ORDER PATH IS NOW CLOSED TO SCRIPTS. On this date an assistant test of
+        # the no-PIN flatten POSTed to /api/control/dayrider-claim and the rider flattened the
+        # operator's live SHORT 4 THREE SECONDS LATER (trade 1019, -$842.50). It was the third time
+        # in one session that a test touched a live position, and twice before it had been promised
+        # it would not happen again. A promise is not a control.
+        #
+        # THE RULE: an endpoint that can move money must arrive FROM THE DASHBOARD. A browser
+        # fetching from the page always sends a same-origin Referer (verified in nginx: every
+        # button press carries "http://.../v7/"); curl sends none unless told to. So a bare curl —
+        # which is every accidental call from a shell — is refused before it reaches the handler.
+        #
+        # ⚠ THIS IS NOT SECURITY. A Referer is trivially forged and it is not meant to stop an
+        # attacker; it is meant to make the ACCIDENT impossible, which is the failure that actually
+        # happened. Anything that legitimately needs to act without a browser writes the request
+        # FILE directly (step_away.py does exactly that) and is unaffected.
+        # ⚠ Only the paths that can OPEN OR CLOSE A POSITION are gated. `pass` and `clienterr`
+        # record data and place nothing, so gating them would cost the sample for no safety.
+        ORDER_PATHS = ("/api/control/claim", "/api/control/dayrider-buy",
+                       "/api/control/dayrider-claim")
+
+        def _from_dashboard(self) -> bool:
+            ref = (self.headers.get("Referer") or self.headers.get("Origin") or "")
+            return "/v7" in ref or ref.rstrip("/").endswith(":8087")
+
         def do_POST(self):
             try:
                 path = urlparse(self.path).path
                 n = int(self.headers.get("Content-Length", "0") or 0)
                 body = self.rfile.read(n) if n else b""
+                if path in self.ORDER_PATHS and not self._from_dashboard():
+                    self._json({"ok": False, "error":
+                                "refused: this endpoint can move money and must be called from the "
+                                "dashboard, not a script. If you are a human and meant this, press "
+                                "the button."})
+                    return
                 if path == "/api/control/claim":
                     self._json(claim_post(body, data_dir))
                 elif path == "/api/control/dayrider-buy":
