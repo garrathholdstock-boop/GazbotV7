@@ -8,6 +8,15 @@
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
+  /* ★2026-09-24 FIXED SIZE, by his instruction — the stepper went with the old DESK panel. */
+  const BUY_LOTS = 4;
+  const RIDER_USD = [100, 200, 400, 600];
+  /* ★★2026-09-24 SAFE SETTERS. Merging DESK/CHART/HOLD into TRADE removed eight elements that
+     renderers still wrote to, and $() returns null for a missing id — ONE of those throws inside
+     the render loop and the WHOLE dashboard goes blank with no error the operator can see. That
+     exact failure nearly shipped in the 09-18 rebuild too. Write through these, not directly. */
+  const setTxt = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  const setHtml = (id, v) => { const e = $(id); if (e) e.innerHTML = v; };
   // ★★★2026-08-21 ONE ACCESSOR FOR "TODAY", because three call sites disagreed with the headline.
   // `header.today` is the TOURNAMENT ONLY; `today_total` is both desks. The headline was fixed on
   // 08-13 and pos-realised / curve-end / tb-desk were left reading the tournament number — so on
@@ -136,7 +145,7 @@
       if (days) STATE.days = days;
       const m = STATE.mnq || {};
       try {
-        renderHeader(m); renderDesk(m); renderTrades(m); renderTabBadges(m); renderDays();
+        renderHeader(m); renderTrade(m); renderTrades(m); renderTabBadges(m); renderDays();
         if (STATE.drill) reAggregateDrill();
       } catch (e) { console.error("slow", e); }
     } finally { _slowBusy = false; }
@@ -154,7 +163,7 @@
     renderRibbonAndDTT();
     renderHero();
     renderSafety();
-    renderDesk(m);
+    renderTrade(m);
     renderHolding();
     /* ★2026-09-18 renderTournament / renderPromotion / renderExec retired with their panels.
        Their DOM ids no longer exist, and $() returns null for a missing element — so leaving the
@@ -190,7 +199,7 @@
     $("expiry").textContent = m.expiry || "—";
     // ★2026-09-02 the hero header follows the CHART's symbol, not the desk's — this runs on the
     // slow tick and would otherwise stamp the MNQ expiry back over a gold chart every 5s.
-    $("hero-expiry").textContent = (STATE.sym === "MNQ") ? (m.expiry || "—") : "gold · watch-only";
+    setTxt("hero-expiry", (STATE.sym === "MNQ") ? (m.expiry || "—") : "gold · watch-only");
     $("k-fee").textContent = m.fee_per_rt != null ? "−$" + nf(m.fee_per_rt, 2) + "/RT" : "NET";
     const set = (id, v, d = 0) => { const el = $(id); el.textContent = money(v, d); el.className = "v " + cls(v); };
     // ★2026-08-13 TODAY is the WHOLE desk now, with the two books underneath. The day-rider is a
@@ -216,11 +225,11 @@
     const rib = $("ribbon");
     if (!a || !a.is_known) {
       rib.innerHTML = `<div class="empty" style="width:100%">no live tape — md-daemon dark or session closed</div>`;
-      $("dtt").innerHTML = `<div class="empty">—</div>`;
-      $("hero-state").textContent = "● no tape";
+      setHtml("dtt", `<div class="empty">—</div>`);
+      setTxt("hero-state", "● no tape");
       return;
     }
-    $("hero-state").textContent = "● " + (a.state || a.session_regime || "live");
+    setTxt("hero-state", "● " + (a.state || a.session_regime || "live"));
     const violCls = { asleep: "v-dead", calm: "v-dead", normal: "v-ok", elevated: "v-warn", violent: "v-hot" };
     const erCls = { trend: "v-ok", mixed: "v-warn", chop: "v-dead" };
     const erWord = { trend: "clean · ride", chop: "messy · chop", mixed: "mixed" };
@@ -241,7 +250,7 @@
       + `<div class="read-hint">📖 <b>real move</b> = ATR ≥16pt (big/violent) · a <b>clean line</b> (ER ≥0.18) · price travels 8+ ATR one way. Small ATR or messy ER = sit.</div>`;
 
     const gates = a.gates || [];
-    $("dtt").innerHTML = gates.length ? gates.map((g) => {
+    setHtml("dtt", gates.length ? gates.map((g) => {
       const p = Math.max(0, Math.min(100, g.prox || 0));
       const fire = p >= 100;
       return `<div class="dtt-row">
@@ -249,7 +258,7 @@
         <span class="dbar"><span class="dfill ${fire ? "fire" : ""}" style="width:${p}%"></span></span>
         <span class="dpct">${p}</span>
         <span class="dblk">${esc(fire ? "FIRE" : (g.blocker || ""))}</span></div>`;
-    }).join("") : `<div class="empty">no armed-gate telemetry (md tape idle)</div>`;
+    }).join("") : `<div class="empty">no armed-gate telemetry (md tape idle)</div>`);
   }
   const sideMini = (s) => `<span class="${s === "SHORT" ? "red" : "grn"}">${s}</span>`;
 
@@ -260,7 +269,7 @@
   // an unlabelled MNQ meter sitting over a gold chart is precisely the confusion to avoid.
   function setSymNote(want, served, got) {
     const el = $("symnote");
-    $("hero-sym").textContent = served === null ? want : got;
+    setTxt("hero-sym", served === null ? want : got);
     if (!el) return;
     if (served === null) { el.innerHTML = `<span class="dim3">loading ${want}…</span>`; return; }
     if (served === "?") {
@@ -405,356 +414,180 @@
   }
 
   /* ---------- desk stats ---------- */
-  function renderDesk(m) {
+  /* ★★★2026-09-24 renderDesk -> renderTrade. The old one wrote to TWENTY-THREE ids and eighteen
+     of them no longer exist (direction meters, DESK·TODAY, ROLLING, LOSSES·BY·EXIT, the rider
+     ladder, the stay-out box, the buy stepper...). $() returns null for a missing element, so
+     leaving any of them would throw on every tick and take the WHOLE dashboard down — a removed
+     panel becoming a blank page with no error the operator can see. Every write below is guarded
+     and every id is one that exists in the TRADE panel.
+     ⚠ The button wiring lives here, as it did before, because it is re-bound on each render. */
+  function renderTrade(m) {
     const hold = mnqHoldings();
-    const unreal = hold.reduce((s, h) => s + (h.pnl_usd || 0), 0);
-    const anyOpen = hold.length > 0;
-    const ue = $("unreal");
-    ue.textContent = anyOpen ? money(unreal, 2) : "—";
-    ue.className = "big " + (anyOpen ? cls(unreal) : "mut");
-    $("unreal-sub").textContent = anyOpen ? (hold.length + " slot" + (hold.length > 1 ? "s" : "") + " open") : "FLAT — no open slots";
+    const open = hold.length ? hold[0] : null;
 
-    /* ── DAY RIDER LADDER ─────────────────────────────────────────────────────────
-       One row per lot: its target, how far the position still has to travel to reach
-       it, and a claim/kill button. Distance is shown in BOTH points and dollars because
-       the targets are dollar figures but the tape moves in points.
-       ⚠ There is no stop, so a button fires in profit OR loss — the label says KILL when
-       the position is red, so nobody presses it expecting a refusal. */
-    /* ── STAY-OUT LIGHT ─────────────────────────────────────────────────────────
-       Deliberately NOT a buy signal. The measurement says confluence tops out at 55.9%,
-       so the only cell worth surfacing is the mixed one (44.4% hit, -35.3pt over 54 of
-       225 sessions). Green here means "meters disagree, historically the worst cell". */
-    // ★2026-08-29 RVOL. Reads "—" when the venue is SHUT rather than a confident 0.00x: an absence
-    // of tape is not a measurement of it. n_days is shown when the baseline is thin, because a
-    // ratio built on one comparison day is a different claim from one built on five.
-    /* ★★★2026-09-02 THE METERS READ `STATE.us`, NOT `STATE.m`.
-       Shipped 08-29 reading `(STATE.m && STATE.m.X) || (m && m.X)`. `STATE.m` is assigned NOWHERE
-       in this file, and `m` is the /api/futures/mnq payload, which carries none of these keys —
-       rvol/block/vwap_stretch/adverse/stayout are served by /api/futures/us-terminal and stored as
-       STATE.us. So every meter rendered "—" from the day it shipped and NEVER once showed a
-       reading. It survived four days on screen because "—" reads as "no data yet" rather than
-       "reading the wrong object" — the same shape as a green light for something never checked. */
-    const MET = (k) => (STATE.us && STATE.us[k]) || (STATE.m && STATE.m[k]) || (m && m[k]);
-    const rv = $("m-rvol");
-    if (rv) {
-      const r = MET("rvol");
-      if (!r || r.open === false) {
-        rv.textContent = "— venue shut"; rv.className = "val mut";
-      } else if (r.rvol == null) {
-        rv.textContent = "— no baseline"; rv.className = "val mut";
-      } else {
-        rv.textContent = r.rvol.toFixed(2) + "x" + (r.n_days < 3 ? ` (${r.n_days}d)` : "");
-        rv.className = "val " + (r.rvol >= 1.5 ? "pos" : r.rvol <= 0.6 ? "neg" : "");
-        rv.title = `${r.now} vs a ${r.baseline} median over ${r.n_days} session(s), `
-                 + `same ${r.window_min}-minute clock window`;
-      }
-    }
-    // ★2026-08-29 three meters, all MEASURED — no meter here implies a direction, because every
-    // directional test on this desk has come back a coin flip and a meter that hints otherwise is
-    // worse than none. SESSION carries the block's own shadow edge; VWAP carries the date and
-    // in-sample caveat of the study behind it; ADVERSE is a percentile against positions held the
-    // SAME LENGTH OF TIME, which is the only comparison that means anything mid-trade.
-    const T = (id) => $(id);
-    const bl = T("m-block"), blk = MET("block");
-    if (bl && blk) {
-      bl.textContent = `${blk.block} ${blk.edge_per_trade >= 0 ? "+" : ""}$${blk.edge_per_trade}/tr`
-        + (blk.tradeable ? "" : " · blocked");
-      bl.className = "val " + (blk.edge_per_trade > 0 ? "pos" : "neg");
-      bl.title = `${blk.utc}Z · ${blk.note} · shadow n=${blk.n}`;
-    }
-    const vw = T("m-vwap"), vs = MET("vwap_stretch");
-    if (vw) {
-      if (!vs || !vs.ok) { vw.textContent = "—"; vw.className = "val mut"; }
-      else {
-        vw.textContent = `${vs.pt >= 0 ? "+" : ""}${vs.pt.toFixed(1)}pt`
-          + (vs.atr_mult != null ? ` (${vs.atr_mult.toFixed(1)}x ATR)` : "");
-        vw.className = "val " + (vs.measured ? "pos" : "");
-        vw.title = vs.measured || `${vs.band} VWAP ${vs.vwap}`;
-      }
-    }
-    const ad = T("m-adv"), av = MET("adverse");
-    if (ad) {
-      if (!av || !av.ok) { ad.textContent = av && av.flat ? "flat" : "—"; ad.className = "val mut"; }
-      else {
-        const p = av.percentile;
-        ad.textContent = `-${av.adverse_pt}pt / -$${Math.abs(av.adverse_usd).toFixed(0)}`
-          + (p != null ? ` · p${p}` : "");
-        ad.className = "val " + (p == null ? "" : p >= 90 ? "neg" : p >= 75 ? "" : "mut");
-        ad.title = `held ${av.held_min}m in ${av.block}; median ${av.median}pt, p90 ${av.p90}pt `
-                 + `for positions held ~${av.bucket}m (n=${av.n})`;
-      }
-    }
-    const sob = $("stayout-box");
-    if (sob) {
-      const so = MET("stayout");
-      if (!so || !so.ok) {
-        sob.innerHTML = `<div class="row"><span class="k mut">meters</span>`
-          + `<span class="val mut">${so && so.detail ? esc(so.detail) : "unavailable"}</span></div>`;
-      } else {
-        const cls = so.mixed ? "neg" : "mut";
-        sob.innerHTML =
-          `<div class="row"><span class="k">verdict</span><span class="val ${cls}">`
-          + `<b>${esc(so.verdict)}</b></span></div>`
-          + `<div class="row"><span class="k dim3">why</span>`
-          + `<span class="val dim3">${esc(so.evidence)}</span></div>`
-          + so.meters.map((x) => `<div class="row"><span class="k">${esc(x.name)}`
-              + ` <span class="dim3">· ${x.hit}</span></span><span class="val ${x.vote > 0 ? "pos" : (x.vote < 0 ? "neg" : "mut")}">`
-              + `${x.vote > 0 ? "UP" : (x.vote < 0 ? "DOWN" : "—")}</span></div>`).join("")
-          + `<div class="row"><span class="k dim3">score</span><span class="val dim3">`
-          + `${so.score > 0 ? "+" : ""}${so.score} · px ${nf(so.px, 2)} · vwap ${nf(so.vwap, 2)}`
-          + ` · ext ${nf(so.ext_atr, 2)} ATR</span></div>`;
-      }
-    }
+    const q = $("orb-qty"); if (q) q.textContent = String(BUY_LOTS);
+    const op = $("orb-pos");
+    if (op) op.textContent = open ? ((open.qty > 0 ? "LONG " : "SHORT ") + Math.abs(open.qty)) : "flat";
+    const fb = $("flat-all"); if (fb) fb.disabled = !open;
 
-    /* ★2026-09-02 MIRROR THE METERS ONTO THE CHART TAB. The operator watches CHART all day and
-       these lived only on DESK, so even once they worked he would not have seen them. Mirroring by
-       [data-meter] rather than duplicating ids keeps ONE render path and one source of truth: the
-       desk node is authoritative, the chart node is a copy, and a missing twin is a no-op. */
-    [["m-rvol", "rvol"], ["m-block", "block"], ["m-vwap", "vwap"], ["m-adv", "adv"]]
-      .forEach(([id, nm]) => {
-        const src = $(id); if (!src) return;
-        document.querySelectorAll(`[data-meter="${nm}"]`).forEach((el) => {
-          if (el === src) return;
-          el.textContent = src.textContent;
-          el.className = src.className;
-          el.title = src.title || "";
-        });
-      });
+    if (!STATE._wired) {
+      STATE._wired = true;
 
-    /* ── MANUAL ENTRY BOX ───────────────────────────────────────────────────────
-       Hidden while a position is open: the rider tracks ONE entry/direction/qty, so a
-       second buy on top would desync its book from a netted venue. The endpoint refuses
-       it too — belt and braces, because a disabled control is a hint and the server is
-       the rule. */
-    const bsec = $("buy-sec"), bbox = $("buy-box");
-    if (bsec && bbox) {
-      const inPos = hold.some((x) => x.entry_gate === "day_rider");
-      bsec.style.display = inPos ? "none" : "";
-      bbox.style.display = inPos ? "none" : "";
-      if (!inPos && !bbox.dataset.wired) {
-        bbox.dataset.wired = "1";
-        const q = $("buy-qty");
-        const T = [1, 2, 3, 4].map((i) => $("buy-t" + i));
-        const P = [1, 2, 3, 4].map((i) => $("buy-p" + i));
-        /* Each lot is 1 contract at $2/pt, so a lot's $ target is simply usd/2 POINTS —
-           it does NOT divide by quantity. Getting that wrong is what made the first
-           version of this ladder bank $269 when the operator expected $1,300. */
-        const showPt = () => {
-          const qq = Math.max(1, Math.min(4, Number(q.value) || 1));
-          let tot = 0;
-          T.forEach((el, i) => {
-            const on = i < qq;
-            el.disabled = !on;
-            el.style.opacity = on ? "1" : "0.35";
-            const v = Number(el.value) || 0;
-            P[i].textContent = on ? "= " + nf(v / 2, 0) + "pt" : "— unused";
-            if (on) tot += v;
-          });
-          $("buy-total").textContent = "$" + nf(tot, 0) + " across " + qq + " lot" + (qq > 1 ? "s" : "");
-        };
-        q.oninput = showPt; T.forEach((el) => { el.oninput = showPt; }); showPt();
-        const send = (side) => {
-          const qq = Math.max(1, Math.min(4, Number(q.value) || 1));
-          const tg = T.slice(0, qq).map((el) => Number(el.value));
-          if (tg.some((v) => !(v >= 10))) { window.alert("Each target must be at least $10."); return; }
-          if (!window.confirm(
-            side + " " + qq + " lot" + (qq > 1 ? "s" : "") + " of MNQ at market?\n\n"
-            + tg.map((v, i) => "  L" + (i + 1) + "  $" + v + "  (" + nf(v / 2, 0) + "pt)").join("\n")
-            + "\n  total if all fill: $" + nf(tg.reduce((a, b) => a + b, 0), 0) + "\n\n"
-            + "THERE IS NO STOP. The only exits are your buttons and the 20:40Z hard flat.\n\n"
-            + "The rider places this on its next tick (~60s), through its own ownership check.")) return;
-          const pin = window.prompt("PIN");
-          if (!pin) return;
-          fetch("api/control/dayrider-buy", {
+      /* ── BUY / SELL. FIXED 4 LOTS by his instruction, PIN kept: these place an order.
+         ⚠ The ladder is the rider's standing one ($100/$200/$400/$600 per lot) — the stepper and
+         the per-lot target boxes went with the old panel, so the defaults travel here. */
+      const send = (side) => {
+        const tg = RIDER_USD.slice(0, BUY_LOTS);
+        if (!window.confirm(
+          side + " " + BUY_LOTS + " lots of MNQ at market?\n\n"
+          + tg.map((v, i) => "  L" + (i + 1) + "  $" + v).join("\n")
+          + "\n\nTHERE IS NO STOP. The only exits are your buttons, STEP AWAY, and the 20:40Z hard flat.")) return;
+        const pin = window.prompt("PIN");
+        if (!pin) return;
+        fetch("api/control/dayrider-buy", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: pin, side: side, qty: BUY_LOTS, targets: tg }),
+        }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+          .then((j) => window.alert(j && j.ok ? j.msg : "Not sent: " + ((j && j.error) || "unknown")))
+          .catch((e) => window.alert("Not sent: " + e.message));
+      };
+      const bl = $("buy-long"), bs = $("buy-short");
+      if (bl) bl.onclick = () => send("BUY");
+      if (bs) bs.onclick = () => send("SELL");
+
+      /* ── FLATTEN. NO PIN, by his instruction: it only ever reduces risk, and friction on a kill
+         switch costs money. The confirm stays because a circular target is easy to hit by
+         accident — he can click straight through it. */
+      const fl = $("flat-all");
+      if (fl) {
+        fl.onclick = () => {
+          const h2 = mnqHoldings();
+          if (!h2.length) { window.alert("Nothing to flatten — you are flat."); return; }
+          if (!window.confirm("FLATTEN " + Math.abs(h2[0].qty) + " lot(s) at market?")) return;
+          fl.disabled = true;
+          fetch("api/control/dayrider-claim", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pin: pin, side: side, qty: qq, targets: tg }),
+            body: JSON.stringify({ lot: "all" }),
           }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
-            .then((j) => window.alert(j && j.ok ? j.msg : "Not sent: " + ((j && j.error) || "unknown")))
-            .catch((e) => window.alert("Not sent: " + e.message));
+            .then((j) => { if (!j || !j.ok) window.alert("Not sent: " + ((j && j.error) || "?")); })
+            .catch((e) => window.alert("Not sent: " + e.message))
+            .finally(() => { fl.disabled = false; });
         };
-        $("buy-long").onclick = () => send("BUY");
-        $("buy-short").onclick = () => send("SELL");
-        /* ★★★ LOOKED AND PASSED. No PIN and no confirm dialog, deliberately: the PIN on BUY/SELL
-           guards an ORDER and this places none, and any friction that makes him skip recording a
-           pass defeats the whole point — the sample IS the product.
-           ⚠ Relative URL, no leading slash: the dashboard is mounted under /v7/ and a leading
-           slash resolves to the domain ROOT, which is not routed to this backend. That spelling
-           once failed as "no connection" without ever leaving the browser. */
-        /* ★★ STEP AWAY. ARM is one tap and no PIN; DISARM asks, because removing a guard is the
-           direction that exposes him. */
-        const sb = $("sa-btn");
-        if (sb) {
-          sb.onclick = () => {
-            const armed = !!(STATE.ctx && STATE.ctx.step_away && STATE.ctx.step_away.armed);
-            const body = { armed: !armed };
-            if (armed) {
-              const pin = window.prompt("PIN to DISARM the step-away guard");
-              if (!pin) return;
-              body.pin = pin;
-            } else {
-              const el = $("sa-loss"), tpEl = $("sa-tp");
-              body.limit_usd = (el && Number(el.value)) || 200;
-              /* ⚠ 0 or blank means NO take-profit, not a take-profit of zero — which would fire on
-                 the first tick the position was green by a cent. */
-              const tp = tpEl && Number(tpEl.value);
-              if (tp && tp > 0) body.take_profit_usd = tp;
-              if (!window.confirm(`Arm STEP AWAY?\n\n`
-                + `• flatten at −$${body.limit_usd}\n`
-                + (body.take_profit_usd ? `• flatten at +$${body.take_profit_usd}\n` : `• no take-profit\n`)
-                + `\nBoth go through the rider's own ownership check. It disarms the moment it `
-                + `fires, and at the 22:00Z reopen.`)) return;
-            }
-            sb.disabled = true;
-            fetch("api/control/step-away", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
-              .then((j) => { window.alert(j && j.ok ? j.msg : "Failed: " + ((j && j.error) || "?"));
-                             sb.disabled = false; })
-              .catch((e) => { window.alert("Failed: " + e.message); sb.disabled = false; });
-          };
-        }
+      }
 
-        const pb = $("pass-btn");
-        if (pb) {
-          pb.onclick = () => {
-            const n = $("pass-note");
-            pb.disabled = true;
-            fetch("api/control/pass", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ note: (n && n.value) || "" }),
-            }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
-              .then((j) => {
-                pb.textContent = j && j.ok ? "noted" : "failed";
-                if (n) n.value = "";
-                setTimeout(() => { pb.textContent = "PASS"; pb.disabled = false; }, 2000);
-              })
-              .catch((e) => {
-                pb.textContent = "failed";
-                window.alert("Pass NOT recorded: " + e.message);
-                setTimeout(() => { pb.textContent = "PASS"; pb.disabled = false; }, 2000);
-              });
-          };
-        }
+      /* ── STEP AWAY. Arming needs no PIN (it REDUCES risk); disarming does. */
+      const sb = $("sa-btn");
+      if (sb) {
+        sb.onclick = () => {
+          const armed = !!(STATE.ctx && STATE.ctx.step_away && STATE.ctx.step_away.armed);
+          const body = { armed: !armed };
+          if (armed) {
+            const pin = window.prompt("PIN to DISARM the step-away guard");
+            if (!pin) return;
+            body.pin = pin;
+          } else {
+            const el = $("sa-loss"), tpEl = $("sa-tp");
+            body.limit_usd = (el && Number(el.value)) || 200;
+            /* ⚠ 0 or blank means NO take-profit, not a take-profit of zero — which would fire the
+               instant the position was green by a cent. */
+            const tp = tpEl && Number(tpEl.value);
+            if (tp && tp > 0) body.take_profit_usd = tp;
+            if (!window.confirm("Arm STEP AWAY?\n\n"
+              + "• flatten at −$" + body.limit_usd + "\n"
+              + (body.take_profit_usd ? "• flatten at +$" + body.take_profit_usd + "\n" : "• no take-profit\n")
+              + "\nDisarms the moment it fires, and at the 22:00Z reopen.")) return;
+          }
+          sb.disabled = true;
+          fetch("api/control/step-away", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+            .then((j) => window.alert(j && j.ok ? j.msg : "Failed: " + ((j && j.error) || "?")))
+            .catch((e) => window.alert("Failed: " + e.message))
+            .finally(() => { sb.disabled = false; });
+        };
+      }
+
+      /* ── PASS. No PIN and no confirm, deliberately: it places no order, and any friction that
+         makes him skip recording a pass defeats the point — the sample IS the product. */
+      const pb = $("pass-btn");
+      if (pb) {
+        pb.onclick = () => {
+          const n = $("pass-note");
+          pb.disabled = true;
+          fetch("api/control/pass", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ note: (n && n.value) || "" }),
+          }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+            .then((j) => {
+              pb.textContent = j && j.ok ? "noted" : "failed";
+              if (n) n.value = "";
+              setTimeout(() => { pb.textContent = "PASS"; pb.disabled = false; }, 2000);
+            })
+            .catch((e) => {
+              pb.textContent = "failed";
+              window.alert("Pass NOT recorded: " + e.message);
+              setTimeout(() => { pb.textContent = "PASS"; pb.disabled = false; }, 2000);
+            });
+        };
       }
     }
-
-    const RIDER_USD = [100, 200, 400, 600];
-    const RIDER_PT = [50, 100, 200, 300];
-    const rsec = $("rider-sec"), rl = $("rider-ladder");
-    if (rsec && rl) {
-      const dr = hold.filter((x) => x.entry_gate === "day_rider")[0];
-      if (!dr) {
-        rsec.style.display = "none"; rl.style.display = "none";
-      } else {
-        rsec.style.display = ""; rl.style.display = "";
-        const lots = Math.abs(dr.qty || 0) || 1;
-        const ahead = (dr.pnl_usd || 0) / (lots * 2);      /* points ahead, $2/pt per lot */
-        const done = dr.targets_done || [];
-        const red = (dr.pnl_usd || 0) < 0;
-        rl.innerHTML = RIDER_USD.map((usd, i) => {
-          const out = done.indexOf(i) >= 0;
-          const togo = RIDER_PT[i] - ahead;
-          const stat = out ? `<span class="mut">BANKED</span>`
-            : (togo <= 0 ? `<span class="pos">AT TARGET</span>`
-                         : `${nf(togo, 1)}pt to go <span class="dim3">($${nf(togo * lots * 2, 0)})</span>`);
-          return `<div class="row">`
-            + `<span class="k">L${i + 1} &nbsp;$${usd}<span class="dim3"> · ${RIDER_PT[i]}pt</span></span>`
-            + `<span class="val">${stat} `
-            + `<button class="claimbtn" data-claim="${i + 1}"${out ? " disabled" : ""}>`
-            + `${out ? "—" : (red ? "KILL" : "CLAIM")}</button></span></div>`;
-        }).join("")
-          + `<div class="row"><span class="k">ALL <span class="dim3">· flatten everything</span></span>`
-          + `<span class="val">${nf(ahead, 1)}pt · ${money(dr.pnl_usd || 0, 0)} `
-          + `<button class="claimbtn" data-claim="all">FLATTEN</button></span></div>`;
-        wireClaims(rl, hold);
-      }
-    }
-
-    // positioning (desk-level)
-    const h = m.header || {};
-    const openContracts = hold.reduce((s, x) => s + Math.abs(x.qty || 0), 0);
-    $("pos-open").textContent = anyOpen ? String(openContracts) : "0";
-    const _rt = deskToday(h);
-    const pr = $("pos-realised"); pr.textContent = money(_rt, 2); pr.className = "val " + cls(_rt);
-    $("pos-trades").textContent = (h.trades_tournament != null || h.trades_rider != null)
-      ? ((h.trades_tournament || 0) + (h.trades_rider || 0))
-      : (h.trades_today != null ? h.trades_today : "—");
-    $("pos-win").textContent = h.win_today != null ? h.win_today + "%" : "—";
-
-    // rolling table (net / win / N — PF & MaxDD not computed in V7)
-    const roll = m.rolling || {};
-    const rk = ["1D", "7D", "30D"];
-    const rrow = (label, fn) => `<tr><td>${label}</td>` + rk.map((k) => fn(roll[k] || {})).join("") + `</tr>`;
-    $("rolltbl").innerHTML =
-      rrow("Net", (s) => `<td class="${cls(s.pnl)}">${money(s.pnl, 0)}</td>`) +
-      rrow("Win", (s) => `<td>${s.win == null ? "—" : s.win + "%"}</td>`) +
-      rrow("N", (s) => `<td>${s.trades || 0}</td>`);
-
-    // losses by exit (now wired)
-    const lb = m.loss_buckets || [];
-    $("lossbkt").innerHTML = lb.length ? lb.map((r) =>
-      `<tr><td>${esc(exitAbbr(r.cause))}</td><td>${r.n}</td><td class="neg">${money(r.usd, 0)}</td></tr>`
-    ).join("") : `<tr><td class="empty" colspan="3">no losses today</td></tr>`;
   }
 
   /* ---------- holding — the multi-slot tournament (one card per open slot) ---------- */
+  /* ★★★2026-09-24 THE HOLDING CARD, rebuilt for the TRADE tab. Operator: "i like the live p&L and
+     the entry price and current price. and the tiered take profit buttons. but i only need the
+     first 2. after that i usually flatten everything using flatten button above."
+     So: live P&L as the biggest thing on the card, entry and last beneath it, and TWO tier buttons.
+     Tiers 3 and 4 are gone — FLATTEN above covers them, which is what he actually does.
+     ⚠ It still POSTs a request; the RIDER flattens on its own tick through its own ownership
+     check. A dashboard that placed orders directly is how 2026-08-06 happened. */
   function renderHolding() {
     const holds = mnqHoldings();
-    const meta = $("hold-meta");
     const body = $("hold-body");
+    if (!body) return;
     if (!holds.length) {
-      meta.textContent = "flat";
-      body.innerHTML = `<div class="empty" style="padding:26px 4px"><div style="font-size:16px;letter-spacing:2px;color:var(--txt2)">FLAT</div><div style="margin-top:6px">no open MNQ slots</div></div>`;
+      setTxt("hold-meta", "flat");
+      body.innerHTML = `<div class="empty">flat — no position</div>`;
       return;
     }
-    const totUnreal = holds.reduce((s, h) => s + (h.pnl_usd || 0), 0);
-    meta.innerHTML = `${holds.length} slot${holds.length > 1 ? "s" : ""} open · <span class="${cls(totUnreal)}">${money(totUnreal, 2)}</span>`;
-    const card = (h) => {
-      const side = h.side || (h.qty < 0 ? "SHORT" : "LONG");
-      const prot = h.protected
-        ? `<span class="prot-ok">stop ${h.stop != null ? nf(h.stop, 2) : "armed"}</span>`
-        : `<span class="prot-naked">⚠ NAKED</span>`;
-      const rows = [
-        ["Contracts", `${Math.abs(h.qty || 0)} × ${nf(h.multiplier, 0)}`],
-        ["Unrealised", `<span class="${cls(h.pnl_usd)}">${money(h.pnl_usd, 2)} · ${pct(h.pnl_pct, 2)}</span>`],
-        ["Entry", nf(h.avg, 2)],
-        ["Last", `<span class="cyan">${nf(h.last, 2)}</span>`],
-        ["Stop", h.stop ? `<span class="red">${nf(h.stop, 2)}</span>` : "—"],
-        ["Time in trade", holdStr(h.held_seconds)],
-      ];
-      /* ★ CLAIM PROFIT — day rider only (2026-08-10, operator).
-         "if im actively watching and its at $300 i can go bang and put it to bed."
-         The button only appears on the day rider's own row, beside the live P&L
-         it is claiming, so there is no doubt about which position is being
-         banked. It does NOT flatten from here: it POSTs a request and the day
-         rider flattens on its own next tick through its own ownership check.
-         A dashboard that placed orders directly is how 2026-08-06 happened. */
-      /* ★★2026-08-20 FOUR PER-LOT BUTTONS + the original flatten-all.
-         The rider runs 4 lots on a ladder ($100/$200/$400/$600 per lot). Each button claims
-         ONE lot; the last one on the row still flattens everything and is the kill switch.
-         There is NO STOP on the rider by operator decision, so these are the only manual exit
-         and they fire in profit OR loss — the labels say "claim/kill" so nobody presses one
-         expecting it to refuse a red position. A lot already out is rendered disabled. */
-      const LOT_USD = [100, 200, 400, 600];
-      const doneSet = (h.targets_done || []);
-      const claim = h.entry_gate === "day_rider"
-        ? LOT_USD.map((u, i) =>
-            `<button class="claimbtn" data-claim="${i + 1}"${doneSet.indexOf(i) >= 0 ? " disabled" : ""}`
-            + ` title="Claim or kill lot ${i + 1} (target $${u})">L${i + 1} $${u}</button>`).join("")
-          + `<button class="claimbtn" data-claim="all" title="Flatten every remaining lot">ALL</button>`
-        : "";
-      return `<div class="slot-card">`
-        + `<div class="hold-head">${sidePill(side)}<span class="sym">${esc(gateAbbr(h.entry_gate))}</span>${prot}${claim}</div>`
-        + rows.map((r) => `<div class="row"><span class="k">${r[0]}</span><span class="val">${r[1]}</span></div>`).join("")
-        + `</div>`;
-    };
-    body.innerHTML = holds.map(card).join("");
-
-    /* Wired after render because the cards are rebuilt on every poll. The
-       confirm states the two things that surprise people: it is not instant,
-       and it ends the session. */
-    wireClaims(body, holds);
+    const h = holds[0];
+    const side = h.side || (h.qty < 0 ? "SHORT" : "LONG");
+    const tot = holds.reduce((s2, x) => s2 + (x.pnl_usd || 0), 0);
+    setTxt("hold-meta", `${holds.length} open`);
+    const doneSet = h.targets_done || [];
+    /* ⚠ only the first TWO rungs, by his instruction */
+    const tiers = h.entry_gate === "day_rider"
+      ? RIDER_USD.slice(0, 2).map((u, i) =>
+          `<button data-claim="${i + 1}"${doneSet.indexOf(i) >= 0 ? " disabled" : ""}`
+          + ` title="Claim lot ${i + 1} — fires in profit OR loss">+$${u}</button>`).join("")
+      : "";
+    body.innerHTML =
+      `<div class="hc-top">`
+      + `<span class="hc-side ${side.toLowerCase()}">${side} ${Math.abs(h.qty || 0)}</span>`
+      + `<span class="hc-pnl ${cls(tot)}">${money(tot, 0)}</span></div>`
+      + `<div class="hc-px">`
+      + `<span><i>entry</i>${nf(h.avg, 2)}</span>`
+      + `<span><i>last</i>${nf(h.last, 2)}</span>`
+      + `<span><i>held</i>${holdStr(h.held_seconds)}</span>`
+      + (h.protected ? "" : `<span><i>stop</i><span class="neg">NAKED</span></span>`)
+      + `</div>`
+      + (tiers ? `<div class="hc-tp">${tiers}</div>` : "");
+    Array.prototype.forEach.call(body.querySelectorAll("[data-claim]"), (b) => {
+      b.onclick = () => {
+        const lot = b.getAttribute("data-claim");
+        if (!window.confirm(`Claim lot ${lot}? It fires in profit OR loss.`)) return;
+        const pin = window.prompt("PIN");
+        if (!pin) return;
+        b.disabled = true;
+        fetch("api/control/dayrider-claim", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: pin, lot: Number(lot) }),
+        }).then((r) => { if (!r.ok) throw new Error("server said " + r.status); return r.json(); })
+          .then((j) => { if (!j || !j.ok) { window.alert("Not sent: " + ((j && j.error) || "?")); b.disabled = false; } })
+          .catch((e) => { window.alert("Not sent: " + e.message); b.disabled = false; });
+      };
+    });
   }
 
   /* Shared by the holdings card and the DESK ladder — one implementation, so the two
@@ -921,15 +754,6 @@
   }
 
   /* ---------- gate leaderboard + drill ---------- */
-  function renderGates(m) {
-    const lb = m.leaderboard || {};
-    $("lb-top").innerHTML = lbRows(lb.top);
-    $("lb-bottom").innerHTML = lbRows(lb.bottom);
-    // wire clicks
-    document.querySelectorAll("#lb-top tr.clickable, #lb-bottom tr.clickable").forEach((tr) => {
-      tr.onclick = () => openDrill(tr.getAttribute("data-key"));
-    });
-  }
   function lbRows(rows) {
     if (!rows || !rows.length) return `<tr><td class="empty" colspan="6">no attributed trades today</td></tr>`;
     return rows.map((r) =>
@@ -966,65 +790,39 @@
   function closeDrill() { STATE.drill = null; $("drill-back").style.display = "none"; }
 
   /* ---------- the metric strip: what he reads before pressing ---------- */
+  /* ★★2026-09-24 FOUR METRICS, not ten. Operator kept ATR, EFFICIENCY and RVOL; POSITION AGE was
+     added because it is the ONLY one here with a measured price attached — holds over 3 hours are
+     -$7,023 across 22 entries, his most expensive pattern. Leg/tunnel/session/VWAP/breadth/event
+     were dropped on his instruction. Every write is guarded: the ids they used are gone. */
   function renderContext() {
     const c = STATE.ctx; if (!c) return;
-    const set = (id, txt, cls) => {
-      const el = $(id); if (!el) return;
-      el.textContent = txt;
-      el.className = cls || "";
-    };
-    const n = (v, d) => (v == null ? "—" : Number(v).toFixed(d === undefined ? 1 : d));
-    /* ★ LEG FIRST. 24 of his 26 presses in the week to 09-18 landed inside a live leg and the
-       dashboard showed nothing about it. Direction is spelled out, never a bare signed number —
-       a DOWN leg reading "+32pt" is a number that reads as its own negation. */
-    const lg = c.leg || {};
-    set("ctx-leg",
-        lg.open ? `${lg.dir} ${lg.age_min}m ${n(lg.travel_pt)}pt` : "none",
-        lg.open ? (lg.dir === "UP" ? "pos" : "neg") : "");
-    set("ctx-tunnel", lg.open ? "—" : (c.tunnel_min == null ? "—" : c.tunnel_min + "m"));
-    set("ctx-er", n(c.er30, 3));
-    set("ctx-atr", n(c.atr));
-    /* RVOL is contract-blind across a roll (bars carry no contract column) — the title says so
-       rather than the number pretending to a precision it does not have. */
+    const n = (v, d2) => (v == null ? "—" : Number(v).toFixed(d2 === undefined ? 1 : d2));
+    setTxt("ctx-atr", n(c.atr));
+    setTxt("ctx-er", n(c.er30, 3));
     const rv = $("ctx-rvol");
-    if (rv) rv.title = (c.rvol_caveat || "") + (c.rvol_n_days ? ` · baseline ${c.rvol_n_days}d` : "");
-    set("ctx-rvol", c.rvol == null ? "—" : c.rvol.toFixed(2) + "x");
-    const ss = c.session || {};
-    set("ctx-range", (ss.low == null || ss.high == null) ? "—"
-        : `${n(ss.low, 0)}/${n(ss.high, 0)}` + (ss.pos_in_range == null ? "" : ` ${Math.round(ss.pos_in_range * 100)}%`));
-    set("ctx-vwap", ss.vwap_stretch_atr == null ? "—" : (ss.vwap_stretch_atr > 0 ? "+" : "") + ss.vwap_stretch_atr);
-    /* ★★ POSITION AGE IS A GUARD, NOT A STAT: over-8h holds are 0 winners from 4 at -$6,612. */
-    const po = c.position;
-    set("ctx-posage", po ? `${po.dir} ${po.age_min}m` : "flat",
-        po ? (po.band === "ABANDONED" ? "neg" : po.band === "long" ? "warn" : "") : "");
-    /* ★ BREADTH. US cash hours only — outside them it says so rather than showing a number built
-       from a stale close. PRE-REGISTERED and not yet proven: in-sample a broad leg ran 2.05 pt/min
-       against a narrow leg's 1.73, but three windows were searched to find that, so it is an upper
-       bound on the forward effect, not the expected one. It informs; it decides nothing. */
-    const br = c.breadth || {};
-    const bel = $("ctx-breadth");
-    if (bel) {
-      bel.textContent = br.available ? `${br.agree}/${br.of}` : "—";
-      bel.className = br.available ? (br.band === "broad" ? "pos" : br.band === "narrow" ? "neg" : "") : "";
-      bel.title = br.available
-        ? `${br.band.toUpperCase()} — ${br.agree} of ${br.of} megacaps moving with MNQ over 8 min. `
-          + `Pre-registered, unproven: 120 legs required.`
-        : (br.why || "no reading");
+    if (rv) {
+      rv.textContent = c.rvol == null ? "—" : c.rvol.toFixed(2) + "x";
+      /* ⚠ contract-blind across a roll — bars carry no contract column. Accurate today (no roll in
+         the 10-day baseline); degrades for ~10 days after each quarterly roll. */
+      rv.title = (c.rvol_caveat || "") + (c.rvol_n_days ? ` · baseline ${c.rvol_n_days}d` : "");
     }
-
-    /* ⚠ A GUARD HE CANNOT SEE IS ONE HE CANNOT TRUST — and one he forgets he armed. */
-    const sa = c.step_away || {};
-    const sbtn = $("sa-btn"), sst = $("sa-state");
-    if (sbtn) { sbtn.textContent = sa.armed ? "DISARM" : "ARM"; sbtn.className = "claimbtn" + (sa.armed ? " on" : ""); }
-    if (sst) {
-      sst.textContent = sa.armed
-        ? `ARMED −$${Math.round(sa.limit_usd)}` + (sa.take_profit_usd ? ` / +$${Math.round(sa.take_profit_usd)}` : "")
-        : (sa.fired_at ? `fired ${String(sa.fired_at).slice(11, 16)} at ${sa.fired_pnl}` : "off");
-      sst.className = sa.armed ? "neg" : "dim3";
+    /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are
+       measured, not decorative: over-8h holds are 0 winners from 4. */
+    const po = c.position, pa = $("ctx-posage");
+    if (pa) {
+      pa.textContent = po ? (po.age_min >= 60
+        ? Math.floor(po.age_min / 60) + "h" + String(po.age_min % 60).padStart(2, "0")
+        : po.age_min + "m") : "flat";
+      pa.className = po ? (po.band === "ABANDONED" ? "neg" : po.band === "long" ? "warn" : "") : "";
     }
-    const ev = c.next_event;
-    set("ctx-event", ev ? `${ev.kind} ${ev.in_hours < 24 ? ev.in_hours + "h" : ev.paris}` : "—",
-        ev && ev.in_hours < 2 ? "neg" : "");
+    /* ★ STEP AWAY must LOOK different when armed — a guard that looks identical armed and
+       disarmed is one he will forget he set. */
+    const sa = c.step_away || {}, sb2 = $("sa-btn");
+    if (sb2) sb2.className = "orb away" + (sa.armed ? " armed" : "");
+    setTxt("sa-lab", sa.armed ? "ARMED" : "STEP AWAY");
+    setTxt("sa-state", sa.armed
+      ? `−$${Math.round(sa.limit_usd)}` + (sa.take_profit_usd ? ` / +$${Math.round(sa.take_profit_usd)}` : "")
+      : "off");
   }
 
   /* ---------- last 14 sessions, tap a row to open it ---------- */
@@ -1112,7 +910,7 @@
     const h = m.header || {};
     const hold = mnqHoldings();
     $("tb-desk").textContent = deskToday(h) != null ? money(deskToday(h), 0) : "—";
-    $("tb-hold").textContent = hold.length ? money(hold.reduce((s, x) => s + (x.pnl_usd || 0), 0), 0) : "flat";
+    setTxt("tb-hold", hold.length ? money(hold.reduce((s, x) => s + (x.pnl_usd || 0), 0), 0) : "flat");
     /* ★★2026-09-18 `trades_today` is TOURNAMENT-ONLY, exactly like `today` was. The P&L badge was
        fixed on 08-13 via deskToday() and the COUNT beside it was left reading the tournament — so
        on 2026-09-18 it showed "0 trades" next to "+$1,630" on a fifteen-trade day. A right number

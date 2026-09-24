@@ -256,15 +256,13 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
    ⚠ Row 1 is 1.4fr against row 2's 1fr, with a 360px floor so the chart never collapses on a
    short window — the 09-02 bug was a chart box measuring ZERO with no error anywhere for nine
    days, and a floor is the cheap guard against that class. */
-.grid{display:grid;gap:8px;padding:8px;
-  grid-template-columns:minmax(0,26fr) minmax(0,26fr) minmax(0,26fr) minmax(0,22fr);
-  grid-template-rows:minmax(360px,1.4fr) minmax(0,1fr);
+.grid{display:grid;gap:10px;padding:10px;
+  grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);
+  grid-template-rows:minmax(0,1.25fr) minmax(0,1fr);
   height:calc(100vh - 49px);overflow:hidden}
-#p-chart{grid-column:1 / span 3;grid-row:1}
-#p-desk{grid-column:4;grid-row:1}
-#p-days{grid-column:1 / span 2;grid-row:2}
-#p-hold{grid-column:3;grid-row:2}
-#p-trades{grid-column:4;grid-row:2}
+#p-trade{grid-column:1;grid-row:1 / span 2}
+#p-days{grid-column:2;grid-row:1}
+#p-trades{grid-column:2;grid-row:2}
 @media (min-width:900px){ .hero-body{flex:1} }
 
 /* ---------- phone / narrow: tabs + stack (priority format) ---------- */
@@ -485,3 +483,104 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 /* ⚠2026-09-23 a trade that CARRIED from an earlier day — the time column would otherwise imply it
    opened today. One glyph, muted, with the real open date in the tooltip. */
 #days-tbl .sub td.tm .car{color:var(--amb);margin-right:3px;font-size:10px}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   ★★★ 2026-09-24 THE TRADE TAB. Three tabs, one trading surface, desktop and phone identical in
+   structure so the two layouts cannot drift apart (they did before, and bugs hid in the gap).
+   Designed thumb-first: every action is a 76px circular target, nothing important needs a
+   second tap, and the numbers that cost money are the biggest thing on the card.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── the metric strip ───────────────────────────────────────────────────────────────────── */
+.tstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border-bottom:1px solid var(--line);flex:0 0 auto}
+.tstrip .tm{background:var(--panel);padding:9px 10px 8px;display:flex;flex-direction:column;gap:2px;
+  min-width:0}
+.tstrip .tm i{font-style:normal;font-size:9px;letter-spacing:.11em;color:var(--mut2);
+  text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tstrip .tm b{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--txt);
+  letter-spacing:-.01em;line-height:1.1}
+.tstrip .tm b.warn{color:var(--amb)} .tstrip .tm b.neg{color:var(--red)}
+.tstrip .tm b.pos{color:var(--grn)}
+
+/* ── window / symbol toggles, BELOW the chart as asked ──────────────────────────────────── */
+#p-trade .tfbar{display:flex;gap:6px;align-items:center;padding:8px 10px;flex-wrap:wrap;
+  border-top:1px solid var(--line)}
+#p-trade .tfbar .tfsp{flex:1}
+#p-trade .tf{background:var(--panel2);border:1px solid var(--line2);color:var(--txt2);
+  border-radius:999px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;
+  min-height:34px;transition:background .12s,color .12s,border-color .12s}
+#p-trade .tf:active{transform:scale(.96)}
+#p-trade .tf.on{background:var(--cyan);border-color:var(--cyan);color:#04191c;font-weight:600}
+#p-trade .tf.sym{font-family:var(--mono);letter-spacing:.04em}
+
+/* ── THE FOUR ACTIONS ───────────────────────────────────────────────────────────────────── */
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 10px 6px;
+  flex:0 0 auto}
+.orb{position:relative;aspect-ratio:1/1;max-width:96px;width:100%;margin:0 auto;border-radius:50%;
+  border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;font-family:var(--sans);color:#fff;
+  box-shadow:0 2px 10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.14);
+  transition:transform .1s ease, filter .12s ease;-webkit-tap-highlight-color:transparent}
+.orb span{font-size:13px;font-weight:700;letter-spacing:.06em}
+.orb em{font-style:normal;font-size:10px;font-weight:500;opacity:.8;font-family:var(--mono)}
+.orb:active{transform:scale(.93);filter:brightness(1.12)}
+.orb:disabled{opacity:.35;box-shadow:none;cursor:default}
+.orb.buy {background:radial-gradient(circle at 32% 26%, #4ae08f, #1f8f57)}
+.orb.sell{background:radial-gradient(circle at 32% 26%, #ff7a7e, #b62b36)}
+.orb.flat{background:radial-gradient(circle at 32% 26%, #ffc857, #b57a12); color:#2a1c00}
+.orb.flat span,.orb.flat em{color:#2a1c00}
+/* ★ dark blue / white, as asked — and it CHANGES when armed, because a guard that looks identical
+   armed and disarmed is one he will forget he set. */
+.orb.away{background:radial-gradient(circle at 32% 26%, #3d6fd6, #16326e)}
+.orb.away.armed{background:radial-gradient(circle at 32% 26%, #ffb347, #b05a00);
+  box-shadow:0 0 0 3px rgba(255,179,71,.28), 0 2px 10px rgba(0,0,0,.45)}
+
+.awayset{display:flex;gap:14px;justify-content:center;padding:2px 10px 10px;flex:0 0 auto}
+.awayset label{font-size:10.5px;color:var(--mut2);letter-spacing:.04em;display:flex;gap:5px;
+  align-items:center}
+.awayset input{width:62px;background:var(--panel2);border:1px solid var(--line2);color:var(--txt);
+  border-radius:7px;padding:6px 7px;font-family:var(--mono);font-size:12.5px;text-align:right}
+
+/* ── the holding card ───────────────────────────────────────────────────────────────────── */
+.holdcard{margin:0 10px 10px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px;flex:0 0 auto}
+.holdcard .hc-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.holdcard .hc-side{font-size:12px;font-weight:700;letter-spacing:.08em}
+.holdcard .hc-side.long{color:var(--grn)} .holdcard .hc-side.short{color:var(--red)}
+.holdcard .hc-pnl{font-family:var(--mono);font-size:27px;font-weight:700;letter-spacing:-.02em}
+.holdcard .hc-px{display:flex;gap:18px;margin-top:8px;font-family:var(--mono);font-size:12px;
+  color:var(--txt2)}
+.holdcard .hc-px i{font-style:normal;color:var(--mut2);font-size:9.5px;letter-spacing:.09em;
+  display:block;text-transform:uppercase;margin-bottom:1px}
+.holdcard .hc-tp{display:flex;gap:9px;margin-top:12px}
+.holdcard .hc-tp button{flex:1;background:var(--panel);border:1px solid var(--line2);
+  color:var(--txt2);border-radius:9px;padding:11px 8px;font-size:12px;font-weight:600;
+  font-family:var(--mono);cursor:pointer;min-height:42px}
+.holdcard .hc-tp button:active{background:var(--cyan-bg);border-color:var(--cyan)}
+.holdcard .hc-tp button:disabled{opacity:.3}
+.holdcard .empty{color:var(--mut2);font-size:12px;text-align:center;padding:8px 0}
+
+/* ── pass: present but quiet. It is a data capture, not a trading action. ───────────────── */
+.passrow{display:flex;gap:8px;padding:0 10px 12px;flex:0 0 auto}
+.passrow input{flex:1;min-width:0;background:transparent;border:1px solid var(--line);
+  color:var(--txt2);border-radius:9px;padding:9px 11px;font-size:12px}
+.passrow input::placeholder{color:var(--mut2)}
+.passrow button{background:transparent;border:1px solid var(--line2);color:var(--mut);
+  border-radius:9px;padding:9px 16px;font-size:11.5px;letter-spacing:.09em;font-weight:600;
+  cursor:pointer;min-height:38px}
+.passrow button:active{background:var(--panel2);color:var(--txt)}
+
+#p-trade{overflow-y:auto}
+#p-trade .hero-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#p-trade .chart-host{flex:1 1 auto;min-height:220px;position:relative}
+
+@media(max-width:899px){
+  .tstrip .tm b{font-size:15px}
+  .actions{gap:8px;padding:12px 8px 4px}
+  .orb{max-width:78px}
+  .orb span{font-size:11.5px}
+  #p-trade .chart-host{min-height:190px}
+  .holdcard .hc-pnl{font-size:25px}
+}

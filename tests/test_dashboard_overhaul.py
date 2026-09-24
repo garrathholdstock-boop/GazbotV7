@@ -29,7 +29,10 @@ def test_every_id_the_js_touches_exists_in_the_page():
     have = set(re.findall(r'id="([a-zA-Z0-9_-]+)"', html))
     # hold-svg is guarded; lb-* belong to renderGates, dead code that PREDATES this overhaul and is
     # never called. Anything NEW appearing here is a real break.
-    known = {"hold-svg", "lb-top", "lb-bottom"}
+    # ⚠ guarded-but-absent: these are read through setTxt/setHtml, which no-op on a missing id.
+    # 2026-09-24 the TRADE merge removed their elements; the WRITES are all guarded (there is a
+    # separate test for that) so a READ is harmless.
+    known = {"hold-svg", "ctx-breadth", "hold-meta", "symnote"}
     assert (ids - have) <= known, f"unguarded missing ids: {sorted(ids - have - known)}"
 
 
@@ -40,18 +43,18 @@ def test_tabs_and_panels_pair_exactly():
     btn = set(re.findall(r'<button class="tab[^"]*" data-tab="([a-z]+)"', h))
     pan = set(re.findall(r'<section class="panel[^"]*" id="p-[a-z]+" data-tab="([a-z]+)"', h))
     assert btn == pan, f"unpaired: {btn ^ pan}"
-    assert btn == {"desk", "days", "chart", "hold", "trades"}, f"tab set drifted: {sorted(btn)}"
+    assert btn == {"trade", "days", "trades"}, f"tab set drifted: {sorted(btn)}"
 
 
 def test_the_retired_panels_and_their_fetches_are_both_gone():
     """⚠ Removing a panel but leaving its fetch keeps paying for a payload nobody renders; leaving
     its RENDERER is what throws. Both halves have to go."""
     js, h = open(JS).read(), open(HTML).read()
-    for dead in ("p-tourn", "p-exec"):
+    for dead in ("p-tourn", "p-exec", "p-desk", "p-chart", "p-hold"):
         assert dead not in h, f"{dead} panel survived"
     for ep in ("api/futures/tournament", "api/futures/execution", "api/futures/promotion"):
         assert ep not in js, f"{ep} is still fetched by a page that renders none of it"
-    for fn in ("renderTournament(", "renderExec(", "renderPromotion("):
+    for fn in ("renderTournament(", "renderExec(", "renderPromotion(", "renderDesk(", "renderGates("):
         assert fn not in js, f"{fn} still called against DOM that no longer exists"
 
 
@@ -70,18 +73,21 @@ def test_the_safety_chip_still_has_a_live_feed():
 
 def test_the_metric_strip_carries_everything_he_asked_for():
     h = open(HTML).read()
-    for k in ("ctx-er", "ctx-atr", "ctx-rvol", "ctx-range", "ctx-vwap",
-              "ctx-leg", "ctx-tunnel", "ctx-posage", "ctx-event"):
+    # ★2026-09-24 four, not ten — he kept ATR/ER/RVOL and POS AGE was added because it is the only
+    # one with a measured price attached (-$7,023 across 22 holds over 3h).
+    for k in ("ctx-atr", "ctx-er", "ctx-rvol", "ctx-posage"):
         assert f'id="{k}"' in h, f"metric {k} missing from the strip"
 
 
-def test_the_leg_readout_names_its_direction():
-    """⚠ A DOWN leg rendered as a bare '+32pt' is a number that reads as its own negation — the
-    exact defect fixed in leg_watch's own messages on 2026-09-15."""
-    js = open(JS).read()
-    i = js.index('set("ctx-leg"')
-    assert "lg.dir" in js[i:i + 240], "the leg readout no longer names UP/DOWN"
-
+def test_the_removed_metrics_are_gone_from_the_strip():
+    """★2026-09-24 leg, tunnel, session H/L, VWAP stretch, breadth and next-event were dropped on
+    his instruction ("delete all other stuff"). ⚠ The direction-naming guard they carried has NOT
+    been lost — it lives in tests/test_leg_watch.py, on the message that actually shows the number.
+    A DOWN leg reading '+32pt' is a number that reads as its own negation, and that is still
+    asserted where it matters."""
+    h = open(HTML).read()
+    for gone in ("ctx-leg", "ctx-tunnel", "ctx-range", "ctx-vwap", "ctx-event"):
+        assert f'id="{gone}"' not in h, f"{gone} survived a deletion he asked for"
 
 def test_rvol_carries_its_contract_blind_caveat():
     """⚠ capture.db.bars has NO contract column, so a window spanning a roll compares two different
@@ -123,17 +129,19 @@ def test_the_phone_layout_is_explicitly_handled():
     css = open(CSS).read()
     assert "#days-tbl tr.dayrow" in css
     assert "min-height:44px" in css or "min-height:48px" in css, "day rows are not touch-sized"
-    i = css.rindex("@media(max-width:899px)")
-    assert "#days-tbl" in css[i:], "the phone breakpoint does not adjust the day table"
+    # ⚠ There is more than one phone breakpoint now (the TRADE tab added its own), so `rindex` no
+    # longer finds "the" one — check EVERY 899px block collectively.
+    blocks = "".join(css.split("@media(max-width:899px)")[1:])
+    assert "#days-tbl" in blocks, "no phone breakpoint adjusts the day table"
+    assert ".orb" in blocks, "no phone breakpoint sizes the action buttons"
 
 
-def test_the_desktop_grid_gives_the_chart_three_of_four_columns():
-    """★ "the chart could be bigger." And a floor on row 1, because a chart box measuring ZERO with
-    no error anywhere once went unnoticed for nine days."""
+def test_the_desktop_grid_matches_the_phone_structure():
+    """★2026-09-24 Desktop rebuilt to the same three panels. Two layouts that diverge is how bugs
+    hide in the gap between them — which is exactly what happened with the tournament panel."""
     css = open(CSS).read()
-    assert "#p-chart{grid-column:1 / span 3;grid-row:1}" in css
-    assert "minmax(360px,1.4fr)" in css, "row 1 lost its height floor"
-    for dead in ("#p-exec{", "#p-tourn{"):
+    assert "#p-trade{grid-column:1;grid-row:1 / span 2}" in css
+    for dead in ("#p-exec{", "#p-tourn{", "#p-chart{", "#p-hold{", "#p-desk{"):
         assert dead not in css, f"{dead} rule survived its panel"
 
 
@@ -257,3 +265,77 @@ def test_a_carried_trade_is_MARKED_in_the_drill():
     w, js = open(WEB).read(), open(JS).read()
     assert '"carried": x["opened_at"][:10] != x["closed_at"][:10]' in w
     assert "t.carried" in js and "opened " in js, "the drill does not mark or explain a carry-in"
+
+
+# ── 2026-09-24: the TRADE tab ─────────────────────────────────────────────────────────────────
+
+def test_no_renderer_writes_to_an_element_that_no_longer_exists():
+    """★★★ THE ONE THAT MATTERS, AGAIN. Merging DESK/CHART/HOLD into TRADE removed EIGHT elements
+    that renderers still wrote to. $() returns null for a missing id, so ONE unguarded write throws
+    inside the render loop and the WHOLE dashboard goes blank with no error he can see. That
+    failure nearly shipped in the 09-18 rebuild too — this is the test that catches it."""
+    import re as _re
+    js, html = open(JS).read(), open(HTML).read()
+    have = set(_re.findall(r'id="([a-zA-Z0-9_-]+)"', html))
+    bad = [m.group(0) for m in _re.finditer(
+        r'\$\("([a-zA-Z0-9_-]+)"\)\.(textContent|innerHTML|style|onclick|disabled|className|value)', js)
+        if m.group(1) not in have]
+    assert not bad, f"unguarded writes to removed elements: {bad}"
+
+
+def test_the_four_actions_exist_and_are_circular():
+    h, css = open(HTML).read(), open(CSS).read()
+    for k in ("buy-long", "buy-short", "flat-all", "sa-btn"):
+        assert f'id="{k}"' in h, f"action {k} missing"
+    assert ".orb{" in css and "border-radius:50%" in css, "the actions are not circular"
+    assert "aspect-ratio:1/1" in css
+
+
+def test_flatten_takes_no_PIN_but_buy_and_sell_do():
+    """★ His instruction: FLATTEN only ever REDUCES risk and friction on a kill switch costs money.
+    BUY/SELL place an order and keep the PIN."""
+    js = open(JS).read()
+    i = js.index('const fl = $("flat-all")')
+    flat = js[i:js.index("/* ── STEP AWAY", i)]
+    assert "window.prompt" not in flat, "FLATTEN asks for a PIN"
+    assert "window.confirm" in flat, "FLATTEN lost its confirm — a circular target is easy to mis-hit"
+    j = js.index("const send = (side) =>")
+    buy = js[j:js.index('const bl = $("buy-long")', j)]
+    assert 'window.prompt("PIN")' in buy, "BUY/SELL no longer ask for a PIN"
+
+
+def test_buy_size_is_fixed_at_four():
+    js = open(JS).read()
+    assert "const BUY_LOTS = 4;" in js
+    assert "qty: BUY_LOTS" in js, "the order no longer sends the fixed size"
+
+
+def test_step_away_looks_different_when_armed():
+    """⚠ A guard that looks identical armed and disarmed is one he will forget he set."""
+    js, css = open(JS).read(), open(CSS).read()
+    assert '"orb away" + (sa.armed ? " armed" : "")' in js
+    assert ".orb.away.armed{" in css, "the armed state has no distinct styling"
+    assert ".orb.away{" in css and "#16326e" in css, "STEP AWAY is not the dark blue he asked for"
+
+
+def test_only_two_take_profit_tiers():
+    """★ "i only need the first 2. after that i usually flatten everything." """
+    js = open(JS).read()
+    assert "RIDER_USD.slice(0, 2)" in js, "the holding card still offers more than two tiers"
+
+
+def test_position_age_is_banded_by_the_measured_buckets():
+    """⚠ Not decoration: over-8h holds are 0 winners from 4 at -$6,612."""
+    js = open(JS).read()
+    i = js.index('const po = c.position, pa = $("ctx-posage")')
+    block = js[i:i + 600]
+    assert "ABANDONED" in block and "warn" in block
+
+
+def test_pass_survived_the_merge():
+    """⚠ PASS is build-queue item 1 and the blocker for ever automating his reads. It lived on the
+    DESK panel; if it had not moved to TRADE the negative-example dataset would stay empty for
+    ever."""
+    h, js = open(HTML).read(), open(JS).read()
+    assert 'id="pass-btn"' in h and 'id="pass-note"' in h
+    assert 'fetch("api/control/pass"' in js
