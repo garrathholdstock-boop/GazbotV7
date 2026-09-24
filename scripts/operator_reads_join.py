@@ -56,18 +56,35 @@ def main() -> int:
             "n_trades": len(near),
             "lots": float(near.qty.sum()) if len(near) else 0.0,
             "pnl_all": round(float(near.pnl_usd.sum()), 2) if len(near) else None,
+            # ⚠⚠⚠2026-09-24 `pnl_1lot` CANNOT CONTAIN A LOSS AND MUST NOT BE USED AS A LABEL.
+            # qty==1 rows are the LADDER RUNGS — TARGET_100 / TARGET_200 only fire in profit BY
+            # CONSTRUCTION. Verified on the live book since 09-15: qty==1 is 36 rows, 36 wins,
+            # ZERO losses; the losses live in the qty==4 closes (57 rows, 37 losses, -$10,461.50).
+            # So this column made every labelled press a winner, and this script then printed
+            # "the question is now answerable: what separates his winners from his losers?" over a
+            # column with no losers in it. Kept for continuity, renamed in spirit by the comment.
             "pnl_1lot": (round(float(near[near.qty == 1].pnl_usd.sum()), 2)
                          if len(near[near.qty == 1]) else None),
+            # ★ THE HONEST LABEL: an ENTRY's P&L is the SUM OF ALL ITS EXIT ROWS. The rows in
+            # `trades` are scale-out exits of ONE decision — this desk's own documented rule, which
+            # the line above violates. 109 entries, 65 winners / 44 losers, 59.6%.
+            "pnl_entry": round(float(near.pnl_usd.sum()), 2) if len(near) else None,
         })
     d = pd.DataFrame(rows)
     matched = d[d.n_trades > 0]
     print(f"{len(d)} captured presses · {len(matched)} matched to a trade within {WINDOW_S}s\n")
     if len(d):
         cols = ["ts", "kind", "pressed", "price", "atr", "pos_in_range", "vwap_stretch",
-                "drift", "n_trades", "lots", "pnl_1lot", "pnl_all"]
+                "drift", "n_trades", "lots", "pnl_1lot", "pnl_entry", "pnl_all"]
         print(d[cols].to_string(index=False, max_colwidth=34))
-    n = int((matched.pnl_1lot.notna()).sum()) if len(matched) else 0
-    print(f"\n  labelled single-lot presses: {n}")
+    # ⚠ COUNT THE HONEST COLUMN. Counting pnl_1lot announced a green light over winners-only data.
+    n = int((matched.pnl_entry.notna()).sum()) if len(matched) else 0
+    _w = int((matched.pnl_entry > 0).sum()) if len(matched) else 0
+    _l = int((matched.pnl_entry < 0).sum()) if len(matched) else 0
+    print(f"  labelled ENTRIES: {n}  ({_w} winners / {_l} losers)")
+    if n >= 30 and _l < 5:
+        print("  ⚠ REFUSING TO CALL THIS ANSWERABLE — too few LOSING examples to separate anything.")
+    print("")
     if n < 30:
         print(f"  ⚠ {30-n} more needed before ANY analysis. Fitting below 30 is the 120th "
               f"calibration, and the previous 119 all lost.")
