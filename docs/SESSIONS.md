@@ -13,6 +13,53 @@
 ## 2026-09-24 (Thu) — THE DESK CLOSED A TRADE FOR HIM, AND THE DASHBOARD BECAME ONE PAGE
 
 ### LATER THE SAME DAY — THE ALERT CHANNEL, AND A METER THAT HAD BEEN LYING AT THE OPEN
+### THE AFTERNOON — TWO METERS, TWO OF MY OWN BUGS, AND A LABEL THAT COULD NOT LOSE
+
+**HE ASKED FOR PULSE AND FLOW AND THEN DEBUGGED THEM OFF THE TAPE.** Twice. First *"is it live or
+will it be delayed?"* — PULSE read the last COMPLETED minute, so it sat frozen at 0.95 for forty
+seconds while the rolling form climbed 0.90→1.33 on genuinely expanding volume, and it was worst
+right after a minute boundary, where a surge starts. Then *"could we do 30 seconds for flow"* —
+it was on **120s**, not the 60 he assumed, and a straight cut to 30 would have flipped the colour
+**every eleven seconds**. Window shortened AND hysteresis added to the COLOUR only (the number
+stays raw); 45s would match today's rate exactly if 30 proves busy.
+⚠ Both fixes had the same trap waiting: the obvious way to make PULSE current is to scale a partial
+minute by elapsed fraction — **the exact linear-accrual bug removed from RVOL that same morning**.
+A rolling window is always a full minute AND ends now. A test forbids the shortcut by name.
+
+**★★★ THE ANALYSIS HE ASKED FOR CAME BACK INVERTED.** High pulse + one-way flow does NOT precede a
+run — it precedes an immediate FADE (21.3% vs a 39.7% control, 4 of 5 sessions below their own
+day's control), which reads mechanically as a CLIMAX: the impatient side finishing, not starting.
+⚠⚠ And I then said plainly what the number was worth: **80 cells searched across 5 scales on 5
+sessions**, the deep-flow cell he actually asked about is n=3–21 and **unanswerable**, and at his
+own leg scale the sign flips back. **The answer moving with the horizon IS the finding.**
+
+**⚠⚠⚠ THE OPERATOR-MODEL LABEL COULD NOT CONTAIN A LOSS.** `pnl_1lot` summed the qty==1 rows, and
+those are the LADDER RUNGS — TARGET_100/200 only fire in profit BY CONSTRUCTION. 36 rows, 36 wins,
+zero losses; the losses all sit in the qty==4 closes. So the "labelled" dataset was **53 winners and
+no losers** while the tool announced *"the question is now answerable: what separates his winners
+from his losers?"* **This sits on build-queue item 1**, the blocker for the whole operator model.
+Fixed to group by ENTRY, and it now refuses to call the question answerable below 5 losing examples.
+⚠ **The founding +$78.27/82% is therefore UNVERIFIED** — entry-grouped it is +$7.20 at 54.9% over
+91 manual entries. The two methods are biased in opposite directions, so it is bracketed, not
+settled, and must be re-derived before it is quoted again.
+
+**AND MY OWN TWO:** a `.astype("int64") // 10**9` on a datetime64[**us**] series put every press in
+1970 and failed SILENTLY (0/109 reconstructed reads as missing data, not a wrong epoch); and a
+`git add` listing `/root/CLAUDE.md` — outside the repo — made git reject the WHOLE staging
+operation, so a commit whose message described seven files contained one. **My verification then
+confirmed nothing**: I grepped `git status` with a filter that excluded the six modified files.
+CLAUDE.md is now IN the repo and symlinked, which removes that failure permanently.
+
+**ALSO:** all six gates benched at his instruction (⚠ NOT on P&L — abs_veto_long's last signal was
++$109) · DAYS tab 11→20 sessions (it asked for 14 CALENDAR days, which is ~11 trading days) with a
+live green/red bar strip · step-away limits now persist from step_away.json, not the HTML defaults ·
+the retraction tool (`notify_delete.py`) shipped, so an erroneous alert can be pulled within 48h.
+
+**⚠ THE FIXED-WIDTH SOURCE SLICE BROKE THE SUITE FOR THE SIXTH TIME** — three tests sliced 3,000
+chars out of `days_json` and my COMMENTS pushed it to 4,358, so they reported a missing `basis`
+field when nothing but the prose had changed. Replaced with a structural helper. A test that fails
+when you DOCUMENT the code trains you to distrust the suite exactly when it should be trusted.
+
 
 **★★★ HE CAUGHT RVOL FROM THE TAPE, NOT FROM THE CODE.** *"its the us open first 15 minutes and the
 desk is reading between .80 and .99 during the big thrusts. cant be right?"* It could not. The meter

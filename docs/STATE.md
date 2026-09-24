@@ -294,6 +294,38 @@ saying ON while the browser has not permitted sound is an instrument reporting h
 
 ---
 
+### ⚠⚠⚠ 2026-09-24 — THE OPERATOR-MODEL LABEL COULD NOT CONTAIN A LOSS
+`operator_reads_join.py` labelled every press with `pnl_1lot` = the sum of its **qty==1** trade
+rows. Those rows are the **LADDER RUNGS**, and `TARGET_100`/`TARGET_200` **only fire in profit by
+construction**. Verified on the live book since 09-15:
+
+```
+qty==1   36 rows · 36 wins ·  0 losses ·  +$4,389.99
+qty==4   57 rows · 20 wins · 37 LOSSES · −$10,461.50   ← where the losses actually live
+```
+
+So the "labelled" set was **53 winners and zero losers**, while the script printed *"n≥30 — the
+question is now answerable: what separates his winners from his losers?"* A model fitted on it
+learns that his presses win 100% of the time. **FIXED:** `pnl_entry` = the sum of **all** exit rows
+for the entry (the desk's own documented rule), and it now **refuses** to call the question
+answerable below 5 losing examples — n≥30 was never sufficient if the 30 are one sign.
+
+⚠⚠ **THE FOUNDING NUMBER IS THEREFORE UNVERIFIED.** *"His manual entries are +$78.27/trade over 28
+trades at 82%"* is quoted in this file, in CLAUDE.md and in the memories as the case for the whole
+operator-model programme. Grouped by **ENTRY** over the live record: `entry_source=manual` is
+**n=91, 54.9% win, mean +$7.20, total +$655.50**. The two methods are biased in **opposite**
+directions — `qty==1` selects winners; entry-grouped includes the paper engine's fabricated adverse
+fills on lots 2–4 — so the truth is **bracketed, not settled**. **Do not quote either until it is
+re-derived on single-lot entries with clean fills.**
+
+★ With the label fixed: **109 entries, 8 sessions, 65W/44L, 59.6%, +$5,036.** All five features lean
+the same way (winners press **higher in the range**, **more stretched above VWAP**, into **more
+PULSE**, at **lower ATR**, with **FLOW their way**) — and **every day-clustered CI spans zero**.
+8 sessions is the sample size, not 109 presses. ⚠ Note the payoff asymmetry: the pulse 1.0–1.5
+bucket wins **60.5%** and totals **−$660.50**.
+
+---
+
 ## 2. GATES — 6 live, 3 long / 3 short
 
 ✅ **THE 08-20 STAND-DOWN IS LIFTED (2026-08-26) — the router holds FULL ARM AND BENCH
@@ -417,6 +449,44 @@ whole 08-06 incident. **Do not "fix" the skip; a test fails if an order path app
 
 **STANDING OPERATOR RULE: NEVER HOLD OVERNIGHT. EVER.** Rider flat at **20:40 UTC, never 21:00** —
 21:00 *is* the CME halt, so a flatten fired then has no market and no retry.
+
+## 5c. PULSE AND FLOW — "is the surge backed and real?" (2026-09-24)
+
+Operator asked for these after RVOL was fixed and **still** read ~1.0 through a thrusty open — which
+it should, because RVOL asks *"unusual for this time of day"* and the open is the most stereotyped
+part of the session. PULSE and FLOW ask about **now vs the minutes before it**.
+
+| meter | definition | latency |
+|---|---|---|
+| **PULSE** | this **rolling 60s** ÷ MEDIAN of the previous 15 one-minute windows, **same session** | ~6s |
+| **FLOW** | (buy−sell)/(buy+sell) by aggressor over **30s**, `neutral` EXCLUDED | ~0.3s |
+
+★ **MEASURED LATENCY CHAIN:** ticks→db **0.3s** · 5s bars→db **6.1s** (a bar is only written when it
+closes — the floor) · context renders on the **1s** fast tick.
+⚠⚠ **PULSE WAS FROZEN FOR MOST OF EVERY MINUTE** in its first form (it read the last *completed*
+minute): measured live, it sat at 0.95 for 40s while the rolling form climbed 0.90→1.33, and it was
+worst right after a boundary — where a surge begins. ⚠ **DO NOT "FIX" A PARTIAL MINUTE BY SCALING IT
+BY ELAPSED FRACTION** — that is the exact linear-accrual bug removed from RVOL hours earlier. A
+rolling window is always a full minute AND ends now.
+⚠ **FLOW's window is 30s with HYSTERESIS ON THE COLOUR ONLY** (enter ±0.20, leave ±0.12). Measured
+over 6h of tape, colour changes/hr at a hard ±0.15: **120s→83 · 60s→156 · 30s→328 (one every 11
+seconds)**. With hysteresis, 30s→147 and 45s→83 (today's exact rate; `FLOW_WINDOW_S` is the knob).
+**The NUMBER is never damped** — only the colour, because the colour is what catches the eye.
+⚠ `neutral` is **13%** of the MNQ tape and is excluded, never pro-rated: splitting it manufactures
+imbalance out of trades where nobody crossed the spread.
+
+### ⚠⚠⚠ AND THE FORWARD CLAIM IS INVERTED FROM THE INTUITION
+Racing **±5pt over 5 min in the flow's own direction**: `pulse≥2.0 & |flow|≥0.10` wins **21.3%**
+against a control of **39.7%** — present in **4 of 5 sessions**, each below that day's own control.
+It decays with horizon (21% at 5min → 34% at 15 → 45% at 30 vs 50% control). **A minute of huge
+volume and one-sided aggression reads as a CLIMAX, not a start.**
+⚠⚠ **80 CELLS WERE SEARCHED** (5 scales × 16 buckets) on **5 sessions**. That is how noise produces
+a winner. **NOT ACTIONABLE.** ⚠ *"Deeply one way"* (|flow|>0.30) is **n=3..21 — unanswerable.**
+⚠ At **his** leg scale (±40pt/60min) the sign flips again and pulse 1.5–2.0 leads. The answer moving
+with the horizon IS the finding: there isn't a stable one yet.
+★ `gazbot7-surge-log.timer` collects forward — **the only path**, since `ticks` prune at 5 days.
+
+---
 
 ## 5b. RVOL — FIXED 2026-09-24, AND THE OPERATOR FOUND IT FROM THE TAPE
 
