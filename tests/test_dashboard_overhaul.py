@@ -430,3 +430,35 @@ def test_render_failures_are_REPORTED_not_swallowed():
     i = js.index("async function fastTick")
     j = js.index("/* ---------- MNQ slices", i)
     assert "catch (e) { }" not in js[i:j], "a render tick still swallows its errors"
+
+
+def test_every_panel_has_balanced_divs():
+    """★★★2026-09-24 THE ONE THAT CAUSED "it flashes up the buttons and then they disappear".
+
+    A reorder left `<div class="holdcard" id="hold-body">` UNCLOSED — the extraction had grabbed the
+    inner `.empty` div's `</div>` instead of the outer one. So hold-body swallowed the buttons, the
+    chart and the strip as CHILDREN, and renderHolding's `body.innerHTML = ...` wiped all of them on
+    the first tick. Flash, then gone.
+
+    ⚠ AN HTML PARSER WILL NOT CATCH THIS. Browsers auto-close, and `HTMLParser().feed()` reported
+    the document as fine — which is why the earlier structural check passed while the page was
+    broken. Count the tags INSIDE each panel instead."""
+    import re as _re
+    s = open(HTML).read()
+    for m in _re.finditer(r'<section class="panel[^"]*" id="(p-[a-z]+)"', s):
+        blk = s[m.start():s.index("</section>", m.start())]
+        o = len(_re.findall(r"<div[\s>]", blk))
+        c = len(_re.findall(r"</div>", blk))
+        assert o == c, f"{m.group(1)}: {o} <div> open, {c} closed — a renderer will eat the rest"
+
+
+def test_the_chart_and_the_controls_are_SIBLINGS_not_nested_in_the_holding():
+    """⚠ The failure above was invisible to every id-existence check: the elements WERE in the
+    page, just parented to something that overwrites its own innerHTML every tick."""
+    import re as _re
+    s = open(HTML).read()
+    i = s.index('id="hold-body"')
+    # hold-body must close before the actions block begins
+    close = s.index("</div>", i)
+    assert s.index('class="actions"') > close, (
+        "the action buttons are INSIDE hold-body — renderHolding will erase them")
