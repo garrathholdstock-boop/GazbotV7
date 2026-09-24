@@ -616,10 +616,23 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
      column 1 across both rows. It only became visible when the grid gained a constrained height:
      until then the rows sized to content and it merely looked odd.
      ⚠ Every panel now shares the single cell; `display:none` keeps all but one out of the way. */
-  .grid{flex:1 1 auto;min-height:0;overflow:hidden;gap:0;height:auto;
-        grid-template-columns:1fr;grid-template-rows:1fr;
+  /* ★★★2026-09-24 THE PHONE LAYOUT, STATED ONCE AND COMPLETELY.
+     ⚠⚠ THERE ARE TWO PHONE MEDIA BLOCKS IN THIS FILE — "@media (max-width:899px)" WITH a space and
+     "@media(max-width:899px)" WITHOUT. The earlier one already sets `.grid{display:block}`, which
+     silently made a `grid-template-*` override here INERT, and `.pb{overflow:visible}`, which took
+     away each panel's ability to scroll. Neither was visible from the other block. So this block
+     no longer assumes anything: it restates display, height and overflow outright.
+     THE MODEL: body is a fixed-height flex column; the grid is the elastic middle; the ONE visible
+     panel fills it exactly; the panel's own .pb scrolls if its content is taller. Nothing else
+     scrolls, which is what "fit on one page" actually requires. */
+  /* ⚠ FLEX, NOT block-plus-height:100%. A percentage height needs a DEFINITE parent height, and
+     the grid's comes from flex layout — resolvable in modern Safari but a dependency worth not
+     having. A flex column hands the panel its size directly. */
+  .grid{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;height:auto;
         padding:4px 4px calc(4px + env(safe-area-inset-bottom, 0px))}
-  #p-trade,#p-days,#p-trades{grid-column:1;grid-row:1;min-height:0}
+  .panel[data-tab].on{display:flex;flex:1 1 auto;min-height:0;max-height:100%;margin:0}
+  /* ⚠ .pb gets its scroll BACK: with the body now fixed, an unscrollable panel simply clips. */
+  .pb{overflow-y:auto;overflow-x:hidden;flex:1 1 auto;min-height:0;padding:8px}
   .panel{margin-bottom:0}
   #p-trade{overflow:hidden;display:flex;flex-direction:column}
   /* ⚠ THE CHART TAKES WHATEVER IS LEFT — but keeps a floor. A flex:1 child CAN resolve to zero,

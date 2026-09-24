@@ -580,20 +580,37 @@ def test_the_symbol_toggles_are_shaded_apart_and_never_wrap():
     assert "background:#1b232b" in css[j:j + 200], "the symbol pair is not shaded apart"
 
 
-def test_the_phone_grid_is_a_single_cell():
-    """★★★2026-09-24 "days and trades tabs not loading."
-
-    The phone media query never reset the DESKTOP grid template (1.9fr/1fr columns, 1.25fr/1fr
-    rows) or the per-panel placements — so with one panel visible at a time, DAYS and TRADES were
-    still placed in COLUMN 2, the narrow one, while TRADE took column 1 across both rows. Harmless
-    while the rows sized to content; the moment the grid gained a constrained height they rendered
-    into a sliver.
-    ⚠ Two layouts sharing one stylesheet is exactly where this hides: desktop was correct
-    throughout, and he is on the phone 96% of the time."""
+def test_the_phone_panels_are_not_placed_by_the_desktop_grid():
+    """★★2026-09-24 The desktop places panels in named cells (#p-days in COLUMN 2). On the phone
+    exactly one panel shows at a time and it must fill the area — so the phone must not be a grid
+    at all. ⚠ The FIRST attempt at this added `grid-template-columns:1fr`, which did nothing,
+    because an earlier phone block had already set `.grid{display:block}`. Assert the model that
+    actually applies: a flex column."""
     css = _css_rules(open(CSS).read())
     i = css.rindex("@media(max-width:899px)")
     blk = css[i:]
-    assert "grid-template-columns:1fr" in blk, "the phone still inherits the desktop column split"
-    assert "grid-template-rows:1fr" in blk, "the phone still inherits the desktop row split"
-    assert "#p-trade,#p-days,#p-trades{grid-column:1;grid-row:1" in blk, (
-        "the per-panel desktop placements are not overridden — panels land in the wrong cell")
+    assert "display:flex;flex-direction:column" in blk, "the phone grid is not a flex column"
+    assert "grid-template" not in blk, "a grid-template override is back in a non-grid container"
+
+def test_the_phone_block_does_not_assume_the_other_phone_block():
+    """★★★2026-09-24 "days and trades tabs not loading" — twice.
+
+    ⚠⚠ THERE ARE TWO PHONE MEDIA BLOCKS IN THIS STYLESHEET: "@media (max-width:899px)" WITH a space
+    and "@media(max-width:899px)" WITHOUT. The earlier one sets `.grid{display:block}` — which
+    silently made a `grid-template-*` override in the later block INERT — and `.pb{overflow:visible}`,
+    which removed each panel's ability to scroll once the body stopped scrolling. Neither was
+    visible from the other block, and the first fix addressed a rule that never applied.
+
+    So the later block must RESTATE display, overflow and sizing outright rather than assume."""
+    css = _css_rules(open(CSS).read())
+    i = css.rindex("@media(max-width:899px)")
+    blk = css[i:]
+    assert "display:flex;flex-direction:column;flex:1 1 auto" in blk, (
+        ".grid does not restate its display — an earlier block's display:block will win")
+    assert ".pb{overflow-y:auto" in blk, (
+        ".pb does not restate its scroll — the earlier overflow:visible clips the panel")
+    assert ".panel[data-tab].on{display:flex;flex:1 1 auto" in blk, (
+        "the visible panel is not sized by the grid")
+    # and the inert grid-template approach must not come back
+    assert "grid-template-columns:1fr" not in blk, (
+        "grid-template is back in a block where .grid is not a grid — it does nothing")
