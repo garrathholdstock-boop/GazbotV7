@@ -291,16 +291,26 @@ def days_json(store_path, n=14):
     # "Money realised on this day" is the question he is actually asking, and it is the one the
     # header already answered — so this moves to match it rather than the other way round.
     # ⚠ A trade can therefore appear under a day it was not OPENED on; the drill marks those.
+    # ★★2026-09-24 `n` NOW MEANS TRADING DAYS, NOT CALENDAR DAYS. Operator: "it only shows 11
+    # days. can we show the last 20? so a rolling 4 weeks?" — and he was looking at a request for
+    # n=14 that returned 11, because `date('now','-14 days')` spans two WEEKENDS and a fortnight of
+    # calendar is about eleven sessions. Asking for "the last 20 sessions" in calendar days is a
+    # question nobody can answer in advance: it depends on holidays.
+    # ⚠ So look back GENEROUSLY (n*2 days + a fortnight of slack for a holiday run) and keep the
+    # most recent n days THAT ACTUALLY HAVE TRADES. The slice happens after grouping, below.
+    _lookback = n * 2 + 14
     rows = [dict(r) for r in c.execute(
         "SELECT * FROM trades WHERE closed_at IS NOT NULL "
-        "AND date(closed_at) >= date('now', ?) ORDER BY closed_at, id", (f"-{n} days",))]
+        "AND date(closed_at) >= date('now', ?) ORDER BY closed_at, id", (f"-{_lookback} days",))]
     c.close()
     by_day = {}
     for r in rows:
         d = r["closed_at"][:10]
         by_day.setdefault(d, []).append(r)
     out = []
-    for d in sorted(by_day, reverse=True):
+    # ⚠ SLICE TO n SESSIONS HERE, after grouping — the SQL cannot know how many calendar days hold
+    # n trading days, and guessing there is what produced the 11-for-14.
+    for d in sorted(by_day, reverse=True)[:n]:
         rs = by_day[d]
         clean = [x for x in rs if not x.get("data_quality")]
         wins = [x["pnl_usd"] for x in clean if (x["pnl_usd"] or 0) > 0]

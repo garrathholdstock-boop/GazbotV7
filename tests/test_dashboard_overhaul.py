@@ -20,6 +20,20 @@ CSS = "/home/alphabot/gazbot7/src/gazbot7/web_static/app.css"
 WEB = "/home/alphabot/gazbot7/src/gazbot7/web.py"
 
 
+def _web_fn(name):
+    """A function's WHOLE body, bounded STRUCTURALLY by the next top-level `def`.
+
+    ⚠⚠⚠2026-09-24 THIS REPLACES FIXED-WIDTH SLICES, AND THAT PATTERN HAS NOW BROKEN SIX TIMES.
+    Three tests here sliced `w[i:i+3000]` out of `days_json`. Adding COMMENTS to that function —
+    not code, comments — pushed it to 4,358 characters, the assertions fell off the end of the
+    window, and the suite reported the payload had lost its `basis` field when nothing had changed
+    but the prose. A test that fails when you DOCUMENT the code is worse than no test: it trains
+    you to distrust the suite at exactly the moment it should be trusted.
+    """
+    w = open(WEB).read()
+    return w.split(f"def {name}(", 1)[1].split("\ndef ", 1)[0]
+
+
 def test_every_id_the_js_touches_exists_in_the_page():
     """★★★ THE ONE THAT MATTERS. $() returns null for a missing element, so ONE stale id inside the
     render loop throws on every tick and takes the WHOLE dashboard with it — a removed panel turns
@@ -99,27 +113,23 @@ def test_rvol_carries_its_contract_blind_caveat():
 def test_the_day_table_counts_ENTRIES_not_exit_rows():
     """⚠⚠ The rows in `trades` are scale-out EXITS of one decision — 20 rows over 2026-09-14/15 are
     9 entries. A per-row count overstates his activity ~2.5x."""
-    w = open(WEB).read()
-    i = w.index("def days_json(")
-    body = w[i:i + 3000]
+    body = _web_fn("days_json")
     assert "entries" in body and 'x["opened_at"], x["entry_price"], x["side"]' in body
 
 
 def test_profit_factor_is_null_when_undefined_never_infinite():
     """⚠ A day with no losing trade has an UNDEFINED profit factor. Rendering it as ∞ or as a huge
     number would make a one-trade day look like the best session on record."""
-    w = open(WEB).read()
-    i = w.index("def days_json(")
-    assert 'if gross_l > 0 else None' in w[i:i + 3000]
+    assert 'if gross_l > 0 else None' in _web_fn("days_json")
 
 
 def test_flagged_trades_are_shown_but_not_counted():
     """⚠ BADFILL: a real trade whose PRICE came from a fabricated fill. He must SEE it; it must
     never reach a P&L — the 08-21 lesson, where an EXCLUDE: row vanished and he could not find a
     trade he had watched happen."""
-    w, js = open(WEB).read(), open(JS).read()
-    i = w.index("def days_json(")
-    assert 'data_quality' in w[i:i + 3000] and '"flagged"' in w[i:i + 3000]
+    js = open(JS).read()
+    body = _web_fn("days_json")
+    assert 'data_quality' in body and '"flagged"' in body
     assert "flagged" in js and "never counted" in js
 
 
@@ -293,9 +303,7 @@ def test_the_day_table_counts_by_CLOSED_at_like_the_header():
     answers to DIFFERENT questions, which is worse than one wrong number: nothing on the page told
     him which to believe, and he spent an evening doubting a book that reconciles to IBKR to the
     cent. Every surface must answer the SAME question."""
-    w = open(WEB).read()
-    i = w.index("def days_json(")
-    body = w[i:i + 3600]
+    body = _web_fn("days_json")
     assert "date(closed_at) >= date('now', ?)" in body, "the day table is back on opened_at"
     assert 'r["closed_at"][:10]' in body, "days are keyed on the wrong timestamp"
     assert '"basis": "closed_at"' in body, "the basis is no longer declared in the payload"

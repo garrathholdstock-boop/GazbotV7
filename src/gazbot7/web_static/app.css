@@ -704,3 +704,12 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
   transform:translateY(-100%);transition:transform .18s ease-out;box-shadow:0 2px 14px #000a}
 .alflash.show{transform:translateY(0)}
 @media (prefers-reduced-motion:reduce){.alflash{transition:none}}
+
+/* ── THE DAY-BAR STRIP (2026-09-24) ──────────────────────────────────────────────────────────
+   One bar per session, green up / red down, hung off a centre zero line — the same language as
+   the "are we getting better" report, but live. ⚠ Fixed height: the DAYS tab is a scrolling list
+   and a strip that grew with the window would push the table off the phone. */
+.daysbars{height:76px;padding:6px 7px 0;flex:0 0 auto}
+.daysbars svg{width:100%;height:100%;display:block}
+.daysbars-note{padding:1px 8px 5px;font-size:9px;letter-spacing:.04em;text-align:right;
+  flex:0 0 auto;font-family:var(--mono)}

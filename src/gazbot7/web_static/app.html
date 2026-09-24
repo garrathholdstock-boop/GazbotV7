@@ -158,7 +158,13 @@
   </section>
 
   <section class="panel" id="p-days" data-tab="days">
-    <div class="sec">LAST 14 SESSIONS <span class="dim3" id="days-sum"></span></div>
+    <!-- ★★★2026-09-24 THE DAY-BAR STRIP, his ask: "that graph that you made on the reports tab
+         are we getting better... big green bars for big winning days and inverse red for losing."
+         Same visual language as progress.html but LIVE off the days feed, so unlike a generated
+         report it can never be a week stale. ⚠ Oldest LEFT, newest RIGHT. -->
+    <div class="daysbars" id="days-bars"></div>
+    <div class="daysbars-note dim3" id="days-bars-note"></div>
+    <div class="sec">LAST 20 SESSIONS <span class="dim3" id="days-sum"></span></div>
     <div class="pb" id="days-wrap"><table class="t" id="days-tbl"><tbody></tbody></table></div>
   </section>
 

@@ -168,7 +168,9 @@
       const mnq = await getJSON("api/futures/mnq").catch(() => null);
       if (mnq) STATE.mnq = mnq;
       /* execution + promotion fetches retired with their panels (2026-09-18). */
-      const days = await getJSON("api/futures/days?n=14").catch(() => null);
+      /* ★2026-09-24 20 TRADING sessions = a rolling 4 weeks. `n` is sessions, not calendar
+         days — a fortnight of calendar is only ~11 sessions, which is what he was seeing. */
+      const days = await getJSON("api/futures/days?n=20").catch(() => null);
       if (days) STATE.days = days;
       const m = STATE.mnq || {};
       guard("slow.renderHeader", () => renderHeader(m));
@@ -962,6 +964,24 @@
     /* ★ STEP AWAY must LOOK different when armed — a guard that looks identical armed and
        disarmed is one he will forget he set. */
     const sa = c.step_away || {}, sb2 = $("sa-btn");
+    /* ★★2026-09-24 THE LIMITS STICK BETWEEN ARMS. Operator: "can we make the step away limits
+       stick between arms?" — they were reset to the HTML defaults (200/300) on every page load,
+       so every arm after the first meant retyping the numbers he had just chosen, with the phone
+       keyboard, often while walking into something.
+       ★ SOURCE IS THE SERVER, not localStorage: step_away.json keeps limit_usd/take_profit_usd
+       after firing, so the values follow him to any device and survive a browser wipe. The guard
+       and the page then agree by construction rather than by coincidence.
+       ⚠ NEVER WRITE INTO A FIELD HE IS TYPING IN. A poll lands every second and would eat the
+       keystroke he is halfway through. */
+    (function stickyLimits() {
+      const pairs = [["sa-loss", sa.limit_usd], ["sa-tp", sa.take_profit_usd]];
+      pairs.forEach(([id, v]) => {
+        const el = $(id);
+        if (!el || el === document.activeElement || v == null) return;
+        const want = String(Math.round(Number(v)));
+        if (el.value !== want) el.value = want;
+      });
+    })();
     if (sb2) sb2.className = "orb away" + (sa.armed ? " armed" : "");
     setTxt("sa-lab", sa.armed ? "ARMED" : "STEP AWAY");
     setTxt("sa-state", sa.armed
@@ -971,6 +991,48 @@
 
   /* ---------- last 14 sessions, tap a row to open it ---------- */
   const DAYS_OPEN = new Set();
+
+  /* ★★★2026-09-24 THE DAY-BAR STRIP — "that graph that you made on the reports tab are we getting
+     better... big green bars for big winning days and inverse red for losing."
+     Same language as progress.html (green #1f6f43 / red #c0392b, one bar per session, hung off a
+     centre zero line) but LIVE off STATE.days instead of a generated snapshot, so it is never a
+     week out of date the way a static report is.
+     ⚠ SCALED TO THE LARGEST ABSOLUTE DAY IN THE WINDOW, and the zero line sits in the MIDDLE with
+     equal room above and below. A scale fitted separately to the up and down sides would make a
+     -$2,222 day look the same height as a +$857 one, which is the single most misleading thing a
+     P&L chart can do.
+     ⚠ Oldest LEFT, newest RIGHT — days_json returns newest-first, so this reverses. Reading a time
+     axis backwards is a mistake you only notice after you have drawn a conclusion from it. */
+  function renderDayBars(rows) {
+    const host = $("days-bars");
+    if (!host) return;
+    if (!rows || !rows.length) { host.innerHTML = ""; return; }
+    const d = rows.slice().reverse();
+    const mx = Math.max(1, ...d.map((r) => Math.abs(r.pnl || 0)));
+    const W = 1000, H = 120, MID = H / 2, gap = 2;
+    const bw = Math.max(3, (W - gap * d.length) / d.length);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img"`
+      + ` aria-label="Daily realised P&L, one bar per session">`
+      + `<line x1="0" y1="${MID}" x2="${W}" y2="${MID}" stroke="var(--line2)" stroke-width="1"/>`;
+    d.forEach((r, i) => {
+      const v = r.pnl || 0;
+      const h = Math.max(1.5, (Math.abs(v) / mx) * (MID - 6));
+      const x = i * (bw + gap);
+      const y = v >= 0 ? MID - h : MID;
+      svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}"`
+        + ` height="${h.toFixed(1)}" rx="1.5" fill="${v >= 0 ? "#1f6f43" : "#c0392b"}"`
+        + ` opacity=".92"><title>${r.day}  ${v >= 0 ? "+" : ""}${Math.round(v)}`
+        + `  (${r.entries} entries)</title></rect>`;
+    });
+    svg += "</svg>";
+    host.innerHTML = svg;
+    const g = d.filter((r) => (r.pnl || 0) > 0).length;
+    /* ⚠ GREEN DAYS AND TOTAL P&L ARE DIFFERENT QUESTIONS and the strip shows both, because one
+       big red day can outweigh nine green ones — which is this desk's actual loss profile. */
+    setTxt("days-bars-note", `${g}/${d.length} green · worst ${money(-mx, 0)} · best `
+      + money(Math.max(...d.map((r) => r.pnl || 0)), 0));
+  }
+
   function renderDays() {
     const d = STATE.days; const tb = $("days-tbl"); if (!d || !tb) return;
     const body = tb.querySelector("tbody"); if (!body) return;
@@ -981,6 +1043,7 @@
        carry-in trade and nothing on the page said which to believe. */
     if (sum) sum.textContent = rows.length
       ? `· ${rows.length} sessions · ${money(tot, 0)} · realised` : "";
+    guard("days.bars", () => renderDayBars(rows));
     body.innerHTML = "";
     rows.forEach((r) => {
       const tr = document.createElement("tr");
