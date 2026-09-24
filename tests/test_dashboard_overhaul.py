@@ -154,6 +154,13 @@ def test_the_trade_count_badge_no_longer_reads_the_tournament_only_field():
 
 
 
+def _css_rules(css: str) -> str:
+    """CSS with comments stripped. ⚠ Assert on DECLARATIONS, never on the prose that explains them:
+    a test that matches its own documentation fails for a reason unrelated to its invariant, which
+    has now happened five separate times on this desk."""
+    return re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+
 def _drill_block(js: str) -> str:
     """The drill-row builder, sliced at a STRUCTURAL boundary.
 
@@ -509,3 +516,51 @@ def test_the_price_axis_fits_inside_the_svg():
     assert width <= ml - pad, (
         f"a {chars}-char label at {fs}px is ~{width:.0f}px but only {ml - pad}px is available — "
         f"it will run off the left edge")
+
+
+def test_the_phone_fits_one_screen_without_a_magic_number():
+    """★★★2026-09-24 "i think we can fit everything on one page without scrolling on trade tab even
+    when we have a holding."
+
+    The phone had NO height constraint at all — the panel grew to its content and the body
+    scrolled, which is why he was scrolling to reach the live P&L he watches constantly.
+    ⚠ AND NOT WITH A CONSTANT: the first cut subtracted a hardcoded 104px for header+tabbar, but
+    the phone header WRAPS (flex-wrap with the KPI tiles) so its height is unknowable from CSS and
+    any constant is wrong on some device. <body> is the flex column and the grid takes what is
+    left — self-measuring, every phone, every orientation.
+    ⚠ 100dvh not 100vh: on iOS Safari 100vh includes the collapsing URL bar, so a 100vh layout is
+    ~60px too tall exactly when the bar is showing."""
+    css = _css_rules(open(CSS).read())
+    i = css.rindex("@media(max-width:899px)")
+    blk = css[i:]
+    assert "height:100dvh" in blk, "the phone layout does not use the dynamic viewport unit"
+    assert "height:100vh;height:100dvh" in blk, "no 100vh fallback for older Safari"
+    assert "flex:1 1 auto;min-height:0" in blk, "the grid cannot shrink to the viewport"
+    assert "104px" not in blk, "a hardcoded chrome height is back — it is wrong on some device"
+
+
+def test_the_chart_keeps_a_floor_even_when_it_flexes():
+    """⚠ A flex:1 child CAN resolve to zero, and renderHero's zero-size guard then returns without
+    drawing — the 09-02 blank chart, which already bit once this week. The floor makes zero
+    unreachable."""
+    import re as _re
+    css = _css_rules(open(CSS).read())
+    i = css.rindex("@media(max-width:899px)")
+    m = _re.search(r"#p-trade \.chart-host\{([^}]*)\}", css[i:])
+    assert m, "the phone chart rule is gone"
+    assert "flex:1 1 auto" in m.group(1) and "min-height:" in m.group(1)
+    floor = int(_re.search(r"min-height:(\d+)px", m.group(1)).group(1))
+    assert floor >= 100, f"the chart floor is only {floor}px"
+
+
+def test_the_symbol_toggles_are_shaded_apart_and_never_wrap():
+    """★ "move the mgc toggle up next to mnq and make those two a different shaded grey so they are
+    different to the times." A wrapped toggle bar also cost ~35px and pushed the page into a
+    scroll."""
+    css = _css_rules(open(CSS).read())
+    assert "#p-trade .tfbar{" in css
+    i = css.index("#p-trade .tfbar{")
+    assert "flex-wrap:nowrap" in css[i:i + 200], "the toggle bar can still wrap to a second line"
+    assert "#p-trade .tf.sym{" in css and "#p-trade .tf.sym.on{" in css
+    j = css.index("#p-trade .tf.sym{")
+    assert "background:#1b232b" in css[j:j + 200], "the symbol pair is not shaded apart"

@@ -506,14 +506,20 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 .tstrip .tm b.pos{color:var(--grn)}
 
 /* ── window / symbol toggles, BELOW the chart as asked ──────────────────────────────────── */
-#p-trade .tfbar{display:flex;gap:4px;align-items:center;padding:5px 7px;flex-wrap:wrap}
-#p-trade .tfbar .tfsp{flex:1}
+/* ★2026-09-24 ONE LINE, NEVER WRAPPING — a wrapped toggle bar cost ~35px and pushed the page into
+   a scroll. The SYMBOL pair is shaded differently so it does not read as another timeframe. */
+#p-trade .tfbar{display:flex;gap:3px;align-items:center;padding:4px 6px;flex-wrap:nowrap;
+  overflow:hidden}
+#p-trade .tfbar .tfsp{flex:1;min-width:4px}
 #p-trade .tf{background:var(--panel2);border:1px solid var(--line2);color:var(--txt2);
   border-radius:999px;padding:4px 10px;font-size:10.5px;font-weight:500;cursor:pointer;
   min-height:26px;transition:background .12s,color .12s,border-color .12s}
 #p-trade .tf:active{transform:scale(.96)}
 #p-trade .tf.on{background:var(--cyan);border-color:var(--cyan);color:#04191c;font-weight:600}
-#p-trade .tf.sym{font-family:var(--mono);letter-spacing:.04em}
+/* the symbol pair: grey, flatter, visibly a different KIND of control from the windows */
+#p-trade .tf.sym{font-family:var(--mono);letter-spacing:.03em;background:#1b232b;
+  border-color:#2b3742;color:var(--mut);border-radius:5px;padding:4px 8px}
+#p-trade .tf.sym.on{background:#3b4854;border-color:#55636f;color:var(--txt)}
 
 /* ── THE FOUR ACTIONS ───────────────────────────────────────────────────────────────────── */
 .actions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:7px 7px 3px;
@@ -585,12 +591,39 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 #p-trade .chart-host{height:300px;min-height:300px;position:relative;flex:0 0 auto}
 
 @media(max-width:899px){
+  /* ★★★2026-09-24 FIT ON ONE SCREEN, HOLDING AND ALL. The phone had NO height constraint — the
+     panel grew to its content and the body scrolled, which is why he was scrolling to see the
+     live P&L he watches constantly.
+     ⚠ 100dvh, NOT 100vh: on iOS Safari 100vh includes the collapsing URL bar, so a 100vh layout
+     is ~60px too tall and the bottom is cut off exactly when the bar is showing. dvh is the
+     dynamic one. A vh line stays first as the fallback for anything older. */
+  /* ⚠⚠ NO MAGIC NUMBER. The first cut subtracted a hardcoded 104px for the header+tabbar — but
+     the phone header WRAPS (flex-wrap:wrap with the KPI tiles), so its height is not knowable from
+     CSS and any constant is wrong on some device. Make <body> the flex column instead and let the
+     grid take whatever is left: it measures itself, on every phone, at every orientation.
+     ⚠ min-height:0 on the flex child, or its content floor stops it ever shrinking. */
+  body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+  .topstick{flex:0 0 auto}
+  .grid{flex:1 1 auto;min-height:0;overflow:hidden;padding:4px;gap:4px;height:auto}
+  .panel{margin-bottom:0}
+  #p-trade{overflow:hidden;display:flex;flex-direction:column}
+  /* ⚠ THE CHART TAKES WHATEVER IS LEFT — but keeps a floor. A flex:1 child CAN resolve to zero,
+     and renderHero's zero-size guard then returns without drawing: that is the 09-02 blank-chart
+     bug and it already bit once this week. The floor makes zero unreachable. */
+  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:130px}
   .tstrip .tm b{font-size:12px}
-  .actions{gap:6px;padding:6px 6px 2px}
-  .orb{max-width:60px}
+  .actions{gap:5px;padding:4px 6px 1px}
+  .orb{max-width:56px}
+  .awayset{padding:0 6px 3px;gap:8px}
+  .tstrip .tm{padding:4px 7px 3px}
+  .passrow{padding:3px 6px 4px}
+  #p-trade .tfbar{padding:3px 5px}
   /* ★ the chart GAINS on the phone, because everything above and below it lost a third */
   #p-trade .chart-host{height:270px;min-height:270px}
-  .holdcard{margin:5px 6px 3px;padding:8px 10px}
+  .holdcard{margin:4px 6px 2px;padding:7px 10px}
   .holdcard .hc-pnl{font-size:23px}
+  .holdcard .hc-px{margin-top:4px;gap:11px}
+  .holdcard .hc-tp{margin-top:5px}
+  .holdcard .hc-tp button{min-height:30px;padding:6px 5px}
   .panel{margin-bottom:5px}
 }
