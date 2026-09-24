@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Reading the world on intraday MNQ and MGC — 2026-09-13</title>
+<style>
+@page { size: A4; margin: 15mm 13mm; @bottom-center { content: counter(page); font: 8pt Helvetica, Arial, sans-serif; color: #8a9099; } }
+body { font: 10.5pt/1.45 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #15181d; }
+h1 { font-size: 20pt; margin: 0 0 2mm; letter-spacing: -0.5pt; }
+h2 { font-size: 13.5pt; margin: 9mm 0 2.5mm; padding-bottom: 1.5mm;
+     border-bottom: 2px solid #15181d; letter-spacing: -0.2pt; page-break-after: avoid; }
+h3 { font-size: 11pt; margin: 5.5mm 0 1.5mm; color: #2a3a52; page-break-after: avoid; }
+h4 { font-size: 10pt; margin: 4mm 0 1mm; color: #3a4250; page-break-after: avoid; }
+.sub { color: #5d6470; font-size: 9.5pt; margin: 0 0 6mm; }
+table { border-collapse: collapse; width: 100%; margin: 2.5mm 0 4mm; font-size: 9.1pt; page-break-inside: avoid; }
+th { text-align: left; border-bottom: 1.5px solid #15181d; padding: 1.5mm 2mm; font-size: 8.4pt;
+     text-transform: uppercase; letter-spacing: 0.4pt; color: #3a4250; }
+td { border-bottom: 0.5px solid #d7dbe2; padding: 1.5mm 2mm; vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.good { color: #0a6b3d; font-weight: 600; }
+.bad  { color: #9b1c1c; }
+.tag { display: inline-block; font-size: 7.4pt; font-weight: 700; letter-spacing: 0.5pt;
+       padding: 0.6mm 1.5mm; border-radius: 2px; text-transform: uppercase; white-space: nowrap; }
+.t-a { background: #0a6b3d; color: #fff; } .t-b { background: #1d4ed8; color: #fff; }
+.t-c { background: #92400e; color: #fff; } .t-null { background: #4b5563; color: #fff; }
+.lede { background: #f4f6f9; border-left: 3px solid #15181d; padding: 4mm 5mm; margin: 4mm 0 6mm; }
+.lede p { margin: 0 0 2.5mm; } .lede p:last-child { margin: 0; }
+.warn { background: #fdf6ec; border-left: 3px solid #92400e; padding: 3.5mm 5mm; margin: 4mm 0; }
+.warn p { margin: 0 0 2mm; } .warn p:last-child { margin: 0; }
+.note { font-size: 8.9pt; color: #5d6470; margin: 2mm 0 0; }
+ul, ol { margin: 1.5mm 0 3mm; padding-left: 5.5mm; } li { margin: 0 0 1.3mm; }
+.small { font-size: 8.7pt; color: #5d6470; }
+code { font: 9pt "SF Mono", Menlo, Consolas, monospace; background: #f0f2f5; padding: 0 0.8mm; }
+.srcs { font-size: 8.3pt; line-height: 1.35; }
+.srcs td { padding: 1.1mm 2mm; }
+.srcs a { color: #1d4ed8; word-break: break-all; text-decoration: none; }
+.brk { page-break-before: always; }
+.kpi { display: table; width: 100%; margin: 3mm 0 5mm; border-collapse: separate; border-spacing: 2mm 0; }
+.kpi > div { display: table-cell; width: 25%; background: #f4f6f9; padding: 3mm; border-top: 2px solid #15181d; }
+.kpi .v { font-size: 15pt; font-weight: 700; font-variant-numeric: tabular-nums; display: block; letter-spacing: -0.4pt; }
+.kpi .l { font-size: 8pt; color: #5d6470; text-transform: uppercase; letter-spacing: 0.4pt; }
+</style></head><body>
+
+<h1>Reading the world on intraday MNQ and MGC</h1>
+<p class="sub">GAZBOT V7 &middot; night of Saturday 2026-09-13 &middot; a <strong>reading</strong> report, not a backtest.
+Fifteen research lenses plus three syntheses, ~340 catalogued claims, ~290 distinct sources, 13 academic papers
+read in full text, ~155 forum pages, every prop firm's own rulebook, and every publicly-verified intraday futures
+track record I could reach.
+Costs charged throughout: <strong>MNQ 1.25 points all-in per round trip</strong> ($1.50 commission + the 0.50pt
+spread crossed once = $2.50). <strong>MGC 0.45 points = $4.50.</strong>
+Notes for every lens live in <code>reports/lit_review_2026-09-13/&lt;lens&gt;/NOTES.md</code> &mdash; 22,300 lines.</p>
+
+<h2>1. The answer to your question</h2>
+
+<div class="lede">
+<p><strong>Yes, people day-trade MNQ profitably. No, nobody with a verified record makes $1,000 a day on $30,000,
+and the reason is arithmetic rather than skill.</strong> The best documented intraday futures records pay
+<strong>$15&ndash;$125 a day on a $30,000 account</strong>. The single closest twin to you I could find anywhere
+&mdash; Pau Perdices, a publicly-tracked, commission-net, discretionary intraday micro-gold + micro-Nasdaq account
+&mdash; made <strong>$7,163 net on $10,000 in 8.3 months</strong> through a <strong>&minus;21.2% drawdown</strong>:
+about <strong>$124/day scaled to $30k</strong>. The top 500 out of ~450,000 Taiwanese day traders, measured
+<em>out of sample</em> the following year and net of all fees, earned <strong>+37.9 basis points a day
+= $114/day on $30k</strong>. That is the 99.9th percentile of the largest audited day-trading dataset in existence.</p>
+
+<p><strong>$1,000/day net on MNQ is 500 index points a day, every day.</strong> MNQ's average whole-session range
+is 387 points and its average first-90-minutes range is 267 points &mdash; so one lot is arithmetically impossible,
+it is 129% of the entire daily range. The honest grid is <em>required gross edge per round trip =
+500/(lots &times; round trips) + 1.25 points</em>. At 10 lots and 6 round trips a day that needs
+<strong>9.58 points of gross edge per round trip</strong>. The measured gross edge available on MNQ is
+<strong>1.05&ndash;1.50 points</strong> &mdash; our own five-method result, independently confirmed from outside on
+the exact contract by Mesfin (2026), who tested 14 signal families on 947 MNQ sessions and found a ceiling of
+0.07&ndash;1.50 points. <strong>Every cell of that grid exceeds the ceiling, and the friction term alone is 1.25,
+so no amount of size or frequency can push the requirement below it.</strong></p>
+
+<p><strong>And here is the reconciliation with the forums, which I think is the single most useful thing in this
+report: the posts are probably true about the dollars and false about the capital.</strong> Topstep's own published
+2025 statistics say <strong>51.8%</strong> of persistent participants pass an evaluation at least once &mdash; so
+the posters are real &mdash; but only <strong>0.71%</strong> ever reach a live funded account. A man "making $1,000
+a day" is nearly always doing it on a ~$150,000 prop account, which is <strong>0.67% a day</strong>. You are asking
+for <strong>3.33% a day</strong>. Same edge, five times the capital, and the capital is not his.</p>
+
+<p><strong>What is genuinely on the table.</strong> Our own gross edge, at a sane size, independently produces
+<strong>$15&ndash;$30/day</strong> &mdash; which lands within a dollar of the broker-verified intraday index records.
+Push to 10 lots with a 4R average winner and the arithmetic permits <strong>$400&ndash;500/day</strong>, at the price
+of a ten-loss streak costing 17&ndash;27% of the account. <strong>So $1,000/day on $30k is not impossible in
+arithmetic &mdash; it is impossible in drawdown.</strong> Capital required to run it survivably:
+<strong>$300k&ndash;$900k, centred around $400k</strong>.</p>
+</div>
+
+<div class="kpi">
+<div><span class="v">$15&ndash;$125</span><span class="l">per day on $30k &mdash; verified intraday records</span></div>
+<div><span class="v">500 pts</span><span class="l">MNQ points/day that $1,000 requires</span></div>
+<div><span class="v">1.05&ndash;1.50</span><span class="l">points of gross edge actually available</span></div>
+<div><span class="v">0.71%</span><span class="l">of prop entrants reach live firm capital</span></div>
+</div>
+
+<h3>The verified records, in dollars per day on a $30,000 account</h3>
+<table>
+<tr><th>Who</th><th>Grade</th><th>What it is</th><th class="n">Annual</th><th class="n">$/day on $30k</th><th>Risk taken</th></tr>
+<tr><td>P&amp;LFidelity <span class="small">(FundSeeder, broker-verified)</span></td><td><span class="tag t-a">A&minus;</span></td>
+<td>Index futures, <strong>no overnight</strong></td><td class="n">12.3%</td><td class="n">$15</td><td>5.7% vol &middot; FundSeeder score <strong>87.1</strong></td></tr>
+<tr><td>CapitalCross <span class="small">(FundSeeder, seeded)</span></td><td><span class="tag t-a">A&minus;</span></td>
+<td>Index futures mean reversion</td><td class="n">22.5%</td><td class="n">$27</td><td>6.5% vol</td></tr>
+<tr><td>K. Michael Wallace <span class="small">(World Cup Advisor)</span></td><td><span class="tag t-b">B+</span></td>
+<td>ES/NQ/MES/MNQ, ~1-day holds</td><td class="n">22.6%</td><td class="n">$27</td><td>&minus;1.33% worst drawdown</td></tr>
+<tr><td>AsymmetricOverbought <span class="small">(FundSeeder)</span></td><td><span class="tag t-a">A&minus;</span></td>
+<td><strong>Intraday index futures, flat overnight</strong></td><td class="n">27.2%</td><td class="n">$32</td><td>23.7% vol</td></tr>
+<tr><td>EquityPortfolio <span class="small">(FundSeeder, CH)</span></td><td><span class="tag t-a">A&minus;</span></td>
+<td>Trend, built alongside a day job</td><td class="n">55.5%</td><td class="n">$66</td><td>43% vol</td></tr>
+<tr><td>Best <em>lifetime</em> compound, 191 CTA programs</td><td><span class="tag t-a">A&minus;</span></td>
+<td>AutumnGold database</td><td class="n">~50%</td><td class="n">$60</td><td>top 15 includes &minus;93%, &minus;88%, &minus;66%</td></tr>
+<tr><td><strong>Barber et al. top 500 of ~450,000</strong></td><td><span class="tag t-a">A</span></td>
+<td>Ranked prior year, measured <em>next</em> year, net of fees</td><td class="n">+37.9 bps/day</td><td class="n"><strong>$114</strong></td><td>99.9th percentile</td></tr>
+<tr><td><strong>Pau Perdices</strong> <span class="small">(World Cup Advisor)</span></td><td><span class="tag t-b">B+</span></td>
+<td><strong>Discretionary intraday MGC + MNQ + MES</strong>, $10k account, 8.31 months</td><td class="n">+71.6%</td><td class="n"><strong>$124</strong></td><td><strong>&minus;21.2%</strong></td></tr>
+<tr><td>Jigsaw leaderboard July winner</td><td><span class="tag t-b">B</span></td>
+<td>Best of 307 traders, one month, live account</td><td class="n">&mdash;</td><td class="n">~$250</td><td>ramped 4&rarr;10 lots inside the month</td></tr>
+<tr><td><strong>THE TARGET</strong></td><td>&mdash;</td><td>MNQ + MGC, first 90 minutes</td><td class="n"><strong>~840%</strong></td><td class="n"><strong>$1,000</strong></td><td>&mdash;</td></tr>
+</table>
+<p class="note"><strong>Not one professional intraday index futures programme is an income business.</strong>
+R Best LLC (100% intraday ES + machine learning, 12 years, $22M) is roughly flat 2022&ndash;2026. Deep Field
+"Intraday Crisis Alpha" lost money in four of five years. QTS Tail Reaper &mdash; Ernest Chan's own firm, intraday ES
+&mdash; did &minus;23.0% then &minus;29.6% with a &minus;67.6% max drawdown and AUM down to $233k. Comhla "Artemis 3X",
+a registered CTA's $35k-minimum ES/MES/NQ/MNQ programme, has a <strong>negative lifetime compound return at a
+&minus;66.4% drawdown</strong>.</p>
+
+<h3>The grid that settles it</h3>
+<p class="small">Required <strong>gross</strong> edge in MNQ points per round trip to net $1,000/day, at 1.25 points
+all-in. Our measured ceiling is 1.05&ndash;1.50 points; cells above 1.50 are unreachable.</p>
+<table>
+<tr><th>Lots</th><th class="n">2 RT/day</th><th class="n">4 RT/day</th><th class="n">6 RT/day</th><th class="n">10 RT/day</th><th class="n">20 RT/day</th><th class="n">Friction/day at 10 RT</th></tr>
+<tr><td>1</td><td class="n bad">251.25</td><td class="n bad">126.25</td><td class="n bad">84.58</td><td class="n bad">51.25</td><td class="n bad">26.25</td><td class="n">$25</td></tr>
+<tr><td>5</td><td class="n bad">51.25</td><td class="n bad">26.25</td><td class="n bad">17.92</td><td class="n bad">11.25</td><td class="n bad">6.25</td><td class="n">$125</td></tr>
+<tr><td>10</td><td class="n bad">26.25</td><td class="n bad">13.75</td><td class="n bad">9.58</td><td class="n bad">6.25</td><td class="n bad">3.75</td><td class="n">$250</td></tr>
+<tr><td>20</td><td class="n bad">13.75</td><td class="n bad">7.50</td><td class="n bad">5.42</td><td class="n bad">3.75</td><td class="n bad">2.50</td><td class="n">$500</td></tr>
+<tr><td>30</td><td class="n bad">9.58</td><td class="n bad">5.42</td><td class="n bad">4.03</td><td class="n bad">2.92</td><td class="n bad">2.08</td><td class="n">$750</td></tr>
+</table>
+<p class="note">The lowest cell &mdash; 30 lots, 20 round trips &mdash; still needs 1.4&ndash;2.0&times; the measured
+ceiling, costs <strong>$1,500/day in friction (5% of the account, daily)</strong> and runs <strong>59&times;
+leverage</strong>. Run it forwards at the <em>top</em> of the measured range (1.50 gross, so +0.25 net per round trip):
+5 lots &times; 6 RT = <strong>$15/day</strong>; 10 &times; 6 = <strong>$30/day</strong>; 20 &times; 10 = $100/day;
+30 &times; 20 = $300/day at 59&times; leverage. <strong>Two completely independent routes &mdash; the audited records
+and our own tape &mdash; converge on $15&ndash;$32/day, and neither requires believing the other.</strong></p>
+
+<div class="warn">
+<p><strong>Drawdown is the binding constraint, not margin and not return.</strong> MNQ day margin is ~$464/lot, so
+margin permits <strong>64 lots</strong> on $30k &mdash; it will not stop you. The 127 genuinely-profitable Brazilian
+day traders in the largest index-futures census ran daily standard deviations <strong>6.2&ndash;8.4&times; their own
+daily mean</strong>. At a $1,000/day mean that is a <strong>$6,200&ndash;$8,400 daily SD = 21&ndash;28% of a $30,000
+account</strong>: a two-sigma day is &minus;41% to &minus;56%, a three-sigma day is the account. The prop industry's
+own rails scaled to $30k are a <strong>$600 daily loss limit and a $1,200 trailing drawdown</strong> &mdash; so
+$1,000/day is <strong>1.67&times; the daily loss limit and 83% of the entire drawdown allowance</strong> the industry
+gives an account this size.</p>
+<p><strong>And gold cannot substitute.</strong> $1,000/day = 100 MGC points against an average first-90 range of 38.6.
+The measured book supports about <strong>5 lots</strong>: a 10-lot MGC order costs a median $3.60&ndash;$4.60/lot above
+the best ask (p90 $17.80&ndash;$21.70) &mdash; <em>more than gold's entire spread</em> &mdash; taking all-in to
+$12&ndash;13/lot against the $4.50 constant. Ten MNQ lots cost $0.35/lot. <strong>Not executable in gold at any size.</strong></p>
+</div>
+<h2 class="brk">2. Where the schools agree</h2>
+
+<p>This is the heart of the report. Unaudited practice cannot offer proof, but it can offer <strong>convergence</strong>:
+when order-flow traders, price-action traders, market-profile traders, prop-firm risk departments, academics and a
+42-year trading championship independently say the same thing, that is the strongest evidence this kind of material can
+give. I graded convergence by <em>independence</em> &mdash; three DOM vendors who host each other's videos are one
+tradition, not three samples; likewise Zarattini, who is one research group behind most of the quantified tier, and the
+price-action schools, who share Brooks' vocabulary.</p>
+
+<table>
+<tr><th>#</th><th>The agreement</th><th class="n">Independent traditions</th><th>Quantified?</th></tr>
+<tr><td>1</td><td><strong>Nobody forecasts direction.</strong> Every profitable method routes around it: Crabel rests
+<em>both</em> stops and lets the market pick; Zarattini takes the sign of the first 5-minute body; Fisher demands dwell
+rather than prediction; calevonlear: <em>"Direction is meaningless, afterwards is what matters."</em> And
+<strong>not one verified track record in the whole sweep describes predicting direction</strong> &mdash; every single one
+names its edge as flow, positioning, an event, or a tail.</td><td class="n"><strong>9 of 9</strong></td>
+<td>Yes &mdash; NQ first-break direction is 49.6%/50.2% on n=1,670 sessions</td></tr>
+<tr><td>2</td><td><strong>Size is an OUTPUT of a demonstrated live record, never an input.</strong> Brooks' ladder:
+$10/day &rarr; 3 ES contracts <em>over a year</em>. The Jigsaw leaderboard winner: 4&rarr;10 lots inside one month.
+Axia: 3&rarr;300 lots over three years. The prop ladders: ~1 mini per $10,000 of <em>retained</em> profit, with
+<strong>10 active trading days per tier and no skipping</strong>, while demotion is automatic and same-day.
+<span class="bad">Our "live at ~$30k" plan implies fixed size on day one. Nobody in this literature does that.</span></td>
+<td class="n"><strong>7, unanimous</strong></td><td>Yes &mdash; published ladders</td></tr>
+<tr><td>3</td><td><strong>Stops and targets go at STRUCTURE, not at a distance.</strong> Valtos opens an article
+describing this desk exactly: <em>"most traders use arbitrary stop levels. Maybe they have back tested their system and
+see that the average loss is 10 ticks, so all of a sudden their stop is 10 ticks on every trade&hellip; Wouldn't it make
+more sense to have a stop level based on what the market is telling you?"</em> Brooks: <em>"the first target is the
+previous swing low."</em> Beggs: <em>"any trailing stop must be at a place where you consider the trade idea is no
+longer valid. ANY CLOSER IS TOO CLOSE."</em></td><td class="n">7</td><td>Partly</td></tr>
+<tr><td>4</td><td><strong>TRADE SELECTION carries the edge; the trigger does not.</strong> The only finding in the
+entire sweep with a published dose-response. Same entry, same stop, same exit, only the universe changed: 5-minute ORB
+on 7,000 US stocks = Sharpe 0.48 (loses to buy-and-hold); filtered to opening-range relative volume &ge;100% and the
+top 20 names = <strong>Sharpe 2.81</strong>. Per trade, net of commissions: <strong>RelVol &lt;100% = &minus;0.02R
+(negative), &gt;100% = +0.08R, &gt;30&times; = +0.38R.</strong></td><td class="n">5</td>
+<td><strong>Yes, with a dose-response</strong></td></tr>
+<tr><td>5</td><td><strong>The payoff is the defect, not the hit rate.</strong> Four unrelated profitable books sit at
+18&ndash;25% win rate, same as ours. The difference is entirely the average winner.</td><td class="n">5</td>
+<td>Yes, twice</td></tr>
+<tr><td>6</td><td><strong>The first 1&ndash;2 hours are where the money is</strong> &mdash; and our own tape agrees:
+the first 90 minutes after the cash open contains <strong>72.2% of MNQ's entire RTH range</strong> on ~42% of the volume,
+so per minute of attention it is <strong>4.3&times; as productive</strong> as the remaining five hours. Jigsaw's June
+leaderboard winner: <em>"the bulk of the profits were made from just 2 hours of the day."</em></td><td class="n">6</td>
+<td>Yes &mdash; measured on our own data</td></tr>
+<tr><td>7</td><td><strong>KILL THE FIXED TARGET.</strong> The strongest <em>quantified</em> convergence in the sweep:
+all four sources have samples. Zarattini's 2-D stop&times;target grid found the optimum at the tightest stop tested with
+<strong>no profit target at all</strong>, held to the close. Wu et al. on Taiwan index futures: <em>"the introduction of
+a profit target is detrimental for overall profitability."</em> Carver refuses targets on principle. And our own tape
+already agrees &mdash; TRAIL earned +$186 and TARGET_200 +$197 against +$62.69 for the tight target.</td>
+<td class="n">4</td><td><strong>All four quantified</strong></td></tr>
+<tr><td>8</td><td><strong>The stated cause of failure is taking profit too early</strong>, not entering badly.</td>
+<td class="n">5</td><td>No</td></tr>
+<tr><td>9</td><td><strong>A hard, un-editable daily loss limit.</strong> Every professional hard rule in the industry is
+on <em>loss</em>, never on win rate or target. QTS's published objective: <em>"daily stop loss &le; 5% of nominal."</em>
+Collective2's C2Star certifies purely on drawdown while the return bar is merely "beat the S&amp;P by +1% over rolling
+60 days". <strong>Topstep doubles your payout cap if you voluntarily add a daily loss limit.</strong> Their own stat:
+<em>"Over 63% of traders have lost account in a single day."</em></td><td class="n">6</td><td>Partly</td></tr>
+<tr><td>10</td><td>&#9733; <strong>The "second attempt" is the highest-probability entry</strong> &mdash; Brooks' H2/L2,
+Volman's Second Break (<em>"arguably no higher probability of a winning trade in the market"</em>), PATs' second entry,
+Beggs' complex pullback, four schools converging on one pattern.
+<span class="bad">This is the largest convergence in the sweep with the WEAKEST evidence: five or six schools, zero
+samples, anywhere.</span> Shadow-book candidate only. Never a change to anything live.</td><td class="n">5&ndash;6</td>
+<td><strong>No samples at all</strong></td></tr>
+</table>
+
+<h3>The three cross-lens resolutions no single source could see</h3>
+
+<h4>(a) Your 90-minute habit is vindicated by the instrument &mdash; and the same measurement reverses the recommendation</h4>
+<p>Al Brooks asserts the day's high or low occurs within the first 90 minutes about <strong>90%</strong> of the time.
+That claim is the load-bearing justification for trading only the open, and its one public check (TradingView,
+n=29 ES days) got <strong>59%</strong>, not 90%. We measured it on our own MNQ tape and <strong>Brooks is right:
+90.0%</strong> &mdash; the public refutation failed on a definition, measuring whether the range <em>survived</em>
+rather than whether an extreme <em>occurred</em>. But the same measurement then reverses the advice:</p>
+<table>
+<tr><th>Measured on our own MNQ tape (239 RTH sessions, DST-correct)</th><th class="n">MNQ</th><th class="n">MGC</th></tr>
+<tr><td>Share of whole-session range contained in the first 90 minutes</td><td class="n">72.2%</td><td class="n">67.7%</td></tr>
+<tr><td>Share of RTH volume in that window</td><td class="n">~42%</td><td class="n">&mdash;</td></tr>
+<tr><td><strong>Days where the window contains ONE of the day's two extremes</strong></td><td class="n good">90.0%</td><td class="n">&mdash;</td></tr>
+<tr><td><strong>Days where it contains BOTH</strong></td><td class="n bad">10.4%</td><td class="n">20.8%</td></tr>
+<tr><td>Days that set an extreme in the 15:00&ndash;16:00 ET hour you never see</td><td class="n bad">37.2%</td><td class="n">22.7%</td></tr>
+<tr><td>Days where the first extreme arrives inside 30 minutes</td><td class="n">53.2%</td><td class="n">&mdash;</td></tr>
+</table>
+<p>So the window is structurally <strong>continuation geometry</strong> &mdash; price has just left one extreme and is
+travelling toward another that prints in the afternoon &mdash; and <strong>stopping at 11:00 ET abandons an unfinished
+range nine days in ten</strong>. Worse: <strong>your window opens on the single most expensive five minutes of the MNQ
+day.</strong> 09:30&ndash;09:35 ET has a median 3-tick spread, $1.36 a crossing against $0.86 at 10:15, and 3 contracts
+a side instead of 5 &mdash; widest bars, widest spread and thinnest book are all the same five minutes. Meanwhile MNQ's
+spread is <em>tightest</em> 16:00&ndash;19:00Z, which is the part of the day nobody looks at.</p>
+
+<h4>(b) Four literatures 34 years apart are measuring one latent variable: "is today busy?"</h4>
+<p>Zarattini's opening-range Relative Volume (2024, dose-response &minus;0.02R / +0.08R / +0.38R) <em>is</em> Toby
+Crabel's "Early Entry 2" from <strong>1990</strong> &mdash; first-bar volume against the same bar over the previous
+15&ndash;20 days. It is also Dalton's Open Drive (17% of sessions, 62.5% continuation, the only opening type in Market
+Profile that survives a 2:1 test) and the ORB width tiers (wide opening ranges &gt;0.6&times;ATR continue 74.2% on NQ
+against 63.6% for narrow ones). <strong>Four traditions, one measurement.</strong> Use RelVol: it is the only version
+that is objective <em>and</em> has a published dose-response. Corollary worth saying out loud: the Market Profile
+open-type taxonomy is probably not a separate research programme at all, just the same measurement with a subjective
+classifier bolted on.</p>
+
+<h4>(c) The MGC contradiction resolves into a decision</h4>
+<p>The order-flow lens concluded gold is the friendly instrument &mdash; a 30-tick MGC stop carries only 15% friction,
+and it is the only configuration where $1,000/day looked arithmetically reachable. The instrument lens, having actually
+<em>walked the book</em>, found MGC's practical ceiling is ~5 lots at $12&ndash;13/lot all-in. The instrument lens wins
+because it measured rather than assumed the constant scales. <strong>The synthesis nobody states: MGC is the friendlier
+instrument PER LOT and the worse instrument AT SIZE.</strong> So gold is where to <em>test</em> tight-stop,
+level-anchored methods at 1&ndash;3 lots, and MNQ is the only instrument that can ever carry income size.</p>
+<p class="note">&#9733; A consequence that reprices a lot of existing work: the paper engine's fabricated 0.1% adverse
+fill is <strong>$29.39/lot on MNQ against a measured real 10-lot book-walk of $0.35/lot &mdash; 84&times; punitive</strong>
+&mdash; but on MGC it is $4.37 against $4.60 measured, i.e. roughly <em>realistic</em>. <strong>MGC's paper P&amp;L is
+far more trustworthy than MNQ's, and any correction must be per-instrument.</strong> A single global fudge factor would
+be exactly the "right number beside a wrong one" bug.</p>
+
+<h3>Where they disagree, with my verdict</h3>
+<table>
+<tr><th>The question</th><th>The two camps</th><th>Verdict</th></tr>
+<tr><td><strong>Move the stop to breakeven?</strong></td><td>Mack does it on every scalp; Volman says it is
+<em>"simply asking for an early exit"</em>; Carver's theory says never</td>
+<td class="bad"><strong>NO.</strong> Every <em>measured</em> source plus theory is against it. Every voice for it comes
+from a school whose own founder says <em>"back testing is bunk."</em></td></tr>
+<tr><td><strong>Trailing or fixed stop?</strong></td><td>Sinclair's simulation has no autocorrelation and favours fixed;
+Zarattini's max(band, VWAP) trail <em>doubled</em> a measured Sharpe 0.61&rarr;1.24 on 17 years of real data</td>
+<td><strong>Genuinely open</strong>, and it is really a question about whether trends exist at the horizon traded.</td></tr>
+<tr><td><strong>Structural or ATR stops?</strong></td><td>Practitioners say structure; the quantified side uses
+k&times;ATR</td><td>The quantified side wins on evidence &mdash; <em>but the winning distance-stop is itself structural</em>
+(the first 5-minute candle's extreme). The untested family is the hybrid: <strong>nearest structural level beyond
+k&times;volatility.</strong></td></tr>
+<tr><td><strong>Limit on the retest, or stop on the break?</strong></td><td>Five unconnected forum posters say limit on
+the retest; Valtos measures ~50% fill and says the missed half is the strong half</td>
+<td>It does <strong>not</strong> buy a better price &mdash; that is adverse selection, and it is exactly why our own
+passive entry died. <strong>It buys a much tighter stop, which is a different hypothesis and worth testing as one.</strong></td></tr>
+<tr><td><strong>How long is the opening range?</strong></td><td>Market Profile's constants are 30 and 60 minutes;
+Zarattini gets 5m Sharpe 2.81 vs 30m 0.21; Tsai finds the best probe on E-mini Nasdaq is <strong>one minute</strong></td>
+<td><strong>1&ndash;5 minutes on US instruments.</strong> Two independent programmes agree, and Market Profile's two
+central time constants are the two <em>worst</em> cells on the sample.</td></tr>
+<tr><td><strong>Tighten or widen the stop?</strong></td><td>Everyone quantified says tighten</td>
+<td><strong>Tighten &mdash; but this lever is already spent here.</strong> Our $49.59 stop is 24.8 MNQ points
+&asymp; <strong>12.4% of a 200-point ATR14</strong>, already inside the 5&ndash;10% zone Zarattini's grid preferred, and
+MNQ friction floors any stop at ~20 ticks. <strong>Stop tuning stop width.</strong></td></tr>
+</table>
+<h2 class="brk">3. The method map</h2>
+<p class="small">One section per part of the trade, with mechanics specific enough to implement, and names attached.
+Evidence grade in every row: <span class="tag t-a">A</span> verifiable/peer-reviewed &middot;
+<span class="tag t-b">B</span> a real sample, unaudited &middot; <span class="tag t-c">C</span> assertion or marketing.</p>
+
+<h3>3.1 Trade selection and when NOT to trade &mdash; the category we have never built</h3>
+<p>Every gate we own is a direction or regime <em>trigger</em>. We have never built a <em>selection</em> filter, and
+this is the source of essentially every profitable result in the sweep.</p>
+<table>
+<tr><th>Rule</th><th>Mechanics, exactly</th><th class="n">The number</th><th>Grade</th></tr>
+<tr><td><strong>Opening-range Relative Volume</strong><br><span class="small">Zarattini / Barbon / Aziz 2024;
+Crabel 1990</span></td>
+<td>RelVol = volume in the first 5 minutes today &divide; mean first-5-minute volume over the prior 14 sessions, same
+contract. Require &ge;100%. In stocks, also take only the top 20 names.</td>
+<td class="n">Sharpe 0.48 &rarr; <strong>2.81</strong><br><span class="small">&minus;0.02R / +0.08R / +0.38R by bucket</span></td>
+<td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>NR4 / NR7 / Triangle</strong><br><span class="small">Zarattini et al. on 2,620 SPY days;
+patterns from Crabel 1990</span></td>
+<td>All measured on DAILY bars <em>before</em> the open, conditioning the whole session. NR4 = today's daily range is the
+narrowest of the last 4. Triangle = high below the prior 2 highs and low above the prior 2 lows.</td>
+<td class="n">Unconditional 12bps, Sharpe 1.7<br><strong>NR4 22bps, t=5.14, Sharpe 3.2</strong><br>NR7 t=3.07 &middot; Triangle t=3.19</td>
+<td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>Do NOT trade momentum after a trend day</strong></td>
+<td>Mechanical trend day = open below the 15th percentile of the day's range, close above the 85th, range above the
+14-day average.</td><td class="n bad">&minus;2 bps, t=&minus;0.24, Sharpe &minus;0.3<br><span class="small">n=215 of 2,620</span></td>
+<td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>Nulls, so nobody re-derives them</strong></td>
+<td>Inside Day and Outside Day as conditioning variables.</td>
+<td class="n">t=0.85 and t=1.05 &mdash; <strong>nothing</strong></td><td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>Volatility regime</strong><br><span class="small">FOUR independent programmes</span></td>
+<td>Condition entries on VIX/VXN or realised-vol state measured <em>before</em> the session; stand aside in the middle.</td>
+<td class="n">Sharpe ~1.5 above VIX 6, ~3.5 above VIX 40<br>Li/Sakkas/Urquhart: US R&sup2; <strong>0.84% in expansions
+vs 7.53% in crisis</strong><br>Holmberg: <em>"ORB is basically LONG VOLATILITY"</em></td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>Two horizons must AGREE</strong><br><span class="small">Baltussen et al., JFE 2021</span></td>
+<td>Go long only when the first-half-hour return AND the rest-of-day return are both positive; short only when both are
+negative; <strong>do not trade at all when the signs differ.</strong></td>
+<td class="n">Success 0.55 &rarr; <strong>0.61</strong><br>Sharpe 1.07 &rarr; <strong>1.60</strong><br><span class="small">while raw return FALLS 6.86%&rarr;5.47%</span></td>
+<td><span class="tag t-a">A</span><br><span class="small">60+ futures, 1974&ndash;2020, tick data</span></td></tr>
+<tr><td><strong>5-day RSI as a dealer-gamma proxy</strong></td>
+<td>Prior close's 5-day RSI of the index. Low RSI &rArr; dealers short gamma &rArr; hedging amplifies intraday trends.</td>
+<td class="n">&beta; = &minus;3.25 bps per RSI point, <strong>p = 0.001</strong><br><span class="small">RSI 30&rarr;70 costs ~130bps/day</span></td>
+<td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>Beggs' Rule of Three</strong> &mdash; the only halt rule in the sweep that is neither P&amp;L-based nor
+direction-based</td>
+<td>RED conditions (bad feed, no charts, under 6 hours' sleep) &rArr; stop. <strong>Three concurrent AMBERs
+&rArr; stop.</strong></td><td class="n">&mdash;</td><td><span class="tag t-c">C</span></td></tr>
+<tr><td><strong>The event buffer</strong></td>
+<td>No new entries within ~2 minutes either side of a high-impact release &mdash; the convergent rule across every prop
+firm's funded-account documentation. For FOMC, bench 17:55&ndash;18:40Z to cover both the 14:00 statement and the 14:30
+press conference.</td>
+<td class="n">Fed survey: announcement-window R&sup2; only <strong>0.31</strong> at best<br>Lucca &amp; Moench:
+announcement-to-close return <em>"essentially zero"</em></td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>Dalton's default</strong></td><td><em>"No trade is a legitimate trade. When confidence is low you
+generally want to stay uncommitted so that you can execute if the confidence level changes."</em></td>
+<td class="n">&mdash;</td><td><span class="tag t-c">C</span></td></tr>
+</table>
+<p class="note"><strong>Banked nulls in this category</strong> so no night is wasted on them: Firich (2012) measured
+P(trend day tomorrow) at 9.50% / 9.94% / 10.39% depending on today's type, against an unconditional
+<strong>9.54%</strong> &mdash; <em>day type carries zero next-day information.</em> And the Initial Balance is broken on
+<strong>73.7&ndash;78.3%</strong> of days, so <strong>any gate that fires on an IB break is a clock, not a signal</strong>
+&mdash; the identical shape to our own withdrawn tunnel_watch claim, arrived at independently in 2012. Trend-day
+frequency triangulates four ways at <strong>8&ndash;10% of sessions</strong> (Dalton "&lt;10%", Firich 9.54%,
+Zarattini 8.2%, vovoperador "about 10%").</p>
+
+<h3>3.2 Entry</h3>
+<table>
+<tr><th>Method</th><th>Who</th><th>Mechanics</th><th>Grade</th></tr>
+<tr><td><strong>5-min ORB</strong></td><td>Zarattini &amp; Aziz</td>
+<td>If the first 5-minute candle is UP, buy-stop at its high; if DOWN, sell-stop at its low; doji = no trade. Stop at the
+candle's opposite extreme (= exactly 1R). <strong>No target.</strong> Hold to the close.</td><td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>Kaufman volatility breakout</strong> &mdash; the cleanest replication target in the sweep</td>
+<td>Kaufman 2013, implemented by Zarattini &amp; Pagani</td>
+<td>Bands = session open &plusmn; 0.5 &times; ATR(14) of <em>daily</em> bars, <strong>fixed all session</strong>. Enter on
+a bar CLOSING outside. <strong>The stop is a return to the session opening price</strong> &mdash; one level, known at the
+open, never moves. No target. Flat at EOD. Decisions only at HH:00/15/30/45. 19 years SPY: <strong>CAGR &gt;13%,
+Sharpe 0.87 net of IBKR fees</strong>, with no regime filter at all.</td><td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>The "Noise Area"</strong> &mdash; a when-not-to-trade model before it is an entry model</td>
+<td>Zarattini / Aziz / Barbon</td>
+<td>For each time-of-day HH:MM, &sigma; = mean over the prior 14 days of |close(HH:MM)/open(09:30) &minus; 1|. Bands =
+max(today's open, yesterday's close) &times; (1 &plusmn; &sigma;). Inside the band, hold nothing. Close above the upper
+band = long. <strong>Decisions only at HH:00 and HH:30</strong> &mdash; a deliberate anti-overtrading clock. Flat at the
+close. It never forecasts direction; it takes the sign of an already-realised displacement.</td><td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>The second attempt</strong></td><td>Brooks (H2/L2), Volman (Second Break), Mack, Beggs</td>
+<td>Do not take the first break of a level; take the second. Volman: <em>"arguably no higher probability of a winning
+trade in the market."</em></td><td><span class="tag t-c">C</span> &mdash; no samples</td></tr>
+<tr><td><strong>The retest, on a resting limit</strong></td><td>Fisher's ACD; five unconnected forum posters</td>
+<td>Break the range, then enter the <em>retest</em> with a limit rather than the break with a stop. <em>"Using buy and
+sell stops is usually entering at worst possible price."</em> Stop beyond the breakout bar; target structure at 1.5&ndash;2R.</td>
+<td><span class="tag t-c">C</span></td></tr>
+<tr><td><strong>Fast alpha as an EXECUTION overlay</strong> &mdash; the one idea aimed squarely at our shelved OFI work</td>
+<td>Zarattini &amp; Pagani 2026; Heston/Korajczyk/Sadka, J. Finance 2010</td>
+<td>Do not trade a short-horizon signal. When a slower strategy fires a long, <strong>delay the fill until one adverse
+5-minute bar has printed</strong>, then buy; apply the same delay to the stop. Add an urgency timeout to force the fill.
+The standalone signal is <strong>worthless</strong> after commissions; as an overlay it lifts CAGR ~200bps and Sharpe
+<strong>0.87&rarr;0.99, net</strong>, with <strong>zero added round trips</strong>.</td><td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>ICT Silver Bullet</strong></td><td>ICT (second-hand; his own hosts are bot-walled)</td>
+<td>10:00&ndash;11:00 ET window &mdash; inside your existing watch. On MNQ that translates to a 5&ndash;8 point stop and
+a 10&ndash;15 point target, i.e. 8&ndash;12% friction. Cost-viable.</td><td><span class="tag t-c">C</span></td></tr>
+</table>
+
+<h3>3.3 Stops &mdash; three objects we do not have</h3>
+<table>
+<tr><th>Object</th><th>Mechanics</th><th>Why it matters here</th></tr>
+<tr><td><strong>The structural stop</strong><br><span class="small">Valtos, Orderflows</span></td>
+<td>The stop sits where the <em>premise is falsified</em> &mdash; the far side of the initial balance, the re-entered
+value-area edge, the origin of the day's largest stop run &mdash; not at an ATR multiple.</td>
+<td>&#9733; <strong>A distance cannot encode an invalidation.</strong> That is precisely why a 430-configuration sweep
+over stop <em>distances</em> found a shallow optimum and reported "all configurations &le; holding."</td></tr>
+<tr><td><strong>The two-tier stop</strong><br><span class="small">Valtos</span></td>
+<td>A soft 2&ndash;3 tick stop that is <em>not in the market</em>, whose trigger is to LOOK at flow:
+<em>"I am interested in watching how the market REACTS when it gets to my mental stop as opposed to actually getting
+out."</em> Under it, a hard worst-case stop that is in the market. He publishes the paired ZB trades: hard 2-tick stop
+&rarr; stopped, then it reversed to target (<em>"the operation was a success but the patient died"</em>); mental stop
+&rarr; 3 ticks against, then target.</td>
+<td>We have only Tier 2. Every stop-out is a hard stop with <strong>no machinery between "in" and "stopped".</strong>
+And we are architecturally ready: <code>gazbot7-rider-peak-watch</code> is already the right shape &mdash; a 1&nbsp;Hz
+read-only loop that raises a question with the hard stop untouched underneath.</td></tr>
+<tr><td><strong>The MAE-conditional, pace-scaled time stop</strong><br><span class="small">Valtos</span></td>
+<td><em>"If the market doesn't go to my take profit or stop level after a certain amount of time, the reason for getting
+into the trade has most likely diminished."</em> Scaled to the instrument's pace, and <strong>conditional on whether the
+trade has ever gone against you.</strong> He publishes a case where it cost him 19 of 20 ticks and defends it
+distributionally.</td>
+<td>We have <code>DAYTRADE_FLAT_CLOCK=20min</code> &mdash; so the mechanism exists but is blanket rather than per-signal
+and MAE-conditional. MNQ is one of the fastest liquid futures, so its clock should be <em>short</em>.</td></tr>
+<tr><td><strong>The scratch, as a third outcome</strong><br><span class="small">Valtos</span></td>
+<td><em>"If you are trading with indicators it almost feels like an ALL OR NOTHING way of trading. You will either get
+to your profit target or get stopped out. THAT ISN'T THE WAY TO TRADE."</em></td>
+<td>Our 536 resolved trades <strong>all</strong> ended at one of two pre-set prices. 400 stops is 400 instances of
+learning last.</td></tr>
+</table>
+<div class="warn">
+<p><strong>The theorem that reclassifies our biggest null.</strong> Kaminski &amp; Lo (J. Financial Markets 2014) prove
+that <strong>under a random walk a stop-loss ALWAYS reduces expected return</strong>, and adds value <em>only</em> in the
+presence of momentum. We have established by five independent methods that MNQ direction is ~0.50 at every horizon.
+So <strong>400 stops at &minus;$49.59 against 136 targets at +$62.69 is not a bad stop level &mdash; it is the theorem
+being paid</strong>, and our "430 exit configurations all &le; holding" result is an unwitting empirical confirmation of
+a published theorem. That moves it from a disappointing null to a <strong>settled question</strong>: further
+<em>unconditional</em> exit-lab work can stop. The one question the theorem leaves open is the conditional one &mdash;
+do stops add value only in the subset where momentum plausibly exists?</p>
+<p><strong>And the cost arithmetic kills the whole tick-scale DOM practice on MNQ.</strong> At $2.50 all-in a 1-tick MNQ
+stop is 500% friction and a 5-tick stop is 100%. The DOM school was developed on ZB/ES/Bund where a tick is
+$12.50&ndash;$31.25 on a very deep book. <strong>Minimum coherent MNQ stop is ~20 ticks (5.00 points) for &le;25%
+friction, ~50 ticks for &le;10%.</strong> Mack's 4-tick ES scalp translated literally to MNQ is 1 point = $2.00 against
+$2.50 of cost &mdash; <em>structurally negative before any win rate at all.</em> On MGC at $4.50 all-in,
+<strong>no scalping school in the sweep survives translation</strong>; only the wide-target structural shapes do, which
+matches our own finding that gold's runs are grinds and the exit was the cap.</p>
+</div>
+
+<h3>3.4 Targets and management &mdash; where our actual defect is</h3>
+<table>
+<tr><th>Book</th><th class="n">Win rate</th><th class="n">Avg win</th><th class="n">Avg loss</th><th class="n">Payoff</th><th class="n">Expectancy</th></tr>
+<tr><td>Zarattini &amp; Stamatoudis, blind anonymised charts, 1,580 trades</td><td class="n">18%</td>
+<td class="n">+10.10R</td><td class="n">&minus;1.02R</td><td class="n good">9.9 : 1</td><td class="n good">+1.03R</td></tr>
+<tr><td>Zarattini &amp; Aziz 5-min ORB on QQQ, 1,795 trades</td><td class="n">24%</td><td class="n">~3.7R</td>
+<td class="n">&minus;1.00R</td><td class="n good">~3.7 : 1</td><td class="n good">+0.13R</td></tr>
+<tr><td>"Fenix", Jigsaw public leaderboard monthly winner</td><td class="n">~50%</td><td class="n">$619</td>
+<td class="n">$489.05</td><td class="n">1.266 : 1</td><td class="n good">+$64.98</td></tr>
+<tr><td><strong>GAZBOT V7 live book, 536 resolved</strong></td><td class="n">25.4%</td><td class="n">$62.69</td>
+<td class="n">$49.59</td><td class="n bad">1.264 : 1</td><td class="n bad">&minus;$21.07 (&minus;0.425R)</td></tr>
+</table>
+<p>&#9733; <strong>Our win rate is completely normal for a profitable intraday method &mdash; 18%, 24%, 24%, 25.4%.</strong>
+Our payoff is not. And note the third row: Fenix's payoff ratio is <strong>1.266 against our 1.264 &mdash; identical to
+three decimal places</strong> &mdash; and he cleared the 44.2% break-even hit rate by six points while we miss it by
+nineteen. <strong>That means "we need 3:1" is only one of two exits, and the empirical winner took the other one.</strong>
+Put most usefully: we do not need more winners, we have 136. If we had taken only ~272 trades and those same 136 had won,
+we would <em>be</em> Fenix. <strong>The problem is the ~264 trades we should never have entered &mdash; which is a
+trade-selection statement, not an exit statement.</strong></p>
+<p>The corroborating frontier: FTMO publishes per-account post-mortems of traders who actually got paid, with win rate
+and average reward:risk read off its own broker data. Twenty complete pairs, and the shape is <strong>bimodal with a
+hole in the middle</strong>: every paid trader at win rate &le;46% carries R of 1.58&ndash;5.59, and every one at
+&ge;55% carries 0.65&ndash;1.83. Minimum edge index <em>w&middot;R/(1&minus;w)</em> observed across all twenty is
+<strong>1.295</strong>. <strong>Ours is 0.430. Not one paid trader sits where we sit.</strong></p>
+<table>
+<tr><th>What a stop is actually FOR &mdash; three independent demonstrations</th><th class="n">Hit rate</th><th class="n">Payoff</th><th class="n">Sharpe</th><th class="n">Skew</th></tr>
+<tr><td>Sinclair, 10 years SPY: buy-open/sell-close, no stop</td><td class="n">54.3%</td><td class="n">0.85</td><td class="n">0.066</td><td class="n">&mdash;</td></tr>
+<tr><td>&hellip;same trades with a vol-scaled stop (half the 20-day SD, reset each morning)</td>
+<td class="n bad">47.0%</td><td class="n good">1.18</td><td class="n good">0.298</td><td class="n">&mdash;</td></tr>
+<tr><td>Zarattini SPY 2007&ndash;2024: trailing stop at the opposite band</td><td class="n">54%</td><td class="n">&mdash;</td><td class="n">0.61</td><td class="n bad">&minus;1.24</td></tr>
+<tr><td>&hellip;same entries, trail at <strong>max(current band, VWAP)</strong></td><td class="n bad">43%</td>
+<td class="n">&mdash;</td><td class="n good">1.24</td><td class="n good">+1.29</td></tr>
+<tr><td>Han/Zhou/Zhu, 88 years of momentum, 10% stop</td><td class="n">&mdash;</td><td class="n">&mdash;</td>
+<td class="n good">more than doubled</td><td class="n good">worst month &minus;49.8% &rarr; &minus;11.4%</td></tr>
+</table>
+<p class="note">&#9733; <strong>A stop SELLS hit rate to BUY payoff. We have paid the hit-rate price and never collected
+the payoff</strong>, because a $62.69 target truncates the exact right tail the stop bought. The operational consequence
+is a rule for the badcall ledger: <strong>a falling hit rate is not evidence of a worse exit.</strong> Judge exits on
+payoff, skewness and worst-day &mdash; never on hit rate.</p>
+
+<h3>3.5 Sizing</h3>
+<table>
+<tr><th>Method</th><th>Mechanics</th><th class="n">The number</th><th>Does it work at $30k?</th></tr>
+<tr><td><strong>Volatility targeting</strong><br><span class="small">Zarattini; theory from Harvey et al., JPM 2018</span></td>
+<td>shares = AUM &times; min(4, &sigma;<sub>target</sub> / &sigma;<sub>14-day</sub>) / open, with &sigma;<sub>target</sub>
+= 2% daily. <strong>Size fixed at the session open, unchanged intraday.</strong></td>
+<td class="n">The <strong>identical 7,668 trades</strong> at the identical $0.09/share went<br>380% &rarr; <strong>1,985%</strong></td>
+<td class="bad"><strong>No.</strong> At $30k the multiplier rounds to {0,1,2} lots. The single largest documented
+improvement in intraday index trading is <em>unavailable</em> at this account size. The reachable half is binary
+participation &mdash; 1 lot on normal-vol days, 0 on high-vol days &mdash; which gets the tail reduction and none of the
+Sharpe.</td></tr>
+<tr><td><strong>Breadth</strong><br><span class="small">Carver, measured over 37 futures</span></td>
+<td>More instruments, same signal.</td>
+<td class="n">1 instrument SR 0.35 &middot; 3 &rarr; 0.50 &middot; 5 &rarr; 0.57 &middot; 8 &rarr; 0.61 &middot; 37 &rarr; 0.70<br>
+<span class="small">discreteness penalty ~20% of Sharpe at max 1 lot, ~5% at 2, <strong>zero at 3&ndash;4</strong></span></td>
+<td class="good"><strong>Yes &mdash; and it is the cheapest Sharpe on the menu.</strong> 1&rarr;8 instruments is
+<strong>+74% Sharpe with no new signal.</strong> His explicit $30,000 portfolio is FIVE instruments &mdash; written in
+2016, <em>before</em> the micro complex dissolved the "can't hold less than one contract" problem he was solving. Breadth
+here means MES/MYM/M2K/MCL/M6E, <em>not</em> more gold.</td></tr>
+<tr><td><strong>Size as a function of retained profit</strong><br><span class="small">Topstep, Apex ladders</span></td>
+<td>Daily loss limit &asymp; 10% of cumulative profit; ~1 mini per $10,000 of <em>cumulative</em> profit; promotion needs
+<strong>10 active trading days per tier with no skipping</strong>; demotion automatic and same-day, with the tier frozen
+at the prior close so it cannot change intraday.</td>
+<td class="n">At $30k with nothing retained: <strong>&le;2 minis / 20 micros</strong><br><span class="small">= exactly Kevin
+Davey's "one contract per $15,000"</span></td>
+<td class="good">Yes. Note that an "active day" is any day with &ge;1 trade, so <strong>the clock rewards showing
+up</strong> &mdash; converging with the strongest finding in the base-rate literature.</td></tr>
+<tr><td><strong>Scale IN</strong><br><span class="small">Jigsaw Rule 20; Hougaard</span></td>
+<td>Three named schedules: Standard Pyramid 50/30/20 (safest, keeps average price furthest away), Equal Block, Inverted
+Pyramid (<em>"quite lethal"</em>). Control variable is <strong>average price / break-even measured in ATRs</strong>.
+The reframe: <em>"as you add, the price is mathematically worse, but you have superior information &mdash; you are
+paying a premium for information."</em> And the honest admission: <em>"your last scale-in will probably be a loser."</em></td>
+<td class="n">&mdash;</td><td>Untested here &mdash; we only scale <em>out</em>. &#9888; Contaminated on the paper engine
+(see 84&times; artefact).</td></tr>
+<tr><td><strong>Risk per trade, as every school actually sets it</strong></td>
+<td>0.25% to 1% of equity.</td><td class="n">$75&ndash;$300 at $30k</td>
+<td class="bad">&#9733; <strong>This is the whole distance between the forum post and the paper.</strong> $1,000/day at
+those rails implies <strong>3&ndash;13R every single day</strong> against measured per-trade expectancies of +0.13R to
++1.03R at ~1.8 trades/day. To chase it you must risk ~4.3%/trade, where at an 18&ndash;25% win rate a five-loss streak
+is <strong>37% likely</strong> and a ten-loss streak (13.7% likely) costs <strong>36% of the account</strong>. The
+practitioners whose numbers survive scrutiny risk 0.25%. <strong>Factor of 17.</strong></td></tr>
+</table>
+<p class="note">&#9733; <strong>One bias a bot can simply not have.</strong> Ben-David, Birru &amp; Prokopenya
+(NBER w22146) have full records from a retail FX broker and document a discontinuity in trade size at
+<em>exactly zero past-week return</em> worth 12&ndash;17% of a standard deviation (~55% for trade count) &mdash;
+<strong>with no corresponding discontinuity in future performance.</strong> Same effect in CBOT floor traders and
+Taiwanese market makers. If size is a pure function of (equity at session open, current instrument volatility) and is
+<strong>frozen for the session</strong>, the bias cannot exist. That is free.</p>
+
+<h3>3.6 Daily risk limits &mdash; what the industry actually enforces, scaled to $30,000</h3>
+<table>
+<tr><th>Layer</th><th>Rule</th><th class="n">At $30k</th><th>Detail that matters</th></tr>
+<tr><td>1 &mdash; account floor</td><td>Trailing max drawdown, 4% at every firm and every size</td><td class="n">$1,200</td>
+<td>Trails the <em>closing</em> balance, never trails down, <strong>locks permanently once it reaches the starting
+balance</strong>, and is evaluated on <strong>unrealised</strong> P&amp;L.</td></tr>
+<tr><td>2 &mdash; day floor</td><td>Daily loss limit, ~2% (Apex uses exactly half the drawdown at all four sizes)</td>
+<td class="n">$600</td><td>On total equity including open positions. Hitting it is <strong>not a failure</strong>, it is
+a forced stand-down until the next session &mdash; and it must be <strong>un-editable for the session</strong>.</td></tr>
+<tr><td>3 &mdash; the upside stop nobody advertises</td><td>A Topstep performance coach's own rule: quit when up more
+than $300 on a $50k Combine = 0.6% of account</td><td class="n">$180</td>
+<td>Plus a day-level give-back ratchet: <em>"once up $1,000 I will not go home with less than $800. PERIOD"</em>, the
+floor moving up with each new high. The sharp counter-argument, worth testing: <em>"Don't limit profits unless you
+consistently give them back and if you do then you have a TIME OF DAY problem, not a max profit problem."</em></td></tr>
+<tr><td>4 &mdash; consistency</td><td>Best single day &divide; net profit &le; 20&ndash;55%</td><td class="n">&mdash;</td>
+<td>&#9733; <strong>A big day is priced as a NEGATIVE signal</strong> by every firm that observes hundreds of thousands
+of futures accounts.</td></tr>
+</table>
+<div class="warn">
+<p>&#9733; <strong>The non-obvious interaction, and it is important: a low-hit-rate design needs a WIDER daily loss limit
+than the industry default.</strong> At our 25.4% hit rate, four losers in a row happen 31.6% of the time, ten in a row
+5.6%, and sixteen in a row is the 99% point (<code>0.75^16 = 0.01</code>). Acrary's arithmetic puts the
+<strong>trading cycle to a new equity high at 48 trades.</strong> Topstep's 2% limit is calibrated on high-hit-rate
+scalpers and would <strong>halt a convergent low-hit-rate design out of its own edge.</strong> Calibrate the two rails
+together &mdash; 3&ndash;4R, not 1R.</p>
+<p><strong>And a free prerequisite before building any of it:</strong> is our worst day a large multiple of our median
+losing day? If losses are single-session-dominated, a hard daily loss limit is the highest-value change available and
+needs no edge at all. If it is a slow bleed, the limit buys nothing &mdash; <em>and that itself is the finding: our
+failure mode is not the industry's.</em> We have never looked at the shape of our own daily loss distribution.</p>
+</div>
+<h2 class="brk">4. The ten things this desk has never tried</h2>
+
+<h3>The arithmetic that ranks them</h3>
+<div class="lede">
+<p>136 winners at +$62.69 = <strong>+$8,526</strong>. 400 losers at &minus;$49.59 = <strong>&minus;$19,836</strong>.
+Every worthwhile finding in the sweep reduces to one question: <strong>how do you get the loss pool under $8,526 without
+touching the winners?</strong></p>
+<table>
+<tr><th>Route</th><th>Lever</th><th class="n">Move needed to break even ALONE</th></tr>
+<tr><td><strong>A. Cut loss SIZE</strong></td><td>trade management, stop architecture</td>
+<td class="n">avg loss $49.59 &rarr; <strong>$21.31</strong> &nbsp;(&minus;57.0%)</td></tr>
+<tr><td><strong>B. Cut loser COUNT</strong></td><td>trade and day selection, stand-aside rules</td>
+<td class="n">400 &rarr; <strong>&le;171 losers</strong> &nbsp;(&minus;57.3%)</td></tr>
+<tr><td><strong>C. Raise winner SIZE</strong></td><td>remove the target, let the tail run</td>
+<td class="n">avg win $62.69 &rarr; <strong>$145.85</strong> &nbsp;(+133%)</td></tr>
+</table>
+<p>&#9733; <strong>The two 57% figures are the same number reached from opposite ends, and they COMBINE
+MULTIPLICATIVELY.</strong> 30% fewer losers &times; 40% smaller losses = 0.70 &times; 0.60 = 0.42 of the loss pool =
+<strong>$8,331, which is under $8,526</strong> &mdash; a profitable book with <em>zero</em> change to entry direction, to
+the hit rate of the trades we keep, or to the winners. <strong>We do not need a better entry. We need 30% fewer entries
+and 40% smaller losses &mdash; two independent projects, neither of which requires a direction forecast.</strong>
+Route C we have half-measured already (TRAIL +$186, TARGET_200 +$197). Routes A and B we have never systematically
+attempted at all.</p>
+</div>
+
+<h3>Four framing rules &mdash; each of which invalidates a class of work already done</h3>
+<table>
+<tr><th>Rule</th><th>Why</th></tr>
+<tr><td><strong>R1. Only LARGE-GAP comparisons are resolvable on 879 trades.</strong></td>
+<td>MacLean, Thorp &amp; Ziemba: telling a 1.0% edge from a 1.1% edge takes <strong>two million trials</strong>.
+&#9733; This retroactively explains the 430-exit-configuration null &mdash; <em>the study was unresolvable by
+construction, not the world being flat.</em> Every test below is a 2-, 3- or 4-cell factorial with a large expected gap.
+Any future sweep with more than 8 cells on the live book should be refused at design time.</td></tr>
+<tr><td><strong>R2. A falling hit rate is not a worse exit.</strong></td>
+<td>Three independent demonstrations (&sect;3.4). Drop hit rate as an acceptance test; judge on payoff, skew, worst-day.
+Our instinct will read a hit-rate drop as a regression, so this needs to be a written line in the badcall ledger.</td></tr>
+<tr><td><strong>R3. Every multi-lot P&amp;L number is contaminated, PER INSTRUMENT.</strong></td>
+<td>The paper engine's 0.1% adverse fill is $29.39/lot on MNQ against $0.35 measured (84&times; punitive) and
+$4.37 against $4.60 on MGC (realistic). Any sizing or scale-in test on the paper engine measures the simulator, wrong in
+<em>opposite directions</em> on the two instruments.</td></tr>
+<tr><td><strong>R4. The measuring instrument itself is unverified.</strong></td>
+<td>IBKR's own documentation: streaming market data <em>"is not tick-by-tick but consists of aggregate snapshots taken
+several times per second"</em> (depth, by contrast, is <em>"sent without sampling nor filtering"</em>). Jigsaw's V6.1
+changelog, 2025-12-05, lists <em>"Fixed MAE/MFE (not for IB &mdash; that's down to a data restriction)"</em> &mdash; a
+commercial platform that computes MAE/MFE for eight other feeds explicitly cannot on IBKR. This does <strong>not</strong>
+overturn the direction nulls, but every bar, ATR, ER, VWAP and MAE we own came from aggregated snapshots with an
+<em>inferred</em> aggressor side. Cost to close: <strong>~$57/month</strong> (Sierra Chart Package 11 + Denali CME+COMEX
+with depth) &asymp; 12 MNQ round trips, and it is a <strong>go-live</strong> purchase because non-pro exchange rates
+require a funded account. <em>Nobody had priced it.</em></td></tr>
+</table>
+
+<h3>The ranked queue</h3>
+
+<table>
+<tr><th style="width:4%">#</th><th style="width:28%">What</th><th style="width:40%">The test that settles it</th><th style="width:28%">Data / verdict</th></tr>
+
+<tr><td><strong>1</strong></td>
+<td><strong>The MAE distribution, conditional on eventual outcome.</strong> Maximum Adverse Excursion is absent from our
+entire research history &mdash; and nearly absent from the academic literature too (zero relevant OpenAlex hits; it lives
+in Sweeney's 1996/97 books and vendor software). <strong>It is the one measurement that decides whether 400/136 is a
+stop problem or a target problem, and we have been arguing that question without it.</strong> Three lenses nominated it
+independently.</td>
+<td>For all 879 live trades plus the shadow book, record each trade's worst unrealised drawdown. Plot the MAE
+distribution <strong>separately for eventual winners and eventual losers</strong>. Place the candidate stop just beyond
+the percentile that keeps <strong>90&ndash;95% of eventual winners alive</strong>. &#9888; Compute the <em>race</em>, not
+"reached N R" &mdash; our own MFE trap. &#9888; Per R4, report the percentile as a <strong>lower bound</strong>.</td>
+<td class="good"><strong>Yes &mdash; 879 trades + 13 months of 1-min bars, all on disk. No new data, no P&amp;L model, no
+direction forecast.</strong></td></tr>
+
+<tr><td><strong>2</strong></td>
+<td><strong>Remove the target.</strong> A 2&times;2 factorial, not another 430-cell sweep. Four quantified sources agree
+and our own tape already half-agrees.</td>
+<td>Cells: (a) stop only, no target; (b) target only; (c) both &mdash; status quo; (d) neither, exit at 20:40Z.
+<strong>Pre-register the published prediction:</strong> (a) shows a lower hit rate and a much higher payoff than (c);
+Zarattini's independent 2-D grid found the optimum at the tightest stop with no target held to the close; Wu et al.
+found the target strictly detrimental. <strong>Judge on payoff, skew and worst-day &mdash; not hit rate (R2).</strong></td>
+<td class="good"><strong>Yes.</strong> A large-gap comparison, so 879 trades can actually resolve it (R1). Our stop is
+already the right width; <strong>the target is the deviant.</strong></td></tr>
+
+<tr><td><strong>3</strong></td>
+<td><strong>Relative-volume day selection.</strong> The largest identified gap in the desk: <strong>we have never built a
+selection filter of any kind.</strong> Four lenses nominated it first, it is the only finding with a dose-response, and
+Crabel published the same filter in 1990.</td>
+<td>RelVol(w) = first-w-minutes volume &divide; trailing 14-session same-window mean, for w &isin; {5, 15, 30, 60}.
+Re-score the 879 live trades <em>and the whole 35-arm shadow book</em> into deciles and check whether the &lt;100% bucket
+is where the losses live. Add NR4 / NR7 / Triangle / prior-trend-day flags off daily bars, and a VXN bucket.
+&#9888; <strong>Roll-aware: same contract month on both sides of the ratio</strong> &mdash; the MNQ roll moves
+2.7%&rarr;17.3%&rarr;66.4% across one Friday-to-Sunday boundary.</td>
+<td class="good"><strong>Yes &mdash; pure re-scoring of data already on disk. An afternoon's work.</strong> It is a gate,
+not a trade, so it costs nothing to run and cuts friction by cutting trade count.</td></tr>
+
+<tr><td><strong>4</strong></td>
+<td><strong>Loss-scale management: the flow-versus-price matrix.</strong> All 536 resolved trades ended at one of two
+pre-set prices. There is nothing between "in" and "stopped."</td>
+<td>Jigsaw's 5-state matrix on (price since entry &times; flow since entry), with both meters <strong>reset at
+entry</strong>: (1) price against, flow not supporting = a wiggle, hold; (2) both against = <strong>exit before the
+stop</strong>; (3) price your way, flow weak = unclear; (4) both your way = hold; (5) <strong>flow your way but price not
+moving = the MOST dangerous state</strong>, because your side is the trapped cohort. &#9733; State 5 is exactly the cell a
+naive <code>sign(OFI)==sign(position)</code> rule gets backwards. Honest paired test: for every historical stop-out, does
+flow-since-entry separate the ones that would have come back from the ones that did not?
+<strong>Pre-register a random-early-exit control.</strong></td>
+<td class="good"><strong>Yes</strong> &mdash; computable from the 250ms L2 + tick record, no new data. Arithmetic: the
+vendor's claimed 50% loss reduction takes the book to <strong>&minus;$1,392 (closes 88% of the gap, not enough
+alone)</strong>; 57% is break-even; 65% is +$1,582. <strong>The most implementable practitioner finding gets us to
+roughly flat and must be combined with #3.</strong></td></tr>
+
+<tr><td><strong>5</strong></td>
+<td><strong>Three nearly-free diagnostics that reprice everything already done.</strong></td>
+<td>(a) <strong>Ordinal position within the day</strong> &mdash; rank all 879 trades by position in session and ask
+<em>at what trade number does expectancy go negative?</em> One GROUP BY, never asked, and a free daily trade cap if it
+crosses early. (b) <strong>Acrary's trading cycle</strong> as a calibrated alarm threshold instead of a feeling: 16
+consecutive losers is normal at 99%, cycle to a new high is 48 trades. (c) <strong>Acrary's EDGE TEST</strong>, the
+formal version of "a control is supposed to lose": replace our entries with random entries of <em>matched hold
+length</em> in the same year, 5,000 Monte Carlo passes, <strong>rank longs and shorts separately per year</strong>,
+require the 70th percentile on <em>both</em> sides for 3&ndash;5 years, re-check every 3 months live and
+<strong>stop trading it below 70</strong> &mdash; and critically, <strong>disable stops and targets during the
+test</strong> so it measures entry skill alone.</td>
+<td class="good"><strong>Yes, all three.</strong> (c) is stricter than anything we currently apply.</td></tr>
+
+<tr><td><strong>6</strong></td>
+<td><strong>Day-type classification &mdash; and this is NOT the tunnel study.</strong> tunnel_watch measured
+<em>intraday</em> compression and forecast nothing. These are <strong>daily-bar, pre-open</strong> classifiers
+conditioning the whole session, which we have never tested.</td>
+<td>NR4 / NR7 / Triangle / mechanical-trend-day / Inside / Outside flags off daily NQ and MGC bars over 10.5 years
+(minutes of work), then bucket the live trades and the shadow book. Plus the <strong>Rotation Factor</strong>: Sierra
+Chart published the source code for the classifier the whole Market Profile school refuses to write down (+1 for a higher
+high, +1 for a higher low, &minus;1/&minus;1 otherwise, summed per 30-minute period). Test it <em>cumulatively after each
+period, as it is knowable in real time</em>, measuring P(close in the top/bottom 15% of range | RF after k periods)
+against the unconditional rate <strong>and a label-shuffled control</strong>.</td>
+<td class="good"><strong>Yes.</strong> Published expectations: NR4 t=5.14, NR7 t=3.07, Triangle t=3.19, Inside/Outside
+NULL, prior trend day Sharpe &minus;0.3. This predicts our own "don't bench a coiled gate on quiet tape" memory from
+outside.</td></tr>
+
+<tr><td><strong>7</strong></td>
+<td><strong>Sizing &mdash; the lever never pulled, and the $30k ceiling on it.</strong></td>
+<td>Vol-targeted sizing turned the <em>identical</em> 7,668 trades from 380% into 1,985%. &#9888; At $30k the multiplier
+rounds to {0,1,2}, so the testable version is <strong>binary participation</strong>: 1 lot on normal-vol days, 0 on
+high-vol days. &#9733; <strong>Pre-register a built-in bug detector:</strong> vol-scaling should raise <em>MNQ's</em>
+Sharpe and <em>not</em> MGC's (equity index vs commodity, per Harvey et al.) &mdash; <strong>if MGC improves as much, the
+implementation is wrong.</strong> Also never tried: size as a function of retained profit with a time lock; fixed-ratio
+(square-root-of-profit) scaling, which is the right shape for a small account; and scale-IN.</td>
+<td><strong>Partly.</strong> &#9888; R3 bites hardest here. And one audit that may invalidate an existing result:
+<strong>if the stop-width A/B did not vary lots inversely, it varied RISK, not GEOMETRY.</strong> This is the sweep's
+strongest quantitative argument for a larger account.</td></tr>
+
+<tr><td><strong>8</strong></td>
+<td><strong>Stop architecture &mdash; the three objects from &sect;3.3.</strong> The structural stop, the two-tier stop,
+and the MAE-conditional time stop.</td>
+<td>The measurement that turns #4 from a claim into a number: <strong>what fraction of the 400 stop-outs had a detectable
+premise-death strictly earlier, and what does the loss pool become then?</strong> Then the hybrid nobody has tested:
+<em>nearest structural level beyond k&times;volatility</em>. &#9888; A soft-stop layer is not an order path without the
+usual work (two exit paths in one tick both decrementing from a stale snapshot).</td>
+<td class="good"><strong>Yes</strong> &mdash; and <code>rider-peak-watch</code> is already architecturally the right
+shape for the soft tier.</td></tr>
+
+<tr><td><strong>9</strong></td>
+<td><strong>Risk rails.</strong> We have no daily loss limit, no day-level give-back floor, no account trailing floor,
+and have never looked at the shape of our own daily loss distribution.</td>
+<td><strong>The free prerequisite first</strong> (see the box in &sect;3.6): plot the daily loss distribution. Then
+replay the whole book under EOD-trailing versus intraday-trailing floors at $1,200 and <strong>count deaths</strong>.
+&#9733; <strong>MyFundedFutures states the mechanism</strong> and it is the most relevant practitioner sentence found all
+night: aggressive trailing drawdowns mean <em>"Win rate holds, but average reward per trade shrinks because every
+position is managed defensively."</em> <strong>That produces our exact signature &mdash; hit rate intact, payoff
+collapsed &mdash; from the RISK ARCHITECTURE rather than the exit rule.</strong></td>
+<td class="good"><strong>Yes, and free.</strong></td></tr>
+
+<tr><td><strong>10</strong></td>
+<td><strong>The statistics layer.</strong> We are a multiple-testing machine &mdash; 35 shadow arms, an 86-entry sim
+registry, 430 exit configs, a rotating greenfield programme &mdash; that ranks on <strong>raw P&amp;L and un-deflated
+t-statistics</strong>.</td>
+<td>Adopt three tools: <strong>Deflated Sharpe Ratio</strong> with N = the honest number of configurations ever tried
+(hundreds, not dozens); <strong>Minimum Track Record Length</strong>, which with 879 trades and negative skew yields a
+number we can act on of the form "we need N more trades before a Sharpe of X is distinguishable from zero"; and
+<strong>PBO/CSCV</strong> instead of a single hold-out. The bar is Harvey/Liu/Zhu's <strong>t &gt; 3.0, not 2.0</strong>
+&mdash; <em>"most claimed research findings in financial economics are likely false."</em></td>
+<td class="good"><strong>Yes.</strong> Applying t&gt;3.0 ruthlessly to this whole sweep, the <em>only</em> MNQ result that
+clears it is Mesfin's gap-continuation short at t=3.23 on n=22. Free tonight: compute annualised return
+<strong>and vol</strong> for the live book and every shadow arm &mdash; FundSeeder scores a 12.3%/5.7%-vol team at
+<strong>87.1</strong> and a 470%/86%-vol trader at <strong>62.8</strong>.</td></tr>
+
+<tr><td><strong>11</strong></td>
+<td><strong>Breadth</strong> &mdash; the largest structural finding, and the only one in the queue needing new data.</td>
+<td>Carver's measured ladder: 1 instrument SR 0.35 &rarr; 8 at 0.61. Add MES/MYM/M2K/MCL/M6E as shadow sleeves.
+&#9888; Resolvable counterweight: Barber et al. found real day traders who <em>concentrate</em> did better &mdash;
+concentration helps a <em>discretionary</em> trader exploiting specific knowledge, breadth helps a <em>mechanical</em>
+system whose edge is statistical. We are the second kind. &#9733; <strong>The free half applies today:</strong> at max
+position 1 lot, Carver's own prescription is a <strong>threshold filter &mdash; trade only the strongest forecasts.</strong>
+That is the same prescription as Rosa's surviving threshold version and as #3. <em>Three independent routes to "trade
+less, trade the strong signal."</em></td>
+<td><strong>Needs new sleeves</strong>, so it is the slowest item &mdash; but +74% Sharpe with no new signal is the
+largest number on the page.</td></tr>
+
+<tr><td><strong>12</strong></td>
+<td><strong>Point OFI at the FILL, not the trade.</strong> We measured OFI at r=+0.688 <em>contemporaneous</em> and
+&minus;0.001 at +60 minutes and filed it as dead. <strong>That profile is the textbook definition of a fast alpha</strong>
+&mdash; and three top-tier sources say short-horizon information is worth more on execution than on direction.</td>
+<td>On every existing entry in the live record and the shadow book, delay the fill by one adverse micro-bar (or until OFI
+flips sign) with an urgency timeout, and <strong>measure the change in average fill price IN TICKS &mdash; not in
+P&amp;L.</strong> Fill quality resolves in dozens of observations; P&amp;L needs thousands.</td>
+<td class="good"><strong>Yes.</strong> We have 250ms L2 since 2026-08, and our own surviving <code>ofi-veto-grind</code>
+cell (&minus;$172 &rarr; +$772) <em>is already this mechanism</em>. The literature is saying it was not a fluke.
+<strong>The only idea in the sweep that does not require predicting direction at all.</strong></td></tr>
+</table>
+
+<div class="warn">
+<p>&#9733; <strong>Why the five direction nulls are ONE confirmation of published theory rather than five failures.</strong>
+Cont, Kukanov &amp; Stoikov show price change is <em>linear</em> in order-flow imbalance with a slope
+<em>inversely proportional to market depth</em> &mdash; OFI is a contemporaneous <strong>identity</strong>, never a
+forecast. Takahashi, on S&amp;P E-mini futures at one-second resolution, finds <em>"shocks dissipate almost entirely
+within a second."</em> <strong>We measured OFI at +60 minutes, a horizon roughly 3,600&times; longer than the
+phenomenon's lifetime.</strong> Nobody should re-run those studies.</p>
+<p><strong>And the reframe that follows.</strong> &Delta;price &asymp; OFI / depth means <strong>depth is the
+denominator</strong> &mdash; the price-impact coefficient &lambda; &asymp; 1/depth tells you how far a given flow will move
+price <em>right now</em>. Jigsaw says the same thing in prose: <em>"thicker = less volatility, thinner = more
+volatility&hellip; it's the changes in liquidity that causes the market to shift gears."</em> A C-grade practitioner claim
+and an A-grade replicated identity converging on a mechanism is the strongest evidence in the sweep.
+<strong>&lambda; is the correct input to stop width, position size, expected exit slippage and target feasibility &mdash;
+all of which we currently take from TRAILING ATR. &lambda; is the LEADING version of the same quantity, and it never asks
+the book which way price will go.</strong> Takahashi corroborates operationally: around news <em>"price impact rises,
+return volatility spikes, and FLOW volatility FALLS"</em> &mdash; only possible if depth collapsed. <strong>A fixed-ATR
+stop is at its most wrong precisely at the news minute, inside your 90-minute window.</strong></p>
+</div>
+
+<h3>Three external claims that contradict us &mdash; re-derive them on our sample, do not dismiss them</h3>
+<table>
+<tr><th>Claim</th><th>Their sample</th><th>Ours</th><th>The test</th></tr>
+<tr><td>edgeful: when NQ's first-15-minute colour and its noon position versus the 09:30 open agree, the close follows
+<strong>~87%</strong> of the time</td><td class="n">66&ndash;76 sessions</td><td class="n"><strong>2,600 NQ sessions
+&mdash; 35&times;</strong></td><td>The likely trap is that by noon the move has already happened. The test that settles
+it is <strong>net MNQ points from a 12:00 entry to a 16:00 exit against the unconditional control, after 1.25 points of
+friction.</strong></td></tr>
+<tr><td>Mesfin killed 14 MNQ signal families &mdash; but <strong>charged 2.00 points round trip where we pay 1.25</strong></td>
+<td class="n">947 MNQ days, 2021&ndash;25</td><td class="n">10.5 years of NQ &mdash; ~2.5&times; the span</td>
+<td>&#9733; <strong>The 0.75-point gap is 60% of our friction and sits right in the middle of his 0.07&ndash;1.50 point
+ceiling.</strong> A family at 1.4 points gross is DEAD at 2.00 and ALIVE at 1.25. <strong>Re-run all fourteen at our
+true friction before calling any of them dead.</strong></td></tr>
+<tr><td>Mesfin's one glimmer: <strong>gap continuation short, t=3.23, +14.52 points mean net</strong></td>
+<td class="n">n=22 over three years</td><td class="n">~2.5&times; the span should roughly triple the sample</td>
+<td>It failed only the n&ge;30 gate. It is the <strong>only MNQ result in the entire sweep clearing the t&gt;3.0
+bar.</strong> <span class="tag t-c">PARKED, not refuted</span></td></tr>
+</table>
+<h2 class="brk">5. What the evidence grades actually look like</h2>
+
+<p><strong>Be clear-eyed about this: most of what practitioners teach is ungraded assertion, and the people who teach it
+often say so themselves.</strong> Mack, who sells a price-action course, states it outright: <em>"back testing is
+bunk&hellip; you cannot back test our price action trading strategies."</em> Volman published six months of day-by-day
+skip decisions and never states the criterion &mdash; <em>"'Skip this trade.' Maybe so, but why?"</em>
+<strong>The skip rule is the edge and it is the part that is not written down.</strong></p>
+
+<table>
+<tr><th>Grade</th><th>What it means</th><th class="n">Roughly how much of the sweep</th><th>Who is in it</th></tr>
+<tr><td><span class="tag t-a">A</span></td><td>Peer-reviewed, or a full-population census, or a regulator's primary
+document, or a firm's own legally-exposed disclosure</td><td class="n">~15%</td>
+<td>Barber/Lee/Liu/Odean (entire Taiwan tape, 2.34M trader-years) &middot; Chague et al. (full Brazilian index-futures
+census) &middot; Baltussen et al., JFE 2021 (60+ futures, tick data, 46 years) &middot; Kaminski &amp; Lo, JFM 2014
+&middot; Boyarchenko/Larsen/Whelan, RFS 2023 &middot; Coates &amp; Page, PLoS ONE 2009 &middot; Cont/Kukanov/Stoikov
+&middot; the CFTC's $920.2m JPMorgan spoofing order &middot; Topstep's and Tradeify's own performance disclosures</td></tr>
+<tr><td><span class="tag t-b">B</span></td><td>A real, stated sample with a stated method &mdash; but unaudited,
+and often by an interested party</td><td class="n">~25%</td>
+<td>The entire Zarattini/Concretum tier (survivorship-free samples, commissions charged, methods fully specified &mdash;
+<em>and two of three authors sell day-trading education</em>) &middot; Mesfin on MNQ &middot; Seeck on NQ &middot;
+Jigsaw's public leaderboard (a real denominator, platform-recorded, published against commercial interest) &middot;
+FundSeeder's broker-verified records &middot; the Payout Junction on-chain archive &middot; edgeful's base rates
+&middot; Kevin Davey (his self-reported 107% cross-checks to the official championship table's 106.70%)</td></tr>
+<tr><td><span class="tag t-c">C</span></td><td>Assertion, marketing, or a screenshot</td><td class="n"><strong>~60%</strong></td>
+<td>Every price-action school &middot; every DOM vendor's setup library &middot; ICT &middot; essentially all of
+Market Profile &middot; <strong>every single "$1,000 a day" claim I found anywhere</strong></td></tr>
+</table>
+
+<p><strong>Three honest observations about the grading.</strong></p>
+<ul>
+<li><strong>A well-labelled C is still valuable</strong>, because it tells us what to test. The convergences in &sect;2
+are built almost entirely out of C-grade material, and they are the most useful part of the report.</li>
+<li><strong>Grade A does not exist in the forum population, and the community itself concluded that.</strong> Across
+~25 years of the two largest retail futures forums, the only named audit service (AudiTrack) was dismissed as too
+expensive, and traders substituted "trade live in front of people". The highest grade reachable there is B &mdash;
+forward-declared, dated, continuous public posting &mdash; and I found exactly <strong>three</strong> B-grade things in
+~155 pages: GFIs1's seven years of pre-declared one-trade-a-day DAX signals; one third-party 26-session manual replay of
+a Camarilla MNQ method (+$4,465 on 5 lots &asymp; <strong>$172/day</strong>); and edgeful's computed base rates.</li>
+<li>&#9733; <strong>Market Profile has never been peer-reviewed in forty years.</strong> OpenAlex returns 25 works for
+"Market Profile Steidlmayer value area trading" and not one tests it; even the CMT Association carries it only as
+webinars. Its entire evidential base is one unattributed second-hand 2012 frequency study, vendor blogs, and books that
+sell courses.</li>
+</ul>
+
+<div class="warn">
+<p><strong>Two hazards in the 2026 web that anyone repeating this work must know about.</strong></p>
+<p><strong>(a) The freshly-minted affiliate layer.</strong> "NQ opening range breakout rules" returns a wall of
+near-identical new domains with plausible rules tables and claimed backtests, each fronting a backtester or prop-firm
+affiliate. Treat it as uncitable. Two top-ranking MNQ "ORB backtest" pages <strong>fail arithmetic</strong>: one claims a
+314% return with a 4.2% max drawdown at Sharpe 2.50; another a 93.8% win rate with profit factor 2.23 under a stop equal
+to the full range width. The only credible MNQ number found anywhere is Sharpe ~1.10 out of sample on one contract.
+Also: the 2025&ndash;26 Market Profile web is largely LLM-generated SEO filler that names every day type and never names
+a threshold, with near-duplicate slugs betraying programmatic generation &mdash; and OpenAlex now returns
+machine-deposited Zenodo DOIs with titles like "New edge proposed: opening_range_breakout_with_prior_day_volume_profile_imbalance".</p>
+<p><strong>(b) The most dangerous single number in the sweep:</strong> <em>"96.4% of sub-10-point NQ gaps fill."</em> That
+is an MFE statistic, not a win rate &mdash; it says the level was <em>touched</em> before 16:00, not that your stop
+survived. On the same page sits a 70.7% "continuation rate" beside a <strong>median MFE of 5.50 points against a median
+MAE of 10.25 points</strong>: the median ORB trade goes <strong>twice as far against you as it goes for you.</strong> Both
+numbers are true; only the race matters. This is our own MFE trap, arriving from outside.</p>
+<p><strong>(c) A bug class to check in any ORB backtest:</strong> a commercial backtest platform shipped
+<strong>look-ahead in its ORB module in July 2025</strong> and a practitioner lost "more than half" of his reported
+returns to it. The first test of any ORB backtest is a one-bar-forward shift assertion.</p>
+</div>
+
+<h2>6. The honest base rate, and what the profitable minority do differently</h2>
+
+<p>Two numbers must never be confused, and nearly every argument about day trading confuses them.</p>
+<table>
+<tr><th>Question</th><th class="n">Answer</th><th>Source</th></tr>
+<tr><td>Profitable net of fees <strong>in a given year</strong></td><td class="n"><strong>17&ndash;20%</strong></td>
+<td>Barber et al., entire Taiwan tape, ~450,000 traders/yr &middot; independently Jordan &amp; Diltz on a US sample:
+<em>"approximately 20 percent were more than marginally profitable"</em></td></tr>
+<tr><td><strong>Predictably</strong> profitable &mdash; green again the following year</td>
+<td class="n bad"><strong>under 1%</strong></td><td>~4,000 of 450,000. <em>"Less than 1%&hellip; able to predictably and
+reliably earn positive abnormal returns net of fees."</em></td></tr>
+<tr><td>Index-futures day traders who persisted past 300 days and lost money</td><td class="n bad"><strong>97%</strong></td>
+<td>Chague/De-Losso/Giovannetti: <strong>every</strong> individual who began day trading the Brazilian mini-index future
+2013&ndash;15, n=19,646. <strong>1.1% beat minimum wage. 0.5% beat a bank teller's starting salary &mdash; 8 people,
+0.041% of starters.</strong></td></tr>
+<tr><td>Mandated broker disclosures</td><td class="n bad">74&ndash;89% of accounts lose</td><td>FCA 2018 (78%), ESMA</td></tr>
+<tr><td>Does experience weed people out?</td><td class="n"><strong>Almost nobody</strong></td>
+<td>Unprofitable Taiwanese traders with 50+ days' experience have a <strong>95.3%</strong> chance of trading again within
+12 months, against 96.4% for profitable ones. <strong>A forum full of confident veterans is exactly what this data
+predicts.</strong></td></tr>
+</table>
+
+<p><strong>Now the other half, at full weight, because this is not a "nobody wins" literature.</strong></p>
+<ul>
+<li><strong>Skill is real, persistent and measurable.</strong> Taiwan's top 500 went on to earn +61.3 bps/day gross and
++37.9 net, against &minus;11.5/&minus;28.9 for prior losers &mdash; a <strong>73 bps/day spread the authors call
+"enormous"</strong> next to the 4&ndash;5 bps typical of retail-skill studies. Repeat-winning occurs at 1.7&ndash;2.0&times;
+the chance rate (p&lt;0.01). Confirmed out of sample in a <em>futures</em> brokerage's own book
+(Subrahmanyam et al., J. Finance 2024).</li>
+<li>&#9733; <strong>The strongest pro-case source in the whole sweep is Coates &amp; Page (PLoS ONE 2009):</strong>
+53 professional futures day traders on the London floor trading their own capital. Mean monthly Sharpe <strong>0.70</strong>.
+<strong>First-year traders &minus;0.04. Two years or less: 0.39 (not significantly different from the index, p=0.41).
+More than two years: 1.02, p=0.0001 &mdash; annualised ~3.53.</strong> And critically, individual Sharpes rose
+<em>within</em> a fixed 20-month window &mdash; <strong>that is learning, not survivorship.</strong> Their central
+finding: P&amp;L is <strong>linear</strong> in risk taken, and a regression of P&amp;L on (SD of P&amp;L, years of
+experience, a biological marker) gives <strong>R&sup2; = 0.94</strong>.
+<strong>Sharpe is bought with years; P&amp;L is then bought with size; nobody in that dataset shortcut the first.</strong></li>
+</ul>
+
+<h3>What the winners do differently, ranked by strength of evidence</h3>
+<table>
+<tr><th>#</th><th>What</th><th>Evidence</th><th>Do we do it?</th></tr>
+<tr><td>1</td><td><strong>They show up every single session.</strong></td>
+<td>The most replicated marker in the literature. Bombay (NBER 2023): the <em>only</em> profitable cohort of individual
+day traders is the one with ActiveRatio 0.90&ndash;1.00 &mdash; every other attendance cohort loses. Taiwan independently:
+profitable traders with &gt;40 day-trading days in the last year <strong>clear their costs</strong> and those with fewer
+do not.</td><td class="good"><strong>YES</strong> &mdash; a systemd timer every 5 minutes</td></tr>
+<tr><td>2</td><td><strong>They concentrate.</strong></td><td>After past performance, <em>"the most important predictor of
+future performance is the concentration of trading in a few stocks."</em></td>
+<td class="good"><strong>YES</strong> &mdash; two instruments</td></tr>
+<tr><td>3</td><td><strong>They hold winners longer and cut losers faster</strong> &mdash; and even profitable
+professionals fail at this.</td><td>A US prop team that made $1.4m <em>"could increase trading profits by holding
+winners longer and selling losers sooner"</em> (Garvey &amp; Murphy, FAJ 2004), and the disposition gap
+<strong>WIDENS in small size and low volatility</strong> &mdash; i.e. exactly our quiet-tape clip regime.</td>
+<td class="bad"><strong>NO &mdash; and we have already measured it on our own tape.</strong> TRAIL +$186, TARGET_200
++$197, tight target +$62.69.</td></tr>
+<tr><td>4</td><td><strong>They size down.</strong></td><td>Causal: capping US retail FX leverage cut high-leverage
+traders' losses by 40% with <em>no</em> change in spreads. Pre-cap, the top leverage quintile ran 30&ndash;40 percentage
+points worse net monthly return, and the average high-leverage trader lost <strong>44% per month</strong>
+(Heimer &amp; Simsek, JFE).</td><td class="bad">Untested &mdash; item #7 and #9 in the queue</td></tr>
+<tr><td>5</td><td><strong>They trade the morning.</strong></td><td>In the one documented consistently-profitable
+proprietary day trader's P&amp;L regression (firm records, 61 days), the <em>only</em> significant time variable was
+Morning Session (+RM109.83, t=2.34, p=0.020) &mdash; while market direction (p=0.44) and holding time (p=0.22) were
+insignificant.</td><td class="good"><strong>YES</strong></td></tr>
+</table>
+
+<h3>What does NOT distinguish them &mdash; three popular beliefs killed</h3>
+<table>
+<tr><th>Belief</th><th>What the data says</th></tr>
+<tr><td><strong>Experience alone.</strong></td><td>Brazil re-ran the winners' averages <em>excluding each trader's first
+200 sessions</em> as a learning allowance &mdash; the mean got <strong>WORSE</strong> (&minus;R$49 to &minus;R$91),
+median unchanged. <em>"There does not appear to be learning."</em> Taiwan agrees experience is <em>"economically weak
+relative to past profits."</em> <strong>Practice does not manufacture an edge; it compounds one that already exists.</strong></td></tr>
+<tr><td><strong>A good win rate.</strong></td><td>Retail forex traders win <strong>62.8% of trades</strong> and still lose,
+because losers are held twice as long as winners (1.1M trades). <em>The exact mirror of our 25%-at-1.26.</em>
+<strong>There is no win rate that rescues a bad payoff and no payoff that rescues a bad win rate.</strong></td></tr>
+<tr><td><strong>A good signal.</strong></td><td>Retail order imbalance positively <em>predicts</em> returns while retail
+traders <em>lose money</em> (Barber/Lin/Odean, JFQA 2023). We already own the local version of that signal.</td></tr>
+</table>
+
+<h3>&#9733; How long it takes to know &mdash; the single most important time constant in the report</h3>
+<p>The 127 genuinely-profitable Brazilian day traders ran daily Sharpes of <strong>0.119&ndash;0.162</strong>
+(annualised 1.9&ndash;2.6 &mdash; genuinely good). Since t &asymp; Sharpe &times; &radic;N:</p>
+<table>
+<tr><th>Confidence</th><th class="n">Sessions needed</th><th class="n">Calendar time</th></tr>
+<tr><td>t = 1</td><td class="n">38&ndash;71</td><td class="n">2&ndash;3.5 months</td></tr>
+<tr><td><strong>t = 2</strong></td><td class="n"><strong>152&ndash;282</strong></td><td class="n"><strong>7&ndash;14 months</strong></td></tr>
+<tr><td>t = 3</td><td class="n">343&ndash;636</td><td class="n">17&ndash;30 months</td></tr>
+</table>
+<p><strong>A green month is noise. A red month is noise.</strong> That is why forum screenshots carry no information, and
+why people quit on noise &mdash; 78% of forex quitters had a losing week immediately prior (88% of the newest), an N=5
+decision that needs N&ge;150. It is also the strongest argument for judging our own work on <em>mechanism and fill
+quality</em> rather than on short-window P&amp;L.</p>
+
+<h3>Three reasons an honest screenshot still misleads</h3>
+<ol>
+<li><strong>The day is the wrong unit.</strong> The posters with the longest continuity are explicit that they lose money
+on most days. "Dustin" on Elite Trader, asked directly whether he loses on 3 of 5 days: <em>"Yes, that is not uncommon
+for me&hellip; I'm right less than half the time but still make a good living."</em> Another: <em>"I had one day this
+year I made 90k, then bled 6k daily for the next 20 days."</em> <strong>$1,000 a DAY is a different and much harder
+object than $250k a year, and nobody credible describes it.</strong></li>
+<li><strong>The screenshot is always of the trend day</strong>, and trend days are 8&ndash;10% of sessions.
+"vovoperador": <em>"it's only about 10% of days that will trend from the open to the close&hellip; If you just manage to
+avoid getting trapped against a strong trend day, you're likely to make money or take just a small loss on all days."</em></li>
+<li><strong>Realised P&amp;L is selection on the outcome.</strong> Linnainmaa's complete Finnish census:
+<em>"their realized returns from day trades are high, but these returns are not representative of overall performance
+because of their strong reluctance to realize losses."</em> A trader with the disposition effect has a closed-trade record
+that looks excellent and an account that does not, because the losers are still open. <strong>Every "I made $1,000 today"
+post is a realised figure.</strong> That is our own MFE trap in a different costume &mdash; and it is worth auditing our
+own dashboards for the same bias.</li>
+</ol>
+<h2 class="brk">7. Gold is a different animal, and two bugs found while checking</h2>
+
+<p>MGC is half the mandate and almost none of the literature. There is <strong>no peer-reviewed study of MGC
+specifically</strong> &mdash; all gold microstructure work is on GC, GLD or spot XAU &mdash; and there is
+<strong>no quantified, published, tradeable intraday gold strategy literature at all</strong>, which means our 13 months
+of MGC 1-minute may be a larger quantified intraday micro-gold sample than anything public. That is an asset and it
+leaves us no external benchmark.</p>
+
+<table>
+<tr><th>Finding</th><th>Mechanics / number</th><th>Grade</th></tr>
+<tr><td><strong>The hard bound on the biggest gold anomaly there is</strong></td>
+<td>Caminschi &amp; Heaney (JFM 2014) compute it themselves: the average price variation in the 15 minutes after a London
+fixing starts is <strong>$4/oz = $40 per MGC lot</strong>. Captured at BOTH fixings every day for 260 days that is
+<strong>~$80/day per MGC lot with PERFECT FORESIGHT OF THE DIRECTION AND ZERO COSTS</strong> (~$200/day/lot scaled to
+$3,600 gold). <strong>The single largest recurring intraday gold anomaly, traded perfectly and for free, needs 5&ndash;12
+lots to make $1,000/day.</strong> &#9888; And that was the pre-2015 <em>telephone</em> fix; the leakage channel was
+legislated away in March 2015 when it became an electronic ICE auction. The volume/range window should survive; the
+predictability probably does not.</td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>Gold's day session drifts DOWN &mdash; three independent sources</strong></td>
+<td>Blose &amp; Gondhalekar (COMEX front month 1985&ndash;2012): <em>"Overnight returns are significantly positive,
+whereas day returns are significantly negative."</em> Replicated by the same authors in 2018 across COMEX futures, London
+Fix spot, gold miners, CEFs and ETFs. Donati &amp; Jung (5-min gold 2001&ndash;2018): the annualised cumulative return
+runs 0% &rarr; <strong>+12.3%</strong> from 18:00 to 02:00 NY (the Asian session), gives <em>all</em> of it back to +0.9%
+by 10:00 NY, then recovers to +8.3% by the close. <strong>Essentially all of gold's 2001&ndash;2018 return was earned
+overnight.</strong> A long bias at 13:30Z, imported from MNQ, points the wrong way in gold.</td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>Gold's volatility clock is the OPPOSITE of the index's</strong></td>
+<td>Three sources agree. Batten et al. (PLoS ONE, 5-min 2000&ndash;2015): gold volatility is <em>"fairly constant up to
+12 PM GMT, increases slightly until 2 PM GMT. After this point volatility DECREASES and levels off."</em> Iwatsubo et al.:
+NY-session volatility <em>"declin[es] approximately linearly."</em> <strong>So 13:30&ndash;15:00Z is MNQ's volatility PEAK
+and MGC's volatility DECLINE &mdash; one 90-minute habit applied to two instruments with opposite volatility
+clocks.</strong></td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>The honest cost test on gold's session clock</strong></td>
+<td>Donati &amp; Jung charged 100% of the quoted spread: four session strategies went from +10.0%/+18.6%/+28.6%/+7.6%
+gross to &minus;22.0%/&minus;13.5%/&minus;35.5%/&minus;47.7%. In the modern cost regime (2013&ndash;18, spread 0.03% of
+mid, comparable to MGC) they were +6.2%/+1.7%/+7.9%/&minus;9.3%. Best case = <strong>$41/day GROSS per MGC lot, ~$11/day
+NET. $1,000/day off gold's session clock needs ~90 MGC lots.</strong></td><td><span class="tag t-b">B</span></td></tr>
+<tr><td><strong>Intraday momentum is an EQUITY-INDEX effect, not a gold one</strong></td>
+<td>Baltussen et al., the same 46-year 60+-futures sample: equity index futures &beta;=4.86 (t=6.52), R&sup2;<sub>OOS</sub>
++2.88%, gross Sharpe 1.73. <strong>COMMODITY futures &beta;=1.33 (t=3.04), R&sup2;<sub>OOS</sub> &minus;0.01%</strong>
+on the first-half-hour signal, gross Sharpe 1.42 on 4.34%/yr = <strong>~$6/day per MGC lot</strong>, and the authors
+explicitly warn it <em>"might not be exploitable&hellip; after accounting for transaction costs"</em>, naming only
+S&amp;P 500 futures as liquid enough.</td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>The only $1,000-sized gold mechanism is an FOMC surprise &mdash; and the literature cannot agree on its
+sign</strong></td>
+<td>Scrimgeour (AJAE): <em>"a 10 basis-point surprise increase in interest rates causes commodity prices to fall
+immediately by approximately 0.6%"</em>, metals more than agriculturals &mdash; at $3,600 gold that is <strong>$216 per
+MGC lot per 10bp, ~$540 for 25bp</strong>. Awartani et al. (5-min NYMEX gold, 1.24m observations): a hawkish surprise
+lowers gold and <em>"the adjustment 10 min after the shock is significantly THREEFOLD higher than after 5 min"</em> &mdash;
+the move extends rather than reverting. <strong>But Gospodinov &amp; Jamali find contractionary surprises INCREASE
+gold.</strong> Two published papers, opposite signs. <strong>All sources agree the second moment rises</strong> &mdash;
+which is our own conclusion in gold's clothing: volatility is forecastable, direction is not.</td><td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>Gold's order book has a convicted history of being faked</strong></td>
+<td>CFTC, 29 Sept 2020: JPMorgan paid <strong>$920.2m</strong>, the largest CFTC monetary relief ever, for
+<em>"manipulative and deceptive conduct and spoofing that spanned at least eight years and involved hundreds of thousands
+of spoof orders in precious metals"</em>, 2008&ndash;2016. The FCA fined Barclays £26,033,500 for a single trader moving
+the 15:00 gold fix below a $1,558.96 option barrier to avoid a $3.9m payment. <strong>Our pre-registered order-book
+thinning test needs a "was this order ever fillable" control that an index feature may not.</strong> The counterweight
+matters too: Batten, Lucey &amp; Peat show the run-length "price suppression" screen the class actions relied on is
+reproduced by <em>volatility clustering alone</em> &mdash; a control that fails, in our own house style.</td>
+<td><span class="tag t-a">A</span></td></tr>
+<tr><td><strong>The sub-30-minute sign, and the cheapest high-value test available</strong></td>
+<td>Safari &amp; Schmidhuber (arXiv 2501.16772), 14 years of futures tick data across 24 markets including gold: regressing
+the next-minute return on normalised trend strength gives, for trend horizons up to 16 minutes,
+<strong>b = &minus;0.912% (t = &minus;13.6) &mdash; MEAN REVERSION</strong>; for horizons &ge;1 hour,
+<strong>b = +0.132% (t = +2.9) &mdash; TREND</strong>. <strong>The crossover is approximately 30 minutes.</strong>
+Out-of-sample R&sup2; is 0.42 and 0.009 basis points respectively. This independently reproduces our five-method 0.50
+result from outside, explains it (the true predictable component is half a basis point of R&sup2;), and tells us which way
+the crumb points: <strong>our momentum families operate in the REVERSION band.</strong> &#9888; Below 16 minutes the
+coefficients are NOT universal &mdash; they differ by asset class and time zone &mdash; so measure MNQ's and MGC's own
+b<sub>T</sub> rather than inherit a pooled number. <strong>Needs no new data.</strong></td><td><span class="tag t-a">A</span></td></tr>
+</table>
+
+<div class="warn">
+<p><strong>&#9733; BUG 1 &mdash; MGC's opening range forms at the COMEX pit open 08:20 ET (~12:20Z), seventy minutes
+before the equity cash open we watch.</strong> Any MGC logic anchored on 13:30Z is measuring mid-session as though it
+were the open. This is a bug class, not a research idea.</p>
+<p><strong>&#9733; BUG 2 &mdash; the contract roll, and it is happening tonight.</strong> MNQU2026 expires
+Friday 2026-09-18. The measured MNQ roll crossover is the <strong>Sunday Globex reopen of expiry week</strong> &mdash;
+volume went 2.7% &rarr; 17.3% &rarr; 66.4% across a single Friday-to-Sunday boundary in June &mdash; which means
+<strong>tonight, 2026-09-13</strong>. Be on MNQZ2026 from Sunday night; the Sep&rarr;Dec carry is <strong>+297.25
+points</strong>, so every level, VWAP anchor and ATR carried across is 297 points stale unless back-adjusted.
+And <strong>MGC rolls at FIRST NOTICE DAY, about four weeks before expiry, not at expiry</strong>: the Aug-2026 contract's
+volume left on 2026-07-30, one day before first notice and <em>28 days before</em> the 08-27 expiry, moving
+6.8% &rarr; 35.1% &rarr; 88.8% in two days. <strong>A single date-arithmetic roll rule for both instruments is wrong and
+would leave us in a 0.5%-of-volume contract for a month.</strong> Next MGC roll ~2026-09-29. Also unresolved: GC's front
+month is GCZ2026 (Dec) while MGC's nearest expiry is MGCV2026 (Oct) &mdash; nearest-expiry and most-liquid are different
+contracts for gold, so confirm which MGC contract we quote before trusting any MGC ATR.</p>
+<p><strong>&#9733; BUG 3 &mdash; a one-line calendar fix worth having.</strong> The best-evidenced intraday effect in the
+entire literature is Baltussen's r<sub>ROD</sub> (previous close &rarr; 30 minutes before today's close, predicting the
+last 30 minutes: R&sup2;<sub>OOS</sub> +2.88%, t=7.29, gross Sharpe 1.73, and the authors state explicitly it yields a
+<em>positive net Sharpe at one tick of cost</em> &asymp; MNQ's friction). That window sits at 19:30&ndash;20:00Z under
+EDT &mdash; fine &mdash; but at <strong>20:30&ndash;21:00Z under EST, where our 20:40Z flatten cuts it in half.</strong>
+"Never hold overnight" is untouched by moving the winter flatten to 20:55Z. Nothing in STATE.md notices this.
+My arithmetic on their gross number: <strong>&asymp;$10.57/day net on one MNQ lot</strong> &mdash; which is the honest
+academic figure to print beside $1,000/day.</p>
+</div>
+
+<div class="lede">
+<p><strong>&#9733; THE COST REFRAME, which I think is the single most useful thing in the report after the $1,000
+arithmetic.</strong> MNQ's 1.25 points all-in is <strong>0.0052% of notional</strong>; MGC's 0.45 points is 0.0125%.
+Holmberg et al. (Finance Research Letters 2013) called <strong>0.08% round trip</strong> "relatively small" for crude oil
+futures, in a peer-reviewed paper. <strong>Our friction is roughly 15&times; cheaper in relative terms than a cost a
+published futures paper waved away.</strong> It is 4.0% of our own $62.69 target, 100% of a scalp, and 0.5% of a typical
+session range.</p>
+<p><strong>WE DO NOT HAVE A COST PROBLEM. WE HAVE A HOLDING-PERIOD PROBLEM.</strong> And four unrelated sources agree on
+the lever. Boyarchenko/Larsen/Whelan measured the overnight drift at pre-cost Sharpe 1.1 and <strong>post-spread
+&minus;0.5</strong> at a one-hour hold &mdash; and <strong>widening the window from 1 hour to 2 hours took net Sharpe
+from &minus;0.5 to +0.3 with NO change to the signal.</strong> Their explanation is the sentence we need: market makers
+<em>"position their limit order books to incentivize trades that bring their inventory closer to their targets, and do so
+by MAKING THE TRADE, WHICH PAYS THE BID-ASK SPREAD, NON-PROFITABLE."</em> <strong>An edge the size of the friction is the
+EQUILIBRIUM, not bad luck</strong> &mdash; which is precisely what a 1.05&ndash;1.50pt ceiling against 1.25pt of friction
+is. Add Zarattini's grid, Wu et al. on profit targets, and our own two profitable exit buckets both being the two that
+<em>held</em>. <strong>The door is one lever wide, and the lever is how long a winner is allowed to run &mdash; not which
+way price goes next, which is the only thing we have already proven, five ways, we cannot know.</strong></p>
+</div>
+
+<h3>And a warning about decay, from the best-documented anomaly in our own contract family</h3>
+<p>The overnight drift was a <strong>22-year, t=7.1, bootstrap-verified, mechanism-identified, RFS-published</strong>
+effect: the 02:00&ndash;03:00 ET hour returned 3.7%/yr and was <strong>more than 60% of the ES contract's entire
+close-to-close return</strong>, causally pinned by a daylight-saving natural experiment. Ten weeks ago, on 1 July 2026,
+the original authors published <strong>"The Disappearing Overnight Drift"</strong>: that window has averaged
+<em>close to zero since 2021</em>, <strong>"the same pattern holds in the E-mini Nasdaq-100 (NQ)"</strong>, and the
+channel that died was <strong>end-of-day order-imbalance dispersion, halving from 6.5% to 2.9%</strong> because
+algorithmic liquidity providers slice flow more finely. Two ETFs launched to harvest it closed after fourteen months.</p>
+<p class="note">&#9733; Two consequences. <strong>(a)</strong> Ship a <strong>decay monitor</strong> with every edge:
+name the mechanism, name the observable channels that drive it, and monitor <em>those</em> &mdash; P&amp;L is far too
+noisy to detect decay in time. <strong>(b)</strong> The specific thing that died is <em>order-flow imbalance
+dispersion</em>, which is exactly the quantity our 250ms depth capture is mining. The Fed has just documented it being
+compressed out of the market by better execution algorithms. Related: the best practitioner strategy in the sweep has
+been independently replicated <em>and</em> independently found to have decayed &mdash; Paz (2026) reproduced the Noise
+Area in-sample at Sharpe 1.34 against the published 1.33, then got <strong>0.39 out of sample</strong> over May
+2024&ndash;Mar 2026, and Zarattini's own live tracking table agrees (2025 YTD +1.0%, five of six months negative).
+The honest statement is that the forward Sharpe is <strong>unresolved</strong> &mdash; that strategy also had 2016 at
+&minus;12.8% and 2017 at &minus;6.9% back-to-back before +61.1% in 2018 &mdash; but <strong>anyone sizing off 1.33 is
+sizing off a number that has been untrue for two years.</strong></p>
+<h2 class="brk">8. What I would do Monday</h2>
+<p class="small">Ranked, concrete, shadow-first. Nothing here touches the live order path, and the first six items need
+no new data and no new signal. Every one is a <em>large-gap</em> comparison, per framing rule R1.</p>
+
+<table>
+<tr><th style="width:4%">#</th><th style="width:30%">Do this</th><th style="width:38%">Because</th><th style="width:28%">Cost / risk</th></tr>
+
+<tr><td><strong>1</strong></td>
+<td><strong>Plot the MAE distribution of the 879 live trades, split by eventual outcome.</strong> Winners' MAE on one
+curve, losers' on another. Read off the percentile that keeps 90&ndash;95% of eventual winners alive.</td>
+<td>It is the <em>one</em> measurement that settles whether 400 stops against 136 targets is a stop problem or a target
+problem, and we have been arguing that question for months without it. Three lenses nominated it independently and it is
+nearly absent from academia too.</td>
+<td>One afternoon. No new data. &#9888; Compute the race, not "reached N R". &#9888; Report as a lower bound (R4).</td></tr>
+
+<tr><td><strong>2</strong></td>
+<td><strong>Plot the daily loss distribution.</strong> Is the worst day a large multiple of the median losing day?</td>
+<td>If losses are single-session-dominated, a hard daily loss limit is the highest-value change available and needs no edge
+at all. If it is a slow bleed, the limit buys nothing &mdash; <strong>and that itself is the finding: our failure mode is
+not the industry's.</strong> One query, never run.</td><td>Twenty minutes.</td></tr>
+
+<tr><td><strong>3</strong></td>
+<td><strong>Build RelVol and re-score everything.</strong> RelVol(w) = first-w-minutes volume &divide; trailing
+14-session same-window mean, w &isin; {5,15,30,60}, roll-aware. Bucket the 879 live trades and all 35 shadow arms into
+deciles. Add NR4 / NR7 / Triangle / prior-trend-day flags off daily bars and a VXN bucket.</td>
+<td>The largest gap in the desk &mdash; <strong>we have never built a selection filter of any kind</strong> &mdash; and
+the only finding in the sweep with a published dose-response (&minus;0.02R / +0.08R / +0.38R). Four traditions 34 years
+apart converge on it. <strong>It is a gate, not a trade: it costs nothing to run and reduces friction by cutting trade
+count.</strong></td><td>One afternoon. Pure re-scoring of data on disk.</td></tr>
+
+<tr><td><strong>4</strong></td>
+<td><strong>Rank the 879 trades by ordinal position within the day</strong> and find the trade number at which expectancy
+goes negative.</td>
+<td>One GROUP BY, never asked. If it crosses early we get a free daily trade cap &mdash; and the whole
+one-trade-a-day discourse in the forums is a human discretion-control device whose mechanical analogue is churn, which we
+have already measured in ourselves.</td><td>Ten minutes.</td></tr>
+
+<tr><td><strong>5</strong></td>
+<td><strong>Run the 2&times;2 stop&times;target factorial and judge it on skew.</strong> (a) stop only, no target;
+(b) target only; (c) both; (d) neither, exit at 20:40Z. Pre-register the prediction that (a) has a lower hit rate and a
+much higher payoff than (c).</td>
+<td>Four quantified sources plus a published theorem plus our own two best exit buckets all point the same way, and this
+is the resolvable four-cell version of the 430-cell sweep that could never have resolved anything.
+<strong>Write into the badcall ledger first: a falling hit rate is not evidence of a worse exit.</strong></td>
+<td>A day. &#9888; Judge on payoff, skew and worst-day, not hit rate.</td></tr>
+
+<tr><td><strong>6</strong></td>
+<td><strong>Test whether flow-since-entry separates recoverable stop-outs from unrecoverable ones.</strong> For every one
+of the 400 stop-outs, compute signed aggressive volume since entry against price displacement since entry, both meters
+reset at entry.</td>
+<td>Route A of the loss-pool arithmetic. Cutting the average loss 57% is break-even with no other change, and the
+vendor's claimed 50% closes 88% of the gap. <strong>State 5 &mdash; flow your way, price not moving &mdash; is the cell a
+naive sign(OFI)==sign(position) rule gets backwards</strong>, and our shelved contemporaneous OFI is the perfect
+instrument to see it.</td><td>Two days. 250ms L2 already on disk. <strong>Pre-register a random-early-exit control.</strong></td></tr>
+
+<tr><td><strong>7</strong></td>
+<td><strong>Re-run Mesfin's 14 MNQ signal families at 1.25 points instead of the 2.00 he charged</strong>, on 10.5 years
+of NQ rather than his 4 years of MNQ. And separately, re-test gap-continuation short (t=3.23, n=22) on ~2.5&times; the
+span.</td>
+<td>The 0.75-point gap is 60% of our friction and sits in the middle of his own 0.07&ndash;1.50 point ceiling. A family at
+1.4 points gross is dead at 2.00 and alive at 1.25. And the gap short is <strong>the only MNQ result in the whole sweep
+clearing t&gt;3.0</strong> &mdash; <span class="tag t-c">parked, not refuted</span>, and our own standing rule says never
+kill a lead that has a glimmer.</td><td>Two days. Existing harness.</td></tr>
+
+<tr><td><strong>8</strong></td>
+<td><strong>Point OFI at the FILL.</strong> On every existing entry in the record and the shadow book, delay by one
+adverse micro-bar with an urgency timeout, and measure the change in average fill price <strong>in ticks</strong>.</td>
+<td>The only idea in the sweep that does not require predicting direction. Our OFI profile (r=+0.688 now,
+&minus;0.001 at 60min) is the textbook definition of a fast alpha, and our surviving ofi-veto-grind cell
+(&minus;$172&rarr;+$772) is already this mechanism. <strong>Fill quality resolves in dozens of trades; P&amp;L needs
+thousands.</strong></td><td>Two days. Measure in ticks, never in P&amp;L.</td></tr>
+
+<tr><td><strong>9</strong></td>
+<td><strong>Replicate the Kaufman volatility breakout exactly as published</strong> on 10.5y NQ and 13mo MGC: bands =
+session open &plusmn; 0.5&times;ATR(14) daily, stop = return to the session open, no target, flat at 20:40Z, decisions only
+on the quarter hour, 1.25pt / 0.45pt charged.</td>
+<td>The cleanest replication target in the sweep: every parameter is given and taken from a 2013 textbook rather than
+fitted, the stop is <em>one fixed level</em> so there is no path-dependency to model, it has a 19-year reference
+(CAGR &gt;13%, Sharpe 0.87 net), and our flat-by-20:40Z rule <em>is</em> its EOD rule.
+&#9888; Check MGC's 0.5&times;ATR14 band against the gate entry floors first.</td><td>Two days. Shadow only.</td></tr>
+
+<tr><td><strong>10</strong></td>
+<td><strong>Settle the published disagreement on our own contract.</strong> Build BOTH bands on the same NQ tape &mdash;
+Seeck's fixed daily VXN/16 band from the prior close, and Zarattini's time-of-day-varying band from today's open &mdash;
+tag every breach with (band type, time of day, VXN bucket, breach size in ATR) and measure the return path from +5 minutes
+out to the flatten.</td>
+<td>Zarattini on SPY says a band break TRENDS to the close (Sharpe 1.33). Seeck on NQ says it REVERTS &mdash; 85.2%
+same-session reversion on 860 breaches, and he <em>explicitly rejects</em> the momentum version on the same data, with
+out-of-sample Sharpe 1.29 better than in-sample 0.47. <strong>These are probably not contradictory &mdash; they are
+different horizons, different instruments and, crucially, NOT THE SAME EVENT</strong> (a breach of a fixed daily band at
+10:00 is far more extreme than a breach of a narrow time-of-day band at 10:00). <strong>One run answers it, and Seeck is
+on the right instrument.</strong></td><td>Two days. This also bears directly on our own "confirmed chop &rarr; bench all
+momentum, keep reversion" rule.</td></tr>
+
+<tr><td><strong>11</strong></td>
+<td><strong>Measure &lambda; &asymp; 1/depth as a LEADING volatility estimate</strong> and test it as incremental
+R&sup2; over lagged ATR.</td>
+<td>The one place a C-grade practitioner claim and an A-grade replicated identity converge on a mechanism. Every stop
+width, position size, expected exit slippage and target feasibility number on this desk currently comes from
+<em>trailing</em> ATR; &lambda; is the leading version of the same quantity <strong>and it never asks the book which way
+price will go.</strong></td><td>Two days. 250ms L2 on disk.</td></tr>
+
+<tr><td><strong>12</strong></td>
+<td><strong>Fix the three bugs, and buy nothing yet.</strong> (a) Re-anchor MGC's opening range to 12:20Z.
+(b) Roll to MNQZ2026 and back-adjust the +297.25 carry; write a per-instrument roll rule (MNQ at expiry-week Globex
+reopen, MGC at first notice day). (c) Move the winter flatten to 20:55Z so the r<sub>ROD</sub> window is not cut in half.
+(d) Price the Sierra + Denali data upgrade at <strong>~$57/month</strong> and diary it for go-live, not now &mdash;
+non-pro exchange rates require a funded account.</td>
+<td>Three of these are bug classes that quietly corrupt measurements we already trust; the fourth closes the one real
+data gap in the desk, and nobody had priced it.</td><td>Half a day. &#9888; Warn before restarting anything.</td></tr>
+
+<tr><td><strong>13</strong></td>
+<td><strong>Adopt the statistics layer, and place ourselves on the allocator's table.</strong> Deflated Sharpe with N =
+the honest hundreds of configurations tried; Minimum Track Record Length on the live book; PBO/CSCV instead of a single
+hold-out; the t&gt;3.0 bar. And tonight: compute annualised return <em>and vol</em> for the live book and every shadow arm.</td>
+<td>We are a multiple-testing machine that ranks on raw P&amp;L. FundSeeder scores a 12.3%-return/5.7%-vol team at
+<strong>87.1</strong> and a 470%-return/86%-vol trader at <strong>62.8</strong> &mdash; consistency beats magnitude about
+5:1 and a 17-year record scores 61, so length buys nothing. <strong>MinTRL turns "are we any good?" into "we need N more
+trades before we could tell."</strong></td><td>One day.</td></tr>
+
+<tr><td><strong>14</strong></td>
+<td><strong>Add breadth as shadow sleeves</strong> &mdash; MES, MYM, M2K, MCL, M6E. Not more gold.</td>
+<td>Carver's measured ladder: 1 instrument SR 0.35 &rarr; 8 at 0.61. <strong>+74% Sharpe with no new signal</strong>, and
+his explicit $30,000 portfolio is five instruments &mdash; written before the micro complex dissolved the problem he was
+solving. &#9888; The free half applies today: at max position 1 lot his own prescription is a
+<strong>threshold filter</strong>, the same answer as item #3.</td><td>The slowest item &mdash; needs new sleeves. Largest
+number on the page.</td></tr>
+
+<tr><td><strong>15</strong></td>
+<td>&#9733; <strong>Measure your own blinded edge.</strong> <code>r-candles.com</code> is free and is the same
+blinded, bias-free replay apparatus used in the anonymised-chart experiment (no ticker, no date, survivorship-free,
+30+ years, 40,000+ stocks).</td>
+<td>It is US stocks and swing-oriented, so it measures chart-reading skill generally and <strong>not MNQ
+intraday</strong>. But given our own banked findings &mdash; <em>the operator's hands are the exit</em> (3/3 manual claims
+= $726 in 23 minutes, no fixed level reproduces it) and <em>claiming cannot be backtested</em> &mdash;
+<strong>measuring your personal edge in a blinded harness is, in my judgement, the highest-value BUILD suggested by
+tonight's reading</strong>, because it calibrates whether it is worth constructing the MNQ version off our 10.5 years of
+NQ 1-minute.</td><td>Free. You can start tonight.</td></tr>
+</table>
+
+<div class="lede">
+<p><strong>And one thing NOT to do.</strong> Do not relax the never-hold-overnight rule. A 20-year SPY study gives
+pure-intraday Sharpe <strong>0.88</strong> against 0.75 for carrying overnight, with drawdown nearly doubling
+(&minus;25.6% vs &minus;45.4%). <strong>Your hardest rule is correct, and its cost is about 1% of CAGR, not the fortune
+the forums imply.</strong> (One honest split to note: overnight helps the long sleeve 0.76&rarr;0.97 and destroys the
+short sleeve 0.52&rarr;0.17.) Likewise do not port VWAP Trend Trading to MNQ &mdash; its Sharpe 2.1 rests on
+<em>per-share</em> commissions, and at ~15 round trips a day MNQ's fixed $2.50 is $37.50/day/lot. And do not quote Sharpe
+2.81 as an MNQ number: it needs a 20-wide opportunity set where 3.1% of days carry 50% of the trades, and we have two
+instruments.</p>
+<p><strong>What the composite realistically pays.</strong> Assemble everything that converges &mdash; the window, the
+RelVol day gate, a veto list, a dwell-confirmed entry at structure, a hybrid stop, two tiers plus a scratch, an
+MAE-conditional time stop, no fixed target, partials no earlier than 2R, never to breakeven, a trail on max(band, VWAP),
+size frozen at the session open, layered rails, and the Rule of Three &mdash; and you get roughly <strong>1&ndash;2 trades
+a day at a 20&ndash;40% hit rate with a 3R+ tail, standing down on most sessions</strong>. Priced honestly at $30k that is
+<strong>$35&ndash;$140/day central and $100&ndash;$300/day optimistic.</strong> Which is not $1,000 &mdash; but it is also
+not nothing, it is the top of the verified distribution, and <strong>every single component of it is testable on data
+already sitting on this disk.</strong></p>
+</div>
+<h2 class="brk">9. Sources</h2>
+<p class="small">Every claim in this report traces to one of these plus the lens NOTES.md files. Grades as in &sect;5.
+&#9888; Marked items are the ones a human should verify by hand: SSRN and several publishers block automated fetches from
+this box, so those rest on indexed abstracts rather than full text.</p>
+
+<h3>Academic &mdash; index futures, intraday structure, stops and statistics</h3>
+<table class="srcs">
+<tr><th>Work</th><th>What it gives</th><th>URL</th></tr>
+<tr><td>Baltussen, Da, Lammers &amp; Martens, <em>JFE</em> 142(1) 2021 &mdash; 60+ futures, tick data, 1974&ndash;2020</td>
+<td><strong>The best-evidenced intraday effect there is.</strong> r<sub>ROD</sub> R&sup2;<sub>OOS</sub> +2.88%, t=7.29,
+gross Sharpe 1.73; the two-horizon agreement filter; net-positive at one tick of cost. Also the dealer-gamma mechanism.</td>
+<td><a href="https://pure.eur.nl/ws/files/58145484/1_s2.0_S0304405X21001598_main.pdf">pure.eur.nl/ws/files/58145484/</a></td></tr>
+<tr><td>Gao, Han, Li &amp; Zhou, <em>JFE</em> 129(2) 2018 &mdash; Market Intraday Momentum</td>
+<td>The paper that created the literature: first half-hour predicts last half-hour, R&sup2;=1.6%. Fails out of sample in the
+US twice.</td><td><a href="https://doi.org/10.1016/j.jfineco.2018.05.009">doi.org/10.1016/j.jfineco.2018.05.009</a></td></tr>
+<tr><td>Rosa, <em>J. Futures Markets</em> 42(12) 2022</td><td>Failed replication #1: <em>"the predictability disappears in
+the out-of-sample period"</em>; a <strong>threshold</strong> version survives.</td>
+<td><a href="https://doi.org/10.1002/fut.22375">doi.org/10.1002/fut.22375</a></td></tr>
+<tr><td>Li, Sakkas &amp; Urquhart, <em>J. Financial Markets</em> 57 2022 &mdash; 16 markets</td>
+<td>Failed replication #2: US in-sample R&sup2; 3.41% but <strong>R&sup2;<sub>OOS</sub> = &minus;3.10%, the worst of all
+sixteen</strong>; expansion R&sup2; only 0.84% vs crisis 7.53%. Charges zero costs anywhere.</td>
+<td><a href="https://centaur.reading.ac.uk/95566/1/Accepted-Version.pdf">centaur.reading.ac.uk/95566/1/</a></td></tr>
+<tr><td>Boyarchenko, Larsen &amp; Whelan &mdash; NY Fed SR917 &rarr; <em>RFS</em> 36(9) 2023</td>
+<td>The overnight drift: 3.7%/yr, t=7.1, >60% of ES's close-to-close return, DST natural experiment &mdash; and pre-cost
+Sharpe 1.1 &rarr; <strong>post-spread &minus;0.5</strong>, rescued to +0.3 by doubling the hold.</td>
+<td><a href="https://www.newyorkfed.org/medialibrary/media/research/staff_reports/sr917.pdf">newyorkfed.org/&hellip;/sr917.pdf</a></td></tr>
+<tr><td>Boyarchenko, Larsen &amp; Whelan &mdash; Liberty Street Economics, <strong>1 July 2026</strong></td>
+<td><em>"The Disappearing Overnight Drift"</em>: zero since 2021, <em>"the same pattern holds in the E-mini
+Nasdaq-100"</em>, imbalance dispersion 6.5%&rarr;2.9%. The decay case study.</td>
+<td><a href="https://libertystreeteconomics.newyorkfed.org/2026/07/the-disappearing-overnight-drift/">libertystreeteconomics.newyorkfed.org/2026/07/</a></td></tr>
+<tr><td>Kaminski &amp; Lo, <em>J. Financial Markets</em> 18 2014</td><td><strong>The stop-loss theorem:</strong> under a
+random walk a stop always reduces expected return; it adds value only with momentum.</td>
+<td><a href="https://doi.org/10.1016/j.finmar.2013.07.001">doi.org/10.1016/j.finmar.2013.07.001</a></td></tr>
+<tr><td>Han, Zhou &amp; Zhu &mdash; "Taming Momentum Crashes", 88 years</td><td>A 10% stop cut momentum's worst month
+&minus;49.8% &rarr; &minus;11.4% and <strong>more than doubled the Sharpe</strong> &mdash; all in skew and worst-day, not
+the mean.</td><td><a href="https://doi.org/10.2139/ssrn.2407199">doi.org/10.2139/ssrn.2407199</a></td></tr>
+<tr><td>Tsai, Wu, Syu, Lei, Wu &amp; Ho, <em>IEEE Access</em> 7 2019 &mdash; TORB</td>
+<td>Best opening-range probe on E-mini Nasdaq is <strong>one minute</strong> (17.51%/yr); the cash-hours
+<em>alignment</em> does the work, not the breakout (TRB 5.58%). &#9888; Probe time searched on the full sample.</td>
+<td><a href="https://ieeexplore.ieee.org/ielx7/6287639/8600701/08641124.pdf">ieeexplore.ieee.org/&hellip;/08641124.pdf</a></td></tr>
+<tr><td>Holmberg, L&ouml;nnbark &amp; Lundstr&ouml;m, <em>Finance Research Letters</em> 2013</td>
+<td><em>"ORB is basically LONG VOLATILITY"</em>; the result is not robust across sub-periods; and the
+<strong>0.08% round-trip cost they call "relatively small"</strong> &mdash; the anchor for our cost reframe.</td>
+<td><a href="http://dx.doi.org/10.1016/j.finmar.2013.05.006">dx.doi.org/10.1016/j.finmar.2013.05.006</a></td></tr>
+<tr><td>Cont, Kukanov &amp; Stoikov, arXiv:1011.6402</td><td>&Delta;price is <em>linear</em> in OFI with slope
+<em>inversely proportional to depth</em> &mdash; OFI is a contemporaneous identity, and &lambda;&asymp;1/depth.</td>
+<td><a href="https://arxiv.org/abs/1011.6402">arxiv.org/abs/1011.6402</a></td></tr>
+<tr><td>Takahashi, arXiv:2508.06788 &mdash; S&amp;P E-mini, 1-second SVAR</td>
+<td><em>"Shocks dissipate almost entirely within a second."</em> Around news, price impact rises while <em>flow</em>
+volatility falls &mdash; i.e. depth collapsed.</td><td><a href="https://arxiv.org/abs/2508.06788">arxiv.org/abs/2508.06788</a></td></tr>
+<tr><td>Safari &amp; Schmidhuber, arXiv:2501.16772 &mdash; 14 years, 24 markets incl. gold</td>
+<td>b = &minus;0.912% (t=&minus;13.6) up to 16 min (reversion); +0.132% (t=+2.9) at &ge;1 hour (trend);
+<strong>crossover ~30 minutes</strong>. R&sup2;<sub>OOS</sub> 0.42 and 0.009 basis points.</td>
+<td><a href="https://arxiv.org/abs/2501.16772">arxiv.org/abs/2501.16772</a></td></tr>
+<tr><td>Maitrier &amp; Bouchaud, arXiv:2506.07711</td><td>Volatility is largely the mechanical result of <em>uninformed</em>
+metaorder flow &mdash; predicts direction unforecastable and volatility forecastable simultaneously.</td>
+<td><a href="https://arxiv.org/abs/2506.07711">arxiv.org/abs/2506.07711</a></td></tr>
+<tr><td>Bailey &amp; Lopez de Prado &mdash; Deflated Sharpe, PSR / MinTRL, PBO-CSCV</td>
+<td>The statistics layer we do not use. Companion bar: Harvey, Liu &amp; Zhu (<em>RFS</em> 2016) &mdash;
+<strong>t&gt;3.0, not 2.0</strong>.</td><td><a href="https://doi.org/10.2139/ssrn.2460551">doi.org/10.2139/ssrn.2460551</a></td></tr>
+<tr><td>&#9888; Mesfin 2026, SSRN 6709401 &mdash; <strong>MNQ-specific</strong>, 947 RTH days, 14 signal families</td>
+<td>Gross-edge ceiling <strong>0.07&ndash;1.50 points</strong>, nothing survives; charged 2.00pt round trip. Glimmer:
+gap-continuation short <strong>t=3.23, +14.52pt mean net, n=22</strong>.</td>
+<td><a href="https://doi.org/10.2139/ssrn.6709401">doi.org/10.2139/ssrn.6709401</a></td></tr>
+<tr><td>&#9888; Mesfin 2026, SSRN 6792161 &mdash; MNQ ML null, 944 days</td><td>Base rate 51.8%; gradient boosting
+50.00&ndash;50.89%, LSTM 50.59% &mdash; <strong>every model worse than always guessing UP</strong>. This is the answer to
+"should we throw AI at it".</td><td><a href="https://doi.org/10.2139/ssrn.6792161">doi.org/10.2139/ssrn.6792161</a></td></tr>
+<tr><td>&#9888; Seeck 2026, SSRN 7364204 &mdash; <strong>NQ-specific</strong>, 860 breaches 2018&ndash;2026</td>
+<td>Band = prior close &plusmn; VXN/16; <strong>85.2% same-session reversion</strong>, exit 30 min, OOS Sharpe 1.29 &gt;
+IS 0.47, and <em>the momentum version is explicitly rejected on the same data</em>.</td>
+<td><a href="https://doi.org/10.2139/ssrn.7364204">doi.org/10.2139/ssrn.7364204</a></td></tr>
+</table>
+
+<h3>Academic &mdash; gold and commodities</h3>
+<table class="srcs">
+<tr><th>Work</th><th>What it gives</th><th>URL</th></tr>
+<tr><td>Caminschi &amp; Heaney, <em>J. Futures Markets</em> 2014 &mdash; GC futures 2007&ndash;2012</td>
+<td>The fix window: +47.8% volume and +32.9% one-minute volatility in the first minute, elevated for thirteen minutes,
+t&gt;10; direction predictable ~70% overall and <em>"above 95%"</em> for large fixes. <strong>And the $4/oz bound that caps
+the whole anomaly at ~$80/day per MGC lot with perfect foresight.</strong></td>
+<td><a href="https://doi.org/10.1002/fut.21636">doi.org/10.1002/fut.21636</a></td></tr>
+<tr><td>Blose &amp; Gondhalekar, <em>Applied Economics Letters</em> 2014; and with Kort, <em>J. Economics &amp; Finance</em>
+42(3) 2018</td><td><em>"Overnight returns are significantly positive, whereas day returns are significantly negative"</em>
+&mdash; replicated across futures, spot, miners, CEFs and ETFs.</td>
+<td><a href="https://doi.org/10.1007/s12197-017-9403-0">doi.org/10.1007/s12197-017-9403-0</a></td></tr>
+<tr><td>Batten, Lucey, McGroarty, Peat &amp; Urquhart, <em>PLoS ONE</em> 2017 &mdash; 5-min gold 2000&ndash;2015</td>
+<td>Gold volatility is flat to 12:00 GMT, peaks ~14:00 GMT, then <strong>decreases</strong> &mdash; the opposite of the
+index clock.</td><td><a href="https://doi.org/10.1371/journal.pone.0174232">doi.org/10.1371/journal.pone.0174232</a></td></tr>
+<tr><td>Hauptfleisch, Putni&#326;&scaron; &amp; Lucey, <em>JFM</em> 2016 &mdash; 17 years</td>
+<td>After the 2007 COMEX electronic upgrade <em>"there are no longer clear intraday patterns&hellip; Daylight or working
+hours no longer affect the location of price discovery."</em> <strong>Any gold session rule from an old sample must be
+re-derived.</strong></td><td><a href="https://doi.org/10.1002/fut.21775">doi.org/10.1002/fut.21775</a></td></tr>
+<tr><td>Awartani, Hussain &amp; Virk, <em>IRFA</em> 2024 &mdash; 5-min NYMEX gold, 1.24m obs</td>
+<td>Hawkish surprise lowers gold; <em>"the adjustment 10 min after the shock is significantly THREEFOLD higher than after
+5 min"</em>. Opposed in sign by Gospodinov &amp; Jamali.</td>
+<td><a href="https://doi.org/10.1016/j.irfa.2024.103486">doi.org/10.1016/j.irfa.2024.103486</a></td></tr>
+<tr><td>Scrimgeour, <em>AJAE</em> 2015</td><td>A 10bp rate surprise moves commodities ~0.6%, metals most &mdash;
+<strong>~$216/MGC lot per 10bp</strong>.</td><td><a href="https://doi.org/10.1093/ajae/aau054">doi.org/10.1093/ajae/aau054</a></td></tr>
+<tr><td>Batten, Lucey &amp; Peat, <em>Economic Modelling</em> 2016</td><td>The gold "price suppression" run-length screen is
+reproduced by <strong>volatility clustering alone</strong> &mdash; the control that fails.</td>
+<td><a href="https://doi.org/10.1016/j.econmod.2016.03.005">doi.org/10.1016/j.econmod.2016.03.005</a></td></tr>
+<tr><td>CFTC, 29 Sept 2020 &mdash; JPMorgan, <strong>$920.2m</strong></td><td>Eight years, hundreds of thousands of spoof
+orders in precious metals futures. Plus the FCA's £26,033,500 Barclays gold-fix fine.</td>
+<td><a href="https://www.cftc.gov/PressRoom/PressReleases/8260-20">cftc.gov/PressRoom/PressReleases/8260-20</a> &middot;
+<a href="https://www.fca.org.uk/news/press-releases/barclays-fined-%C2%A326m-failings-surrounding-gold-fixing">fca.org.uk/&hellip;/barclays-fined</a></td></tr>
+<tr><td>ICE Benchmark Administration &mdash; the LBMA Gold Price</td><td>10:30 and 15:00 London, 30-second rounds. 15:00
+London is 10:00 ET all year, so the PM auction lands on the US 10:00 ET data slot.</td>
+<td><a href="https://www.ice.com/iba/lbma-gold-price">ice.com/iba/lbma-gold-price</a></td></tr>
+</table>
+
+<h3>Base rates, skill and track records</h3>
+<table class="srcs">
+<tr><th>Work</th><th>What it gives</th><th>URL</th></tr>
+<tr><td><strong>Barber, Lee, Liu &amp; Odean, <em>J. Financial Markets</em> 18 2014</strong> &mdash; the entire Taiwan
+Stock Exchange, 1992&ndash;2006, 2.34M trader-years</td>
+<td>17&ndash;20% profitable in a year; <strong>under 1% predictably so</strong>; top 500 go on to earn
+<strong>+37.9 bps/day net = $114/day on $30k</strong>; top-vs-bottom spread &gt;70 bps/day. Best predictors: past Sharpe,
+then <strong>concentration</strong>.</td>
+<td><a href="https://escholarship.org/content/qt7k75v0qx/qt7k75v0qx.pdf">escholarship.org/content/qt7k75v0qx/</a></td></tr>
+<tr><td><strong>Chague, De-Losso &amp; Giovannetti</strong> &mdash; EVERY individual who began day trading Brazilian
+mini-index futures 2013&ndash;15, n=19,646</td>
+<td>The closest-matched population anywhere. <strong>97% of those who persisted past 300 days lost money. 1.1% beat
+minimum wage. 0.5% beat a bank teller's starting salary.</strong> Equities companion: of 98,378 starters, 99.43% never
+reached 300 sessions; of the 554 who did, mean daily gross &minus;R$49.</td>
+<td><a href="https://doi.org/10.2139/ssrn.3423101">doi.org/10.2139/ssrn.3423101</a></td></tr>
+<tr><td><strong>Coates &amp; Page, <em>PLoS ONE</em> 2009</strong> &mdash; 53 professional London floor futures day
+traders, own capital</td><td>The strongest pro-case source. Mean monthly Sharpe 0.70; <strong>year 1 = &minus;0.04,
+&le;2yr = 0.39 (p=0.41), &gt;2yr = 1.02 (p=0.0001, annualised ~3.5)</strong>, rising <em>within</em> individuals.
+P&amp;L is linear in risk taken; R&sup2;=0.94.</td>
+<td><a href="https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0008036&amp;type=printable">journals.plos.org/plosone/&hellip;/0008036</a></td></tr>
+<tr><td>Linnainmaa &mdash; "The Anatomy of Day Traders", complete Finnish census</td>
+<td><em>"Their realized returns from day trades are high, but these returns are not representative of overall performance
+because of their strong reluctance to realize losses."</em> Why an honest screenshot still misleads.</td>
+<td><a href="https://doi.org/10.2139/ssrn.472182">doi.org/10.2139/ssrn.472182</a></td></tr>
+<tr><td>Dalvi, Deuskar, Glosten &amp; Jagannathan, NBER 2023 &mdash; Bombay</td><td>The only profitable individual cohort
+is <strong>ActiveRatio 0.90&ndash;1.00</strong>. Individual day traders lose 3.2bp = 73% of the half-spread.</td>
+<td><a href="https://www.nber.org/system/files/working_papers/w11243/w11243.pdf">nber.org/&hellip; (NBER series)</a></td></tr>
+<tr><td>Ben-David, Birru &amp; Prokopenya, NBER w22146 &mdash; full retail FX broker records, 1.1M trades</td>
+<td>Trade-size discontinuity at <strong>exactly zero past-week return</strong> worth 12&ndash;17% of an SD, with
+<em>no</em> corresponding discontinuity in future performance. Traders win 62.8% of trades and lose money.</td>
+<td><a href="http://www.nber.org/papers/w22146.pdf">nber.org/papers/w22146.pdf</a></td></tr>
+<tr><td>Heimer &amp; Simsek, <em>JFE</em> &mdash; US retail FX leverage cap</td><td>Causal: capping leverage cut
+high-leverage traders' losses <strong>40%</strong> with no change in spreads; the average high-leverage trader lost
+<strong>44% per month</strong>.</td><td><a href="https://doi.org/10.3386/w18706">doi.org/10.3386/w18706</a> (related series)</td></tr>
+<tr><td>Garvey &amp; Murphy, <em>Financial Analysts Journal</em> 2004</td><td>A US prop team that made $1.4m
+<em>"could increase trading profits by holding winners longer and selling losers sooner"</em>; the gap widens in small
+size and low volatility.</td><td><a href="https://doi.org/10.2469/faj.v69.n4.1">doi.org/10.2469/faj.v69.n4.1</a> (journal)</td></tr>
+<tr><td>FundSeeder &mdash; Jack Schwager's platform, records verified by <strong>read-only broker connection</strong></td>
+<td>"20K traders worldwide", <strong>15 seeded = 0.075%</strong>. The four index-futures records at 12.3% / 22.5% /
+27.2% / 55.5%, and the FS Score that ranks a 12.3%/5.7%-vol team at 87.1 above a 470%/86%-vol trader at 62.8.</td>
+<td><a href="https://www.fundseeder.com/our-traders">fundseeder.com/our-traders</a></td></tr>
+<tr><td>World Cup Advisor &mdash; live, commission-net, publicly-tracked accounts</td>
+<td><strong>Pau Perdices</strong>: discretionary intraday MGC+MNQ+MES, $10,000, 8.31 months, <strong>+$7,163 net through
+&minus;21.2%</strong> &asymp; $124/day scaled to $30k. Sambataro: +91.6%/+60.5%/+50.3% then <strong>&minus;32.8%
+YTD</strong>, max DD &minus;37.4%.</td><td><a href="https://www.worldcupadvisor.com/">worldcupadvisor.com</a></td></tr>
+<tr><td>World Cup Trading Championships &mdash; the full official 42-year table</td>
+<td>135 first places, 84 distinct winners, <strong>59 of them (70%) never win again</strong>. $3,999 entry, $10,000
+minimum, entrants <em>may trade more than one account</em>. In the day-trading/micro divisions the worst top-five finishes
+are 0.0%, 0.3%, 0.4%, 4.7%; one monthly micro division was won with <strong>0.31%</strong> and three had no entrant at
+all.</td><td><a href="https://www.worldcupchampionships.com/world-cup-trading-championship-historical-standings">worldcupchampionships.com/&hellip;/historical-standings</a></td></tr>
+<tr><td>AutumnGold &mdash; 191 CTA programs; NFA BASIC</td><td>The best <em>lifetime</em> compound is ~50%/yr = $60/day on
+$30k; the best single <em>months</em> belong to programs whose lifetime returns are 7.9%, 12.6%, &minus;1.2%, 3.7%, 18.8%
+against worst drawdowns of &minus;88%, &minus;93%, &minus;66%, &minus;53%, &minus;61%. Comhla "Artemis 3X" (ES/MES/NQ/MNQ,
+registered CTA) has a <strong>negative lifetime compound return at &minus;66.4% DD</strong>.</td>
+<td><a href="https://www.autumngold.com/Advisor/ranking_report.php">autumngold.com/Advisor/ranking_report.php</a> &middot;
+<a href="https://www.nfa.futures.org/basicnet/">nfa.futures.org/basicnet</a></td></tr>
+<tr><td>QTS Capital &mdash; Tail Reaper (Ernest Chan's firm, intraday ES); Collective2 C2Star</td>
+<td>QTS's published objective: <em>"daily stop loss &le; 5% of nominal"</em>; actual &minus;23.0% then &minus;29.6%,
+max DD &minus;67.6%. C2Star certifies on drawdown (5% open loss, 5% 24-hour, ~10% all-time) while the return bar is merely
+"beat the S&amp;P by +1% over rolling 60 days".</td>
+<td><a href="https://qtscm.com/">qtscm.com</a> &middot; <a href="https://web.archive.org/web/2024/https://collective2.com/c2star">collective2.com/c2star</a></td></tr>
+<tr><td>Kevin Davey &mdash; 2006 World Cup futures champion</td><td>On four consecutive 100%+ years:
+<em>"Monte Carlo simulation told me I had a 50% chance of doubling my money in a year, but also a 20% [chance] of losing
+two thirds of my starting equity."</em> And his winning system was <strong>trend following updated at night</strong>, not
+intraday.</td><td><a href="https://web.archive.org/web/20150226021850if_/http://www.kjtradingsystems.com/100PercentReturns.pdf">kjtradingsystems.com/100PercentReturns.pdf</a></td></tr>
+</table>
+
+<h3>Quantified practitioner research &mdash; the Concretum / Zarattini tier</h3>
+<p class="note">All Grade B. Survivorship-free samples, commissions charged, methods fully specified &mdash; and two of
+three authors sell day-trading education, which is a real conflict and must be stated. Index of papers:
+<a href="https://concretumgroup.com/papers/">concretumgroup.com/papers</a></p>
+<table class="srcs">
+<tr><th>Paper</th><th>The numbers that matter</th><th>URL</th></tr>
+<tr><td><strong>A Profitable Day Trading Strategy For The U.S. Equity Market</strong> (Zarattini, Barbon, Aziz) &mdash;
+~7,000 stocks, survivorship-free, 2016&ndash;2023</td>
+<td><strong>The selection result.</strong> Identical entry/stop/exit: all stocks = total 29%, Sharpe <strong>0.48</strong>
+(loses to buy-and-hold); RelVol&ge;100% top-20 = total 1,637%, Sharpe <strong>2.81</strong>, alpha 35.8%, beta 0.00.
+Dose-response &minus;0.02R / +0.08R / +0.38R. Opening-range length: 5m 2.81, 15m 1.43, 30m 0.21, 60m 0.40.
+Every one of the 25 best names wins 17&ndash;24% of the time.</td>
+<td><a href="https://concretumgroup.com/wp-content/uploads/2026/02/A-Profitable-Day-Trading-Strategy-For-The-U.S.-Equity-Market.pdf">&hellip;/A-Profitable-Day-Trading-Strategy&hellip;.pdf</a></td></tr>
+<tr><td><strong>Can Day Trading Really Be Profitable?</strong> (Zarattini, Aziz) &mdash; QQQ/TQQQ 2016&ndash;2023,
+1,795 trades</td><td><strong>24% win rate, +0.13R/trade, Sharpe 1.13&ndash;1.19, alpha 33&ndash;48%.</strong> And the
+2-D stop&times;target grid: the optimum is the <strong>tightest stop tested with NO profit target</strong>, held to the
+close &mdash; they then honestly undercut their own 9,350% cell on slippage grounds.</td>
+<td><a href="https://concretumgroup.com/wp-content/uploads/2026/02/Can-Day-Trading-Really-Be-Profitable.pdf">&hellip;/Can-Day-Trading-Really-Be-Profitable.pdf</a></td></tr>
+<tr><td><strong>Beat the Market</strong> (Zarattini, Aziz, Barbon) &mdash; SPY 2007&ndash;2024, 2,620 days, 7,668 trades,
+<strong>slippage measured from 1,000 live IBKR orders</strong></td>
+<td>The Noise Area. Base Sharpe 0.61 &rarr; max(band,VWAP) trail <strong>1.24</strong> (hit 54%&rarr;43%, skew
+&minus;1.24&rarr;+1.29) &rarr; vol-targeted sizing <strong>1,985% total, Sharpe 1.33</strong> on the identical trades.
+Day-selection table: NR4 22bps t=5.14 Sharpe 3.2, NR7 t=3.07, Triangle t=3.19, Inside t=0.85 NULL, Outside t=1.05 NULL,
+<strong>prior trend day &minus;2bps t=&minus;0.24</strong>. Wednesday 18bps t=3.42. RSI5 &beta;=&minus;3.25, p=0.001.</td>
+<td><a href="https://concretumgroup.com/wp-content/uploads/2026/02/Beat-the-Market.pdf">&hellip;/Beat-the-Market.pdf</a></td></tr>
+<tr><td><strong>The Power Of Price Action Reading</strong> (Zarattini, Stamatoudis) &mdash; blind anonymised charts,
+9,794 gap events, 1,580 trades</td><td><strong>18% win rate, avg +10.10R against avg &minus;1.02R = +1.03R/trade,
+Sharpe 1.70.</strong> Co-author is a verified 2023 US Investing Championship top performer. The apparatus
+(<a href="https://r-candles.com">r-candles.com</a>) is free.</td>
+<td><a href="https://concretumgroup.com/wp-content/uploads/2026/02/The-Power-Of-Price-Action-Reading.pdf">&hellip;/The-Power-Of-Price-Action-Reading.pdf</a></td></tr>
+<tr><td><strong>Improving Performance with Fast Alphas</strong> (Zarattini, Pagani, Feb 2026) &mdash; SPY 5-min,
+19 years</td><td>A 5-min reversion signal that is <strong>negative standalone after commissions</strong> lifts a trend
+model's CAGR ~200bps and Sharpe <strong>0.87&rarr;0.99 net, with zero added round trips</strong>, purely by timing the
+fill. Also the Kaufman volatility-breakout baseline: CAGR &gt;13%, Sharpe 0.87, no regime filter.</td>
+<td><a href="https://concretumgroup.com/wp-content/uploads/2026/02/Improving-Performance-with-Fast-Alphas-A-Tactical-Overlay-for-Intraday-Trend-Trading.pdf">&hellip;/Improving-Performance-with-Fast-Alphas&hellip;.pdf</a></td></tr>
+<tr><td>&#9888; Paz 2026, SSRN 7290621 &mdash; <strong>the only independent replication in this literature</strong></td>
+<td>In-sample reproduces at Sharpe <strong>1.34</strong> vs the published 1.33 &mdash; genuinely reproducible, which is
+rare. Out of sample May 2024&ndash;Mar 2026: total 9.4% vs 29.5% buy-and-hold, <strong>Sharpe 0.39</strong>. Candidate
+cause named: 0-DTE proliferation.</td><td><a href="https://doi.org/10.2139/ssrn.7290621">doi.org/10.2139/ssrn.7290621</a>
+&middot; <a href="https://github.com/PazSheimy/spy-intraday-momentum-oos">github.com/PazSheimy/spy-intraday-momentum-oos</a></td></tr>
+</table>
+
+<h3>Practitioner schools &mdash; all Grade C unless noted</h3>
+<table class="srcs">
+<tr><th>School / person</th><th>What they contribute</th><th>URL</th></tr>
+<tr><td><strong>Al Brooks</strong></td><td>The 90-minute claim (~90% of days set an extreme in the first 90 minutes &mdash;
+<strong>we measured 90.0% on MNQ, so he is right</strong>); H2/L2 second entries; structural targets. His ladder tops out
+at <strong>4 ES points &times; 3 contracts &asymp; $600/day</strong> starting from $10/day on micros.
+&#9888; 13 of 25 manual chapters are members-only.</td>
+<td><a href="https://www.brookstradingcourse.com/how-to-trade-manual/day-trading-open/">brookstradingcourse.com/&hellip;/day-trading-open</a></td></tr>
+<tr><td><strong>Bob Volman</strong></td><td>The Second Break &mdash; <em>"arguably no higher probability of a winning trade
+in the market"</em>; and against breakeven stops: <em>"simply asking for an early exit"</em>. His spec translates to MNQ
+only at a <strong>12&ndash;13 point stop and a 25-point target.</strong> Publishes six months of day-by-day skip decisions
+and never states the criterion.</td>
+<td><a href="https://www.daytradingbias.com/understanding-price-action-practical-analysis-of-the-5-minute-time-frame-by-bob-volman/">daytradingbias.com/&hellip;/bob-volman</a></td></tr>
+<tr><td><strong>Lance Beggs (YTC)</strong></td><td><strong>The Rule of Three</strong> &mdash; the only halt rule in the
+sweep that is neither P&amp;L- nor direction-based. And the trail rule: <em>"any trailing stop must be at a place where you
+consider the trade idea is no longer valid. ANY CLOSER IS TOO CLOSE."</em> &#9888; yourtradingcoach.com is now a
+<strong>parked domain</strong>; archive only.</td>
+<td><a href="https://web.archive.org/web/2020id_/http://www.yourtradingcoach.com/Articles-Risk-Management/Trading-Risk-Management-Rule-of-Three.html">web.archive.org/&hellip;/Rule-of-Three.html</a></td></tr>
+<tr><td><strong>John Mack (PATs)</strong></td><td>States his own evidence grade: <em>"back testing is bunk&hellip; you
+cannot back test our price action trading strategies."</em> Puts "serious money" at <strong>$500/day</strong>. His 4-tick
+ES scalp translated literally to MNQ is <strong>structurally negative before any win rate.</strong></td>
+<td><a href="https://priceactiontradingsystem.com/how-much-money-can-a-price-action-day-trader-make/">priceactiontradingsystem.com/&hellip;</a></td></tr>
+<tr><td><strong>Jigsaw Trading</strong> (Peter Davies) &mdash; <span class="tag t-b">B</span> for the leaderboard</td>
+<td>A DOM vendor saying the DOM does not forecast: <em>"fading depth&hellip; does not mean the level will hold. Quite often
+the depth will simply disappear"</em>; both fading depth and fading icebergs are <em>"one rule trading systems"</em>; depth
+is <em>"around 20% at most"</em> of the picture. <strong>The public leaderboard</strong>: June 87/282 = 30% profitable,
+July 105/307 = 34%; winner "Fenix" ~50% hit, $619/$489.05 = <strong>1.266:1</strong>; July winner on a live account made
+<em>"just under $5k for the month"</em> &asymp; $250/day, best of 307. And Rule 20 on scale-in mechanics.</td>
+<td><a href="https://www.jigsawtrading.com/blog/jigsaw-leaderboard-june-and-july-results-a-superscalper-in-our-midst/">jigsawtrading.com/blog/jigsaw-leaderboard-june-and-july-results&hellip;</a> &middot;
+<a href="https://www.jigsawtrading.com/blog/trading-rule-20-why-professional-traders-dont-care-about-risk-reward-ratio/">&hellip;/trading-rule-20&hellip;</a></td></tr>
+<tr><td><strong>Mike Valtos (Orderflows)</strong></td><td>The four stop objects we lack: <em>"most traders use arbitrary
+stop levels&hellip; Wouldn't it make more sense to have a stop level based on what the market is telling you?"</em>;
+the two-tier mental/hard stop; the MAE-conditional time stop; and the scratch &mdash; <em>"You will either get to your
+profit target or get stopped out. THAT ISN'T THE WAY TO TRADE."</em></td>
+<td><a href="https://www.orderflows.com/2015/09/26/the-importance-of-good-stop-levels-dont-use-arbitrary-stop-levels/">orderflows.com/&hellip;/dont-use-arbitrary-stop-levels</a> &middot;
+<a href="https://www.orderflows.com/2015/11/10/a-tale-of-two-stops-dont-get-stopped-out-with-stops-too-tight/">&hellip;/a-tale-of-two-stops</a></td></tr>
+<tr><td><strong>Jim Dalton / Market Profile</strong></td><td>The day-type taxonomy and open types, with the thresholds.
+The best line in the sweep on when not to trade: <em>"No trade is a legitimate trade. When confidence is low you generally
+want to stay uncommitted so that you can execute if the confidence level changes."</em> &#9888; <strong>Never
+peer-reviewed in 40 years.</strong></td>
+<td><a href="https://jimdaltontrading.com/glossarypage/">jimdaltontrading.com/glossarypage</a></td></tr>
+<tr><td>Firich (2012), relayed with full tables by ATAS &mdash; the <em>only</em> measured Market Profile study</td>
+<td>Day-type frequencies: non-trend 6.81%, normal 2.43%, normal variation 22.39%, <strong>trend 9.54%</strong>, neutral
+30.21% &mdash; total only 71.38%. <strong>P(trend day tomorrow) = 9.50/9.94/10.39% against an unconditional 9.54%.</strong>
+IB broken on 73.7&ndash;78.3% of days. &#9888; ATAS then refits the 2&times; threshold to 1.5&times; post hoc.</td>
+<td><a href="https://www.financnik.cz/komodity/fin_home/market-profile-statistiky.html">financnik.cz/&hellip;/market-profile-statistiky</a> &middot;
+<a href="https://atas.net/blog/initial-balance-indicator-how-to-use-initial-balance/">atas.net/blog/initial-balance-indicator</a></td></tr>
+<tr><td><strong>Toby Crabel</strong> (1990) and Crabel Capital</td><td>"Early Entry 2" &mdash; first-bar volume against the
+same bar over the prior 15&ndash;20 days: <strong>RelVol, 34 years earlier.</strong> NR4/NR7 originate here. His own
+102-year, 84-market study: portfolio Sharpe "above six" (1970s&ndash;90s) &rarr; 2.92 (2000s) &rarr; <strong>0.91
+(2010s)</strong> &mdash; <em>"It earns much less than it did."</em> And Crabel Capital's stated competitive advantage is
+<em>"execution costs are among the lowest in the industry."</em></td>
+<td><a href="https://mebfaber.com/2007/09/17/tony-crabel-and-the-secret-orb/">mebfaber.com/2007/09/17/tony-crabel-and-the-secret-orb</a> &middot;
+<a href="https://oxfordstrat.com/trading-strategies/opening-range-breakout/">oxfordstrat.com/trading-strategies/opening-range-breakout</a></td></tr>
+<tr><td><strong>acrary</strong> (Elite Trader) &mdash; the best method content in the forums</td>
+<td><strong>The EDGE TEST:</strong> random entries with matched hold lengths, 5,000 Monte Carlo passes, longs and shorts
+ranked separately per year, 70th percentile on both for 3&ndash;5 years, re-check quarterly, <strong>stop below 70</strong>,
+and <em>disable stops and targets during the test</em>. Plus the trading-cycle arithmetic and a Monte Carlo VaR table.</td>
+<td><a href="https://www.elitetrader.com/et/threads/acrarys-edge-test.11220/">elitetrader.com/et/threads/acrarys-edge-test.11220</a> &middot;
+<a href="https://www.elitetrader.com/et/threads/acrarys-strategy-formation.84891/">&hellip;/acrarys-strategy-formation.84891</a></td></tr>
+<tr><td>"calevonlear", "vovoperador", "Dustin", "IIIusionHD" (forums)</td>
+<td><em>"Trade direction and entry are not as important as sizing and after-entry management&hellip; The market is just
+random. Direction is meaningless, afterwards is what matters."</em> &middot; trend days <em>"only about 10% of days"</em>
+&middot; <em>"I'm right less than half the time but still make a good living"</em> &middot; the one claim matching the
+target: <strong>170 MNQ points on 5 lots = $1,700 by 09:58am.</strong></td>
+<td><a href="https://www.elitetrader.com/et/threads/do-daytraders-profit-everyday-or-are-they-like-me-one-huge-win-one-day-10-losses-in-a-row-after.318878/">elitetrader.com/&hellip;/do-daytraders-profit-everyday&hellip;</a> &middot;
+<a href="https://www.reddit.com/r/FuturesTrading/comments/1je7g30/traders_who_are_consistently_profitable_on_a_1min/">reddit.com/r/FuturesTrading/&hellip;/1je7g30</a></td></tr>
+<tr><td><strong>edgeful</strong> &mdash; the one quantified vendor tier</td><td>NQ base rates on 115&ndash;127 sessions.
+<strong>29.92% of sessions break the 15-minute opening range BOTH ways.</strong> Their 5-min ES ORB takes target = 50% of
+the range against a stop at the opposite edge, so break-even after our friction is <strong>69&ndash;73%</strong> against
+their measured 72.17%. &#9888; Their dollar figures are unit-ambiguous (a "NY session ATR of $449.26" is only coherent at
+MNQ's $2/pt) and their landing page claims 75%/83% NQ gap-fill while their own article measures 53%/59%.</td>
+<td><a href="https://www.edgeful.com/blog/posts/nq-futures-trading">edgeful.com/blog/posts/nq-futures-trading</a> &middot;
+<a href="https://www.edgeful.com/blog/posts/5-minute-opening-range-breakout-es-strategy">&hellip;/5-minute-opening-range-breakout-es-strategy</a></td></tr>
+<tr><td><strong>Rob Carver</strong> &mdash; <span class="tag t-b">B</span>, and the most useful sizing writing found</td>
+<td>The breadth ladder (1 &rarr; 0.35, 5 &rarr; 0.57, 8 &rarr; 0.61, 37 &rarr; 0.70; discreteness penalty ~20% at one lot,
+zero at 3&ndash;4); his explicit <strong>$30,000 = five instruments</strong>; the "speed limit" (never spend more than a
+third of expected pre-cost return on costs, target 10%) which demands <strong>&ge;3.75 MNQ points of gross edge per round
+trip</strong>; and operational Kelly, which prices $1,000/day at <strong>Sharpe 4.10 at half-Kelly</strong>. Also: he
+built this exact machine in 2025 and posted <em>"Postscript: It didn't work"</em> &mdash; simulated Sharpes from +48 to
+&minus;129 depending <em>only</em> on the stop-fill assumption.</td>
+<td><a href="https://qoppac.blogspot.com/2016/03/diversification-and-small-account-size.html">qoppac.blogspot.com/2016/03/diversification-and-small-account-size</a> &middot;
+<a href="https://qoppac.blogspot.com/2025/05/can-i-build-scalping-bot-blogpost-with.html">&hellip;/2025/05/can-i-build-scalping-bot</a></td></tr>
+</table>
+
+<h3>Prop firms, payouts and the industry's own risk rails &mdash; <span class="tag t-a">A</span> (legally-exposed disclosures)</h3>
+<table class="srcs">
+<tr><th>Source</th><th>What it gives</th><th>URL</th></tr>
+<tr><td><strong>Topstep &mdash; "2025 Trader Performance Statistics"</strong></td>
+<td><strong>16.8%</strong> of Combines initiated pass &middot; <strong>51.8%</strong> of individual participants pass at
+least one &middot; <strong>33.3%</strong> of funded participants ever receive a payout &middot; <strong>0.71%</strong> ever
+reach a LIVE funded account. Plus <em>"Over 63% of traders have lost account in a single day."</em> And the marketing that
+refutes the target: "7,000+ traders paid weekly" &times; $5,000/wk &times; 52 = <strong>$1.82bn/yr against a $1.4bn
+FIFTEEN-YEAR all-time total.</strong> Their Octagon competition defines a streak day as <em>"more than $500 in
+profit"</em>.</td>
+<td><a href="https://www.topstep.com/risk-disclosure">topstep.com/risk-disclosure</a> &middot;
+<a href="https://help.topstep.com/en/articles/8284197-trading-combine-parameters">help.topstep.com/&hellip;/trading-combine-parameters</a> &middot;
+<a href="https://help.topstep.com/en/articles/8284208-what-is-the-consistency-target">&hellip;/what-is-the-consistency-target</a></td></tr>
+<tr><td>Tradeify, Earn2Trade, TradeDay disclosures</td><td>Tradeify 17.2% / 40.3% / 28.5% / <strong>3.0% to Live</strong>,
+and states the hidden variable: participants <em>"initiated a median of 3 each."</em> Earn2Trade: 8.89% of subscriptions
+passed, of those <strong>5.23% traded a Live account and 94.77% a LiveSim</strong>. TradeDay 36% pass &mdash; and TradeDay
+has <em>no trailing drawdown</em>, the cleanest (if confounded) evidence on which rule kills accounts.</td>
+<td><a href="https://www.tradeday.com/">tradeday.com</a> &middot; <a href="https://www.earn2trade.com/">earn2trade.com</a></td></tr>
+<tr><td><strong>Payout Junction frozen archive</strong> &mdash; Zenodo doi:10.5281/zenodo.22342845, CC-BY, 35 months,
+<strong>blockchain-verified settlement transactions only</strong></td>
+<td>August 2026 across 39 firms: <strong>$95,535,787 across 62,037 payouts. Mean $1,540, MEDIAN $1,125.</strong> 76% under
+$2,000; 0.058% at $25,000+. Over 35 months the total grew <strong>9&times;</strong> and the count 14&times; while the
+<strong>median sat at ~$1,200 the whole time</strong> &mdash; the industry grows by adding small payees.
+<strong>$1,000/day &asymp; $21,000/month, which that entire pool supports for ~4,549 people on Earth.</strong></td>
+<td><a href="https://zenodo.org/api/records/22342845/files/2026-08.md/content">zenodo.org/records/22342845</a></td></tr>
+<tr><td>Apex &mdash; 4,031 published payout certificates recovered from the Wayback CDX index</td>
+<td>Total $7,539,321, mean $1,870, median $2,000, p99 $3,500, <strong>85.8% &le;$2,000, four above $10,000 in the entire
+corpus.</strong> &#9888; The modal values are literally Apex's published first-five-payout <em>maxima</em>, so this
+measures the cap, not earning power.</td><td><a href="https://www.apextraderfunding.com/">apextraderfunding.com</a> (via web.archive.org CDX)</td></tr>
+<tr><td><strong>Take Profit Trader &mdash; Sustainable Trading Policy</strong></td>
+<td>Adversarial, money-at-risk confirmation of our lab-vs-production traps: <em>"The fills are easier on a trader in a
+simulated environment, so it's actually easier to make profits in the simulated PRO account"</em>; the patterns that do not
+replicate live include <em>"relying on simulation-specific fill inefficiencies"</em> and <em>"aggressively sized positions
+at fixed, predictable market moments like the open&hellip; or other simulation-favorable windows"</em>.
+<strong>A specific warning that a PAPER desk's first-90-minutes record is the least trustworthy part of its tape.</strong>
+Topstep independently bans <em>"repeatedly exploiting the relative lack of slippage in SIM."</em></td>
+<td><a href="https://takeprofittrader.com/">takeprofittrader.com</a> &middot;
+<a href="https://help.topstep.com/en/articles/10406542-what-is-responsible-trading">help.topstep.com/&hellip;/what-is-responsible-trading</a></td></tr>
+<tr><td>FTMO &mdash; 22 paid-trader post-mortems with win rate and RRR from its own broker data</td>
+<td>20 complete pairs, <strong>bimodal with a hole in the middle</strong>: w&le;46% always carries RRR 1.58&ndash;5.59;
+w&ge;55% carries 0.65&ndash;1.83. <strong>Minimum edge index w&middot;R/(1&minus;w) = 1.295. Not one paid trader sits at
+w&asymp;25%, R&asymp;1.3 &mdash; where we sit, at 0.430.</strong></td>
+<td><a href="https://ftmo.com/en/">ftmo.com</a> (WordPress REST API)</td></tr>
+</table>
+
+<h3>Instrument, data and tooling facts</h3>
+<table class="srcs">
+<tr><th>Source</th><th>What it gives</th><th>URL</th></tr>
+<tr><td><strong>Measured on our own tape</strong> &mdash; MNQ 1-min 239 RTH sessions, MGC 264, top-of-book quotes 12 days
+each, 10-level L2 at 250ms 8 days each, NQ&harr;MNQ 82,095 paired minutes, all DST-correct</td>
+<td>First-90 = 72.2% of MNQ's RTH range on ~42% of volume &middot; one extreme 90.0% of days, both 10.4%, afternoon
+extreme 37.2% &middot; MNQ median spread 2 ticks at every hour, worst in London (3 ticks), best 16:00&ndash;19:00Z, and
+09:30&ndash;09:35 ET is the single most expensive five minutes ($1.36 vs $0.86) &middot; MGC median 3 ticks, never tightens
+&middot; 10-lot book-walk $0.35/lot MNQ vs $3.60&ndash;4.60 MGC &middot; MNQ&harr;NQ correlation 0.995102 at lag 0 and
+0.009 at &plusmn;1 min, so <strong>neither contract leads</strong> &middot; |basis| &gt;1 tick on 47% of minutes, so the
+10.5y NQ series is not a tick-exact MNQ proxy &middot; the roll dates and the +297.25 Sep&rarr;Dec carry.</td>
+<td><code>reports/lit_review_2026-09-13/instrument_facts/NOTES.md</code></td></tr>
+<tr><td><strong>IBKR TWS API documentation</strong> &mdash; the one real data gap</td>
+<td><em>"Streaming market data&hellip; is not tick-by-tick but consists of aggregate snapshots taken several times per
+second"</em>, while depth is <em>"sent without sampling nor filtering"</em>. A true tick stream exists
+(<code>reqTickByTickData</code> with <code>AllLast</code>) and we appear not to use it. Also the hard constraint nobody
+mentioned: depth requests are capped at <strong>three</strong> at the default 100 market-data lines.</td>
+<td><a href="https://interactivebrokers.github.io/tws-api/md_request.html">interactivebrokers.github.io/tws-api/md_request.html</a> &middot;
+<a href="https://interactivebrokers.github.io/tws-api/tick_data.html">&hellip;/tick_data.html</a> &middot;
+<a href="https://interactivebrokers.github.io/tws-api/market_depth.html">&hellip;/market_depth.html</a></td></tr>
+<tr><td><strong>Jigsaw daytradr V6.1 release notes, 2025-12-05</strong> &mdash; the killer corroboration</td>
+<td><em>"Fixed MAE/MFE (not for IB &mdash; that's down to a data restriction)"</em>. A platform that computes MAE/MFE for
+Rithmic, CQG, Tradovate, NinjaTrader, StoneX and IQFeed <strong>cannot on Interactive Brokers</strong> &mdash; and MAE/MFE
+are the primitives behind all 430 exit configurations.</td>
+<td><a href="https://www.jigsawtrading.com/">jigsawtrading.com</a> (release notes)</td></tr>
+<tr><td>Sierra Chart &mdash; packages, Denali feed, .scid format, DTC restrictions</td>
+<td>The fix priced: Package 11 ($46/mo, $29.90 on 12-month prepay) + Denali CME-with-depth $13.50 + COMEX $13.50 non-pro
+&asymp; <strong>$57/month</strong> for <em>"tick by tick unfiltered"</em>, millisecond stamps, exchange-fact bid/ask trade
+volume <em>"100% accurate for CME"</em>. &#9888; Non-pro rates <strong>require a funded account</strong> (otherwise
+$145/mo per exchange), so this is a go-live purchase. &#9888; DTC <em>cannot</em> serve CME data
+(<em>"Requests are rejected"</em>) &mdash; read .scid files off disk instead. &#9888; Sierra's MBO is Package-12-only,
+&ge;3-lot orders only, and <strong>not recordable</strong>, so it is an eyeball tool, not a research source.</td>
+<td><a href="https://www.sierrachart.com/index.php?page=doc/DenaliExchangeDataFeed.php">sierrachart.com/&hellip;/DenaliExchangeDataFeed</a> &middot;
+<a href="https://www.sierrachart.com/index.php?page=doc/IntradayDataFileFormat.php">&hellip;/IntradayDataFileFormat</a> &middot;
+<a href="https://www.sierrachart.com/index.php?page=doc/MarketByOrder.php">&hellip;/MarketByOrder</a></td></tr>
+<tr><td>IBKR commission schedule and market-data pricing; Databento GLBX.MDP3</td>
+<td>Our current data spend is ~$27.30/month. Databento publishes the latency ceiling: <em>"90th percentile latency up to
+your application at 42 microseconds (cross-connect) or 590 microseconds (internet)"</em> &mdash; i.e. the best retail feed
+is 100&ndash;350&times; faster than a human. <strong>Latency is not our gap.</strong></td>
+<td><a href="https://www.interactivebrokers.com/en/index.php?f=14193">interactivebrokers.com/&hellip;?f=14193</a> &middot;
+<a href="https://databento.com/datasets/GLBX.MDP3">databento.com/datasets/GLBX.MDP3</a></td></tr>
+</table>
+
+<h3>What I could NOT get, stated so nobody repeats the dead ends</h3>
+<p class="small"><strong>The session's WebSearch budget (200/200) was exhausted by concurrent agents before most lenses
+issued a single query</strong>, so nearly all of this was done by direct HTTP against OpenAlex, Crossref, Unpaywall,
+Semantic Scholar, arXiv, RePEc, Zenodo, publisher repositories and the Wayback CDX API, with PDFs saved to disk and read
+with <code>pdftotext</code>. Hard-blocked from this box: <strong>SSRN, ScienceDirect, Wiley, Taylor &amp; Francis, Oxford
+Academic, Google Scholar (partly), ResearchGate, cmegroup.com (every path, 60s timeouts), iasg.com, live collective2,
+darwinex, futures.io and elitetrader direct, reddit's JSON API</strong>, and every general search engine (Google/Brave
+JS-gated; DuckDuckGo/Startpage/SearXNG/Mojeek CAPTCHA or 403; <strong>Bing served deliberately poisoned results to
+scrapers</strong> &mdash; it returned football and airline pages for "maximum adverse excursion stop loss"). Archive.org
+went offline partway through. Genuine content gaps that remain: <strong>no audited intraday gold track record exists
+anywhere in the academic literature</strong> (every gold performance number in this report is a backtest); <strong>no
+peer-reviewed intraday gold&ndash;DXY beta</strong>; <strong>no post-2015 event study of the new LBMA auction's
+minute-by-minute impact on GC</strong> (a real gap we could fill with our own data); <strong>no study of MGC
+specifically</strong>; the canonical hidden-liquidity paper (Hautsch &amp; Huang) and the VPIN literature are unread; and
+<strong>Maximum Adverse Excursion is essentially absent from the academic literature</strong> (zero relevant OpenAlex
+hits) &mdash; it lives in Sweeney's 1996/97 Wiley books and vendor software, and I reached no primary source. The method
+needs no citation, which is why it is item #1 on Monday. <strong>Also under-covered by construction: YouTube, Twitter/X,
+and Discord</strong> &mdash; which is where much of the "$1,000/day" discourse actually lives. Anyone repeating this
+exercise should raise <code>CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION</code> first.</p>
+
+<hr class="rule">
+<p class="small">GAZBOT V7 &middot; literature review 2026-09-13 &middot; fifteen lenses, three syntheses, no backtests
+run, no service touched, nothing written outside the report tree. Full notes:
+<code>/home/alphabot/gazbot7/reports/lit_review_2026-09-13/</code> &mdash; 22,300 lines across 21 NOTES.md files, every
+claim carrying its URL and an A/B/C grade.</p>
+
+</body></html>

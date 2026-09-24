@@ -15,6 +15,29 @@
      renderers still wrote to, and $() returns null for a missing id — ONE of those throws inside
      the render loop and the WHOLE dashboard goes blank with no error the operator can see. That
      exact failure nearly shipped in the 09-18 rebuild too. Write through these, not directly. */
+  /* ★★★2026-09-24 REPORT OUR OWN FAILURES. A dashboard that breaks in the browser is invisible
+     from the server: every endpoint 200s, every test passes, and the operator sees a blank panel.
+     `catch (e) { }` in the render loop was the worst of it — an exception mid-pass leaves
+     everything after it unrendered and says NOTHING. Now it says something. */
+  let _errN = 0;
+  const report = (where, e) => {
+    try { console.error(where, e); } catch (_) { }
+    if (_errN++ > 20) return;                 // never let a broken tick flood the wire
+    try {
+      fetch("api/control/clienterr", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ where: where, msg: String((e && e.message) || e),
+                               stack: String((e && e.stack) || "").slice(0, 800),
+                               ua: navigator.userAgent }),
+      }).catch(() => { });
+    } catch (_) { }
+  };
+  window.addEventListener("error", (ev) => report("window.onerror", ev.error || ev.message));
+  window.addEventListener("unhandledrejection", (ev) => report("unhandledrejection", ev.reason));
+  /* ⚠ Wrap a renderer so ONE failure cannot take the rest of the pass with it — and so the failure
+     is named. Silent partial renders are exactly how the last three blank panels happened. */
+  const guard = (name, fn) => { try { fn(); } catch (e) { report(name, e); } };
+
   const setTxt = (id, v) => { const e = $(id); if (e) e.textContent = v; };
   const setHtml = (id, v) => { const e = $(id); if (e) e.innerHTML = v; };
   // ★★★2026-08-21 ONE ACCESSOR FOR "TODAY", because three call sites disagreed with the headline.
@@ -132,7 +155,12 @@
       if (ctx) STATE.ctx = ctx;
       if (STATE.tfMode === "session") STATE.tf = tfMinutes("session");   // DAY keeps extending
       try { STATE.bars = await getJSON("api/futures/bars/" + STATE.sym + "?timeframe=1m&count=" + STATE.tf); } catch (e) { /* keep last */ }
-      try { renderConn(us != null); renderSafety(); renderRibbonAndDTT(); renderHero(); renderHolding(); renderContext(); } catch (e) { console.error("fast", e); }
+      guard("fast.renderConn", () => renderConn(us != null));
+      guard("fast.renderSafety", renderSafety);
+      guard("fast.renderRibbonAndDTT", renderRibbonAndDTT);
+      guard("fast.renderHero", renderHero);
+      guard("fast.renderHolding", renderHolding);
+      guard("fast.renderContext", renderContext);
     } finally { _fastBusy = false; }
   }
   async function slowTick() {
@@ -144,10 +172,12 @@
       const days = await getJSON("api/futures/days?n=14").catch(() => null);
       if (days) STATE.days = days;
       const m = STATE.mnq || {};
-      try {
-        renderHeader(m); renderTrade(m); renderTrades(m); renderTabBadges(m); renderDays();
-        if (STATE.drill) reAggregateDrill();
-      } catch (e) { console.error("slow", e); }
+      guard("slow.renderHeader", () => renderHeader(m));
+      guard("slow.renderTrade", () => renderTrade(m));
+      guard("slow.renderTrades", () => renderTrades(m));
+      guard("slow.renderTabBadges", () => renderTabBadges(m));
+      guard("slow.renderDays", renderDays);
+      if (STATE.drill) guard("slow.reAggregateDrill", reAggregateDrill);
     } finally { _slowBusy = false; }
   }
 
@@ -945,7 +975,16 @@
         document.querySelectorAll(".panel[data-tab]").forEach((p) => p.classList.toggle("on", p.getAttribute("data-tab") === name));
         // the just-shown panel now has real dimensions — redraw its chart at the true size (charts skip
         // while hidden, so this is what draws them crisply on show; requestAnimationFrame lets layout settle)
-        requestAnimationFrame(() => { try { renderHero(); renderHolding(); renderDays(); } catch (e) { } });
+        /* ⚠⚠ DOUBLE rAF. A panel revealed this frame has not been LAID OUT yet, so clientHeight
+           is still 0 — and renderHero's zero-size guard (written to skip a hidden tab) returns
+           without drawing. That is the 09-02 failure exactly: a chart box measuring ZERO, no error
+           anywhere, blank for nine days. One frame to apply the class, the next to measure it. */
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          guard("tabshow.renderHero", renderHero);
+          guard("tabshow.renderHolding", renderHolding);
+          guard("tabshow.renderDays", renderDays);
+          guard("tabshow.renderTrades", () => renderTrades(STATE.mnq || {}));
+        }));
       };
     });
   }

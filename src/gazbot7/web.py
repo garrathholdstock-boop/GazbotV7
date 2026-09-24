@@ -1406,6 +1406,40 @@ def claim_post(body, data_dir):
 
 
 # ── POST /api/control/dayrider-claim — operator "Claim profit" on the day rider ─
+def client_error_post(body, data_dir):
+    """★★★2026-09-24 THE PAGE REPORTS ITS OWN FAILURES.
+
+    A dashboard that breaks in the browser is INVISIBLE from here: every endpoint returns 200, every
+    test passes, and the operator sees a blank panel. That has now happened three times — the
+    tournament panel, the day drill, and today's TRADE tab — and each time it cost a round of
+    guessing because the only witness was a browser I cannot read.
+    ⚠ The render loop's `catch (e) { }` blocks were the worst of it: an exception mid-pass leaves
+    everything AFTER it unrendered and says nothing at all.
+
+    Bounded and dumb on purpose: append-only, capped, no parsing of anything the page sends beyond
+    truncating it. Nothing here is trusted — it is a browser writing to a log.
+    """
+    try:
+        req = json.loads(body or b"{}")
+    except Exception:
+        req = {"raw": str(body[:200])}
+    rec = {"ts": datetime.now(UTC).isoformat(),
+           "where": str(req.get("where", ""))[:80],
+           "msg": str(req.get("msg", ""))[:400],
+           "stack": str(req.get("stack", ""))[:800],
+           "ua": str(req.get("ua", ""))[:120]}
+    path = os.path.join(data_dir, "client_errors.jsonl")
+    try:
+        # ⚠ cap it: a render loop erroring every tick would fill the disk in a day
+        if os.path.exists(path) and os.path.getsize(path) > 2_000_000:
+            os.replace(path, path + ".1")
+        with open(path, "a") as fh:
+            fh.write(json.dumps(rec) + "\n")
+    except Exception:
+        pass
+    return {"ok": True}
+
+
 def step_away_post(body, data_dir):
     """ARM / DISARM the step-away guard. Writes a state file; places NO order.
 
@@ -2313,6 +2347,8 @@ def serve(port, store_path, cap_path, data_dir, shadow_path):
                     self._json(dayrider_claim_post(body, data_dir))
                 elif path == "/api/control/pass":
                     self._json(operator_pass_post(body, data_dir))
+                elif path == "/api/control/clienterr":
+                    self._json(client_error_post(body, data_dir))
                 elif path == "/api/control/step-away":
                     self._json(step_away_post(body, data_dir))
                 else:

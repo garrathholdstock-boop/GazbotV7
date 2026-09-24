@@ -576,17 +576,20 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
 .passrow button:active{background:var(--panel2);color:var(--txt)}
 
 #p-trade{overflow-y:auto}
-#p-trade .hero-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#p-trade .hero-body{flex:0 0 auto;display:block}
 /* ★ THE CHART KEEPS ITS SIZE — it is the only thing he asked not to shrink, and it now takes the
    space everything else gave up. */
-#p-trade .chart-host{flex:1 1 auto;min-height:260px;position:relative}
+/* ⚠ A DEFINITE HEIGHT, not flex:1. The panel scrolls (overflow-y:auto) and a flex:1 child inside
+   a scrolling column can resolve to ZERO — which makes renderHero's zero-size guard return and the
+   chart silently never draws. Definite heights cannot collapse. */
+#p-trade .chart-host{height:300px;min-height:300px;position:relative;flex:0 0 auto}
 
 @media(max-width:899px){
   .tstrip .tm b{font-size:12px}
   .actions{gap:6px;padding:6px 6px 2px}
   .orb{max-width:60px}
   /* ★ the chart GAINS on the phone, because everything above and below it lost a third */
-  #p-trade .chart-host{min-height:250px}
+  #p-trade .chart-host{height:270px;min-height:270px}
   .holdcard{margin:5px 6px 3px;padding:8px 10px}
   .holdcard .hc-pnl{font-size:23px}
   .panel{margin-bottom:5px}

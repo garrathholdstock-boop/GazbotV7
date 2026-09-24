@@ -373,5 +373,60 @@ def test_everything_except_the_chart_shrank():
     css = open(CSS).read()
     assert "max-width:66px" in css, "the action buttons did not shrink"
     assert "gap:6px;padding:6px" in css, "the desktop grid gaps were not tightened"
-    # the chart floor must be LARGER than the buttons it sits beneath, on both layouts
-    assert "min-height:260px" in css and "min-height:250px" in css, "the chart lost its floor"
+    # ⚠ Assert the PROPERTY, not the pixel value: the chart must keep a definite height on BOTH
+    # layouts and it must be comfortably larger than anything that shrank around it. Pinning the
+    # exact number meant this failed the moment the sizing was improved.
+    heights = [int(x) for x in re.findall(r"#p-trade \.chart-host\{height:(\d+)px", css)]
+    assert len(heights) >= 2, "the chart does not have a definite height on both layouts"
+    assert min(heights) >= 240, f"the chart floor dropped to {min(heights)}px"
+
+
+def test_exactly_one_panel_is_visible_by_default():
+    """★★★2026-09-24 THE PHONE SHOWED NOTHING ON LOAD. On the phone `.panel[data-tab]{display:none}`
+    hides every panel and only `.on` reveals one. The TRADE *button* carried `class="tab on"` but
+    the TRADE *panel* did not — so the tab looked selected and the screen was blank until he tapped
+    away and back. Invisible on desktop, where the tabbar is hidden and all panels show regardless:
+    the two layouts disagreeing is precisely the gap bugs hide in. He is on iPhone 96% of the time."""
+    import re as _re
+    h = open(HTML).read()
+    on_panels = _re.findall(r'<section class="panel on" id="(p-[a-z]+)"', h)
+    assert len(on_panels) == 1, f"expected exactly one default-visible panel, got {on_panels}"
+    on_tabs = _re.findall(r'<button class="tab on" data-tab="([a-z]+)"', h)
+    assert len(on_tabs) == 1, f"expected exactly one selected tab, got {on_tabs}"
+    assert on_panels[0] == "p-" + on_tabs[0], (
+        f"the selected tab ({on_tabs[0]}) and the visible panel ({on_panels[0]}) disagree — "
+        f"the tab looks chosen and the screen is blank")
+
+
+def test_the_chart_has_a_DEFINITE_height_not_flex():
+    """⚠ The TRADE panel scrolls, and a flex:1 child inside a scrolling column can resolve to ZERO.
+    renderHero's zero-size guard (written to skip a hidden tab) then returns without drawing and the
+    chart is silently blank — the 09-02 failure that went unnoticed for nine days."""
+    css = open(CSS).read()
+    i = css.index("#p-trade .chart-host{")
+    rule = css[i:css.index("}", i)]
+    assert "height:300px" in rule and "flex:0 0 auto" in rule, (
+        "the chart is back on flex sizing and can collapse to zero")
+
+
+def test_a_revealed_panel_is_redrawn_after_LAYOUT():
+    """⚠⚠ A panel revealed this frame has not been laid out yet — clientHeight is still 0, so the
+    zero-size guard returns and the chart never draws. One frame to apply the class, the next to
+    measure it."""
+    js = open(JS).read()
+    assert "requestAnimationFrame(() => requestAnimationFrame(" in js, (
+        "the tab-show redraw happens before layout")
+
+
+def test_render_failures_are_REPORTED_not_swallowed():
+    """★★★ A dashboard that breaks in the browser is invisible from the server: every endpoint
+    200s, every test passes, and he sees a blank panel. `catch (e) { }` in the render loop was the
+    worst of it — an exception mid-pass leaves everything AFTER it unrendered and says nothing."""
+    js, web = open(JS).read(), open(WEB).read()
+    assert "const guard = (name, fn)" in js, "renderers are no longer individually guarded"
+    assert "window.addEventListener(\"error\"" in js, "there is no global error handler"
+    assert "api/control/clienterr" in js and "def client_error_post" in web
+    # no bare swallow may remain in the render path
+    i = js.index("async function fastTick")
+    j = js.index("/* ---------- MNQ slices", i)
+    assert "catch (e) { }" not in js[i:j], "a render tick still swallows its errors"
