@@ -13,8 +13,14 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=root
-Environment=HOME=/root
+# ★★2026-09-24 alphabot, NOT root. This service and gazbot7-web SHARE data/step_away.json, and
+# whichever wrote last OWNED it — so when the watcher (root) expired an arming, the web process
+# (alphabot) could no longer write the file and the ARM button returned "error 13, permission
+# denied". Two services writing one file under two users is the bug; matching the user is the fix.
+# ⚠ Everything it touches must be alphabot-writable: step_away.json, step_away.log, and the claim
+# file it writes on a breach.
+User=alphabot
+Environment=HOME=/home/alphabot
 Environment=PYTHONPATH=src
 WorkingDirectory=/home/alphabot/gazbot7
 MemoryMax=200M

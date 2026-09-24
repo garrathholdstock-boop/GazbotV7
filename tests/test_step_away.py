@@ -153,3 +153,35 @@ def test_arming_reports_whether_it_will_fire_immediately(tmp_path):
     src = open("/home/alphabot/gazbot7/src/gazbot7/web.py").read()
     i = src.index("SAY WHAT WILL HAPPEN THE INSTANT IT IS ARMED")
     assert "ALREADY PAST YOUR LEVEL" in src[i:i + 3000]
+
+
+def test_the_watcher_and_the_web_run_as_the_SAME_user():
+    """★★★ 2026-09-24 THE ARM BUTTON RETURNED "error 13, permission denied".
+
+    gazbot7-web runs as `alphabot`; gazbot7-step-away was written as `root`. They SHARE
+    data/step_away.json — and whichever wrote last OWNED it. So the moment the watcher (root)
+    expired an arming, the web process (alphabot) could no longer write the file and the button
+    died. Two services writing one file under two users is the bug; matching the user is the fix.
+    ⚠ A file-permission failure is invisible until someone presses the button, which is why this
+    is asserted against the UNIT rather than left to be found in production again."""
+    import os as _os
+
+    def user_of(path):
+        try:
+            return [l.split("=", 1)[1].strip() for l in open(path).read().splitlines()
+                    if l.startswith("User=") and not l.strip().startswith("#")][0]
+        except Exception:
+            return None
+
+    away = user_of("/home/alphabot/gazbot7/ops/systemd/gazbot7-step-away.service")
+    assert away, "step-away declares no User at all"
+    # ⚠ The web unit lives only in /etc/systemd/system (it is not in the repo), so compare against
+    # it when present and fall back to the invariant that actually matters: the watcher must run as
+    # whoever OWNS the data directory, because that is who the web process is.
+    web = user_of("/etc/systemd/system/gazbot7-web.service")
+    if web:
+        assert away == web, (f"step-away runs as {away} but the web runs as {web} — they share "
+                             f"data/step_away.json and the ARM button will return error 13")
+    owner = __import__("pwd").getpwuid(_os.stat("/home/alphabot/gazbot7/data").st_uid).pw_name
+    assert away == owner, (f"step-away runs as {away} but data/ is owned by {owner} — it will "
+                           f"leave root-owned files the web process cannot rewrite")

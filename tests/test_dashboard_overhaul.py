@@ -339,3 +339,14 @@ def test_pass_survived_the_merge():
     h, js = open(HTML).read(), open(JS).read()
     assert 'id="pass-btn"' in h and 'id="pass-note"' in h
     assert 'fetch("api/control/pass"' in js
+
+
+def test_buy_and_sell_are_DISABLED_while_holding():
+    """★2026-09-24 The rider refuses a second entry ("already in a position — flatten before buying
+    again"), which is CORRECT. But arriving as an alert after he has pressed AND typed a PIN makes a
+    correct refusal feel like a broken button — he reported it as an error. Show the state instead
+    of reporting it."""
+    js = open(JS).read()
+    assert "b.disabled = !!open" in js, "BUY/SELL are pressable while a position is open"
+    i = js.index("b.disabled = !!open")
+    assert "Already in a position" in js[i:i + 300], "the disabled button does not say why"

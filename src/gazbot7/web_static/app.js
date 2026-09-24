@@ -429,6 +429,17 @@
     const op = $("orb-pos");
     if (op) op.textContent = open ? ((open.qty > 0 ? "LONG " : "SHORT ") + Math.abs(open.qty)) : "flat";
     const fb = $("flat-all"); if (fb) fb.disabled = !open;
+    /* ★2026-09-24 DISABLE BUY/SELL WHILE HOLDING. The rider refuses a second entry ("already in a
+       position — flatten before buying again"), which is correct — but arriving as an alert AFTER
+       he has pressed and typed a PIN makes a correct refusal feel like a broken button. Show the
+       state instead of reporting it. */
+    [["buy-long", "BUY"], ["buy-short", "SELL"]].forEach(([id, lab]) => {
+      const b = $(id); if (!b) return;
+      b.disabled = !!open;
+      b.title = open ? "Already in a position — flatten first" : "";
+      const em = b.querySelector("em");
+      if (em) em.textContent = open ? "holding" : String(BUY_LOTS);
+    });
 
     if (!STATE._wired) {
       STATE._wired = true;
