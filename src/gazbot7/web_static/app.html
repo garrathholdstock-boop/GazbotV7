@@ -134,10 +134,15 @@
              the moment he is walking out of the room is friction that costs money. DISARMING asks
              for it, because that is the direction that exposes him. -->
         <div class="row"><span class="k">step away</span><span class="val">
-          $<input id="sa-loss" type="number" min="50" max="5000" step="50" value="200"
-                 style="width:5em">
+          <span class="dim3">stop&nbsp;−$</span><input id="sa-loss" type="number" min="50" max="5000"
+                 step="50" value="200" style="width:4.5em">
+          <span class="dim3">&nbsp;take&nbsp;+$</span><input id="sa-tp" type="number" min="50"
+                 max="20000" step="50" value="300" style="width:4.5em">
           <button class="claimbtn" id="sa-btn">ARM</button>
           <span class="dim3" id="sa-state"></span></span></div>
+        <!-- ⚠2026-09-24 The take-profit was accepted by the backend from day one and NEVER sent by
+             the page — six days armed-capable, zero arms, and the operator reasonably concluded it
+             had not been built. A control that exists only in the API does not exist. -->
         <div class="row"><span class="k dim3">looked, not trading</span><span class="val">
           <input id="pass-note" type="text" maxlength="120" placeholder="why not? (optional)"
                  style="width:11em">

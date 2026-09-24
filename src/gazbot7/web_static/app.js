@@ -592,11 +592,17 @@
               if (!pin) return;
               body.pin = pin;
             } else {
-              const el = $("sa-loss");
+              const el = $("sa-loss"), tpEl = $("sa-tp");
               body.limit_usd = (el && Number(el.value)) || 200;
-              if (!window.confirm(`Arm STEP AWAY?\n\nIf the open position runs to −$${body.limit_usd} `
-                + `it will be flattened at market, through the rider's own ownership check.\n\n`
-                + `It disarms the moment it fires, and at the 22:00Z reopen.`)) return;
+              /* ⚠ 0 or blank means NO take-profit, not a take-profit of zero — which would fire on
+                 the first tick the position was green by a cent. */
+              const tp = tpEl && Number(tpEl.value);
+              if (tp && tp > 0) body.take_profit_usd = tp;
+              if (!window.confirm(`Arm STEP AWAY?\n\n`
+                + `• flatten at −$${body.limit_usd}\n`
+                + (body.take_profit_usd ? `• flatten at +$${body.take_profit_usd}\n` : `• no take-profit\n`)
+                + `\nBoth go through the rider's own ownership check. It disarms the moment it `
+                + `fires, and at the 22:00Z reopen.`)) return;
             }
             sb.disabled = true;
             fetch("api/control/step-away", {
@@ -1011,7 +1017,8 @@
     const sbtn = $("sa-btn"), sst = $("sa-state");
     if (sbtn) { sbtn.textContent = sa.armed ? "DISARM" : "ARM"; sbtn.className = "claimbtn" + (sa.armed ? " on" : ""); }
     if (sst) {
-      sst.textContent = sa.armed ? `ARMED −$${Math.round(sa.limit_usd)}`
+      sst.textContent = sa.armed
+        ? `ARMED −$${Math.round(sa.limit_usd)}` + (sa.take_profit_usd ? ` / +$${Math.round(sa.take_profit_usd)}` : "")
         : (sa.fired_at ? `fired ${String(sa.fired_at).slice(11, 16)} at ${sa.fired_pnl}` : "off");
       sst.className = sa.armed ? "neg" : "dim3";
     }

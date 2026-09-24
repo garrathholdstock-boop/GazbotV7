@@ -110,3 +110,46 @@ def test_the_armed_state_is_visible_on_the_dashboard():
     assert '"step_away"' in open("/home/alphabot/gazbot7/src/gazbot7/web.py").read()
     js = open("/home/alphabot/gazbot7/src/gazbot7/web_static/app.js").read()
     assert "sa-state" in js and "ARMED" in js
+
+
+def test_the_take_profit_branch_actually_fires(tmp_path, monkeypatch):
+    """★★2026-09-24 THE TP WAS ACCEPTED BY THE BACKEND FROM DAY ONE AND NEVER SENT BY THE PAGE.
+    Six days armed-capable, zero arms, and the operator reasonably concluded it had not been built.
+    A control that exists only in the API does not exist — and an untested branch is not a feature."""
+    _sandbox(tmp_path, monkeypatch, armed=True, limit_usd=200, take_profit_usd=300)
+    sa.fire("take profit", 340.0, {"limit_usd": 200, "take_profit_usd": 300})
+    assert sa.read_state()["armed"] is False
+    assert sa.read_state()["reason"] == "take profit"
+    raw = (tmp_path / "day_rider_claim.txt").read_text().strip()
+    assert "|" not in raw, "a take-profit claim must flatten ALL, not one lot"
+
+
+def test_a_zero_take_profit_means_NONE_not_zero():
+    """⚠ A take-profit of 0 would fire the instant the position was green by a cent."""
+    js = open("/home/alphabot/gazbot7/src/gazbot7/web_static/app.js").read()
+    i = js.index('$("sa-btn")')
+    block = js[i:i + 1800]
+    assert "tp && tp > 0" in block, "a blank or zero take-profit is no longer treated as 'none'"
+
+
+def test_the_ui_exposes_BOTH_legs():
+    h = open("/home/alphabot/gazbot7/src/gazbot7/web_static/app.html").read()
+    assert 'id="sa-loss"' in h and 'id="sa-tp"' in h, "the take-profit has no control on the page"
+    js = open("/home/alphabot/gazbot7/src/gazbot7/web_static/app.js").read()
+    assert "take_profit_usd" in js, "the page still never sends a take-profit"
+
+
+def test_arming_reports_whether_it_will_fire_immediately(tmp_path):
+    """★★★ Arming a −$200 stop while the position is already −$250 flattens it on the next
+    2-second tick. That may be exactly what he wants, but it must never be a SURPRISE — and the
+    reply is the only place he sees it.
+    ⚠ Not hypothetical: arming against a live position without first reading its open P&L is
+    precisely the mistake that prompted this."""
+    import json as _j
+    # no position -> no claim about P&L
+    (tmp_path / "day_rider_state.json").write_text(_j.dumps({"qty": 0, "closed": True}))
+    out = web.step_away_post(_j.dumps({"armed": True, "limit_usd": 200}).encode(), str(tmp_path))
+    assert out["ok"] and out["fires_immediately"] is False and out["open_pnl"] is None
+    src = open("/home/alphabot/gazbot7/src/gazbot7/web.py").read()
+    i = src.index("SAY WHAT WILL HAPPEN THE INSTANT IT IS ARMED")
+    assert "ALREADY PAST YOUR LEVEL" in src[i:i + 3000]

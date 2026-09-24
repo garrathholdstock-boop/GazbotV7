@@ -1449,6 +1449,27 @@ def step_away_post(body, data_dir):
     # the session is the 22:00Z reopen — an arming must never survive it
     now = datetime.now(UTC)
     sess = (now.date() if now.hour >= 22 else (now - timedelta(days=1)).date()).isoformat()
+    # ★★2026-09-24 SAY WHAT WILL HAPPEN THE INSTANT IT IS ARMED. Arming a −$200 stop while the
+    # position is already −$250 flattens it on the next 2-second tick. That may be exactly what he
+    # wants, but it must never be a surprise — and the reply is the only place he will see it.
+    # ⚠ This is not hypothetical: arming against a LIVE position without first reading its open P&L
+    # is precisely the mistake that prompted this guard.
+    live = None
+    try:
+        import sqlite3 as _sq
+        with open(os.path.join(data_dir, "day_rider_state.json")) as fh:
+            rs = json.load(fh)
+        if rs.get("qty") and not rs.get("closed"):
+            _c = _sq.connect(os.path.join(data_dir, "capture.db"))
+            _px = _c.execute("select close from bars where symbol='MNQ' and timeframe='5s' "
+                             "order by bar_ts desc limit 1").fetchone()
+            _c.close()
+            if _px:
+                q = float(rs["qty"]); d = int(rs.get("direction") or 0)
+                live = (float(_px[0]) - float(rs["entry"])) * d * q * _VPP - _FEE * q
+    except Exception:
+        live = None
+
     st = {"armed": True, "limit_usd": lim, "take_profit_usd": tp,
           "armed_at": now.isoformat(), "session": sess}
     try:
@@ -1456,9 +1477,16 @@ def step_away_post(body, data_dir):
             json.dump(st, fh, indent=1)
     except Exception as e:
         return {"ok": False, "error": str(e)}
+    imminent = live is not None and (live <= -lim or (tp and live >= tp))
+    msg = (f"Step-away ARMED — flatten at −${lim:.0f}" + (f" or +${tp:.0f}" if tp else "")
+           + ". Disarms at the 22:00Z reopen.")
+    if live is not None:
+        msg += f" Open P&L is {live:+.0f} right now"
+        msg += (" — ⚠ THAT IS ALREADY PAST YOUR LEVEL, SO IT WILL FLATTEN WITHIN SECONDS."
+                if imminent else f", inside the band.")
     return {"ok": True, "armed": True, "limit_usd": lim, "take_profit_usd": tp,
-            "msg": f"Step-away ARMED — flatten at −${lim:.0f}"
-                   + (f" or +${tp:.0f}" if tp else "") + ". Disarms at the 22:00Z reopen."}
+            "open_pnl": (round(live, 2) if live is not None else None),
+            "fires_immediately": bool(imminent), "msg": msg}
 
 
 def operator_pass_post(body, data_dir):
