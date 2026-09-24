@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — surge logger cadence (every minute, US hours only)
+
+[Timer]
+# ⚠ ~420 fires/day, deliberately bounded to US hours rather than run all day: the surge definition
+# was set on US-hour tape and an Asia-session surge is a different animal measured with the wrong
+# ruler. The script ALSO self-skips on a shut venue, so the window is belt and braces.
+# :17 keeps it off the rider's *:*:05 tick and off the router's *:0/5 write.
+OnCalendar=Mon..Fri *:*:17
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

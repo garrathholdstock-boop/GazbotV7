@@ -914,6 +914,26 @@
          the 10-day baseline); degrades for ~10 days after each quarterly roll. */
       rv.title = (c.rvol_caveat || "") + (c.rvol_n_days ? ` · baseline ${c.rvol_n_days}d` : "");
     }
+    /* ★★★2026-09-24 PULSE AND FLOW — "is this surge backed and real?"
+       ⚠⚠ BOTH ARE DESCRIPTIVE AND THE COLOUR MUST NOT IMPLY OTHERWISE. Green here means "volume is
+       expanding" / "buyers are crossing the spread", NEVER "this will continue". Measured on the 5
+       sessions of tick data we retain, backed surges extended a median +5.25pt over the next 5 min
+       against +0.50pt unbacked — which ORDERS correctly and is NOT a result at n=170 clustered in
+       5 days. The colour is a reading of NOW, and the tooltip says so.
+       ⚠ `surge` is absent outside US hours and on a shut venue — a dash, never a confident 0.00. */
+    const sg = c.surge || {}, pu = $("ctx-pulse"), fl = $("ctx-flow");
+    if (pu) {
+      pu.textContent = sg.pulse == null ? "—" : sg.pulse.toFixed(2) + "x";
+      pu.className = sg.pulse == null ? "" : (sg.pulse >= 1.5 ? "pos" : (sg.pulse < 0.6 ? "warn" : ""));
+    }
+    if (fl) {
+      /* ⚠ SIGNED AND EXPLICIT. A bare "0.42" reads as a magnitude; he needs the SIDE at a glance. */
+      fl.textContent = sg.flow == null ? "—"
+        : (sg.flow > 0 ? "+" : "") + (sg.flow * 100).toFixed(0) + "%";
+      fl.className = sg.flow == null ? ""
+        : (sg.flow >= 0.15 ? "pos" : (sg.flow <= -0.15 ? "neg" : ""));
+    }
+
     /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are
        measured, not decorative: over-8h holds are 0 winners from 4. */
     const po = c.position, pa = $("ctx-posage");

@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V7 — log every surge with its PULSE and FLOW (READ-ONLY, writes only its own log)
+# ★★★ THE ONLY REASON THIS EXISTS: `aggressor` lives in capture.db `ticks`, which prune_capture
+# keeps for FIVE DAYS. The "is a backed surge different?" question CANNOT be answered by looking
+# backwards — ever. Either the readings are written down as they happen or it stays open forever.
+# Pre-registered in data/prereg_surge.json. Do not tune the thresholds; a change restarts the count.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+# The box is 7.5GB with a history of global_oom kills that have taken the DESK down. A logger is
+# never allowed to be the process that does that.
+MemoryMax=200M
+TimeoutStartSec=60
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/surge_log.py
+# A logger that cannot read must never take anything with it.
+SuccessExitStatus=0 1

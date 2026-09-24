@@ -154,6 +154,7 @@ def context_json(cap_path, data_dir, store_path):
         base = sorted(hist)[len(hist) // 2] if hist else None
         out["rvol"] = round(cur / base, 2) if base else None
         out["rvol_n_days"] = len(hist)
+        out["surge"] = surge_meters(cap_path)
         out["rvol_caveat"] = ("this hour so far vs the SAME minutes of that hour on the last "
                               "10 sessions (median) — no linear-accrual assumption. ⚠ bars carry "
                               "no contract column, so a window spanning a roll compares two "
@@ -476,6 +477,79 @@ def adverse_meter(data_dir, cap_path) -> dict:
             "n": tab.get(bucket, {}).get("n")}
 
 
+def surge_meters(cap_path) -> dict:
+    """PULSE and FLOW — "is the surge in front of me BACKED, and is it REAL?" (2026-09-24)
+
+    Operator, after RVOL was fixed and still read ~1.0 through a thrusty open: "i feel like i need
+    1 and 2. shows me if a surge is backed and real."
+
+    ★★★ WHY THESE TWO AND NOT ANOTHER RVOL. RVOL asks "unusual FOR THIS TIME OF DAY", so it sits at
+    ~1.0 through every open by construction — the open is the most stereotyped part of the session
+    and today's thrusts are being compared with other days' thrusts. It can never answer "is this
+    move backed", because that is a question about NOW versus the MINUTES BEFORE IT, not about
+    today versus other days.
+
+      PULSE — this minute's volume / the MEDIAN of the previous 15 minutes OF THIS SESSION.
+              ★ No cross-day baseline at all, so the Sep->Dec roll that is currently dragging
+                RVOL's 10-day median cannot touch it. `bars` has no contract column and this is
+                the meter that does not care.
+              ⚠ MEDIAN, not mean: one spike minute inside the lookback would raise the bar and
+                hide the very expansion the meter exists to show.
+      FLOW  — (buy - sell) / (buy + sell) by AGGRESSOR over the last 2 minutes, -1..+1.
+              ⚠⚠ `neutral` is 13% of the tape and is EXCLUDED, never split. Assigning it pro-rata
+                would manufacture imbalance out of trades nobody lifted or hit.
+
+    ⚠⚠⚠ DESCRIPTIVE, NEVER PREDICTIVE — and the UI says so in its own tooltip. MEASURED on the 5
+    sessions of tick data we retain (170 surges at the 90th-percentile 1-min move, 12.5pt):
+        BACKED   (pulse>=1.5, flow aligned)  median +5.25pt over the next 5 min, 57.5% extended
+        unbacked (pulse<1.5,  flow aligned)  median +0.50pt,                     51.5% extended
+        flow OPPOSING the move               median -1.12pt,                     45.5% extended
+    That ORDERS correctly, and it is NOT A RESULT: 5 sessions, and minutes inside a session are
+    not independent draws. This desk's own history says a 57% hit rate on n=80 clustered in 5 days
+    is where direction studies come to die. PROMISING, not proven.
+
+    ⚠ IT CANNOT BE SETTLED RETROSPECTIVELY. `ticks` is pruned at 5 DAYS, so there is no history to
+    widen the study with — the readings must be LOGGED FORWARD or the question stays open forever.
+    That is what `data/surge_log.jsonl` is for.
+    """
+    out = {"pulse": None, "flow": None, "flow_n": 0, "pulse_base": None, "open": True}
+    try:
+        from .session import is_open as _is_open
+        now = datetime.now(UTC)
+        if not _is_open(now):
+            out["open"] = False
+            return out
+        c = _conn(cap_path)
+        t1 = int(now.timestamp())
+        # ── PULSE ────────────────────────────────────────────────────────────────────────────
+        m0 = t1 - (t1 % 60)
+        cur = c.execute("SELECT COALESCE(SUM(volume),0) v FROM bars WHERE symbol='MNQ' AND "
+                        "timeframe='5s' AND bar_ts>=? AND bar_ts<?", (m0 - 60, m0)).fetchone()["v"]
+        prev = [r["v"] for r in c.execute(
+            "SELECT CAST(bar_ts/60 AS INT) mm, COALESCE(SUM(volume),0) v FROM bars WHERE "
+            "symbol='MNQ' AND timeframe='5s' AND bar_ts>=? AND bar_ts<? GROUP BY mm "
+            "ORDER BY mm", (m0 - 16 * 60, m0 - 60)).fetchall()]
+        prev = [v for v in prev if v > 0]
+        if len(prev) >= 8:
+            base = sorted(prev)[len(prev) // 2]
+            if base:
+                out["pulse"] = round(cur / base, 2)
+                out["pulse_base"] = int(base)
+        # ── FLOW ─────────────────────────────────────────────────────────────────────────────
+        r = c.execute("SELECT COALESCE(SUM(CASE WHEN aggressor='buy' THEN size END),0) b, "
+                      "COALESCE(SUM(CASE WHEN aggressor='sell' THEN size END),0) s, "
+                      "COUNT(*) n FROM ticks WHERE symbol='MNQ' AND ts_ms>=?",
+                      ((t1 - 120) * 1000,)).fetchone()
+        tot = (r["b"] or 0) + (r["s"] or 0)
+        if tot:
+            out["flow"] = round(((r["b"] or 0) - (r["s"] or 0)) / tot, 2)
+            out["flow_n"] = int(r["n"])
+        c.close()
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {e}"
+    return out
+
+
 def rvol(cap_path, window_min: int = 30, lookback: int = 5) -> dict:
     """RELATIVE VOLUME, normalised BY TIME OF DAY. Operator asked for RVOL back on the dashboard.
 
@@ -664,7 +738,8 @@ def us_terminal_json(cap_path, data_dir):
         pass
 
     return {"holdings": holdings, "activity": [activity], "regime_groups": {},
-            "stayout": stayout_meters(cap_path), "rvol": rvol(cap_path), "block": session_block(), "vwap_stretch": vwap_stretch(cap_path), "adverse": adverse_meter(data_dir, cap_path),
+            "stayout": stayout_meters(cap_path), "rvol": rvol(cap_path), "block": session_block(),
+            "surge": surge_meters(cap_path), "vwap_stretch": vwap_stretch(cap_path), "adverse": adverse_meter(data_dir, cap_path),
             "margin_deployed_usd": None, "nlv_usd": None}
 
 

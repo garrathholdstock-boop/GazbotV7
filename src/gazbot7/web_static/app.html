@@ -135,10 +135,20 @@
       </div>
     </div>
 
+    <!-- ★★2026-09-24 SIX CELLS, TWO ROWS, GROUPED BY THE QUESTION THEY ANSWER.
+         Row 1 is the DAY's character; row 2 is RIGHT NOW. Operator: "i feel like i need 1 and 2.
+         shows me if a surge is backed and real." RVOL cannot answer that — it asks "unusual for
+         this time of day" and therefore sits at ~1.0 through every open by construction, because
+         today's thrusts are being compared with other days' thrusts. PULSE and FLOW ask about now
+         versus the minutes before it, which is the actual question.
+         ⚠ The second row costs ~25px. The padding below was tightened to pay for it; if anything
+         falls off the one-screen budget, this row is the thing to reconsider. -->
     <div class="tstrip">
       <span class="tm"><i>ATR</i><b id="ctx-atr">—</b></span>
       <span class="tm"><i>EFFICIENCY</i><b id="ctx-er">—</b></span>
       <span class="tm"><i>RVOL</i><b id="ctx-rvol">—</b></span>
+      <span class="tm" title="This minute's volume vs the MEDIAN of the previous 15 minutes OF THIS SESSION. No cross-day baseline, so the contract roll cannot touch it. Above ~1.5x the surge has volume behind it. DESCRIPTIVE — it does not forecast.'"><i>PULSE</i><b id="ctx-pulse">—</b></span>
+      <span class="tm" title="Aggressor imbalance over the last 2 minutes: +1 all buyers lifting, -1 all sellers hitting. 'neutral' trades (13% of tape) are EXCLUDED, never split. DESCRIPTIVE — it says who is crossing the spread right now, not where price goes next."><i>FLOW</i><b id="ctx-flow">—</b></span>
       <span class="tm"><i>POSITION AGE</i><b id="ctx-posage">—</b></span>
     </div>
     <div class="passrow">
