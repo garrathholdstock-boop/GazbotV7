@@ -231,3 +231,24 @@ def test_a_one_sided_session_colours_the_whole_track():
     """⚠ Drawing a split at a zero that is not on the scale would be a lie about where neutral is."""
     fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
     assert "lo > 0 ?" in fn
+
+
+def test_the_price_track_is_tinted_at_VWAP_not_at_the_midpoint():
+    """★ "High in the range" carries no inherent side; ABOVE OR BELOW THE DAY'S AVERAGE PRICE does.
+    ⚠ VWAP is rarely the midpoint, so "above half" and "above VWAP" are different statements — the
+    split must be computed, and the tick drawn, exactly as the CVD gauge's zero is."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "(vw - plo) / (phi - plo)" in fn
+    assert 'id="rg-px-vwap"' in open(HTML, encoding="utf-8").read()
+
+
+def test_the_price_dot_colour_follows_side_of_vwap_not_range_position():
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "se.last > vw" in fn and "se.last < vw" in fn
+
+
+def test_vwap_outside_the_range_leaves_the_track_plain():
+    """⚠ VWAP can sit outside the session range after a gap. A tick pinned to an end would assert
+    a boundary that is not on the scale — the same fault the CVD zero tick guards against."""
+    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "vw >= plo && vw <= phi" in fn and 'ptk.style.background = "var(--line2)"' in fn

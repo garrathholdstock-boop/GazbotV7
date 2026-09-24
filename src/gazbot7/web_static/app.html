@@ -166,7 +166,10 @@
          ⚠ Fixed height (~26px). The chart above is `flex:1`, so this takes its space from the
          chart rather than pushing the page into a scroll — the one-screen budget is preserved. -->
     <div class="ranges" id="ranges">
-      <div class="rg"><i>PX</i><b id="rg-px-lo">—</b><span class="tk"><em id="rg-px-dot"></em></span><b id="rg-px-hi">—</b></div>
+      <!-- ★ The PX track is tinted at VWAP, and carries its own tick for the same reason the CVD
+           one does: an invisible neutral point invites the wrong reading. VWAP is rarely the
+           midpoint of the range, so "above half" and "above VWAP" are different statements. -->
+      <div class="rg"><i>PX</i><b id="rg-px-lo">—</b><span class="tk"><u id="rg-px-vwap"></u><em id="rg-px-dot"></em></span><b id="rg-px-hi">—</b></div>
       <!-- ★★★ THE ZERO TICK. Operator, reading 43%: "so does 43% mean its back on the sellers
            side?" — NO, and the gauge could not tell him so. The scale is anchored to TODAY'S
            EXTREMES, and today's low is -8,072 while its high is +12,469, so ZERO sits at 39% of

@@ -1012,6 +1012,35 @@
       };
       put("rg-px-lo", "rg-px-hi", "rg-px-dot", se.low, se.high, cv.px_pos,
           (x) => nf(x, 2));
+      /* ★★2026-09-24 TINT THE PRICE TRACK AT VWAP — his ask, after the CVD heat landed.
+         "High in the range" carries no inherent side; ABOVE OR BELOW THE DAY'S AVERAGE PRICE does.
+         Green above VWAP, red below, split AT VWAP — which is rarely the midpoint, so "above half"
+         and "above VWAP" are genuinely different statements and the tick has to be drawn.
+         ⚠ Same rule as the CVD gauge: the marker's colour follows the SIDE (last vs vwap), never
+         its position in the range, because a lopsided day makes those disagree.
+         ⚠ Hidden, and the track left plain, when VWAP is outside the range — it can sit outside
+         after a gap, and a tick pinned to an end would assert a boundary that is not on the
+         scale. */
+      const vw = se.vwap, plo = se.low, phi = se.high, vt = $("rg-px-vwap");
+      const vin = vw != null && plo != null && phi != null && phi > plo && vw >= plo && vw <= phi;
+      if (vt) {
+        vt.hidden = !vin;
+        if (vin) vt.style.left = ((vw - plo) / (phi - plo)) * 100 + "%";
+      }
+      const ptk = vt && vt.parentNode;
+      if (ptk) {
+        if (vin) {
+          const vp = ((vw - plo) / (phi - plo)) * 100;
+          ptk.style.background =
+            "linear-gradient(to right, rgba(192,57,43,.20) 0%, rgba(192,57,43,.20) " + vp
+            + "%, rgba(31,111,67,.20) " + vp + "%, rgba(31,111,67,.20) 100%)";
+        } else {
+          ptk.style.background = "var(--line2)";
+        }
+      }
+      const pdot = $("rg-px-dot");
+      if (pdot) pdot.style.background = (vw == null || se.last == null) ? "var(--txt)"
+        : (se.last > vw ? "#4ade80" : (se.last < vw ? "#ef6a5c" : "var(--txt)"));
       put("rg-cv-lo", "rg-cv-hi", "rg-cv-dot", cv.cvd_lo, cv.cvd_hi, cv.cvd_pos,
           (x) => (x > 0 ? "+" : "") + Math.round(x).toLocaleString());
       /* ★★★ WHERE ZERO FALLS ON THAT SCALE. The range is anchored to TODAY'S extremes, so zero is
