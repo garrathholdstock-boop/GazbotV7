@@ -185,24 +185,11 @@
   const mnqActivity = () => (((STATE.us && STATE.us.activity) || []).filter((a) => a.symbol === "MNQ" || a.label === "MNQ")[0]) || null;
 
   /* ========================================================================= */
-  function renderAll(ok) {
-    const m = STATE.mnq || {};
-    renderConn(ok);
-    renderHeader(m);
-    renderHero();
-    renderSafety();
-    renderTrade(m);
-    renderHolding();
-    /* ★2026-09-18 renderTournament / renderPromotion / renderExec retired with their panels.
-       Their DOM ids no longer exist, and $() returns null for a missing element — so leaving the
-       calls in would throw inside the render loop on every tick and take the WHOLE dashboard with
-       them, which is how a removed panel turns into a blank page. */
-    renderContext();
-    renderDays();
-    renderTrades(m);
-    renderTabBadges(m);
-    if (STATE.drill) reAggregateDrill(); // keep an open drill live
-  }
+  /* ⚠2026-09-24 renderAll() WAS DELETED HERE. It was dead code — nothing had called it since the
+     two-tier fastTick/slowTick split — and it was a live trap: it invoked all eleven renderers
+     WITHOUT the guard() wrapper, so wiring it back up would have restored the exact failure the
+     guards exist to prevent (one throw mid-pass leaves everything after it unrendered, silently).
+     The two tick functions above are the only render entry points; add to those, guarded. */
 
   /* ---------- EXECUTION HEALTH (signal → fill through-rate + slippage + blocks) ---------- */
   function renderConn(ok) {
@@ -955,7 +942,11 @@
   // phone defaults to a 1h chart window — 2h is too dense on a narrow screen; desktop stays 2h
   if (window.matchMedia("(max-width:899px)").matches) {
     STATE.tf = 60;
-    document.querySelectorAll("#tfbar .tf").forEach((x) => x.classList.toggle("on", x.dataset.min === "60"));
+    /* ⚠ [data-min] — NOT every .tf in the bar. The MNQ/MGC pair lives in #tfbar too (one
+       line, by his instruction), so a bare "#tfbar .tf" strips `on` off the SYMBOL button
+       on every phone load and the pair renders with neither selected. */
+    document.querySelectorAll("#tfbar .tf[data-min]").forEach((x) => x.classList.toggle("on", x.dataset.min === "60"));
+    STATE.tfMode = "60";
   }
   // ★2026-09-02 symbol selector — same WINDOW toggles, different series. The choice is remembered
   // so a phone that reloads mid-watch comes back to the contract he was watching; MNQ on anything
@@ -964,9 +955,22 @@
     const saved = localStorage.getItem("gz7.chartSym");
     if (saved === "MGC") STATE.sym = "MGC";
   } catch (e) { /* private mode — MNQ default is correct */ }
-  document.querySelectorAll("#symbar .tf").forEach((x) => x.classList.toggle("on", x.dataset.sym === STATE.sym));
-  document.querySelectorAll("#symbar .tf").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll("#symbar .tf").forEach((x) => x.classList.remove("on"));
+  /* ★★★2026-09-24 THESE SELECT [data-sym] INSIDE #tfbar. They used to name a container id
+     that the TRADE merge DELETED when it moved the MNQ/MGC pair into the timeframe bar — so
+     querySelectorAll returned an empty list and the whole symbol toggle went dead in silence.
+     Three consequences, none of which threw anything:
+       (a) no click handler was ever attached, so MNQ/MGC could not switch the contract;
+       (b) the generic "#tfbar .tf" handler below DID match them, so tapping MGC ran the TIMEFRAME
+           handler instead — dataset.min is undefined there, so it reset the window to 2h, cleared
+           the window highlight, and re-fetched MNQ;
+       (c) a remembered MGC choice in localStorage set STATE.sym but was never reflected in the
+           buttons, so a gold chart could render with the pair showing neither symbol lit.
+     ⚠ SELECT BY THE ATTRIBUTE THE HANDLER READS. A handler that reads dataset.sym must select
+       [data-sym]; one that reads dataset.min must select [data-min]. Sharing one container is
+       fine — sharing one selector is not. */
+  document.querySelectorAll("#tfbar .tf[data-sym]").forEach((x) => x.classList.toggle("on", x.dataset.sym === STATE.sym));
+  document.querySelectorAll("#tfbar .tf[data-sym]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#tfbar .tf[data-sym]").forEach((x) => x.classList.remove("on"));
     b.classList.add("on");
     STATE.sym = b.dataset.sym === "MGC" ? "MGC" : "MNQ";
     STATE.bars = null;            // ⚠ drop the other contract's bars NOW — one poll of gold prices
@@ -977,8 +981,8 @@
   }));
 
   // timeframe selector — switch the chart window + refetch immediately
-  document.querySelectorAll("#tfbar .tf").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll("#tfbar .tf").forEach((x) => x.classList.remove("on"));
+  document.querySelectorAll("#tfbar .tf[data-min]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#tfbar .tf[data-min]").forEach((x) => x.classList.remove("on"));
     b.classList.add("on");
     STATE.tfMode = b.dataset.min;                  // "session" stays dynamic; a number is fixed
     STATE.tf = tfMinutes(b.dataset.min);

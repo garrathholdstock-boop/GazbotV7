@@ -99,7 +99,14 @@
     </div>
 
     <div class="hero-body">
-      <div class="chart-host"><svg id="price-svg" preserveAspectRatio="none"></svg></div>
+      <!-- ★★2026-09-24 #symnote is an OVERLAY inside the chart box, so it costs no vertical
+           space (the toggle row below must stay one line). It is the ONLY thing on this page
+           that says the chart is gold, or that the contract on screen is not the one the
+           button claims. setSymNote() writes "" for the normal MNQ case and :empty hides it.
+           ⚠ It was deleted in the TRADE merge and setSymNote has been writing into nothing
+           ever since — an MGC chart under MNQ meters with no label is precisely the
+           multi-symbol confusion this desk has already paid for. -->
+      <div class="chart-host"><svg id="price-svg" preserveAspectRatio="none"></svg><div id="symnote"></div></div>
       <div class="tfbar" id="tfbar">
         <button class="tf" data-min="30">30m</button>
         <button class="tf" data-min="60">1h</button>

@@ -148,6 +148,21 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
 .read-hint b{color:var(--txt)}
 .chart-host{position:relative;width:100%;min-height:0;border:1px solid var(--line);border-radius:5px;background:var(--panel2);overflow:hidden}
 .chart-host svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* ★★2026-09-24 THE WATCH-ONLY / WRONG-CONTRACT NOTE, restored as an OVERLAY.
+   The 09-24 TRADE merge deleted #symnote, so setSymNote() has been writing into nothing: a GOLD
+   chart has been rendering under MNQ meters, MNQ fills and an MNQ header with no words anywhere
+   saying so — and a failed MGC fetch (which keeps the last good MNQ bars, by design) has been
+   showing MNQ bars while the button reads MGC, silently.
+   ⚠ MD_STREAM is multi-symbol and this desk has already paid for one instrument's numbers being
+     read as another's. The note is the only thing that distinguishes them on this page.
+   It sits INSIDE .chart-host so it costs ZERO vertical space — the toggle row must stay one line.
+   :empty hides it, which is how the MNQ (normal) case renders nothing at all. */
+#symnote{position:absolute;left:44px;right:6px;top:5px;z-index:4;pointer-events:none;
+  font-size:10px;line-height:1.3;letter-spacing:.02em;color:var(--amb);
+  background:rgba(8,11,15,.82);border-radius:4px;padding:2px 6px}
+#symnote:empty{display:none}
+#symnote b{color:var(--txt)}
+#symnote .red{color:var(--red)}
 /* Y-axis price guides — HTML overlay (crisp, undistorted by the stretched SVG), big + readable */
 .yaxis{position:absolute;inset:0;pointer-events:none}
 .yaxis .yl{position:absolute;left:0;right:0;border-top:1px solid rgba(33,43,53,.6);transform:translateY(-0.5px)}
@@ -162,11 +177,8 @@ tr.clickable:hover td{background:rgba(55,201,201,.06)}
   border-radius:4px;padding:4px 10px;cursor:pointer}
 .tf:hover{border-color:var(--line2)}
 .tf.on{color:var(--cyan);border-color:var(--cyan-dim);background:var(--cyan-bg)}
-/* ★2026-09-02 symbol selector — same control as WINDOW, one row above it. The note carries the
-   watch-only caveat in words so a gold chart can never read as a gold DESK. */
-#symbar{margin-bottom:5px}
-#symbar .symnote{font-size:10.5px;letter-spacing:0.2px;margin-left:6px;line-height:1.3}
-#symbar .symnote b{color:var(--txt2)}
+/* (the #symbar rules were deleted with their container in the 2026-09-24 TRADE merge; the
+   symbol pair now lives in #tfbar and the watch-only note is #symnote, an overlay.) */
 .dtt-strip{display:flex;flex-direction:column;gap:6px;flex:none;max-height:96px;overflow-y:auto}
 .tfbar,.legend,.hero-body .sec{flex:none}
 .dtt-row{display:flex;align-items:center;gap:8px;font-size:11px}
@@ -266,125 +278,7 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
 @media (min-width:900px){ .hero-body{flex:1} }
 
 /* ---------- phone / narrow: tabs + stack (priority format) ---------- */
-@media (max-width:899px){
-  body{overflow-y:auto}
-  /* lock header + tab bar together as ONE sticky block so the tabs never slide under the header
-     (both were top:0 → the tabs vanished on scroll). Header compacted hard to reclaim vertical room. */
-  .topstick{position:sticky;top:0;z-index:30;background:var(--bg)}
-  /* ★★2026-08-13 PHONE HEADER — v2, after a horizontal DOCUMENT scroll appeared.
-     ROOT CAUSE was NOT the header: .tabbar held SEVEN tabs (DESK TOURNEY CHART HOLD TRADES EXEC
-     CUBE) at `flex:1; min-width:64px` = 448px of min-content against a 430px viewport. Its
-     overflow-x:auto could not contain that because neither it nor .topstick had min-width:0, so the
-     448px propagated up and set the DOCUMENT width — which is why every block below the header
-     scrolled sideways with it. Overhang was +18px at 430 and +128px at 320.
-     Fixed at the shallowest offender (the tabs), with root containment as defence so one bad child
-     can never widen the document again.
-     Rows are FLEX-WRAP here rather than fixed grid areas: v1 used grid-template-areas, which made
-     each row rigid and unable to wrap, so a long chip had nowhere to go. Wrapping rows degrade
-     gracefully instead — if SAFETY and NET cannot share a line, NET takes its own. */
-  html,body{max-width:100%;overflow-x:hidden}
-  /* min-width:0 all the way down the chain — a flex/grid child defaults to min-width:auto, which
-     refuses to shrink below its content and is how ONE nowrap element sets the whole document's
-     width. `.grid` is the content wrapper (there is no <main> in this document). */
-  .topstick,header,.tabbar,.kpis,.kpisub,.grid,.panel,.panel>*,.pb{min-width:0;max-width:100%}
-  header{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;padding:4px 10px;min-height:0}
-  .tag,.spacer{display:none}                         /* drop the subtitle + spacer on phone — pure space */
-  /* Rows 1-2 flow and wrap; nothing is pinned, nothing floats, no auto margins. */
-  .brand,.conn,.chip,#net-tile{flex:0 1 auto;min-width:0}
-  #mkt-chip{margin-left:auto}                        /* trailing chip hugs the right edge of ITS row */
-  /* NET is a plain flex sibling of the SAFETY chip — same padding and radius so they read as a
-     matched pair of STATE pills, and it can no longer collide with the numbers row. */
-  #net-tile{flex-direction:row;align-items:center;gap:6px;padding:3px 9px;border-radius:4px}
-  #net-tile .l{font-size:11px}
-  /* ROW 3 — 3x2, not 4-up. Six cells: TODAY YEST 2D / 7D 30D WIN%. Three columns give ~132px at
-     430px, which fits the widest real value ("−$3,313") at the full 28px type — the v1 4-up forced
-     the font down to 24px to fit. The column count was the bug, not the size.
-     minmax(0,1fr) not bare 1fr: a bare 1fr refuses to shrink below min-content and would re-widen
-     the document, which is the exact failure being fixed here. */
-  .kpis{flex:1 0 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-    column-gap:clamp(4px,1.5vw,10px);row-gap:clamp(2px,1vw,6px);align-items:end;
-    width:100%;max-width:100%;overflow:visible;padding-bottom:0}
-  /* Every cell uses the SAME two classes — no per-period overrides. That is what fixes the mixed
-     baselines and 7D reading larger than TODAY. Fluid, not a breakpoint. */
-  .kpi{align-items:center;min-width:0}
-  .kpis .kpi .l{font-size:clamp(10px,2.6vw,12px);letter-spacing:.08em;text-transform:uppercase;
-    color:var(--mut);line-height:1.1;text-align:center}
-  .kpis .kpi .v{font-size:clamp(20px,6vw,28px);font-variant-numeric:tabular-nums;
-    line-height:1.15;white-space:nowrap;text-align:center}
-  /* PARIS hidden on phone — 8 chars ("18:42:07") fits no legible size, and a phone shows the time.
-     A display choice, not a data one: delete this rule to bring it back. */
-  .kpis .kpi:last-child{display:none}
-  /* ROW 4 — the desk split, alone on its line. */
-  .kpisub{flex:1 0 100%;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut2)}
-  /* dual-span chips: short label on phone (see renderConn in app.js) */
-  .chip .lg{display:none} .chip .sm{display:inline}
-  /* ★ FLUID PANEL INTERNALS — the next things that would overflow once the tab strip was fixed.
-     .dtt-row was dl(112) + dbar(flex) + dpct(38) + dblk(120) = 294px of FIXED width plus 24px of
-     gaps, against ~296px of usable panel at a 320px viewport: it fit only by collapsing .dbar to
-     nothing, and overflowed below that. Percentages + min-width:0 let the two text cells shrink and
-     use the ellipsis they already declare, instead of forcing the row wider than its panel.
-     .slot-tile goes one-per-row: at flex-basis 150px/min-width 140px two could never share a phone
-     row anyway, so the wrap was already implicit — this just stops the 140px floor being a hard
-     minimum on a narrow panel. */
-  .dtt-row{gap:6px}
-  .dtt-row .dl{width:auto;flex:1 1 38%;min-width:0}
-  .dtt-row .dbar{flex:1 1 18%;min-width:26px}
-  .dtt-row .dpct{width:auto;flex:0 0 34px}
-  .dtt-row .dblk{width:auto;flex:1 1 30%;min-width:0}
-  .slot-tile{flex:1 1 100%;min-width:0}
-  /* ★★ THIS WAS THE ROOT CAUSE OF THE DOCUMENT-WIDE HORIZONTAL SCROLL.
-     Seven tabs (DESK TOURNEY CHART HOLD TRADES EXEC CUBE) at `flex:1; min-width:64px` is 448px of
-     MIN-CONTENT. Against a 430px viewport that is +18px, and +128px at 320px. overflow-x:auto could
-     not contain it because a flex container still contributes its min-content width to its parent
-     unless min-width:0 is set — so the 448px propagated up through .topstick and set the DOCUMENT
-     width, which is why DESK STATS and the rolling table scrolled sideways too.
-     `flex:0 0 auto` + min-width:0 makes the strip size to its own content and scroll INSIDE itself.
-     A contained horizontal scroll on a tab strip is correct; widening the document is not. */
-  .tabbar{display:flex;background:var(--panel2);border-top:1px solid var(--line);
-    border-bottom:1px solid var(--line);overflow-x:auto;min-width:0;max-width:100%;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .tabbar::-webkit-scrollbar{display:none}
-  .tab{flex:0 0 auto;min-width:0;text-align:center;padding:7px 10px;font-size:12px;letter-spacing:1px;
-    color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans)}
-  .tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
-  /* every tab stacks label-over-value; CHART carries an empty .b so its baseline matches. */
-  .tab .b{display:block;font-family:var(--mono);font-size:13px;color:var(--txt2);margin-top:2px;
-    min-height:1em}
-  /* phone: bump every text element +1px vs desktop for legibility at arm's length */
-  body{font-size:14px}
-  .tag,.conn,.chip,.subval,.dtt-row{font-size:12px}
-  .kpi .l,.rtile .l,.tfbar .tflab,.dtt-row .dblk,.legend,th{font-size:11px}
-  .rtile .v,.brand{font-size:16px}
-  .empty,table,.row{font-size:13px}
-  .ph h2{font-size:13.5px}
-  .ph .sub,.ph .live,.sec{font-size:11.5px}
-  .big{font-size:29px}
-  .hold-head .sym{font-size:18px}
-  .grid{display:block;height:auto;padding:8px;overflow:visible;grid-template-columns:none}
-  .panel{margin-bottom:8px;max-height:none}
-  .panel[data-tab]{display:none}
-  .panel[data-tab].on{display:flex}
-  .pb{overflow:visible}
-  /* phone: plain block flow (not grid) so each section stacks at its natural height; the chart is a
-     clean fixed height and its axes render in-SVG exactly like desktop */
-  .hero-body{display:block;overflow:visible;height:auto}
-  .chart-host{height:300px;min-height:0}
-  .dtt-strip{max-height:none}
-  .tfbar{padding-top:2px}
-  .kpi{min-width:auto}
-  .kpi .v{font-size:14px}
-  .kpi .l{font-size:9.5px}
-  /* trades blotter de-squish: font −1 (13→12), columns rebalanced for L/S + 3-char gate/exit so
-     TIME reads clean and $/% get real room. Later rule + id specificity → wins over the base widths. */
-  #p-trades table{font-size:12px}
-  #blotter td{padding:5px 4px}
-  #p-trades th:nth-child(1),#blotter td:nth-child(1){width:17%}
-  #p-trades th:nth-child(2),#blotter td:nth-child(2){width:10%}
-  #p-trades th:nth-child(3),#blotter td:nth-child(3){width:15%}
-  #p-trades th:nth-child(4),#blotter td:nth-child(4){width:15%}
-  #p-trades th:nth-child(5),#blotter td:nth-child(5){width:25%}
-  #p-trades th:nth-child(6),#blotter td:nth-child(6){width:18%}
-}
+
 
 /* ★2026-08-21 a trade shown for the record but excluded from P&L (broken fill price).
    Must be unmistakable: a row that looks like money but is not counted is how a blotter
@@ -433,11 +327,7 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
    obviously wrong. */
 .pos{color:var(--grn)} .neg{color:var(--red)}
 /* the metric strip must wrap cleanly on a phone rather than scroll sideways */
-@media(max-width:899px){
-  #days-tbl td{padding:9px 5px}
-  #days-tbl tr.dayrow{min-height:48px}
-  .mstrip{gap:5px 14px}
-}
+
 
 
 /* ★★2026-09-18 THE DAY DRILL — "do it in an elegant drop down please its ugly the way it is."
@@ -581,80 +471,214 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
   cursor:pointer;min-height:30px}
 .passrow button:active{background:var(--panel2);color:var(--txt)}
 
+/* ═══ THE TRADE PANEL'S SIZING MODEL — STATED ONCE, IDENTICAL ON BOTH LAYOUTS ════════════
+   ★★★ 2026-09-24 (rebuild) THE CHART IS THE ONLY ELASTIC THING ON THIS PANEL.
+   Six children — holdcard, actions, awayset, hero-body, tstrip, passrow. Five are rigid; the
+   hero-body absorbs whatever is left and hands it to the chart. That is what "everything fits on
+   one screen and the chart takes the slack" actually means, and it must be TRUE, not a comment:
+   the previous cut pinned every row to a fixed pixel height, so an overshoot of a few px had
+   nowhere to go and silently CLIPPED the PASS row off the bottom.
+   ⚠ flex:0 0 auto is applied to EVERY child by `> *` and then overridden for the hero-body by a
+     more specific rule. Selecting by position (`:nth-child(4)`) is what broke the desktop chart for
+     nine days on 09-11 — a layout keyed to child ORDER breaks silently when anyone adds a child.
+   ⚠ WHY flex:1 IS SAFE HERE, having been called unsafe in the rule this replaces: a flex:1 child
+     collapses to zero only when its container's height is INDEFINITE (then there is no free space
+     to distribute and flex-basis:auto resolves to the content height — which for .chart-host is 0,
+     because its only painted child #price-svg is position:absolute). Both layouts now give this
+     panel a DEFINITE height (a grid cell on desktop; a flex item of a fixed-height body column on
+     the phone), and .chart-host carries a min-height floor besides. Zero is unreachable on both
+     counts, which is what renderHero's clientHeight===0 guard needs.
+   ⚠ overflow-y:auto is a DEGRADATION PATH, not the normal state: on a window too short even for
+     the chart's floor the panel scrolls instead of clipping the PASS row. It does not make the
+     panel's height indefinite, so it does not re-open the collapse above. */
 #p-trade{overflow-y:auto}
-#p-trade .hero-body{flex:0 0 auto;display:block}
-/* ★ THE CHART KEEPS ITS SIZE — it is the only thing he asked not to shrink, and it now takes the
-   space everything else gave up. */
-/* ⚠ A DEFINITE HEIGHT, not flex:1. The panel scrolls (overflow-y:auto) and a flex:1 child inside
-   a scrolling column can resolve to ZERO — which makes renderHero's zero-size guard return and the
-   chart silently never draws. Definite heights cannot collapse. */
-#p-trade .chart-host{height:300px;min-height:300px;position:relative;flex:0 0 auto}
+#p-trade > *{flex:0 0 auto}
+#p-trade > .hero-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+/* .hero-body > .chart-host{flex:1 1 auto;min-height:170px} (above) is what gives the chart the
+   slack. No height is declared here: a definite height would make the panel rigid again. */
 
-@media(max-width:899px){
-  /* ★★★2026-09-24 FIT ON ONE SCREEN, HOLDING AND ALL. The phone had NO height constraint — the
-     panel grew to its content and the body scrolled, which is why he was scrolling to see the
-     live P&L he watches constantly.
-     ⚠ 100dvh, NOT 100vh: on iOS Safari 100vh includes the collapsing URL bar, so a 100vh layout
-     is ~60px too tall and the bottom is cut off exactly when the bar is showing. dvh is the
-     dynamic one. A vh line stays first as the fallback for anything older. */
-  /* ⚠⚠ NO MAGIC NUMBER. The first cut subtracted a hardcoded 104px for the header+tabbar — but
-     the phone header WRAPS (flex-wrap:wrap with the KPI tiles), so its height is not knowable from
-     CSS and any constant is wrong on some device. Make <body> the flex column instead and let the
-     grid take whatever is left: it measures itself, on every phone, at every orientation.
-     ⚠ min-height:0 on the flex child, or its content floor stops it ever shrinking. */
-  body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-  .topstick{flex:0 0 auto}
-  /* ⚠2026-09-24 THE BOTTOM BAR WAS CLIPPED BY A FEW PIXELS. Two causes, both fixed here:
-     (1) viewport-fit=cover is now set, so the page may extend UNDER the home indicator — the
-         bottom safe-area inset must be paid back as padding or the last row sits beneath it;
-     (2) nothing else in the column can shrink (they are all flex:0 0 auto by design), so when the
-         total overshoots by even a few px it is the LAST child that gets clipped by overflow
-         hidden. The chart is the only elastic element, so it needs room to give. */
-  /* ★★★2026-09-24 ONE CELL ON THE PHONE. The desktop template (1.9fr/1fr columns, 1.25fr/1fr
-     rows) and the per-panel placements were NEVER reset here — so with only one panel visible at a
-     time, DAYS and TRADES were still being placed in COLUMN 2, the narrow one, and TRADE got
-     column 1 across both rows. It only became visible when the grid gained a constrained height:
-     until then the rows sized to content and it merely looked odd.
-     ⚠ Every panel now shares the single cell; `display:none` keeps all but one out of the way. */
-  /* ★★★2026-09-24 THE PHONE LAYOUT, STATED ONCE AND COMPLETELY.
-     ⚠⚠ THERE ARE TWO PHONE MEDIA BLOCKS IN THIS FILE — "@media (max-width:899px)" WITH a space and
-     "@media(max-width:899px)" WITHOUT. The earlier one already sets `.grid{display:block}`, which
-     silently made a `grid-template-*` override here INERT, and `.pb{overflow:visible}`, which took
-     away each panel's ability to scroll. Neither was visible from the other block. So this block
-     no longer assumes anything: it restates display, height and overflow outright.
-     THE MODEL: body is a fixed-height flex column; the grid is the elastic middle; the ONE visible
-     panel fills it exactly; the panel's own .pb scrolls if its content is taller. Nothing else
-     scrolls, which is what "fit on one page" actually requires. */
-  /* ⚠ FLEX, NOT block-plus-height:100%. A percentage height needs a DEFINITE parent height, and
-     the grid's comes from flex layout — resolvable in modern Safari but a dependency worth not
-     having. A flex column hands the panel its size directly. */
+/* ★★★ THE PANEL-VISIBILITY INVARIANT — read the note on the phone block before touching it.
+   A panel without .on is NEVER displayed. This is an invariant, not a preference, which is the one
+   case where !important is the right tool: it is the only spelling an ID rule cannot defeat, and
+   an ID rule defeating it is exactly the bug this file just had (#p-trade{display:flex} beat
+   .panel[data-tab]{display:none} on specificity, so the TRADE chart stayed painted UNDER the DAYS
+   and TRADES panels — "they half open but have the chart behind looks like a mess").
+   ⚠ Scoped to the phone block, where tabs exist. Desktop shows all three panels at once. */
+
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   ★★★ THE PHONE LAYOUT — ONE BLOCK, AND IT MUST STAY ONE BLOCK.
+   2026-09-24 (rebuild). This stylesheet had THREE separate `max-width:899px` blocks, two of them
+   spelled differently ("@media (max-width:899px)" WITH a space and "@media(max-width:899px)"
+   WITHOUT) and ~10,000 characters apart. Declarations in one silently defeated the other, every
+   time by a rule nobody editing the later block could see:
+     · `.grid{display:block}` in the first made a `grid-template-*` override in the third INERT,
+       so a fix for "days and trades not loading" addressed a rule that never applied — twice;
+     · `.pb{overflow:visible}` in the first removed each panel's ability to scroll once the body
+       stopped scrolling;
+     · the third block declared `#p-trade .chart-host` TWICE, and the later `height:270px` quietly
+       cancelled the earlier `flex:1 1 auto ... min-height:96px` that its own comment described —
+       while the test asserting the floor matched the DEAD rule.
+   THREE BLOCKS ARE THREE PLACES TO LOOK AND NOBODY EVER LOOKED AT ALL THREE. If you need a phone
+   rule, it goes HERE. The only other max-width blocks left are 520px and 560px, which are narrower
+   refinements of rules stated here, not rivals to them.
+
+   ── THE MODEL, in one paragraph ─────────────────────────────────────────────────────────────
+   <body> is a fixed-height flex COLUMN (100dvh). .topstick is rigid. .grid is the elastic middle
+   and is a flex COLUMN, not a grid — the desktop template and the per-panel cell placements are
+   NOT inherited here, because exactly one panel shows at a time and it must fill the area.
+   That one panel is a flex column that fills .grid exactly. Inside TRADE, five rows are rigid and
+   the chart takes the slack; inside DAYS and TRADES, .pb scrolls. NOTHING ELSE SCROLLS — that is
+   what "fits on one page" requires.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+@media (max-width:899px){
+  /* ── root containment. ★2026-08-13: a 448px tab strip set the DOCUMENT width and every block on
+     the page scrolled sideways with it. A flex/grid child defaults to min-width:auto and refuses
+     to shrink below its content, so ONE nowrap element can widen the whole document unless
+     min-width:0 is set all the way down the chain. */
+  html,body{max-width:100%;overflow-x:hidden}
+  .topstick,header,.tabbar,.kpis,.kpisub,.grid,.panel,.panel>*,.pb{min-width:0;max-width:100%}
+
+  /* ── the fixed-height column. ⚠ 100dvh, NOT 100vh: on iOS Safari 100vh includes the collapsing
+     URL bar, so a 100vh layout is ~60px too tall exactly when the bar is showing. The 100vh line
+     stays first as the fallback for anything older.
+     ⚠⚠ NO MAGIC NUMBER for the chrome. The first cut subtracted a hardcoded 104px for the header
+     + tab bar — but the phone header WRAPS, so its height is not knowable from CSS and any
+     constant is wrong on some device. <body> measures itself, on every phone, every orientation. */
+  body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;font-size:14px}
+  .topstick{position:sticky;top:0;z-index:30;background:var(--bg);flex:0 0 auto}
+
+  /* ── the elastic middle. ⚠ FLEX, not block-plus-height:100% — a percentage height needs a
+     DEFINITE parent height, and the grid's comes from flex layout. A flex column hands the panel
+     its size directly. No grid-template anywhere: this is not a grid. */
   .grid{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;height:auto;
         padding:4px 4px calc(4px + env(safe-area-inset-bottom, 0px))}
-  .panel[data-tab].on{display:flex;flex:1 1 auto;min-height:0;max-height:100%;margin:0}
-  /* ⚠ .pb gets its scroll BACK: with the body now fixed, an unscrollable panel simply clips. */
+  /* ⚠ viewport-fit=cover lets the page extend UNDER the iPhone home indicator; the bottom inset
+     must be paid back as padding or the last row sits beneath it. */
+
+  /* ── ★★★ PANEL VISIBILITY. Read this before adding any rule that mentions a panel and `display`.
+     THE BUG (2026-09-24): `#p-trade{display:flex}` lived in a phone block. An ID beats a class,
+     so it defeated `.panel[data-tab]{display:none}` and the TRADE panel was displayed whether or
+     not it was the selected tab. Tapping DAYS or TRADES therefore added a SECOND flex child to
+     .grid: TRADE kept its ~590px of content, the new panel got the sliver that was left, and the
+     price chart went on painting above it. "they half open but have the chart behind."
+     ⚠ It is NOT the absolutely-positioned #price-svg escaping a hidden ancestor — display:none
+       removes a subtree from the box tree entirely, absolute children included. The svg only kept
+       painting because display:none never applied.
+     THE FIX IS THE INVARIANT, NOT THE PATCH: no panel rule anywhere declares `display` by id any
+     more, AND the hidden state is spelled so an id CANNOT out-specify it. !important is the right
+     tool for an invariant that must not be negotiable. */
+  .panel[data-tab]{display:none}
+  .panel[data-tab]:not(.on){display:none!important}
+  .panel[data-tab].on{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;max-height:100%}
+  .panel{margin:0;max-height:none;border-radius:6px}
+  /* ⚠ .pb gets its scroll BACK. With the body fixed, an unscrollable panel simply CLIPS — which is
+     how DAYS and TRADES came to show a truncated table with no way to reach the rest. */
   .pb{overflow-y:auto;overflow-x:hidden;flex:1 1 auto;min-height:0;padding:8px}
-  .panel{margin-bottom:0}
-  #p-trade{overflow:hidden;display:flex;flex-direction:column}
-  /* ⚠ THE CHART TAKES WHATEVER IS LEFT — but keeps a floor. A flex:1 child CAN resolve to zero,
-     and renderHero's zero-size guard then returns without drawing: that is the 09-02 blank-chart
-     bug and it already bit once this week. The floor makes zero unreachable. */
-  /* ⚠ A LOWER FLOOR THAN IT LOOKS. This is not the chart's target size — it flexes to ~350px on
-     an iPhone 14/15 — it is how far it may GIVE before something else gets cut off. A 130px floor
-     meant a 20px overshoot clipped the metric strip instead of shortening the chart by 20px. */
-  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:96px}
+
+  /* ── header, compacted hard to reclaim vertical room. Rows flow and WRAP rather than sit in
+     fixed grid areas: v1 used grid-template-areas, which made each row rigid so a long chip had
+     nowhere to go. */
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;padding:4px 10px;min-height:0}
+  .tag,.spacer{display:none}
+  .brand,.conn,.chip,#net-tile{flex:0 1 auto;min-width:0}
+  #mkt-chip{margin-left:auto}
+  #net-tile{flex-direction:row;align-items:center;gap:6px;padding:3px 9px;border-radius:4px}
+  #net-tile .l{font-size:11px}
+  /* ⚠ the NET tile is a .kpi OUTSIDE .kpis, so the clamp() below never reaches it — it needs
+     its own size or it renders a point larger than it did and re-heights the wrapping header. */
+  #net-tile .v{font-size:14px}
+  /* ROW 3 — 3x2, not 4-up. Three columns give ~132px at 430px, which fits the widest real value
+     ("−$3,313") at full size; the v1 4-up forced the font down. The COLUMN COUNT was the bug.
+     minmax(0,1fr) not bare 1fr: a bare 1fr refuses to shrink below min-content and would re-widen
+     the document, which is the exact failure being fixed here. */
+  .kpis{flex:1 0 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    column-gap:clamp(4px,1.5vw,10px);row-gap:clamp(2px,1vw,6px);align-items:end;
+    width:100%;max-width:100%;overflow:visible;padding-bottom:0}
+  .kpi{align-items:center;min-width:0}
+  .kpis .kpi .l{font-size:clamp(10px,2.6vw,12px);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--mut);line-height:1.1;text-align:center}
+  .kpis .kpi .v{font-size:clamp(20px,6vw,28px);font-variant-numeric:tabular-nums;
+    line-height:1.15;white-space:nowrap;text-align:center}
+  /* PARIS hidden on phone — 8 chars fits no legible size and a phone shows the time. */
+  .kpis .kpi:last-child{display:none}
+  .kpisub{flex:1 0 100%;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut2)}
+  .chip .lg{display:none} .chip .sm{display:inline}
+
+  /* ── the tab strip. ★★ THIS WAS THE ROOT CAUSE OF THE DOCUMENT-WIDE HORIZONTAL SCROLL: seven
+     tabs at `flex:1;min-width:64px` = 448px of min-content against a 430px viewport, propagated up
+     because neither the strip nor .topstick had min-width:0. `flex:0 0 auto` + min-width:0 makes
+     the strip size to its own content and scroll INSIDE itself. A contained horizontal scroll on a
+     tab strip is correct; widening the document is not. */
+  .tabbar{display:flex;background:var(--panel2);border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);overflow-x:auto;min-width:0;max-width:100%;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabbar::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;min-width:0;text-align:center;padding:7px 10px;font-size:12px;letter-spacing:1px;
+    color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;
+    background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans)}
+  .tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+  .tab .b{display:block;font-family:var(--mono);font-size:13px;color:var(--txt2);margin-top:2px;
+    min-height:1em}
+
+  /* ── type scale: +1px vs desktop for legibility at arm's length */
+  .tag,.conn,.chip,.subval,.dtt-row{font-size:12px}
+  .kpi .l,.rtile .l,.tfbar .tflab,.dtt-row .dblk,.legend,th{font-size:11px}
+  .rtile .v,.brand{font-size:16px}
+  .empty,table,.row{font-size:13px}
+  .ph h2{font-size:13.5px}
+  .ph .sub,.ph .live,.sec{font-size:11.5px}
+  .big{font-size:29px}
+  .hold-head .sym{font-size:18px}
+
+  /* ── fluid panel internals: .dtt-row was 294px of FIXED width plus 24px of gaps against ~296px
+     of usable panel at 320px, and .slot-tile's 140px floor was a hard minimum on a narrow panel. */
+  .dtt-row{gap:6px}
+  .dtt-row .dl{width:auto;flex:1 1 38%;min-width:0}
+  .dtt-row .dbar{flex:1 1 18%;min-width:26px}
+  .dtt-row .dpct{width:auto;flex:0 0 34px}
+  .dtt-row .dblk{width:auto;flex:1 1 30%;min-width:0}
+  .slot-tile{flex:1 1 100%;min-width:0}
+  .dtt-strip{max-height:none}
+
+  /* ── THE TRADE TAB. Everything except the chart gave up ~a third; the chart takes it back.
+     ⚠ EXACTLY ONE RULE SIZES THE CHART. The previous block declared #p-trade .chart-host twice and
+     the second silently cancelled the first. */
+  #p-trade > .hero-body{padding:0 6px;gap:5px}
+  /* ⚠ A LOWER FLOOR THAN IT LOOKS. This is not the chart's target size — it flexes to ~330px on an
+     iPhone 14/15 — it is how far it may GIVE before a rigid row gets cut off. A 270px floor meant a
+     20px overshoot clipped the PASS row instead of shortening the chart by 20px; a 0 floor would
+     let renderHero's zero-size guard fire and draw nothing at all. */
+  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:120px}
+  .tstrip .tm{padding:4px 7px 3px}
   .tstrip .tm b{font-size:12px}
   .actions{gap:5px;padding:4px 6px 1px}
   .orb{max-width:56px}
   .awayset{padding:0 6px 3px;gap:8px}
-  .tstrip .tm{padding:4px 7px 3px}
   .passrow{padding:3px 6px 4px}
   #p-trade .tfbar{padding:3px 5px}
-  /* ★ the chart GAINS on the phone, because everything above and below it lost a third */
-  #p-trade .chart-host{height:270px;min-height:270px}
   .holdcard{margin:4px 6px 2px;padding:7px 10px}
   .holdcard .hc-pnl{font-size:23px}
   .holdcard .hc-px{margin-top:4px;gap:11px}
   .holdcard .hc-tp{margin-top:5px}
   .holdcard .hc-tp button{min-height:30px;padding:6px 5px}
-  .panel{margin-bottom:5px}
+  #symnote{font-size:9.5px;left:40px}
+
+  /* ── DAYS: touch targets, not hover affordances. */
+  #days-tbl td{padding:9px 5px}
+  #days-tbl tr.dayrow{min-height:48px}
+  .mstrip{gap:5px 14px}
+
+  /* ── TRADES blotter de-squish: font −1 and columns rebalanced for L/S + 3-char gate/exit, so
+     TIME reads clean and $/% get real room. */
+  #p-trades table{font-size:12px}
+  #blotter td{padding:5px 4px}
+  #p-trades th:nth-child(1),#blotter td:nth-child(1){width:17%}
+  #p-trades th:nth-child(2),#blotter td:nth-child(2){width:10%}
+  #p-trades th:nth-child(3),#blotter td:nth-child(3){width:15%}
+  #p-trades th:nth-child(4),#blotter td:nth-child(4){width:15%}
+  #p-trades th:nth-child(5),#blotter td:nth-child(5){width:25%}
+  #p-trades th:nth-child(6),#blotter td:nth-child(6){width:18%}
 }

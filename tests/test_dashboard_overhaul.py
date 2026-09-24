@@ -129,11 +129,13 @@ def test_the_phone_layout_is_explicitly_handled():
     css = open(CSS).read()
     assert "#days-tbl tr.dayrow" in css
     assert "min-height:44px" in css or "min-height:48px" in css, "day rows are not touch-sized"
-    # ⚠ There is more than one phone breakpoint now (the TRADE tab added its own), so `rindex` no
-    # longer finds "the" one — check EVERY 899px block collectively.
-    blocks = "".join(css.split("@media(max-width:899px)")[1:])
-    assert "#days-tbl" in blocks, "no phone breakpoint adjusts the day table"
-    assert ".orb" in blocks, "no phone breakpoint sizes the action buttons"
+    # ⚠ THIS USED `css.split("@media(max-width:899px)")` ON THE RAW STYLESHEET — and the only
+    # remaining occurrence of that exact spelling is inside the COMMENT warning about the duplicate
+    # blocks, so the test was passing by matching its own documentation. Comment-stripped, and
+    # asserted against the ONE block that now exists.
+    blk = _the_phone_block(css)
+    assert "#days-tbl" in blk, "the phone block does not adjust the day table"
+    assert ".orb" in blk, "the phone block does not size the action buttons"
 
 
 def test_the_desktop_grid_matches_the_phone_structure():
@@ -159,6 +161,39 @@ def _css_rules(css: str) -> str:
     a test that matches its own documentation fails for a reason unrelated to its invariant, which
     has now happened five separate times on this desk."""
     return re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+
+def _phone_blocks(css: str):
+    """Every `max-width:899px` media block, comment-stripped, whitespace-tolerant.
+
+    ⚠⚠ WHY THIS EXISTS AND WHY IT RETURNS A LIST. This stylesheet used to carry THREE phone blocks,
+    two of them spelled differently ("@media (max-width:899px)" WITH a space and
+    "@media(max-width:899px)" WITHOUT) and ~10,000 characters apart. Declarations in one silently
+    defeated the other every time, and every previous test here looked at exactly ONE of them:
+      · `css.rindex("@media(max-width:899px)")` found the LAST block and asserted about rules the
+        FIRST block had already overridden;
+      · `css.split("@media(max-width:899px)")` matched the string inside a COMMENT that warned about
+        the duplicate, so the test went green against its own documentation (trap 7, sixth time).
+    Returning a list lets the merge itself be asserted: there must be exactly one.
+    """
+    s = _css_rules(css)
+    out = []
+    for m in re.finditer(r"@media\s*\(\s*max-width\s*:\s*899px\s*\)\s*\{", s):
+        depth, j = 1, m.end()
+        while depth and j < len(s):
+            depth += (s[j] == "{") - (s[j] == "}")
+            j += 1
+        out.append(s[m.end():j - 1])
+    return out
+
+
+def _the_phone_block(css: str) -> str:
+    blocks = _phone_blocks(css)
+    assert len(blocks) == 1, (
+        f"{len(blocks)} phone media blocks — there must be exactly ONE. Two blocks are two places "
+        f"to look and nobody ever looked at both; that is how .grid{{display:block}} in one made a "
+        f"grid-template override in another inert, twice.")
+    return blocks[0]
 
 
 def _drill_block(js: str) -> str:
@@ -380,12 +415,22 @@ def test_everything_except_the_chart_shrank():
     css = open(CSS).read()
     assert "max-width:66px" in css, "the action buttons did not shrink"
     assert "gap:6px;padding:6px" in css, "the desktop grid gaps were not tightened"
-    # ⚠ Assert the PROPERTY, not the pixel value: the chart must keep a definite height on BOTH
-    # layouts and it must be comfortably larger than anything that shrank around it. Pinning the
-    # exact number meant this failed the moment the sizing was improved.
-    heights = [int(x) for x in re.findall(r"#p-trade \.chart-host\{height:(\d+)px", css)]
-    assert len(heights) >= 2, "the chart does not have a definite height on both layouts"
-    assert min(heights) >= 240, f"the chart floor dropped to {min(heights)}px"
+    # ★2026-09-24 (rebuild) ASSERT THE MODEL, NOT A PIXEL COUNT. This used to require two literal
+    # `#p-trade .chart-host{height:NNNpx}` rules — which is the OPPOSITE of "the chart takes the
+    # slack": a fixed height on every row meant an overshoot of a few px had nowhere to go and
+    # silently CLIPPED the PASS row off the bottom of the phone. The real invariant is that the
+    # chart is the ONLY thing on the panel allowed to grow.
+    rules = _css_rules(css)
+    assert "#p-trade > *{flex:0 0 auto}" in rules, (
+        "the TRADE panel's rows are not pinned rigid — something other than the chart can grow")
+    assert re.search(r"#p-trade > \.hero-body\{[^}]*flex:1 1 auto", rules), (
+        "the chart's column does not absorb the leftover space")
+    # and nothing may re-pin it with a definite height
+    # ⚠ (?<!min-) — a bare `height:\d+px` also matches `min-height:120px`, which is the FLOOR and
+    # must stay. The first spelling of this assertion failed on the floor it was meant to protect.
+    assert not re.search(r"#p-trade[^{,]*\.chart-host\{[^}]*(?<!min-)height:\d+px", rules), (
+        "a definite height is back on the chart — it can no longer give, so an overshoot clips "
+        "the PASS row instead of shortening the chart")
 
 
 def test_exactly_one_panel_is_visible_by_default():
@@ -405,15 +450,29 @@ def test_exactly_one_panel_is_visible_by_default():
         f"the tab looks chosen and the screen is blank")
 
 
-def test_the_chart_has_a_DEFINITE_height_not_flex():
-    """⚠ The TRADE panel scrolls, and a flex:1 child inside a scrolling column can resolve to ZERO.
-    renderHero's zero-size guard (written to skip a hidden tab) then returns without drawing and the
-    chart is silently blank — the 09-02 failure that went unnoticed for nine days."""
-    css = open(CSS).read()
-    i = css.index("#p-trade .chart-host{")
-    rule = css[i:css.index("}", i)]
-    assert "height:300px" in rule and "flex:0 0 auto" in rule, (
-        "the chart is back on flex sizing and can collapse to zero")
+def test_the_chart_can_never_resolve_to_zero_height():
+    """★2026-09-24 (rebuild) THE INVARIANT IS "NOT ZERO", NOT "NOT FLEX".
+
+    renderHero() opens with `if (host.clientHeight === 0 ...) return;` — a guard written to skip the
+    hidden phone tab — so a chart box that measures zero draws NOTHING and reports NOTHING. That is
+    the 09-02 blank desktop chart: nine days, API 200, bars fresh, no JS error.
+    ⚠ The previous version of this test demanded `height:300px;flex:0 0 auto`, reasoning that a
+      flex:1 child in a scrolling column can collapse. That reasoning is half right and the cure was
+      worse: a flex child collapses only when its container's height is INDEFINITE (no free space to
+      distribute, and flex-basis:auto then resolves to .chart-host's content height, which is 0
+      because #price-svg is position:absolute). Pinning a definite height instead made every row on
+      the panel rigid, so the page could only overflow — and it did, clipping the PASS row.
+    What actually makes zero unreachable is a min-height FLOOR, on every rule that sizes the chart.
+    That is what this asserts, on both layouts."""
+    rules = _css_rules(open(CSS).read())
+    sized = re.findall(r"(?:#p-trade |\.hero-body > )\.chart-host\{([^}]*)\}", rules)
+    assert sized, "no rule sizes the chart at all"
+    for decl in sized:
+        m = re.search(r"min-height:(\d+)px", decl)
+        assert m and int(m.group(1)) >= 100, (
+            f"a chart rule with no usable floor: {decl!r} — it can measure zero and draw nothing")
+    # and the panel must be a flex COLUMN, or the floor is the only thing holding it up
+    assert re.search(r"\.panel\{[^}]*flex-direction:column", rules)
 
 
 def test_a_revealed_panel_is_redrawn_after_LAYOUT():
@@ -530,9 +589,7 @@ def test_the_phone_fits_one_screen_without_a_magic_number():
     left — self-measuring, every phone, every orientation.
     ⚠ 100dvh not 100vh: on iOS Safari 100vh includes the collapsing URL bar, so a 100vh layout is
     ~60px too tall exactly when the bar is showing."""
-    css = _css_rules(open(CSS).read())
-    i = css.rindex("@media(max-width:899px)")
-    blk = css[i:]
+    blk = _the_phone_block(open(CSS).read())
     assert "height:100dvh" in blk, "the phone layout does not use the dynamic viewport unit"
     assert "height:100vh;height:100dvh" in blk, "no 100vh fallback for older Safari"
     assert "flex:1 1 auto;min-height:0" in blk, "the grid cannot shrink to the viewport"
@@ -544,12 +601,15 @@ def test_the_chart_keeps_a_floor_even_when_it_flexes():
     drawing — the 09-02 blank chart, which already bit once this week. The floor makes zero
     unreachable."""
     import re as _re
-    css = _css_rules(open(CSS).read())
-    i = css.rindex("@media(max-width:899px)")
-    m = _re.search(r"#p-trade \.chart-host\{([^}]*)\}", css[i:])
-    assert m, "the phone chart rule is gone"
-    assert "flex:1 1 auto" in m.group(1) and "min-height:" in m.group(1)
-    floor = int(_re.search(r"min-height:(\d+)px", m.group(1)).group(1))
+    blk = _the_phone_block(open(CSS).read())
+    hits = _re.findall(r"#p-trade \.chart-host\{([^}]*)\}", blk)
+    # ⚠ EXACTLY ONE. The previous block declared this selector TWICE and the later
+    # `height:270px;min-height:270px` silently cancelled the `flex:1 1 auto;min-height:96px` its own
+    # comment described — while this very test, searching forward from the block start, measured the
+    # DEAD rule and reported the floor as 96px. A declaration being PRESENT does not make it APPLY.
+    assert len(hits) == 1, f"the phone chart is sized by {len(hits)} rules — the later one wins"
+    assert "flex:1 1 auto" in hits[0] and "min-height:" in hits[0]
+    floor = int(_re.search(r"min-height:(\d+)px", hits[0]).group(1))
     # ⚠ The floor is how far the chart may GIVE before a fixed row gets clipped — not its target
     # size (it flexes to ~350px). Too HIGH and a small overshoot cuts the metric strip off instead
     # of shortening the chart; too low and the zero-size guard can trigger. 80-140 is the band.
@@ -562,9 +622,8 @@ def test_the_bottom_safe_area_is_paid_back():
     the last row sits beneath it."""
     html = open(HTML).read()
     assert "viewport-fit=cover" in html, "the viewport does not opt into the safe-area insets"
-    css = _css_rules(open(CSS).read())
-    i = css.rindex("@media(max-width:899px)")
-    assert "env(safe-area-inset-bottom" in css[i:], "the bottom inset is never paid back"
+    assert "env(safe-area-inset-bottom" in _the_phone_block(open(CSS).read()), (
+        "the bottom inset is never paid back")
 
 
 def test_the_symbol_toggles_are_shaded_apart_and_never_wrap():
@@ -586,31 +645,219 @@ def test_the_phone_panels_are_not_placed_by_the_desktop_grid():
     at all. ⚠ The FIRST attempt at this added `grid-template-columns:1fr`, which did nothing,
     because an earlier phone block had already set `.grid{display:block}`. Assert the model that
     actually applies: a flex column."""
-    css = _css_rules(open(CSS).read())
-    i = css.rindex("@media(max-width:899px)")
-    blk = css[i:]
-    assert "display:flex;flex-direction:column" in blk, "the phone grid is not a flex column"
-    assert "grid-template" not in blk, "a grid-template override is back in a non-grid container"
+    import re as _re
+    blk = _the_phone_block(open(CSS).read())
+    g = _re.search(r"(?:^|[};\s])\.grid\{([^}]*)\}", blk)
+    assert g, ".grid is not restated in the phone block"
+    assert "display:flex" in g.group(1) and "flex-direction:column" in g.group(1), (
+        f"the phone grid is not a flex column: {g.group(1)!r}")
+    # ⚠ Scoped to .grid. The old form asserted "grid-template" was absent from the WHOLE block,
+    # which only held because it looked at one of three blocks — .kpis is legitimately a 3-column
+    # grid in the header and always was.
+    assert "grid-template" not in g.group(1), (
+        "a grid-template override is back on .grid, which is not a grid here — it does nothing")
 
-def test_the_phone_block_does_not_assume_the_other_phone_block():
-    """★★★2026-09-24 "days and trades tabs not loading" — twice.
+def test_there_is_exactly_ONE_phone_media_block():
+    """★★★2026-09-24 (rebuild) "days and trades tabs not loading" — twice, then "they half open but
+    have the chart behind looks like a mess".
 
-    ⚠⚠ THERE ARE TWO PHONE MEDIA BLOCKS IN THIS STYLESHEET: "@media (max-width:899px)" WITH a space
-    and "@media(max-width:899px)" WITHOUT. The earlier one sets `.grid{display:block}` — which
-    silently made a `grid-template-*` override in the later block INERT — and `.pb{overflow:visible}`,
-    which removed each panel's ability to scroll once the body stopped scrolling. Neither was
-    visible from the other block, and the first fix addressed a rule that never applied.
+    ⚠⚠ THIS STYLESHEET HAD THREE `max-width:899px` BLOCKS, two of them spelled differently
+    ("@media (max-width:899px)" WITH a space and "@media(max-width:899px)" WITHOUT) and ~10,000
+    characters apart. Every one of the resulting bugs had the same shape — a declaration in one
+    block silently defeating a declaration in another that nobody editing either could see:
+      · `.grid{display:block}` made a `grid-template-*` override inert, so a fix for "days and
+        trades not loading" addressed a rule that never applied;
+      · `.pb{overflow:visible}` removed each panel's ability to scroll once the body stopped;
+      · `#p-trade .chart-host` was declared twice IN THE SAME BLOCK and the later `height:270px`
+        cancelled the elastic rule its own comment described.
+    ONE BLOCK is the fix, and it is the fix precisely because it cannot be half-applied.
 
-    So the later block must RESTATE display, overflow and sizing outright rather than assume."""
-    css = _css_rules(open(CSS).read())
-    i = css.rindex("@media(max-width:899px)")
-    blk = css[i:]
+    ⚠ 520px and 560px blocks are fine: they are NARROWER refinements of rules stated in the phone
+    block, not rivals to it at the same breakpoint."""
+    css = open(CSS).read()
+    assert len(_phone_blocks(css)) == 1, "the phone rules have split into separate blocks again"
+    blk = _the_phone_block(css)
     assert "display:flex;flex-direction:column;flex:1 1 auto" in blk, (
-        ".grid does not restate its display — an earlier block's display:block will win")
+        ".grid does not state its display outright")
     assert ".pb{overflow-y:auto" in blk, (
-        ".pb does not restate its scroll — the earlier overflow:visible clips the panel")
-    assert ".panel[data-tab].on{display:flex;flex:1 1 auto" in blk, (
+        ".pb does not state its scroll — without it a panel clips instead of scrolling")
+    assert ".panel[data-tab].on{display:flex" in blk and "flex:1 1 auto" in blk, (
         "the visible panel is not sized by the grid")
-    # and the inert grid-template approach must not come back
-    assert "grid-template-columns:1fr" not in blk, (
-        "grid-template is back in a block where .grid is not a grid — it does nothing")
+    assert "grid-template-columns:1fr" not in blk
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+#  2026-09-24 (rebuild) — THE OVERLAP BUG AND ITS CLASS.
+#  Reported as: "they half open but have the chart behind looks like a mess" — tapping DAYS or
+#  TRADES showed those panels only partly, with the TRADE tab's chart still painted behind them.
+#
+#  ROOT CAUSE, reasoned from the cascade rather than guessed: a phone block carried
+#      #p-trade{overflow:hidden;display:flex;flex-direction:column}
+#  An ID (1,0,0) beats a class+attribute (0,2,0), so that `display:flex` defeated
+#  `.panel[data-tab]{display:none}` and the TRADE panel was displayed whether or not it was the
+#  selected tab. Tapping DAYS therefore left TWO flex children in `.grid`: TRADE kept its ~590px of
+#  content, the newly-shown panel got the sliver left over, and the chart went on painting above it.
+#
+#  ⚠ IT WAS NOT THE ABSOLUTELY-POSITIONED #price-svg ESCAPING A HIDDEN ANCESTOR, the obvious
+#    suspect — `display:none` removes a subtree from the box tree entirely, absolute descendants
+#    included. The svg kept painting because display:none never applied to its ancestor at all.
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+def test_no_panel_gets_its_DISPLAY_from_an_id_selector():
+    """★★★ THE ROOT CAUSE, pinned at the mechanism.
+
+    An id beats any number of classes, so ONE `#p-xxx{display:...}` anywhere silently disables the
+    entire tab system for that panel — and it reads as a perfectly sensible line when you write it.
+    Layout-by-id is fine for overflow or padding; for `display` it is a trap with no warning."""
+    rules = _css_rules(open(CSS).read())
+    bad = []
+    for m in re.finditer(r"(#p-[a-z]+)\{([^}]*)\}", rules):
+        if re.search(r"(?:^|;)\s*display\s*:", m.group(2)):
+            bad.append(m.group(0))
+    assert not bad, (
+        f"a panel's display is set by id, which out-specifies .panel[data-tab]{{display:none}} and "
+        f"leaves the panel painted under whichever tab is selected: {bad}")
+
+
+def test_a_panel_without_ON_can_not_be_displayed_by_anything():
+    """★★★ THE INVARIANT, spelled so an id cannot out-specify it.
+
+    Removing the offending rule fixes today's bug; this stops the next one. `!important` is the
+    right tool exactly once — for a rule that is an invariant rather than a preference — and "a
+    panel that is not the selected tab is never on screen" is an invariant."""
+    blk = _the_phone_block(open(CSS).read())
+    assert re.search(r"\.panel\[data-tab\]:not\(\.on\)\{display:none!important\}", blk), (
+        "the hidden state is beatable on specificity again — any id rule can re-open the overlap")
+    assert ".panel[data-tab]{display:none}" in blk, "the ordinary hidden rule is gone"
+
+
+def test_only_ONE_child_of_the_trade_panel_can_grow():
+    """★ "everything must fit on one phone screen, even with a holding" is only achievable if
+    something is allowed to GIVE. Five rows are rigid and the chart's column takes the slack.
+
+    ⚠ The previous cut pinned every row INCLUDING the chart to a fixed pixel height, so the total
+    was a constant: on a shorter phone it overshot, and `overflow` then cut the PASS row off the
+    bottom rather than shortening the chart. "Slightly cut off at the bottom" was that constant."""
+    rules = _css_rules(open(CSS).read())
+    assert "#p-trade > *{flex:0 0 auto}" in rules, "the TRADE rows are not pinned rigid"
+    m = re.search(r"#p-trade > \.hero-body\{([^}]*)\}", rules)
+    assert m and "flex:1 1 auto" in m.group(1), "the chart's column cannot absorb the leftover space"
+    # ⚠ BY CLASS, NEVER BY POSITION. `:nth-child(4)` here is the 2026-09-11 defect exactly: a layout
+    #   keyed to child ORDER breaks silently when anyone adds a child, and whoever adds it has no
+    #   reason to open this file.
+    assert not re.search(r"#p-trade\s*>\s*:?nth-child", rules), "the panel sizes a child by POSITION"
+
+
+def test_the_phone_and_desktop_size_the_trade_panel_the_same_way():
+    """★ "desktop should not diverge structurally from the phone" — the two layouts drifting apart
+    is where the last three bugs hid. Both must be: flex column, rigid rows, elastic chart column,
+    chart with a floor. Only the NUMBERS may differ."""
+    css = open(CSS).read()
+    rules = _css_rules(css)
+    desktop = rules[:rules.index("@media (max-width:899px)")] if "@media (max-width:899px)" in rules else rules
+    assert re.search(r"\.hero-body\{[^}]*display:flex[^}]*flex-direction:column", desktop), (
+        "the desktop hero column is not a flex column")
+    assert re.search(r"\.hero-body > \.chart-host\{[^}]*flex:1 1 auto", desktop), (
+        "the desktop chart does not absorb its column's spare space")
+    # the phone must not switch the model, only the sizes
+    blk = _the_phone_block(css)
+    assert not re.search(r"\.hero-body\{[^}]*display:block", blk), (
+        "the phone turns the hero column back into block flow — the chart cannot flex in it")
+
+
+def test_every_container_id_the_script_queries_exists_in_the_page():
+    """★★★ THE GENERAL FORM OF A BUG THAT RAN UNNOTICED SINCE THE TRADE MERGE.
+
+    `querySelectorAll("#symbar .tf")` named a container the merge had DELETED. It does not throw —
+    it returns an empty list — so the whole MNQ/MGC toggle went dead in silence: no click handler
+    was ever attached, a remembered MGC choice was never reflected in the buttons, and the generic
+    `#tfbar .tf` handler picked the symbol buttons up instead and reset the chart WINDOW when one
+    was tapped. Nothing in the page, the log or the test suite said a word.
+
+    ⚠ `test_every_id_the_js_touches_exists_in_the_page` could not catch this: it scans `$("id")`
+      calls, and a dead selector inside querySelectorAll is invisible to it."""
+    js, html = open(JS).read(), open(HTML).read()
+    have = set(re.findall(r'id="([a-zA-Z0-9_-]+)"', html))
+    missing = sorted({m for m in re.findall(r'querySelector(?:All)?\("#([a-zA-Z0-9_-]+)', js)} - have)
+    assert not missing, f"the script queries containers that are not in the page: {missing}"
+
+
+def test_the_symbol_and_window_toggles_do_not_share_a_selector():
+    """★★ They share the ONE toggle row (his instruction), so they must not share a SELECTOR.
+
+    A handler that reads `dataset.sym` must select `[data-sym]`; one that reads `dataset.min` must
+    select `[data-min]`. A bare `#tfbar .tf` matches both, and tapping MGC then ran the timeframe
+    handler: `dataset.min` is undefined there, so it silently reset the window to 2h, cleared the
+    window highlight and re-fetched MNQ. The same bare selector in the phone-default line stripped
+    `on` off the MNQ button on every single phone load."""
+    js = open(JS).read()
+    loose = re.findall(r'querySelectorAll\("#tfbar \.tf"\)', js)
+    assert not loose, (
+        "a handler selects every .tf in the toggle row — it will capture the symbol buttons too")
+    assert 'querySelectorAll("#tfbar .tf[data-sym]")' in js, "the symbol toggle is not wired"
+    assert 'querySelectorAll("#tfbar .tf[data-min]")' in js, "the window toggle is not wired"
+
+
+def test_the_watch_only_note_has_somewhere_to_render():
+    """★★ MD_STREAM is multi-symbol and this desk has already paid for one instrument's numbers
+    being read as another's. setSymNote() writes three things that matter — "gold · WATCH-ONLY",
+    "showing MNQ, not MGC (the MGC fetch failed)", and "this API build serves MNQ only" — and after
+    the TRADE merge deleted #symnote it had been writing every one of them into nothing.
+
+    ⚠ It is an OVERLAY inside .chart-host so it costs no vertical space: the toggle row below must
+      stay one line, which is what the space was taken for in the first place."""
+    html, css = open(HTML).read(), _css_rules(open(CSS).read())
+    assert 'id="symnote"' in html, "setSymNote() still has nowhere to write"
+    i = html.index('class="chart-host"')
+    assert html.index('id="symnote"', i) < html.index("</div>", html.index("<svg", i)) + 200, (
+        "the note is not inside the chart box — it will cost the toggle row its single line")
+    assert re.search(r"#symnote\{[^}]*position:absolute", css), "the note is not an overlay"
+    assert "#symnote:empty{display:none}" in css, (
+        "the note does not hide itself — the normal MNQ case writes '' and would leave a bar")
+
+
+def test_the_chart_host_is_the_only_positioning_context_for_the_svg():
+    """⚠ #price-svg is position:absolute. That is fine — and it is NOT how the chart came to paint
+    behind the other panels — but it is only contained because .chart-host is position:relative and
+    overflow:hidden. Both, or an absolute child escapes the box it is supposed to live in."""
+    css = _css_rules(open(CSS).read())
+    # ⚠ anchored at a statement boundary: a bare `\.chart-host\{` also matches
+    # `.hero-body > .chart-host{`, which is the SIZING rule, not the positioning one.
+    m = re.search(r"(?:^|[};\n])\s*\.chart-host\{([^}]*)\}", css)
+    assert m, ".chart-host has no base rule"
+    assert "position:relative" in m.group(1), "the svg's containing block is gone"
+    assert "overflow:hidden" in m.group(1), "the chart box no longer clips its absolute child"
+
+
+def test_nothing_in_the_phone_block_silently_cancels_itself():
+    """★★★ THE GENERAL FORM OF THE `#p-trade .chart-host` BUG, which cost the phone its elastic
+    chart AND fooled the test that was supposed to guard it.
+
+    The block declared:
+        #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:96px}   <- what the comment said
+        ...  60 lines later ...
+        #p-trade .chart-host{height:270px;min-height:270px}               <- what actually applied
+    Same selector, same specificity, later in source: the second won. The chart was rigid at 270px,
+    so the page could only overflow, and the PASS row and metric strip were clipped off the bottom.
+    The floor test above searched FORWARD from the block start, found the first (dead) rule, and
+    reported the floor as 96px — green, while measuring a declaration that did not apply.
+
+    Merging the three phone blocks into one removes the cross-block version of this. This catches
+    the within-block version, which merging does not. Two declarations of the same property on the
+    same selector are only ever (a) a deliberate progressive-enhancement fallback such as
+    `height:100vh;height:100dvh`, where the values are a known pair, or (b) a bug."""
+    blk = _the_phone_block(open(CSS).read())
+    import collections
+    seen = collections.defaultdict(list)
+    for rule, decls in re.findall(r"([^{}]+)\{([^{}]*)\}", blk):
+        for sel in (x.strip() for x in rule.split(",") if x.strip()):
+            for pm in re.finditer(r"([\w-]+)\s*:\s*([^;]+)", decls):
+                seen[(sel, pm.group(1))].append(pm.group(2).strip())
+    FALLBACK_PAIRS = {("100vh", "100dvh")}          # the iOS dynamic-viewport fallback, deliberate
+    clashes = {}
+    for (sel, prop), vals in seen.items():
+        uniq = list(dict.fromkeys(vals))
+        if len(uniq) > 1 and tuple(uniq) not in FALLBACK_PAIRS:
+            clashes[f"{sel} {{{prop}}}"] = uniq
+    assert not clashes, (
+        f"a later declaration silently cancels an earlier one for the same selector: {clashes}")
