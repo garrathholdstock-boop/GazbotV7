@@ -148,8 +148,15 @@
       <span class="tm"><i>EFFICIENCY</i><b id="ctx-er">—</b></span>
       <span class="tm"><i>RVOL</i><b id="ctx-rvol">—</b></span>
       <span class="tm" title="This minute's volume vs the MEDIAN of the previous 15 minutes OF THIS SESSION. No cross-day baseline, so the contract roll cannot touch it. Above ~1.5x the surge has volume behind it. DESCRIPTIVE — it does not forecast.'"><i>PULSE</i><b id="ctx-pulse">—</b></span>
-      <span class="tm" title="Aggressor imbalance over the last 2 minutes: +1 all buyers lifting, -1 all sellers hitting. 'neutral' trades (13% of tape) are EXCLUDED, never split. DESCRIPTIVE — it says who is crossing the spread right now, not where price goes next."><i>FLOW</i><b id="ctx-flow">—</b></span>
+      <span class="tm" title="Aggressor imbalance over the last 30 SECONDS: +100% all buyers lifting, -100% all sellers hitting. 'neutral' trades (13% of tape) are EXCLUDED, never split. ⚠ SHORT-TERM TEXTURE ONLY — a one-sided burst has a MEDIAN LIFE OF 3 SECONDS, so this tells you who has been crossing lately, not where price goes next. Colour holds at ±20% and only clears below ±12%."><i>FLOW</i><b id="ctx-flow">—</b></span>
       <span class="tm"><i>POSITION AGE</i><b id="ctx-posage">—</b></span>
+      <!-- ★★★2026-09-24 CVD — the meter that answers what FLOW could not. An average FORGETS; a
+           running total does not, so sustained pressure shows as a number that climbs all session
+           instead of a burst that evaporates in three seconds. Anchored to the SAME 22:00Z session
+           as the high/low/VWAP already on this page — a second definition of "today" on one
+           dashboard is how the header and the day table came to disagree by $330. -->
+      <span class="tm" title="CUMULATIVE DELTA since the 22:00Z session open: every aggressive buy adds, every aggressive sell subtracts, 'neutral' counts nothing. Unlike FLOW it does not decay, so sustained pressure accumulates. ⚠ Its correlation with the session move is near-TAUTOLOGICAL (aggressive buying is largely what moves price) — the value is in the DIVERGENCE cell, not in this number agreeing with the chart."><i>CVD</i><b id="ctx-cvd">—</b></span>
+      <span class="tm" title="Fires when price sits at one end of its session range while CVD does NOT. Price at its highs on aggression that is not at its highs = the move is not being paid for. ⚠ DESCRIPTIVE: it says the two disagree, NOT which one wins — every direction study of a disagreement on this desk has come back a coin."><i>DIVERGE</i><b id="ctx-div">—</b></span>
     </div>
     <div class="passrow">
       <input id="pass-note" type="text" maxlength="120" placeholder="looked but didn't trade — why not?">

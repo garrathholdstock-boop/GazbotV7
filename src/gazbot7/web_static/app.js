@@ -952,6 +952,33 @@
       }
     }
 
+    /* ★★★2026-09-24 CVD AND THE DIVERGENCE FLAG.
+       Built after he pushed back on FLOW: "its essentially 30 seconds delayed? so the tape has
+       already done the corresponding move? if so its useless." Not delayed — a 30s WINDOW ends NOW
+       — but MEASURED, an episode of |flow|>=0.20 has a MEDIAN LIFE OF 3 SECONDS, so the average
+       outlives the thing it averages. CVD does not forget, so it can show sustained pressure.
+       ⚠⚠ THE NUMBER AGREEING WITH THE CHART MEANS NOTHING — aggressive buying is largely WHAT
+       MOVES PRICE, so CVD tracking the session (+0.98 over 5 sessions) is near-tautological. The
+       DIVERGE cell is the whole reason this is here.
+       ⚠ DESCRIPTIVE. Amber says the two disagree; it does not say which one wins. */
+    const cv = c.cvd || {}, cvEl = $("ctx-cvd"), dvEl = $("ctx-div");
+    if (cvEl) {
+      cvEl.textContent = cv.cvd == null ? "—"
+        : (cv.cvd > 0 ? "+" : "") + (Math.abs(cv.cvd) >= 1000
+          ? (cv.cvd / 1000).toFixed(1) + "k" : String(cv.cvd));
+      cvEl.className = cv.cvd == null ? "" : (cv.cvd > 0 ? "pos" : (cv.cvd < 0 ? "neg" : ""));
+    }
+    if (dvEl) {
+      /* ⚠ AMBER, NEVER GREEN OR RED. A divergence is not a side — colouring it like a direction
+         would be the page asserting an edge that has not been measured and probably is not there. */
+      dvEl.textContent = cv.divergence ? cv.divergence.toUpperCase()
+        : (cv.px_pos == null ? "—" : "in line");
+      dvEl.className = cv.divergence ? "warn" : "";
+      dvEl.title = cv.px_pos == null ? ""
+        : "price sits at " + Math.round(cv.px_pos * 100) + "% of its session range, CVD at "
+          + Math.round(cv.cvd_pos * 100) + "% of its own";
+    }
+
     /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are
        measured, not decorative: over-8h holds are 0 winners from 4. */
     const po = c.position, pa = $("ctx-posage");

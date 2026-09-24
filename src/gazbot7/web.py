@@ -21,6 +21,7 @@ import http.server
 import json
 import os
 import sqlite3
+import threading
 from datetime import UTC, date, datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
@@ -155,6 +156,7 @@ def context_json(cap_path, data_dir, store_path):
         out["rvol"] = round(cur / base, 2) if base else None
         out["rvol_n_days"] = len(hist)
         out["surge"] = surge_meters(cap_path)
+        out["cvd"] = cvd_meter(cap_path)
         out["rvol_caveat"] = ("this hour so far vs the SAME minutes of that hour on the last "
                               "10 sessions (median) — no linear-accrual assumption. ⚠ bars carry "
                               "no contract column, so a window spanning a roll compares two "
@@ -485,6 +487,105 @@ def adverse_meter(data_dir, cap_path) -> dict:
             "held_min": held, "block": blk, "bucket": bucket, "percentile": pct,
             "median": ref.get("50"), "p90": ref.get("90"),
             "n": tab.get(bucket, {}).get("n")}
+
+
+# ── CUMULATIVE DELTA ─────────────────────────────────────────────────────────────────────────────
+# ★★★2026-09-24. Operator, on the 30s FLOW meter: "its essentially 30 seconds delayed? so the tape
+# has already done the corresponding move? if so its useless."
+# He was wrong about the delay and RIGHT about the uselessness, for a better reason than he gave.
+# A 30s WINDOW is not a 30s DELAY — it ends NOW, and its newest trade is ~0.3s old. But MEASURED
+# over 6h of tape, an episode of |flow|>=0.20 has a MEDIAN LIFE OF 3 SECONDS (75th pct 9s, only 7%
+# last past 30s, NONE past 60s). The thing being averaged lives three seconds and the average is
+# thirty seconds long, so by the time a burst fills the window it is over. That is not stale DATA,
+# it is a stale QUESTION — and shortening the window would only make it flicker on 3-second noise.
+#
+# ★ CVD IS THE INSTRUMENT THAT ANSWERS WHAT HE ACTUALLY ASKED. An average FORGETS; a running total
+# does not. Sustained pressure shows as a line that climbs all session instead of a burst that
+# evaporates in three seconds.
+#
+# ⚠⚠ AND THE CORRELATION IS NOT THE POINT — IT IS VERY NEARLY A TAUTOLOGY. Aggressive buying is
+# largely WHAT MOVES PRICE, so CVD tracking the session's move (+0.98 over 5 sessions) says almost
+# nothing. The value is entirely in the DIVERGENCE: 2026-09-18 closed +140.75pt on NEGATIVE
+# cumulative delta — price rising while nobody was lifting offers. That is the row worth having.
+#
+# ⚠⚠⚠ PERFORMANCE IS A CORRECTNESS ISSUE HERE. A full-session scan is 994,537 ticks and MEASURED
+# 112-154ms, growing all session, against a page that polls every ONE SECOND. Doing that per
+# request would burn a seventh of a core continuously and block the handler that also serves his
+# FLATTEN button. So the total is INCREMENTAL: each call sums only the ticks newer than the last
+# one it saw, which is typically a single second of tape.
+# ⚠ ThreadingHTTPServer — concurrent requests WOULD double-count an increment without the lock.
+_CVD_LOCK = threading.Lock()
+_CVD: dict = {}
+
+
+def cvd_meter(cap_path) -> dict:
+    """Session cumulative delta + a divergence flag. Incremental, thread-safe, fail-quiet."""
+    out = {"cvd": None, "divergence": None, "open": True}
+    try:
+        from .session import is_open as _is_open
+        now = datetime.now(UTC)
+        if not _is_open(now):
+            out["open"] = False
+            return out
+        # ★ SAME session anchor as the session high/low/VWAP already on this page (22:00Z).
+        #   A second definition of "today" on one dashboard is how the header and the day table
+        #   came to disagree by $330 and cost him an evening of doubting a correct book.
+        op = int((now.replace(hour=22, minute=0, second=0, microsecond=0)
+                  - timedelta(days=(0 if now.hour >= 22 else 1))).timestamp()) * 1000
+        with _CVD_LOCK:
+            st = _CVD.get(op)
+            if st is None:
+                _CVD.clear()                      # a new session; never accumulate across the roll
+                st = {"last": op - 1, "cvd": 0.0, "hi": 0.0, "lo": 0.0}
+                _CVD[op] = st
+            c = _conn(cap_path)
+            rows = c.execute(
+                "SELECT ts_ms, size, aggressor FROM ticks WHERE symbol='MNQ' AND ts_ms>? "
+                "AND ts_ms<=? ORDER BY ts_ms", (st["last"], int(now.timestamp() * 1000))).fetchall()
+            for r in rows:
+                a = r["aggressor"]
+                # ⚠ 'neutral' contributes NOTHING — it is 13% of the tape and nobody crossed the
+                #   spread for it. Counting it either way invents pressure that did not exist.
+                if a == "buy":
+                    st["cvd"] += r["size"]
+                elif a == "sell":
+                    st["cvd"] -= r["size"]
+                else:
+                    continue
+                # ⚠ The extremes track the RUNNING TOTAL, not the increments — max(deltas) would be
+                #   the biggest single trade, which is a different and useless number.
+                if st["cvd"] > st["hi"]:
+                    st["hi"] = st["cvd"]
+                if st["cvd"] < st["lo"]:
+                    st["lo"] = st["cvd"]
+            if rows:
+                st["last"] = rows[-1]["ts_ms"]
+            px = c.execute("SELECT MIN(low) lo, MAX(high) hi, "
+                           "(SELECT close FROM bars WHERE symbol='MNQ' AND timeframe='5s' "
+                           " AND bar_ts>=? ORDER BY bar_ts DESC LIMIT 1) last "
+                           "FROM bars WHERE symbol='MNQ' AND timeframe='5s' AND bar_ts>=?",
+                           (op // 1000, op // 1000)).fetchone()
+            c.close()
+            out["cvd"] = int(st["cvd"])
+            out["cvd_hi"], out["cvd_lo"] = int(st["hi"]), int(st["lo"])
+            # ── THE DIVERGENCE FLAG ──────────────────────────────────────────────────────────
+            # ★ Compare WHERE PRICE SITS IN ITS SESSION RANGE against WHERE CVD SITS IN ITS OWN.
+            #   Both are 0..1, so the comparison is scale-free and needs no tuned point threshold.
+            #   Price near its high on aggression that is NOT near its high = the move is not being
+            #   paid for. ⚠ DESCRIPTIVE. It says the two disagree; it does not say which one wins,
+            #   and on this desk every direction study of a disagreement has come back a coin.
+            if px and px["hi"] is not None and px["lo"] is not None and px["last"] is not None \
+                    and px["hi"] > px["lo"] and st["hi"] > st["lo"]:
+                pr = (px["last"] - px["lo"]) / (px["hi"] - px["lo"])
+                cr = (st["cvd"] - st["lo"]) / (st["hi"] - st["lo"])
+                out["px_pos"], out["cvd_pos"] = round(pr, 3), round(cr, 3)
+                if pr >= 0.85 and cr <= 0.50:
+                    out["divergence"] = "bearish"     # price at highs, buyers not paying for it
+                elif pr <= 0.15 and cr >= 0.50:
+                    out["divergence"] = "bullish"     # price at lows, sellers not pressing it
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {e}"
+    return out
 
 
 def surge_meters(cap_path) -> dict:
