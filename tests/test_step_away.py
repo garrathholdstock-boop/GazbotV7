@@ -203,3 +203,35 @@ def test_the_watcher_and_the_web_run_as_the_SAME_user():
     owner = __import__("pwd").getpwuid(_os.stat("/home/alphabot/gazbot7/data").st_uid).pw_name
     assert away == owner, (f"step-away runs as {away} but data/ is owned by {owner} — it will "
                            f"leave root-owned files the web process cannot rewrite")
+
+
+# ── THE FIRE MESSAGE MUST NAME THE THRESHOLD THAT ACTUALLY FIRED (2026-09-24) ────────────────────
+# ★★★ The operator flagged this himself: "🛡 STEP AWAY FIRED — open P&L hit +340 against your $200
+# limit". `fire()` printed `limit_usd` — the STOP — on every branch, so a TAKE PROFIT reported the
+# loss limit. With a $120 stop and a $200 target armed together, the alarm was naming the wrong one
+# of his own two numbers back at him, and the fires it described were the three good ones it had.
+
+def _fire_src():
+    return open("/home/alphabot/gazbot7/scripts/step_away.py", encoding="utf-8").read() \
+        .split("def fire(", 1)[1].split("\ndef ", 1)[0]
+
+
+def test_a_take_profit_fire_names_the_take_profit_not_the_stop():
+    src = _fire_src()
+    assert 'reason == "take profit"' in src, "the message must branch on WHICH rule fired"
+    msg = src.split("notify(", 1)[1]
+    assert "{lab}" in msg and "{shown}" in msg, "the notify text still hard-codes one threshold"
+    assert "st.get('limit_usd')" not in msg and 'st.get("limit_usd")' not in msg
+
+
+def test_a_missing_threshold_is_admitted_never_substituted():
+    """⚠ No default. A plausible wrong figure inside an alarm is worse than an admitted gap — the
+    whole fault being fixed here is a number that looked authoritative and described nothing."""
+    src = _fire_src()
+    assert "threshold not recorded" in src
+
+
+def test_the_fired_threshold_is_recorded_in_state():
+    """★ So the NEXT reader of step_away.json can tell which rule fired without re-deriving it from
+    the sign of the P&L — which would be wrong the moment a stop and a target are both in range."""
+    assert "fired_threshold_usd" in _fire_src()

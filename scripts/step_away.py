@@ -126,14 +126,28 @@ def fire(reason: str, pnl: float, st: dict) -> None:
         log(f"⚠ COULD NOT WRITE THE CLAIM: {type(e).__name__}: {e} — POSITION STILL OPEN")
         return
     # ⚠ Disarm FIRST-CLASS: a killer left armed would fire again against the next position.
+    # ★★★2026-09-24 REPORT THE THRESHOLD THAT ACTUALLY FIRED, NOT ALWAYS THE LOSS LIMIT.
+    # This said "against your $200 limit" on EVERY fire, `limit_usd` being the stop. So a TAKE
+    # PROFIT at +$310 read "open P&L hit +310 against your $200 limit" — a number he never set for
+    # that branch, describing a rule that did not trigger. The operator flagged it as erroneous and
+    # he was right: with a $120 stop and a $200 target live at the same time, the message was
+    # naming the wrong one of his own two numbers back at him.
+    # ⚠ There is no default here. If the branch that fired has no threshold recorded, the message
+    # says so rather than substituting the other branch's number — a plausible wrong figure in an
+    # alarm is worse than an admitted gap.
+    hit = st.get("take_profit_usd") if reason == "take profit" else st.get("limit_usd")
+    lab = "take-profit" if reason == "take profit" else "stop"
+    shown = f"${float(hit):.0f}" if hit is not None else "(threshold not recorded)"
     write_state({"armed": False, "fired_at": stamp, "fired_pnl": round(pnl, 2),
-                 "limit_usd": st.get("limit_usd"), "reason": reason})
-    log(f"FIRED: {reason} at open P&L {pnl:+.0f} (limit {st.get('limit_usd')}) — claim written")
+                 "limit_usd": st.get("limit_usd"),
+                 "take_profit_usd": st.get("take_profit_usd"),
+                 "fired_threshold_usd": hit, "reason": reason})
+    log(f"FIRED: {reason} at open P&L {pnl:+.0f} ({lab} {shown}) — claim written")
     try:
         from gazbot7.notify import notify
-        notify(f"🛡 STEP AWAY FIRED — open P&L hit {pnl:+.0f} against your "
-               f"${st.get('limit_usd')} limit. Flatten requested; the rider executes it through its "
-               f"own ownership check. The guard is now DISARMED.", critical=True)
+        notify(f"🛡 STEP AWAY FIRED — open P&L hit {pnl:+.0f}, your {lab} was {shown}. "
+               f"Flatten requested; the rider executes it through its own ownership check. "
+               f"The guard is now DISARMED.", critical=True)
     except Exception:
         pass
 

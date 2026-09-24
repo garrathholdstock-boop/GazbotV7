@@ -525,6 +525,126 @@
      Tiers 3 and 4 are gone — FLATTEN above covers them, which is what he actually does.
      ⚠ It still POSTs a request; the RIDER flattens on its own tick through its own ownership
      check. A dashboard that placed orders directly is how 2026-08-06 happened. */
+
+  /* ════════════════════════════════════════════════════════════════════════════════════════════
+     THE ON-PAGE ALERT — beats the Telegram push by ~9 seconds, while the tab is in front of him
+     ════════════════════════════════════════════════════════════════════════════════════════════
+     ★★★2026-09-24. Operator: "the telegram sometimes comes 10 seconds after the event. any way of
+     speeding it up? or thats life?" MEASURED, end to end:
+         tape -> detection   <= 1.00s   (MD_STREAM publishes MNQ at exactly 1 Hz)
+         python spawn         0.039s
+         Telegram API POST    0.043s
+         ------------------------------
+         desk-side total     <= 1.1s
+     So the ~10s is entirely Telegram -> Apple push -> handset. There is no lever on that. But this
+     page is ALREADY connected and ALREADY polling at 1 Hz, so for the one case that matters — the
+     tab open in front of him — it can fire in about a second with no push service in the path.
+
+     ⚠⚠⚠ AN ADDITION TO TELEGRAM, NEVER A REPLACEMENT. It lives only while the tab is open AND
+     foregrounded (iOS suspends timers in a background tab), so it cannot be relied on and must
+     never be allowed to feel like it can. Telegram stays the alarm channel of record.
+
+     ⚠ THE LADDER IS DELIBERATELY THE SAME ONE `rider_peak_watch` USES — arm $200, a rung every
+     $50, give-back $75 off the high. Two surfaces alerting on two different definitions of "worth
+     looking at" would teach him that one of them is lying. `tests/test_dashboard_alert.py` asserts
+     these three numbers against that script's defaults, so a change to either side fails the suite
+     rather than silently drifting the page out of step with the phone.
+  */
+  var AL_ARM = 200, AL_STEP = 50, AL_GIVEBACK = 75;
+  var AL = { on: false, unlocked: false, peak: 0, armed: false, rung: 0, holding: false, gave: false };
+
+  function alSave() { try { localStorage.setItem("gz_alerts", AL.on ? "1" : "0"); } catch (e) { } }
+  function alLabel() {
+    // ⚠ The label must distinguish "off" from "on but the browser has not let us make a sound yet".
+    // Reporting ON while silent is the instrument-that-reports-healthy failure in miniature.
+    setTxt("al-lab", !AL.on ? "ALERTS off" : (AL.unlocked ? "ALERTS on" : "ALERTS tap"));
+    var b = $("al-btn"); if (b) b.classList.toggle("on", AL.on && AL.unlocked);
+  }
+
+  /* iOS will not play audio that no gesture asked for. The toggle IS that gesture; if the
+     preference was already on from a previous visit we unlock on his first touch anywhere. */
+  function alUnlock() {
+    if (AL.unlocked || !AL.on) return;
+    var a = $("al-snd"); if (!a) return;
+    var p = a.play();
+    if (p && p.then) {
+      p.then(function () { a.pause(); a.currentTime = 0; AL.unlocked = true; alLabel(); })
+       .catch(function () { /* still locked — the label keeps saying "tap" and that is the truth */ });
+    } else { AL.unlocked = true; alLabel(); }
+  }
+
+  function alBeep(times, rate) {
+    var a = $("al-snd"); if (!a || !AL.on || !AL.unlocked) return;
+    var n = 0;
+    (function go() {
+      if (n++ >= times) return;
+      try { a.pause(); a.currentTime = 0; a.playbackRate = rate || 1; a.play(); } catch (e) { }
+      if (n < times) setTimeout(go, 180);
+    })();
+  }
+
+  function alFire(kind, text) {
+    // ⚠ The flash and the title are NOT decoration — they are the half that still works when the
+    // handset is muted, when audio never unlocked, or when the tab is behind something.
+    var f = $("al-flash");
+    if (f) {
+      f.textContent = text;
+      f.classList.remove("show"); void f.offsetWidth; f.classList.add("show");
+      setTimeout(function () { f.classList.remove("show"); }, 6000);
+    }
+    document.title = text + " · GAZBOT V7";
+    setTimeout(function () { document.title = "GAZBOT V7 · MNQ DESK"; }, 20000);
+    // Android/desktop only — iOS Safari has no Vibration API at all, so this is a bonus, never the
+    // mechanism. Guarded because calling an absent function would kill the rest of the render pass.
+    try { if (navigator.vibrate) navigator.vibrate(kind === "giveback" ? [90, 60, 90] : 140); } catch (e) { }
+    if (kind === "arm") alBeep(3, 1);
+    else if (kind === "giveback") alBeep(2, 0.72);
+    else alBeep(1, 1);
+  }
+
+  /* Called from renderHolding with the live total. Pure ladder logic — no fetch, no order path. */
+  function alCheck(pnl, side, qty) {
+    if (!AL.on) return;
+    if (pnl > AL.peak) { AL.peak = pnl; AL.gave = false; }
+    if (!AL.armed && pnl >= AL_ARM) {
+      AL.armed = true; AL.rung = Math.floor(pnl / AL_STEP) * AL_STEP;
+      alFire("arm", "+$" + Math.round(pnl) + " — START WATCHING");
+      return;
+    }
+    if (!AL.armed) return;
+    var next = AL.rung + AL_STEP;
+    if (pnl >= next) {
+      AL.rung = Math.floor(pnl / AL_STEP) * AL_STEP;
+      alFire("rung", "PEAK +$" + AL.rung + " · " + side + " " + qty);
+      return;
+    }
+    if (!AL.gave && AL.peak - pnl >= AL_GIVEBACK) {
+      AL.gave = true;
+      alFire("giveback", "OFF THE HIGH — peak $" + Math.round(AL.peak) + ", now $" + Math.round(pnl));
+    }
+  }
+
+  function alFlat() {
+    // ⚠ Reset on FLAT, never on a reload: a fresh page mid-position starts with peak 0 and would
+    // re-arm at $200 on a position he was already told about. That is the cost of this living in
+    // the page, and it is why Telegram remains the record.
+    AL.peak = 0; AL.armed = false; AL.rung = 0; AL.gave = false;
+  }
+
+  function alInit() {
+    try { AL.on = localStorage.getItem("gz_alerts") === "1"; } catch (e) { }
+    alLabel();
+    var b = $("al-btn");
+    if (b) b.onclick = function () {
+      AL.on = !AL.on; alSave();
+      if (AL.on) { alUnlock(); alFire("rung", "ALERTS ON — you will hear the $" + AL_ARM + " arm"); }
+      alLabel();
+    };
+    ["touchend", "click"].forEach(function (ev) {
+      document.addEventListener(ev, alUnlock, { once: false, passive: true });
+    });
+  }
+
   function renderHolding() {
     const holds = mnqHoldings();
     const body = $("hold-body");
@@ -532,12 +652,17 @@
     if (!holds.length) {
       setTxt("hold-meta", "flat");
       body.innerHTML = `<div class="empty">flat — no position</div>`;
+      if (AL.holding) { AL.holding = false; alFlat(); }
       return;
     }
     const h = holds[0];
     const side = h.side || (h.qty < 0 ? "SHORT" : "LONG");
     const tot = holds.reduce((s2, x) => s2 + (x.pnl_usd || 0), 0);
     setTxt("hold-meta", `${holds.length} open`);
+    // ⚠ guard()ed: a throw in the alert must never take the holding card down with it. The card is
+    // what he actually trades from; the beep is a convenience on top of it.
+    if (!AL.holding) { AL.holding = true; alFlat(); }
+    guard("alert.check", function () { alCheck(tot, side, Math.abs(h.qty || 0)); });
     const doneSet = h.targets_done || [];
     /* ⚠ only the first TWO rungs, by his instruction */
     const tiers = h.entry_gate === "day_rider"
@@ -989,6 +1114,7 @@
     fastTick();
   }));
 
+  alInit();
   clock(); setInterval(clock, 1000);
   slowTick(); fastTick();
   setInterval(fastTick, POLL_FAST_MS);

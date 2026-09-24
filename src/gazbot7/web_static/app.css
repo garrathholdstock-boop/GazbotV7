@@ -682,3 +682,24 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
   #p-trades th:nth-child(5),#blotter td:nth-child(5){width:25%}
   #p-trades th:nth-child(6),#blotter td:nth-child(6){width:18%}
 }
+
+/* ── THE ON-PAGE ALERT (2026-09-24) ──────────────────────────────────────────────────────────
+   Telegram is ~10s away through Apple's push service; this page is already polling at 1Hz and is
+   ~1s away. The toggle sits in the away-settings row because that is the row about "what happens
+   while I am not staring at this". ⚠ It must not grow the row's height — the whole TRADE tab is
+   built to fit one phone screen without scrolling. */
+.albtn{font-size:9px;letter-spacing:.03em;background:var(--panel2);border:1px solid var(--line2);
+  color:var(--mut2);border-radius:11px;padding:2px 8px;cursor:pointer;line-height:1.5;
+  white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.albtn.on{color:#7fe0b0;border-color:#2f6f53;background:#10241c}
+
+/* The flash is the half that still works on a muted handset, or when audio never unlocked, or
+   when the tab is behind something. It is positioned OVER the page, not in the flow, so it can
+   never push the one-screen layout out of shape. */
+.alflash{position:fixed;left:0;right:0;top:0;z-index:70;pointer-events:none;
+  text-align:center;font-size:13px;font-weight:700;letter-spacing:.04em;
+  padding:10px 12px;color:#04120c;background:#4ade80;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));
+  transform:translateY(-100%);transition:transform .18s ease-out;box-shadow:0 2px 14px #000a}
+.alflash.show{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){.alflash{transition:none}}
