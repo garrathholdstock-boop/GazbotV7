@@ -287,16 +287,26 @@ def main() -> int:
                            f"{side} {qty:g} @ {entry:.2f} · now {last:.2f}\n"
                            f"{ext_s} (ATR {atr:.1f}pt) · pings every ${STEP_USD:.0f} from here",
                            critical=True)
+                # ★★★2026-09-24 critical=True, mark=False — AND THE TWO HALVES HAVE DIFFERENT
+                # REASONS, so neither may be dropped to "simplify" this.
+                #   critical=True  keeps them OUT of quiet-hours suppression. Quiet hours start at
+                #     22:00 Paris = 20:00Z and the rider is not flat until 20:40Z, so the last 40
+                #     minutes of every position — the stretch where he is deciding whether to claim
+                #     before the hard flat takes it — would otherwise go dark.
+                #   mark=False     keeps the circle off them. These three are the BODY of an armed
+                #     episode: ARM has already said "start watching", and re-marking every rung
+                #     afterwards is ~57 red circles a day, which is what the mark meant on the
+                #     morning it shipped and why it stopped meaning anything by the afternoon.
                 elif kind == "RUNG":
                     notify(f"📈 RIDER PEAK ${detail} (now ${pnl:.0f}) · {ext_s}\n"
-                           f"{side} @ {entry:.2f} → {last:.2f}", critical=True)
+                           f"{side} @ {entry:.2f} → {last:.2f}", critical=True, mark=False)
                 elif kind == "GIVEBACK":
                     notify(f"⚠️ RIDER OFF THE HIGH — peak ${lad.peak:.0f}, now ${pnl:.0f} "
                            f"(−${detail}) · {ext_s}\n"
-                           f"last new high {since} ago · {last:.2f}", critical=True)
+                           f"last new high {since} ago · {last:.2f}", critical=True, mark=False)
                 else:
                     notify(f"😴 RIDER STALLED — peak ${lad.peak:.0f}, now ${pnl:.0f} · {ext_s}\n"
-                           f"no new high for {since} · {last:.2f}", critical=True)
+                           f"no new high for {since} · {last:.2f}", critical=True, mark=False)
                 log(f"{kind} {detail} pnl={pnl:.0f} peak={lad.peak:.0f} "
                     f"ext={ext:.2f} since={since} last={last}")
 

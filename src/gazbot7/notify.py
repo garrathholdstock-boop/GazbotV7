@@ -113,21 +113,41 @@ def _subprocess_send(message: str) -> bool:
 #: ones that are just telling him something — without reading a word.
 #: ⚠ APPLIED HERE, IN ONE PLACE, not at 46 call sites. A marker added per-caller drifts the moment
 #: someone adds the 47th, and then the absence of a mark means nothing.
-#: ⚠ `critical` already meant "bypass quiet hours", i.e. "this matters at 3am". That is exactly the
-#: set worth marking, so the flag is reused rather than a second one invented to disagree with it.
+#: ⚠⚠⚠ 2026-09-24, SAME DAY, CORRECTED: `critical` was doing TWO JOBS and they are not the same
+#: question. "Does this matter at 3am?" (bypass quiet hours) is NOT "is this the one to look at?"
+#: (wear the mark). `rider_peak_watch` sends all four of its alerts `critical=True` — correctly,
+#: because his position can still be open at 20:00Z when quiet hours start and a rung he cannot see
+#: is a rung that cannot be claimed — and that alone is ~63 messages a day. Within hours of shipping
+#: it, the marker was on 98% routine traffic and meant nothing, which is precisely the failure the
+#: comment above warns about, arrived at from the other direction.
+#: **So the two jobs are now separate flags**: `critical` = bypasses quiet hours · `mark` = wears the
+#: circle, DEFAULTING TO `critical` so all 56 existing call sites are unchanged.
+#: ★ THE RULE FOR `mark=False`: the circle marks the START of something that needs him — an episode
+#: opening, a fault beginning — never its CONTINUATION. Being told six more times about a position
+#: he has already been told to watch is not news.
 CRITICAL_MARK = "🔴 "
 
 
-def notify(message: str, *, critical: bool = False, now: datetime | None = None, send=None) -> bool:
-    """Send an operator alert. Routine alerts are suppressed during quiet hours;
-    critical (safety) alerts always send and carry CRITICAL_MARK. Returns True if sent.
-    Fail-quiet."""
+def notify(message: str, *, critical: bool = False, mark: bool | None = None,
+           now: datetime | None = None, send=None) -> bool:
+    """Send an operator alert. Returns True if sent. Fail-quiet.
+
+    `critical` — bypass quiet hours. "This matters at 3am."
+    `mark`     — wear CRITICAL_MARK. "This is the one to look at."
+                 Defaults to `critical`; pass False for an alert that must reach him at any hour
+                 but is the CONTINUATION of something he has already been told about.
+
+    ⚠ A routine alert can never be marked: if it is not worth waking him for, the circle would be
+    claiming an urgency the quiet-hours rule itself denies.
+    """
     now = now or datetime.now(UTC)
     if not critical and in_quiet_hours(now):
         return False
+    if mark is None:
+        mark = critical
     # ⚠ Never double-mark: a caller that already prefixed it (or a retry of the same text) must not
     # accumulate circles.
-    if critical and not message.startswith(CRITICAL_MARK):
+    if mark and critical and not message.startswith(CRITICAL_MARK):
         message = CRITICAL_MARK + message
     return (send or _subprocess_send)(message)
 
