@@ -14,6 +14,41 @@
 
 ### LATER THE SAME DAY — THE ALERT CHANNEL, AND A METER THAT HAD BEEN LYING AT THE OPEN
 ### THE AFTERNOON — TWO METERS, TWO OF MY OWN BUGS, AND A LABEL THAT COULD NOT LOSE
+### THE EVENING — A WEDGE ATE HIS FLATTEN, AND THE WATCHDOG HAD BEEN WATCHING
+
+**★★★ 18:05:59 HE PRESSED FLATTEN ON A SHORT 4 AND NOTHING HAPPENED.** Accept queue 45/50, 42
+CLOSE-WAIT, rider TimeoutError and blind. His claim sat **unread for 2m08s** and executed only
+after a manual `docker restart`. Price was **30638.25** when he pressed (+$516) and **30628.00** at
+the best print (+$598); it booked **+$228**. **THE OUTAGE COST $282 AGAINST HIS PRESS AND $364
+AGAINST THE BEST PRINT** — and he said *"i couldve exited that one for 380 more almost"* before any
+of it was measured.
+
+⚠⚠⚠ **AND THE WATCHDOG WATCHED THE WHOLE THING.** It sampled the climb 34 → 38 → 42, correctly
+refused to restart while he held a position, and wrote that refusal **to a log file nobody reads**.
+The lines are still there, timestamped through the incident. He found out by pressing a button.
+*"us not knowing is unacceptable."*
+
+Rebuilt: **the decline pages** · **15s sampling** (the queue climbed ~4/min) · **an unread press is
+its own trigger** (it asks "did his button do anything", not "is the gateway healthy") · and a
+**narrow exception — restart while HOLDING only when the desk is ALREADY BLIND**, because the rule
+against it exists to protect an order path that in that state does not exist. A healthy desk
+holding is still never restarted. Capped at 3, then it pages and stops.
+⚠ A bug found while wiring the cap: `restart()` json.dumped a fresh dict over the state file, which
+would have wiped the counter every time and made the cap unreachable — it would have looped forever
+while appearing to count.
+⚠ `depth_capture` was the only job running when it started, which does NOT fit the standing
+IBKR-pacing hypothesis. Evidence against our own theory, recorded as such.
+
+**AND THE METERS GREW UP BECAUSE HE KEPT PUSHING BACK.** *"is it live or will it be delayed?"* →
+PULSE was reading the last COMPLETED minute and sat frozen 40s at a time. *"its essentially 30
+seconds delayed... if so its useless"* → wrong about the delay, RIGHT about the uselessness: a
+one-sided FLOW burst has a **median life of 3 seconds** against a 30s average, so CVD was built.
+*"how do i see that"* → the divergence inputs were **tooltip-only, and there is no hover on a
+phone**; a verdict whose workings he cannot inspect is unauditable. *"does 43% mean its back on the
+sellers side?"* → no, and the design invited the error: zero sat at **39%** of the range, not 50%,
+so the gauge got a zero tick and heat that splits at zero rather than the midpoint.
+★ **Every one of those was him finding a real fault from the tape before any test did.**
+
 
 **HE ASKED FOR PULSE AND FLOW AND THEN DEBUGGED THEM OFF THE TAPE.** Twice. First *"is it live or
 will it be delayed?"* — PULSE read the last COMPLETED minute, so it sat frozen at 0.95 for forty

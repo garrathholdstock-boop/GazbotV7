@@ -423,6 +423,50 @@ venue is shut. One timer, no second definition of "the weekend" to drift.
 
 ---
 
+## 4c. THE 2026-09-24 18:05 WEDGE — it ate a FLATTEN, and the watchdog watched it happen
+
+**18:05:59** he pressed FLATTEN on a SHORT 4. Accept queue **45/50**, **42 CLOSE-WAIT**, rider
+`TimeoutError` / `venue_ok:false` / `blind_holding:true`. **His claim sat UNREAD for 2m08s** and
+executed only after a manual `docker restart alphabot-gateway`. **Episode 26, 11 of the last 18 days.**
+
+| | price | would have booked |
+|---|---|---|
+| at his press 18:05:59 | 30638.25 | **+$516** |
+| best print in the window | 30628.00 | **+$598** |
+| actual fill 18:08:07 | 30673.50 | **+$228** |
+
+★ **THE OUTAGE COST $282 AGAINST HIS PRESS, $364 AGAINST THE BEST PRINT.** He said *"i couldve
+exited that one for 380 more almost"* before any of it was measured, and he was right.
+
+### ⚠⚠⚠ THE WATCHDOG SAW IT AND SAID NOTHING HE COULD HEAR
+`gateway_watch` sampled the climb (34 → 38 → 42), correctly decided it must not restart while he
+held a position, and wrote that decision **to a log file nobody reads**. The lines are still there,
+timestamped through the incident. Operator: *"us not knowing is unacceptable."*
+
+**REBUILT 2026-09-24** — `gazbot7-gateway-watch`:
+1. **THE DECLINE PAGES** (critical, deduped). A guard that declines in silence is a guard nobody
+   knows they lack.
+2. **15s sampling** (was 60s) — the queue climbed ~4/minute.
+3. ★★ **A NARROW EXCEPTION — restart while HOLDING, only when the desk is ALREADY BLIND.**
+   ⚠⚠⚠ **THE STANDING RULE SURVIVES.** "Never restart with a position open" exists because a
+   restart blinds every consumer ~15s. **That cost is ZERO when the desk is already blind** — his
+   FLATTEN, the ladder and the 20:40 hard flat are all doing nothing. A restart is then the only
+   action that can improve it and cannot worsen it. **A HEALTHY desk holding is still never
+   restarted**, and a test pins that.
+4. **AN UNREAD PRESS IS ITS OWN TRIGGER**, independent of the socket counters — on 18:05 CLOSE-WAIT
+   was still climbing *through* the trip while his flatten was already dead. It asks **"did his
+   button do anything"**, not "is the gateway healthy".
+
+⚠ A **stale** rider state = *cannot tell* = **do not act**. ⚠ Acts only on an explicit
+`venue_ok:false` — that field goes STALE-**TRUE** on the early-return path, which points the safe
+way. ⚠ **CAPPED AT 3**, then pages and STOPS: if restarting did not fix it, the fault is not the
+gateway. ⚠ Cooldown and dedupe both **FAIL OPEN**.
+⚠ `depth_capture` was the only job running when it began — which does **not** fit the standing
+IBKR-pacing hypothesis (18 of 25 episodes start 18:00–00:00Z under driftlab/backfill). Evidence
+AGAINST the current theory; still unexplained.
+
+---
+
 ## 5. SAFETY — non-negotiable
 
 | layer | what it guarantees |
@@ -474,6 +518,31 @@ seconds)**. With hysteresis, 30s→147 and 45s→83 (today's exact rate; `FLOW_W
 **The NUMBER is never damped** — only the colour, because the colour is what catches the eye.
 ⚠ `neutral` is **13%** of the MNQ tape and is excluded, never pro-rated: splitting it manufactures
 imbalance out of trades where nobody crossed the spread.
+
+### CVD — the meter FLOW could not be (2026-09-24)
+Operator on FLOW: *"its essentially 30 seconds delayed? so the tape has already done the
+corresponding move? if so its useless."* **Wrong about the delay** (a 30s WINDOW ends NOW, newest
+tick ~0.3s old) and **right about the uselessness**: measured over 6h, an episode of `|flow|≥0.20`
+has a **MEDIAN LIFE OF 3 SECONDS** (75th pct 9s, 7% outlast 30s, **none** outlast 60s). The thing
+being averaged lives 3s and the average is 30s long — not stale DATA, a **stale QUESTION**.
+
+**CVD** = running sum of signed aggressor size from the 22:00Z session open. `neutral` (13% of
+tape) contributes nothing. ⚠⚠ **ITS AGREEMENT WITH PRICE IS NEAR-TAUTOLOGICAL** (+0.98 over 5
+sessions) — aggressive buying is largely *what moves price*. **The value is the DIVERGENCE**:
+2026-09-18 closed **+140.75pt on NEGATIVE cumulative delta**.
+⚠⚠⚠ **PERFORMANCE IS CORRECTNESS**: a full-session scan is ~994k ticks at **112–154ms** against a
+**1s** poll. Incremental → **4–5ms**. Threaded server, so the increment is **locked** — two
+concurrent polls would both apply it and the error is permanent for the session.
+
+**THE GAUGES** (`PX` and `CVD` tracks, added when he asked to see the endpoints):
+⚠ **He read 43% as "back on the sellers side" within a minute** — and the design invited it. The
+scale is anchored to TODAY'S extremes, so with a −8,072/+12,469 range **ZERO SAT AT 39%, not 50%**.
+Hence the **zero tick**, and heat that **splits at zero, not at the midpoint**. The PX track splits
+at **VWAP** for the same reason. ⚠ Marker colour follows the **SIDE** (sign of CVD / last vs VWAP),
+never range-position — those disagree whenever the day is lopsided.
+⚠⚠ **AND THE INPUTS MUST STAY VISIBLE.** `px_pos`/`cvd_pos` were tooltip-only, and **there is no
+hover on a phone** — a derived verdict whose workings he cannot inspect is unauditable. The cell
+shows `81·43`; the colour carries the verdict, the cell carries the evidence.
 
 ### ⚠⚠⚠ AND THE FORWARD CLAIM IS INVERTED FROM THE INTUITION
 Racing **±5pt over 5 min in the flow's own direction**: `pulse≥2.0 & |flow|≥0.10` wins **21.3%**
