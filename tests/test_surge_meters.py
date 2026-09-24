@@ -133,3 +133,35 @@ def test_the_logger_thresholds_match_the_preregistration():
     assert float(re.search(r"^PULSE_BACKED\s*=\s*([\d.]+)", src, re.M).group(1)) == p["pulse_backed"]
     assert float(re.search(r"^FLOW_ALIGNED\s*=\s*([\d.]+)", src, re.M).group(1)) == p["flow_aligned"]
     assert int(re.search(r"^HORIZON_MIN\s*=\s*(\d+)", src, re.M).group(1)) == p["horizon_min"]
+
+
+# ── PULSE MUST BE CURRENT, NOT THE LAST COMPLETED MINUTE (2026-09-24, second fix) ────────────────
+# ★★★ The operator caught this from the tape, again: "is it live and correctly corresponding to the
+# tape or will it be delayed?" It was delayed. Measured live over 48 seconds, the block form sat
+# frozen at 0.95 while the rolling form climbed 0.90 -> 1.33 on genuinely expanding volume. The
+# meter was blind for most of every minute, and worst right after a boundary — where a surge starts.
+
+def test_pulse_window_ends_now_not_at_the_last_minute_boundary():
+    c = _code(_fn(WEB, "surge_meters"))
+    assert "(t1 - 60, t1)" in c, "the current window must end NOW"
+    assert "m0" not in c, "a minute-boundary variable means the block form crept back"
+
+
+def test_pulse_window_is_still_always_a_FULL_minute():
+    """⚠ THE ORIGINAL REASON FOR THE BLOCK FORM MUST NOT BE LOST. A PARTIAL minute compared against
+    a full-minute baseline reads low — precisely the linear-accrual error fixed in RVOL the same
+    morning. A rolling 60s window keeps the full-minute property AND ends now; a
+    'fraction of the current minute' fix would reintroduce the bug this desk just removed."""
+    c = _code(_fn(WEB, "surge_meters"))
+    assert "/ 3600" not in c and "% 60" not in c, "an elapsed-fraction scaling appeared"
+    for k in ("(k + 1) * 60", "k * 60"):
+        assert k in c, "baseline windows must also be whole 60s blocks"
+
+
+def test_the_logger_keeps_the_minute_block_form_on_purpose():
+    """⚠⚠ The METER and the LOGGER now differ, and that is deliberate: a dataset wants clean
+    non-overlapping minute boundaries, a meter wants to be current. They agree exactly AT a
+    boundary, which is where the logger samples — so data/prereg_surge.json is unaffected. If this
+    ever fails, decide which one changed and whether the pre-registration still holds."""
+    src = _code(open(LOGGER, encoding="utf-8").read())
+    assert "m0 + 60" in src or "_minute(c, m0, m0 + 60)" in src

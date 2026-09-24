@@ -521,20 +521,42 @@ def surge_meters(cap_path) -> dict:
             return out
         c = _conn(cap_path)
         t1 = int(now.timestamp())
-        # ── PULSE ────────────────────────────────────────────────────────────────────────────
-        m0 = t1 - (t1 % 60)
+        # ── PULSE — a ROLLING 60s WINDOW ENDING NOW, not the last completed minute ────────────
+        # ★★★2026-09-24, SECOND FIX, and the operator spotted it from the tape again: "flow was -17
+        # or so for a while and pulse 1.60 and tape shot south... is it live or will it be delayed?"
+        # It was delayed. The first version read the last COMPLETED minute, so between :00 and :59
+        # it showed a number that never moved. MEASURED live over 48 seconds:
+        #     14:59:59  block 0.95   rolling 0.90
+        #     15:00:15  block 0.95   rolling 1.06
+        #     15:00:31  block 0.95   rolling 1.29
+        #     15:00:39  block 0.95   rolling 1.33
+        # Frozen at 0.95 for forty seconds while volume was genuinely expanding — the meter was
+        # blind for most of every minute, and worst right after a minute boundary, which is where
+        # a surge is most likely to begin.
+        # ⚠ THE ORIGINAL REASON FOR THE BLOCK WAS SOUND and must not be lost: a PARTIAL minute
+        # compared against a full-minute baseline reads low, which is exactly the linear-accrual
+        # error fixed in RVOL this morning. A ROLLING 60s window keeps that property — it is always
+        # a full minute of tape — while ending NOW instead of at the last boundary.
+        # ⚠ Staleness is now one 5s bar period (~6s measured), not up to 60s. Ticks land ~0.3s
+        # behind; 5s bars are only written when the bar closes, and that is the floor here.
+        # ⚠⚠ THE LOGGER (surge_log.py) DELIBERATELY KEEPS THE MINUTE-BLOCK FORM. A dataset wants
+        # clean, non-overlapping minute boundaries; a meter wants to be current. They agree exactly
+        # at a boundary, which is where the logger samples, so the pre-registration is unaffected.
         cur = c.execute("SELECT COALESCE(SUM(volume),0) v FROM bars WHERE symbol='MNQ' AND "
-                        "timeframe='5s' AND bar_ts>=? AND bar_ts<?", (m0 - 60, m0)).fetchone()["v"]
-        prev = [r["v"] for r in c.execute(
-            "SELECT CAST(bar_ts/60 AS INT) mm, COALESCE(SUM(volume),0) v FROM bars WHERE "
-            "symbol='MNQ' AND timeframe='5s' AND bar_ts>=? AND bar_ts<? GROUP BY mm "
-            "ORDER BY mm", (m0 - 16 * 60, m0 - 60)).fetchall()]
-        prev = [v for v in prev if v > 0]
+                        "timeframe='5s' AND bar_ts>=? AND bar_ts<?", (t1 - 60, t1)).fetchone()["v"]
+        prev = []
+        for k in range(1, 16):
+            v = c.execute("SELECT COALESCE(SUM(volume),0) v FROM bars WHERE symbol='MNQ' AND "
+                          "timeframe='5s' AND bar_ts>=? AND bar_ts<?",
+                          (t1 - (k + 1) * 60, t1 - k * 60)).fetchone()["v"]
+            if v > 0:
+                prev.append(v)
         if len(prev) >= 8:
             base = sorted(prev)[len(prev) // 2]
             if base:
                 out["pulse"] = round(cur / base, 2)
                 out["pulse_base"] = int(base)
+        out["pulse_window"] = "rolling 60s ending now"
         # ── FLOW ─────────────────────────────────────────────────────────────────────────────
         r = c.execute("SELECT COALESCE(SUM(CASE WHEN aggressor='buy' THEN size END),0) b, "
                       "COALESCE(SUM(CASE WHEN aggressor='sell' THEN size END),0) s, "
