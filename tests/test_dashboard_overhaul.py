@@ -550,7 +550,21 @@ def test_the_chart_keeps_a_floor_even_when_it_flexes():
     assert m, "the phone chart rule is gone"
     assert "flex:1 1 auto" in m.group(1) and "min-height:" in m.group(1)
     floor = int(_re.search(r"min-height:(\d+)px", m.group(1)).group(1))
-    assert floor >= 100, f"the chart floor is only {floor}px"
+    # ⚠ The floor is how far the chart may GIVE before a fixed row gets clipped — not its target
+    # size (it flexes to ~350px). Too HIGH and a small overshoot cuts the metric strip off instead
+    # of shortening the chart; too low and the zero-size guard can trigger. 80-140 is the band.
+    assert 80 <= floor <= 140, f"the chart floor is {floor}px — outside the safe band"
+
+
+def test_the_bottom_safe_area_is_paid_back():
+    """★2026-09-24 "bottom bar with atr just slightly cut off at bottom." With viewport-fit=cover
+    the page may extend UNDER the iPhone home indicator; the inset must be added back as padding or
+    the last row sits beneath it."""
+    html = open(HTML).read()
+    assert "viewport-fit=cover" in html, "the viewport does not opt into the safe-area insets"
+    css = _css_rules(open(CSS).read())
+    i = css.rindex("@media(max-width:899px)")
+    assert "env(safe-area-inset-bottom" in css[i:], "the bottom inset is never paid back"
 
 
 def test_the_symbol_toggles_are_shaded_apart_and_never_wrap():

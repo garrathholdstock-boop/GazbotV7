@@ -604,13 +604,23 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
      ⚠ min-height:0 on the flex child, or its content floor stops it ever shrinking. */
   body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
   .topstick{flex:0 0 auto}
-  .grid{flex:1 1 auto;min-height:0;overflow:hidden;padding:4px;gap:4px;height:auto}
+  /* ⚠2026-09-24 THE BOTTOM BAR WAS CLIPPED BY A FEW PIXELS. Two causes, both fixed here:
+     (1) viewport-fit=cover is now set, so the page may extend UNDER the home indicator — the
+         bottom safe-area inset must be paid back as padding or the last row sits beneath it;
+     (2) nothing else in the column can shrink (they are all flex:0 0 auto by design), so when the
+         total overshoots by even a few px it is the LAST child that gets clipped by overflow
+         hidden. The chart is the only elastic element, so it needs room to give. */
+  .grid{flex:1 1 auto;min-height:0;overflow:hidden;gap:4px;height:auto;
+        padding:4px 4px calc(4px + env(safe-area-inset-bottom, 0px))}
   .panel{margin-bottom:0}
   #p-trade{overflow:hidden;display:flex;flex-direction:column}
   /* ⚠ THE CHART TAKES WHATEVER IS LEFT — but keeps a floor. A flex:1 child CAN resolve to zero,
      and renderHero's zero-size guard then returns without drawing: that is the 09-02 blank-chart
      bug and it already bit once this week. The floor makes zero unreachable. */
-  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:130px}
+  /* ⚠ A LOWER FLOOR THAN IT LOOKS. This is not the chart's target size — it flexes to ~350px on
+     an iPhone 14/15 — it is how far it may GIVE before something else gets cut off. A 130px floor
+     meant a 20px overshoot clipped the metric strip instead of shortening the chart by 20px. */
+  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:96px}
   .tstrip .tm b{font-size:12px}
   .actions{gap:5px;padding:4px 6px 1px}
   .orb{max-width:56px}
