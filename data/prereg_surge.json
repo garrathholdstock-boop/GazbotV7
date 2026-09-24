@@ -1,0 +1,29 @@
+{
+  "registered": "2026-09-24",
+  "question": "Does a surge with volume expansion AND aligned aggressor flow ('backed') extend further over the next 5 minutes than one without?",
+  "why_it_must_be_forward": "`aggressor` exists only in capture.db `ticks`, which prune_capture keeps for FIVE DAYS. There is no history to widen this with and there never will be. Either the readings are written down as they happen or the question stays open forever.",
+  "frozen": {
+    "surge_definition_pt": 12.5,
+    "surge_definition_note": "90th percentile of the |1-minute move| over the 5 sessions available on 2026-09-24. FROZEN. Changing it restarts the count.",
+    "pulse_backed": 1.5,
+    "pulse_definition": "minute volume / MEDIAN of the previous 15 minutes OF THE SAME SESSION",
+    "flow_aligned": 0.15,
+    "flow_definition": "(buy-sell)/(buy+sell) by aggressor over the surge minute. 'neutral' EXCLUDED, never split.",
+    "horizon_min": 5,
+    "outcome": "cont_pt = (close at +5min - close at surge) * direction of the surge",
+    "session_window": "US hours only, venue open"
+  },
+  "cells": ["backed", "unbacked_aligned", "flow_opposing"],
+  "verdict_rule": "BACKED must beat UNBACKED on median cont_pt with NON-OVERLAPPING DAY-CLUSTERED bootstrap CIs. Minutes inside a session are not independent draws; a per-observation interval here is inflated roughly tenfold and would declare a winner from noise.",
+  "minimum_n": 400,
+  "minimum_sessions": 40,
+  "in_sample_not_a_result": {
+    "window": "2026-09-18 to 2026-09-24 (5 sessions, n=170)",
+    "backed": {"n": 80, "median_cont_pt": 5.25, "pct_extended": 57.5},
+    "unbacked_aligned": {"n": 68, "median_cont_pt": 0.50, "pct_extended": 51.5},
+    "flow_opposing": {"n": 22, "median_cont_pt": -1.12, "pct_extended": 45.5},
+    "note": "This is the window the idea was FOUND in. Its numbers are NOT evidence and must never be quoted as the result. First eligible session is 2026-09-25."
+  },
+  "expires": "2026-12-31",
+  "the_meters_do_not_depend_on_this": "PULSE and FLOW are DESCRIPTIVE and ship regardless — they say what is happening now, which the operator asked for. This pre-registration only tests the separate, stronger claim that 'backed' also predicts continuation."
+}
