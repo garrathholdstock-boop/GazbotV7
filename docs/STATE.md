@@ -206,6 +206,7 @@ BEST as well and he is still **+$5,514 over 82** — the core book is positive, 
 | instrument | what it records | status |
 |---|---|---|
 | `trades.entry_source` | `manual` / `auto` / **NULL = UNKNOWN and stays NULL** (83 rows predate it) | live |
+| `trades.exit_source` | **NEW 2026-09-24.** `operator` / `step_away:<reason>` / **NULL** . ⚠ Only a CLAIM carries one — a ladder rung, the trail and the 20:40 flat close *themselves*, and naming a decision nobody made is the error `entry_source` exists to prevent | live, 1 row |
 | `data/operator_reads.jsonl` | whole-day tape at every BUY/SELL/CLAIM **and now PASS** | 118 rows |
 | **PASS button** | the NEGATIVE example. Writes `operator_pass.txt` — **a file no order path reads** | live, 0 presses |
 | `scripts/presence.py` | **phone = LOOKED** (10 sessions/day), **desktop = weak** — it polls 134/min so an open tab fakes presence. nginx already had it; no code change needed | on demand |
@@ -222,6 +223,16 @@ BEST as well and he is still **+$5,514 over 82** — the core book is positive, 
    has had. ⚠ **COLLECT, DO NOT FIT:** 11 is the start of a training set, not one.
 
 ⚠ **NO FITTING BELOW 30 LABELLED PRESSES — positives AND negatives.** The pass side starts at zero.
+
+---
+
+### ★★ THE GUARD HAS FIRED, ONCE, AND IT WORKED (2026-09-24 12:38Z)
+`step_away` detected **+$404** against his $400 take-profit, wrote the claim, and the rider was
+**flat three seconds later** for **+$401.50** (SHORT 1 +$100 on its own rung, SHORT 3 +$301.50 on
+the claim). It disarmed itself on firing. **The first time this desk has closed a position
+profitably on his behalf while he was away**, and the first live exercise of the take-profit branch.
+⚠ Armed-while-watching is worth **+$95** over 49 entries; armed-while-away **+$3,257**. It is a
+substitute for his attention, not an edge — do not leave it armed as a policy.
 
 ---
 

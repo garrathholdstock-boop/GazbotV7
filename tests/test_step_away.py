@@ -21,6 +21,19 @@ from gazbot7 import web
 SRC = "/home/alphabot/gazbot7/scripts/step_away.py"
 
 
+def _assert_flattens_all(raw, monkeypatch, tmp_path):
+    """Feed the written claim to the RIDER'S OWN parser and require 'all'.
+
+    ⚠ This is the invariant, not the byte format: a spec the rider resolved to `lot=N` would close
+    ONE lot and leave the rest naked while the guard disarmed itself. Testing the text would have
+    to be rewritten every time the format gains a field; testing the parser never does."""
+    import gazbot7.day_rider as dr
+    f = tmp_path / "parse_claim.txt"
+    f.write_text(raw)
+    monkeypatch.setattr(dr, "CLAIM_FILE", str(f))
+    assert dr.claim_requested() == "all", f"the rider reads {raw!r} as something other than ALL"
+
+
 def _sandbox(tmp_path, monkeypatch, **state):
     monkeypatch.setattr(sa, "STATE", str(tmp_path / "step_away.json"))
     monkeypatch.setattr(sa, "CLAIM", str(tmp_path / "day_rider_claim.txt"))
@@ -45,8 +58,12 @@ def test_firing_writes_a_BARE_stamp_meaning_flatten_all(tmp_path, monkeypatch):
     _sandbox(tmp_path, monkeypatch, armed=True, limit_usd=200)
     sa.fire("loss limit", -240.0, {"limit_usd": 200})
     raw = (tmp_path / "day_rider_claim.txt").read_text().strip()
-    assert "|" not in raw, f"the claim carries a suffix: {raw!r}"
-    dt.datetime.fromisoformat(raw)          # must parse, or the rider discards it
+    # ★2026-09-24 ASSERT AGAINST THE REAL PARSER, NOT THE BYTES. The claim now carries
+    # `|src=step_away:...` so the booked trade can record that the GUARD closed the position rather
+    # than his hand — so "no pipe" is no longer the invariant. THE INVARIANT IS THAT IT STILL
+    # FLATTENS EVERYTHING: a spec the rider read as `lot=N` would close ONE lot and leave the rest
+    # naked while the guard disarmed itself.
+    _assert_flattens_all(raw, monkeypatch, tmp_path)
 
 
 def test_it_DISARMS_the_instant_it_fires(tmp_path, monkeypatch):
@@ -121,7 +138,8 @@ def test_the_take_profit_branch_actually_fires(tmp_path, monkeypatch):
     assert sa.read_state()["armed"] is False
     assert sa.read_state()["reason"] == "take profit"
     raw = (tmp_path / "day_rider_claim.txt").read_text().strip()
-    assert "|" not in raw, "a take-profit claim must flatten ALL, not one lot"
+    _assert_flattens_all(raw, monkeypatch, tmp_path)
+    assert "src=step_away:take_profit" in raw, "the guard no longer stamps its own claims"
 
 
 def test_a_zero_take_profit_means_NONE_not_zero():

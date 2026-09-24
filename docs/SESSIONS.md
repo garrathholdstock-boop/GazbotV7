@@ -10,6 +10,62 @@
 
 ---
 
+## 2026-09-24 (Thu) — THE DESK CLOSED A TRADE FOR HIM, AND THE DASHBOARD BECAME ONE PAGE
+
+### ★★★ THE STEP-AWAY GUARD FIRED LIVE, AND IT WORKED
+```
+12:38:15  step_away: take profit hit at +$404
+12:38:17  booked  SHORT 1  30474.50 -> 30423.75  +$100.00  TARGET_100
+12:38:18  booked  SHORT 3  30474.50 -> 30423.50  +$301.50  MANUAL_CLAIM
+                                                 +$401.50
+```
+**Three seconds from trigger to flat.** The take-profit branch had never run on a live position
+before — only sandboxed. It detected the level, wrote the claim, the rider executed it through its
+own ownership check, and it disarmed itself so it cannot act against the next position.
+**The first time this desk has closed a position profitably on his behalf while he was away.**
+
+### `trades.exit_source` — because that exit looked like his hand
+The guard flattens by writing THE SAME claim file his own button writes, so it booked as
+`MANUAL_CLAIM`. Every future study of how he exits would have counted it as his decision — the
+exact mistake `entry_source` exists to prevent on the other side of the trade.
+⚠ **Only a CLAIM can carry a source.** A ladder rung, the trail and the 20:40 flat close
+*themselves*; today's +$100 rung fired in the same second and is correctly left NULL.
+⚠ **It needed no change to the claim parser** — an unrecognised spec already falls through to
+`"all"`, so `src=` rides alongside `lot=` for free.
+
+### THE DASHBOARD: three tabs, one screen
+TRADE/TRADES/DAYS. Holding first (he watches the live P&L constantly), four circular actions,
+chart, toggles, then the metrics he only checks occasionally.
+★★ **An audit agent found the root cause of the overlap and it was mine:** `#p-trade{display:flex}`
+(id, **1,0,0**) was beating `.panel[data-tab]{display:none}` (**0,2,0**), so TRADE was displayed
+whether or not it was the selected tab. The fix is the invariant — **no panel rule sets `display`
+by id**, and hidden is `:not(.on){display:none!important}`.
+It also found: **three phone media blocks** silently cancelling each other, a **duplicated
+chart-host rule** where the later one killed the elastic sizing its own comment described, and the
+**MNQ/MGC toggle dead since 09-24** (three selectors named a container that had been deleted —
+tapping MGC silently reset the window and refetched MNQ).
+
+### TELEGRAM: 37% of the traffic retired
+Audited every source over 7 days. **85% was informational**; the four alerts that can cost money
+total **under one a day** and were buried. `tunnel-watch` (3.7/day) **disabled** — its own message
+said *"NO EDGE MEASURED · direction 0.46-0.51 vs 0.50 random"*, its founding 1.75x was withdrawn at
+1.02x, and it ran on the volatility axis `legbreak` already covers on displacement.
+Every `critical=True` alert is now prefixed **🔴 by `notify()` itself** — in ONE place, never at the
+46 call sites, because a per-caller marker drifts and then a MISSING mark means nothing.
+
+### ⚠⚠⚠ AND THE THING I GOT WRONG
+Testing the no-PIN flatten, **I POSTed to the live claim endpoint and the rider flattened his open
+SHORT 4 three seconds later — trade 1019, −$842.50.** Third live position touched by a test in one
+session, after twice saying it would not happen again. A promise is not a control, so there is now a
+control: `ORDER_PATHS` refuses the order endpoints without a same-origin dashboard `Referer`.
+Trade 1019 is flagged `BADFILL:` — visible, never counted. His counted day: −$47 -> +$795.50.
+
+### TO REVERT
+`systemctl enable --now gazbot7-tunnel-watch` · the 🔴 is one constant in `notify.py` · the layout
+is one commit · `exit_source` is additive and NULL-safe.
+
+---
+
 ## 2026-09-18 (Fri) — THE DESK TURNED TOWARDS HIS OWN TRADING
 
 **The through-line of the whole week: the desk stopped analysing books that do not make money and

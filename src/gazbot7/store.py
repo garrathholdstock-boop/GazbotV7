@@ -224,6 +224,13 @@ _TRADE_COLUMNS = {
     # inferred value here would be indistinguishable from a recorded one, and the whole reason
     # the column exists is that inference ran out.
     "entry_source": "TEXT",
+    # ★★2026-09-24 WHO CLOSED IT. The step-away guard flattens by writing the SAME claim file his
+    # own button writes, so its exits booked as `MANUAL_CLAIM` — indistinguishable from his hand.
+    # The first live take-profit (+$401.50) would have counted as an operator decision in every
+    # future study of how he exits, which is the exact mistake `entry_source` exists to prevent on
+    # the other side of the trade.
+    # 'operator' = his button · 'step_away' = the guard · NULL = UNKNOWN and must STAY null.
+    "exit_source": "TEXT",
 }
 
 
@@ -307,6 +314,7 @@ def record_trade(
     exit_exec_id: str | None = None,
     gate: str | None = None,
     entry_source: str | None = None,
+    exit_source: str | None = None,
 ) -> bool:
     """Record a closed round-trip. Idempotent on ``exit_exec_id`` (the fill that
     brought the position flat) — completing the same close twice is a no-op.
@@ -318,9 +326,12 @@ def record_trade(
     # ⚠ Written conditionally: fixtures and pre-migration databases have no such column, and a
     # view that throws is worse than one that stores less.
     _cols = {r[1] for r in conn.execute("PRAGMA table_info(trades)")}
-    _extra = ", entry_source" if "entry_source" in _cols else ""
-    _ph = ",?" if _extra else ""
-    _vals = (entry_source,) if _extra else ()
+    _extra, _ph, _vals = "", "", ()
+    for _name, _val in (("entry_source", entry_source), ("exit_source", exit_source)):
+        if _name in _cols:
+            _extra += ", " + _name
+            _ph += ",?"
+            _vals += (_val,)
     cur = conn.execute(
         "INSERT OR IGNORE INTO trades "
         "(symbol, side, qty, entry_price, exit_price, entry_exec_id, exit_exec_id, "

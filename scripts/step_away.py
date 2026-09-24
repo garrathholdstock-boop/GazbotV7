@@ -116,7 +116,12 @@ def fire(reason: str, pnl: float, st: dict) -> None:
     stamp = dt.datetime.now(dt.UTC).isoformat()
     try:
         with open(CLAIM, "w") as fh:
-            fh.write(stamp)                  # a BARE stamp means ALL — see claim_requested()
+            # ★2026-09-24 STAMP THE SOURCE. A bare stamp still means ALL — the rider's parser falls
+            # through to "all" for any spec it does not recognise — but this lets the booked trade
+            # record that the GUARD closed it, not his hand. Without it the first live take-profit
+            # (+$401.50) booked as MANUAL_CLAIM and would have counted as an operator decision in
+            # every future study of how he exits.
+            fh.write(f"{stamp}|src=step_away:{reason.replace(' ', '_')}")
     except Exception as e:
         log(f"⚠ COULD NOT WRITE THE CLAIM: {type(e).__name__}: {e} — POSITION STILL OPEN")
         return

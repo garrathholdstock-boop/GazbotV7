@@ -85,3 +85,38 @@ def test_the_rider_sources_it_from_state_not_from_a_guess():
     assert src.count("manual_targets_pt=") == 1, (
         "manual_targets_pt must be written by exactly ONE place (do_manual_entry) or it stops "
         "being proof of an operator press")
+
+
+def test_exit_source_exists_and_round_trips(tmp_path):
+    """★★2026-09-24 WHO CLOSED IT. The step-away guard flattens by writing the SAME claim file his
+    own button writes, so its exits booked as `MANUAL_CLAIM` — indistinguishable from his hand. The
+    first live take-profit (+$401.50) would have counted as an operator decision in every future
+    study of how he exits. That is exactly the mistake `entry_source` exists to prevent on the
+    other side of the trade."""
+    c = _db(tmp_path)
+    assert "exit_source" in {r[1] for r in c.execute("PRAGMA table_info(trades)")}
+    for i, src in enumerate(("operator", "step_away:take_profit")):
+        store.record_trade(c, symbol="MNQ", side="SHORT", qty=1, entry_price=100.0 + i,
+                           exit_price=99.0, opened_at=f"2026-09-24T0{i}:00:00",
+                           closed_at=f"2026-09-24T0{i}:10:00", pnl_usd=1.0, fees_usd=0.1,
+                           exit_reason="MANUAL_CLAIM", gate="day_rider", exit_source=src)
+    got = dict(c.execute("select exit_source, count(*) from trades group by 1").fetchall())
+    assert got == {"operator": 1, "step_away:take_profit": 1}
+
+
+def test_only_a_CLAIM_can_carry_an_exit_source():
+    """⚠ A ladder rung, the trail and the 20:40 flat CLOSE THEMSELVES. Calling any of them
+    'operator' would assert a decision nobody made — the same error as inferring a NULL
+    entry_source. Today's +$100 rung (TARGET_100) fired in the same second as the guard's claim and
+    must stay NULL."""
+    src = open("/home/alphabot/gazbot7/src/gazbot7/day_rider.py").read()
+    assert 'exit_source=((_LAST_CLAIM_SRC or "operator") if reason == "MANUAL_CLAIM" else None)' in src
+
+
+def test_the_guard_stamps_its_own_claims():
+    """★ And it does so WITHOUT changing the claim parser: an unrecognised spec already falls
+    through to 'all', so `src=` rides alongside `lot=` for free."""
+    away = open("/home/alphabot/gazbot7/scripts/step_away.py").read()
+    assert 'f"{stamp}|src=step_away:{reason.replace(\' \', \'_\')}"' in away
+    rider = open("/home/alphabot/gazbot7/src/gazbot7/day_rider.py").read()
+    assert '_LAST_CLAIM_SRC' in rider and 'startswith("src=")' in rider

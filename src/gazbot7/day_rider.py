@@ -524,6 +524,10 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float |
             # entry-source field, journald reaches back only 5 days, and the exit ladders are
             # identical (manual defaults to TARGET_PT), so no exit_reason discriminates either.
             entry_source="manual" if out.get("manual_targets_pt") else "auto",
+            # ⚠ Only a CLAIM can carry a source. A ladder rung, the trail or the 20:40 flat closed
+            # itself, and calling any of those "operator" would be a claim about a decision nobody
+            # made — the same error as inferring a NULL entry_source.
+            exit_source=((_LAST_CLAIM_SRC or "operator") if reason == "MANUAL_CLAIM" else None),
             # The exit fill id would make this idempotent; the rider places a plain market
             # order and does not capture one, so a same-second double-book is possible in
             # principle. One entry per session and a `closed` latch make it not possible in
@@ -755,6 +759,12 @@ CLAIM_FILE = "/home/alphabot/gazbot7/data/day_rider_claim.txt"
 CLAIM_MAX_AGE_S = 15 * 60
 
 
+# ★2026-09-24 WHERE THE LAST CLAIM CAME FROM. Set by claim_requested(), read by book_trade().
+# ⚠ Module state rather than a changed return type: claim_requested() has several call sites and
+# widening its contract to carry this would be a far larger blast radius than the thing it records.
+_LAST_CLAIM_SRC: str | None = None
+
+
 def claim_requested():
     """Which Claim button did the operator press? Returns None, "all", or a 0-based lot index.
 
@@ -792,6 +802,14 @@ def claim_requested():
         clear_claim()
         return None
     spec = spec.strip()
+    # ★ `src=` rides alongside `lot=`; an unknown spec already falls through to "all" below, so the
+    # marker needs NO change to the parsing — which is why it is written this way rather than as a
+    # new field the parser must understand.
+    global _LAST_CLAIM_SRC
+    _LAST_CLAIM_SRC = None
+    for _part in spec.split(","):
+        if _part.strip().startswith("src="):
+            _LAST_CLAIM_SRC = _part.strip()[4:][:40] or None
     if spec.startswith("lot="):
         try:
             k = int(spec[4:])
