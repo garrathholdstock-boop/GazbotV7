@@ -969,14 +969,29 @@
       cvEl.className = cv.cvd == null ? "" : (cv.cvd > 0 ? "pos" : (cv.cvd < 0 ? "neg" : ""));
     }
     if (dvEl) {
-      /* ⚠ AMBER, NEVER GREEN OR RED. A divergence is not a side — colouring it like a direction
-         would be the page asserting an edge that has not been measured and probably is not there. */
-      dvEl.textContent = cv.divergence ? cv.divergence.toUpperCase()
-        : (cv.px_pos == null ? "—" : "in line");
+      /* ★★★2026-09-24 SHOW THE TWO NUMBERS, NOT THE VERDICT. Operator: "how do u know from what
+         youve given me about price being at the top of the session or not? and aggression has
+         drained away. how do i see that" — and the answer was that he COULD NOT. `px_pos` and
+         `cvd_pos` existed only in a `title` tooltip, and he is on the iPhone ~96% of the time,
+         where there is no hover. I had built a flag whose INPUTS were invisible and then explained
+         his open position using them.
+         ⚠⚠ A DERIVED VERDICT WHOSE INPUTS CANNOT BE SEEN IS UNAUDITABLE. "in line" told him
+         nothing he could check, disagree with, or learn to read. The pair "81·43" tells him where
+         price sits in the session range and where CVD sits in its own — which IS the divergence,
+         and lets him watch it approach rather than only hear it arrive.
+         ⚠ AMBER, NEVER GREEN OR RED. A divergence is not a side; colouring it like a direction
+         would be the page asserting an edge nobody has measured. */
+      const pp = cv.px_pos, cp = cv.cvd_pos;
+      dvEl.textContent = (pp == null || cp == null) ? "—"
+        : Math.round(pp * 100) + "·" + Math.round(cp * 100);
       dvEl.className = cv.divergence ? "warn" : "";
-      dvEl.title = cv.px_pos == null ? ""
-        : "price sits at " + Math.round(cv.px_pos * 100) + "% of its session range, CVD at "
-          + Math.round(cv.cvd_pos * 100) + "% of its own";
+      dvEl.title = pp == null ? ""
+        : "PRICE is at " + Math.round(pp * 100) + "% of today's range, CVD at "
+          + Math.round(cp * 100) + "% of its own."
+          + (cv.divergence ? "  ⚠ " + cv.divergence.toUpperCase()
+             + " — they disagree, which does NOT say which one wins."
+             : "  They are in line.")
+          + "  Fires bearish above 85·50, bullish below 15·50.";
     }
 
     /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are

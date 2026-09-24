@@ -102,3 +102,37 @@ def test_the_tooltip_says_the_correlation_is_not_the_point():
     html = open(HTML, encoding="utf-8").read()
     seg = html.split('id="ctx-cvd"', 1)[0][-900:]
     assert "TAUTOLOGICAL" in seg.upper()
+
+
+# ── THE INPUTS MUST BE VISIBLE, NOT ONLY THE VERDICT (2026-09-24) ────────────────────────────────
+# ★★★ Operator: "how do u know from what youve given me about price being at the top of the session
+# or not? and aggression has drained away. how do i see that" — and the answer was that he COULD
+# NOT. px_pos/cvd_pos lived only in a `title` tooltip, and he is on the iPhone ~96% of the time
+# where there is no hover. A flag had been built whose INPUTS were invisible, and his open position
+# was then explained to him using them.
+
+def test_the_two_positions_are_rendered_not_only_in_a_tooltip():
+    """⚠⚠ A DERIVED VERDICT WHOSE INPUTS CANNOT BE SEEN IS UNAUDITABLE. "in line" is something he
+    can neither check nor disagree with nor learn to read. The pair lets him watch a divergence
+    APPROACH instead of only hearing it arrive.
+    ⚠ There is NO HOVER ON A PHONE — a `title` is not a display, it is a desktop footnote."""
+    js = open(JS, encoding="utf-8").read()
+    blk = js.split("if (dvEl)", 1)[1].split("\n    }", 1)[0]
+    body = blk.split("dvEl.title", 1)[0]          # what is actually WRITTEN INTO THE CELL
+    assert "px_pos" in blk and "cvd_pos" in blk
+    assert "textContent" in body and "Math.round(pp * 100)" in body and "Math.round(cp * 100)" in body
+
+
+def test_the_label_says_which_number_is_which():
+    """⚠ A bare '81·43' is two unexplained numbers. The label has to carry the order."""
+    html = open(HTML, encoding="utf-8").read()
+    seg = html.split('id="ctx-div"', 1)[0][-200:]
+    assert "PX" in seg and "CVD" in seg
+
+
+def test_the_verdict_word_is_not_what_gets_displayed():
+    """★ The COLOUR carries the verdict; the CELL carries the evidence. Showing the word instead
+    would throw away the numbers at exactly the moment they matter most."""
+    js = open(JS, encoding="utf-8").read()
+    body = js.split("if (dvEl)", 1)[1].split("dvEl.title", 1)[0]
+    assert "toUpperCase()" not in body, "the verdict word is back in the cell, hiding the inputs"
