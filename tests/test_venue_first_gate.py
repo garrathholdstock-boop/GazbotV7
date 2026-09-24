@@ -17,17 +17,26 @@ sys.path.insert(0, "/home/alphabot/gazbot7/src")
 
 from gazbot7 import day_rider, deskrecon  # noqa: E402
 
-NOW = datetime.now(UTC)
+# ⚠⚠2026-09-24 NOT A MODULE CONSTANT ANY MORE. `NOW = datetime.now(UTC)` was evaluated at IMPORT
+# time, while the freshness gate it feeds reads the REAL clock at RUN time. Alone the two are
+# milliseconds apart and everything passes; inside the full suite this module is imported early and
+# the test runs MINUTES later, so the "5 seconds old" heartbeat it writes is already stale and the
+# gate correctly refuses — a test failing for a reason that has nothing to do with its invariant.
+# This is [[tests-must-not-read-the-wall-clock]] wearing a different hat: the first version failed
+# only between 00-07 UTC, this one fails only when the suite is slow.
+def _now():
+    return datetime.now(UTC)
 SHORT2 = [{"gate": "abs_veto_short_A", "side": "SHORT", "qty": 1.0},
           {"gate": "abs_veto_short_B", "side": "SHORT", "qty": 1.0}]
 
 
 def _scene(tmp_path, tourn_slots, rider):
+    now = _now()                      # ★ at CALL time, not import time
     st = tmp_path / "status.json"
-    st.write_text(json.dumps({"ts": (NOW - timedelta(seconds=1)).isoformat(),
+    st.write_text(json.dumps({"ts": (now - timedelta(seconds=1)).isoformat(),
                               "protection": {"slots": tourn_slots}}))
     drs = tmp_path / "day_rider_state.json"
-    rider = dict(rider, heartbeat=(NOW - timedelta(seconds=5)).isoformat())
+    rider = dict(rider, heartbeat=(now - timedelta(seconds=5)).isoformat())
     drs.write_text(json.dumps(rider))
     deskrecon.STATUS, deskrecon.DR_STATE = str(st), str(drs)
     deskrecon.KILL = str(tmp_path / "no_kill.json")

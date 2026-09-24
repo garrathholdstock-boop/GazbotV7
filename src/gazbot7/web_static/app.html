@@ -79,11 +79,23 @@
        ⚠ PASS stays, small, because it is build-queue item 1 and the blocker for ever automating his
        reads — six days live and still zero presses. If it does not live where he trades, it dies. -->
   <section class="panel" id="p-trade" data-tab="trade">
-    <div class="tstrip">
-      <span class="tm"><i>ATR</i><b id="ctx-atr">—</b></span>
-      <span class="tm"><i>EFFICIENCY</i><b id="ctx-er">—</b></span>
-      <span class="tm"><i>RVOL</i><b id="ctx-rvol">—</b></span>
-      <span class="tm"><i>POSITION AGE</i><b id="ctx-posage">—</b></span>
+    <!-- ★★2026-09-24 ORDER, top to bottom: HOLDING first. Operator: "i watch that live p&l like a
+         hawk... at the moment i need to scroll down all the time." Then the actions, then the
+         chart, and everything he only checks occasionally at the bottom. -->
+    <div class="holdcard" id="hold-body"><div class="empty">flat</div>
+
+    <!-- ⚠ Circular targets are easy to hit by accident, so every one of these confirms. BUY/SELL
+         also take the PIN (they place an order); FLATTEN does NOT — it only ever reduces risk, and
+         friction on a kill switch costs money. -->
+    <div class="actions">
+      <button class="orb buy"  id="buy-long"><span>BUY</span><em id="orb-qty">4</em></button>
+      <button class="orb sell" id="buy-short"><span>SELL</span><em>4</em></button>
+      <button class="orb flat" id="flat-all"><span>FLATTEN</span><em id="orb-pos">flat</em></button>
+      <button class="orb away" id="sa-btn"><span id="sa-lab">STEP AWAY</span><em id="sa-state">off</em></button>
+    </div>
+    <div class="awayset">
+      <label>stop −$<input id="sa-loss" type="number" min="50" max="5000" step="50" value="200"></label>
+      <label>take +$<input id="sa-tp" type="number" min="50" max="20000" step="50" value="300"></label>
     </div>
 
     <div class="hero-body">
@@ -103,21 +115,12 @@
       </div>
     </div>
 
-    <!-- ⚠ Circular targets are easy to hit by accident, so every one of these confirms. BUY/SELL
-         also take the PIN (they place an order); FLATTEN does NOT — it only ever reduces risk, and
-         friction on a kill switch costs money. -->
-    <div class="actions">
-      <button class="orb buy"  id="buy-long"><span>BUY</span><em id="orb-qty">4</em></button>
-      <button class="orb sell" id="buy-short"><span>SELL</span><em>4</em></button>
-      <button class="orb flat" id="flat-all"><span>FLATTEN</span><em id="orb-pos">flat</em></button>
-      <button class="orb away" id="sa-btn"><span id="sa-lab">STEP AWAY</span><em id="sa-state">off</em></button>
+    <div class="tstrip">
+      <span class="tm"><i>ATR</i><b id="ctx-atr">—</b></span>
+      <span class="tm"><i>EFFICIENCY</i><b id="ctx-er">—</b></span>
+      <span class="tm"><i>RVOL</i><b id="ctx-rvol">—</b></span>
+      <span class="tm"><i>POSITION AGE</i><b id="ctx-posage">—</b></span>
     </div>
-    <div class="awayset">
-      <label>stop −$<input id="sa-loss" type="number" min="50" max="5000" step="50" value="200"></label>
-      <label>take +$<input id="sa-tp" type="number" min="50" max="20000" step="50" value="300"></label>
-    </div>
-
-    <div class="holdcard" id="hold-body"><div class="empty">flat</div></div>
     <div class="passrow">
       <input id="pass-note" type="text" maxlength="120" placeholder="looked but didn't trade — why not?">
       <button id="pass-btn" title="Records what the tape looks like right now and that you decided AGAINST trading it. Places no order.">PASS</button>

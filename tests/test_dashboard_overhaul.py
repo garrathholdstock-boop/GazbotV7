@@ -350,3 +350,28 @@ def test_buy_and_sell_are_DISABLED_while_holding():
     assert "b.disabled = !!open" in js, "BUY/SELL are pressable while a position is open"
     i = js.index("b.disabled = !!open")
     assert "Already in a position" in js[i:i + 300], "the disabled button does not say why"
+
+
+def test_the_holding_is_FIRST_on_the_trade_panel():
+    """★★2026-09-24 "i watch that live p&l like a hawk. so at the moment i need to scroll down all
+    the time." The live P&L is the number he stares at; it must not be below the fold. Order is
+    holding → actions → chart → the things he only checks occasionally."""
+    import re as _re
+    h = open(HTML).read()
+    i = h.index('id="p-trade"')
+    blk = h[i:h.index("</section>", i)]
+    order = [m.group(1) for m in _re.finditer(
+        r'<div class="(holdcard|actions|hero-body|tstrip|passrow)"', blk)]
+    assert order[0] == "holdcard", f"the holding is not first — order is {order}"
+    assert order.index("actions") < order.index("hero-body"), "the buttons are not above the chart"
+    assert order.index("hero-body") < order.index("tstrip"), "the metrics are not below the chart"
+
+
+def test_everything_except_the_chart_shrank():
+    """★ "you can shrink everything except the chart 30% and reduce the black gaps." The chart is
+    the one thing that must not lose space — and it GAINS what the rest gave up."""
+    css = open(CSS).read()
+    assert "max-width:66px" in css, "the action buttons did not shrink"
+    assert "gap:6px;padding:6px" in css, "the desktop grid gaps were not tightened"
+    # the chart floor must be LARGER than the buttons it sits beneath, on both layouts
+    assert "min-height:260px" in css and "min-height:250px" in css, "the chart lost its floor"
