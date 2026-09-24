@@ -1,5 +1,5 @@
 [Unit]
-Description=GAZBOT V7 — GATEWAY WATCH (measure the CLOSE-WAIT leak; restart on the climb, flat only)
+Description=GAZBOT V7 — GATEWAY WATCH (CLOSE-WAIT leak + BLIND-AND-HOLDING recovery; alarms on every decline)
 # ★★★ THE CONDITION: IB Gateway leaks sockets in CLOSE-WAIT until the 50-slot accept queue fills.
 # Connections ALREADY OPEN keep working while every NEW one hangs — so every health light stays
 # green while the rider, the watchdog and the reconciler all go blind. 25 episodes, TEN of the last
@@ -10,6 +10,16 @@ Description=GAZBOT V7 — GATEWAY WATCH (measure the CLOSE-WAIT leak; restart on
 After=network-online.target docker.service
 
 [Service]
+# ★★★2026-09-24 REBUILT AFTER THE 18:05 WEDGE COST $364. It sampled every 60s, correctly refused to
+# restart while he held a position, and wrote that refusal TO A LOG FILE NOBODY READS — so he found
+# out by pressing FLATTEN and watching nothing happen for 2m08s. Operator: "us not knowing is
+# unacceptable." Now: 15s sampling, the DECLINE pages, and a NARROW exception restarts while
+# holding ONLY when the desk is already blind (no order path exists to protect), capped at 3.
+Environment=GW_POLL_S=15
+Environment=GW_BLIND_S=45
+Environment=GW_REQ_S=45
+Environment=GW_BLIND_COOLDOWN_S=600
+Environment=GW_BLIND_MAX=3
 Type=simple
 User=root
 Environment=HOME=/root
