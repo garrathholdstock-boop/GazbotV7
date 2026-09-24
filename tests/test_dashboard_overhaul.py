@@ -487,3 +487,25 @@ def test_the_trade_panel_order_is_final():
     order = [m.group(1) for m in _re.finditer(
         r'<div class="(holdcard|actions|chart-host|tfbar|tstrip|passrow)"', blk)]
     assert order == ["holdcard", "actions", "chart-host", "tfbar", "tstrip", "passrow"], order
+
+
+def test_the_price_axis_fits_inside_the_svg():
+    """★2026-09-24 "the mnq pricing on the vertical axis in the chart go outside the screen."
+
+    An MNQ price at one decimal ("30377.0") is 7 monospace characters; at 12px that is ~50px,
+    anchored END at plotL-6 = 50 — so it began at x ≈ -0.4, half a character outside the SVG.
+    Whole points (5 chars) at 9.5px is ~29px inside a 40px margin.
+    ⚠ Losing the decimal costs nothing: these are GRIDLINE labels, not quotes. The live price is on
+    the holding card above, to the tick.
+    This asserts the ARITHMETIC, not the pixel values, so the guard survives a restyle."""
+    import re as _re
+    js = open(JS).read()
+    ml = int(_re.search(r"const ML = (\d+), MT", js).group(1))
+    m = _re.search(r'x="\$\{plotL - (\d+)\}"[^`]*?font-size="([\d.]+)"[^`]*?nf\(p, (\d)\)', js)
+    assert m, "the price-axis label could not be found to measure"
+    pad, fs, dp = int(m.group(1)), float(m.group(2)), int(m.group(3))
+    chars = 5 + (dp + 1 if dp else 0)          # "30377" plus ".x" if a decimal is kept
+    width = chars * fs * 0.62                  # monospace advance is ~0.6em
+    assert width <= ml - pad, (
+        f"a {chars}-char label at {fs}px is ~{width:.0f}px but only {ml - pad}px is available — "
+        f"it will run off the left edge")

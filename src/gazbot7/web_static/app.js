@@ -302,7 +302,13 @@
     const H = Math.max(160, Math.round(host.clientHeight));
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2).toFixed(0)}" y="${(H / 2).toFixed(0)}" fill="#5c6b78" font-size="15" text-anchor="middle">no bars yet</text>`; return; }
-    const ML = 56, MT = 10, MB = 20;              // margins: left = price axis, bottom = time axis
+    /* ★2026-09-24 THE PRICE AXIS RAN OFF THE LEFT EDGE ON THE PHONE. An MNQ price at one decimal
+       ("30377.0") is 7 monospace characters; at 12px that is ~50px, anchored END at plotL-6 = 50,
+       so it began at x ≈ -0.4 — half a character outside the SVG. Whole points (5 chars) at 9.5px
+       is ~29px, which sits comfortably inside a 40px margin AND hands 16px back to the chart.
+       ⚠ Losing the decimal costs nothing: these are GRIDLINE labels, not quotes — the live price
+       is on the holding card above, to the tick. */
+    const ML = 40, MT = 10, MB = 18;              // margins: left = price axis, bottom = time axis
     // bar.ts is an ISO string ("2026-07-13T16:40:00+00:00") — parse to epoch SECONDS so the time axis
     // is numeric AND aligns with the fills (which use Date.parse(...)/1000). Without this every X was NaN.
     const T = (b) => Date.parse(b.ts) / 1000;
@@ -320,7 +326,7 @@
     // scale reads as volatility context, not just raw price.
     const refP = (a && a.last) || bars[bars.length - 1].close;
     const atrPts = (a && typeof a.atr_pct === "number" && a.atr_pct > 0) ? (a.atr_pct / 100) * refP : null;
-    const MR = atrPts ? 50 : 12;                  // widen the right margin to hold the ATR-distance axis
+    const MR = atrPts ? 34 : 10;                  // widen the right margin to hold the ATR-distance axis
     const plotL = ML, plotR = W - MR, plotT = MT, plotB = H - MB;
     // y-scale to the PRICE BARS with padding so the line is CENTRED vertically — never crushed by a
     // far-away stop or an out-of-window fill (a 0.5% stop would squash the real action into a sliver).
@@ -340,21 +346,21 @@
     for (let i = 0; i <= 4; i++) {
       const p = lo + rng * i / 4, y = Y(p);
       g += `<line x1="${plotL}" y1="${y.toFixed(1)}" x2="${plotR}" y2="${y.toFixed(1)}" stroke="#212b35" stroke-width="1" opacity="0.7"/>`;
-      g += `<text x="${plotL - 6}" y="${(y + 4).toFixed(1)}" fill="#8a99a6" font-size="12" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="end">${nf(p, 1)}</text>`;
+      g += `<text x="${plotL - 5}" y="${(y + 3.5).toFixed(1)}" fill="#8a99a6" font-size="9.5" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="end">${nf(p, 0)}</text>`;
       if (atrPts) {
         const dd = (p - refP) / atrPts;
         const lbl = (dd >= 0 ? "+" : "−") + nf(Math.abs(dd), 1);
-        g += `<text x="${(plotR + 6).toFixed(1)}" y="${(y + 4).toFixed(1)}" fill="#6b8f8f" font-size="11" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">${lbl}</text>`;
+        g += `<text x="${(plotR + 4).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" fill="#6b8f8f" font-size="9" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">${lbl}</text>`;
       }
     }
     // label the right axis so the +/- numbers read as ATRs (bottom-right, on the time-axis line)
-    if (atrPts) g += `<text x="${(plotR + 6).toFixed(1)}" y="${(H - 6).toFixed(1)}" fill="#6b8f8f" font-size="9" letter-spacing="0.5" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">ATR</text>`;
+    if (atrPts) g += `<text x="${(plotR + 4).toFixed(1)}" y="${(H - 5).toFixed(1)}" fill="#6b8f8f" font-size="8" letter-spacing="0.4" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">ATR</text>`;
     // X axis — 4 time ticks across the window (first left-anchored, last right-anchored so neither clips)
     for (let i = 0; i <= 3; i++) {
       const t = t0 + tspan * i / 3, x = X(t);
       const anc = i === 0 ? "start" : (i === 3 ? "end" : "middle");
       g += `<line x1="${x.toFixed(1)}" y1="${plotT}" x2="${x.toFixed(1)}" y2="${plotB}" stroke="#212b35" stroke-width="1" opacity="0.3"/>`;
-      g += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="#8a99a6" font-size="12" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="${anc}">${hm(t)}</text>`;
+      g += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="#8a99a6" font-size="9.5" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="${anc}">${hm(t)}</text>`;
     }
     // vwap reference (a real price level) — only if it falls in the price range
     if (a && inRange(a.vwap)) g += `<line x1="${plotL}" y1="${Y(a.vwap).toFixed(1)}" x2="${plotR}" y2="${Y(a.vwap).toFixed(1)}" stroke="#37c9c9" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>`;
