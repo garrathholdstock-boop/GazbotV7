@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V7 — gap-episode logger cadence
+
+[Timer]
+# Every minute at :37, clear of the rider's *:*:05, the surge logger's :17 and the router's writes.
+# ⚠ ANY HOUR the venue is open, not US-only: his presses span 04:00-23:00Z and a rule that only
+# ever saw the US session would be judged on a third of the tape he actually trades.
+OnCalendar=*:*:37
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

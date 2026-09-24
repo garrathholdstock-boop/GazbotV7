@@ -20,6 +20,13 @@ data/*
 # ad-hoc snapshots surviving. The trailing `*` deliberately covers those .pre-* snapshots too, so no
 # future one is lost either.
 !data/exit_overrides.json*
+# ★★★2026-09-24 EXCEPTION: EVERY PRE-REGISTRATION. A pre-registration that is not version
+# controlled IS NOT A PRE-REGISTRATION — its entire value is that nobody can quietly move a
+# threshold after seeing the data, and an untracked file offers exactly that. `prereg_surge.json`
+# had to be force-added earlier today and `prereg_gap.json` was refused by this file minutes after
+# being written; the thinning and breadth ones are the same class. Git is the only thing that makes
+# "frozen" mean anything.
+!data/prereg_*.json
 *.db
 *.db-wal
 *.db-shm
@@ -49,3 +56,4 @@ scratch/
 *.pre-*
 *.rev2-orig
 *.pre-charts
+data/.notify_env

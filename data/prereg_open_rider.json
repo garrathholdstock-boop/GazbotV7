@@ -1,0 +1,250 @@
+{
+  "_what_this_is": "BUILD #7 \u2014 a PRE-REGISTERED day filter for the Open Rider. Written down BEFORE the evidence, fixed for 60 forward sessions, and deliberately not tunable. The point is not the threshold; the point is that it was chosen in advance and cannot be moved to fit the result. Part 2 \u00a75 killed the searched version ('ODR causal day-classifier: REFUTED as searched') precisely because a filter found by searching a small sample is a story about that sample.",
+  "registered_on": "2026-08-16",
+  "registered_by": "operator via the 2026-08-14 weekly playbook, BUILD #7",
+  "feature": "ATR14_at_1300Z",
+  "rule": "TRADE the Open Rider session only when ATR-14 on MNQ 1-minute bars, measured at 13:00 UTC, is >= 9.5 points.",
+  "threshold_pt": 9.5,
+  "measured_at_utc": "13:00",
+  "instrument": "MNQ",
+  "basis": "ATR-14 over 1-minute bars, folded from the 5s capture tape",
+  "sessions_required": 60,
+  "sessions_elapsed": 28,
+  "expires_after_session": 60,
+  "rules_of_engagement": [
+    "DO NOT tune the threshold. Not once. A moved threshold restarts the count at zero.",
+    "DO NOT add a second feature. ONE feature is the entire design \u2014 the refuted version was a search over many.",
+    "DO NOT read the interim result as a verdict. n<60 is not evidence here, by construction.",
+    "DO NOT drop it early because it looks bad. An unfavourable pre-registered result is the most valuable outcome this can produce, and the only one the searched version could never give.",
+    "Record every session's ATR14@1300Z and the rider's outcome whether the filter passed or not \u2014 the sessions it EXCLUDES are half the test."
+  ],
+  "why_this_shape": "The searched day-classifier was REFUTED: given a small sample and many candidate features, something always separates the good days from the bad, and it does not survive forward. Pre-registration is the only instrument that answers the question honestly \u2014 it fixes the hypothesis before the data, so the forward record is a test rather than a description.",
+  "status": "ACTIVE \u2014 accumulating. First eligible session: the reopen after 2026-08-16.",
+  "verdict": null,
+  "sessions": [
+    {
+      "date": "2026-08-17",
+      "atr14_1300z": 9.64,
+      "passes_filter": true,
+      "rider_trades": 1,
+      "rider_pnl": 456.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-18",
+      "atr14_1300z": 7.32,
+      "passes_filter": false,
+      "rider_trades": 1,
+      "rider_pnl": 188.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-19",
+      "atr14_1300z": 19.62,
+      "passes_filter": true,
+      "rider_trades": 1,
+      "rider_pnl": 544.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-20",
+      "atr14_1300z": 10.36,
+      "passes_filter": true,
+      "rider_trades": 3,
+      "rider_pnl": -1288.5,
+      "counted": true
+    },
+    {
+      "date": "2026-08-21",
+      "atr14_1300z": 6.04,
+      "passes_filter": false,
+      "rider_trades": 1,
+      "rider_pnl": -69.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-24",
+      "atr14_1300z": 8.32,
+      "passes_filter": false,
+      "rider_trades": 0,
+      "rider_pnl": 0.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-25",
+      "atr14_1300z": 8.12,
+      "passes_filter": false,
+      "rider_trades": 2,
+      "rider_pnl": -243.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-26",
+      "atr14_1300z": 14.66,
+      "passes_filter": true,
+      "rider_trades": 4,
+      "rider_pnl": 19.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-27",
+      "atr14_1300z": 9.84,
+      "passes_filter": true,
+      "rider_trades": 12,
+      "rider_pnl": 16.5,
+      "counted": true
+    },
+    {
+      "date": "2026-08-28",
+      "atr14_1300z": 6.59,
+      "passes_filter": false,
+      "rider_trades": 7,
+      "rider_pnl": 780.0,
+      "counted": true
+    },
+    {
+      "date": "2026-08-31",
+      "atr14_1300z": 7.05,
+      "passes_filter": false,
+      "rider_trades": 4,
+      "rider_pnl": 548.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-01",
+      "atr14_1300z": 9.77,
+      "passes_filter": true,
+      "rider_trades": 9,
+      "rider_pnl": -381.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-02",
+      "atr14_1300z": 7.52,
+      "passes_filter": false,
+      "rider_trades": 13,
+      "rider_pnl": 1159.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-03",
+      "atr14_1300z": 12.88,
+      "passes_filter": true,
+      "rider_trades": 8,
+      "rider_pnl": -372.0,
+      "counted": true
+    },
+    {
+      "date": "2026-09-04",
+      "atr14_1300z": 15.91,
+      "passes_filter": true,
+      "rider_trades": 1,
+      "rider_pnl": -341.0,
+      "counted": true
+    },
+    {
+      "date": "2026-09-07",
+      "atr14_1300z": 6.09,
+      "passes_filter": false,
+      "rider_trades": 0,
+      "rider_pnl": 0.0,
+      "counted": true
+    },
+    {
+      "date": "2026-09-08",
+      "atr14_1300z": 9.23,
+      "passes_filter": false,
+      "rider_trades": 2,
+      "rider_pnl": -600.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-09",
+      "atr14_1300z": 7.89,
+      "passes_filter": false,
+      "rider_trades": 6,
+      "rider_pnl": 677.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-10",
+      "atr14_1300z": 15.93,
+      "passes_filter": true,
+      "rider_trades": 3,
+      "rider_pnl": -2557.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-11",
+      "atr14_1300z": 14.29,
+      "passes_filter": true,
+      "rider_trades": 7,
+      "rider_pnl": -568.99,
+      "counted": true
+    },
+    {
+      "date": "2026-09-14",
+      "atr14_1300z": 9.79,
+      "passes_filter": true,
+      "rider_trades": 9,
+      "rider_pnl": 839.49,
+      "counted": true
+    },
+    {
+      "date": "2026-09-15",
+      "atr14_1300z": 15.2,
+      "passes_filter": true,
+      "rider_trades": 12,
+      "rider_pnl": -114.0,
+      "counted": true
+    },
+    {
+      "date": "2026-09-16",
+      "atr14_1300z": 10.11,
+      "passes_filter": true,
+      "rider_trades": 10,
+      "rider_pnl": -833.0,
+      "counted": true
+    },
+    {
+      "date": "2026-09-17",
+      "atr14_1300z": 9.0,
+      "passes_filter": false,
+      "rider_trades": 12,
+      "rider_pnl": 1477.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-18",
+      "atr14_1300z": 6.84,
+      "passes_filter": false,
+      "rider_trades": 18,
+      "rider_pnl": 1546.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-21",
+      "atr14_1300z": 5.5,
+      "passes_filter": false,
+      "rider_trades": 11,
+      "rider_pnl": 1464.0,
+      "counted": true
+    },
+    {
+      "date": "2026-09-22",
+      "atr14_1300z": 5.84,
+      "passes_filter": false,
+      "rider_trades": 9,
+      "rider_pnl": -1726.5,
+      "counted": true
+    },
+    {
+      "date": "2026-09-23",
+      "atr14_1300z": 7.04,
+      "passes_filter": false,
+      "rider_trades": 21,
+      "rider_pnl": 404.5,
+      "counted": true
+    }
+  ]
+}
