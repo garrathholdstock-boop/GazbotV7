@@ -105,12 +105,30 @@ def _subprocess_send(message: str) -> bool:
     return False
 
 
+#: ★★★2026-09-24 THE ONE-GLANCE MARKER. The operator receives ~10 Telegrams a day and 85% of them
+#: are informational; the four that can actually cost him money total under one a day and were
+#: buried underneath. Operator: "a lot are old and not useful. theres going to be several that i
+#: really need so we need to make sure theyre useful so i dont ignore."
+#: A red circle on every CRITICAL alert makes the ones that demand a decision separable from the
+#: ones that are just telling him something — without reading a word.
+#: ⚠ APPLIED HERE, IN ONE PLACE, not at 46 call sites. A marker added per-caller drifts the moment
+#: someone adds the 47th, and then the absence of a mark means nothing.
+#: ⚠ `critical` already meant "bypass quiet hours", i.e. "this matters at 3am". That is exactly the
+#: set worth marking, so the flag is reused rather than a second one invented to disagree with it.
+CRITICAL_MARK = "🔴 "
+
+
 def notify(message: str, *, critical: bool = False, now: datetime | None = None, send=None) -> bool:
     """Send an operator alert. Routine alerts are suppressed during quiet hours;
-    critical (safety) alerts always send. Returns True if sent. Fail-quiet."""
+    critical (safety) alerts always send and carry CRITICAL_MARK. Returns True if sent.
+    Fail-quiet."""
     now = now or datetime.now(UTC)
     if not critical and in_quiet_hours(now):
         return False
+    # ⚠ Never double-mark: a caller that already prefixed it (or a retry of the same text) must not
+    # accumulate circles.
+    if critical and not message.startswith(CRITICAL_MARK):
+        message = CRITICAL_MARK + message
     return (send or _subprocess_send)(message)
 
 

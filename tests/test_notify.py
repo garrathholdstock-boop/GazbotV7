@@ -28,7 +28,12 @@ def test_routine_suppressed_in_quiet_hours():
 def test_critical_always_sends():
     sent = []
     ok = notify.notify("NAKED", critical=True, now=_at(1), send=lambda m: (sent.append(m), True)[1])
-    assert ok is True and sent == ["NAKED"]  # safety overrides quiet hours
+    # ★ THE INVARIANT IS "safety overrides quiet hours" — the exact text was incidental, and pinning
+    # it made this fail when the 🔴 marker was added on 2026-09-24 (an intended change). Assert the
+    # behaviour and the content, not the byte-for-byte string.
+    assert ok is True, "a critical alert was suppressed at 03:00 Paris"
+    assert len(sent) == 1 and "NAKED" in sent[0]
+    assert sent[0].startswith(notify.CRITICAL_MARK), "a critical alert lost its one-glance marker"
 
 
 def test_routine_sends_when_awake():
