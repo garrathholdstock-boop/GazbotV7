@@ -236,6 +236,64 @@ substitute for his attention, not an edge — do not leave it armed as a policy.
 
 ---
 
+## 1f. THE ALERT CHANNEL — what he actually receives, and what it is allowed to claim (2026-09-24)
+
+**~10 Telegrams/day plus the rider family. 85% informational; the four that can cost money total
+under one a day.** Audited and cut 37% on 2026-09-24 (`tunnel-watch` disabled, not deleted).
+
+### THE RIDER FAMILY IS THE ONE HE VALUES — *"they are awesome"*
+`gazbot7-rider-peak-watch`, 1 Hz off the tape. Measured over the journal's 3 days:
+
+| alert | trigger | /day | mark |
+|---|---|---|---|
+| **ARM** | open P&L crosses **+$200** | 6.7 | 🔴 |
+| **RUNG** | every **+$50** new high | 28 | — |
+| **GIVE-BACK** | **$75** off the peak | 18 | — |
+| **STALL** | 3 min with no new high | 11 | — |
+| **BLIND / BLIND-AND-HOLDING / WATCHDOG FLATTENED** | faults | rare | 🔴 |
+
+★ **THE RUNG LADDER IS ALSO A SURVIVAL CURVE.** Of positions that cross $200: **95%** reach $250,
+**79%** reach $350, **58%** reach $400, **26%** reach $500, **5%** reach $700. So the step-away's
+$400 take-profit sits near a **coin flip**, not a rarity — it is a reasonable level on evidence he
+did not have when he named it.
+
+### ⚠⚠ `critical` AND `mark` ARE SEPARATE FLAGS AND MUST STAY SEPARATE
+`critical=True` = bypasses quiet hours · `mark` = wears the 🔴, defaulting to `critical`.
+They were one flag for a few hours on 2026-09-24 and the marker was dead by the afternoon: the
+rider family is correctly `critical=True` and is ~63 messages a day, so 98% of circles were routine.
+⚠ **DO NOT "SIMPLIFY" RUNG/GIVE-BACK/STALL TO `critical=False`.** Quiet hours start 22:00 Paris =
+**20:00Z** and the rider is not flat until **20:40Z** — that blinds the last 40 minutes of every
+position, the stretch where he is deciding whether to claim before the hard flat takes it.
+★ **THE RULE:** the circle marks the START of something that needs him, never its CONTINUATION.
+
+### THE DESK CAN NOW RETRACT WHAT IT SAID
+`data/notify_sent.jsonl` records every delivered `message_id`; `scripts/notify_delete.py --list`
+shows them **LIVE or EXPIRED** against Telegram's **48-hour** bot-deletion limit, `--id` retracts
+one, `--match … --yes` retracts a set. ⚠ **IT CANNOT SEND OR EDIT, ONLY DELETE** — a desk that can
+silently rewrite its own alarm history is worse than one that leaves a wrong message standing.
+⚠ Log is mode **0666 deliberately**: `rider_peak_watch` sends as **root**, everything else as
+**alphabot**, and a 0644 file silently keeps half the ids — the 08-21 `.notify_env` shape.
+⚠ **Nothing sent before 2026-09-24 is retractable.** Those ids were never recorded.
+
+### NOT A FAULT, ALREADY CHECKED — the nightly gate-reactivation message
+*"V7 — gates auto-reactivated at Paris midnight…"* fires 22:00Z = **midnight Paris**, is
+`critical=False`, and is therefore **SUPPRESSED BY QUIET HOURS**. Verified at both the summer and
+winter offsets: `delivered=False`. There is one caller. **He is not receiving it; what he sees is
+history** from before the alarm chain moved into gazbot7 in August. Do not "fix" it again.
+
+### THE ON-PAGE ALERT — the only lever on latency
+**MEASURED 2026-09-24:** tape→detection **≤1.00s** (MD_STREAM publishes MNQ at exactly 1 Hz),
+python spawn 0.039s, Telegram API POST 0.043s → **desk-side total ≤1.1s.** The ~10s he sees is
+Telegram → Apple push → handset and **there is no lever on it.** The dashboard is already polling
+at 1 Hz, so a 🔔 toggle on the TRADE tab beeps on **the same ladder** (a test reads both sources and
+compares, so the page and the phone cannot drift apart).
+⚠⚠ **AN ADDITION, NEVER A REPLACEMENT** — tab must be open AND foregrounded, and it cannot survive
+a reload mid-position. ⚠ HTML5 `<audio>`, not WebAudio: a WebAudio tone is silenced by the iPhone
+ringer switch. ⚠ iOS has **no Vibration API**. ⚠ Three label states — `off` / `tap` / `on` — because
+saying ON while the browser has not permitted sound is an instrument reporting healthy falsely.
+
+---
+
 ## 2. GATES — 6 live, 3 long / 3 short
 
 ✅ **THE 08-20 STAND-DOWN IS LIFTED (2026-08-26) — the router holds FULL ARM AND BENCH
@@ -359,6 +417,41 @@ whole 08-06 incident. **Do not "fix" the skip; a test fails if an order path app
 
 **STANDING OPERATOR RULE: NEVER HOLD OVERNIGHT. EVER.** Rider flat at **20:40 UTC, never 21:00** —
 21:00 *is* the CME halt, so a flatten fired then has no market and no retry.
+
+## 5b. RVOL — FIXED 2026-09-24, AND THE OPERATOR FOUND IT FROM THE TAPE
+
+*"its the us open first 15 minutes and the desk is reading between .80 and .99 during the big
+thrusts. cant be right?"* It could not.
+
+`context_json` compared a **partial hour** against `full_hour_mean × fraction_elapsed` — volume
+modelled as accruing **LINEARLY** — and the 13:00Z hour is the worst hour of the day for that,
+because the cash open lands at 13:30 and back-loads it. **MEASURED, 51 sessions of our own 5s bars,
+median cumulative share of the 13:00Z hour:**
+
+| time | actual | linear assumed | a NORMAL day read |
+|---|---|---|---|
+| 13:15 | 6.2% | 26.7% | **0.23x** |
+| 13:35 | 37.0% | 60.0% | **0.62x** |
+| 13:40 | 52.5% | 68.3% | **0.77x** |
+| 13:45 | 65.6% | 76.7% | **0.86x** |
+
+★★★ Replayed over 41 sessions at 13:35Z the old formula spanned **0.14–0.91x** — it was **NOT
+CAPABLE of reporting an above-average open on any day in the sample.** It read its worst exactly
+when he most needs it.
+
+★ **THE FIX REMOVES THE ASSUMPTION RATHER THAN CORRECTING IT:** this hour's elapsed window vs **the
+same elapsed window** on the last 10 sessions (**median**, so one FOMC cannot drag the baseline), so
+the intraday shape cancels instead of being modelled. A fitted shape curve would need re-fitting per
+hour, per contract and after every roll. Replayed: median **0.98x**, spread **0.17–1.47x**. Live.
+
+### ★★ AND THE QUESTION BEHIND IT: IS VOLUME A GOOD PARTICIPATION PROXY? **YES — MEASURED.**
+On 6 sessions of tick data, **average trade size is flat across the whole day** — London **1.98**,
+open **1.88**, midday **2.13**. The open is **11.8× London by TRADE COUNT** and **11.2× by VOLUME**,
+a ratio of **1.06**. There is no whale distortion: the open is busier because there are more
+participants, and trades get slightly **smaller**. **The measurement was never the problem — the
+normalisation was.** ⚠ `ticks` retention is 5 days, so re-derive rather than quoting this forward.
+
+---
 
 ## 6. DATA
 

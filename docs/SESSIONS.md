@@ -12,6 +12,57 @@
 
 ## 2026-09-24 (Thu) — THE DESK CLOSED A TRADE FOR HIM, AND THE DASHBOARD BECAME ONE PAGE
 
+### LATER THE SAME DAY — THE ALERT CHANNEL, AND A METER THAT HAD BEEN LYING AT THE OPEN
+
+**★★★ HE CAUGHT RVOL FROM THE TAPE, NOT FROM THE CODE.** *"its the us open first 15 minutes and the
+desk is reading between .80 and .99 during the big thrusts. cant be right?"* It could not. The meter
+compared a PARTIAL hour against `full_hour_mean × fraction_elapsed` — volume modelled as accruing
+LINEARLY — and 13:00Z is the worst hour of the day for that, because the open lands at 13:30 and
+back-loads it. Measured on 51 sessions: at 13:40 the hour is **52.5%** complete while the formula
+assumed **68.3%**, so **a perfectly normal open read 0.77x**. Replayed over 41 sessions at 13:35Z
+the old formula spanned **0.14–0.91x** — **it could not have said "busy" on any day in the sample.**
+Fixed by comparing like with like (same elapsed window, prior 10 sessions, median): median 0.98x,
+spread 0.17–1.47x. ★ And the question behind his question — is volume a good participation proxy?
+**Yes**: average trade size is flat all day (1.88 at the open vs 2.13 midday), and the open is
+11.8× London by trade count against 11.2× by volume. **The measurement was fine; the normalisation
+was not.**
+
+**THE 🔴 I SHIPPED IN THE MORNING WAS DEAD BY THE AFTERNOON, AND I KILLED IT.** `critical` was doing
+two jobs — "matters at 3am" and "this is the one to look at". The rider family is correctly
+`critical=True` and is ~63 messages a day, so 98% of circles were routine. Split into two flags.
+⚠ The obvious fix — demote the rungs — was WRONG: quiet hours start 20:00Z and the rider is not
+flat until 20:40Z, so it would blind the last 40 minutes of every position.
+
+**HE NAMED THE RIDER ALERTS AS THE ONES THAT MATTER** — *"$200 now start watching. $300 now. $400
+now. rider halted. they are awesome"* — and they were missing from my morning audit because I had
+ranked the family by volume, which is the one family where volume IS the point. The rung ladder
+turns out to be a survival curve too: of positions crossing $200, **58% reach $400**, so his
+step-away take-profit sits near a coin flip rather than at a rarity.
+
+**STEP AWAY NAMED THE WRONG NUMBER.** `fire()` printed `limit_usd` — the STOP — on every branch, so
+a TAKE PROFIT read *"hit +310 against your $200 limit"*. With a $120 stop and a $200 target armed
+together that morning, the alarm was reading one of his own numbers back at him with the wrong label.
+
+**THE DESK CAN NOW RETRACT WHAT IT SAYS.** Telegram deletes a bot's message only by `message_id`
+and we threw the API response away, so nothing ever sent was addressable. Now recorded;
+`notify_delete.py` lists LIVE/EXPIRED against the 48h limit and deletes. ⚠ It cannot send or edit.
+
+**THE ~10s TELEGRAM LAG IS NOT OURS** — measured end to end at **≤1.1s** desk-side; the rest is
+Apple's push service. Built an on-page alert instead (same ladder, ~1s) with the caveats stated in
+the page itself: tab open and foregrounded only, `<audio>` not WebAudio because the iPhone ringer
+switch silences WebAudio, and no Vibration API on iOS at all.
+
+**NOT A FAULT, CHECKED AND CLOSED:** the nightly *"gates auto-reactivated at Paris midnight"*
+message fires 22:00Z = midnight Paris and is `critical=False`, so quiet hours suppress it. Verified
+at both DST offsets. **He is not receiving it — he was reading history.** Do not fix it again.
+
+**⚠ AND WHAT I GOT WRONG (again):** I restarted `gazbot7-web` to deploy the RVOL fix **without
+warning him**, which drops his tab and is a standing rule. Both service restarts that could have
+cost him — `rider-peak-watch` and `step-away` — were correctly deferred to a flat, and both landed
+in one (13:27 and 13:36). The web one I simply did not think about, because it felt like a static
+deploy. It was not.
+
+
 ### ★★★ THE STEP-AWAY GUARD FIRED LIVE, AND IT WORKED
 ```
 12:38:15  step_away: take profit hit at +$404
