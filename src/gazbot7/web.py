@@ -110,23 +110,54 @@ def context_json(cap_path, data_dir, store_path):
             "vwap": round(vwap, 2) if vwap else None,
         }
 
-        # ── RVOL: this hour's volume vs the same hour on the previous sessions ────────────────
+        # ── RVOL: this hour SO FAR vs the SAME MINUTES of that hour on previous sessions ──────
+        # ★★★2026-09-24 THE `frac` SCALING WAS WRONG AND THE OPERATOR CAUGHT IT FROM THE TAPE:
+        # "its the us open first 15 minutes and the desk is reading between .80 and .99 during the
+        # big thrusts. cant be right?" It could not, and he was right.
+        #
+        # The old line compared a PARTIAL hour against `base * frac` — the full-hour average scaled
+        # by the fraction of the hour elapsed. That assumes volume accrues LINEARLY through the
+        # hour, and the 13:00Z hour is the one hour of the day where that is most false: the cash
+        # open lands at 13:30, so the hour is violently back-loaded.
+        #
+        # MEASURED on 51 sessions of our own 5s bars, MEDIAN cumulative share of the 13:00Z hour:
+        #     13:15  actual  6.2%  · linear  26.7%  -> a NORMAL day reads 0.23x
+        #     13:35  actual 37.0%  · linear  60.0%  -> a NORMAL day reads 0.62x
+        #     13:40  actual 52.5%  · linear  68.3%  -> a NORMAL day reads 0.77x
+        #     13:45  actual 65.6%  · linear  76.7%  -> a NORMAL day reads 0.86x
+        #     13:55  actual 91.9%  · linear  93.3%  -> a NORMAL day reads 0.98x
+        # So his 0.80-0.99 through the first 15 minutes of the open was a PERFECTLY ORDINARY open,
+        # possibly a slightly busy one, reported as a quiet one. The meter could not have said
+        # "busy" at 13:40 without the day being ~30% above normal, and it read its worst exactly
+        # when he most needs it.
+        #
+        # ★ THE FIX REMOVES THE ASSUMPTION RATHER THAN CORRECTING IT. Compare this hour's elapsed
+        # window against THE SAME ELAPSED WINDOW on previous sessions — 13:00-13:42 against
+        # 13:00-13:42 — so the intraday volume shape cancels instead of being modelled. A curve
+        # fitted to the shape would need re-fitting per hour, per contract and after every roll;
+        # like-for-like needs nothing and cannot drift.
+        # ⚠ MEDIAN, not mean: one FOMC or NFP in the 10-day baseline drags a mean upward and would
+        # make every ordinary day afterwards read quiet.
         hr0 = int(now.replace(minute=0, second=0, microsecond=0).timestamp())
+        elapsed = max(1, int(now.timestamp()) - hr0)
         cur = c.execute("select sum(volume) from bars where symbol='MNQ' and timeframe='5s' "
                         "and bar_ts>=?", (hr0,)).fetchone()[0] or 0
-        hist = [x[0] for x in c.execute(
-            "select sum(volume) from bars where symbol='MNQ' and timeframe='5s' "
-            "and bar_ts >= ?-10*86400 and bar_ts < ? "
-            "and cast(strftime('%H', bar_ts, 'unixepoch') as int) = ? "
-            "group by date(bar_ts,'unixepoch')", (hr0, hr0, now.hour)).fetchall() if x[0]]
-        base = (sum(hist) / len(hist)) if hist else None
-        # ⚠ Compare a PARTIAL hour against the same fraction of the baseline, or every reading in
-        # the first minutes of an hour reads as a volume collapse.
-        frac = max(1e-6, (now.minute * 60 + now.second) / 3600.0)
-        out["rvol"] = round(cur / (base * frac), 2) if base else None
+        hist = []
+        for d in range(1, 11):
+            a = hr0 - d * 86400
+            row = c.execute("select sum(volume), count(*) from bars where symbol='MNQ' and "
+                            "timeframe='5s' and bar_ts>=? and bar_ts<?", (a, a + elapsed)).fetchone()
+            # ⚠ A weekend or holiday window is EMPTY, not quiet. Averaging a zero in would halve
+            # the baseline every Monday and report a flat tape as a volume surge.
+            if row and row[0] and row[1] >= max(1, elapsed // 5 // 2):
+                hist.append(row[0])
+        base = sorted(hist)[len(hist) // 2] if hist else None
+        out["rvol"] = round(cur / base, 2) if base else None
         out["rvol_n_days"] = len(hist)
-        out["rvol_caveat"] = ("bars carry no contract column — a window spanning a roll compares "
-                              "two different instruments")
+        out["rvol_caveat"] = ("this hour so far vs the SAME minutes of that hour on the last "
+                              "10 sessions (median) — no linear-accrual assumption. ⚠ bars carry "
+                              "no contract column, so a window spanning a roll compares two "
+                              "different instruments")
         c.close()
     except Exception as e:
         out["session_error"] = f"{type(e).__name__}: {e}"
