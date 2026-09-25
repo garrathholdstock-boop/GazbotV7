@@ -150,6 +150,43 @@ def main() -> int:
         # LOUD, never silent: a snapshot that fails must still leave a row saying it failed, or the
         # dataset quietly becomes "the presses where nothing went wrong".
         rec["context_error"] = f"{type(e).__name__}: {e}"
+
+    # ★★★2026-09-25 CAPTURE THE GAUGE HE IS ACTUALLY LOOKING AT.
+    # Operator: "if it slides powerfully to the right or left i buy or sell and it works."
+    # ⚠⚠ THAT IS A CLAIM ABOUT THE SLOPE, AND NOTHING HERE HAS EVER MEASURED THE SLOPE. Every study
+    # so far — the 80-cell grid, the gap rule — tested the LEVEL, i.e. where the marker SITS. He is
+    # describing how fast it MOVES, which is a different quantity that happens to be the one I told
+    # him to read ("read the slope, the level is just where you have been") and then never tested.
+    # ⚠⚠⚠ AND UNTIL NOW HIS PRESSES WERE RECORDED WITHOUT IT. The operator-model dataset could not
+    # see the method he was using, so no amount of collecting would ever have answered this. Adding
+    # it here means the test builds itself out of what he already does — no new judgement, no new
+    # button, nothing for him to remember.
+    # ⚠ Rolling-3h window, matching the gauge he reads — not the session, which the gauge stopped
+    # using this morning. A session-anchored capture would record a number he is not looking at.
+    try:
+        import sqlite3 as _sq
+        _c = _sq.connect(f"file:{GB}/data/capture.db?mode=ro", uri=True)
+        _t = int(dt.datetime.now(dt.UTC).timestamp())
+
+        def _cvd(a, b):
+            return _c.execute(
+                "SELECT COALESCE(SUM(CASE WHEN aggressor='buy' THEN size "
+                "WHEN aggressor='sell' THEN -size ELSE 0 END),0) FROM ticks "
+                "WHERE symbol='MNQ' AND ts_ms>=? AND ts_ms<?", (a * 1000, b * 1000)).fetchone()[0]
+
+        g = {"window_min": 180}
+        g["cvd_3h"] = _cvd(_t - 180 * 60, _t)
+        # ★ THE SLIDE, at three speeds. Which one his eye is actually reading is unknown, so record
+        #   all three and DECIDE LATER — but record them from the start, because ticks prune at 5
+        #   days and a window not captured today can never be reconstructed.
+        for _m in (1, 5, 15):
+            g[f"slope_{_m}m"] = _cvd(_t - _m * 60, _t)
+        _c.close()
+        rec["gauge"] = g
+    except Exception as e:
+        # ⚠ LOUD, never silent — same rule as the context above. A dataset that drops its failures
+        # quietly becomes "the presses where nothing went wrong".
+        rec["gauge_error"] = f"{type(e).__name__}: {e}"
     with open(LOG, "a") as fh:
         fh.write(json.dumps(rec) + "\n")
     print(json.dumps({k: v for k, v in rec.items() if k != "context"})[:400])
