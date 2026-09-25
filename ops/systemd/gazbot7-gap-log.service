@@ -4,7 +4,7 @@ Description=GAZBOT V7 — log PX/CVD GAP episodes for the pre-registered forward
 # a 55-point disagreement the SHIPPED rule IGNORES, because bearish needs px>=85 and bullish needs
 # px<=15. The widest divergence of the four he named gets no colour at all. He found the hole by
 # asking for examples; no test had.
-# ⚠ Pre-registered in data/prereg_gap.json. The threshold 35 is NOT FITTED — it is the minimum gap
+# ⚠ Pre-registered in data/prereg_gap_rolling.json. The threshold 35 is NOT FITTED — it is the minimum gap
 # the incumbent rule already implies (85/50 and 15/50 are both 35), so no number was chosen by
 # looking at data. DO NOT TUNE IT; a change restarts the count at zero.
 # ⚠ The unit of observation is an EPISODE, never a minute — a gap persists for many minutes and

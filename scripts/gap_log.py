@@ -6,7 +6,7 @@ disagreement the SHIPPED rule ignores, because bearish needs px>=85 and bullish 
 widest divergence of the four he named gets no colour at all. He found the hole by asking for
 examples; no test had.
 
-Pre-registered in data/prereg_gap.json. The threshold 35 is NOT FITTED — it is the minimum gap the
+Pre-registered in data/prereg_gap_rolling.json. The threshold 35 is NOT FITTED — it is the minimum gap the
 incumbent rule already implies (85/50 and 15/50 are both gaps of 35), so no number here was chosen
 by looking at data.
 
@@ -42,6 +42,14 @@ GAP = 35.0                                  # FROZEN — see prereg_gap.json
 # printed NO forward numbers, precisely so a fix like this could not be a fit dressed as a repair.
 # Both floors come from mechanism, not from data: an hour because a range needs time to form, and
 # 20 points because MNQ's ATR runs ~10-20 and a range narrower than one ATR cannot locate anything.
+# ★★★2026-09-25 THE RANGE IS A ROLLING WINDOW, NOT THE SESSION. Operator noticed the endpoints had
+# not moved since he woke: the CVD high was set 00:26Z and the low 05:25Z, read at 09:46Z. Correct
+# behaviour, but it exposed two faults — a session anchor makes him read position against overnight
+# ASIA extremes by the US open, and THE RANGE ONLY EVER GROWS, so the gauge dulls as the day ages.
+# ⚠ Changing the anchor CHANGES THE RULE, which voids prereg_gap.json. Done now, at a cost of ONE
+# day of collection, rather than after forty. prereg_gap.json is marked SUPERSEDED and
+# prereg_gap_rolling.json starts the count at zero.
+WINDOW_MIN = 180                            # rolling 3h — matches web.CVD_WINDOW_MIN
 WARM_MIN = 60                               # minutes of session before the detector may speak
 WARM_RANGE_PT = 20.0                        # and the price range must be at least this wide
 HORIZON = 30                                # primary, declared in advance
@@ -70,21 +78,25 @@ def build(op: int, until: int):
                           (op, until)).fetchall())
     c.close()
     cvd = 0.0
-    phi = plo = chi = clo = None
     out = []
     seen = 0            # ⚠ minutes SEEN, not minutes kept — `len(out)` would never reach the
                         #   warm-up because nothing is appended until the warm-up passes.
+    curve = []          # (minute, price, running cvd) — the rolling window is taken from this
     for m, d in ticks:
         cvd += d or 0.0
         p = bars.get(m)
         if p is None:
             continue
-        phi = p if phi is None else max(phi, p)
-        plo = p if plo is None else min(plo, p)
-        chi = cvd if chi is None else max(chi, cvd)
-        clo = cvd if clo is None else min(clo, cvd)
+        curve.append((m, p, cvd))
         seen += 1
-        # ⚠ the warm-up is applied HERE, so a cold minute never even becomes a candidate
+        # ⚠⚠ THE WINDOW IS TAKEN AS IT WAS AT THAT MINUTE — the preceding WINDOW_MIN minutes and
+        #    nothing after. Slicing from the finished curve would let the rule see the future, the
+        #    look-ahead that has quietly invalidated studies on this desk before.
+        win = [x for x in curve if x[0] > m - WINDOW_MIN]
+        if len(win) < WARM_MIN:
+            continue
+        phi = max(x[1] for x in win); plo = min(x[1] for x in win)
+        chi = max(x[2] for x in win); clo = min(x[2] for x in win)
         if phi > plo and chi > clo and seen >= WARM_MIN and (phi - plo) >= WARM_RANGE_PT:
             out.append({"m": m, "px": p, "cvd": cvd,
                         "px_pos": 100 * (p - plo) / (phi - plo),

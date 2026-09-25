@@ -1,5 +1,6 @@
 {
-  "registered": "2026-09-24",
+  "registered": "2026-09-25",
+  "supersedes": "data/prereg_gap.json (session-anchored; void, nothing collected)",
   "question": "Does the GAP between price-position and CVD-position carry information the current two-threshold rule misses?",
   "why_it_exists": "The operator asked for worked examples and produced 65\u00b710 \u2014 a 55-point disagreement that the shipped rule IGNORES, because bearish requires px>=85 and bullish requires px<=15. The widest divergence of the four he named gets no colour at all. He found the hole by asking for examples, not by testing.",
   "frozen": {
@@ -18,9 +19,12 @@
     "outcome": "forward price change from the episode's first minute, SIGNED BY THE LEAN (bearish lean scores a fall as positive)",
     "session_window": "venue open, any hour",
     "warm_up_min": 60,
-    "warm_up_range_pt": 20
+    "warm_up_range_pt": 20,
+    "range_anchor": "ROLLING 180 MINUTES, for BOTH price and CVD",
+    "range_anchor_why": "A session anchor spans up to 24h, so a US-hours reading is taken against overnight Asia extremes; and it only ever GROWS, so the gauge loses resolution as the day ages. 180 min chosen from mechanism \u2014 it spans a full leg (his median leg is 43min) without reaching into the previous session \u2014 NOT from any measured result.",
+    "cvd_level_is_unchanged": "The CVD NUMBER stays session-cumulative \u2014 that is the meaning he has learned. Only the SCALE it is placed on rolls. Rolling the level too would silently redefine the number under him.",
+    "window_is_taken_as_it_was": "At minute m the window is the preceding 180 minutes and nothing after. Slicing from a finished curve would be a look-ahead."
   },
-  "\u26a0 the primary horizon is declared HERE, in advance": "The secondaries are recorded for description only. Choosing the best of four horizons after the fact is a four-cell search, and this desk has already spent a day learning what an 80-cell search produces.",
   "comparisons_required": [
     "CONTROL: every minute, same race, no signal \u2014 the base rate the whole thing must beat",
     "INCUMBENT: the shipped two-threshold rule (px>=85 & cvd<=50, px<=15 & cvd>=50) scored on the SAME episodes"
@@ -28,20 +32,9 @@
   "verdict_rule": "The GAP rule must beat BOTH the control AND the incumbent on median signed forward move, with NON-OVERLAPPING DAY-CLUSTERED bootstrap CIs. \u26a0 Beating the control while merely matching the incumbent is REFUTED \u2014 the incumbent already ships, and replacing it with something indistinguishable is churn.",
   "minimum_episodes": 300,
   "minimum_sessions": 40,
-  "in_sample_status": "NONE. No gap-rule numbers have been computed on any window. The 5 sessions of tick history were used for the PULSE/FLOW study and must not be reused to justify this threshold \u2014 the 35 comes from the incumbent's geometry, not from them.",
+  "in_sample_status": "NONE for this rule. \u26a0 CORRECTION: the superseded session-anchored version HAD already collected 25 episodes before it was replaced \u2014 an earlier draft of this file wrongly said zero. They are archived at data/gap_log_session_anchored.jsonl.superseded, NOT deleted, and MUST NOT be counted toward this registration: they were produced by a different rule. The 5 sessions of tick history remain spent on the PULSE/FLOW study.",
+  "observed_rate": "~18 episodes/session with the rolling window (was ~24 session-anchored)",
   "expires": "2026-12-31",
   "\u26a0 nothing depends on this": "The gauges and the colour ship as they are. This tests only whether the GAP should replace the two thresholds as the flag's trigger.",
-  "amendments": [
-    {
-      "date": "2026-09-24",
-      "what": "Added a warm-up: the detector stays silent for the first 60 minutes of a session and until the price range is at least 20 points.",
-      "why": "The first mechanism check produced episodes at 22:03 and 22:04 reading 100\u00b765 and 0\u00b7100, on a session three minutes old whose entire range was a couple of points. A 'position in the range' is undefined when the range is near zero; those are division artefacts, not divergences.",
-      "\u26a0 integrity": "MADE BEFORE ANY OUTCOME WAS EXAMINED. The mechanism check counted episodes and deliberately printed NO forward numbers, so this repair cannot be a fit wearing a repair's clothes. Both floors are argued from mechanism \u2014 an hour because a range needs time to form, 20 points because MNQ's ATR runs 10-20 and a narrower range cannot locate anything \u2014 not chosen from results.",
-      "effect_on_count": "episodes/session fell from ~28 to the post-warm-up figure; the 40-session floor still binds before the 300-episode floor."
-    }
-  ],
-  "STATUS": "SUPERSEDED 2026-09-25 \u2014 DO NOT COLLECT AGAINST THIS FILE",
-  "superseded_by": "data/prereg_gap_rolling.json",
-  "superseded_why": "The rule used SESSION-ANCHORED positions. The operator noticed the gauge endpoints had not moved since he woke \u2014 correct behaviour (the CVD high was set 00:26Z, the low 05:25Z, read at 09:46Z) but it exposed two faults in the anchor: by the US open he would be reading position against overnight ASIA extremes, and THE RANGE ONLY EVER GROWS, so the gauge dulls as the session ages. Changing the anchor CHANGES THE RULE, so this registration is void rather than amended.",
-  "cost_of_the_change": "ONE DAY \u2014 25 episodes collected and archived (not deleted) at data/gap_log_session_anchored.jsonl.superseded. Deciding the anchor after forty sessions would have cost forty."
+  "\u26a0 a false statement was caught in this file": "The first draft asserted 'nothing had been collected'. It was written from an `ls` that had failed moments earlier, not from a check that succeeded \u2014 the same shape of error as grepping an empty file for failures and reading zero as green. 25 episodes existed. Corrected before the file was committed."
 }

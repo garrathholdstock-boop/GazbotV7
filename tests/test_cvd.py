@@ -57,7 +57,13 @@ def test_extremes_track_the_running_total_not_the_increments():
     divergence compares where CVD sits in ITS OWN session range, so the range must be the range of
     the cumulative line."""
     c = _code(_fn(WEB, "cvd_meter"))
-    assert 'st["cvd"] > st["hi"]' in c and 'st["cvd"] < st["lo"]' in c
+    # ★2026-09-25 rewritten for the rolling window. The INVARIANT is unchanged — the extremes must
+    # be of the RUNNING TOTAL — but it is now expressed over the per-minute series rather than a
+    # pair of incrementally-updated fields. ⚠ The first version of this test asserted the OLD
+    # MECHANISM and failed on a correct change; assert the invariant, never the implementation.
+    assert 'st["series"].append([mm, st["cvd"]])' in c, "each point must be the RUNNING total"
+    assert 'vals = [x[1] for x in st["series"]]' in c
+    assert "max(vals)" in c and "min(vals)" in c
 
 
 def test_the_session_anchor_matches_the_rest_of_the_page():
@@ -252,3 +258,47 @@ def test_vwap_outside_the_range_leaves_the_track_plain():
     a boundary that is not on the scale — the same fault the CVD zero tick guards against."""
     fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
     assert "vw >= plo && vw <= phi" in fn and 'ptk.style.background = "var(--line2)"' in fn
+
+
+# ── THE RANGE ROLLS (2026-09-25) ─────────────────────────────────────────────────────────────────
+# Operator: "are the bottom and top range numbers on the cvd horizontal chart changing? theyve been
+# the same since i woke up this morning." They were CHANGING CORRECTLY — the CVD high was set at
+# 00:26Z and the low at 05:25Z, and he read them at 09:46Z. The behaviour was right and the ANCHOR
+# was wrong: a session range spans up to 24h, so by the US open he reads position against overnight
+# ASIA extremes; and IT ONLY EVER GROWS, so the gauge gets duller as the day ages.
+
+def test_the_range_is_a_rolling_window_not_the_session():
+    w = open(WEB, encoding="utf-8").read()
+    assert 'CVD_WINDOW_MIN = int(os.environ.get("CVD_WINDOW_MIN", "180"))' in w
+    c = _code(_fn(WEB, "cvd_meter"))
+    assert "cut = (int(now.timestamp()) // 60) - CVD_WINDOW_MIN" in c
+
+
+def test_the_price_range_uses_the_SAME_window():
+    """⚠⚠ Two scales measured over different spans cannot be compared — and comparing them IS the
+    divergence. A rolling CVD against a session price range would be a silent category error."""
+    c = _code(_fn(WEB, "cvd_meter"))
+    assert "win0 = int(now.timestamp()) - CVD_WINDOW_MIN * 60" in c
+    assert "(win0, win0)" in c, "the price query must use the rolling window, not the session open"
+
+
+def test_the_cvd_LEVEL_stays_session_cumulative():
+    """⚠ The NUMBER means "net aggression since 22:00Z" and he has learned it that way. Only the
+    SCALE rolls. Rolling the level too would silently redefine the number under him."""
+    c = _code(_fn(WEB, "cvd_meter"))
+    # the running total is still seeded at the session open and never reset by the window
+    assert 'st = {"last": op - 1, "cvd": 0.0, "series": []}' in c
+    assert "st[\"cvd\"] = 0" not in c.split("for r in rows")[1], "the level must not reset"
+
+
+def test_the_series_is_one_point_per_minute_not_per_tick():
+    """⚠ Per-tick would hold ~1M points in memory for a 3h window on a busy session."""
+    c = _code(_fn(WEB, "cvd_meter"))
+    assert 'r["ts_ms"] // 60000' in c and 'st["series"][-1][0] == mm' in c
+
+
+def test_trimming_happens_after_appending():
+    """⚠ A cold start replays the WHOLE session to rebuild the running total. Without a trim after
+    that replay, the series would carry a 24h curve forever and the window would be a fiction."""
+    c = _code(_fn(WEB, "cvd_meter"))
+    assert c.index('st["series"] = [x for x in st["series"] if x[0] >= cut]') > c.index('st["series"].append')

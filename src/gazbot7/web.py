@@ -514,6 +514,7 @@ def adverse_meter(data_dir, cap_path) -> dict:
 # FLATTEN button. So the total is INCREMENTAL: each call sums only the ticks newer than the last
 # one it saw, which is typically a single second of tape.
 # ⚠ ThreadingHTTPServer — concurrent requests WOULD double-count an increment without the lock.
+CVD_WINDOW_MIN = int(os.environ.get("CVD_WINDOW_MIN", "180"))   # rolling 3h — see the note below
 _CVD_LOCK = threading.Lock()
 _CVD: dict = {}
 
@@ -536,7 +537,23 @@ def cvd_meter(cap_path) -> dict:
             st = _CVD.get(op)
             if st is None:
                 _CVD.clear()                      # a new session; never accumulate across the roll
-                st = {"last": op - 1, "cvd": 0.0, "hi": 0.0, "lo": 0.0}
+                # ★★★2026-09-25 THE RANGE IS NOW A ROLLING WINDOW, NOT THE WHOLE SESSION.
+                # Operator: "are the bottom and top range numbers on the cvd horizontal chart
+                # changing? theyve been the same since i woke up this morning."
+                # They were changing correctly — they simply had not been exceeded. The CVD high was
+                # set at 00:26Z and the low at 05:25Z, and he was reading them at 09:46Z. TWO REAL
+                # FAULTS behind that:
+                #   1. a session-anchored range spans up to 24h, so by the US open he would be
+                #      measuring position against overnight ASIA extremes that have nothing to do
+                #      with the tape in front of him;
+                #   2. THE RANGE ONLY EVER GROWS. It never shrinks, so the gauge gets progressively
+                #      DULLER through the session — everything compresses toward the middle, and a
+                #      meter that quietly loses resolution as the day goes on is worse than one
+                #      that is obviously broken.
+                # ⚠ THE CVD *LEVEL* STAYS SESSION-CUMULATIVE — that is the meaning he has learned
+                #   ("net aggression since 22:00Z"). Only the SCALE it is placed on rolls. Making
+                #   the level roll too would silently redefine the number under him.
+                st = {"last": op - 1, "cvd": 0.0, "series": []}
                 _CVD[op] = st
             c = _conn(cap_path)
             rows = c.execute(
@@ -552,22 +569,33 @@ def cvd_meter(cap_path) -> dict:
                     st["cvd"] -= r["size"]
                 else:
                     continue
-                # ⚠ The extremes track the RUNNING TOTAL, not the increments — max(deltas) would be
-                #   the biggest single trade, which is a different and useless number.
-                if st["cvd"] > st["hi"]:
-                    st["hi"] = st["cvd"]
-                if st["cvd"] < st["lo"]:
-                    st["lo"] = st["cvd"]
+                # ⚠ ONE POINT PER MINUTE ON THE RUNNING TOTAL — not per tick (memory) and not the
+                #   increments (max of those is the biggest single trade, a useless number).
+                mm = r["ts_ms"] // 60000
+                if st["series"] and st["series"][-1][0] == mm:
+                    st["series"][-1][1] = st["cvd"]
+                else:
+                    st["series"].append([mm, st["cvd"]])
             if rows:
                 st["last"] = rows[-1]["ts_ms"]
+            # ⚠ TRIM AFTER APPENDING, so a cold start that replayed the whole session does not
+            #   carry a 24h curve forever. The window is the SCALE, not the memory.
+            cut = (int(now.timestamp()) // 60) - CVD_WINDOW_MIN
+            st["series"] = [x for x in st["series"] if x[0] >= cut]
+            # ⚠ THE PRICE RANGE ROLLS TOO, over the SAME window. Two scales measured over
+            #   different spans cannot be compared, and comparing them IS the divergence.
+            win0 = int(now.timestamp()) - CVD_WINDOW_MIN * 60
             px = c.execute("SELECT MIN(low) lo, MAX(high) hi, "
                            "(SELECT close FROM bars WHERE symbol='MNQ' AND timeframe='5s' "
                            " AND bar_ts>=? ORDER BY bar_ts DESC LIMIT 1) last "
                            "FROM bars WHERE symbol='MNQ' AND timeframe='5s' AND bar_ts>=?",
-                           (op // 1000, op // 1000)).fetchone()
+                           (win0, win0)).fetchone()
             c.close()
             out["cvd"] = int(st["cvd"])
-            out["cvd_hi"], out["cvd_lo"] = int(st["hi"]), int(st["lo"])
+            out["window_min"] = CVD_WINDOW_MIN
+            vals = [x[1] for x in st["series"]] or [st["cvd"]]
+            out["cvd_hi"], out["cvd_lo"] = int(max(vals)), int(min(vals))
+            st["hi"], st["lo"] = max(vals), min(vals)
             # ── THE DIVERGENCE FLAG ──────────────────────────────────────────────────────────
             # ★ Compare WHERE PRICE SITS IN ITS SESSION RANGE against WHERE CVD SITS IN ITS OWN.
             #   Both are 0..1, so the comparison is scale-free and needs no tuned point threshold.
