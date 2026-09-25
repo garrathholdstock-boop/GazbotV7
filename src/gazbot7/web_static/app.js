@@ -1013,7 +1013,15 @@
         const dot = $(dotId);
         if (dot) dot.style.left = (pos == null ? 50 : Math.max(0, Math.min(1, pos)) * 100) + "%";
       };
-      put("rg-px-lo", "rg-px-hi", "rg-px-dot", se.low, se.high, cv.px_pos,
+      /* ⚠⚠⚠ THE WINDOW'S endpoints, NOT the session's. Using se.low/se.high printed a SESSION
+         range under a dot positioned on the 3-HOUR scale — 30680/30998 shown while the real window
+         was 30838/30952, so the labels implied 65% where the marker sat at 43%. He asked what the
+         range was telling him and was doing the arithmetic, which is exactly how a gauge that
+         misstates its own scale gets caught. ⚠ Falls back to the session only if the window figures
+         are absent, and then the dot has nothing better either. */
+      put("rg-px-lo", "rg-px-hi", "rg-px-dot",
+          cv.px_lo != null ? cv.px_lo : se.low,
+          cv.px_hi != null ? cv.px_hi : se.high, cv.px_pos,
           (x) => nf(x, 2));
       /* ★★2026-09-24 TINT THE PRICE TRACK AT VWAP — his ask, after the CVD heat landed.
          "High in the range" carries no inherent side; ABOVE OR BELOW THE DAY'S AVERAGE PRICE does.

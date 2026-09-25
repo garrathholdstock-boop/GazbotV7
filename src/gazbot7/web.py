@@ -604,6 +604,17 @@ def cvd_meter(cap_path) -> dict:
             #   and on this desk every direction study of a disagreement has come back a coin.
             if px and px["hi"] is not None and px["lo"] is not None and px["last"] is not None \
                     and px["hi"] > px["lo"] and st["hi"] > st["lo"]:
+                # ⚠⚠⚠2026-09-25 RETURN THE WINDOW'S OWN PRICE ENDPOINTS. They were computed here
+                # and then THROWN AWAY, so the gauge had nothing to label itself with and fell back
+                # to `session.low/high` — printing SESSION endpoints under a dot positioned on the
+                # 3-HOUR scale. Measured at 19:12Z: labels 30680.00 → 30998.50 while the real window
+                # was 30838.25 → 30952.50, and px_pos read 43% where the printed numbers imply 65%.
+                # A gauge that lies about its own scale is worse than no gauge: he cannot check it,
+                # and he was doing the arithmetic.
+                # ⚠ MY TEST PASSED BECAUSE IT CHECKED THIS QUERY, NOT WHAT THE PAGE DISPLAYS —
+                # `(win0, win0)` was present and correct all along. Fifth time in three days I have
+                # asserted the implementation instead of the invariant.
+                out["px_lo"], out["px_hi"] = px["lo"], px["hi"]
                 pr = (px["last"] - px["lo"]) / (px["hi"] - px["lo"])
                 cr = (st["cvd"] - st["lo"]) / (st["hi"] - st["lo"])
                 out["px_pos"], out["cvd_pos"] = round(pr, 3), round(cr, 3)

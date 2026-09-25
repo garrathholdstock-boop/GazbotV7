@@ -302,3 +302,19 @@ def test_trimming_happens_after_appending():
     that replay, the series would carry a 24h curve forever and the window would be a fiction."""
     c = _code(_fn(WEB, "cvd_meter"))
     assert c.index('st["series"] = [x for x in st["series"] if x[0] >= cut]') > c.index('st["series"].append')
+
+
+def test_the_gauge_labels_the_WINDOW_not_the_session():
+    """⚠⚠⚠2026-09-25 IT DID NOT. cvd_meter computed the window's price extremes and THREW THEM AWAY,
+    so the gauge fell back to session.low/high — printing SESSION endpoints beneath a dot positioned
+    on the 3-HOUR scale. Measured: labels 30680.00 → 30998.50 against a real window of
+    30838.25 → 30952.50, px_pos 43% where the printed numbers imply 65%.
+    ⚠ THE EARLIER TEST PASSED BECAUSE IT CHECKED THE QUERY, NOT THE DISPLAY. `(win0, win0)` was
+    correct all along. Assert what the PAGE shows, not what the server computes."""
+    c = _code(_fn(WEB, "cvd_meter"))
+    assert 'out["px_lo"], out["px_hi"] = px["lo"], px["hi"]' in c, "the window endpoints must ship"
+    js = open(JS, encoding="utf-8").read()
+    fn = js.split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "cv.px_lo != null ? cv.px_lo : se.low" in fn, "the gauge must prefer the window"
+    # and the dot's scale and the printed labels must come from the same place
+    assert fn.index("cv.px_lo") < fn.index("cv.px_pos"), "labels and marker must share one scale"
