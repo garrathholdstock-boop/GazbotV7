@@ -236,6 +236,33 @@ substitute for his attention, not an edge — do not leave it armed as a policy.
 
 ---
 
+### ★★★ 2026-09-25 — THE METHOD HE IS ACTUALLY USING WAS NOT BEING RECORDED
+Operator, unprompted, about the CVD gauge: *"if it slides powerfully to the right or left i buy or
+sell and it works."*
+
+⚠⚠⚠ **THAT IS A CLAIM ABOUT THE SLOPE, AND NOTHING HERE HAS EVER MEASURED THE SLOPE.** The 80-cell
+grid and the pre-registered gap rule both test the **LEVEL** — where the marker SITS. He is
+describing how fast it **MOVES**. And the slope is the quantity this desk told him to read and then
+never tested.
+
+⚠⚠ **`capture_operator_read` was logging `atr, vwap, pos_in_range, drift, price` — and NO CVD, no
+slope, no pulse, no flow.** The operator-model dataset could not SEE the method he was using, so no
+amount of further collecting would ever have answered it. **That is the entire programme failing
+quietly**: eleven months of studies failed because nobody recorded the INPUT, and here was an input
+nobody had recorded.
+
+**FIXED 2026-09-25.** Every press now carries `gauge = {cvd_3h, slope_1m, slope_5m, slope_15m}`.
+★ **Three speeds because which one his eye reads is UNKNOWN** — record all, decide later, but
+record from the START: `ticks` prune at **5 DAYS** and a window not captured today can never be
+reconstructed. 17ms, read-only, and the test builds itself out of what he already does.
+⚠ Rolling **3h** to match the gauge he reads — a session-anchored capture would faithfully record
+a number he is not looking at.
+⚠ **THIS VALIDATES NOTHING YET.** "It works" over hours is how everyone convinces themselves, and
+the day before he thought the metrics were making him **worse**. Both rest on a day. It makes the
+question answerable, not answered.
+
+---
+
 ## 1f. THE ALERT CHANNEL — what he actually receives, and what it is allowed to claim (2026-09-24)
 
 **~10 Telegrams/day plus the rider family. 85% informational; the four that can cost money total

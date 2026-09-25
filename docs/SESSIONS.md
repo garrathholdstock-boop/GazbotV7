@@ -47,6 +47,15 @@ that the boxes POPULATED and never that they could be CHANGED.
 - I restarted `gazbot7-web` on a live position because my "check" was a `print` chained with `&&`.
   **There is now a guard that exits non-zero and refuses** — and it fired on the very next request.
 
+**★★★ AND THE DAY ENDED WITH THE MOST VALUABLE THING ON THIS DESK HAVING A HOLE IN IT.** He said,
+unprompted: *"if it slides powerfully to the right or left i buy or sell and it works."* That is a
+claim about the **SLOPE** — and every study here, the 80-cell grid and the gap rule both, tests the
+**LEVEL**. Worse: `capture_operator_read` was recording atr, vwap, pos_in_range, drift and price at
+every press, and **no CVD, no slope, no pulse, no flow**. The dataset built to learn his judgement
+**could not see the method he was using.** Now captured at three speeds, 17ms, read-only. ⚠ It
+validates nothing — he thought the metrics were making him WORSE twenty-four hours earlier, and
+both readings rest on a day. It makes the question answerable instead of arguable.
+
 **ALSO:** DAYS 11→20 sessions with a live green/red bar strip · desktop fonts +3px and greys 50%
 brighter, **scoped to min-width:900px so the phone's one-screen budget is untouched** · the
 gateway watchdog rebuilt after the 18:05 wedge cost **$364**.
