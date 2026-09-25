@@ -553,7 +553,10 @@
      rather than silently drifting the page out of step with the phone.
   */
   var AL_ARM = 200, AL_STEP = 50, AL_GIVEBACK = 75;
-  var AL = { on: false, unlocked: false, peak: 0, armed: false, rung: 0, holding: false, gave: false };
+  var AL = { on: false, unlocked: false, peak: 0, armed: false, rung: 0, holding: false, gave: false,
+           /* ⚠ what the SERVER last told us each step-away box should be — so a stored value is
+              delivered once and never re-imposed over an edit he has made. */
+           saSeen: {} };
 
   function alSave() { try { localStorage.setItem("gz_alerts", AL.on ? "1" : "0"); } catch (e) { } }
   function alLabel() {
@@ -1107,12 +1110,28 @@
        ⚠ NEVER WRITE INTO A FIELD HE IS TYPING IN. A poll lands every second and would eat the
        keystroke he is halfway through. */
     (function stickyLimits() {
+      /* ★★★2026-09-25 FIXED — IT WAS OVERWRITING HIM ONCE A SECOND. Operator: "the dashboard
+         doesnt let me adjust the prices in the step away. i change the $500 TP to lower and it
+         just changes itself back to $500."
+         ⚠⚠⚠ AND IT IS A SAFETY BUG, NOT A UI ANNOYANCE. He could type 300, look away, and arm a
+         guard set to the 500 he had just rejected — a stop or a target he never chose, on a live
+         position, with the page showing the number he did not pick.
+         THE FAULT: `document.activeElement` only protects the field WHILE HE IS TYPING IN IT. The
+         moment he taps Done or taps away it blurs, and the very next poll — within one second —
+         wrote the stored value straight back over his edit. On a phone every edit ends in a blur,
+         so on a phone it was unusable by construction.
+         ★ THE FIX: deliver a value ONCE PER CHANGE OF THE SERVER VALUE, never on every poll. If we
+         have already delivered this exact stored value, the box belongs to HIM until the server's
+         own number changes — which happens when he arms, and that is the act that commits it. */
       const pairs = [["sa-loss", sa.limit_usd], ["sa-tp", sa.take_profit_usd]];
       pairs.forEach(([id, v]) => {
         const el = $(id);
-        if (!el || el === document.activeElement || v == null) return;
+        if (!el || v == null) return;
         const want = String(Math.round(Number(v)));
-        if (el.value !== want) el.value = want;
+        if (AL.saSeen[id] === want) return;          // already delivered — his edits are his
+        if (el === document.activeElement) return;   // and never fight a keystroke in flight
+        AL.saSeen[id] = want;
+        el.value = want;
       });
     })();
     if (sb2) sb2.className = "orb away" + (sa.armed ? " armed" : "");

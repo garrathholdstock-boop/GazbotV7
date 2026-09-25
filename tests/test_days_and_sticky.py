@@ -80,3 +80,46 @@ def test_the_heading_matches_what_is_fetched():
     html = open(HTML, encoding="utf-8").read()
     n = int(re.search(r"days\?n=(\d+)", open(JS, encoding="utf-8").read()).group(1))
     assert f"LAST {n} SESSIONS" in html
+
+
+# ── THE STICKY LIMITS WERE OVERWRITING HIM ONCE A SECOND (2026-09-25) ────────────────────────────
+# ★★★ Operator: "the dashboard doesnt let me adjust the prices in the step away. i change the $500
+# TP to lower and it just changes itself back to $500."
+# ⚠⚠⚠ A SAFETY BUG, NOT A UI ANNOYANCE. He could type 300, look away, and arm a guard set to the
+# 500 he had just REJECTED — a stop or a target he never chose, on a live position, with the page
+# showing a number he did not pick.
+# THE FAULT: `document.activeElement` protects the field only WHILE HE IS TYPING. The moment he taps
+# Done it blurs, and the next poll — within one second — wrote the stored value back over his edit.
+# On a phone every edit ends in a blur, so on a phone the feature was unusable by construction.
+
+
+def _sticky():
+    js = open(JS, encoding="utf-8").read()
+    return js.split("function stickyLimits()", 1)[1].split("})();", 1)[0]
+
+
+def test_a_stored_value_is_delivered_ONCE_not_re_imposed_every_poll():
+    """★ THE FIX. Once we have delivered a given stored value, the box belongs to HIM until the
+    SERVER's number changes — which happens when he arms, and arming is the act that commits it."""
+    b = _sticky()
+    assert "AL.saSeen[id] === want" in b, "it must remember what it already delivered"
+    assert "AL.saSeen[id] = want" in b
+
+
+def test_it_still_never_fights_a_keystroke_in_flight():
+    """⚠ The activeElement guard was not WRONG, it was INSUFFICIENT. It stays."""
+    assert "document.activeElement" in _sticky()
+
+
+def test_the_seen_map_is_initialised():
+    """⚠ An undefined lookup would compare undefined === want, deliver every poll, and restore the
+    exact bug while the guard above looked present."""
+    js = open(JS, encoding="utf-8").read()
+    assert "saSeen: {}" in js
+
+
+def test_the_old_unconditional_write_is_gone():
+    """⚠ `if (el.value !== want) el.value = want` on every poll IS the bug. If it returns, the
+    field fights him again and nothing else in this file would notice."""
+    b = _sticky()
+    assert "if (el.value !== want) el.value = want" not in b
