@@ -47,6 +47,19 @@ that the boxes POPULATED and never that they could be CHANGED.
 - I restarted `gazbot7-web` on a live position because my "check" was a `print` chained with `&&`.
   **There is now a guard that exits non-zero and refuses** — and it fired on the very next request.
 
+**AND HE CAUGHT THE GAUGE LYING ABOUT ITS OWN SCALE, BY DOING THE ARITHMETIC.** He asked what a CVD
+range of −13,391 to −869 meant when the tape had risen — and the answer exposed that `cvd_meter`
+computed the rolling window's PRICE extremes and threw them away, so the PX gauge printed SESSION
+endpoints (30680→30998) beneath a marker positioned on the 3-hour window (30838→30952). The labels
+implied 65%; the dot sat at 43%. ⚠ **My test passed the whole time** — it asserted the window
+appeared in the QUERY, which it did, correctly. The query was never the fault; the RENDER was. Fifth
+time in three days I asserted an implementation detail instead of the invariant, and the first time
+it put a wrong number on his screen.
+★ The question itself was a good one and the answer is now in STATE: the **LEVEL** is session-wide,
+the **RANGE** is 180 minutes, and a negative level beside a risen tape is no contradiction — today's
+rise happened *before* the window, which left 114 points of chop. He read that as a tunnel with
+buyers and sellers taking turns, which is exactly right.
+
 **⛔ AND HE CAUGHT ME LEAVING A STAND-DOWN UNDONE.** *"why was grind activated? i told you to
 disactivate all other gates. it just lost $200."* He had, and I had written the six switch values
 and told him it would hold for one session. **Wrong mechanism.** It was not the midnight re-arm —

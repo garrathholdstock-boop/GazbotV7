@@ -599,6 +599,32 @@ minute. A gauge whose neutral point is invisible invites exactly that.
 ⚠ **THE INPUTS ARE ON SCREEN, NOT IN A TOOLTIP** — there is no hover on a phone, and a derived
 verdict whose workings cannot be inspected is unauditable.
 
+### ★★ HOW TO READ THE CVD RANGE — the LEVEL and the RANGE answer different questions (2026-09-25)
+Operator: *"if cvd ranges from −13,391 to −869. what is that telling me? sellers dominated all day?
+but the tape has risen a lot today. or is that just in the last 3 hours?"* — a question worth
+recording because the answer is not obvious from the design.
+
+| | span | question it answers |
+|---|---|---|
+| **the CVD NUMBER** | since **22:00Z** | who has been the aggressor **all session** |
+| **the RANGE / position** | last **180 min** | where that running total sits **within the recent window** |
+
+Worked, at 19:12Z: net aggression **−1,118** before the window and **−5,518** inside it, session
+total **−6,636** — so sellers were net-aggressive throughout, *and* the range rising from −13,391 to
+−1,206 means CVD fell hard inside the window then recovered most of it, landing at **56%**.
+★ **AND THE DAY'S RISE HAPPENED BEFORE THE WINDOW** (30680→30998 early; 114pt of chop in the last
+3h). A negative level beside a risen tape is not a contradiction — the gauge only speaks about the
+last three hours, which is the entire point of the 09-25 anchor change.
+
+### ⚠⚠⚠ AND ANSWERING THAT CAUGHT THE GAUGE MISSTATING ITS OWN SCALE
+`cvd_meter` computed the window's price extremes and **threw them away** (returned `px_pos`, not
+`px_lo`/`px_hi`), so the PX gauge fell back to `session.low/high`: **printed 30680.00→30998.50 under
+a marker positioned at 43% on a real window of 30838.25→30952.50, where the labels imply 65%.**
+**A gauge that misstates its own scale is worse than none** — the endpoints exist so the percentage
+is auditable, and he was auditing it. ⚠ **The test passed throughout**: it asserted `(win0, win0)`
+appeared in the QUERY, which was correct all along. The query was never the fault; the RENDER was.
+**Assert what the page SHOWS.**
+
 ### CVD — the meter FLOW could not be (2026-09-24)
 Operator on FLOW: *"its essentially 30 seconds delayed? so the tape has already done the
 corresponding move? if so its useless."* **Wrong about the delay** (a 30s WINDOW ends NOW, newest
