@@ -47,6 +47,22 @@ that the boxes POPULATED and never that they could be CHANGED.
 - I restarted `gazbot7-web` on a live position because my "check" was a `print` chained with `&&`.
   **There is now a guard that exits non-zero and refuses** — and it fired on the very next request.
 
+**⛔ AND HE CAUGHT ME LEAVING A STAND-DOWN UNDONE.** *"why was grind activated? i told you to
+disactivate all other gates. it just lost $200."* He had, and I had written the six switch values
+and told him it would hold for one session. **Wrong mechanism.** It was not the midnight re-arm —
+it was THE ROUTER, five minutes later, on its own regime read: *"ARMING THE ALIGNED LONG MOMENTUM
+PAIR"* at 16:11Z, then 4 fills / 4 stops / **−$168.50**, then the router benching the pair itself at
+16:50Z. Its reasoning was sound and it cleaned up after itself, and **none of that matters**:
+★ **SETTING SWITCH VALUES IS NOT AN INSTRUCTION TO ANYTHING.** The router gets values as bare json;
+only the top 45 header lines reach it as words. Now durable in BOTH places, because either alone is
+half a stand-down — and half-lifted is the worst state, since the router arms freely while the
+reopen still benches and neither mechanism looks wrong.
+⚠ Half of it lives in a **gitignored** file, so there is now a tracked restore path and a test that
+fires if the block leaves the spliced window.
+⚠ A test caught the behaviour change (`test_when_open_it_still_arms`) and I isolated HOLD inside it
+rather than baking the stand-down in — which would have quietly stopped it checking the weekend
+guard for as long as the stand-down lasts.
+
 **★★★ AND THE DAY ENDED WITH THE MOST VALUABLE THING ON THIS DESK HAVING A HOLE IN IT.** He said,
 unprompted: *"if it slides powerfully to the right or left i buy or sell and it works."* That is a
 claim about the **SLOPE** — and every study here, the 80-cell grid and the gap rule both, tests the

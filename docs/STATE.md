@@ -353,6 +353,44 @@ bucket wins **60.5%** and totals **−$660.50**.
 
 ---
 
+## 1g. ⛔ OPERATOR STAND-DOWN — ALL SIX GATES, UNTIL HE PERSONALLY LIFTS IT (2026-09-25)
+
+**Every gate is benched by operator instruction.** The router's ARMING authority is suspended; it
+retains full authority to bench. This is not a regime read a future session may overturn with a
+better one.
+
+### ★★★ WHY IT HAD TO BE MADE DURABLE — setting switch values instructs NOTHING
+On **09-24** he asked for every gate off. The six values were written, logged and notified, and he
+was told the bench would last one session because `gate-reactivate` re-arms at Paris midnight.
+**That was wrong about the mechanism.** It was **THE ROUTER**, five minutes later:
+
+```
+16:11Z  changed: {'grind_long':'on','abs_veto_long':'on'}  "ARMING THE ALIGNED LONG MOMENTUM PAIR"
+16:31/16:35   4 fills, 4 stops, −$168.50   (trades 1082-1085)
+16:50Z  the router benched the pair itself, on its own stated trigger
+```
+
+Its reasoning was sound and it cleaned up after itself. **Irrelevant** — nothing had told it an
+instruction existed. The router receives switch values as **bare json**; only `switch_notes()` —
+**the top 45 lines of the header** — reaches it as words.
+
+### THE TWO MECHANISMS, AND NEITHER IS SUFFICIENT ALONE
+| | stops | tracked? |
+|---|---|---|
+| `HOLD` in `scripts/reactivate_gates.py` | the 00:00 Paris re-arm | ✅ |
+| the **⛔ block atop `data/gate_switches.env`** | the router, every 5 min | ❌ **gitignored** |
+
+⚠⚠ **HALF THE STAND-DOWN LIVES IN AN UNTRACKED FILE** — deliberately (the router rewrites it every
+five minutes), but the block is an INSTRUCTION, not state, and is one header reset from vanishing
+silently. `ops/OPERATOR_STANDDOWN_2026-09-25.md` is the tracked restore path;
+`tests/test_operator_standdown.py` is the alarm.
+⚠ **TO LIFT — operator only, and BOTH halves.** Half-lifted is the worst state: the router arms
+freely while the reopen still benches, so the gates flicker and neither mechanism looks wrong.
+⚠ The header's stale **09-14 / 08-28 watcher notes still say "LET IT RUN"** for exactly the pair the
+router armed. Marked SUPERSEDED, not deleted.
+
+---
+
 ## 2. GATES — 6 live, 3 long / 3 short
 
 ✅ **THE 08-20 STAND-DOWN IS LIFTED (2026-08-26) — the router holds FULL ARM AND BENCH
