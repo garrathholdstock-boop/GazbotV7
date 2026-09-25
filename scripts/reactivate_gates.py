@@ -70,7 +70,21 @@ SWITCH = "/home/alphabot/gazbot7/data/gate_switches.env"
 # TOURNAMENT_STOOD_DOWN alone would leave the router able to bench but never arm.
 # rgv_short stays held for the 2026-08-09 churn reason documented immediately below — that is a
 # separate, still-valid decision and is NOT part of the stand-down.
-HOLD: frozenset = frozenset({"rgv_short"})
+# ⛔⛔⛔2026-09-25 OPERATOR STAND-DOWN — ALL SIX, UNTIL HE PERSONALLY LIFTS IT.
+# "why was grind activated? i told you to disactivate all other gates." ... "yes make it durable
+# until i lift it."
+# ⚠ THIS IS ONE OF TWO MECHANISMS AND NEITHER IS SUFFICIENT ALONE. This one stops the 00:00 Paris
+# re-arm. The OTHER is the ⛔ block at the top of data/gate_switches.env, which is spliced into
+# every router prompt by switch_notes() — without it the router re-arms on its own regime read
+# within five minutes, which is exactly what happened on 09-25 (4 fills, 4 stops, -$168.50).
+# Setting switch VALUES is not an instruction to anything; only these two places are.
+# ⚠ TO LIFT: the operator, and only on his word. Restore this to {"rgv_short"} AND delete the ⛔
+# block from the switch file. Both, or it is half-lifted.
+HOLD: frozenset = frozenset({
+    "rgv_short",                                    # ← the 2026-08-09 churn hold, separate + still valid
+    "grind_long", "capitulation_long", "abs_veto_long",
+    "exhaustion_short", "abs_veto_short",
+})
 
 # ★★2026-08-09 — rgv_short ADDED TO HOLD. This reverses the 08-01 release noted above, which moved
 # its bench from here into the router's standing guidance. That was the right call at the time and

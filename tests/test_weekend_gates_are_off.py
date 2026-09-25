@@ -71,5 +71,13 @@ def test_when_open_it_still_arms(tmp_path, monkeypatch):
     sw.write_text("# header\nexhaustion_short=off\n")
     monkeypatch.setattr(rg, "SWITCH", str(sw))
     monkeypatch.setattr(rg, "_session_is_open", lambda now: True)
+    # ⚠2026-09-25 HOLD IS ISOLATED HERE ON PURPOSE. This test is about the WEEKEND GUARD — that it
+    # does not swallow an ordinary weeknight reopen — and nothing else. The operator stand-down put
+    # all six gates into HOLD, which legitimately makes the reopen arm nothing, and the test failed.
+    # That was the test working: it detected a real behaviour change. But baking the stand-down in
+    # here would mean this test silently stops checking the weekend guard for as long as the
+    # stand-down lasts, and would need un-baking when he lifts it. The stand-down has its own test
+    # (tests/test_operator_standdown.py::test_the_reopen_actually_leaves_everything_off).
+    monkeypatch.setattr(rg, "HOLD", frozenset({"rgv_short"}))
     rg.run()
     assert "exhaustion_short=on" in sw.read_text(), "the reopen stopped arming"
