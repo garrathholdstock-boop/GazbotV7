@@ -739,3 +739,63 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
    the marker so the marker is never obscured by it. */
 .rg .tk u{position:absolute;top:-3px;width:1px;height:9px;background:var(--mut2);opacity:.85;
   transform:translateX(-50%);text-decoration:none}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   DESKTOP LEGIBILITY (2026-09-25) — "on desktop can you please increase all the smallest font
+   sizes by 3pt and make all the dull grey fonts 50% brighter"
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   ⚠⚠⚠ DESKTOP ONLY, and the scoping is the whole safety of this change. The TRADE tab is built to
+   fit ONE PHONE SCREEN WITHOUT SCROLLING — he said so repeatedly and the layout was rebuilt around
+   it. Taking 8px to 11px on a phone would push the strip, the gauges or the PASS row off the
+   bottom, which is the single thing he has complained about most. `min-width:900px` is the same
+   breakpoint .hero-body already uses, so this cannot disagree with the existing layout switch.
+   ⚠ The greys are lifted 50% TOWARD WHITE, not multiplied — multiplying #66727e by 1.5 overflows
+   the blue channel and shifts the hue. Measured luminance: mut 157->207, mut2 112->183,
+   txt2 190->223.
+   ⚠ --txt is deliberately UNCHANGED at 240: it is already near white, and lifting it would flatten
+   the contrast between the value text and its label, which is the hierarchy that makes the strip
+   readable at a glance.
+   ⚠ The selectors below were GENERATED from the stylesheet, taking only rules that sit OUTSIDE a
+   max-width block — a phone-only selector must never be lifted into the desktop tier. */
+@media (min-width:900px){
+  :root{ --mut:#c7d0d7; --mut2:#b2b8be; --txt2:#d9e0e6; }
+  .kpi .l{font-size:13.0px}
+  .kpisub{font-size:13.5px}
+  .ph .sub{font-size:13.5px}
+  .ph .live{font-size:13.5px}
+  .sec{font-size:13.5px}
+  th{font-size:13.0px}
+  .pill{font-size:13.5px}
+  .rtile .l{font-size:12.5px}
+  #symnote{font-size:13.0px}
+  .tfbar .tflab{font-size:13.0px}
+  .dtt-row .dblk{font-size:13.0px}
+  .legend{font-size:13.0px}
+  .prot-ok{font-size:13.5px}
+  .prot-naked{font-size:13.5px}
+  .slot-tile .st-sub{font-size:13.5px}
+  .funnel .fn-seg span{font-size:12.0px}
+  .riskbar .cap{font-size:12.0px}
+  .badfill{font-size:12.0px}
+  .mstrip .ms i{font-size:13.0px}
+  #days-tbl .sub .q{font-size:13.5px}
+  #days-tbl .sub td.px{font-size:13.5px}
+  #days-tbl .sub td.meta{font-size:13.0px}
+  #days-tbl .note{font-size:13.0px}
+  #days-tbl .sub td.tm .car{font-size:13.0px}
+  .tstrip .tm i{font-size:11.0px}
+  #p-trade .tf{font-size:13.5px}
+  .orb span{font-size:13.0px}
+  .orb em{font-size:11.0px}
+  .awayset label{font-size:12.0px}
+  .holdcard .hc-side{font-size:13.5px}
+  .holdcard .hc-px{font-size:13.5px}
+  .holdcard .hc-px i{font-size:11.0px}
+  .holdcard .hc-tp button{font-size:13.5px}
+  .passrow input{font-size:13.5px}
+  .passrow button{font-size:13.0px}
+  .albtn{font-size:12.0px}
+  .daysbars-note{font-size:12.0px}
+  .rg{font-size:11.5px}
+}

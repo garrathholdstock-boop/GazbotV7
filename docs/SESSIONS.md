@@ -10,6 +10,50 @@
 
 ---
 
+## 2026-09-25 (Fri) — THE GAUGES LANDED, AND HE DEBUGGED THEM FASTER THAN THE TESTS DID
+
+**★★★ THE PX AND CVD HORIZONTAL GAUGES ARE THE FIRST THING ON THIS DASHBOARD HE HAS CALLED
+AWESOME TWICE.** They exist because he pushed back on FLOW — *"its essentially 30 seconds delayed?
+so the tape has already done the corresponding move? if so its useless"* — wrong about the delay,
+right about the uselessness: a one-sided FLOW burst has a **median life of 3 seconds** against a
+30-second average.
+
+**AND HE FOUND EVERY REMAINING FAULT BY READING THEM AGAINST THE TAPE:**
+- *"how do i see that"* → the divergence inputs were **tooltip-only, and there is no hover on a
+  phone**. A verdict whose workings he cannot inspect is unauditable. The cell now shows `81·43`.
+- *"does 43% mean its back on the sellers side?"* → **no**, and the design invited it: zero sat at
+  **39%** of the range, not 50%. Hence the zero tick, and heat that splits at zero.
+- *"theyve been the same since i woke up"* → the endpoints were CORRECT (high set 00:26Z, low
+  05:25Z, read 09:46Z) but the ANCHOR was wrong. A session range spans 24h and **only ever grows**,
+  so the gauge dulls as the day ages. Now **rolling 3h**, and the gap rule **re-registered** —
+  which cost ONE day because nothing had accumulated, against forty if we had waited.
+- *"65·10"* → an example he invented that the shipped rule **ignores entirely**, because bearish
+  needs px≥85. The widest divergence of the four he named got no colour. **That is the whole reason
+  the gap rule exists.**
+
+**⚠⚠⚠ AND MY WORST BUG OF THE WEEK WAS THE ONE I SHIPPED AS A CONVENIENCE.** "Sticky" step-away
+limits rewrote his typing **once a second** — `activeElement` guards only while a field is focused,
+and on a phone EVERY edit ends in a blur. He could have typed 300, looked away, and armed a guard
+set to the 500 he had just rejected. **A safety bug wearing a UI bug's clothes**, and I had tested
+that the boxes POPULATED and never that they could be CHANGED.
+
+**MY OWN FAILURES, RECORDED BECAUSE THE PATTERN IS THE POINT:**
+- a `grep -c FAILED` over an **empty file** returned 0 and read exactly like a green suite
+- I asserted *"nothing had been collected"* into a **pre-registration** from an `ls` that had
+  FAILED moments earlier — 25 episodes existed. Archived, not deleted, and the false claim is
+  recorded IN the file
+- **four tests in two days** asserted the OLD MECHANISM rather than the invariant, and failed on
+  correct changes
+- I restarted `gazbot7-web` on a live position because my "check" was a `print` chained with `&&`.
+  **There is now a guard that exits non-zero and refuses** — and it fired on the very next request.
+
+**ALSO:** DAYS 11→20 sessions with a live green/red bar strip · desktop fonts +3px and greys 50%
+brighter, **scoped to min-width:900px so the phone's one-screen budget is untouched** · the
+gateway watchdog rebuilt after the 18:05 wedge cost **$364**.
+
+
+---
+
 ## 2026-09-24 (Thu) — THE DESK CLOSED A TRADE FOR HIM, AND THE DASHBOARD BECAME ONE PAGE
 
 ### LATER THE SAME DAY — THE ALERT CHANNEL, AND A METER THAT HAD BEEN LYING AT THE OPEN

@@ -519,6 +519,21 @@ seconds)**. With hysteresis, 30s→147 and 45s→83 (today's exact rate; `FLOW_W
 ⚠ `neutral` is **13%** of the MNQ tape and is excluded, never pro-rated: splitting it manufactures
 imbalance out of trades where nobody crossed the spread.
 
+### ★ THE GAUGES ARE THE SURFACE HE ACTUALLY USES (2026-09-25)
+Two horizontal tracks under the strip — **PX** and **CVD** — each showing where the value sits
+between **TODAY'S ROLLING 3-HOUR** extremes, with the endpoints printed either side.
+⚠⚠ **ROLLING, NOT SESSION-ANCHORED, AND THAT WAS A REAL FIX.** A session range spans up to 24h (so
+a US reading is taken against overnight ASIA extremes) and **it only ever GROWS**, so the gauge
+loses resolution as the day ages. 180 min is argued from mechanism — a full leg (median 43min)
+without reaching into the previous session.
+⚠ **THE CVD LEVEL IS STILL SESSION-CUMULATIVE.** Only the scale rolls. Changing the number's
+meaning under him is the one alteration a user cannot detect.
+⚠ **ZERO TICK on CVD, VWAP TICK on PX**, and the heat splits **at those marks, never at the
+midpoint** — zero sat at 39% of the range on 09-24 and he read 43% as "the sellers side" within a
+minute. A gauge whose neutral point is invisible invites exactly that.
+⚠ **THE INPUTS ARE ON SCREEN, NOT IN A TOOLTIP** — there is no hover on a phone, and a derived
+verdict whose workings cannot be inspected is unauditable.
+
 ### CVD — the meter FLOW could not be (2026-09-24)
 Operator on FLOW: *"its essentially 30 seconds delayed? so the tape has already done the
 corresponding move? if so its useless."* **Wrong about the delay** (a 30s WINDOW ends NOW, newest
