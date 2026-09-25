@@ -616,6 +616,28 @@ total **−6,636** — so sellers were net-aggressive throughout, *and* the rang
 3h). A negative level beside a risen tape is not a contradiction — the gauge only speaks about the
 last three hours, which is the entire point of the 09-25 anchor change.
 
+### ★★ THE FOUR GAUGE STATES — what the track colour plus the marker actually say
+He worked this out himself and it is worth having written down, because **none of it was designed as
+a special case — it falls out of the rules**, and two of the four are the most informative pictures
+the gauge produces.
+
+| track | marker | reading |
+|---|---|---|
+| **split** at the zero tick | either side | ordinary — zero is on the scale, side is literal |
+| **ALL RED** (whole range negative) | hard **right** | ★ **sellers own the session, buyers own the last stretch.** Cumulatively still behind, but this is the most buying-friendly moment of the window |
+| **ALL GREEN** (whole range positive) | hard **left** | ★ the mirror — buyers own the session, sellers are currently pushing |
+| either | mid | nothing much; the window is balanced |
+
+Live example, 2026-09-25 19:2xZ: `CVD −3,030, range −10,994 → −3,010, 100%` — an entirely red track
+with the marker pinned right, buyers having clawed back ~8,000 contracts without getting out of the
+session's hole. ⚠ **Zero tick is HIDDEN when zero is off the scale**, and the whole track takes the
+one side it is on — a split drawn at a boundary not present on the scale would be a lie about where
+neutral is.
+
+⚠⚠ **AT 100% THE DIRECTION OF TRAVEL IS THE WHOLE QUESTION, NOT THE POSITION.** Still climbing =
+buyers taking over. Stalling at 100% = the recovery out of buyers, which is the same shape as
+2026-09-24 16:40 where price held its highs while CVD drained and then gave back **110 points**.
+
 ### ⚠⚠⚠ AND ANSWERING THAT CAUGHT THE GAUGE MISSTATING ITS OWN SCALE
 `cvd_meter` computed the window's price extremes and **threw them away** (returned `px_pos`, not
 `px_lo`/`px_hi`), so the PX gauge fell back to `session.low/high`: **printed 30680.00→30998.50 under

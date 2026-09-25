@@ -47,6 +47,13 @@ that the boxes POPULATED and never that they could be CHANGED.
 - I restarted `gazbot7-web` on a live position because my "check" was a `print` chained with `&&`.
   **There is now a guard that exits non-zero and refuses** — and it fired on the very next request.
 
+**★ AND BY THE END HE WAS READING IT BETTER THAN THE DOCUMENTATION DID.** *"if cvd is 100 and its to
+the very right but the very right is still −3010 does that mean seller aggression still dominating?
+but more mildly than if it was to the left"* — correct on both counts, and a state nobody had written
+down: an **entirely red track with the marker pinned right** means sellers own the session while
+buyers own the last stretch. It was never designed as a special case; it falls out of the rules.
+The four gauge states are now in STATE §5c because he derived two of them unprompted.
+
 **AND HE CAUGHT THE GAUGE LYING ABOUT ITS OWN SCALE, BY DOING THE ARITHMETIC.** He asked what a CVD
 range of −13,391 to −869 meant when the tape had risen — and the answer exposed that `cvd_meter`
 computed the rolling window's PRICE extremes and threw them away, so the PX gauge printed SESSION
