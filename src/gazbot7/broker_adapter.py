@@ -87,15 +87,34 @@ class IBBrokerAdapter:
         unlikely misconfiguration must never become a new way for a live exit to fail. It is
         AccountNotAllowed — a POSITIVE identification of a wrong account — that refuses.
         """
+        # ⚠⚠ 2026-09-26, CORRECTED BY THE ADVERSARIAL REVIEW. The first cut asserted on EVERY account
+        # `managedAccounts()` reports, so a login that can see TWO accounts — a linked sub-account, an
+        # advisor/FA master, a second paper account — refused every order on the desk, INCLUDING
+        # `place_stop`. A refused protective stop is strictly worse than a refused entry: it
+        # manufactures the naked position the auditor then escalates on. The order routes to ONE
+        # account, so exactly one is the right thing to check.
+        # ⚠ Case- and whitespace-insensitive, because IBKR account strings are not ours to normalise
+        # and a case difference is not a wrong account.
         try:
-            from .livemode import assert_account_allowed
-            accounts = [a for a in (self._ib.managedAccounts() or []) if a]
+            from .livemode import AccountNotAllowed, assert_account_allowed, paper_accounts
+            accounts = [str(a).strip() for a in (self._ib.managedAccounts() or []) if a]
         except Exception:
             return                              # cannot tell → do not block
         if not accounts:
             return                              # cannot tell → do not block
-        for acct in accounts:
-            assert_account_allowed(acct, what=what)
+        # the account this connection actually trades. With one managed account that IS the routed
+        # account; with several, prefer one we recognise over failing on an unrelated sibling.
+        known = {a.upper() for a in paper_accounts()}
+        routed = next((a for a in accounts if a.upper() in known), accounts[0])
+        try:
+            assert_account_allowed(routed, what=what)
+        except AccountNotAllowed:
+            # ⚠⚠⚠ REFUSE AN OPEN, NEVER A CLOSE. You cannot hold a position in an account you are
+            # not connected to, so refusing a close has no safety rationale and every downside: it
+            # would turn a misconfiguration into an unclosable position.
+            if "stop" in what.lower() or "close" in what.lower() or "flat" in what.lower():
+                return
+            raise
 
     # ── BrokerPort ───────────────────────────────────────────────────────────
     def place(self, order) -> None:

@@ -97,6 +97,15 @@ TIMER_FRESHNESS = {
     "gazbot7-daily-loss-limit.timer": 0.25,   # every 2min — the only risk rule that runs
     "gazbot7-request-watch.timer": 0.1,       # every 60s — did his press land
     "gazbot7-day-rider-watchdog.timer": 0.25, # every 2min — flattens an unmanaged position
+    # ★2026-09-26, added by the review of the audit's own work: the commit that fixed "no safety
+    # watcher is watched" installed THREE new timers and watched none of them, which is the same
+    # omission one iteration later. equity-guard is the only thing reading the money; book-recon is
+    # the only thing reconciling it daily; overnight-allclear is what makes the supervisor's own
+    # death detectable, so its silence is the most expensive of the three.
+    "gazbot7-equity-guard.timer": 0.25,       # every 2min — the account reader
+    "gazbot7-book-recon.timer": 30.0,         # daily 21:34Z — book vs broker
+    "gazbot7-overnight-allclear.timer": 30.0, # daily 06:05 Paris — did the supervisor run
+    "gazbot7-deadman.timer": 0.5,             # every 5min — the off-box heartbeat
 }
 JOB_MAX_AGE_H = {"sweep": 6, "hour-watch": 26, "ledger-review": 6, "nightly-review": 30}
 
@@ -133,6 +142,17 @@ def supervisor_message(faults: list[str], repaired: list[str], declined: list[st
         tail += f" || NOT repaired: {', '.join(declined)}"
     if faults:
         return (f"⚠ GAZBOT NIGHTLY SUPERVISOR — {' | '.join(faults)}{tail}"[:900], True, True)
+    # ⚠⚠⚠ 2026-09-26, CORRECTED THE SAME DAY BY AN ADVERSARIAL REVIEW OF MY OWN FIX.
+    # The all-clear used to be SENT from here. It never arrived once: this job fires 21:40 UTC =
+    # 23:40 Paris (22:40 CET) and quiet hours are 22:00-06:00 Paris, so a correctly non-critical
+    # heartbeat was suppressed EVERY NIGHT OF THE YEAR — byte-identical silence to the bug it
+    # replaced, with a test pinning it in place.
+    # The design error was deeper than the timestamp: A PROCESS CANNOT REPORT ITS OWN ABSENCE.
+    # "The supervisor tells you it is alive" fails precisely when the supervisor is what died.
+    # So the clean-night line moved to `scripts/overnight_allclear.py` — a DIFFERENT process, on a
+    # DIFFERENT timer, at 06:05 Paris just after quiet hours end — which reads the verdict this job
+    # leaves on disk and pages CRITICAL if it is missing or stale. Faults still page from here, in
+    # real time, and they are critical so quiet hours never touched them.
     body = (f"all clear — {len(REQUIRED_SERVICES)} services up, {len(TIMER_FRESHNESS)} timers "
             f"fired, router deciding, flat={flat}")
     # ★2026-09-26 the router's own availability, so isolated ABORTs (finding 16) have somewhere to
@@ -408,6 +428,9 @@ def main() -> int:
 
     out = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "faults": faults, "notes": notes, "repaired": repaired,
+           # ★2026-09-26 carried into the file so scripts/overnight_allclear.py can report it in
+           # the morning line — the router's own availability, where its TREND is visible.
+           "router_aborts_today": detail.get("router_aborts_today"),
            "declined_repairs": declined, "flat": flat, **detail}
     if a.json:
         print(json.dumps(out, indent=2))
@@ -425,8 +448,11 @@ def main() -> int:
     except Exception:
         pass
 
-    # ★★★ SENDS EVERY NIGHT, CLEAN OR NOT — see supervisor_message() for why.
-    if not a.dry_run:
+    # ★ Faults and repairs page from here IN REAL TIME (critical, so quiet hours never gated them).
+    # The CLEAN-night line is deliberately NOT sent from here — see supervisor_message(). It is
+    # delivered at 06:05 Paris by scripts/overnight_allclear.py, which reads the verdict file
+    # written just above and pages critical if it is missing or stale.
+    if not a.dry_run and (faults or repaired):
         try:
             from gazbot7.notify import notify
             text, critical, mark = supervisor_message(faults, repaired, declined, flat,

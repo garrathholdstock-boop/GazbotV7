@@ -112,14 +112,56 @@ def test_a_REAL_leak_still_halts(tmp_path):
 
 
 def test_a_DEAD_rider_cannot_buy_an_indefinite_reprieve(tmp_path):
-    """⚠ A rider that never writes again never advances its stamp. That must leave the desk BLOCKED
-    rather than waiting forever in a state that looks fine — not knowing is not flat."""
+    """⚠⚠⚠ THIS TEST ASSERTED THE OPPOSITE OF THE DESIGN AND PASSED BY ACCIDENT.
+
+    It looped `reconcile` 50 times and asserted `_halted is False`, calling that "never confirmed,
+    correctly". But a dead rider MUST confirm on the DRIFT_CONFIRM_MAX_S bound — that bound exists
+    precisely so a rider which never writes again cannot buy permanent silence while `pending` keeps
+    returning "drift" and skipping the caller's whole safety block. The old test passed only because
+    50 iterations take microseconds against a 240-second `time.monotonic()` window: it was testing
+    the pre-bound window while its name and docstring claimed to test the bound.
+    **A regression that deleted the time bound entirely would have left it green.**
+
+    Now it tests both halves for real, by ageing the pending record rather than waiting 240s.
+    """
     core = _core(tmp_path, logical=0.0,
                  rider={"entered": False, "closed": False, "heartbeat": HB1})
-    for _ in range(50):
+    # before the bound: correctly unconfirmed, and correctly still blocked
+    for _ in range(5):
         core.reconcile(4.0)
-    assert core._halted is False                    # never confirmed, correctly
+    assert core._halted is False, "it must not confirm before the bound on a stamp that never moved"
     assert core._open_blocked is True, "but it must never become openable"
+
+    # ★ age the pending record past the bound. A dead rider's stamp NEVER advances, so this is the
+    # only thing that can confirm — and it must.
+    import time as _t
+    core._drift_pending["mono"] = _t.monotonic() - (core.DRIFT_CONFIRM_MAX_S + 1.0)
+    assert core.reconcile(4.0) == "drift"
+    assert core._halted is True, (
+        "a dead rider must NOT buy indefinite silence — the time bound is what stops an unaccounted "
+        "lot being unmanaged AND unreported forever")
+
+
+def test_the_time_bound_page_says_it_was_the_BOUND_not_a_rewrite(tmp_path):
+    """The two confirmation routes mean different things — 'the rider disagrees' vs 'the rider has
+    stopped talking' — and the message must not blur them."""
+    import time as _t
+    pages = []
+    core = _core(tmp_path, logical=0.0,
+                 rider={"entered": False, "closed": False, "heartbeat": HB1}, pages=pages)
+    core.reconcile(4.0)
+    core._drift_pending["mono"] = _t.monotonic() - (core.DRIFT_CONFIRM_MAX_S + 1.0)
+    core.reconcile(4.0)
+    assert len(pages) == 1
+    assert "time bound" in pages[0] and "has not rewritten" in pages[0]
+
+
+def test_the_bound_is_looser_than_the_claim_freshness_bar(tmp_path):
+    """⚠ Ordering matters: the bound must be LONGER than DR_MAX_AGE_S so the ordinary
+    claim-rewrite path always wins the race and the bound only ever fires on a genuinely dead
+    rider. If they inverted, every routine fill would confirm on the clock instead."""
+    core = _core(tmp_path, logical=0.0, rider=None)
+    assert core.DRIFT_CONFIRM_MAX_S > core.DR_MAX_AGE_S
 
 
 def test_an_unreadable_claim_never_counts_as_advanced(tmp_path):

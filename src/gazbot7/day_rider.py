@@ -295,6 +295,10 @@ def watch_verdict(rt: float) -> str:
 ARM_PT = 150.0                     # fallback: trail arms once this far ahead
 TRAIL_PT = 100.0
 VENUE_STOP_PT = 600.0              # last-resort only; see docstring note 2
+# ★2026-09-26 how far BEYOND the trigger the catastrophe stop's limit sits. Wide on purpose: this
+# order exists for the case where nothing on this box is running, so it must clear a fast market.
+# A tight band reproduces the unfilled-stop failure it is there to survive.
+VENUE_STOP_LIMIT_BAND_PT = 100.0
 HEARTBEAT_STALE_S = 180
 
 # ── OPERATOR-APPROVED DISCRETIONARY EXIT ──────────────────────────────────────────────────────────
@@ -1015,6 +1019,30 @@ async def _venue(cfg: RunConfig):
     await asyncio.sleep(0.8)
     (contract,) = await ib.qualifyContractsAsync(ContFuture(cfg.symbol, cfg.exchange))
     return ib, contract
+
+
+async def stop_contract_for(ib, contract, cfg):
+    """The CONCRETE front month, for a RESTING order. Never the ContFuture.
+
+    ★★★2026-09-26 AUDIT REVIEW. `PLACE_VENUE_STOP` placed its stop on the ContFuture, which is the
+    one contract form this desk already knows does not work: [[stop-unfilled-contfuture-root-cause]]
+    records that IBKR intermittently never fires a resting stop's TRIGGER on a continuous contract
+    (it sits PreSubmitted / whyHeld='trigger'), and `broker_adapter` carries a whole `_stop_contract`
+    field to avoid exactly this. The tournament resolves it at `tournament.py:490`; the rider never
+    did, because it never placed a resting order.
+    ★ The ContFuture has already resolved the front month, so its `conId` IS the concrete contract —
+    qualifying a `Future` off that conId keeps the SAME conId, so positions and the naked audit still
+    reconcile at the venue.
+    ⚠ Returns the ContFuture unchanged on any failure: a stop on the wrong contract form is still
+    better than no stop at all, and the caller's alternative is naked.
+    """
+    try:
+        from ib_async import Future
+        (concrete,) = await ib.qualifyContractsAsync(Future(conId=contract.conId,
+                                                           exchange=cfg.exchange))
+        return concrete
+    except Exception:
+        return contract
 
 
 async def _net_position(ib, symbol: str) -> float:
@@ -1977,7 +2005,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             return out
 
         d = 1 if r.direction == "UP" else -1
-        from ib_async import StopOrder
+        from ib_async import StopLimitOrder
         # ★2026-09-04 marketable LIMIT here too — the automatic entry is 4 lots, so it took the
         # fabricated 0.1% fill on 3 of them exactly as the manual one did.
         _side = "BUY" if d > 0 else "SELL"
@@ -1993,7 +2021,18 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # ⚠ `_lots`, not LOTS: a stop sized to the REQUEST after a partial fill protects lots
             # that do not exist, and on a netted shared account the excess reverses the position
             # when it triggers.
-            ib.placeOrder(contract, StopOrder("SELL" if d > 0 else "BUY", _lots, stop_px))
+            # ★★★2026-09-26 TWO CORRECTIONS, both copied from patterns this repo already proved:
+            #   1. the CONCRETE front month, never the ContFuture — see stop_contract_for().
+            #   2. STOP-LIMIT with an explicit fillable band, not a plain STP: `broker_adapter`
+            #      records that "a plain STP let the paper account attach a toothless wrong-sided
+            #      limit". A catastrophe stop that cannot fill is not a catastrophe stop.
+            # ⚠ The band is deliberately WIDE (VENUE_STOP_LIMIT_BAND_PT). This order exists for the
+            # case where nothing on this box is running, so it must clear a fast market; a tight
+            # band would reproduce the unfilled-stop failure it is meant to survive.
+            _side = "SELL" if d > 0 else "BUY"
+            _sc = await stop_contract_for(ib, contract, cfg)
+            _lmt = round(stop_px - d * VENUE_STOP_LIMIT_BAND_PT, 2)
+            ib.placeOrder(_sc, StopLimitOrder(_side, _lots, _lmt, stop_px))
         else:
             stop_px = None      # naked by operator decision — see PLACE_VENUE_STOP above
         out.update(entered=True, entry=fill, peak=fill, direction=d, qty=_lots,

@@ -44,6 +44,8 @@ SERIES = f"{GB}/data/gateway_watch.jsonl"      # the measurement — one line a 
 LOG = f"{GB}/data/gateway_watch.log"
 STATE = f"{GB}/data/gateway_watch_state.json"
 RIDER = f"{GB}/data/day_rider_state.json"
+HEALTH = f"{GB}/data/core_health.json"      # for desk_flat — BOTH desks, not just the rider
+HEALTH_STALE_S = 180.0                      # a tournament that stopped writing cannot vouch
 PORT = 4002
 BACKLOG = 50                                    # the listener's queue depth — the thing that fills
 TRIP = int(os.environ.get("GW_TRIP", "30"))     # 30 of 50: acting on the CLIMB, not the wedge
@@ -118,7 +120,20 @@ def sample() -> dict:
 
 def desk_is_flat() -> tuple[bool, str]:
     """⚠⚠ A restart blinds every consumer for ~15s. Doing that to an open position to fix a problem
-    that has not yet bitten would be the cure causing the disease."""
+    that has not yet bitten would be the cure causing the disease.
+
+    ★★★2026-09-26, CORRECTED BY THE ADVERSARIAL REVIEW OF THE AUDIT'S OWN WORK. This read the RIDER
+    ONLY. So with the rider flat and the TOURNAMENT holding slots it returned "flat" and the CLOSE-WAIT
+    branch would `docker restart alphabot-gateway`, blinding an open position for ~15 seconds —
+    precisely the harm the docstring above exists to prevent. Of everything that reads a flatness
+    flag on this desk, this is the one that ACTS rather than reports, so it is the one that most
+    needed the desk-wide answer.
+    Now BOTH desks: the rider's own claim, and `core_health.desk_flat` (tournament AND rider, written
+    by multislot_core, fail-closed on an unreadable rider).
+    ⚠ NOT KNOWING IS NOT FLAT, on either half — an unreadable file or a missing field blocks the
+    restart rather than waving it through. And a STALE core_health is treated as unreadable: a
+    tournament that stopped writing cannot vouch for being flat.
+    """
     try:
         with open(RIDER) as fh:
             st = json.load(fh)
@@ -128,7 +143,22 @@ def desk_is_flat() -> tuple[bool, str]:
     except Exception as e:
         # ⚠ CANNOT READ = CANNOT ACT. Not knowing is not the same as flat.
         return False, f"cannot read the rider state ({type(e).__name__}) — refusing to act blind"
-    return True, "flat"
+    try:
+        with open(HEALTH) as fh:
+            h = json.load(fh)
+        age = (dt.datetime.now(dt.UTC)
+               - dt.datetime.fromisoformat(str(h["ts"]))).total_seconds()
+        if age > HEALTH_STALE_S:
+            return False, (f"core_health is {age:.0f}s stale — the tournament cannot vouch for "
+                           f"being flat, so refusing to act blind")
+        if "desk_flat" not in h:
+            return False, ("core_health has no desk_flat field (tournament not restarted onto the "
+                           "2026-09-26 code) — refusing to act on the tournament-scoped `flat`")
+        if not h.get("desk_flat"):
+            return False, f"desk not flat: {h.get('desk_flat_note') or 'tournament holds slots'}"
+    except Exception as e:
+        return False, f"cannot read core_health ({type(e).__name__}) — refusing to act blind"
+    return True, "flat (rider and tournament)"
 
 
 def blind_and_holding() -> tuple[bool, str]:

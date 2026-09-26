@@ -127,6 +127,16 @@ def ping(base: str, *, ok: bool, summary: str, timeout: float = TIMEOUT_S) -> tu
     phone tells him WHAT was wrong, not merely that the pings stopped.
     """
     target = base.rstrip("/") + ("" if ok else "/fail")
+    # ⚠⚠ 2026-09-26 review: THE EXCEPTION TEXT LEAKED THE CREDENTIAL. A URL pasted without a scheme
+    # ("hc-ping.com/SECRET-TOKEN") makes Request() raise ValueError whose message CONTAINS the URL,
+    # and that string became rec["transport"] in the state file and a line in deadman.log — while
+    # this module's own docstring promises the URL is "never written to the log or the state file".
+    # A missing https:// is the likeliest possible operator error here. So validate the scheme first
+    # and never let a raw URL reach an error string.
+    parsed = urllib.parse.urlparse(target)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return False, ("malformed deadman_url: it must start with https:// — refusing to send "
+                       "(the URL itself is withheld from this log deliberately)")
     try:
         req = urllib.request.Request(target, data=summary.encode()[:900],
                                      headers={"User-Agent": "gazbot7-deadman/1"})
@@ -135,7 +145,8 @@ def ping(base: str, *, ok: bool, summary: str, timeout: float = TIMEOUT_S) -> tu
     except urllib.error.HTTPError as e:
         return False, f"HTTP {e.code}"
     except Exception as e:
-        return False, f"{type(e).__name__}: {e}"
+        # ⚠ Only the TYPE, never the message — urllib error text can embed the full URL.
+        return False, f"{type(e).__name__} contacting {parsed.netloc}"
 
 
 def main() -> int:

@@ -58,7 +58,9 @@ def preflight(force: bool = False) -> tuple[bool, str]:
     """Nothing may be open. The Asia block is the intended window; the halt is also fine."""
     try:
         h = json.load(open(f"{GB}/data/core_health.json"))
-        flat = bool(h.get("flat", False))
+        # ★2026-09-26 desk_flat (tournament AND rider), not the tournament-scoped `flat`.
+        # Fail-closed: a file without the field predates the change -> treat as NOT flat.
+        flat = bool(h.get("desk_flat", False))
     except Exception as e:
         log(f"ABORT: cannot read core_health.json ({e})")
         return (False, "error")
@@ -97,7 +99,9 @@ def desk_busy() -> bool:
     than competing. Fail-safe: unreadable state counts as BUSY.
     """
     try:
-        if not json.load(open(f"{GB}/data/core_health.json")).get("flat", False):
+        # ★2026-09-26 desk_flat, not the tournament-scoped `flat` — and .get default False means
+        # a pre-change file reads as NOT flat, which is the safe direction for a YIELD check.
+        if not json.load(open(f"{GB}/data/core_health.json")).get("desk_flat", False):
             return True
         r = json.load(open(f"{GB}/data/day_rider_state.json"))
         return bool(r.get("entered")) and not bool(r.get("closed"))

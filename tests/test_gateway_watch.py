@@ -116,12 +116,32 @@ def test_the_cap_cannot_be_exhausted_ACROSS_episodes():
 
 
 def test_the_within_episode_loop_is_still_held():
-    """⚠ The fix must not weaken the thing the cap was written for. Two independent brakes remain:
-    a cooldown between tries inside an episode, and the cap itself."""
+    """⚠ The fix must not weaken the thing the cap was written for: two independent brakes remain,
+    a cooldown between tries inside an episode and the cap itself.
+
+    ⚠⚠ 2026-09-26 review: this used to assert only `BLIND_COOLDOWN_S > 0` and `BLIND_MAX >= 1` —
+    constants that would pass with the checks that USE them deleted. It now reads the decision block
+    with comments stripped, so the guard has to be in the code path and not in the prose about it.
+    """
     assert gw.BLIND_COOLDOWN_S > 0, "an intra-episode cooldown must still exist"
     assert gw.BLIND_MAX >= 1, "the per-episode cap must still exist"
     src = open(SRC).read()
-    assert "BLIND_COOLDOWN_S" in src and "nres >= BLIND_MAX" in src
+    block = src.split("blind, bwhy = blind_and_holding()", 1)[1]
+    code = "\n".join(l for l in block.splitlines() if not l.strip().startswith("#"))
+    assert "nres >= BLIND_MAX" in code, "the cap must be TESTED in the decision path"
+    assert "bage < BLIND_COOLDOWN_S" in code, "the cooldown must be TESTED in the decision path"
+    # and the restart must sit behind both
+    assert code.index("nres >= BLIND_MAX") < code.index("restart(")
+    assert code.index("bage < BLIND_COOLDOWN_S") < code.index("restart(")
+
+
+def test_clear_blind_is_actually_CALLED_from_the_loop():
+    """⚠ The sibling test reimplements the increment inline, so it never proves `clear_blind` is
+    wired in. This does: the clear branch must call it."""
+    src = open(SRC).read()
+    tail = src.split('elif st.get("blind_since"):', 1)[1].split("if once:", 1)[0]
+    code = "\n".join(l for l in tail.splitlines() if not l.strip().startswith("#"))
+    assert "clear_blind(st)" in code
 
 
 def test_clearing_says_so_in_the_log():

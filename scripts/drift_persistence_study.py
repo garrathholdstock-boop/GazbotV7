@@ -57,7 +57,8 @@ def preflight(force: bool = False) -> tuple[bool, str]:
     """
     try:
         h = json.load(open(f"{GB}/data/core_health.json"))
-        flat = bool(h.get("flat", False))
+        # ★2026-09-26 desk_flat (tournament AND rider), not the tournament-scoped `flat`.
+        flat = bool(h.get("desk_flat", False))
     except Exception as e:
         log(f"ABORT: cannot read core_health.json ({e})")
         return (False, "error")

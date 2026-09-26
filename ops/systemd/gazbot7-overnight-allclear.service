@@ -1,0 +1,22 @@
+[Unit]
+# GAZBOT V7 — "did the night's machinery actually run?", asked by a DIFFERENT PROCESS.
+# ★★★ The 2026-09-26 audit's finding 7 was that nightly_supervisor spoke only on faults, so a clean
+# night and a DEAD supervisor were identical silence. The first fix (send unconditionally) DID NOT
+# WORK: the supervisor fires 21:40 UTC = 23:40 Paris, quiet hours are 22:00-06:00 Paris, so a
+# correctly non-critical heartbeat was suppressed every night of the year.
+# ⚠ The design error was deeper than the hour: A PROCESS CANNOT REPORT ITS OWN ABSENCE. So this is a
+# separate process on a separate timer that reads the verdict the supervisor leaves on disk, and
+# pages CRITICAL if it is missing or stale.
+Description=GAZBOT V7 — morning all-clear / did the supervisor run
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# Exit 1 means it found a problem and ALREADY PAGED — not a unit failure.
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/overnight_allclear.py
+TimeoutStartSec=120
+MemoryMax=200M

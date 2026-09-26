@@ -145,10 +145,10 @@ def assess() -> tuple[list[str], dict]:
                     "last_line": last[:200], "timer": tdetail,
                     "aborts_today": day_aborts, "ticks_today": day_ticks,
                     "abort_pct_today": (round(100.0 * day_aborts / day_ticks, 1)
-                                        if day_ticks else None)}
+                                        if (day_ticks and day_aborts is not None) else None)}
 
 
-def _today_counts() -> tuple[int, int]:
+def _today_counts() -> tuple[int | None, int | None]:
     """(ABORTs, total ticks) logged so far today. Cheap: the file is line-per-tick and we only
     scan the tail of a day (288 ticks at 5-minute cadence).
 
@@ -168,7 +168,10 @@ def _today_counts() -> tuple[int, int]:
                     aborts += 1
         return aborts, ticks
     except Exception:
-        return (0, 0)
+        # ⚠ 2026-09-26 review: this returned (0, 0), so a BROKEN counter read as "0 aborts today" —
+        # false comfort about the exact number it exists to surface. None means "not counted", and
+        # the caller publishes it as such.
+        return (None, None)
 
 
 def main() -> int:

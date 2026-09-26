@@ -544,13 +544,20 @@ def main():
                 confirmed = False
                 if mm is not None and abs(mm) >= 1:
                     prev_mm, prev_ts = st["mismatch_seen"]
-                    if prev_mm is None or abs(prev_mm - mm) >= 0.5:
-                        st["mismatch_since"] = wall_time      # a NEW imbalance — start the clock
+                    # ⚠⚠ 2026-09-26 review: resetting the clock on ANY size change means an orphan
+                    # whose size drifts (partial fills, 4 -> 3 -> 2) never accumulates the dwell and
+                    # never pages — the hole the dwell was supposed to narrow, widened to 90s. What
+                    # matters is that an imbalance EXISTS continuously, not that it holds one value.
+                    # So the clock starts when the imbalance APPEARS and runs while it persists; only
+                    # a return to balance clears it (the `else` branch below).
+                    if st.get("mismatch_since") is None:
+                        st["mismatch_since"] = wall_time      # the imbalance APPEARED — start it
                     dwelt = wall_time - st.get("mismatch_since", wall_time)
-                    if (prev_mm is not None and abs(prev_mm - mm) < 0.5 and prev_ts != v_ts
+                    if (prev_mm is not None and prev_ts != v_ts
                             and dwelt >= DESK_MISMATCH_DWELL_S):
-                        confirmed = True   # same imbalance, newer venue read, AND it has outlived
-                                           # the rider's own write cadence
+                        confirmed = True   # an imbalance that has persisted across a newer venue
+                                           # read AND outlived the rider's own write cadence.
+                                           # ⚠ Deliberately NOT requiring the same VALUE — see above.
                     st["mismatch_seen"] = (mm, v_ts)
                     if not confirmed:
                         # ★2026-08-13 FIX: this called an undefined `log()`. The NameError raised on

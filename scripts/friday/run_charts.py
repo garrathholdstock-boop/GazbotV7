@@ -105,6 +105,54 @@ def load_trades(symbol, t0, t1):
     return out
 
 
+# ★★★2026-09-25 REV2 — THE PASS PRESSES, ON THE SAME PRICE PATH AS THE FILLS.
+# The operator pressed PASS for the first time this week: 2026-09-24 and 09-25. Those are the
+# FIRST NEGATIVE EXAMPLES this desk has ever had — every threshold in the report until now was
+# fitted on presses only. Seeing where he declined against where he pressed is the single most
+# valuable thing these charts have ever been able to show, and it cannot be seen in a table.
+# ⚠ ONE ROW IS NOT A PASS and is deliberately NOT drawn: the 09-24 09:56:03Z record carries
+#   `BUTTON AUDIT - not a real pass` in its own request line. Drawing it would put a wiring check
+#   on the chart as a decision.
+PASS_INK = "#5b3fa8"          # violet: a THIRD category, not a win and not a loss, so not on the
+                              # win/loss axis at all. Distinct from both at deutan and protan.
+
+
+def load_passes(t0, t1, reads=f"{GB}/data/operator_reads.jsonl"):
+    """The operator's PASS presses in the window, with the price he was looking at."""
+    out = []
+    try:
+        lines = open(reads).read().splitlines()
+    except OSError:
+        return out
+    for ln in lines:
+        ln = ln.strip()
+        if not ln:
+            continue
+        try:
+            r = json.loads(ln)
+        except ValueError:
+            continue
+        if r.get("kind") != "pass":
+            continue
+        raw = (r.get("request") or {}).get("raw") or ""
+        if "not a real pass" in raw.lower():
+            continue                      # the button audit — a wiring check, not a decision
+        try:
+            ts = _ms(r["ts"])
+        except Exception:
+            continue
+        if not (t0 <= ts <= t1):
+            continue
+        f = r.get("facts") or {}
+        if f.get("price") is None:
+            continue
+        out.append(dict(ts=ts, px=float(f["price"]),
+                        pir=f.get("pos_in_range"), atr=f.get("atr"),
+                        drift=(f.get("drift") or {}).get("direction"),
+                        dmin=(f.get("drift") or {}).get("minutes")))
+    return out
+
+
 def _ticks_nice(lo, hi, n=5):
     span = hi - lo
     if span <= 0:
@@ -129,8 +177,10 @@ def render(symbol, t0, t1, title, subtitle="", show_trades=True):
     if len(pts) < 2:
         return f'<div class="callout"><div class="ct">No tick data for {_esc(title)} — chart omitted.</div></div>'
     trades = load_trades(symbol, t0, t1) if show_trades else []
+    passes = load_passes(t0, t1) if (show_trades and symbol == "MNQ") else []
 
-    prices = [p for _, p in pts] + [t["ep"] for t in trades] + [t["xp"] for t in trades]
+    prices = ([p for _, p in pts] + [t["ep"] for t in trades] + [t["xp"] for t in trades]
+              + [q["px"] for q in passes])
     lo, hi = min(prices), max(prices)
     pad = (hi - lo) * 0.08 or 1
     lo, hi = lo - pad, hi + pad
@@ -186,6 +236,27 @@ def render(symbol, t0, t1, title, subtitle="", show_trades=True):
         s.append(f'<circle cx="{x1c:.1f}" cy="{y1:.1f}" r="4.5" fill="{col}" stroke="{SURFACE}" stroke-width="2"/>')
         s.append('</g>')
 
+    # PASS presses: a hollow violet diamond with a stem to the axis. Hollow because nothing was
+    # opened; a stem because the MOMENT is the message and the exact price is not.
+    for q in passes:
+        qx, qy = X(q["ts"]), Y(q["px"])
+        bits = [f'PASS · {datetime.fromtimestamp(q["ts"]/1000, timezone.utc):%H:%M:%S}Z',
+                f'price {q["px"]:,.2f}']
+        if q.get("pir") is not None:
+            bits.append(f'{q["pir"]*100:.0f}% of day range')
+        if q.get("atr"):
+            bits.append(f'ATR {q["atr"]:.1f}pt')
+        if q.get("drift"):
+            bits.append(f'drift {q["drift"]} {q.get("dmin")}min')
+        s.append(f'<g><title>{_esc(" · ".join(bits))}</title>')
+        s.append(f'<line x1="{qx:.1f}" y1="{qy:.1f}" x2="{qx:.1f}" y2="{H-PAD_B:.1f}" '
+                 f'stroke="{PASS_INK}" stroke-width="1" stroke-dasharray="2 3" opacity="0.7"/>')
+        s.append(f'<polygon points="{qx:.1f},{qy-7:.1f} {qx+6:.1f},{qy:.1f} {qx:.1f},{qy+7:.1f} '
+                 f'{qx-6:.1f},{qy:.1f}" fill="{SURFACE}" stroke="{PASS_INK}" stroke-width="2"/>')
+        s.append(f'<text x="{qx:.1f}" y="{qy-11:.1f}" text-anchor="middle" font-size="10" '
+                 f'font-weight="700" fill="{PASS_INK}">PASS</text>')
+        s.append('</g>')
+
     # selective direct labels — only the trades worth naming, never a number on every point.
     # De-conflict vertically: a label that would collide with one already placed walks up/down
     # until it finds clear air, so a dense cluster stays readable instead of overprinting.
@@ -213,7 +284,8 @@ def render(symbol, t0, t1, title, subtitle="", show_trades=True):
     # overprint it (a measured dx offset does — that bug shipped once already).
     sub = f'<tspan dx="10" font-size="11" font-weight="400" fill="{INK2}">{_esc(subtitle)}</tspan>' if subtitle else ''
     s.append(f'<text x="{PAD_L}" y="16" font-size="13" font-weight="700" fill="{INK}">{_esc(title)}{sub}</text>')
-    lx = W - PAD_R - 268
+    # ★2026-09-25 the legend grew a 5th item; reserve for it or 'passed' runs off the plot.
+    lx = W - PAD_R - (268 + 62 if passes else 268)
     s.append(f'<polygon points="{lx},{9.5} {lx-5},{18.5} {lx+5},{18.5}" fill="{INK2}"/>')
     s.append(f'<text x="{lx+9}" y="18" font-size="10.5" fill="{INK2}">long in</text>')
     s.append(f'<polygon points="{lx+56},{18.5} {lx+51},{9.5} {lx+61},{9.5}" fill="{INK2}"/>')
@@ -224,6 +296,12 @@ def render(symbol, t0, t1, title, subtitle="", show_trades=True):
     s.append(f'<text x="{lx+172}" y="18" font-size="10.5" fill="{INK2}">win</text>')
     s.append(f'<circle cx="{lx+205}" cy="14.5" r="4.5" fill="{LOSS}"/>')
     s.append(f'<text x="{lx+214}" y="18" font-size="10.5" fill="{INK2}">loss</text>')
+    if passes:
+        px0 = lx + 246
+        s.append(f'<polygon points="{px0},{9.5} {px0+5},{14.5} {px0},{19.5} {px0-5},{14.5}" '
+                 f'fill="{SURFACE}" stroke="{PASS_INK}" stroke-width="2"/>')
+        s.append(f'<text x="{px0+9}" y="18" font-size="10.5" font-weight="700" '
+                 f'fill="{PASS_INK}">passed</text>')
     s.append('</svg>')
     return "\n".join(s)
 
@@ -244,6 +322,15 @@ def main():
         specs = json.load(open(a.spec))
         parts = []
         for sp in specs:
+            # ★2026-09-18 REV2 — a spec entry may carry RAW HTML instead of a chart.
+            # Section 4 had no ranked shortlist, which the proofread called out: a section that
+            # raises a lead and offers no verdict, next step or kill criterion has not finished.
+            # The alternative was to hand-append a block to the generated fragment after the fact,
+            # which is exactly the kind of edit the next regeneration silently eats. A prose card
+            # belongs in the spec beside the charts it concludes, so it is rebuilt with them.
+            if "html" in sp:
+                parts.append(f'<div class="card">{sp["html"]}</div>')
+                continue
             svg = render(sp.get("symbol", a.symbol), _ms(sp["from"]), _ms(sp["to"]),
                          sp.get("title", ""), sp.get("subtitle", ""))
             note = sp.get("note", "")

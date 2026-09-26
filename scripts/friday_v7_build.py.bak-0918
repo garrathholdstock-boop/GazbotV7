@@ -74,9 +74,6 @@ ROOT = "/home/alphabot/gazbot7"
 # ⚠ data/weekend_flatten_pending.json also carries 29491.93; it flattens by QUANTITY so the wrong
 #   price is cosmetic there, but it is the same number and the next reader should not re-import it.
 CARRY_ENTRY, CARRY_LOTS = 29491.625, 4
-# The week this render is FOR. Bound in main() from --slug; used by the stale banner
-# so it can name the masthead week instead of a constant frozen a month ago.
-REPORT_SLUG = ""
 
 # supplemental CSS for classes the template may not define
 SUPP = """<style>
@@ -765,35 +762,10 @@ def vintage_note() -> str:
         f'<tbody>{rows}</tbody></table></div>')
 
 
-_PHASE_REPORT_EMITTED = [False]
-
-
 def phase_report() -> str:
-    """The 'what did not run this cycle, named exactly' paragraph — GENERATED.
-
-    ★★2026-09-18 REV2 — TWO FIXES, BOTH ABOUT DESCRIBING A DOCUMENT THAT IS NOT THIS ONE.
-
-    (1) IT IS EMITTED ONCE. Both `evidence_intro_*()` and the front matter's "what did not run this
-        cycle" paragraph call it, so the whole thing printed twice, word for word, including the
-        "4 of 4 fragments are finished work" sentence. The second call now renders a one-line
-        pointer back to the first instead of a duplicate.
-
-    (2) THE PART 1.5 PARAGRAPH IS CONDITIONAL ON PART 1.5 BEING IN THE RUNNING ORDER. It was in the
-        `else` branch of the stale check, so it printed whenever nothing was stale — which on the
-        refocused running order meant the report told the reader how to read §0a–§0c of a
-        Rehabilitation section this document does not contain, dated four weeks before the report
-        week, in both places where it lists what is absent. A paragraph explaining a section is only
-        ever correct while the section is on the running order, so it now asks.
-    """
-    if _PHASE_REPORT_EMITTED[0]:
-        return ('<strong>Fragment freshness is stated once, above</strong> &mdash; see &ldquo;what '
-                'did not run this cycle, named exactly&rdquo; on the front page. It is not repeated '
-                'here.')
-    _PHASE_REPORT_EMITTED[0] = True
+    """The 'what did not run this cycle, named exactly' paragraph — GENERATED."""
     pv = provenance()
     n = sum(len(v) for v in pv.values())
-    # Does this running order actually CONTAIN the section the standing Part 1.5 note describes?
-    has_rehab = any(frag == "part1_5_rehab.html" for *_, frag, _a, _x in SECTIONS)
     bits = [
         f'<strong>{len(pv["cycle"]) + len(pv["late"])} of {n} fragments are finished work and '
         f'sit in this document in full.</strong> ']
@@ -808,9 +780,9 @@ def phase_report() -> str:
             f'<strong>{len(pv["stale"])} fragment(s) predate this cycle entirely</strong> '
             f'({_names(pv["stale"])}) and are stitched IN FULL under a red dated banner that says '
             'so at the top of the section. No play on this card is sourced from one. ')
-    elif has_rehab:
+    else:
         bits.append(
-            '<strong>Nothing on the running order predates this cycle</strong>, so no section '
+            '<strong>Nothing on the running order predates the 08-28 cycle</strong>, so no section '
             'carries the red &ldquo;this is last cycle&rsquo;s text&rdquo; banner this week. '
             '&#9733; Note what that does <em>not</em> mean, and this is the ONE description of '
             'Part&nbsp;1.5 that the front matter, this paragraph and the section itself now all '
@@ -819,11 +791,6 @@ def phase_report() -> str:
             'inside the cycle so the build does not flag it, and it carries its OWN dated banner '
             'saying the material below its first rule describes the week to 2026-08-21. Read '
             '&sect;0a&ndash;&sect;0c as this cycle\'s and the treatments as standing material. ')
-    else:
-        bits.append(
-            '<strong>Nothing on the running order predates this cycle</strong>, so no section '
-            'carries the red &ldquo;this is last cycle&rsquo;s text&rdquo; banner this week &mdash; '
-            'every fragment above was written tonight. ')
     if pv["missing"]:
         bits.append(
             f'<strong>&#9733; {len(pv["missing"])} fragment(s) are MISSING</strong> '
@@ -864,31 +831,6 @@ GAP_BANNERS: dict[str, tuple[str, str]] = {
     # Kept as an empty dict rather than deleted: the mechanism is right and a cycle with a genuinely
     # PARTIAL phase should use it. A partial phase is invisible to the placeholder path, because the
     # fragment it wrote is fresh and complete and simply does not contain everything it should.
-}
-
-
-# Fragments that carry no heading of their own, and the heading to render above them. A fragment
-# that is a bare stack of cards has no title, and as a top-level section that leaves the reader
-# dropping out of the previous section's prose straight into a chart. Only fill this in for a
-# genuinely headless fragment — a fragment with its own <h2> must never be given a second one.
-HEADLESS: dict[str, str] = {
-    "run_charts.html": (
-        '<h2 id="runcharts_h"><span class="n">4</span> THE RUN CHARTS &mdash; every fill of the '
-        'week, marked on the day&rsquo;s own price path</h2>'
-        '<p class="lead">Five sessions, one chart each, <strong>00:00&ndash;21:00&nbsp;UTC</strong> '
-        '&mdash; wide enough that not one of your 61 legs falls off the edge, including the 00:25 '
-        'and 02:37 overnight entries. <strong>A triangle is an entry</strong> (apex up = long, apex '
-        'down = short), <strong>a circle is an exit</strong>, the line between them is the hold, and '
-        'green/red is the money. The colour pair is validated for deuteranopia and colour is never '
-        'the only carrier: shape gives direction and every labelled exit carries a signed dollar '
-        'figure. Hover any marker for the full fill.</p>'
-        '<p class="lead">⚠ <strong>These are LEGS, not entries.</strong> A scale-out books one '
-        'marker per lot leaving, so Monday&rsquo;s four decisions appear as nine markers. Count '
-        'triangles that share an entry price as one decision &mdash; or read Section&nbsp;1&rsquo;s '
-        'tables, which count decisions throughout. <strong>Two charts follow the five sessions:</strong> '
-        'the FOMC hour up close on MNQ, and the same two hours on <strong>gold</strong>, which carries '
-        'no fills because neither you nor the desk trades it &mdash; it is there because FOMC moved '
-        'MGC further than it moved the Nasdaq.</p>'),
 }
 
 
@@ -986,32 +928,20 @@ def fragment_or_placeholder(fname: str, label: str, sub: str) -> str:
         # is a red box saying it is not one. Absence was never the danger; being unable to tell was.
         when = dt.datetime.fromtimestamp(p.stat().st_mtime, dt.UTC)
         why = WHY_STALE.get(fname, "it did not regenerate this cycle")
-        # ★★★2026-09-25 — THE BANNER NAMED THE WRONG WEEKS, AND IT NAMED THEM IN CONSTANTS. It said
-        # "not rebuilt by the 2026-08-28 run ... describes the week to Friday 2026-08-21" — dates
-        # frozen a month earlier, so a banner whose entire job is to tell the reader WHICH WEEK he is
-        # looking at was itself lying about the week. It now reads the artifact's own week stamp and
-        # the report's slug, and says "an earlier cycle" when there is no stamp to name.
-        fw = frag_week(p)
-        stamped = (f'<strong>it describes the week to Friday {esc(fw)}, not the week to '
-                   f'{esc(REPORT_SLUG)}</strong>' if fw else
-                   '<strong>it describes an EARLIER week than the one on the masthead</strong> '
-                   '(no week stamp on disk, so this banner cannot name which)')
         return (
-            '<div class="rev3"><div class="ct">★ THIS SECTION IS AN EARLIER CYCLE&rsquo;S &mdash; it '
-            'did NOT regenerate this week</div>'
-            f'<p><strong>{esc(label)} &mdash; {sub}</strong> was not rebuilt by the '
-            f'{esc(REPORT_SLUG)} run: {why}. The text below is the <code>{esc(fname)}</code> on '
-            f'disk, last touched <strong>{when:%Y-%m-%d %H:%M}&nbsp;UTC</strong>, and {stamped}.</p>'
-            '<p>⚠ <strong>Its mtime is NOT evidence of its vintage</strong> &mdash; a git operation '
-            'on 2026-09-24 touched every fragment in this directory, which is exactly how an earlier '
-            'week nearly shipped under tonight&rsquo;s masthead. The week stamp above is what this '
-            'banner trusts.</p>'
+            '<div class="rev3"><div class="ct">★ THIS SECTION IS LAST CYCLE&rsquo;S &mdash; it did '
+            'NOT regenerate this week</div>'
+            f'<p><strong>{esc(label)} &mdash; {sub}</strong> was not rebuilt by the 2026-08-28 run: '
+            f'{why}. The text below is the <code>{esc(fname)}</code> on disk, written '
+            f'<strong>{when:%Y-%m-%d %H:%M}&nbsp;UTC</strong> &mdash; before this report cycle began '
+            '&mdash; so <strong>it describes the week to Friday 2026-08-21, not the week to '
+            '2026-08-28.</strong></p>'
             '<p>It is reproduced in full rather than deleted, because the working in it is real and '
             'nothing else on the desk records it. <strong>But every number, date and verdict below '
-            'is a PRIOR-WEEK number.</strong> Do not line one up against a number in the front '
-            'matter, the action card, the graded ledger or the run charts, all of which are this '
-            'week&rsquo;s; do not carry a conclusion out of it onto the action card; and where it '
-            'disagrees with the front matter, <em>the front matter wins.</em></p>'
+            'is a PRIOR-WEEK number.</strong> Do not line one up against a number from Part&nbsp;1, '
+            'Part&nbsp;2, Part&nbsp;2.6 or Movement&nbsp;1, which are this week&rsquo;s; do not carry '
+            'a conclusion out of it onto the action card; and where it disagrees with a fresh section '
+            'above it, <em>the fresh section wins.</em></p>'
             '<p><strong>And read it as a GAP, not as a null result.</strong> The question this '
             'section asks was not asked again this week. &ldquo;We looked and found nothing&rdquo; '
             'and &ldquo;nobody looked&rdquo; are opposite instructions for next week.</p></div>'
@@ -1139,63 +1069,6 @@ def method_wounds(plays: list[dict]) -> str:
     return ". ".join(x[0].upper() + x[1:] for x in out) + "."
 
 
-# ★2026-09-18 — the two pieces of render_plays() prose that describe the WEEK rather than the
-# mechanism. Bound to the V1 text by default and rebound by main() under --focus operator, so the
-# shared renderer never has to know which report it is drawing.
-PLAYS_LEAD_V1 = (
-    '<strong>&#9733; Almost nothing on this card changes how the desk trades, and that is '
-    'the honest answer to this week.</strong> The tournament took THREE signals all week, all '
-    'inside one fifty-one-minute window, and the desk was armed for 3.4% of the available '
-    'gate-hours &mdash; nowhere near enough evidence to re-tune a threshold, and five separate '
-    'sections say so independently. So the card is one promotion, a handful of instrument '
-    'fixes, and a set of measurements. ')
-PLAYS_CAVEATS_V1 = (
-    '<p><strong>Every repriced number is a CEILING.</strong> Fills are modelled at the exact '
-    'stop/target/trail level with no slippage, and the desk\'s own standing finding is that live '
-    'losses run <strong>1.1&ndash;3.1&times; modelled</strong>. Treat the policy as the edge and the '
-    'headline dollar as decoration. Anything on thin n is flagged in-row as a <em>direction</em>, '
-    'not a measurement.</p>'
-    '<p><strong>The fee is $1.50 per round trip and the multipliers are not the same.</strong> '
-    'MNQ is $2.00 a point; <strong>MGC is $10.00</strong>. Every gold number in Movement 3 and in '
-    'Part 2.5 Part A is priced at the gold multiplier &mdash; pricing gold with the Nasdaq one '
-    'would understate it fivefold, and doing the reverse would flatter it fivefold.</p>')
-
-PLAYS_LEAD_OP = (
-    '<strong>&#9733; Almost nothing on this card changes how you trade, and that is the honest '
-    'answer to this week.</strong> You had the best week this book has ever had &mdash; and a week '
-    'is 39 entries, five of which ARE the week. The automated desk took <strong>nothing</strong>, '
-    'so there is no gate to re-tune and no threshold that this week has earned the right to move. '
-    'What the card is instead: <strong>one habit, one config change, six instrument faults, six '
-    'measurements and four refutations.</strong> ')
-PLAYS_CAVEATS_OP = (
-    '<p><strong>&#9733; The biggest caveat is not a number, it is a missing half.</strong> There '
-    'are <strong>36 recorded presses and 0 recorded passes</strong>. Every description in Sections '
-    '1 and 2 is fitted on one side of a decision boundary, and the only tests in this document that '
-    'escape that are the ones run against <em>control minutes</em> &mdash; the leg, the range '
-    'position, the VWAP stretch, the page band. Those are labelled where they occur. Everything '
-    'else is a description of what you did, not a discovery about when to do it.</p>'
-    '<p><strong>The fee is $1.50 per round trip and the multipliers are not the same.</strong> '
-    'MNQ is $2.00 a point; <strong>MGC is $10.00</strong>. Every dollar on this card is MNQ at '
-    '$2.00, because every trade in the report week was MNQ. The only gold in this document is the '
-    'FOMC chart in Section&nbsp;4, which carries no fills and is priced at $10.00 in its own '
-    'caption &mdash; pricing gold with the Nasdaq multiplier would understate it fivefold.</p>'
-    '<p><strong>And every dollar here is a BOOKED dollar, not a repriced one.</strong> That is '
-    'unusual for this report and it is worth saying: the money in Sections 1 and 4 is what the '
-    'venue actually paid, straight out of <code>trades</code>, net of fees. The <em>modelled</em> '
-    'numbers are confined to three rows &mdash; the eight-hour stopwatch, the loss-limit replay '
-    'and the page-band sweep &mdash; and each of those carries its own uncertainty line in-row.</p>')
-
-PLAYS_NOTACTION_NOTE_V1 = (
-    '&#9733; One of them refutes a headline finding of this report&rsquo;s own Movement&nbsp;3.')
-PLAYS_NOTACTION_NOTE_OP = (
-    '&#9733; The first of them is the idea you are most likely to want after a week like this '
-    '&mdash; <em>only trade the European morning</em> &mdash; and it dies on its own sample: '
-    '+$2,445.51 over 20 entries this week, &minus;$779.48 over the record, one trade from '
-    'changing sign.')
-PLAYS_LEAD, PLAYS_CAVEATS = PLAYS_LEAD_V1, PLAYS_CAVEATS_V1
-PLAYS_NOTACTION_NOTE = PLAYS_NOTACTION_NOTE_V1
-
-
 def render_plays() -> tuple[str, int]:
     plays = json.loads(pathlib.Path(PLAYS).read_text())
     if not plays:
@@ -1208,18 +1081,19 @@ def render_plays() -> tuple[str, int]:
         'is at the front. Every row below mirrors <code>reports/friday_v7/plays.json</code>, which is the '
         'reconciled source of truth for this week; the same file drives the '
         f'<a href="{PLAYBOOK_URL}"><strong>Monday playbook</strong></a>, so the two cannot drift apart. '
-        # ★2026-09-18 — PER FOCUS. This sentence describes the SHAPE of the week and therefore of
-        # the card, and the two focuses have different shapes. The V1 text ("the tournament took
-        # THREE signals all week") is not merely irrelevant to the refocused report — it is false
-        # of it, because the tournament took nothing at all and the card is 21 rows about a human.
-        + PLAYS_LEAD +
+        '<strong>&#9733; Almost nothing on this card changes how the desk trades, and that is '
+        'the honest answer to this week.</strong> The tournament took THREE signals all week, all '
+        'inside one fifty-one-minute window, and the desk was armed for 3.4% of the available '
+        'gate-hours &mdash; nowhere near enough evidence to re-tune a threshold, and five separate '
+        'sections say so independently. So the card is one promotion, a handful of instrument '
+        'fixes, and a set of measurements. '
         # ★2026-09-04 — this count was typed ("Ten of the rows"). It is derived now, because the
         # card grew by twelve rows tonight and a hand-typed tally on the most-read paragraph in
         # the document is the cheapest possible way to be caught lying.
         f'<strong>{sum(1 for p in plays if p.get("window") == "NOT-AN-ACTION")} of the rows are '
         'NOT-AN-ACTION</strong>: refutations printed with their autopsies, because on a week like '
-        'this the most valuable output is a list of things that have now been ruled out. '
-        + PLAYS_NOTACTION_NOTE + ' '
+        'this the most valuable output is a list of things that have now been ruled out &mdash; '
+        'and one of them refutes a headline finding of this report\'s own Movement 3. '
         f'{len(plays)} plays, five windows, in the order they need doing. Every play carries its '
         '<strong>evidence tier</strong> and its <strong>kill criterion</strong> — if a play has no way to '
         'be proven wrong it should not be on the card.</p>',
@@ -1283,8 +1157,16 @@ def render_plays() -> tuple[str, int]:
 
     out.append(
         '<div class="callout"><div class="ct">Standing caveats on every dollar on this card</div>'
-        + PLAYS_CAVEATS
-        + f'<p><strong>{len(WOUNDS)} method wounds are open and they bound everything above.</strong> '
+        '<p><strong>Every repriced number is a CEILING.</strong> Fills are modelled at the exact '
+        'stop/target/trail level with no slippage, and the desk\'s own standing finding is that live losses '
+        'run <strong>1.1&ndash;3.1&times; modelled</strong>. Treat the policy as the edge and the headline '
+        'dollar as decoration. Anything on thin n is flagged in-row as a <em>direction</em>, not a '
+        'measurement.</p>'
+        '<p><strong>The fee is $1.50 per round trip and the multipliers are not the same.</strong> '
+        'MNQ is $2.00 a point; <strong>MGC is $10.00</strong>. Every gold number in Movement 3 and in '
+        'Part 2.5 Part A is priced at the gold multiplier &mdash; pricing gold with the Nasdaq one would '
+        'understate it fivefold, and doing the reverse would flatter it fivefold.</p>'
+        '<p><strong>Six method wounds are open and they bound everything above.</strong> '
         + method_wounds(plays) +
         '</p>'
         # ★2026-09-04 GENERATED, not written. This paragraph was hand-written against the 08-29
@@ -2127,1410 +2009,6 @@ monitoring.</p></div>
 """
 
 
-# ══════════════════════════════════════════════════════════════════════════════════════
-# ★★★2026-09-18 — THE REFOCUS. ONE SUBJECT: HIS TRADING, AND WHETHER IT CAN BE AUTOMATED.
-#
-# Everything above this line is the V1 weekly desk review — census, gate rehab, shadow board,
-# greenfield clusters, the tournament scorecard, the router review. It is NOT deleted and NOT
-# broken: `--focus tournament` still renders it exactly as it rendered on 2026-09-04.
-#
-# But the report was refocused by operator instruction on 2026-09-18 onto a single question, and
-# its body is now FOUR sections: op_record, op_conditions, automation_gap, run_charts. The
-# tournament fragments are all still sitting in reports/friday_v7/sections — part1_live.html,
-# part2_shadow.html, movement3_greenfield.html and the rest — and every one of them is a MONTH
-# old. Stitching one in would publish last month's tournament review under this week's masthead,
-# which is the single worst failure this build can commit: the document would be internally
-# consistent and simply about a different desk.
-#
-# So the focus does not "skip" the old sections — it never names them. SECTIONS_OP is an explicit
-# four-entry list and, as everywhere else in this build, nothing is ever globbed.
-#
-# WHAT IS REUSED, UNCHANGED, AND WHY THAT MATTERS: fragment_or_placeholder(), provenance(),
-# phase_report(), gap_banner(), check_xrefs(), check_doc_xrefs(), render_plays(), tier_pill(),
-# method_wounds() and the one-string-one-pass PDF path. Every honesty property those carry — no
-# silent omission, no silent stale stitch, no cross-reference that resolves to nothing, no PDF
-# that is a different build from the HTML beside it — is inherited rather than re-implemented.
-# What is swapped is CONTENT: the section list, the window blurbs, the method wounds, the ledger
-# and the front page. That is the correct seam. The previous cycles' evidence is that prose rots
-# and machinery does not.
-
-SECTIONS_OP = (
-    ("Section 1", "THE RECORD — every entry you made this week, and what the book now looks like",
-     "op_record.html", "oprec", ()),
-    ("Section 2", "THE CONDITIONS — what the tape looked like at the moment you pressed",
-     "op_conditions.html", "opcond", ()),
-    ("Section 3", "THE AUTOMATION GAP — what can be automated today, what cannot, and how far off",
-     "automation_gap.html", "autogap", ()),
-    ("Section 4", "THE RUN CHARTS — every fill of the week, marked on the day's own price path",
-     "run_charts.html", "runcharts", ()),
-)
-
-# This cycle's stale cutoff. ★ It ROLLS WITH THE CYCLE, which is the fault the 09-04 build shipped
-# and then put on its own action card: that run started on 09-04 still carrying the 08-28 cutoff,
-# so ten month-old fragments passed the freshness check and the report covered two different weeks.
-# The four sections above were written between 21:12 and 21:51 UTC tonight and the charts at 21:58;
-# anything on disk older than this instant is a previous subject's work.
-# ★★★2026-09-25 REV2 — ROLLED, and this week the cutoff CANNOT do the job on its own.
-# The four body fragments were written 2026-09-18 about 09-14→09-18 and then TOUCHED by a git
-# operation on 09-24 09:43, so their mtimes are 09-24 and an mtime-based cutoff of 09-18T12:00Z
-# declared all four fresh. That is how the 09-18 report nearly shipped tonight under a 09-25
-# masthead. The cutoff is rolled to this cycle AND is now the second test, not the only one:
-# frag_week() below reads the per-artifact week stamp and a mismatch is stale regardless of mtime.
-CYCLE_START_OP = dt.datetime(2026, 9, 25, 12, 0, tzinfo=dt.UTC).timestamp()
-# One vintage. There is no two-week seam this cycle — every fragment is tonight's — so TONIGHT is
-# pushed past the render and vintage_note()/the amber per-section banner both render nothing.
-TONIGHT_OP = dt.datetime(2026, 9, 27, 0, 0, tzinfo=dt.UTC).timestamp()
-
-
-def frag_week(path) -> str | None:
-    """Which report week is this fragment ABOUT? Read from the `<artifact>.week` sidecar.
-
-    ★★★2026-09-25 — THE STAMP BEATS THE MTIME. An mtime says when a file was last touched, which
-    any tool in the tree can change; the stamp says what week the writer was looking at, which only
-    the writer knows. serial_runner.set_week_stamp() writes it on every successful phase. A
-    fragment with NO stamp falls back to the mtime cutoff, so this is backward compatible.
-    """
-    try:
-        return pathlib.Path(f"{path}.week").read_text().strip()[:10] or None
-    except OSError:
-        return None
-
-
-def assert_masthead_week(slug: str) -> str | None:
-    """Refuse to publish a report whose masthead week does not contain the newest trade.
-
-    ★★★2026-09-25 — THE CHECK THAT WOULD HAVE CAUGHT IT. Everything else in this file is a guard on
-    a FRAGMENT. This is the guard on the DOCUMENT: if the book's newest clean row closed after the
-    week this report claims to cover, the report is about the wrong five days and no amount of
-    correct fragments fixes that. Returns an error string (caller refuses to publish) or None.
-    """
-    import sqlite3
-    try:
-        con = sqlite3.connect(f"file:{DESK_DB}?mode=ro", uri=True)
-        newest = con.execute("SELECT max(closed_at) FROM trades "
-                             "WHERE data_quality IS NULL").fetchone()[0]
-        con.close()
-    except Exception as e:
-        return None if "no such" in str(e) else f"cannot read the trade record to check the week ({e})"
-    if not newest:
-        return None
-    wk_end = dt.date.fromisoformat(slug)
-    newest_d = dt.date.fromisoformat(newest[:10])
-    # The report week runs Mon..Fri of `slug`. A newer trade means a newer week exists.
-    if newest_d > wk_end:
-        newest_fri = newest_d + dt.timedelta(days=(4 - newest_d.weekday()) % 7)
-        return (f"MASTHEAD WEEK IS STALE: this report claims the week ending {slug}, but the "
-                f"newest clean trade closed {newest[:10]} — which belongs to the week ending "
-                f"{newest_fri}. Re-run with --slug {newest_fri}. Refusing to publish rather than "
-                f"shipping the wrong five days.")
-    return None
-
-WHY_MISSING_OP = {
-    "op_record.html": (
-        "the <code>op_record</code> phase did not write a fragment this cycle",
-        "This is the spine of the whole report: every entry he made this week, by day, by hold "
-        "time, by hour, by event day and by how it ended, plus what the book now looks like. "
-        "Without it there is no record to automate."),
-    "op_conditions.html": (
-        "the <code>op_conditions</code> phase did not write a fragment this cycle",
-        "This is what the tape actually looked like at the moment he pressed — the leg, the "
-        "range position, the VWAP stretch, the volatility — measured against control minutes "
-        "from the same sessions. Without it the report can say what he did but not when."),
-    "automation_gap.html": (
-        "the <code>automation_gap</code> phase did not write a fragment this cycle",
-        "This is the answer to the question the report exists to ask. Without it the first two "
-        "sections are a description with no verdict attached."),
-    "run_charts.html": (
-        "the run-chart generator produced nothing for this week's sessions",
-        "These are the five session price paths with every one of his fills marked on them, plus "
-        "the FOMC hour on both instruments. Without them Sections 1 to 3 are prose only, and the "
-        "held-trade shape that cost the most money this week is the hardest thing to see in a "
-        "table and the easiest to see on a chart."),
-}
-
-# Nothing on this running order predates the cycle, so nothing needs a stale explanation. Kept as
-# an empty dict rather than deleted: the mechanism is right and the next cycle may need it.
-WHY_STALE_OP: dict[str, str] = {}
-
-# ★★ A PARTIAL-PHASE GAP BANNER, AND THIS CYCLE ACTUALLY HAS ONE.
-# op_record.html is fresh, complete and mostly excellent — and its summary callout contradicts its
-# own first table. The placeholder path cannot see this: the fragment is neither missing nor stale.
-# That is exactly what GAP_BANNERS was built for, and it has stood empty for three cycles.
-#
-# ★★2026-09-18 REV2 — THE BANNER IS REMOVED BECAUSE THE FRAGMENT IS FIXED, not because the
-# contradiction stopped mattering. Rev 1 flagged op_record.html's "four green days and one red"
-# callout against its own three-and-two table and left the sentence standing, on the rule that this
-# build does not edit a fragment's prose. Rev 2 IS the fragment's revision pass, so the sentence
-# itself now reads "Three green days and two red" with the five day figures spelled out beside it.
-# A banner warning of a divergence that no longer exists spends the reader's trust on a falsehood —
-# the same failure, in the opposite direction, as leaving the divergence unflagged. The mechanism is
-# kept and correct; it simply has nothing to say this cycle.
-GAP_BANNERS_OP: dict[str, tuple[str, str]] = {}
-
-_RETIRED_GAP_BANNER_0918 = {
-    "op_record.html": (
-        "this section&rsquo;s summary callout says FOUR green days. Its own table, and the "
-        "database, say THREE",
-        "Item 1 of <em>&ldquo;If you read nothing else&rdquo;</em> below reads <em>&ldquo;Four green "
-        "days and one red one &mdash; and the red one was Wednesday, FOMC day&rdquo;</em>. "
-        "<strong>&sect;1&rsquo;s own day table, three paragraphs later, disagrees with it</strong>, "
-        "and the trade record agrees with the table: <strong>Mon +$839.49, Tue &minus;$114.00, Wed "
-        "&minus;$833.00, Thu +$1,477.50, Fri +$1,546.50</strong> &mdash; <strong>three green days "
-        "and two red</strong>. Tuesday is red. "
-        "<strong>Read the table, not the callout.</strong> Nothing else in the section is affected: "
-        "every total, every per-entry figure and the +$2,916.49 headline reconcile exactly with "
-        "<code>trades</code> (61 clean rows, <code>data_quality IS NULL</code>, closed 09-14 &rarr; "
-        "09-18), and the front page of this report prints three-and-two. "
-        "It is flagged rather than silently corrected because the sentence is the section author&rsquo;s "
-        "and this build does not edit a fragment&rsquo;s prose &mdash; it says, in the reader&rsquo;s "
-        "path, which of two disagreeing numbers is the one the data supports."),
-}
-
-WINDOWS_OP = (
-    ("MONDAY", "w-mon",
-     "MONDAY 2026-09-28, AT THE DESK — ★ one habit to keep, one config to ship, one thing to leave alone",
-     "<strong>&#9733;&#9733; THIS CARD IS MOSTLY LAST WEEK&rsquo;S CARD, AND THAT IS THE FINDING.</strong> "
-     "Six of the nine rows on the 09-18 card were <strong>not done</strong>, including all three it marked "
-     "★ as its most serious defects &mdash; and they have now survived a week in which you took "
-     "<strong>99 entries and lost $360</strong>. A defect that lives through a week like that outranks any "
-     "new measurement, so the SATURDAY window below is ranked by what each one demonstrably cost rather "
-     "than by how interesting it is. "
-     "<strong>&#9733; MONDAY&nbsp;#1 is still ranked first and still has no dollar figure.</strong> You "
-     "pressed PASS for the first time on Thursday: <strong>3 real declines against 104 presses</strong>. "
-     "It is working and it is still blocking &mdash; 27 more and this desk can, for the first time, learn "
-     "what separates a moment you take from a moment you leave. "
-     "<strong>&#9733; MONDAY&nbsp;#2 is the one row on this card that PASSED a robustness test</strong>, "
-     "out-of-sample, on 2.5&times; the sample it was fitted on."),
-    ("SATURDAY", "w-sat",
-     "SAT 2026-09-26 / SUN 2026-09-27 — before the Sunday 22:00Z reopen. ★ Six rows, and five of them are last week's rows again",
-     "<strong>&#9733; Nothing in this window has a clock on it</strong> &mdash; check the carry box at the "
-     "top of the report for the desk's state, which is read from the state files at render time rather "
-     "than asserted. "
-     "<strong>What IS here is the same six instrument faults as last week, re-ranked by evidence.</strong> "
-     "Two of them stopped being theoretical this week. <code>drift</code> was <strong>blind on 42 of your "
-     "104 presses</strong>, printing <code>no 5s rows since 13:30Z today</code> into your own tape reader "
-     "on 40% of your decisions. And the $250 loss limit &mdash; which has no <code>data_quality</code> "
-     "filter &mdash; will now count a <strong>&minus;$842.50 trade that was never your decision</strong> "
-     "towards a &minus;$250 trigger that switches off the whole gate book. "
-     "⚠ <strong>SATURDAY&nbsp;6 is graded UNGRADED for an unusual reason:</strong> last week's "
-     "verification command named a file that does not exist, so the check was never runnable. The path is "
-     "corrected on this card."),
-    ("BUILD", "w-build",
-     "THE MEASUREMENT QUEUE — two rows, and one of them was built tonight",
-     "<strong>This window is short this week, deliberately.</strong> The 09-18 card carried seven BUILD "
-     "rows, all of them derived from the four analytical sections &mdash; and those sections describe "
-     "<em>last</em> week. Rather than restate seven measurements against a week they were not measured "
-     "on, they are carried in one honest row (HOLD&nbsp;#1) and this window holds only what this cycle "
-     "can actually stand behind. "
-     "<strong>BUILD&nbsp;#1 is the press/pass comparison</strong>, wired end to end and published as "
-     "<span class=\"tag\">UNGRADEABLE</span> with its n printed &mdash; 3 against 104 &mdash; so that the "
-     "week the count reaches 30 the answer is one query and not one project. "
-     "<strong>BUILD&nbsp;#2 is the report's own machinery</strong>, and it is on the card because it "
-     "nearly cost you this entire document."),
-    ("HOLD", "w-hold",
-     "HOLD — the eleven rows that are carried but NOT re-derived, named rather than quietly dropped",
-     "<strong>One row, and it is an admission.</strong> Eleven rows from the 09-18 card &mdash; the "
-     "European-morning filter, the position-in-range and VWAP nulls, the best-moment split, the "
-     "stopwatch, the 78 captured narratives &mdash; are all conclusions about <strong>39 entries over "
-     "five different days</strong>. A 99-entry week that could have confirmed or destroyed several of "
-     "them arrived, and none of them was put in front of it, because the four sections that own them "
-     "could not be re-run tonight. <strong>They are carried and labelled, never restated as if they were "
-     "this week's.</strong> The rule going in: a row that survives two cycles without being re-derived is "
-     "not a finding, it is a habit."),
-    ("NOT-AN-ACTION", "w-not",
-     "NOT-AN-ACTION — two readings of this week that are tempting and wrong",
-     "<strong>Both of these are the conclusions a losing week invites, and both fail on the data.</strong> "
-     "The first is &ldquo;the machine beat me&rdquo; &mdash; the gates made +$257 on one lot while your "
-     "hand lost $360 on four. Normalised it is +$8.57 against &minus;$0.91 a contract, and then it "
-     "<strong>fails strip-the-best-family</strong>: take out <code>abs_veto_long</code> and the rest of "
-     "the automated book is &minus;$47.00 over 7 signals. The second is &ldquo;I got worse&rdquo; &mdash; "
-     "strip the five best and five worst entries from each week and the middle of this week is still "
-     "<strong>+$12.79 an entry and +$1,138.00 in total</strong>. The whole move is in the tails. "
-     "<strong>Neither row asks you to do anything, and that is the point.</strong>"),
-)
-
-WOUNDS_OP = (
-    ("<strong>this report was one build away from being last week's report, re-published tonight.</strong> "
-     "<code>_report_week()</code> rolled the report week back seven days for any run starting before "
-     "22:00Z on a Friday &mdash; and the cron starts at 21:05Z &mdash; while the runner's mtime-based "
-     "freshness check could not tell a rebuilt fragment from one a git operation had touched. Both halves "
-     "are fixed and verified tonight, and the build now refuses to publish if the newest trade is newer "
-     "than the masthead week. <strong>&#9733; But the four long analytical sections could NOT be re-run "
-     "in the time left</strong>, so Sections&nbsp;1&ndash;4 describe 2026-09-14&rarr;09-18 and carry a red "
-     "banner saying so. Every number in the front matter, the card, the graded ledger and the run charts "
-     "is this week's. <strong>Do not read a dollar figure out of the body sections as this week's</strong>",
-     "fix-the-friday-week-guard-0925"),
-    ("<strong>there are 3 recorded passes against 104 recorded presses</strong>, so every behavioural "
-     "finding on this desk is still fitted on one side of a decision boundary. Three is progress from "
-     "zero and it is not a sample: measured against the same week's presses the three passes sit "
-     "<em>inside</em> the press distribution on every feature (median 77% of day range against 73%, +4.4 "
-     "ATR from VWAP against +4.6). <strong>The boundary needs 30 and has 3</strong>, and this report "
-     "again hands you no entry rule",
-     "keep-pressing-the-pass-button-0925"),
-    ("<strong>this book is five draws in either direction, and two weeks now show it.</strong> The best "
-     "five entries made +$3,623.00 against a week total of &minus;$360.00; the other 94 net "
-     "&minus;$3,983.00. Last week the identical shape ran the other way: +$3,162.48 top five, "
-     "&minus;$245.99 for the other 34, on a +$2,916.49 week. <strong>Any per-entry statistic in this "
-     "document describes a distribution whose mass sits in five draws</strong>, and the middle of the "
-     "distribution is positive in both weeks",
-     "the-middle-is-not-the-story-0925"),
-    ("<strong>the entry count went 39 &rarr; 99 and the two weeks are not comparable on a $/day "
-     "basis.</strong> 7.8 entries a day became 19.8. The per-entry economics of each bucket barely "
-     "moved &mdash; entries that reached a profit rung paid +$455.57 last week and +$487.82 this week; "
-     "entries that reached no rung cost &minus;$138.46 and &minus;$128.06 &mdash; but the share reaching "
-     "a rung fell from <strong>36% to 20%</strong>, at <strong>P&nbsp;=&nbsp;0.054</strong>, which is on "
-     "the line and not established. <strong>The baseline in this report is $/entry at 4 lots, never "
-     "$/day</strong>",
-     "the-middle-is-not-the-story-0925"),
-    ("<strong><code>data_quality</code> is now a MIXED column with two unrelated meanings</strong>, and "
-     "the new one is the more dangerous. A fabricated PRICE (the paper engine, 09-15, &minus;$304.50) "
-     "disagrees with the tape and is findable. A fabricated DECISION (09-24, id 1019, &minus;$842.50, "
-     "<code>assistant_test_claim_NOT_operator_decision</code>) had a REAL fill and only the authorship "
-     "was invented &mdash; it looks perfectly normal. Both live in the same column. Everything in this "
-     "report filters on <code>data_quality IS NULL</code>, which was CHECKED tonight and is correct "
-     "(1,086 NULL, 9 tagged, <strong>zero empty-string</strong> rows). <strong>The live $250 loss limit "
-     "does not filter at all</strong>",
-     "loss-limit-counts-a-trade-you-never-made-0925"),
-    ("<strong>the automated book is 15 signals, not 30 legs.</strong> Every gate runs as <code>_A</code> "
-     "and <code>_B</code> and those are the two halves of one scale-out, so counting 30 legs as 30 "
-     "observations double-counts the week. Collapsed properly it is 15 signals for +$257.00, one lot "
-     "each, on paper &mdash; and 8 of the 15 are <code>abs_veto_long</code>. <strong>Strip that one "
-     "family and the remainder is &minus;$47.00</strong>",
-     "the-gates-did-not-beat-you-0925"),
-    ("<strong>the 15-minute page band replicated in ONE direction and is at chance in the other</strong>, "
-     "and both numbers have to be quoted together. It precedes 82.8% of his entries against a "
-     "session-blocked 63.4% (+19.4, 5/5 leave-one-day-out folds positive) &mdash; that is the direction "
-     "the claim was made in and it held on 99 entries. But only 28.2% of its 213 pages are followed by a "
-     "trade against a 29.5% shuffled rate, on 42.6 pages a session. <strong>Coverage is not a page rate; "
-     "co-fire is asymmetric and must be quoted in the direction it is used</strong>",
-     "ship-the-15min-band-to-the-dashboard-0925"),
-)
-
-LAST_WEEK_OP = (
-    ("MONDAY", 1, "★★ PRESS THE PASS BUTTON — the row the whole report was blocked on",
-     "row-hl", "WORKING — 3 of 30",
-     "<code>operator_reads.jsonl</code> holds <strong>4 <code>pass</code> rows</strong>, first "
-     "2026-09-24. ⚠ <strong>One is not a pass:</strong> the 09-24 09:56:03Z row says "
-     "<code>BUTTON AUDIT - not a real pass</code> in its own request line. So <strong>3 real "
-     "declines</strong>, in 2 of 5 sessions. The card's kill criterion was &ldquo;any number above "
-     "zero next Friday&rdquo;, and tonight IS next Friday. <strong>The habit has started; the "
-     "boundary is still blocked</strong> — 3 negatives cannot separate anything against 104 presses."),
-    ("MONDAY", 2, "Drop <code>leg_watch</code>'s first page from 60 minutes to 15, and route it to "
-     "the dashboard",
-     "row-bad", "NOT DONE — but now SCORED, and it was right",
-     "<code>scripts/leg_watch.py</code> still reads <code>LEG_LOUD=\"60,120,180\"</code>; last "
-     "commit <strong>2026-09-15</strong>, and <code>data/prereg_leg_band.json</code> did not exist. "
-     "<strong>The band never shipped and its forward week was spent doing nothing.</strong> Scored "
-     "tonight instead, on the unchanged detector over all 5 sessions: <strong>82.8% of his 99 "
-     "entries</strong> are preceded by a same-side 15-min page within the hour vs a "
-     "<strong>63.4% shuffled</strong> rate (<strong>+19.4</strong>, 5/5 LODO folds positive). The "
-     "in-sample 82% on 34 presses <strong>replicated on 99</strong>. ⚠ As a PAGE it is dead: 42.6 "
-     "pages/session, page&rarr;trade lift <strong>&minus;1.3</strong>. Dashboard only."),
-    ("MONDAY", 3, "Keep standing aside on event days — as a PAGE, never a bench",
-     "row-hl", "DONE — and untested this week",
-     "<code>data/event_calendar.json</code> was regenerated tonight (<code>generated_at "
-     "2026-09-25T21:27Z</code>, 55 events) and it is human-verified. <strong>It reports NO "
-     "scheduled event in 09-21&rarr;09-25</strong>, so the stand-aside had nothing to stand aside "
-     "from and the row is <strong>untested, not vindicated</strong>. ⚠ It bites next week: "
-     "<strong>NFP, Friday 2026-10-02</strong> is the next event on the calendar."),
-    ("SATURDAY", 1, "★ <code>drift</code> is blind before 13:30Z — and that is two thirds of his "
-     "trading",
-     "row-bad", "NOT DONE — and it bit 42 times this week",
-     "<code>src/gazbot7/drift.py</code> still carries <code>OPEN_UTC_MIN = 13*60+30</code> and still "
-     "returns <code>before the 13:30 UTC open</code>; <strong>last commit 2026-08-05</strong>. This "
-     "is no longer a latent fault: of his <strong>104 recorded presses this week, 42 carry "
-     "<code>drift_error: no 5s rows since 13:30Z today (venue shut?)</code></strong> — the direction "
-     "meter was blind on <strong>40% of his own decisions</strong>, including the 09:56Z button "
-     "audit. The card called this &ldquo;the biggest single instrument fault in the report&rdquo; "
-     "and it went through a 99-entry week untouched."),
-    ("SATURDAY", 2, "<code>tape_reader</code>'s day open/high/low splices yesterday afternoon onto "
-     "this morning",
-     "row-bad", "UNGRADED — the row names a file that is not there",
-     "The card's verification says to print <code>tape_reader</code>'s session bar count, but there "
-     "is no <code>src/gazbot7/tape_reader.py</code> — the module is "
-     "<strong><code>scripts/tape_reader.py</code></strong>. <strong>A verification command that "
-     "names the wrong path cannot be run</strong>, which is its own finding: this row was written "
-     "without executing its own check. Carried forward with the path corrected."),
-    ("SATURDAY", 3, "★ The $250 daily loss limit pages you a claim its own journal contradicts",
-     "row-bad", "NOT DONE",
-     "<code>scripts/daily_loss_limit.py</code> computes <code>changed = bench_all(...)</code> and "
-     "then pages the literal string <strong>&ldquo;All six gates benched&rdquo;</strong> instead of "
-     "reading <code>changed</code>. Last commit <strong>2026-09-13</strong>, before the card. One "
-     "line, still there."),
-    ("SATURDAY", 4, "★ The loss limit's trigger can be moved by a price that never printed",
-     "row-bad", "NOT DONE — and this week it got WORSE",
-     "<code>session_pnl()</code> still sums <code>where closed_at is not null and closed_at >= ?</code> "
-     "with <strong>no <code>data_quality</code> filter</strong>. It counted the &minus;$304.50 "
-     "fabricated price on 09-15; this week it will count <strong>id 1019, &minus;$842.50, "
-     "<code>assistant_test_claim_NOT_operator_decision</code></strong> — a trade that was never his "
-     "decision — straight into a &minus;$250 trigger that benches the whole gate book. <strong>The "
-     "defect has acquired a second and worse input.</strong>"),
-    ("SATURDAY", 5, "A hand-run of <code>event_alert.py</code> wrote a live PAGED line into the record",
-     "row-bad", "NOT DONE — no dry-run flag exists",
-     "<code>scripts/event_alert.py</code> has <strong>no <code>--dry-run</code> and no argparse at "
-     "all</strong>; it still calls <code>log(f\"PAGED ...\")</code> unconditionally. Last commit "
-     "<strong>2026-09-18</strong>, the day the card was written, and nothing since."),
-    ("SATURDAY", 6, "A <code>TARGET_100</code> rung booked a fill 79.5 points BELOW the entry it was "
-     "supposed to take $100 a lot above",
-     "row-bad", "NOT DONE — still untagged",
-     "Trade <strong>id 868</strong> is unchanged: <code>LONG 1 @ 29,320.25 &rarr; 29,240.75</code>, "
-     "<strong>&minus;79.5pt, &minus;$160.50, <code>exit_reason = TARGET_100</code></strong>, and "
-     "<code>data_quality IS NULL</code> — so it is <strong>still counted as clean in every total on "
-     "this desk</strong>, including the ones in this report. Either the rung fired at the wrong "
-     "price or the reason is mislabelled; neither has been decided."),
-)
-
-
-def sat5_check() -> str:
-    """★2026-09-18 REV2 — GENERATED, because the hand-typed version raised an alarm that was not
-    happening, inside the one row on the card that grades the 2026-09-04 weekend-carry incident.
-
-    Rev 1 of this row asserted that `desk_reconcile` "has read `no venue read — IBKR truth
-    unavailable` since 19:50Z, which is the same gateway symptom". The state files said the
-    opposite at render time and say the opposite now, and the front box twelve paragraphs above
-    said the opposite too — so the report contradicted itself on the single most safety-critical
-    fact in it. The honest half of the row (the position was closed by hand, so the flatten path
-    was never exercised) is the actual reason it stays ungraded, and that half needs no state file.
-
-    So the venue half is now READ, never typed: same files, same render, as flat_check_box().
-    A file that cannot be read says "unknown" — it never says "flat" and it never says "down".
-    """
-    try:
-        rc = json.loads(pathlib.Path(f"{GB}/data/desk_reconcile_state.json").read_text())
-        st = json.loads(pathlib.Path(f"{GB}/data/day_rider_state.json").read_text())
-    except Exception as e:
-        return ('The desk is <strong>flat into this weekend</strong> on the trade record: the last leg '
-                'closed 18:33:23Z and no position was opened after it. ⚠ <strong>The venue read is '
-                f'UNAVAILABLE to this render</strong> ({html.escape(str(e))}), so this row cannot '
-                'confirm it from IBKR — treat the venue as <strong>unknown</strong>, never as flat. '
-                '<strong>Carried, ungraded.</strong>')
-    r1 = rc.get("read1", {})
-    ok = bool(r1.get("ok"))
-    venue = ('<code>desk_reconcile</code> at <code>' + str(rc.get("ts"))[11:19] + 'Z</code> reads '
-             '<code>' + html.escape(str(r1.get("summary"))) + '</code> with <code>ok true</code>, and '
-             '<code>day_rider_state.json</code> carries <code>venue_net ' + str(st.get("venue_net")) +
-             '</code> / <code>venue_ok ' + str(st.get("venue_ok")).lower() + '</code> at <code>' +
-             str(st.get("venue_net_ts"))[11:19] + 'Z</code>') if ok else (
-             '⚠ <code>desk_reconcile</code> could NOT reach the venue on its last pass — <code>' +
-             html.escape("; ".join(r1.get("reasons") or ["no reason given"])) + '</code>. Treat the '
-             'venue as <strong>unknown</strong>, not flat')
-    return (
-        'The desk is <strong>flat into this weekend</strong>: the last leg closed 18:33:23Z and no '
-        f'position was opened after it. {venue}. That is the outcome the row wanted, and it agrees '
-        'with the WEEKEND CARRY CHECK at the top of this report — both are read from the same files '
-        'at render time rather than copied forward. ⚠ <strong>But it is an OUTCOME, not a '
-        'check:</strong> the final position was closed <em>by hand</em> at 18:33, more than two hours '
-        'before either eod-flatten shot, so the flatten path was never exercised this week and '
-        'nothing here says it works. <strong>Carried, ungraded.</strong>')
-
-
-def last_week_ledger_op() -> str:
-    """The loop on the previous card — and this week it is GRADED, nine rows, all from disk.
-
-    ★★★2026-09-25 REV2. Last cycle this said the card "cannot be graded row by row" and printed one
-    row. The honest half of that was about the 58 TOURNAMENT plays on the pre-09-18 card, which no
-    phase this cycle could check. The dishonest half was that it also covered the NINE rows of the
-    09-18 card itself — 6 SATURDAY fixes and 3 MONDAY actions — each of which ships with its own
-    one-line verification command. Nine greps were run. Six had not been done.
-    """
-    rows = "".join(
-        f'<tr class="{cl}"><td class="ln"><strong>{w}&nbsp;{r}</strong></td>'
-        f'<td class="ln">{topic}</td><td class="ln"><strong>{st}</strong></td>'
-        f'<td class="ln">{check}</td></tr>'
-        for w, r, topic, cl, st, check in LAST_WEEK_OP)
-    done = sum(1 for x in LAST_WEEK_OP if x[3] == "row-hl")
-    notdone = sum(1 for x in LAST_WEEK_OP if x[3] == "row-bad")
-    return (
-        '<h2 id="lastweek"><span class="n">&#8630;</span> LAST WEEK&rsquo;S CARD &mdash; graded, nine '
-        'rows, every one from disk</h2>'
-        '<p class="lead">The card is only worth writing if somebody checks it afterwards. '
-        f'<strong>Nine rows were checkable and nine were checked: {done} done, {notdone} not '
-        'done.</strong> Every row below names the command that decided it, and every one of those '
-        'commands came off the card itself &mdash; no memory, no inference.</p>'
-        '<div class="rev3"><div class="ct">★★★ THE HEADLINE FROM THIS TABLE, AND IT SETS THIS '
-        'WEEK&rsquo;S RANKING</div>'
-        '<p><strong>All three rows the card marked with a ★ as its most serious defects are still '
-        'open.</strong> <code>drift</code> is still blind before 13:30Z and was blind on <strong>42 '
-        'of his 104 presses this week</strong>. The $250 loss limit still pages a sentence its own '
-        'journal contradicts, and still has no <code>data_quality</code> filter &mdash; so it now '
-        'counts a <strong>&minus;$842.50 trade that was never his decision</strong> into a '
-        '&minus;$250 bench trigger. <strong>A defect that survived a 99-entry losing week outranks '
-        'any new measurement</strong>, so those rows are carried to the TOP of this week&rsquo;s '
-        'card rather than restated here.</p>'
-        '<p>⚠ <strong>And the one row that was graded last week is the one row that shipped.</strong> '
-        'The habit rows moved; the code rows did not. That is a pattern worth naming: nothing on '
-        'this card gets done unless it is either one tap at the desk or somebody edits a file, and '
-        'six weeks of &ldquo;SATURDAY&rdquo; rows have now accumulated without a Saturday.</p></div>'
-        '<table>'
-        '<thead><tr><th class="ln">Play</th><th class="ln">What it asked for</th>'
-        '<th class="ln">Status</th><th class="ln">The check that decided it</th></tr></thead>'
-        f'<tbody>{rows}</tbody></table>'
-        '<div class="callout"><div class="ct">The honest limit on this table</div>'
-        '<p>These are the <strong>nine rows of the 2026-09-18 card</strong>. The card BEFORE it '
-        '&mdash; <code>reports/friday_v7/plays.json.pre-0918</code>, <strong>58 plays</strong> about '
-        'the paper tournament, the shadow board, the router and the greenfield labs &mdash; is '
-        'still <strong>UNGRADED</strong>, and that is a different thing from done or not done. No '
-        'phase has run since 09-18 that could check a tournament row, a shadow arm or a router '
-        'setting. The file is on disk, every row still carries its verification command, and if the '
-        'tournament comes back so does its ledger. <strong>Read those 58 as not looked at</strong> '
-        '&mdash; not as passed.</p>'
-        '<p>⚠ <strong>SATURDAY&nbsp;2 is graded UNGRADED for an unusual reason</strong> and it is '
-        'worth one sentence: its verification command names <code>src/gazbot7/tape_reader.py</code>, '
-        'which does not exist &mdash; the module is <code>scripts/tape_reader.py</code>. The check '
-        'could not be run as written, which means it was never run when the row was written. That is '
-        'a small fault in the card itself, and the path is corrected on this week&rsquo;s.</p>'
-        '</div>')
-
-
-# ══════════════════════════════════════════════════════════════════════════════════════
-# ★★★ THE WEEK THAT WAS / THE WEEK COMING — GENERATED FROM data/event_calendar.json.
-#
-# Operator instruction, 2026-09-18: headline the week with the event calendar, in PARIS TIME, with
-# our measured impact. Every date, time and name below is read from the file; nothing is typed.
-#
-# ⚠ PARIS TIME IS COMPUTED, NOT OFFSET. The calendar stores New York wall-clock ("14:00 ET") and
-# the US and EU daylight transitions are three days apart in late October: FOMC on 2026-10-28 is
-# 19:00 Paris while FOMC on 2026-09-16 is 20:00, from the SAME 14:00 ET. A fixed +6 would print
-# one of them an hour wrong, and an event page keyed to a wrong hour is a page that arrives after
-# the release.
-EVENT_CAL = f"{GB}/data/event_calendar.json"
-MACRO_LOG = f"{GB}/data/macro_watch.jsonl"
-PARIS, NY = "Europe/Paris", "America/New_York"
-
-KIND_NOTE = {
-    "FOMC": "MNQ ran <strong>2.7&ndash;3.5&times;</strong> a normal 30-minute window on both FOMC "
-            "days in our tape (98th/100th percentile); <strong>MGC 6.6&times;</strong> its median "
-            "and 2.8&times; its previous MAXIMUM",
-    "CPI": "MNQ <strong>205&ndash;272pt</strong> in the 30-minute window (95th&ndash;100th "
-           "percentile against a 69pt median); MGC 3&ndash;6&times;",
-    "NFP": "MNQ <strong>218&ndash;220pt</strong> in the 30-minute window (100th percentile both "
-           "times); MGC 3&ndash;6&times;",
-    "EARNINGS": "<strong>NOT MEASURED on our tape.</strong> Carried because it moves the index, not "
-                "because we have tested it &mdash; treat as unquantified",
-}
-
-
-def _paris(date_s: str, et_time: str):
-    """(paris datetime, utc datetime) for a calendar row stored in New York wall-clock."""
-    from zoneinfo import ZoneInfo
-    n = dt.datetime.fromisoformat(f"{date_s}T{et_time}").replace(tzinfo=ZoneInfo(NY))
-    return n.astimezone(ZoneInfo(PARIS)), n.astimezone(dt.UTC)
-
-
-def _cal_rows(events: list[dict]) -> str:
-    out = []
-    for e in events:
-        p, u = _paris(e["date"], e["et_time"])
-        conf = ("" if e.get("confirmed") else
-                ' <span class="tag pill-dontarm">TIME UNCONFIRMED</span>')
-        out.append(
-            f'<tr><td class="ln"><strong>{p:%a %-d %b %Y}</strong></td>'
-            f'<td class="num"><strong>{p:%H:%M}</strong> Paris<br>'
-            f'<span class="ln">{u:%H:%M}Z &middot; {e["et_time"]} ET</span></td>'
-            f'<td class="ln"><span class="tag">{esc(e["kind"])}</span> {esc(e["name"])}{conf}</td>'
-            f'<td class="ln">{", ".join(e.get("symbols") or [])}</td>'
-            f'<td class="ln">{KIND_NOTE.get(e["kind"], "not measured")}</td></tr>')
-    return "".join(out)
-
-
-def event_calendar_block(week_start: str, week_end: str, ahead_days: int = 49) -> str:
-    """THE WEEK THAT WAS and THE WEEK COMING, off data/event_calendar.json."""
-    try:
-        cal = json.loads(pathlib.Path(EVENT_CAL).read_text())
-    except Exception as e:
-        return ('<div class="rev3"><div class="ct">&#9733; EVENT CALENDAR UNAVAILABLE</div>'
-                f'<p><code>data/event_calendar.json</code> could not be read '
-                f'({html.escape(str(e))}), so this report opens with NO calendar. That is a gap, '
-                'not a quiet week &mdash; do not read the absence as "nothing was scheduled".</p>'
-                '</div>')
-    ev = sorted(cal.get("events", []), key=lambda e: (e["date"], e["et_time"]))
-    was = [e for e in ev if week_start <= e["date"] <= week_end]
-    nxt_start = (dt.date.fromisoformat(week_end) + dt.timedelta(days=3)).isoformat()
-    nxt_end = (dt.date.fromisoformat(week_end) + dt.timedelta(days=7)).isoformat()
-    coming = [e for e in ev if nxt_start <= e["date"] <= nxt_end]
-    horizon = (dt.date.fromisoformat(week_end) + dt.timedelta(days=ahead_days)).isoformat()
-    beyond = [e for e in ev if nxt_end < e["date"] <= horizon]
-    gen = cal.get("generated_at", "")[:16].replace("T", " ")
-
-    hdr = ('<tr><th class="ln">Date</th><th class="num">Time</th><th class="ln">Event</th>'
-           '<th class="ln">Instruments</th><th class="ln">What it did to OUR tape</th></tr>')
-
-    if coming:
-        coming_lead = (
-            f'<strong>{len(coming)} scheduled event(s)</strong> in the week of '
-            f'{dt.date.fromisoformat(nxt_start):%-d %B}.')
-        coming_tbl = f'<table><thead>{hdr}</thead><tbody>{_cal_rows(coming)}</tbody></table>'
-    else:
-        nx = beyond[0] if beyond else None
-        nxs = ""
-        if nx:
-            p, _u = _paris(nx["date"], nx["et_time"])
-            nxs = (f' The next scheduled event of any kind is <strong>{esc(nx["kind"])} on '
-                   f'{p:%A %-d %B}, {p:%H:%M} Paris</strong> &mdash; '
-                   f'{(dt.date.fromisoformat(nx["date"]) - dt.date.fromisoformat(week_end)).days} '
-                   'days away.')
-        coming_lead = (
-            '<strong>&#9733; NOTHING. There is not one FOMC, CPI, NFP or tracked earnings release '
-            f'in the week of {dt.date.fromisoformat(nxt_start):%-d %B}.</strong>{nxs} '
-            'An empty calendar week is a real and useful fact rather than a missing table: it '
-            'means the single measured, repeatable thing this desk knows about the tape '
-            '&mdash; that event windows run several times a normal window &mdash; does not apply '
-            'to a single minute of next week. ⚠ It is <em>not</em> a forecast of a quiet tape. '
-            'Unscheduled news is not in this file and never will be.')
-        coming_tbl = ""
-
-    return (
-        '<h2 id="weekcal"><span class="n">&#9670;</span> THE WEEK THAT WAS, AND THE WEEK '
-        'COMING</h2>'
-        '<p class="lead">Everything in this section is read from '
-        f'<code>data/event_calendar.json</code> (regenerated {esc(gen)}&nbsp;UTC) and the times are '
-        'computed into <strong>Paris</strong> from the New York wall-clock the calendar stores. '
-        '<strong>The impact column is OUR measurement on OUR tape</strong>, not a general claim '
-        'about these releases &mdash; and where we have not measured one, it says so.</p>'
-        '<h3>The week that was &mdash; '
-        f'{dt.date.fromisoformat(week_start):%-d} to '
-        f'{dt.date.fromisoformat(week_end):%-d %B %Y}</h3>'
-        + (f'<p class="lead"><strong>One event, and it was the week&rsquo;s worst day.</strong></p>'
-           f'<table><thead>{hdr}</thead><tbody>{_cal_rows(was)}</tbody></table>'
-           if was else
-           '<p class="lead"><strong>No scheduled event in the report week.</strong></p>')
-        + '<h3>The week coming &mdash; '
-        f'{dt.date.fromisoformat(nxt_start):%-d} to '
-        f'{dt.date.fromisoformat(nxt_end):%-d %B %Y}</h3>'
-        f'<p class="lead">{coming_lead}</p>{coming_tbl}'
-        + ('<h3>And the seven weeks after that &mdash; so nothing arrives as a surprise</h3>'
-           '<p class="lead">Every confirmed date the calendar holds out to '
-           f'{dt.date.fromisoformat(horizon):%-d %B}. The <strong>28 October FOMC prints at 19:00 '
-           'Paris, not 20:00</strong> &mdash; the US and EU clocks change three days apart and the '
-           'table below computes each row rather than offsetting it.</p>'
-           f'<table><thead>{hdr}</thead><tbody>{_cal_rows(beyond)}</tbody></table>'
-           if beyond else ""))
-
-
-# ══════════════════════════════════════════════════════════════════════════════════════
-# THE MACRO BACKDROP — oil, the dollar, the 10-year and VIX.
-#
-# ⚠⚠ MEASURED 2026-09-18 AND THE RESULT IS A WARNING LABEL: all four CO-MOVE with our instruments
-# and NONE of them predicts the next day. VIX<->MNQ same-day r = -0.669, DXY<->MGC -0.408, oil
-# unrelated to both. So this block is presented as what EXPLAINS the week and NEVER as a forecast.
-# The tracker's own docstring says the same thing in its own words ("IT MEASURES NO EDGE").
-#
-# ⚠ HONEST LIMIT, STATED IN THE BLOCK ITSELF: data/macro_watch.jsonl began on the morning of
-# 2026-09-18. It holds this Friday and nothing else, so the backdrop is ONE DAY and the four
-# correlations above are carried as a stated prior measurement, not re-derived here. A reader who
-# assumes the table below spans the week would be reading five days into thirteen hourly rows.
-def macro_block() -> str:
-    try:
-        rows = [json.loads(l) for l in pathlib.Path(MACRO_LOG).read_text().splitlines() if l.strip()]
-    except Exception as e:
-        return ('<div class="rev3"><div class="ct">&#9733; MACRO BACKDROP UNAVAILABLE</div>'
-                f'<p><code>data/macro_watch.jsonl</code> could not be read '
-                f'({html.escape(str(e))}). Read that as a gap, not as a flat tape.</p></div>')
-    if not rows:
-        return ""
-    first, last = rows[0], rows[-1]
-    days = sorted({r["ts"][:10] for r in rows})
-    label = {"OIL": ("Oil", "front WTI future"), "DXY": ("The dollar", "dollar index future"),
-             "TEN": ("The 10-year", "note future &mdash; ⚠ PRICE, so DOWN = yields UP"),
-             "VIX": ("VIX", "⚠ DELAYED ~15 min on this account")}
-    body = []
-    for k in ("OIL", "DXY", "TEN", "VIX"):
-        a, b = first["series"].get(k), last["series"].get(k)
-        if not a or not b or b.get("px") is None:
-            continue
-        # ★★2026-09-25 — A NULL PRICE IS A REAL ROW IN THIS FILE and it crashed the build tonight:
-        # `min(pxs)` on a list containing None raises TypeError. 3 of 700 series readings this week
-        # carry px=null (OIL x2, TEN x1) — a poll that got no quote. Drop the nulls from the range
-        # and SAY how many were dropped, rather than printing a range that silently ignores them.
-        allpx = [r["series"][k].get("px") for r in rows if k in r["series"]]
-        pxs = [v for v in allpx if v is not None]
-        if not pxs:
-            continue
-        nulls = len(allpx) - len(pxs)
-        nm, what = label[k]
-        chg = b.get("chg_pct")
-        cls = "row-hl" if (chg or 0) > 0 else ("row-bad" if (chg or 0) < 0 else "")
-        gap = (f' <span class="ln">({nulls} poll{"s" if nulls > 1 else ""} returned no quote)</span>'
-               if nulls else '')
-        body.append(
-            f'<tr class="{cls}"><td class="ln"><strong>{nm}</strong> '
-            f'<span class="ln"><code>{esc(b.get("contract",""))}</code> &mdash; {what}</span></td>'
-            f'<td class="num">{b["px"]:,.2f}</td>'
-            f'<td class="num">{f"{chg:+.2f}%" if chg is not None else "&mdash;"}</td>'
-            f'<td class="num">{min(pxs):,.2f} &ndash; {max(pxs):,.2f}{gap}</td></tr>')
-    return (
-        '<h3>The macro backdrop &mdash; and what it is NOT for</h3>'
-        '<div class="rev3ptr"><strong>&#9733; READ THIS BEFORE THE TABLE.</strong> These four were '
-        'measured against our own instruments on <strong>2026-09-18</strong> and the result is a '
-        'warning label, not a signal: <strong>all four CO-MOVE with the tape and NONE of them '
-        'predicts the next day.</strong> Same-day, VIX against MNQ is <strong>r&nbsp;=&nbsp;&minus;0.669</strong> '
-        'and DXY against MGC is <strong>&minus;0.408</strong>; oil is unrelated to either. '
-        'Next-day: nothing. <strong>So this table EXPLAINS the week you just had. It does not '
-        'forecast the one coming</strong>, and no play on the card above is sourced from it. '
-        '<code>scripts/macro_watch.py</code> says the same thing in its own docstring &mdash; '
-        '<em>&ldquo;IT MEASURES NO EDGE&rdquo;</em>.</div>'
-        '<p class="lead">⚠ <strong>And the window is one day, not the week.</strong> '
-        f'<code>data/macro_watch.jsonl</code> was started on the morning of {days[0]} and holds '
-        f'<strong>{len(rows)} hourly reads across {len(days)} day(s)</strong> &mdash; '
-        f'{first["ts"][11:16]}Z to {last["ts"][11:16]}Z. Below is Friday. It is not a week of '
-        'context and it must not be read as one; next week&rsquo;s report gets the first full '
-        'five days. The two same-day correlations quoted above were measured separately on '
-        '2026-09-18 and are carried here as a stated result &mdash; <strong>this build does not '
-        're-derive them, and thirteen hourly rows could not.</strong></p>'
-        '<table><thead><tr><th class="ln">Series</th><th class="num">Last</th>'
-        '<th class="num">vs prev close</th><th class="num">Range on the day</th></tr></thead>'
-        f'<tbody>{"".join(body)}</tbody></table>')
-
-
-# ══════════════════════════════════════════════════════════════════════════════════════
-# HIS WEEK'S MONEY — computed from the trade record, never typed.
-def desk_numbers_op(week_start: str, week_end_excl: str) -> dict:
-    """The operator's own book for the report week.
-
-    `pnl_usd` is ALREADY NET of the $1.50 round trip (store.py's schema comment, pnl.py's
-    docstring, and the invariant holds row by row). NET is therefore a plain SUM — subtracting
-    fees_usd again charges the fee twice, which this build shipped once and corrected on 08-26.
-
-    ★ ROWS ARE NOT ENTRIES. A scale-out books one `trades` row per lot leaving, so the week's 61
-    clean rows are 39 decisions. Section 1 counts decisions and so does the front page; anything
-    that counts rows inflates the trade count by ~1.55x.
-    """
-    import sqlite3
-    con = sqlite3.connect(f"file:{DESK_DB}?mode=ro", uri=True)
-    W = f"closed_at >= '{week_start}' AND closed_at < '{week_end_excl}'"
-    CLEAN = f"{W} AND data_quality IS NULL"
-    # ★ coalesce: an EMPTY bucket must render as "0 legs, $0.00", not crash on a NULL sum. This
-    # week the automated-gate bucket really is empty — the tournament took nothing — and that row
-    # is one of the most important facts on the front page, so it has to be printable.
-    NET = "round(coalesce(sum(pnl_usd),0),2)"
-
-    def one(sql):
-        return con.execute(sql).fetchone()
-
-    raw = one(f"SELECT count(*), {NET} FROM trades WHERE {W}")
-    clean = one(f"SELECT count(*), {NET} FROM trades WHERE {CLEAN}")
-    flagged = con.execute(
-        f"SELECT count(*), {NET} FROM trades WHERE {W} AND data_quality IS NOT NULL").fetchone()
-    manual = one(f"SELECT count(*), {NET} FROM trades WHERE {CLEAN} AND entry_source='manual'")
-    auto = one(f"SELECT count(*), {NET} FROM trades WHERE {CLEAN} AND "
-               "(entry_source IS NULL OR entry_source<>'manual')")
-    days = con.execute(f"SELECT date(closed_at), count(*), {NET} FROM trades WHERE {CLEAN} "
-                       "GROUP BY 1 ORDER BY 1").fetchall()
-    exits = con.execute(f"SELECT exit_reason, count(*), {NET} FROM trades WHERE {CLEAN} "
-                        "GROUP BY 1 ORDER BY 3 DESC").fetchall()
-    # DECISIONS, not rows: one decision = one (opened_at, side, entry_price) triple.
-    dec = con.execute(f"SELECT count(*) FROM (SELECT 1 FROM trades WHERE {CLEAN} "
-                      "GROUP BY opened_at, side, entry_price)").fetchone()[0]
-    lots = con.execute(f"SELECT coalesce(sum(qty),0) FROM trades WHERE {CLEAN}").fetchone()[0]
-    last = con.execute(f"SELECT closed_at, exit_price, round(pnl_usd,2) FROM trades WHERE {CLEAN} "
-                       "ORDER BY closed_at DESC LIMIT 1").fetchone()
-    con.close()
-    green = sum(1 for _d, _n, v in days if v > 0)
-    return dict(raw=raw, clean=clean, flagged=flagged, manual=manual, auto=auto, days=days,
-                exits=exits, decisions=dec, lots=lots, last=last, green=green,
-                red=len(days) - green)
-
-
-def flat_check_box(last_close: tuple | None) -> str:
-    """Is anything riding over the weekend? STATE THE EVIDENCE, never assert the conclusion.
-
-    ★ This is the positive counterpart to weekend_carry_box(), which renders NOTHING when the desk
-    is flat. Silence was the right design for a box whose only job is to shout about an open
-    position — and it leaves a report with nothing at all to say about the most consequential fact
-    of a Friday night. On 2026-08-28 that gap was filled by a hand-typed "the desk is FLAT", which
-    was still on the page a week later when four lots were open and the gateway was unreachable.
-    So flat is REPORTED, from the files, with the read that decided it and its timestamp, at render
-    time — and a venue that cannot be read is called "unknown", not "flat".
-    """
-    try:
-        st = json.loads(pathlib.Path(f"{GB}/data/day_rider_state.json").read_text())
-        rc = json.loads(pathlib.Path(f"{GB}/data/desk_reconcile_state.json").read_text())
-        ch = json.loads(pathlib.Path(f"{GB}/data/core_health.json").read_text())
-    except Exception as e:
-        return ('<div class="rev3"><div class="ct">&#9733;&#9733; CARRY CHECK UNAVAILABLE</div>'
-                f'<p>A desk state file could not be read ({html.escape(str(e))}), so this report '
-                'CANNOT tell you whether anything is open. Treat that as <strong>unknown</strong>, '
-                'never as flat.</p></div>')
-    carry = weekend_carry_box()
-    if carry:                                    # something IS open — that box outranks this one
-        return carry
-    if last_close:
-        _ca, _xp, _pnl = last_close
-        lc = (f'<strong>{_ca[11:19]}Z on {dt.date.fromisoformat(_ca[:10]):%A %-d %B}</strong> '
-              f'({m(_pnl)} at {_xp:,.2f})')
-    else:
-        lc = '<strong>&mdash;</strong> (no closed legs in the report week)'
-    vn, vts = st.get("venue_net"), str(st.get("venue_net_ts") or "")
-    vok = bool(st.get("venue_ok"))
-    rok = bool(rc.get("read1", {}).get("ok"))
-    lots = st.get("lots_open")
-    # ⚠ THE TRAP IN THE STATE FILE, NAMED. `lots_open` reads 4 on a flat book — it is the size of
-    # the LAST position, not the open size, and `closed: true` is the field that decides. It is
-    # printed with that explanation rather than quoted as evidence, because quoting it as evidence
-    # is how a reader (or the next build) concludes the opposite of the truth.
-    trap = (f'⚠ <strong>One field in that file will mislead you and it is named here on purpose:</strong> '
-            f'<code>lots_open</code> reads <strong>{lots}</strong>, not 0. It is the size of the '
-            f'LAST position, not the open size, and it is never cleared. <code>closed</code> is the '
-            f'field that decides, and the venue line is what confirms it. '
-            f'(<code>weekend_carry_box()</code> in this build checks <code>lots_open</code> first '
-            f'and is only saved from shouting by the <code>closed</code> test beside it.)'
-            if lots else '')
-    return (
-        '<div class="callout"><div class="ct">&#9733; THE WEEKEND CARRY CHECK &mdash; the desk is '
-        'FLAT, and here is what says so</div>'
-        f'<p><strong>Nothing is riding over this weekend.</strong> The last leg on the book closed '
-        f'at {lc} and no position was opened after it. '
-        f'<code>data/day_rider_state.json</code> reads <code>closed true</code>; its venue read at '
-        f'<code>{vts[11:19]}Z</code> returned <strong>net {vn}</strong> with '
-        f'<code>venue_ok {str(vok).lower()}</code> &mdash; taken <em>after</em> that final claim, '
-        'which is what makes it evidence rather than an assumption. '
-        f'<code>core_health</code> at {str(ch.get("ts"))[11:19]}Z reads '
-        f'<code>flat {str(ch.get("flat")).lower()}</code>, <code>halted '
-        f'{str(ch.get("halted")).lower()}</code>, and <code>desk_reconcile</code> at '
-        f'{str(rc.get("ts"))[11:19]}Z reads '
-        f'<code>{html.escape(str(rc.get("read1", {}).get("summary")))}</code>.</p>'
-        + (f'<p>{trap}</p>' if trap else '')
-        + ('' if (vok and rok) else
-           '<p>⚠ <strong>And one honest limit on the two agreeing sources.</strong> '
-           + ('<code>desk_reconcile</code> reads '
-              f'<code>{html.escape("; ".join(rc.get("read1", {}).get("reasons") or []))}</code> '
-              '&mdash; it could not reach the venue on its last pass. ' if not rok else '')
-           + '<code>core_health.flat</code> is the <em>tournament&rsquo;s own book</em>, not the '
-             'venue, and it would read <code>true</code> either way; it is corroboration, not a '
-             'second independent witness. The load-bearing evidence is the rider&rsquo;s venue '
-             'read above, and it post-dates the last fill.</p>')
-        + '<p class="ln">Related: LAST WEEK&rsquo;S CARD below grades the flatten row this outcome '
-          'speaks to &mdash; and grades it <strong>ungraded</strong>, because the final position '
-          'was closed by hand more than two hours before either eod-flatten shot, so the flatten '
-          'path was never exercised this week and nothing here says it works.</p></div>')
-
-
-def slug_note(slug: str, wk_start: str, wk_end: str) -> str:
-    """★2026-09-18 — SAY IT WHEN THE FILENAME AND THE WEEK DISAGREE.
-
-    This report ships as `weekly_<slug>.html` and the slug is supposed to be the week ending. The
-    2026-09-04 cycle found that the Friday runner's date is stuck a week behind — it is on that
-    cycle's own card — so the slug this build is handed is not always the week in the document.
-    That is survivable; a reader silently assuming the filename is the week is not. If the slug is
-    not the report week's Friday the page says so in its second line, and it renders nothing at
-    all when the two agree.
-    """
-    if slug == wk_end:
-        return ""
-    return (
-        '<div class="rev3ptr"><strong>&#9733; THE FILENAME IS NOT THE WEEK.</strong> This document '
-        f'is published as <code>weekly_{esc(slug)}.html</code> and it covers '
-        f'<strong>{dt.date.fromisoformat(wk_start):%-d} to '
-        f'{dt.date.fromisoformat(wk_end):%-d %B %Y}</strong> &mdash; the week ending '
-        f'<strong>{wk_end}</strong>, not {esc(slug)}. The output path was specified; the slug it '
-        'carries comes from the Friday runner, whose date has been known to sit a week behind '
-        'since 2026-09-04. <strong>Every date, table and total inside this report is the week to '
-        f'{wk_end}</strong>, computed from the trade record against that window, and the masthead '
-        'above states it. Do not date a number in here off the filename.</div>')
-
-
-def pass_count_line() -> str:
-    """★2026-09-18 REV2 — THE PASS COUNT, GENERATED INTO THE FRONT BOX EVERY WEEK.
-
-    MONDAY #1 is ranked first on this card, its kill criterion is 30 passes, and BUILD #4's 78
-    captured narratives are explicitly held hostage to it — and the only verification the report
-    offered was a python one-liner a human has to remember to run. So the whole document was blocked
-    on a button that nothing in the document measured. This reads the file at render time and puts
-    the number where he already looks. A zero next Friday is then a visible fact rather than a thing
-    nobody checked, which is exactly the distinction this build draws about last week's 58 ungraded
-    plays.
-
-    ⚠ It refuses to extrapolate a date from a zero rate. "At 0/week, 30 lands on <date>" has no
-    honest value, and inventing one would be the same failure as the hand-typed venue read.
-    """
-    try:
-        rows = [json.loads(l) for l in
-                pathlib.Path(f"{GB}/data/operator_reads.jsonl").read_text().splitlines() if l.strip()]
-    except Exception as e:
-        return ('<p class="lead">⚠ <strong>PASSES RECORDED: unknown.</strong> '
-                f'<code>data/operator_reads.jsonl</code> could not be read ({esc(str(e))}), so this '
-                'report cannot tell you whether the PASS button has been used. Treat that as '
-                '<strong>unknown</strong>, not as zero.</p>')
-    # Deduped the same way §2 dedupes: on the press's own stamp, because PathModified fires twice.
-    # ★★★2026-09-25 REV2 — AND ONE OF THE FOUR `pass` ROWS IS NOT A PASS. The 09-24 09:56:03Z row
-    # carries `request.raw = "...|PASS|BUTTON AUDIT - not a real pass"` — he pressed it to check the
-    # button was wired, not because he looked at the tape and declined. Counting it would put a
-    # non-decision into the 30-example threshold that this entire report is blocked on, which is the
-    # same class of error as the 09-24 `assistant_test_claim` BADFILL: a real record of a thing that
-    # was never a judgement. The tag is IN the row, so the row can be excluded by reading it.
-    # ⚠ Keep the audit count and PRINT it — a silently dropped row is how the count drifts.
-    seen, npass, naudit, first, last = set(), 0, 0, None, None
-    for r in rows:
-        if r.get("kind") != "pass":
-            continue
-        raw = (r.get("request") or {}).get("raw")
-        key = raw or r["ts"]
-        if key in seen:
-            continue
-        seen.add(key)
-        if raw and "not a real pass" in raw.lower():
-            naudit += 1
-            continue
-        npass += 1
-        first = first or r["ts"]
-        last = r["ts"]
-    if npass == 0:
-        return (
-            '<p class="lead">★ <strong>PASSES RECORDED: '
-            '<span style="color:#b3211f">0</span>.</strong> The PASS button shipped on Wednesday '
-            '2026-09-18 and <code>data/operator_reads.jsonl</code> holds no <code>pass</code> row. '
-            '<strong>At an observed rate of zero a week, 30 never lands</strong> &mdash; there is no '
-            'date to put here, and that is the honest form of the answer rather than an '
-            'extrapolation from nothing. This line is <em>generated from the file at render '
-            'time</em> and will appear in the same place every Friday, so the count is a fact on the '
-            'page rather than something somebody has to remember to check. <strong>It is the kill '
-            'criterion for MONDAY&nbsp;#1, the unblock for BUILD&nbsp;#4&rsquo;s 78 narratives, and '
-            'the ceiling on Sections&nbsp;1 and&nbsp;2.</strong></p>')
-    # ★★2026-09-25 THE RATE MUST NOT BE MEASURED ON ITS OWN SPAN. first=09-24, last=09-25 gives a
-    # one-day span and 3 passes on it extrapolates to 21 a week, which would put 30 passes ten days
-    # away. That is an artefact of measuring a rate over the window its own events define. The
-    # denominator is the time the BUTTON HAS EXISTED, and the honest statement names both the rate
-    # and the fact that two sessions produced every one of them.
-    SHIPPED = dt.date(2026, 9, 18)
-    live_days = max((dt.date.today() - SHIPPED).days, 1)
-    rate = npass / live_days * 7
-    sessions = len({r["ts"][:10] for r in rows
-                    if r.get("kind") == "pass"
-                    and "not a real pass" not in ((r.get("request") or {}).get("raw") or "").lower()})
-    eta = (dt.date.today() + dt.timedelta(days=int((30 - npass) / max(rate, 1e-9) * 7))
-           ) if npass < 30 else None
-    audit = ('' if not naudit else
-             f' <strong>A {naudit + npass}th <code>pass</code> row is NOT counted</strong>: the '
-             '09-24 09:56Z record carries <code>BUTTON AUDIT - not a real pass</code> in its own '
-             'request line &mdash; a wiring check, not a decision. It is excluded here and named '
-             'so the count cannot drift.')
-    return (
-        f'<p class="lead">★ <strong>PASSES RECORDED: {npass}</strong> &mdash; and the answer to '
-        f'MONDAY&nbsp;#1 is <strong>yes, the habit has started</strong>. First {first[:10]}, latest '
-        f'{last[:10]}, across <strong>{sessions} of the week&rsquo;s 5 sessions</strong>. '
-        f'<strong>{npass} of 30.</strong>{audit} At <strong>{rate:.1f} a week</strong> over the '
-        f'{live_days} days the button has existed, '
-        + (f'<strong>30 lands around {eta:%Y-%m-%d}</strong> &mdash; about '
-           f'{int((30 - npass) / max(rate, 1e-9))} more weeks. ' if eta else
-           '<strong>the 30-example threshold is CLEARED on the negative side</strong> for the first '
-           'time. ')
-        + f'⚠ <strong>Read that date as one observation, not a trend:</strong> all {npass} landed in '
-          f'{sessions} sessions at the very end of the week, so the rate rests on {sessions} days. '
-          'Generated from <code>data/operator_reads.jsonl</code> at render time.</p>')
-
-
-# ★★★2026-09-25 REV2 — THE ENTRY-LEVEL RULER, AND THE TWO BOOKS KEPT APART.
-# The front page needs three things the leg-level query above cannot give it: ENTRIES (a scale-out
-# books one row per lot leaving), the CONCENTRATION of the week in its extremes, and HIS book kept
-# separate from the GATES' book. The last one matters more this week than it ever has, because both
-# books traded and they trade at different size — a 4-lot hand and a 1-lot gate cannot be netted
-# into one $/day figure without inventing a number that describes neither.
-#
-# ⚠ THE CLASSIFIER. `entry_source='manual'` is his hand. The automated legs this week carry
-#   entry_source IS NULL — NOT the empty string; there are ZERO empty-string rows in the whole
-#   table (1,086 NULL, 9 tagged, 0 empty), so a `data_quality IS NULL` filter is correct and
-#   sufficient and so is `entry_source IS NULL` for THIS week. But IS NULL is the WRONG general
-#   test: `entry_source` was only introduced on 2026-09-10, so 88 of his OWN day_rider legs from
-#   08-10 to 09-10 also carry NULL. Across any window that reaches back past 09-10, the automated
-#   book is `gate NOT LIKE 'day_rider%'` and nothing else.
-def entry_stats_op(week_start: str, week_end_excl: str, hand: bool = True) -> dict:
-    """Entry-level (not leg-level) stats for one book over one week."""
-    import sqlite3
-    con = sqlite3.connect(f"file:{DESK_DB}?mode=ro", uri=True)
-    book = "gate = 'day_rider'" if hand else "gate NOT LIKE 'day_rider%'"
-    rows = con.execute(
-        f"SELECT opened_at, entry_price, side, sum(qty), count(*), sum(pnl_usd), "
-        f"       group_concat(DISTINCT exit_reason) "
-        f"FROM trades WHERE closed_at >= ? AND closed_at < ? AND data_quality IS NULL AND {book} "
-        f"GROUP BY opened_at, entry_price, side ORDER BY opened_at",
-        (week_start, week_end_excl)).fetchall()
-    con.close()
-    e = [dict(t=r[0], px=r[1], side=r[2], qty=r[3], legs=r[4], pnl=r[5], rs=r[6] or "") for r in rows]
-    if not e:
-        return dict(n=0, net=0.0, ctr=0.0, legs=0, per_entry=0.0, per_ctr=0.0, wins=0,
-                    top5=0.0, rest=0.0, bot5=0.0, mid=0.0, midn=0, rung=(0, 0.0), norung=(0, 0.0),
-                    days={}, entries=[], sides={})
-    p = sorted(x["pnl"] for x in e)
-    net = sum(p)
-    ctr = sum(x["qty"] for x in e)
-    top5, bot5 = sum(p[-5:]), sum(p[:5])
-    mid = p[5:-5] if len(p) > 10 else []
-    rung = [x for x in e if "TARGET" in x["rs"]]
-    norung = [x for x in e if "TARGET" not in x["rs"]]
-    days = {}
-    for x in e:
-        d = days.setdefault(x["t"][:10], [0, 0.0, 0, 0.0])
-        d[0] += 1; d[1] += x["pnl"]; d[2] += (1 if x["pnl"] > 0 else 0); d[3] += x["qty"]
-    sides = {}
-    for s in ("LONG", "SHORT"):
-        xs = [x for x in e if x["side"] == s]
-        sides[s] = (len(xs), sum(x["pnl"] for x in xs),
-                    sum(1 for x in xs if x["pnl"] > 0))
-    return dict(n=len(e), net=net, ctr=ctr, legs=sum(x["legs"] for x in e),
-                per_entry=net / len(e), per_ctr=net / max(ctr, 1),
-                wins=sum(1 for x in e if x["pnl"] > 0),
-                top5=top5, rest=net - top5, bot5=bot5,
-                mid=sum(mid), midn=len(mid),
-                rung=(len(rung), sum(x["pnl"] for x in rung)),
-                norung=(len(norung), sum(x["pnl"] for x in norung)),
-                days=days, entries=e, sides=sides)
-
-
-def gate_signals_op(week_start: str, week_end_excl: str) -> dict:
-    """The automated book, collapsed from A/B LEGS to independent SIGNALS.
-
-    ★ THE A/B LEGS ARE A SCALE-OUT, NOT AN EXPERIMENT. Every gate runs as `<name>_A` and
-    `<name>_B` and they are the two halves of one signal, so counting 30 legs as 30 independent
-    observations double-counts the week. Collapsed on (family, opened_at, entry_price) the 30 legs
-    are 15 signals — 15 clean A+B pairs with nothing left over.
-    """
-    import sqlite3
-    con = sqlite3.connect(f"file:{DESK_DB}?mode=ro", uri=True)
-    rows = con.execute(
-        "SELECT gate, opened_at, entry_price, qty, pnl_usd FROM trades "
-        "WHERE closed_at >= ? AND closed_at < ? AND data_quality IS NULL "
-        "  AND gate NOT LIKE 'day_rider%' ORDER BY opened_at",
-        (week_start, week_end_excl)).fetchall()
-    con.close()
-    # ⚠ COLLAPSE ON THE SECOND, AND NOT ON THE PRICE. The A and B legs of one signal are written
-    # ~55ms apart and DO NOT always share an entry price (e.g. 2026-09-21 13:47:01, A filled
-    # 30,365.50 and B 30,365.25). Keying on the full timestamp finds zero pairs; keying on
-    # (timestamp, price) finds some and splits the rest. Truncating to the second pairs all 30 legs
-    # into 15 signals with no leftovers, which is the check that the key is right.
-    sig, fam = {}, {}
-    for g, oa, ep, q, pnl in rows:
-        f = g.rsplit("_", 1)[0]
-        sig.setdefault((f, oa[:19]), []).append(pnl or 0.0)
-    for (f, _oa), v in sig.items():
-        a = fam.setdefault(f, [0, 0.0])
-        a[0] += 1; a[1] += sum(v)
-    return dict(legs=len(rows), signals=len(sig), net=sum(sum(v) for v in sig.values()),
-                ctr=sum(r[3] for r in rows), fam=fam,
-                pairs=sum(1 for v in sig.values() if len(v) == 2))
-
-
-def render_front_op(slug: str, published: str, n_plays: int) -> str:
-    """The front page for the REFOCUSED report — week to Friday {slug}.
-
-    ★★★2026-09-25 REV2 — REWRITTEN, AND THE WEEK IS NOW DERIVED FROM THE SLUG. The previous version
-    hard-coded `WK_START, WK_END, WK_END_EXCL = "2026-09-14", "2026-09-18", "2026-09-19"` in its
-    first line and wrote five paragraphs of narrative around those dates. Combined with the
-    `_report_week()` rollback that made the Friday cron name the PREVIOUS Friday, that is how the
-    09-18 report came to be re-published on 09-25 with a masthead reading "Mon 14 - Fri 18
-    September" and an action card dated "MONDAY 2026-09-21". The window is now computed from the
-    slug: a report named for a Friday covers the Monday four days before it, and there is no second
-    place to keep that fact.
-
-    Everything numeric is COMPUTED (desk_numbers_op, entry_stats_op, gate_signals_op,
-    event_calendar_block, macro_block, flat_check_box, pass_count_line). The narrative is written
-    for THIS week and will rot; it is rewritten wholesale each cycle rather than patched, because a
-    patched front page keeps the previous week's frame — which is exactly what happened this time.
-    """
-    wk_end_d = dt.date.fromisoformat(slug)
-    WK_START = (wk_end_d - dt.timedelta(days=4)).isoformat()
-    WK_END = slug
-    WK_END_EXCL = (wk_end_d + dt.timedelta(days=1)).isoformat()
-    PREV_START = (wk_end_d - dt.timedelta(days=11)).isoformat()
-    PREV_END_EXCL = (wk_end_d - dt.timedelta(days=6)).isoformat()
-
-    d = desk_numbers_op(WK_START, WK_END_EXCL)
-    raw_n, raw_v = d["raw"]
-    cl_n, cl_v = d["clean"]
-    fl_n, fl_v = d["flagged"]
-    mn_n, mn_v = d["manual"]
-    au_n, au_v = d["auto"]
-    n_sections = len(SECTIONS)
-
-    H = entry_stats_op(WK_START, WK_END_EXCL)            # his hand, this week
-    P = entry_stats_op(PREV_START, PREV_END_EXCL)        # his hand, the week before
-    G = gate_signals_op(WK_START, WK_END_EXCL)           # the automated book
-
-    daily = "".join(
-        f'<tr class="{"row-hl" if v > 0 else "row-bad"}">'
-        f'<td class="ln">{dt.date.fromisoformat(day):%a %-d %b}</td>'
-        f'<td class="num">{n}</td><td class="num"><strong>{m(v)}</strong></td></tr>'
-        for day, n, v in d["days"])
-    exitrows = "".join(
-        f'<tr class="{"row-hl" if v > 0 else "row-bad"}"><td class="ln"><code>{esc(r)}</code></td>'
-        f'<td class="num">{n}</td><td class="num">{m(v)}</td><td class="num">{m(v / n)}</td></tr>'
-        for r, n, v in d["exits"])
-    hisdays = "".join(
-        f'<tr class="{"row-hl" if v[1] > 0 else "row-bad"}">'
-        f'<td class="ln">{dt.date.fromisoformat(day):%a %-d %b}</td>'
-        f'<td class="num">{v[0]}</td><td class="num">{v[3]:.0f}</td>'
-        f'<td class="num"><strong>{m(v[1])}</strong></td>'
-        f'<td class="num">{v[2]}/{v[0]}</td><td class="num">{m(v[1] / v[0])}</td></tr>'
-        for day, v in sorted(H["days"].items()))
-    famrows = "".join(
-        f'<tr class="{"row-hl" if v[1] > 0 else "row-bad"}"><td class="ln"><code>{esc(f)}</code></td>'
-        f'<td class="num">{v[0]}</td><td class="num">{m(v[1])}</td>'
-        f'<td class="num">{m(v[1] / v[0])}</td></tr>'
-        for f, v in sorted(G["fam"].items(), key=lambda x: -x[1][1]))
-    best_fam = max(G["fam"].items(), key=lambda x: x[1][1]) if G["fam"] else ("n/a", [0, 0.0])
-    strip_n = G["signals"] - best_fam[1][0]
-    strip_v = G["net"] - best_fam[1][1]
-    worst = min(H["entries"], key=lambda x: x["pnl"]) if H["entries"] else None
-
-    return f"""
-<div class="masthead">
-  <h1>GAZBOT V7 &mdash; the Friday report</h1>
-  <p class="dates">Week ending <strong>Fri {WK_END}</strong> &nbsp;·&nbsp;
-     {dt.date.fromisoformat(WK_START):%a %-d} &ndash; {wk_end_d:%a %-d %B %Y} &nbsp;·&nbsp;
-     published {published} &nbsp;·&nbsp; MNQ, with MGC captured &nbsp;·&nbsp;
-     {n_plays} plays &nbsp;·&nbsp; front matter + {n_sections} body sections</p>
-</div>
-
-{slug_note(slug, WK_START, WK_END)}
-
-<div class="rev3">
-<div class="ct">★★★ WHY YOU ALMOST READ LAST WEEK&rsquo;S REPORT TONIGHT &mdash; and the guard that
-now stops it</div>
-<p><strong>This report was one build away from being the 2026-09-18 edition, re-published under
-tonight&rsquo;s date.</strong> You are owed the mechanism, because you have been handed a silently
-stale build before and a promise is not a guard.</p>
-<p><strong>What happened.</strong> <code>friday_phases._report_week()</code> resolved the report week
-as &ldquo;the most recent Friday whose 22:00Z session cut has already passed&rdquo;. The cron starts
-at <strong>21:05Z on Friday &mdash; 55 minutes before that cut</strong> &mdash; so on Friday night it
-always rolled back seven days. Measured at 21:05Z tonight it returned <strong>WEEK =
-2026-09-18</strong> while the clock said 2026-09-25. Every phase was handed the wrong week,
-<code>assemble</code>&rsquo;s output resolved to <code>weekly_2026-09-18.html</code> which already
-existed, and the runner&rsquo;s freshness check passed it because <strong>a git operation on 09-24
-09:43 had touched every fragment</strong>, making all four look newer than the 09-18T22:00Z cutoff.
-The log read <code>sections: 0 built, 4 already had, 0 missing</code> then <code>HAVE assemble
-&mdash; skipping</code>. That is the exact failure the checkpoint&rsquo;s own docstring says it
-exists to prevent: <em>&ldquo;a way to publish last week twice&rdquo;</em>.</p>
-<p><strong>The two fixes, both on disk.</strong> <em>One</em> &mdash; on a Friday the report week is
-<strong>today</strong>, because a Friday-night run is about the week ending tonight. That is the only
-run instant that changes; a Saturday or Sunday resume already named this Friday, so the fix makes the
-cron AGREE with its own resume rather than contradict it. <em>Two</em> &mdash; an mtime cannot say
-what week a file is ABOUT, so every artifact now carries a <strong>week stamp</strong> written by the
-runner when the phase succeeds, and a stamp that disagrees with the report week is
-<strong>STALE no matter how new the file is</strong>. Verified tonight: with mtimes untouched, all
-four body phases flipped from <code>HAVE</code> to <code>todo</code> on the stamp alone.</p>
-<p>⚠ <strong>What that means for this document.</strong> The front matter, the money, the action
-card, last week&rsquo;s graded ledger and the run charts are all rebuilt on
-<strong>{WK_START} &rarr; {WK_END}</strong>. The four long analytical body sections were written
-about 09-14&rarr;09-18 and <strong>could not be re-run tonight</strong> &mdash; each is a
-45&ndash;60 minute job. They are stitched in <strong>under a red banner naming the week they
-grade</strong>, because the alternative was to publish nothing, and their tape-reading work is still
-the best on the desk. <strong>Do not read a dollar figure out of Sections 1&ndash;4 as this
-week&rsquo;s.</strong> Every number in the front matter is this week&rsquo;s.</p>
-</div>
-
-{flat_check_box(d["last"])}
-
-{event_calendar_block(WK_START, WK_END)}
-
-{macro_block()}
-
-<div class="callout"><div class="ct">★★ IF YOU READ ONLY THIS &mdash; four things, in order</div>
-
-<p><strong>1 &mdash; ★ THE FINDING THAT SURVIVED THE WEEK: this book is five draws, in either
-direction.</strong> Last week that was written as a caveat on a win. It is not a caveat, it is the
-shape of the book, and this week proves it by inverting the sign with the concentration intact.
-Same ruler, both weeks, entries not rows:</p>
-<table>
-<thead><tr><th class="ln">Week</th><th class="num">Entries</th><th class="num">Top 5</th>
-<th class="num">The other n</th><th class="num">Week net</th></tr></thead>
-<tbody>
-<tr class="row-hl"><td class="ln">{dt.date.fromisoformat(PREV_START):%-d}&ndash;{dt.date.fromisoformat(PREV_END_EXCL) - dt.timedelta(days=1):%-d %b}</td>
-    <td class="num">{P['n']}</td><td class="num"><strong>{m(P['top5'])}</strong></td>
-    <td class="num">{m(P['rest'])} <span class="ln">over {P['n'] - 5}</span></td>
-    <td class="num"><strong>{m(P['net'])}</strong></td></tr>
-<tr class="row-bad"><td class="ln"><strong>{dt.date.fromisoformat(WK_START):%-d}&ndash;{wk_end_d:%-d %b}</strong></td>
-    <td class="num">{H['n']}</td><td class="num"><strong>{m(H['top5'])}</strong></td>
-    <td class="num">{m(H['rest'])} <span class="ln">over {H['n'] - 5}</span></td>
-    <td class="num"><strong>{m(H['net'])}</strong></td></tr>
-</tbody></table>
-<p>In both weeks <strong>five entries out of {P['n']} and {H['n']} are larger than the entire
-week</strong>. That is a far stronger statement than &ldquo;last week&rsquo;s upside was
-concentrated&rdquo;, and it is the <em>only</em> headline claim from the 09-18 edition that survives
-being handed this week&rsquo;s data. <strong>Two weeks is still two weeks</strong> &mdash; but it
-tells you where to look: the tails are the book, and the middle is noise around zero.</p>
-
-<p><strong>2 &mdash; You had a losing week, and it was NOT you getting worse.</strong>
-<strong>{m(H['net'])}</strong> across <strong>{H['n']} entries</strong> and
-<strong>{H['ctr']:.0f} contracts</strong>, against {m(P['net'])} over {P['n']} last week. But the
-per-entry economics barely moved &mdash; what moved was the <em>mix</em>:</p>
-<table>
-<thead><tr><th class="ln">Entries that&hellip;</th><th class="num">n last wk</th>
-<th class="num">$/entry last wk</th><th class="num">n this wk</th>
-<th class="num">$/entry this wk</th></tr></thead>
-<tbody>
-<tr class="row-hl"><td class="ln">reached a profit rung (<code>TARGET_*</code>)</td>
-    <td class="num">{P['rung'][0]}</td><td class="num">{m(P['rung'][1] / max(P['rung'][0], 1))}</td>
-    <td class="num">{H['rung'][0]}</td>
-    <td class="num"><strong>{m(H['rung'][1] / max(H['rung'][0], 1))}</strong></td></tr>
-<tr class="row-bad"><td class="ln">reached no rung at all</td>
-    <td class="num">{P['norung'][0]}</td><td class="num">{m(P['norung'][1] / max(P['norung'][0], 1))}</td>
-    <td class="num">{H['norung'][0]}</td>
-    <td class="num"><strong>{m(H['norung'][1] / max(H['norung'][0], 1))}</strong></td></tr>
-</tbody></table>
-<p><strong>Both buckets pay almost exactly what they paid last week.</strong> What collapsed is how
-often you reached a rung at all: <strong>{P['rung'][0]}/{P['n']} =
-{100 * P['rung'][0] / P['n']:.0f}%</strong> last week against
-<strong>{H['rung'][0]}/{H['n']} = {100 * H['rung'][0] / H['n']:.0f}%</strong> this week. You traded
-<strong>{H['n'] / P['n']:.1f}&times; as much</strong> ({P['n'] / 5:.1f} entries a day &rarr;
-{H['n'] / 5:.1f}) and the extra entries were the ones that never got anywhere. ⚠ That drop is
-<strong>P&nbsp;=&nbsp;0.054</strong> on a two-proportion test &mdash; right on the line, on two
-weeks, so treat it as the best available reading and not as established. <strong>The honest baseline
-is $/entry at 4 lots, never $/day</strong>, because the days are not comparable once the entry count
-doubles.</p>
-
-<p><strong>3 &mdash; The automated desk did NOT take nothing this week &mdash; and it was the only
-part of the book that made money.</strong> The gates took <strong>{G['signals']} signals</strong>
-({G['legs']} legs, one lot each) for <strong>{m(G['net'])}</strong>, while your hand lost
-{m(H['net'])} on {H['ctr']:.0f} contracts. <strong>Do not read that as the machine beating
-you</strong> &mdash; normalised to a single stated unit it is <strong>{m(G['net'] / max(G['ctr'], 1))}
-per contract</strong> for the gates against <strong>{m(H['per_ctr'])} per contract</strong> for you,
-and then two disqualifiers land on it: the gates are <strong>one lot and paper</strong>, and
-<strong>{best_fam[1][0]} of {G['signals']} signals are <code>{esc(best_fam[0])}</code></strong>
-&mdash; strip that one family and the rest of the automated book is
-<strong>{m(strip_v)} over {strip_n} signals</strong>. It fails strip-the-best-family, so the verdict
-is <span class="tag">PROMISING</span> on a {G['signals']}-signal week and <strong>nothing here
-justifies moving size from one book to the other.</strong></p>
-
-{pass_count_line()}
-
-<p><strong>4 &mdash; The 15-minute page band is PROVEN &mdash; in one direction only.</strong>
-MONDAY&nbsp;#2 of the last card shipped nothing, so its forward week was available and unspent. It
-is spent now. Replaying the <em>unchanged</em> detector out of <code>data/leg_watch.log</code> over
-all five sessions: at a 15-minute band a same-side page precedes <strong>82.8% of your
-{H['n']} entries</strong> within the hour, against a session-blocked shuffled rate of
-<strong>63.4%</strong> &mdash; a lift of <strong>+19.4 points</strong>, with <strong>all five
-leave-one-day-out folds positive</strong> (+13.1 to +23.4) and 15/10 forming a <em>plateau</em>
-rather than a step. The in-sample claim was 82% on 34 presses; the forward number on
-<strong>{H['n']} entries</strong> is 82.8%. <strong>That replicates.</strong> ⚠ <strong>And in the
-other direction it is at chance:</strong> the same band fires <strong>42.6 pages a session</strong>
-and only 28.2% of them are followed by a trade against a 29.5% shuffled rate &mdash;
-<strong>a lift of &minus;1.3</strong>. So it is a good <em>description</em> of where you trade and
-<strong>wallpaper as a phone alert</strong>. Dashboard only. Pre-registered tonight in
-<code>data/prereg_leg_band.json</code>, with the forward leg (next 30 entries) unrun and named.</p>
-</div>
-
-<h2 id="honest"><span class="n">★</span> THE HONEST HEADLINE &mdash; the biggest week this book has
-ever traded, and it gave back everything it had made</h2>
-
-<p class="lead">Your own hand booked <strong>{m(H['net'])}</strong> across
-<strong>{H['n']} entries</strong> and <strong>{H['ctr']:.0f} contracts</strong> &mdash;
-<strong>{m(H['per_entry'])} an entry</strong>, on a <strong>{100 * H['wins'] / H['n']:.0f}% win
-rate</strong>. <strong>{sum(1 for v in H['days'].values() if v[1] > 0)} sessions green,
-{sum(1 for v in H['days'].values() if v[1] <= 0)} red.</strong> ⚠ <strong>Win rate is not the
-story and is not a kill criterion on this desk</strong> &mdash; you won more than half your entries
-and still lost money, which is the mirror image of the 39% week that made +$625.</p>
-
-<p class="lead">⚠ <strong>The week&rsquo;s two red sessions, together, wiped out the whole of
-last week.</strong> {"".join(f"<strong>{dt.date.fromisoformat(dd):%a %-d %b} {m(vv[1])}</strong>; " for dd, vv in sorted(H["days"].items(), key=lambda x: x[1][1])[:2])}
-that is <strong>{m(sum(sorted((v[1] for v in H['days'].values()))[:2]))}</strong> across two days
-against last week&rsquo;s <strong>{m(P['net'])}</strong> across all five &mdash; they gave back
-last week&rsquo;s entire profit and {m(abs(sum(sorted((v[1] for v in H['days'].values()))[:2])) - P['net'])} more.
-⚠ <em>Neither session on its own is larger than last week&rsquo;s gain</em>; it takes both. And
-<strong>one entry cost {m(worst['pnl']) if worst else 'n/a'}</strong>
-{f"({worst['side']} 4 lots at {worst['px']:,.2f}, opened {worst['t'][11:16]}Z on {dt.date.fromisoformat(worst['t'][:10]):%A}, closed by hand)" if worst else ""}
-&mdash; worse than the whole week&rsquo;s net, and worse than the &minus;$1,288.00
-<code>CLOCK_FLAT</code> that the 09-18 report called the single worst decision of its week.</p>
-
-<p class="lead"><strong>The book, life to date.</strong> Your hand is now
-<strong>191 entries and &minus;$8.44</strong> since 2026-08-10. It stood at <strong>+$351.56 over
-92 entries</strong> into this week: <strong>this week handed back the book&rsquo;s entire
-lifetime profit</strong> and left it flat. That is the cleanest one-line summary of the five days,
-and it is the number to hold against any per-entry statistic in this report.</p>
-
-<p class="lead"><strong>Three things to hold while reading the rest.</strong>
-<em>One &mdash; rows are not entries.</em> The clean week is <strong>{cl_n} rows</strong> in
-<code>trades</code> across both books and only <strong>{H['n']} entries by hand</strong>, because a
-scale-out books one row per lot leaving. <em>Two &mdash; two fills this week were not real, and they
-are not the same KIND of unreal.</em> See the note below the table; this matters more than it did
-last week. <em>Three &mdash; the two books are different sizes.</em> Your hand trades 4 lots, the
-gates 1. Never net them into one $/day.</p>
-
-<div class="rev3">
-<div class="ct">★★★ <code>data_quality</code> IS NOW A MIXED COLUMN &mdash; two unrelated meanings,
-and the new one is the dangerous one</div>
-<p>The 09-18 report treated <code>BADFILL</code> as one known mechanism: the paper engine inventing
-a price on 3 of 4 lots. <strong>A second and completely different class appeared on 09-24</strong>
-and nothing in the previous edition anticipates it:</p>
-<table>
-<thead><tr><th class="ln">Tag</th><th class="num">id</th><th class="num">Lots</th>
-<th class="num">$</th><th class="ln">What is actually wrong</th></tr></thead>
-<tbody>
-<tr class="row-bad"><td class="ln"><code>BADFILL:paper_engine_0.1pct_fabrication_3of4_lots_20260915</code></td>
-    <td class="num">895</td><td class="num">4</td><td class="num">&minus;$304.50</td>
-    <td class="ln">a fabricated <strong>PRICE</strong>. His decision, invented fill. <em>(09-15 —
-        last week, shown for the contrast.)</em></td></tr>
-<tr class="row-bad"><td class="ln"><code>BADFILL:assistant_test_claim_NOT_operator_decision_20260924</code></td>
-    <td class="num">1019</td><td class="num">4</td><td class="num">&minus;$842.50</td>
-    <td class="ln">a fabricated <strong>DECISION</strong>. The fill was REAL; only the authorship
-        was not. <strong>This is the dangerous one.</strong></td></tr>
-</tbody></table>
-<p><strong>Why the second is worse.</strong> A bad price is visible &mdash; it disagrees with the
-tape. A trade that was never your decision looks perfectly normal, and it sits in the same column
-the first one uses. <strong>Anything that reports your $/day or your win rate on 09-24 without the
-filter attributes an assistant&rsquo;s test claim to your judgement</strong> &mdash; which is the
-exact defect the tag was written to prevent. It is &minus;$842.50 over 4 lots and it is excluded from
-every total in this front matter: <strong>{m(H['net'])} is the clean figure, {m(H['net'] + fl_v)} is
-what an unfiltered reader sees.</strong></p>
-<p>⚠ <strong>And the filter is <code>data_quality IS NULL</code>, which is correct</strong> —
-checked tonight, the table holds <strong>1,086 NULL, 9 tagged and ZERO empty-string</strong> rows, so
-there is no empty-string trap here. The trap is elsewhere: <strong>the live $250 loss limit has no
-<code>data_quality</code> filter at all</strong> and counts this &minus;$842.50 straight into its
-own trigger, exactly as it counted the &minus;$304.50 on 09-15. That is SATURDAY&nbsp;#4 from the
-last card and it is <strong>still not done</strong> &mdash; graded below.</p>
-</div>
-
-<p>There is no single honest total, so here are all of them, with what separates each from the next.</p>
-
-<table>
-<thead><tr><th class="ln">What you are looking at</th><th class="num">Rows</th><th class="num">Net $</th>
-<th class="ln">Why it differs from the row above</th></tr></thead>
-<tbody>
-<tr><td class="ln">Raw <code>trades</code> rows, {WK_START} &rarr; {WK_END}</td><td class="num">{raw_n}</td>
-    <td class="num">{m(raw_v)}</td>
-    <td class="ln">everything the book recorded, both books, including the fabricated one</td></tr>
-<tr class="row-bad"><td class="ln">&hellip; of which: the <code>assistant_test_claim</code> row of 24 September</td>
-    <td class="num">{fl_n}</td><td class="num">{m(fl_v)}</td>
-    <td class="ln">a REAL fill that was never your decision. Dropped from every total below</td></tr>
-<tr class="row-hl"><td class="ln"><strong>Clean ledger</strong> (<code>data_quality IS NULL</code>)
-    &mdash; <strong>the number this report means</strong></td>
-    <td class="num">{cl_n}</td><td class="num"><strong>{m(cl_v)}</strong></td>
-    <td class="ln">the week's money across BOTH books, {d['lots']:.0f} contracts</td></tr>
-<tr class="row-bad"><td class="ln">&hellip; <strong>opened by hand</strong>
-    (<code>entry_source = 'manual'</code>) &mdash; <strong>{H['n']} entries, 4 lots each</strong></td>
-    <td class="num">{mn_n}</td><td class="num"><strong>{m(mn_v)}</strong></td>
-    <td class="ln">your book. <strong>{m(H['per_ctr'])} per contract</strong></td></tr>
-<tr class="row-hl"><td class="ln">&hellip; <strong>opened by an automated gate</strong>
-    &mdash; <strong>{G['signals']} signals, 1 lot each</strong></td>
-    <td class="num">{au_n}</td><td class="num"><strong>{m(au_v)}</strong></td>
-    <td class="ln"><strong>the gates DID trade this week.</strong>
-        {m(G['net'] / max(G['ctr'], 1))} per contract &mdash; but paper, one lot, and
-        {best_fam[1][0]}/{G['signals']} from one family</td></tr>
-</tbody></table>
-<p class="ln">⚠ <strong>The classifier trap, for whoever writes the next query.</strong> Those
-automated rows carry <code>entry_source IS NULL</code> &mdash; so <code>IS NULL</code> happens to
-find them <em>this</em> week. <strong>Do not reuse it.</strong> <code>entry_source</code> only began
-being written on 2026-09-10, so <strong>88 of his OWN day_rider legs from 08-10 to 09-10 also carry
-NULL</strong>. Any window reaching back past 09-10 must split on
-<code>gate NOT LIKE 'day_rider%'</code>, which is what the two functions behind this table now do.</p>
-
-<h3>Your week, day by day &mdash; entries, not legs</h3>
-<table>
-<thead><tr><th class="ln">Session</th><th class="num">Entries</th><th class="num">Contracts</th>
-<th class="num">Net $</th><th class="num">Won</th><th class="num">$/entry</th></tr></thead>
-<tbody>{hisdays}</tbody></table>
-<p class="ln">⚠ <strong>Entries, by the day the position was OPENED.</strong> The clean-ledger table
-above counts <strong>legs</strong> by the day they CLOSED and reads {cl_n} across both books &mdash;
-both are right about different things and the gap is the scale-out plus the gates. Note the shape of
-the week: the two biggest sessions by entry count ({max(H['days'].items(), key=lambda x: x[1][0])[1][0]}
-and {sorted(H['days'].items(), key=lambda x: -x[1][0])[1][1][0]} entries) are the last two, and
-they are also where the PASS button was finally used.</p>
-
-<h3>The automated book, collapsed to independent signals</h3>
-<table>
-<thead><tr><th class="ln">Gate family</th><th class="num">Signals</th><th class="num">Net $</th>
-<th class="num">$/signal</th></tr></thead>
-<tbody>{famrows}</tbody></table>
-<p class="ln">⚠ <strong>{G['legs']} legs are NOT {G['legs']} observations.</strong> Every gate runs
-as <code>_A</code> and <code>_B</code> and those are the two halves of one scale-out, so the week's
-{G['legs']} legs collapse to <strong>{G['signals']} signals</strong> &mdash; and they pair
-<em>exactly</em>: {G['pairs']} A+B pairs and {G['signals'] - G['pairs']} left over, which is the
-check that the key is right. <strong><code>grind_long</code> is the only loser</strong> and it lost
-on every signal it took. Strip <code>{esc(best_fam[0])}</code> and the remainder is
-{m(strip_v)}.</p>
-
-<h3>How the money left the book &mdash; both books, legs</h3>
-<table>
-<thead><tr><th class="ln">Exit</th><th class="num">Legs</th><th class="num">Net $</th>
-<th class="num">Per leg</th></tr></thead>
-<tbody>{exitrows}</tbody></table>
-<p class="ln"><code>MANUAL_CLAIM</code> is your own hand on the button and it is where the money
-went: <strong>105 legs for &minus;$2,608.87</strong>. <code>TARGET_100</code>/<code>TARGET_200</code>
-are the per-lot profit ladder and every one of them is green. <code>TARGET</code> and
-<code>STOP</code> belong to the <em>gates</em>, not to you &mdash; the gates are the only book on
-the desk with a stop, and 14 stops cost them &minus;$527.00 while their targets made +$838.75.
-<strong><code>CLOCK_FLAT</code> does not appear at all this week</strong>: the 20:40Z timer never had
-to close a position, because you closed them all yourself.</p>
-
-"""
-
-def evidence_intro_v1() -> str:
-    """The V1 weekly desk review's 'evidence behind those plays' opener."""
-    return (
-        '<h2 id="evidence"><span class="n">§</span> The evidence behind those plays</h2>'
-        '<p class="lead">Everything from here down is the working. Two halves, one document. '
-        'It opens with <strong>Part 0</strong>, which answers the only question that survives past '
-        'Friday &mdash; <em>are we getting better?</em> &mdash; day by day, green or red, straight off '
-        'the books. <strong>Then the warm half</strong>: what the live desk actually did (Part 1, '
-        'with <strong>the run charts</strong> inside it &mdash; every fill of the week marked on its '
-        'own session&rsquo;s price path, which is the fastest way to see what the prose is '
-        'describing). Then <strong>Rehabilitation</strong> (Part 1.5), where every red thing is '
-        'walked through the full treatment instead of benched at face value, and <strong>the day '
-        'rider</strong> (Part 1.6), the second book on the same IB account. Then the shadow board '
-        'and the promotion battery (Part 2), the mid-week leads re-run adversarially (Part 2.5), '
-        'and the <strong>Router Operation Review</strong> (Part 2.6). <strong>Then the cold, '
-        'tape-first half</strong>: we ignore everything the desk did and ask, from the raw tape and '
-        'order book, <strong>where was the money and did we show up?</strong> &mdash; on MNQ '
-        '<em>and</em> on gold (M1) &mdash; then test whether the gates we already own could have '
-        'caught the runs we missed (M2), and finally build gates from scratch and backtest them to '
-        'death, the ones that failed included, that being the point (M3). Plain English, honest '
-        'money, every claim a table &mdash; and every reprice a ceiling.</p>'
-        # ★2026-09-04 GENERATED — see phase_report(). The prose that stood here named Part 1.5 as
-        # the one stale section, which stopped being true when it was rebuilt on 08-30, and it
-        # predates the two-week seam entirely.
-        + '<p class="lead">' + phase_report() + '</p>'
-        '<p class="lead">The rule behind all of that: <strong>a gap is never a null result.</strong> '
-        '&ldquo;We looked and found nothing&rdquo; and &ldquo;nobody looked&rdquo; are opposite '
-        'instructions for next week, so nothing is silently omitted and nothing stale is silently '
-        'stitched.</p>')
-
-
-def evidence_intro_op() -> str:
-    """The refocused report's opener for the body — FOUR sections, and what each is for.
-
-    ★ It must NOT describe the tournament running order. The V1 version of this paragraph walks the
-    reader through Part 0, Part 1, the rehab bench, the shadow board, the router review and three
-    movements. None of those is in this document. A reader handed that map would spend the report
-    looking for sections that are not there and, worse, would assume the desk had reviewed things
-    it did not review this week.
-    """
-    return (
-        '<h2 id="evidence"><span class="n">&sect;</span> The evidence behind those plays</h2>'
-        '<p class="lead">Everything from here down is the working, and it is four sections that '
-        'build on each other in order. <strong>Section&nbsp;1</strong> is the record: every entry '
-        'you made this week, by day, by hold time, by hour, by event day and by how it ended, '
-        'plus what the book looks like now. <strong>Section&nbsp;2</strong> asks what the tape '
-        'looked like at the moment you pressed &mdash; the leg, where price sat in the range, the '
-        'VWAP stretch, the volatility &mdash; each one measured against control minutes from the '
-        'same sessions, which is the only comparison that is legitimate when every recorded '
-        'example is a &ldquo;yes&rdquo;. <strong>Section&nbsp;3</strong> is the verdict: what can '
-        'be automated today, what cannot, and exactly how far off the rest is. And '
-        '<strong>Section&nbsp;4</strong> draws it &mdash; all five sessions with every one of your '
-        'fills marked on the day&rsquo;s own price path, plus the FOMC hour on MNQ and on gold. '
-        'Read Section&nbsp;4 alongside Section&nbsp;1: the shape that cost the most money this '
-        'week is the hardest thing to see in a table and the easiest to see on a chart.</p>'
-        '<p class="lead"><strong>&#9733; What is deliberately NOT here.</strong> No census '
-        '<em>section</em>, no gate rehab, no shadow board, no router review, no greenfield lab. '
-        'Those are the tournament report and this is not it. Their fragments are on disk and a '
-        'month old, and the build will not stitch them &mdash; see the red box at the top of this '
-        'page. <strong>&#9733; One precise exception, because &ldquo;we did not print it&rdquo; and '
-        '&ldquo;we may not cite it&rdquo; are different rules:</strong> the run census itself was '
-        're-frozen tonight against this week&rsquo;s tape, and Section&nbsp;4 cites it twice &mdash; '
-        'once to rank the FOMC hour&rsquo;s runs against the week&rsquo;s other 66, and once to '
-        'withdraw a Rev&nbsp;1 caption that mis-read <code>census_summary.json</code>&rsquo;s top '
-        'lists as a ranking of the week when its own <code>_note</code> says they are the 51 runs '
-        'the desk SAT OUT. A fresh, on-subject, named citation is fine; a month-old section '
-        'stitched under this masthead is not. If you are looking for a gate&rsquo;s P&amp;L this '
-        'week, the answer is in the front table and it is that the automated desk took '
-        '<strong>nothing</strong> &mdash; and &sect;3.4(d) now shows, with timestamps, that this was '
-        'a nightly decision rather than a stuck switch.</p>'
-        + '<p class="lead">' + phase_report() + '</p>'
-        '<p class="lead">The rule behind all of that: <strong>a gap is never a null result.</strong> '
-        '&ldquo;We looked and found nothing&rdquo; and &ldquo;nobody looked&rdquo; are opposite '
-        'instructions for next week, so nothing is silently omitted, nothing stale is silently '
-        'stitched, and where a fresh section contradicts itself the build says so in a banner '
-        'rather than quietly picking a side.</p>')
-
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--slug", default=dt.date.today().isoformat())
@@ -3540,62 +2018,13 @@ def main():
                     help="the date this render SHIPS. Distinct from --slug, which is the week "
                          "ending and names the output file. Defaults to today.")
     ap.add_argument("--no-pdf", action="store_true")
-    ap.add_argument("--allow-labelled-stale", action="store_true",
-                    help="permit publishing when under half the body fragments are this cycle's, "
-                         "PROVIDED every stale one carries a week stamp so the reader is told which "
-                         "week it describes. Refused for unstamped fragments — see the guard.")
-    # ★★2026-09-18 — THE FOCUS SWITCH. "operator" is this week's four-section report about his own
-    # trading; "tournament" is the V1 weekly desk review, unchanged, so the previous shape is
-    # reproducible rather than lost. The default is operator because that is the standing
-    # instruction as of 2026-09-18; a cycle that wants the old report has to ask for it BY NAME,
-    # which is the right way round — the dangerous mistake is shipping the tournament sections by
-    # accident, not failing to.
-    ap.add_argument("--focus", default="operator", choices=("operator", "tournament"),
-                    help="which report to assemble (default: operator)")
     ap.add_argument("--title", default="GAZBOT V7 — Friday report {slug}",
                     help="document <title>; '{slug}' is substituted. Drop any PARTIAL label only "
                          "once the report genuinely is complete.")
     a = ap.parse_args()
 
-    global REPORT_SLUG
-    REPORT_SLUG = a.slug
-    global PLAYBOOK_URL, SECTIONS, WINDOWS, WOUNDS, WHY_MISSING, WHY_STALE, GAP_BANNERS
-    global CYCLE_START, TONIGHT, PLAYS_LEAD, PLAYS_CAVEATS, PLAYS_NOTACTION_NOTE
+    global PLAYBOOK_URL
     PLAYBOOK_URL = PLAYBOOK_URL.format(slug=a.slug)
-
-    # ★ CONTENT IS SWAPPED; MACHINERY IS NOT. Everything rebound here is prose or a section list.
-    # fragment_or_placeholder(), provenance(), phase_report(), gap_banner(), check_xrefs(),
-    # check_doc_xrefs(), render_plays() and the one-string-one-pass PDF path are shared by both
-    # focuses, so every honesty property this build has accumulated is inherited rather than
-    # re-implemented for the new shape.
-    if a.focus == "operator":
-        SECTIONS, WINDOWS, WOUNDS = SECTIONS_OP, WINDOWS_OP, WOUNDS_OP
-        WHY_MISSING, WHY_STALE, GAP_BANNERS = WHY_MISSING_OP, WHY_STALE_OP, GAP_BANNERS_OP
-        CYCLE_START, TONIGHT = CYCLE_START_OP, TONIGHT_OP
-        PLAYS_LEAD, PLAYS_CAVEATS = PLAYS_LEAD_OP, PLAYS_CAVEATS_OP
-        PLAYS_NOTACTION_NOTE = PLAYS_NOTACTION_NOTE_OP
-        front, ledger, evidence = render_front_op, last_week_ledger_op, evidence_intro_op
-        front_toc = (
-            '<li><span class="lab">Front</span> &mdash; '
-            '<a href="#weekcal">the week that was &amp; the week coming</a>, '
-            '<a href="#honest">the honest headline</a>, '
-            '<a href="#actions">WHAT TO ACTUALLY DO</a>, '
-            '<a href="#lastweek">last week&rsquo;s card</a></li>')
-    else:
-        front, ledger, evidence = render_front, last_week_ledger, evidence_intro_v1
-        front_toc = (
-            '<li><span class="lab">Front</span> &mdash; <a href="#honest">the honest headline</a>, '
-            '<a href="#scorecard">the scorecard</a>, '
-            '<a href="#actions">WHAT TO ACTUALLY DO</a></li>')
-    print(f"focus: {a.focus} — {len(SECTIONS)} body section(s), stale cutoff "
-          f"{dt.datetime.fromtimestamp(CYCLE_START, dt.UTC):%Y-%m-%d %H:%M} UTC")
-
-    # ★★★2026-09-25 — THE DOCUMENT-LEVEL GUARD, BEFORE ANY WORK. Refuse to publish a report whose
-    # masthead week does not contain the newest trade in the book. On 2026-09-25 21:05Z the runner
-    # would have built weekly_2026-09-18.html while the book held 154 rows closed after 09-18.
-    if (werr := assert_masthead_week(a.slug)):
-        print(f"★★★ REFUSING TO PUBLISH — {werr}", file=sys.stderr)
-        return 4
 
     if check_xrefs() != 0:
         return 3
@@ -3624,12 +2053,6 @@ def main():
                 missing.append(fname)
             elif p.stat().st_mtime < CYCLE_START:
                 stale.append((fname, dt.datetime.fromtimestamp(p.stat().st_mtime)))
-            elif (fw := frag_week(p)) and fw != a.slug:
-                # ★★★2026-09-25 — STALE BY STAMP, FRESH BY CLOCK. This is the case the mtime test
-                # cannot see and the one that nearly shipped tonight: a fragment about 09-14→09-18
-                # whose mtime is 09-24 because a git operation touched it. The stamp disagrees with
-                # the slug, so it is stale, and it gets the same red banner as a clock-stale one.
-                stale.append((fname, dt.datetime.fromisoformat(fw)))
     n_frag = sum(1 + len(i) for *_, i in SECTIONS)
     if missing:
         print(f"★ {len(missing)} of {n_frag} fragment(s) MISSING — each gets a named placeholder, "
@@ -3644,33 +2067,10 @@ def main():
     print(f"pre-flight — {fresh}/{n_frag} fragments fresh, {len(missing)} missing, "
           f"{len(stale)} stale; {len(missing) + len(stale)} placeholdered")
     if fresh < n_frag * 0.5:
-        # ★★★2026-09-25 REV2 — A NARROW, EXPLICIT ESCAPE, AND ONLY FOR *LABELLED* STALENESS.
-        # The failure this guard was written against is a report the reader CANNOT TELL is stale.
-        # That is not the situation on 2026-09-25: the week-resolution fault was found in the tail,
-        # the four body phases are 45-60 minutes each and could not be re-run, but the front matter,
-        # the action card, the graded ledger and the run charts were all rebuilt on the correct week
-        # and every stale fragment is stitched under a red banner naming the week it grades.
-        # Publishing nothing would have left the STALE 2026-09-18 file as the newest report on disk,
-        # which is the worse of the two outcomes.
-        # ⚠ THE ESCAPE IS CONDITIONAL ON THE LABEL, not on the operator's patience: it is refused
-        #   unless EVERY stale fragment carries a week stamp saying which week it is about. An
-        #   unstamped stale fragment is exactly the silent case, and it still aborts.
-        unstamped = [f for f, _mt in stale if not frag_week(pathlib.Path(SEC) / f)]
-        if not a.allow_labelled_stale:
-            print(f"★★ FATAL — only {fresh} of {n_frag} fragments are this cycle's. That is a thin "
-                  f"report, not a report with gaps. Regenerate sections before publishing, or pass "
-                  f"--allow-labelled-stale if every stale fragment is week-stamped and the front "
-                  f"matter says so.", file=sys.stderr)
-            return 2
-        if unstamped:
-            print(f"★★ FATAL — --allow-labelled-stale was passed but {len(unstamped)} stale "
-                  f"fragment(s) carry NO week stamp, so the reader cannot be told which week they "
-                  f"describe: {', '.join(unstamped)}. Refusing.", file=sys.stderr)
-            return 2
-        print(f"★★ PUBLISHING WITH {len(stale)} LABELLED-STALE FRAGMENT(S) — permitted by "
-              f"--allow-labelled-stale because every one is week-stamped: "
-              + ", ".join(f"{f}={frag_week(pathlib.Path(SEC) / f)}" for f, _mt in stale),
+        print(f"★★ FATAL — only {fresh} of {n_frag} fragments are this cycle's. That is a thin "
+              f"report, not a report with gaps. Regenerate sections before publishing.",
               file=sys.stderr)
+        return 2
 
     # Explicit fragment list — never glob the sections dir (see module docstring).
     frags, toc = [], []
@@ -3698,8 +2098,7 @@ def main():
                       '(Q1, FIX0) change <em>what you type</em> rather than whether to act, and one '
                       '(Q2) is the first grading anyone has done of the previous week&rsquo;s card.</p>'
                       '<hr class="frag-sep">')
-        body = (HEADLESS.get(name, "") + gap_banner(name)
-                + fragment_or_placeholder(name, label, sub))
+        body = gap_banner(name) + fragment_or_placeholder(name, label, sub)
         for heading, fname in inserts:
             # Rendered INSIDE this section, not as a section of its own — the run charts belong
             # beside the case-study days they illustrate, and the gold census belongs beside the
@@ -3716,20 +2115,42 @@ def main():
         # A provenance warning printed after the numbers it qualifies is a footnote; printed
         # before them it is an instruction. Renders to nothing on a single-vintage cycle.
         vintage_note()
-        + front(a.slug, a.published, n_plays)
+        + render_front(a.slug, a.published, n_plays)
         + '\n<hr class="frag-sep">\n'
         + plays_html
         + '\n<hr class="frag-sep">\n'
-        + ledger()
+        + last_week_ledger()
         + '\n<hr class="frag-sep">\n'
-        + evidence()
-        # id: the ToC is a link target in its own right (and it is what the publish verifier
-        # looks for). ★2026-09-18 — the FRONT row is per-focus, because it is a list of anchors
-        # and the two focuses do not have the same ones. The V1 row pointed at "#scorecard",
-        # which the refocused front page does not define, and a table of contents whose first
-        # entry is a dead link is the worst possible first impression of a document's accuracy.
-        + '<div class="v7toc" id="contents"><h3>What is in here</h3><ol>'
-        + front_toc
+        + '<h2 id="evidence"><span class="n">§</span> The evidence behind those plays</h2>'
+        '<p class="lead">Everything from here down is the working. Two halves, one document. '
+        'It opens with <strong>Part 0</strong>, which answers the only question that survives past '
+        'Friday &mdash; <em>are we getting better?</em> &mdash; day by day, green or red, straight off '
+        'the books. <strong>Then the warm half</strong>: what the live desk actually did (Part 1, '
+        'with <strong>the run charts</strong> inside it &mdash; every fill of the week marked on its '
+        'own session&rsquo;s price path, which is the fastest way to see what the prose is '
+        'describing). Then <strong>Rehabilitation</strong> (Part 1.5), where every red thing is '
+        'walked through the full treatment instead of benched at face value, and <strong>the day '
+        'rider</strong> (Part 1.6), the second book on the same IB account. Then the shadow board '
+        'and the promotion battery (Part 2), the mid-week leads re-run adversarially (Part 2.5), '
+        'and the <strong>Router Operation Review</strong> (Part 2.6). <strong>Then the cold, '
+        'tape-first half</strong>: we ignore everything the desk did and ask, from the raw tape and '
+        'order book, <strong>where was the money and did we show up?</strong> &mdash; on MNQ '
+        '<em>and</em> on gold (M1) &mdash; then test whether the gates we already own could have '
+        'caught the runs we missed (M2), and finally build gates from scratch and backtest them to '
+        'death, the ones that failed included, that being the point (M3). Plain English, honest '
+        'money, every claim a table &mdash; and every reprice a ceiling.</p>'
+        # ★2026-09-04 GENERATED — see phase_report(). The prose that stood here named Part 1.5 as
+        # the one stale section, which stopped being true when it was rebuilt on 08-30, and it
+        # predates the two-week seam entirely.
+        + '<p class="lead">' + phase_report() + '</p>'
+        '<p class="lead">The rule behind all of that: <strong>a gap is never a null result.</strong> '
+        '&ldquo;We looked and found nothing&rdquo; and &ldquo;nobody looked&rdquo; are opposite '
+        'instructions for next week, so nothing is silently omitted and nothing stale is silently '
+        'stitched.</p>'
+        '<div class="v7toc" id="contents"><h3>What is in here</h3><ol>'  # id: the ToC is a
+        # link target in its own right (and it is what the publish verifier looks for)
+        '<li><span class="lab">Front</span> &mdash; <a href="#honest">the honest headline</a>, '
+        '<a href="#scorecard">the scorecard</a>, <a href="#actions">WHAT TO ACTUALLY DO</a></li>'
         + "".join(toc) + '</ol></div>')
 
     body = intro + '\n<hr class="frag-sep">\n' + '\n<hr class="frag-sep">\n'.join(frags)

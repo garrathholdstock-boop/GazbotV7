@@ -399,6 +399,12 @@ class MultiSlotCore:
         # cannot tell" must never render as "flat" — that is the whole 08-21 failure in one field.
         rider_lots, rider_why = self._rider_lots()
         desk_flat = (not held) and rider_lots == 0.0
+        # ⚠ 2026-09-26 review: `_rider_lots` returns NaN on doubt, and json.dump writes that as bare
+        # `NaN`, which is NOT valid JSON. Python readers accept it; a browser's JSON.parse, `jq` and
+        # every other language do not — and it would happen only when the rider state is unreadable,
+        # i.e. during the exact incident these files exist to describe. `desk_flat` already carries
+        # the truth (NaN == 0.0 is False), so publish null and let the note explain.
+        rider_lots_json = None if rider_lots != rider_lots else rider_lots
         health = {"ts": ts, "conn": conn, "healthy": healthy,
                   "place_live": self._cfg.place_live,
                   # ⚠ TOURNAMENT-SCOPED. Use desk_flat for any safety decision.
@@ -406,7 +412,7 @@ class MultiSlotCore:
                   "tournament_flat": not held,
                   "desk_flat": desk_flat,
                   "desk_flat_note": rider_why,
-                  "rider_lots": rider_lots,
+                  "rider_lots": rider_lots_json,
                   "halted": self._halted,
                   # an imbalance seen but not yet confirmed across a rider claim rewrite. Opens are
                   # blocked while this is set; it is published so the wait is never invisible.

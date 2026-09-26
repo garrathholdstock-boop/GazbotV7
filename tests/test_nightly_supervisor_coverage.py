@@ -69,38 +69,74 @@ def test_vestigial_units_are_still_NOT_required():
         assert unit not in ns.REQUIRED_SERVICES
 
 
-# ── 2. IT SPEAKS EVERY NIGHT ───────────────────────────────────────────────────────────────────
-def test_a_clean_night_still_sends():
-    """★ THE INVARIANT: silence means the supervisor itself is gone, never 'all was well'."""
+# ── 2. SILENCE IS THE ALARM — AND IT IS A DIFFERENT PROCESS THAT NOTICES ──────────────────────
+# ⚠⚠⚠ THIS SECTION ONCE ASSERTED THE DEFECT. It tested that the all-clear was `critical=False` and
+# called that the fix. But the supervisor fires 21:40 UTC = 23:40 Paris (22:40 CET) and quiet hours
+# are 22:00-06:00 Paris, so a correctly non-critical heartbeat was SUPPRESSED EVERY NIGHT OF THE
+# YEAR — byte-identical silence to the bug it replaced, with this test holding it in place. It never
+# asserted the only thing that mattered: DOES A LINE ACTUALLY ARRIVE.
+# ★ The design error was deeper than the hour: A PROCESS CANNOT REPORT ITS OWN ABSENCE. The
+# clean-night line now comes from scripts/overnight_allclear.py — a different process, a different
+# timer, 06:05 Paris — which reads the verdict file and pages CRITICAL when it is missing or stale.
+def test_a_clean_night_leaves_a_VERDICT_ON_DISK_for_someone_else_to_check():
+    """The supervisor's job on a clean night is to leave evidence, not to speak."""
     text, critical, mark = ns.supervisor_message([], [], [], flat=True)
-    assert text, "a clean night must still produce a message"
-    assert "all clear" in text
-
-
-def test_the_all_clear_is_not_critical_and_not_marked():
-    """⚠ It must not bypass quiet hours and must never wear 🔴 — it is a heartbeat, not an alarm.
-    Marking it would be exactly the dilution the 09-24 mark rule exists to prevent."""
-    _, critical, mark = ns.supervisor_message([], [], [], flat=True)
+    assert "all clear" in text          # still composed, for the morning job and the log
     assert critical is False and mark is False
 
 
-def test_a_fault_IS_critical_and_marked():
+def test_a_fault_PAGES_IN_REAL_TIME_and_is_not_gated_by_quiet_hours():
+    """★ THE HALF THAT WAS ALWAYS FINE, asserted so it cannot regress: faults are critical, and
+    critical bypasses quiet hours. Checked through notify() at the ACTUAL fire time, which is what
+    the old test failed to do."""
+    import datetime as dt
+
+    from gazbot7 import notify as N
     text, critical, mark = ns.supervisor_message(["SERVICES down: gazbot7-web"], [], [], flat=True)
-    assert critical is True and mark is True
-    assert "gazbot7-web" in text
+    fire = dt.datetime(2026, 9, 21, 21, 40, tzinfo=dt.UTC)      # 23:40 Paris — inside quiet hours
+    assert N.in_quiet_hours(fire) is True, "the premise: the fire time IS in quiet hours"
+    box = []
+    N.notify(text, critical=critical, mark=mark, now=fire,
+             send=lambda m: box.append(m) or True)
+    assert box, "a FAULT must reach him at the moment it is found"
+
+
+def test_the_clean_line_would_be_suppressed_at_the_supervisors_own_fire_time():
+    """⚠ THE REGRESSION GUARD. If anyone ever re-adds an unconditional send from the supervisor,
+    this records why it cannot work — and the morning job below is the answer."""
+    import datetime as dt
+
+    from gazbot7 import notify as N
+    text, critical, mark = ns.supervisor_message([], [], [], flat=True)
+    fire = dt.datetime(2026, 9, 21, 21, 40, tzinfo=dt.UTC)
+    N_flat = N.desk_is_flat_and_verified
+    try:
+        N.desk_is_flat_and_verified = lambda: False       # isolate quiet hours from weekend quiet
+        box = []
+        N.notify(text, critical=critical, mark=mark, now=fire,
+                 send=lambda m: box.append(m) or True)
+        assert not box, ("a non-critical line at 21:40 UTC is eaten by quiet hours — this is why "
+                         "the all-clear lives in overnight_allclear.py instead")
+    finally:
+        N.desk_is_flat_and_verified = N_flat
+
+
+def test_the_supervisor_no_longer_tries_to_send_a_clean_night():
+    """Asserted on the guard condition, because sending it would be silently useless."""
+    src = open("/home/alphabot/gazbot7/scripts/nightly_supervisor.py").read()
+    assert "if not a.dry_run and (faults or repaired):" in src
 
 
 def test_the_all_clear_reports_what_it_actually_checked():
-    """A heartbeat that does not say what it verified is the instrument-reports-healthy failure —
-    it would read identically if the lists were empty."""
+    """A heartbeat that does not say what it verified would read identically if the lists were
+    empty."""
     text, _, _ = ns.supervisor_message([], [], [], flat=True)
     assert str(len(ns.REQUIRED_SERVICES)) in text
     assert str(len(ns.TIMER_FRESHNESS)) in text
 
 
 def test_repairs_and_declines_survive_into_both_messages():
-    """A repair he is not told about is a background action he cannot audit — on a clean night
-    just as much as a faulty one."""
+    """A repair he is not told about is a background action he cannot audit."""
     for faults in ([], ["something"]):
         text, _, _ = ns.supervisor_message(faults, ["gazbot7-md"],
                                            ["gazbot7-web (not flat)"], flat=True)

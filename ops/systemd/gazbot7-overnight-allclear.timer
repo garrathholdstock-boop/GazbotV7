@@ -1,0 +1,18 @@
+[Unit]
+# 06:05 EUROPE/PARIS — deliberately just AFTER quiet hours end (22:00-06:00 Paris), so the clean-night
+# line needs no quiet-hours exemption. Adding one would have re-coupled the `critical`/`mark` flags
+# that the 2026-09-24 split separated.
+# ⚠ Paris, not UTC: a UTC time would drift an hour across the DST change and land back inside quiet
+# hours for half the year — the same class of bug as storing event times in UTC (CLAUDE.md).
+# ★ It also matches when he actually looks: presence data shows PHONE sessions across 02:25-08:19.
+Description=GAZBOT V7 — morning all-clear (06:05 Paris, after quiet hours)
+
+[Timer]
+OnCalendar=*-*-* 06:05:00 Europe/Paris
+AccuracySec=60s
+# ⚠ Persistent=true: if the box was down at 06:05 the question "did last night run?" is MORE
+# interesting, not less, so the answer must still be delivered on boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

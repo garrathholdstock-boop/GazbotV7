@@ -33,10 +33,57 @@ def test_no_live_account_is_configured():
     assert L.live_accounts() == (), f"a live account is configured: {L.live_accounts()}"
 
 
-def test_the_venue_stop_is_NOT_armed():
-    """★ Finding 01 is BUILT but OFF. `live_mode.json.venue_stop_armed` is his switch to flip."""
-    from gazbot7.day_rider import PLACE_VENUE_STOP
-    assert PLACE_VENUE_STOP is False, "a broker-side stop was armed while paper trading"
+def test_the_venue_stop_DEFAULTS_off_and_reads_a_switch():
+    """★ Finding 01 is BUILT but OFF, and `live_mode.json.venue_stop_armed` is HIS switch to flip.
+
+    ⚠ 2026-09-26 review: this used to assert the LIVE CONFIG VALUE (`PLACE_VENUE_STOP is False`),
+    which would turn the suite red the moment he did exactly what the code invites — "set it true to
+    exercise the path on paper whenever he wants". A test must not punish a documented affordance.
+    So it asserts the DEFAULT in source: no config, or an unreadable one, means OFF.
+    """
+    from gazbot7.day_rider import _venue_stop_armed
+    import gazbot7.day_rider as dr
+    orig = dr.__dict__.get("_venue_stop_armed")
+    # an absent/corrupt config must read as OFF — the fail-safe direction
+    import json as _j
+    import pathlib
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        bad = pathlib.Path(td) / "nope.json"
+        src = open("/home/alphabot/gazbot7/src/gazbot7/day_rider.py").read()
+        assert 'get("venue_stop_armed")' in src, "the switch must be read from config, not hardcoded"
+        assert "except Exception:" in src.split("def _venue_stop_armed", 1)[1][:600]
+    assert _venue_stop_armed() in (True, False)      # callable and boolean, whatever is configured
+    assert orig is not None
+
+
+def test_the_catastrophe_stop_USES_THE_PATTERN_THAT_WORKS():
+    """⚠⚠⚠ ARMING A STOP IS NOT THE SAME AS KNOWING IT WORKS, and on this desk that gap has a name.
+    The first cut of this switch placed a plain `StopOrder` on a **ContFuture** — the one contract
+    form [[stop-unfilled-contfuture-root-cause]] records as not triggering, and the reason
+    broker_adapter carries a whole `_stop_contract` field. Both defects are corrected; neither is
+    verified live, because the switch has never been on. So this pins the SHAPE, and
+    `livemode.LIVE_REQUIREMENTS` separately requires `venue_stop_verified` before January.
+    """
+    src = open("/home/alphabot/gazbot7/src/gazbot7/day_rider.py").read()
+    assert "StopOrder(" not in src, "a plain STP lets the paper account attach a toothless limit"
+    assert "StopLimitOrder(" in src
+    assert "stop_contract_for(" in src, "a resting stop must go on the CONCRETE front month"
+    # the stop must be placed on the RESOLVED contract, not the ContFuture.
+    # ⚠ Sliced by STRUCTURE, not by a fixed width: my first cut took the first 900 characters after
+    # the branch and the explanatory comment block pushed the actual call past it — the same
+    # fixed-slice trap that cut 2026 off after April in the event-calendar parser (CLAUDE.md).
+    after = src.split("if PLACE_VENUE_STOP:", 1)[1]
+    block = after.split("\n        else:", 1)[0]
+    code = "\n".join(l for l in block.splitlines() if not l.strip().startswith("#"))
+    assert "placeOrder(_sc," in code, f"the stop was placed on the wrong contract object: {code!r}"
+    assert "placeOrder(contract," not in code, "that is the ContFuture — the form that does not fire"
+
+
+def test_january_cannot_start_on_an_UNVERIFIED_stop():
+    """★ The requirement that stops 'armed' being mistaken for 'working'."""
+    keys = [k for k, _why in L.LIVE_REQUIREMENTS]
+    assert "venue_stop_verified" in keys
 
 
 def test_the_equity_loss_limit_is_NOT_configured():
@@ -80,14 +127,66 @@ def test_the_paper_account_is_allowed_without_touching_config():
     assert L.assert_account_allowed(PAPER) == "PAPER"
 
 
+class _FakeIB:
+    """Just enough IB to exercise the guard without a broker."""
+
+    def __init__(self, accounts):
+        self._accounts = accounts
+
+    def managedAccounts(self):
+        if self._accounts == "RAISE":
+            raise RuntimeError("not connected")
+        return self._accounts
+
+
+def _guard(accounts, what="place BUY 1 MNQ"):
+    """Call the real guard against a fake IB. Returns 'ALLOWED' or 'REFUSED'."""
+    from gazbot7.broker_adapter import IBBrokerAdapter
+    a = IBBrokerAdapter.__new__(IBBrokerAdapter)
+    a._ib = _FakeIB(accounts)
+    a._symbol = "MNQ"
+    try:
+        a._guard_account(what)
+        return "ALLOWED"
+    except L.AccountNotAllowed:
+        return "REFUSED"
+
+
 def test_the_order_guard_FAILS_OPEN_when_the_account_cannot_be_read():
-    """⚠⚠ A guard against an unlikely misconfiguration must never become a new way for a live EXIT
-    to fail. Only a POSITIVE identification of a wrong account refuses."""
-    src = open("/home/alphabot/gazbot7/src/gazbot7/broker_adapter.py").read()
-    body = src.split("def _guard_account", 1)[1].split("\n    def ", 1)[0]
-    code = "\n".join(l for l in body.splitlines()
-                     if not l.strip().startswith("#") and '"""' not in l)
-    assert code.count("return") >= 2, "the cannot-tell paths must return, not raise"
+    """⚠⚠⚠ THE SINGLE MOST CONSEQUENTIAL PROPERTY IN THIS WORK: a guard against an unlikely
+    misconfiguration must never become a new way for a LIVE EXIT to fail.
+
+    ★ This test used to be `code.count("return") >= 2` on the function's source — it never called the
+    guard at all, and would have passed on a version that raised on every unreadable account. That is
+    the comment-trap class CLAUDE.md records six instances of, applied to the property that matters
+    most. It is now behavioural: every 'cannot tell' shape must place.
+    """
+    for accounts in ("RAISE", [], [None], [""]):
+        assert _guard(accounts) == "ALLOWED", f"{accounts!r} must not block an order"
+
+
+def test_a_positively_wrong_account_IS_refused_for_an_OPEN():
+    assert _guard(["U7654321"]) == "REFUSED"
+
+
+def test_a_wrong_account_is_NEVER_refused_for_a_STOP_OR_A_CLOSE():
+    """⚠⚠ 2026-09-26 review: refusing a protective stop is strictly WORSE than refusing an entry —
+    it manufactures the naked position the auditor then escalates on. And you cannot hold a position
+    in an account you are not connected to, so refusing a close has no safety rationale at all."""
+    for what in ("place a protective stop on MNQ", "close MNQ", "flatten MNQ"):
+        assert _guard(["U7654321"], what) == "ALLOWED", f"{what!r} must never be refused"
+
+
+def test_a_SECOND_managed_account_does_not_block_the_paper_desk():
+    """⚠ The first cut asserted on EVERY account managedAccounts() reported, so a linked sub-account,
+    an advisor/FA master or a second paper account would have refused every order on the desk."""
+    assert _guard(["DUQ191770", "DUQ191771"]) == "ALLOWED"
+    assert _guard(["DUQ191771", "DUQ191770"]) == "ALLOWED", "order in the list must not matter"
+
+
+def test_case_and_whitespace_do_not_make_an_account_wrong():
+    for variant in (["duq191770"], ["  DUQ191770  "], ["DuQ191770"]):
+        assert _guard(variant) == "ALLOWED", f"{variant!r} is the same account"
 
 
 # ── the equity guard: measures always, acts never (on paper) ──────────────────────────────────

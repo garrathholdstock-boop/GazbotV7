@@ -72,12 +72,15 @@ def mode(account: str | None) -> str:
     account id is what the money actually sits in. `UNKNOWN` exists so that an unlisted account can
     never be quietly treated as either — it is refused by assert_account_allowed().
     """
-    a = (account or "").strip()
+    # ⚠ CASE- AND WHITESPACE-INSENSITIVE (2026-09-26 review). An account id is the same account
+    # whatever its case, so a hand-typed config entry must not become a refused order — that is a
+    # false refusal with no safety benefit, and this guard exists to stop ACCIDENTS, not typos.
+    a = (account or "").strip().upper()
     if not a:
         return "UNKNOWN"
-    if a in paper_accounts():
+    if a in {x.upper() for x in paper_accounts()}:
         return "PAPER"
-    if a in live_accounts():
+    if a in {x.upper() for x in live_accounts()}:
         return "LIVE"
     return "UNKNOWN"
 
@@ -110,6 +113,18 @@ def assert_account_allowed(account: str | None, *, what: str = "place an order")
 LIVE_REQUIREMENTS = (
     ("venue_stop_armed", "a resting catastrophe stop at the broker — the only protection that "
                          "survives this box dying (audit finding 01)"),
+    # ★★★2026-09-26, added by the adversarial review of the audit's own work. Arming the stop is not
+    # the same as knowing it works, and on this desk that gap has a name:
+    # [[stop-unfilled-contfuture-root-cause]] — "ContFuture stops don't trigger", banked and for a
+    # long time unfixed. The rider's stop was placing a plain StopOrder on a ContFuture, i.e. the one
+    # form already known not to fire; both defects are now corrected (concrete front month +
+    # StopLimitOrder, copied from broker_adapter's proven pattern) and NEITHER IS VERIFIED LIVE,
+    # because the switch has never been on.
+    # So January cannot start on an assumption: set this only after watching a real stop REST at the
+    # venue and FILL. Verify on the paper account with 1 lot and a deliberately near trigger.
+    ("venue_stop_verified", "the catastrophe stop OBSERVED resting at the venue and filling — "
+                            "arming it is not the same as knowing it works "
+                            "([[stop-unfilled-contfuture-root-cause]])"),
     ("equity_loss_limit_usd", "an equity-sourced daily loss limit that can flatten, read from "
                               "IBKR and not from our own ledger (audit finding 03)"),
     ("max_lots", "an explicit lot ceiling — the clean book is single-lot positive and every "
