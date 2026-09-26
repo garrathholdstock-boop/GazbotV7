@@ -263,6 +263,44 @@ question answerable, not answered.
 
 ---
 
+## 1h. ⚠⚠⚠ WEEKEND QUIET, AND THE TEST SUITE THAT WAS PAGING HIM (2026-09-26)
+
+### THE TEST SUITE WAS SENDING HIM REAL TELEGRAMS
+He reported three Saturday alarms. Two of them were **mine**:
+```
+Sat 05:06:35  🔴 STEP AWAY FIRED — hit -240, your stop was $200     ← sa.fire() fixture value
+Sat 05:06:36  🔴 STEP AWAY FIRED — hit +340, take-profit $300       ← sa.fire() fixture value
+Sat 05:06:46  V7 — gates auto-reactivated ... exhaustion_short      ← rg.run() on a tmp file
+   ... the identical three again at 05:10:55 and 05:13:39
+```
+**Three suite runs, at the exact minutes `pytest` was run.** His real Friday fires were −138/−116/
+−144/−102; −240 and +340 never happened.
+⚠⚠ **THE TESTS HAD SANDBOXES AND THE SANDBOXES WERE INCOMPLETE** — `_sandbox()` redirected STATE,
+CLAIM and LOG, every FILE, and left the OUTBOUND CHANNEL pointing at his phone.
+★ **And `data/notify_sent.jsonl` — built two days earlier for retractions — is what proved it.** The
+service logs were genuinely innocent, so the natural conclusion was that he was scrolling history.
+**An instrument built for one purpose caught something else entirely.**
+★ **NOW BLOCKED GLOBALLY** in `tests/conftest.py`, autouse, scoped to argv containing
+`notify_operator.py` so nothing else is affected. ⚠ **It cannot raise** — `notify()` is fail-quiet
+and callers swallow exceptions, so it records and fails in TEARDOWN. ⚠ The waiver is requesting the
+`telegram` fixture: explicit in the signature, greppable, never a silent flag. **Verified: 0 sends
+across three full suite runs.**
+
+### WEEKEND QUIET — `Fri 21:00Z → Sun 22:00Z`
+*"everything should be off on weekends except notifications about reports."* It **outranks
+`critical`**, because a red alert about a shut, flat desk is still noise.
+⚠⚠⚠ **IT SUPPRESSES ONLY WHILE THE DESK IS FLAT.** On 2026-08-21 four naked lots went through the
+halt into a weekend and cost **−$2,149**; a gag that silenced that would be the most dangerous thing
+in `notify.py`. The rule is **"nothing is at risk, be quiet"**, not "it is Saturday, be quiet" —
+anything open and every alarm behaves exactly as it does midweek.
+⚠ **FAILS OPEN:** a stale read, an unreadable file, or our book disagreeing with a zero venue all
+mean SPEAK. *"IBKR IS THE TRUTH"* cuts both ways — a zero venue is not enough if our book holds.
+★ **Reports keep their voice** via `weekend_ok=True` (the Friday report RUNS in this window by
+design), including **job-failure pages** — a silent failed report is worse than a Saturday ping.
+⚠ Two of those senders use a `python -c` string and were invisible to a regex over `notify(`.
+
+---
+
 ## 1f. THE ALERT CHANNEL — what he actually receives, and what it is allowed to claim (2026-09-24)
 
 **~10 Telegrams/day plus the rider family. 85% informational; the four that can cost money total

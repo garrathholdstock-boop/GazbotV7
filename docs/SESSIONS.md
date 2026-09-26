@@ -10,6 +10,39 @@
 
 ---
 
+## 2026-09-26 (Sat) — MY TEST SUITE WAS PAGING HIM, AND THE FRIDAY REPORT FIXED ITSELF
+
+**★★★ HE ASKED WHY REDUNDANT ALARMS WERE BACK ON A SATURDAY. TWO OF THE THREE WERE MY TEST SUITE.**
+`-240` and `+340` were `sa.fire()` FIXTURE VALUES; his real Friday fires were −138/−116/−144/−102.
+Three identical bursts at 05:06:35, 05:10:55 and 05:13:39 — the exact minutes I ran `pytest`.
+⚠⚠ **The tests had sandboxes and the sandboxes were incomplete**: `_sandbox()` redirected every FILE
+and left the outbound channel pointing at his phone.
+★ **`notify_sent.jsonl`, built two days earlier for retractions, is what proved it.** The service
+logs were innocent and I was one sentence from telling him he was scrolling history. An instrument
+built for one purpose caught something else entirely — the argument for recording what you DO.
+★ Blocked globally now, scoped by argv, failing in TEARDOWN because `notify()` is fail-quiet and a
+raise would be swallowed. **0 sends across three verification runs.**
+
+**WEEKEND QUIET** — Fri 21:00Z → Sun 22:00Z, outranking `critical`, **but only while the desk is
+FLAT**. 08-21's four naked lots through the halt cost −$2,149 and a gag that silenced that would be
+worse than the noise. Reports and job failures keep speaking.
+
+**★★★ AND THE FRIDAY REPORT FOUND A BUG IN ITSELF OVERNIGHT.** `_report_week()` took the most recent
+Friday whose 22:00Z cut had PASSED — but the cron starts 21:05Z on a Friday, 55 minutes BEFORE it, so
+WEEK always rolled back a week and `assemble` resolved to a file that already existed and was
+SKIPPED. **He had been handed a report about a week four days in the past — on the week his own hand
+took 99 entries for −$360, the largest week in the book, which the report did not contain.** That was
+on this session's pending list as a "possible off-by-one"; the durable layer got there first.
+
+**AND MY OWN WEEK, BECAUSE THE PATTERNS MATTER MORE THAN THE INSTANCES:** five tests read the wall
+clock (four borrowed the LIVE TAPE and failed only because the market was shut; one was created by
+the weekend gate itself) and **six** assertions fell to the comment trap — including, finally, a test
+written to stop me repeating a mistake, which fell to a different mistake I had already made five
+times that morning.
+
+
+---
+
 ## 2026-09-25 (Fri) — THE GAUGES LANDED, AND HE DEBUGGED THEM FASTER THAN THE TESTS DID
 
 **★★★ THE PX AND CVD HORIZONTAL GAUGES ARE THE FIRST THING ON THIS DASHBOARD HE HAS CALLED
