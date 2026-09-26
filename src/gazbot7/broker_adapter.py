@@ -71,9 +71,37 @@ class IBBrokerAdapter:
         if on_stop_event is not None:
             ib.orderStatusEvent += self._on_status
 
+    # ── the account guard (2026-09-26) ───────────────────────────────────────
+    def _guard_account(self, what: str) -> None:
+        """Refuse to touch an account nobody listed. THE ACCIDENT GUARD, not security.
+
+        ★★★2026-09-26 AUDIT FINDING 09: no account number appeared anywhere in this codebase, so
+        the only paper/real boundary was which credentials the gateway container logged in with.
+        This asks the LIVE connection who it actually is, every time it places.
+
+        ⚠⚠ IT CANNOT AFFECT PAPER TRADING. The paper account is in the allowlist floor
+        (livemode.PAPER_ACCOUNTS), so on this desk today this is a dictionary lookup that passes.
+        It can only ever refuse an account that is in NEITHER list.
+        ⚠ FAILS OPEN ON AN UNREADABLE ACCOUNT. If ib_async cannot tell us the account (a version
+        difference, a connection mid-handshake) this does NOT block the order: a guard against an
+        unlikely misconfiguration must never become a new way for a live exit to fail. It is
+        AccountNotAllowed — a POSITIVE identification of a wrong account — that refuses.
+        """
+        try:
+            from .livemode import assert_account_allowed
+            accounts = [a for a in (self._ib.managedAccounts() or []) if a]
+        except Exception:
+            return                              # cannot tell → do not block
+        if not accounts:
+            return                              # cannot tell → do not block
+        for acct in accounts:
+            assert_account_allowed(acct, what=what)
+
     # ── BrokerPort ───────────────────────────────────────────────────────────
     def place(self, order) -> None:
         from ib_async import LimitOrder, MarketOrder
+
+        self._guard_account(f"place {order.side} {order.qty} {self._symbol}")
 
         if order.order_type == "LMT":
             ibo = LimitOrder(order.side, order.qty, order.limit_price)
@@ -92,6 +120,8 @@ class IBBrokerAdapter:
     # ── StopBrokerPort ───────────────────────────────────────────────────────
     def place_stop(self, *, symbol: str, side: str, qty: float, stop_price: float) -> str:
         from ib_async import StopLimitOrder
+
+        self._guard_account(f"place a protective stop on {symbol}")
 
         from .ticks import round_stop, tick_for
 

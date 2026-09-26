@@ -1,0 +1,13 @@
+[Unit]
+# 21:34Z — inside the CME halt, AFTER the 21:30 nightly audit so claim_audit is fresh, and BEFORE
+# the 21:40 supervisor so its record exists when the supervisor looks. Every day, not Mon-Fri: a
+# weekend is exactly when nobody is watching, and the check costs nothing.
+Description=GAZBOT V7 — daily book-vs-broker reconciliation
+
+[Timer]
+OnCalendar=*-*-* 21:34:00 UTC
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

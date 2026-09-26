@@ -54,7 +54,19 @@ from .store import (
 )
 from .tracker import TradeTracker
 
-CORE_CLIENT_ID = 0  # master client (reqAutoOpenOrders binding wired in S10)
+# ★★2026-09-26 AUDIT, FINDING 18 — THIS COLLIDES WITH gazbot7-tournament, WHICH ALSO CLAIMS 0.
+# It is harmless today for one reason only: gazbot7-core is disabled and has never started (it is
+# vestigial — the live desk is gazbot7-tournament, and sweep.py's "restarts core: 0" is false
+# comfort about a unit that never ran). But "harmless because it never runs" is a property of the
+# DEPLOYMENT, not of the code, and the failure it would cause is the nastiest kind: two clients on
+# the same IBKR clientId, where the second connection EVICTS the first. Starting core to debug
+# something would silently disconnect the desk that is actually holding positions.
+# ⚠ Moved to a free id rather than deleted: this module still imports cleanly and is still read for
+# reference, and leaving a landmine in it to save one line is not a trade worth making.
+# Allocation on this box: core=1 (was 0) · tournament=0 · md=2 · rider=4 · watchdog=5 · eod=6 ·
+# checks=8 · macro=9 · equity=11 · pull=15 · breadth=16 · weekend=22 · driftlab=77 · backfill=81 ·
+# depth=97.
+CORE_CLIENT_ID = 1  # was 0 — collided with the LIVE tournament desk; see the note above
 _EPS = 1e-9
 PROTECT_INTERVAL_S = 5.0       # naked-auditor cadence
 PROTECT_BOOT_SETTLE_S = 120.0  # grace after start — let a GTC stop reappear before acting

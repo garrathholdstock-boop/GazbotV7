@@ -57,17 +57,46 @@ PY = f"{GB}/.venv/bin/python"
 # are disabled and have never started (vestigial), and treating them as required would manufacture
 # a nightly false alarm — the same false comfort sweep.py gives when it reports "restarts core: 0"
 # for a unit that has never run.
-REQUIRED_SERVICES = ["gazbot7-tournament", "gazbot7-md", "gazbot7-shadow",
-                     "gazbot7-depth-capture", "gazbot7-router-watch"]
+#
+# ★★★2026-09-26 AUDIT — THIS LIST HAD NOT GROWN SINCE 2026-08-13 AND EVERY SAFETY WATCHER BUILT
+# SINCE WAS MISSING FROM IT. gateway-watch (the wedge detector, which has cost $364 and $2,149
+# when absent), step-away (his away-guard), web (his BUTTONS), tgbot (phone control),
+# rider-peak-watch (his eyes) — all ran unwatched. `Restart=always` covers a CRASH; it does not
+# cover a unit stopped by hand, one systemd has given up on after StartLimitBurst, or one that is
+# running and wedged. Nothing paged if any of them was simply down.
+# ⚠ Each entry is a unit whose ABSENCE costs money or costs him a decision. A watcher nobody
+# watches is [[an-instrument-that-reports-healthy-about-something-it-does-not-check]] one level up.
+REQUIRED_SERVICES = [
+    # the desks and the feed
+    "gazbot7-tournament", "gazbot7-md", "gazbot7-shadow",
+    "gazbot7-depth-capture", "gazbot7-router-watch",
+    # ★ the safety watchers — added 2026-09-26
+    "gazbot7-gateway-watch",       # the wedge detector; its absence is measured in hours blind
+    "gazbot7-step-away",           # writes his claim when he is away; armed means nothing if down
+    # ★ his own controls — if these are down he has no hands, and nothing said so
+    "gazbot7-web",                 # the dashboard AND the BUY/SELL/CLAIM buttons
+    "gazbot7-tgbot",               # phone control
+    # ★ his eyes
+    "gazbot7-rider-peak-watch", "gazbot7-leg-watch", "gazbot7-breadth-watch",
+]
 
 # (unit, max hours since last fire). Only frequent timers — a weekly one has not "failed" by not
 # having run today.
+# ★★2026-09-26 AUDIT — IT CHECKED THE ROUTER EVERY 0.25h AND NEVER CHECKED THE RECONCILER. The
+# four added below are the ones whose silence is most expensive: the 30-second cross-desk
+# invariant, the only risk rule, the alarm that watches whether his BUTTON landed, and the
+# watchdog that flattens a position nobody is managing.
 TIMER_FRESHNESS = {
     "gazbot7-router-tick.timer": 0.25,
     "gazbot7-router-health.timer": 0.5,
     "gazbot7-day-rider.timer": 0.1,
     "gazbot7-monitor.timer": 1.0,
     "gazbot7-claude-job@sweep.timer": 6.0,
+    # ★ added 2026-09-26
+    "gazbot7-desk-reconcile.timer": 0.1,      # every 30s — THE safety layer
+    "gazbot7-daily-loss-limit.timer": 0.25,   # every 2min — the only risk rule that runs
+    "gazbot7-request-watch.timer": 0.1,       # every 60s — did his press land
+    "gazbot7-day-rider-watchdog.timer": 0.25, # every 2min — flattens an unmanaged position
 }
 JOB_MAX_AGE_H = {"sweep": 6, "hour-watch": 26, "ledger-review": 6, "nightly-review": 30}
 
@@ -79,15 +108,91 @@ def sh(*cmd: str, timeout: int = 20) -> str:
         return ""
 
 
+def supervisor_message(faults: list[str], repaired: list[str], declined: list[str],
+                       flat: bool, router_aborts: int | None = None) -> tuple[str, bool, bool]:
+    """(text, critical, mark) for the nightly message. ALWAYS returns one — never None.
+
+    ★★★2026-09-26 IT NOW SPEAKS EVERY NIGHT, CLEAN OR NOT, SO SILENCE IS THE ALARM. Before this
+    it sent only `if faults or repaired`, which made a clean night and a DEAD SUPERVISOR produce
+    byte-identical output: nothing. Nothing else on the box checks this job — it is the thing that
+    checks the others — and there is no off-box watcher, so its own death was undetectable by
+    construction. Operator, 2026-09-26: "so we never dont know something is happening in the
+    background."
+
+    ⚠ The all-clear is deliberately NOT critical and NOT marked. It must not bypass quiet hours and
+    must never wear 🔴: it is a heartbeat he should be able to ignore on any one night and notice
+    the absence of across several — the opposite urgency to a fault.
+    ⚠ Weekend quiet still holds it, and that is correct: while the venue is shut and the desk is
+    verified flat there is nothing to be silent ABOUT, so a missing Saturday line is not evidence.
+    A missing weekday line is.
+    """
+    tail = ""
+    if repaired:
+        tail += f" || REPAIRED: {', '.join(repaired)}"
+    if declined:
+        tail += f" || NOT repaired: {', '.join(declined)}"
+    if faults:
+        return (f"⚠ GAZBOT NIGHTLY SUPERVISOR — {' | '.join(faults)}{tail}"[:900], True, True)
+    body = (f"all clear — {len(REQUIRED_SERVICES)} services up, {len(TIMER_FRESHNESS)} timers "
+            f"fired, router deciding, flat={flat}")
+    # ★2026-09-26 the router's own availability, so isolated ABORTs (finding 16) have somewhere to
+    # be seen. A handful a day is ordinary CLI flakiness on a benching-only router and is NOT a
+    # fault; a rising number is the tell that the credential is going, which has cost 10.5h before.
+    if router_aborts is not None:
+        body += f" · router aborts today {router_aborts}"
+    return (f"✅ GAZBOT NIGHTLY SUPERVISOR — {body}{tail}"[:900], False, False)
+
+
+def timer_is_dormant(unit: str, max_h: float) -> tuple[bool, str]:
+    """Is this timer simply NOT DUE, rather than failing to fire?
+
+    ★★2026-09-26 "OLD" IS NOT "STALE" IF THE SCHEDULE NEVER CALLED FOR IT. This supervisor runs
+    EVERY night (`*-*-*`) while several timers it checks are weekday-only — `claude-job@sweep` is
+    `Mon-Fri`. So on Saturday and Sunday nights sweep's last trigger was legitimately 24-48h old
+    against a 6h expectation, and this raised a CRITICAL fault for a timer working exactly as
+    designed: TWO FALSE CRITICALS EVERY WEEKEND, which is how a real one gets ignored.
+
+    ⚠ SYSTEMD IS THE AUTHORITY ON ITS OWN CALENDAR. Do not re-parse OnCalendar here — that is a
+    second implementation of a schedule and it would drift from the first. If the NEXT elapse is
+    further away than the freshness window, the timer is dormant, not stale.
+
+    ⚠ FAILS LOUD. An unreadable or absent next-elapse returns False, because "I cannot tell
+    whether it was due" must never read as "it was not due".
+    """
+    nxt = sh("systemctl", "show", unit, "-p", "NextElapseUSecRealtime", "--value")
+    if nxt in ("0", "n/a", ""):
+        return False, nxt
+    ts = sh("date", "-d", nxt, "+%s")
+    if not ts.isdigit():
+        return False, nxt
+    return ((int(ts) - time.time()) / 3600 > max_h), nxt
+
+
 def desk_is_flat() -> tuple[bool, str]:
     """Repair only when flat. A restart re-adopts slots from the ledger; doing that while holding is
-    how the 08-06 class of incident starts."""
+    exactly the risk CLAUDE.md warns about.
+
+    ★★★2026-09-26 THIS READ `core_health.flat`, WHICH IS TOURNAMENT-SCOPED. It counts this desk's
+    own slots and knows nothing about the day-rider — so it called the desk flat while the venue
+    held 4 rider lots (08-21, 811 of 817 router ticks). This gate decides whether it is safe to
+    RESTART SERVICES, so believing it meant: if the 20:40Z flat ever failed and the rider was still
+    holding, the supervisor would restart services on top of a live naked position and log that the
+    desk was flat.
+    Now it reads `desk_flat`, which is tournament AND rider, published by the same writer.
+    ⚠ FAIL-CLOSED ON AN OLD FILE: if `desk_flat` is absent the tournament has not yet been
+    restarted onto the code that publishes it, and the honest answer is "cannot tell", which must
+    mean NOT flat. Declining a repair costs a night; restarting onto a naked position costs money.
+    """
     try:
         h = json.load(open(f"{GB}/data/core_health.json"))
-        return bool(h.get("flat")), f"flat={h.get('flat')} halted={h.get('halted')}"
     except Exception as e:
         return False, f"core_health unreadable ({e}) — treating as NOT flat"
-
+    if "desk_flat" not in h:
+        return False, ("core_health has no desk_flat field (tournament not yet restarted onto the "
+                       "2026-09-26 code) — treating as NOT flat rather than trusting the "
+                       "tournament-scoped `flat`")
+    return bool(h.get("desk_flat")), (f"desk_flat={h.get('desk_flat')} "
+                                      f"({h.get('desk_flat_note')}) halted={h.get('halted')}")
 
 def check() -> tuple[list[str], list[str], dict]:
     """(faults, notes, detail)."""
@@ -102,6 +207,7 @@ def check() -> tuple[list[str], list[str], dict]:
     except Exception:
         rhj = {}
     detail["router"] = rhj
+    detail["router_aborts_today"] = rhj.get("aborts_today")
     for f in rhj.get("faults", []):
         faults.append(f"ROUTER: {f}")
 
@@ -141,8 +247,25 @@ def check() -> tuple[list[str], list[str], dict]:
             notes.append(f"{unit} LastTriggerUSec unparseable: {raw!r}")
             continue
         age_h = (time.time() - int(ts)) / 3600
-        if age_h > max_h:
-            stale.append(f"{unit} last fired {age_h:.1f}h ago (expected within {max_h}h)")
+        if age_h <= max_h:
+            continue
+        # ★★2026-09-26 "OLD" IS NOT "STALE" IF THE SCHEDULE NEVER CALLED FOR IT. This supervisor
+        # runs EVERY night (`*-*-*`) while some timers it checks are weekday-only — e.g.
+        # claude-job@sweep is `Mon-Fri`. So on Saturday and Sunday nights sweep's last trigger was
+        # legitimately 24-48h ago against a 6h expectation, and this raised a CRITICAL fault for a
+        # timer working exactly as designed. TWO FALSE CRITICALS EVERY WEEKEND, which is precisely
+        # how a real one gets ignored.
+        # ⚠ SYSTEMD IS THE AUTHORITY ON ITS OWN CALENDAR — do not re-parse OnCalendar here; that
+        # is a second implementation of a schedule and it would drift. If the NEXT elapse is
+        # further away than the freshness window, the timer is DORMANT BY SCHEDULE, not stale.
+        # ⚠ FAILS LOUD: an unreadable or absent next-elapse falls through to the stale branch,
+        # because "I cannot tell whether it was due" must not read as "it was not due".
+        dormant, nxt = timer_is_dormant(unit, max_h)
+        if dormant:
+            notes.append(f"{unit} last fired {age_h:.1f}h ago but is DORMANT BY SCHEDULE "
+                         f"(next elapse {nxt}) — not due, not stale")
+            continue
+        stale.append(f"{unit} last fired {age_h:.1f}h ago (expected within {max_h}h)")
     if stale:
         faults.append("TIMERS ACTIVE BUT NOT FIRING: " + "; ".join(stale))
     detail["stale_timers"] = stale
@@ -164,7 +287,14 @@ def check() -> tuple[list[str], list[str], dict]:
         try:
             rec = json.load(open(path))
             age_h = (now - os.path.getmtime(path)) / 3600
-            if age_h > max_h:
+            # ★2026-09-26 the same dormancy rule as the timer check above, for the same reason: a
+            # weekday-only job has not "stopped" by not having run on a Saturday. Asked of the
+            # job's own TIMER, so the two checks cannot disagree about one schedule.
+            dormant, nxt = timer_is_dormant(f"gazbot7-claude-job@{name}.timer", max_h)
+            if age_h > max_h and dormant:
+                notes.append(f"JOB {name} last ran {age_h:.1f}h ago but its timer is DORMANT BY "
+                             f"SCHEDULE (next {nxt}) — not due, not stopped")
+            elif age_h > max_h:
                 faults.append(f"JOB {name} last ran {age_h:.1f}h ago (expected within {max_h}h)")
             elif not rec.get("ok"):
                 faults.append(f"JOB {name} last run FAILED rc={rec.get('rc')}")
@@ -242,16 +372,13 @@ def main() -> int:
     except Exception:
         pass
 
-    if not a.dry_run and (faults or repaired):
+    # ★★★ SENDS EVERY NIGHT, CLEAN OR NOT — see supervisor_message() for why.
+    if not a.dry_run:
         try:
             from gazbot7.notify import notify
-            head = "⚠ GAZBOT NIGHTLY SUPERVISOR"
-            body = " | ".join(faults) if faults else "all checks passed"
-            if repaired:
-                body += f" || REPAIRED: {', '.join(repaired)}"
-            if declined:
-                body += f" || NOT repaired: {', '.join(declined)}"
-            notify(f"{head} — {body}"[:900], critical=bool(faults))
+            text, critical, mark = supervisor_message(faults, repaired, declined, flat,
+                                                      detail.get("router_aborts_today"))
+            notify(text, critical=critical, mark=mark)
         except Exception:
             pass
     return 1 if faults else 0

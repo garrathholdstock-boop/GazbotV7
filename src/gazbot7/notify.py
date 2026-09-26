@@ -174,7 +174,52 @@ def _subprocess_send(message: str) -> bool:
 #: ★ THE RULE FOR `mark=False`: the circle marks the START of something that needs him — an episode
 #: opening, a fault beginning — never its CONTINUATION. Being told six more times about a position
 #: he has already been told to watch is not news.
+#: ⚠⚠⚠ 2026-09-26 AUDIT — `mark` DEFAULTING TO `critical` MEANT THE MARK WAS NEVER ACTUALLY
+#: SEPARATED, AND IT DILUTED ITSELF IN TWO DAYS. Measured from `notify_sent.jsonl` over the three
+#: days after it shipped: **241 of 456 sends carried the circle — 53%, about 80 a day** against a
+#: design intent of "under one a day". Marked traffic included his OWN button confirmations
+#: (`DAY RIDER MANUAL BUY/SELL`, 45 sends), `RIDER PEAK` readings, and `ROUTER WATCH — DAY-RIDER
+#: BLEED` at 66 sends in three days.
+#: The cause was structural, not a bad call at any one site: `critical=True` is set at 56 places for
+#: the quiet-hours bypass, and the default silently promoted every one of them to a mark. Splitting
+#: the flags in the signature while defaulting one to the other is not a split.
+#: **So the mark is now OPT-IN.** `MARK_ALWAYS` below is the whole list that wears it — the alerts
+#: that can cost money if unread. Everything else keeps its quiet-hours bypass and loses the circle.
+#: ⚠ The list is keyed on a STABLE FRAGMENT of the message, not on the caller, because the caller is
+#: not knowable from inside notify() and a module name would drift on every refactor.
+#: ⚠ Keep this list SHORT. The moment it needs a scroll bar it has stopped working, and the failure
+#: is silent: nothing errors, the mark just stops meaning anything again.
+MARK_ALWAYS = (
+    "GAZBOT cross-desk kill",        # the reconciler stopped both desks — the biggest hammer here
+    "SLOT DRIFT",                    # confirmed unaccounted lots at the venue
+    "DESK IS BLIND AND HOLDING",     # his presses are not reaching the broker
+    "DESK BLIND AND HOLDING, AND I HAVE STOPPED",   # ...and the guard has given up
+    "GATEWAY IS FILLING UP AND I CANNOT FIX IT",
+    "UNREAD",                        # a press that never landed (request_watch)
+    "DAILY LOSS LIMIT",
+    # ★ added after replaying three days of real traffic through this list: anything that ACTS ON
+    # HIS POSITION, or that can silently become one, belongs here even if it fires rarely.
+    "STEP AWAY FIRED",               # a guard just requested a flatten of his live position
+    "ORPHAN STOP",                   # a working order with nothing behind it — can OPEN a position
+    "WATCHDOG BLIND",                # the flatten-watchdog cannot see the venue
+    "DESK-MISMATCH",                 # venue net disagrees with the books
+    "FLATTEN INCOMPLETE",            # a position that would not close
+    "EOD flatten INCOMPLETE",
+    "NAKED",                         # unprotected position
+    "NIGHTLY SUPERVISOR",            # only reaches here with faults; the all-clear passes mark=False
+)
+
 CRITICAL_MARK = "🔴 "
+
+
+def wears_the_mark(message: str) -> bool:
+    """Is this one of the few that can cost money if he scrolls past it?
+
+    ★ Opt-in by construction — see MARK_ALWAYS. An unrecognised message is UNMARKED, which is the
+    safe direction for a marker: the cost of a missing circle is that a real alert looks ordinary;
+    the cost of a universal circle is that NO alert looks special, which is what was measured.
+    """
+    return any(frag.lower() in message.lower() for frag in MARK_ALWAYS)
 
 
 def notify(message: str, *, critical: bool = False, mark: bool | None = None,
@@ -183,8 +228,9 @@ def notify(message: str, *, critical: bool = False, mark: bool | None = None,
 
     `critical` — bypass quiet hours. "This matters at 3am."
     `mark`     — wear CRITICAL_MARK. "This is the one to look at."
-                 Defaults to `critical`; pass False for an alert that must reach him at any hour
-                 but is the CONTINUATION of something he has already been told about.
+                 ★2026-09-26: defaults to the MARK_ALWAYS list, NOT to `critical`. Pass True to
+                 mark something the list does not know about, or False to suppress the circle on a
+                 CONTINUATION of an episode he has already been told about.
 
     ⚠ A routine alert can never be marked: if it is not worth waking him for, the circle would be
     claiming an urgency the quiet-hours rule itself denies.
@@ -198,9 +244,11 @@ def notify(message: str, *, critical: bool = False, mark: bool | None = None,
     if not critical and in_quiet_hours(now):
         return False
     if mark is None:
-        mark = critical
+        mark = wears_the_mark(message)
     # ⚠ Never double-mark: a caller that already prefixed it (or a retry of the same text) must not
     # accumulate circles.
+    # ⚠ `and critical` is kept deliberately: an alert that does not even warrant waking him cannot
+    # claim the circle, whatever the list says.
     if mark and critical and not message.startswith(CRITICAL_MARK):
         message = CRITICAL_MARK + message
     return (send or _subprocess_send)(message)

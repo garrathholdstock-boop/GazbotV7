@@ -57,8 +57,14 @@ TOOLS = {
     "nightly-review": "Bash,Read,Write,Edit",
     "sunday-ramp":   "Bash,Read",
 }
+# ★2026-09-26 nightly-review raised 900 → 1080. It was running AT its ceiling, not under it:
+# 09-24 finished in 882s of a 900s budget and 09-25 tipped over — rc=-1, 0 chars, a whole night's
+# review producing nothing. A job whose normal runtime is 98% of its timeout fails on noise, and
+# the failure is silent in the artifact sense (the record says ok=False and the output is empty).
+# ⚠ Ceiling is the unit's TimeoutStartSec=1200, which must stay ABOVE this so the runner's own
+# timeout fires first and PAGES, rather than systemd killing the runner before it can report.
 TIMEOUT_S = {"ledger-review": 900, "hour-watch": 420, "sweep": 420,
-             "nightly-review": 900, "sunday-ramp": 600}
+             "nightly-review": 1080, "sunday-ramp": 600}
 
 
 def page(msg: str, critical: bool = True) -> None:

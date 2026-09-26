@@ -1,0 +1,14 @@
+[Unit]
+# ⚠ 2 MINUTES, NOT ON THE 30-SECOND RECONCILER, deliberately. The leading hypothesis for the
+# gateway's CLOSE-WAIT leak is IBKR pacing and the desk already opens ~5,000 short-lived
+# connections a day; adding one every 30s to diagnose money would feed the exact outage that has
+# cost $364 and $2,149. A margin tracker must never be what costs a claim (macro_watch's reasoning).
+Description=GAZBOT V7 — read the account every 2 minutes
+
+[Timer]
+OnCalendar=*:0/2:50
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

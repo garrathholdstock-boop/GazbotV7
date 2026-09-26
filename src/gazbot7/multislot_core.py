@@ -90,6 +90,10 @@ class MultiSlotCore:
         self._close_reason: dict[str, str] = {}
         self._open_atr: dict[str, float] = {}
         self._halted = False
+        # ★2026-09-26 a drift imbalance SEEN but not yet confirmed across a day-rider claim
+        # rewrite. Blocks opens exactly like _halted; does not latch and does not page.
+        # See reconcile() for the 28-false-halts-in-3-days measurement behind it.
+        self._drift_pending: dict | None = None
         self._gates = slotbook.gates()
         self._naked_streak: dict[str, int] = {g: 0 for g in self._gates}
         # per-slot exit wedge-breaker state (a close in flight that never completes)
@@ -185,8 +189,10 @@ class MultiSlotCore:
 
     def _open(self, intent: dict) -> None:
         gate = intent["slot"]
-        if self._halted or not self._sb.slot(gate).is_flat or gate in self._pending:
-            return                           # halted, slot occupied, or an open already in flight
+        if self._open_blocked or not self._sb.slot(gate).is_flat or gate in self._pending:
+            # ⚠ _open_blocked, not _halted: an UNCONFIRMED drift must still stop new opens.
+            # Deferring the page must never defer the protection — see reconcile().
+            return                           # unaccounted venue, slot occupied, or open in flight
         # ★2026-08-05 ASIA BENCH — placed HERE because _open is the single funnel every tournament
         # entry passes through, so one guard covers all 8 gates and every sub-slot; a per-gate check
         # would have to be repeated and could be missed on the next gate added. NEW ENTRIES ONLY.
@@ -381,9 +387,31 @@ class MultiSlotCore:
         # so this is the ONLY signal that the auditor itself stopped.
         audit_age = (round(time.monotonic() - self._last_audit_ok_mono, 1)
                      if self._last_audit_ok_mono is not None else None)
+        # ★★★2026-09-26 `flat` IS TOURNAMENT-SCOPED AND ALWAYS HAS BEEN. It is `not held`, where
+        # held counts THIS desk's slots — so it said the desk was flat while the venue was long 4
+        # rider lots, and the router repeated that reading for 811 of the 817 ticks that position
+        # was alive (08-21; ranked SATURDAY #5 in that Friday report and open until now).
+        # The field cannot simply change meaning — sweep, desk_view and the router all read it —
+        # so it is RENAMED IN PLACE (`tournament_flat`, same value, honest name) and a genuinely
+        # desk-wide `desk_flat` is published beside it. `flat` stays as an alias so nothing breaks,
+        # carrying an explicit note about what it does NOT cover.
+        # ⚠ desk_flat is FAIL-CLOSED: if the rider's claim cannot be read it is False, because "I
+        # cannot tell" must never render as "flat" — that is the whole 08-21 failure in one field.
+        rider_lots, rider_why = self._rider_lots()
+        desk_flat = (not held) and rider_lots == 0.0
         health = {"ts": ts, "conn": conn, "healthy": healthy,
-                  "place_live": self._cfg.place_live, "flat": not held,
-                  "halted": self._halted, "protection": protection, "audit_age_s": audit_age,
+                  "place_live": self._cfg.place_live,
+                  # ⚠ TOURNAMENT-SCOPED. Use desk_flat for any safety decision.
+                  "flat": not held,
+                  "tournament_flat": not held,
+                  "desk_flat": desk_flat,
+                  "desk_flat_note": rider_why,
+                  "rider_lots": rider_lots,
+                  "halted": self._halted,
+                  # an imbalance seen but not yet confirmed across a rider claim rewrite. Opens are
+                  # blocked while this is set; it is published so the wait is never invisible.
+                  "drift_pending": bool(getattr(self, "_drift_pending", None)),
+                  "protection": protection, "audit_age_s": audit_age,
                   # ★2026-08-16 consecutive cycles the DRIFT branch skipped the safety block.
                   # audit_age_s only says the loop is turning; this says whether the work inside it
                   # actually ran. They disagreed for the whole of the 08-06 incident, and only the
@@ -525,6 +553,10 @@ class MultiSlotCore:
     # != "drift"). The fix is to reconcile against OUR SHARE of the account, not the whole of it.
     DR_STATE = "/home/alphabot/gazbot7/data/day_rider_state.json"
     DR_MAX_AGE_S = 180.0          # heartbeat older than this → do NOT believe the claim
+    # ★2026-09-26 an imbalance unresolved this long is confirmed even if the rider never rewrote
+    # its claim. Longer than DR_MAX_AGE_S on purpose, so the ordinary rewrite path always wins and
+    # this fires only when the rider has genuinely stopped writing. See reconcile().
+    DRIFT_CONFIRM_MAX_S = 240.0
 
     def _foreign_net(self) -> float:
         """Lots at the venue owned by the DAY RIDER, not by us. Returns 0.0 on ANY doubt.
@@ -551,23 +583,125 @@ class MultiSlotCore:
         except Exception:
             return 0.0
 
+    def _rider_lots(self) -> tuple[float, str]:
+        """(lots the day-rider holds, why) — for the desk-wide flat flag, NOT for reconciliation.
+
+        ⚠ FAIL-CLOSED AND DELIBERATELY DIFFERENT FROM `_foreign_net`. That method returns 0.0 on
+        any doubt because subtracting an unproven claim would MASK a leak; here 0.0 means "flat",
+        so doubt must return NON-zero instead. Same file, opposite safe direction — which is
+        exactly why they are two methods and not one.
+        """
+        try:
+            with open(self.DR_STATE) as fh:
+                st = json.load(fh)
+        except Exception as e:
+            return (float("nan"), f"rider state unreadable ({type(e).__name__}) — NOT flat")
+        if not st.get("entered") or st.get("closed"):
+            return (0.0, "rider flat")
+        try:
+            qty = abs(float(st.get("qty") or 0.0))
+        except Exception:
+            return (float("nan"), "rider qty unparseable — NOT flat")
+        if qty <= 0:
+            return (0.0, "rider flat")
+        try:
+            hb = datetime.fromisoformat(str(st.get("heartbeat"))).timestamp()
+            age = datetime.now(UTC).timestamp() - hb
+        except Exception:
+            return (qty, "rider holds, heartbeat unreadable — NOT flat")
+        if age > self.DR_MAX_AGE_S:
+            return (qty, f"rider holds {qty:g} and its claim is {age:.0f}s stale — NOT flat")
+        return (qty, f"rider holds {qty:g}")
+
+    def _dr_stamp(self) -> str:
+        """WHEN the day-rider last wrote its claim — not what it says. Unreadable → "", which can
+        never compare equal to a later read, so an unreadable claim never counts as advanced."""
+        try:
+            with open(self.DR_STATE) as fh:
+                return str((json.load(fh) or {}).get("heartbeat") or "")
+        except Exception:
+            return ""
+
     def reconcile(self, venue_net: float) -> str:
         """Logical net across slots MUST equal venue truth. On drift → HALT (no new
         opens) — a lot leaked/appeared at the venue that the slot ledger can't place.
 
         ★ "Venue truth" means OUR SHARE of a shared account: the day-rider's declared lots are
         subtracted first (see _foreign_net), because IBKR nets both desks into one number and that
-        difference is another desk's position, not a leak."""
+        difference is another desk's position, not a leak.
+
+        ★★★2026-09-26 THE CLAIM-WRITE RACE, AND WHY THIS NEEDED desk_reconcile'S FIX TOO.
+        Measured over three days: 28 SLOT DRIFT halts, every one reading `logical net 0 != venue
+        ±4` — the day-rider's own lots, never a leak. The timestamps are conclusive: rider-3894
+        filled at 12:41:07Z and this halted at 12:41:09Z; rider-3899 filled 12:44:59Z, halt
+        12:45:00Z. One and two seconds.
+        The cause is structural, not a bug in _foreign_net: the rider is a ONESHOT on a 60-second
+        tick, so after every rider fill there is a window in which the venue already shows the
+        position and the rider has not yet written the claim that explains it. _foreign_net
+        correctly refuses to believe a claim that does not exist yet; this method then read that
+        refusal as a leak.
+        `desk_reconcile.require_fresh_claims()` solved exactly this on 2026-09-03 by sampling BOTH
+        sides: an imbalance is confirmed only once every desk has had the chance to rewrite its
+        claim and STILL disagrees. That fix never reached here. This is the port.
+
+        ⚠⚠ IT DOES NOT WEAKEN THE INVARIANT, and the distinction is the whole design:
+          · new opens are STILL BLOCKED for the whole pending window (see `_open_blocked`), so
+            nothing can be opened against a venue we cannot account for — that was `_halted`'s
+            actual safety job and it is preserved exactly;
+          · what is deferred is only the LATCH and the PAGE — the two things that were false;
+          · a REAL leak survives the rider's next write (<=60s) and halts exactly as before, just
+            one claim-rewrite later;
+          · a rider that is dead, stale or garbled never advances its stamp, so it can never buy
+            itself an indefinite reprieve — an unreadable claim leaves the imbalance unconfirmed
+            and the desk blocked, and the 180s DR_MAX_AGE_S bar in _foreign_net is unchanged.
+        """
         foreign = self._foreign_net()
         if foreign:
             venue_net = venue_net - foreign
         verdict = self._sb.reconcile(venue_net)
-        if verdict == "drift" and not self._halted:
-            self._halted = True
-            self._notify(f"SLOT DRIFT: logical net {self._sb.net_qty():g} != venue {venue_net:g} — HALTED")
-        elif verdict == "match":
+        if verdict == "match":
+            self._drift_pending = None
             self._halted = False
+            return verdict
+
+        # drift. Confirm it across a claim REWRITE — or a hard time bound — before latching.
+        stamp = self._dr_stamp()
+        pend = getattr(self, "_drift_pending", None)
+        if self._halted:
+            return verdict                      # already latched — nothing new to say
+        if pend is None:
+            self._drift_pending = {"stamp": stamp, "net": venue_net, "mono": time.monotonic()}
+            return verdict                      # opens stay blocked; no page yet
+        # ⚠⚠⚠ THE TIME BOUND IS NOT BELT-AND-BRACES, IT CLOSES A HOLE THE FIRST CUT OPENED.
+        # Waiting ONLY for the stamp to advance means a rider that never writes again — off, dead,
+        # its state file frozen — never confirms the breach. And `pending` returns "drift" just as
+        # a latch does, so the caller's ENTIRE SAFETY BLOCK (max-hold, naked audit, re-protect,
+        # stop-breach: all behind `verdict != "drift"`) stays skipped. That is the 08-06 shape
+        # exactly: unmanaged AND silent. So an imbalance that outlives this bound is confirmed
+        # whatever the rider's file says.
+        # ⚠ The bound is deliberately longer than DR_MAX_AGE_S, so the ordinary claim-rewrite path
+        # always wins the race and this only ever fires when the rider has genuinely stopped.
+        aged = time.monotonic() - float(pend.get("mono") or 0.0)
+        rewrote = stamp != pend["stamp"]
+        if not rewrote and aged < self.DRIFT_CONFIRM_MAX_S:
+            return verdict                      # cannot tell yet — opens stay blocked
+        why = ("confirmed across a day-rider claim rewrite" if rewrote else
+               f"UNRESOLVED for {aged:.0f}s and the day-rider has not rewritten its claim "
+               f"(dead or stopped?) — confirming on the time bound")
+        self._halted = True
+        self._drift_pending = None
+        self._notify(f"SLOT DRIFT: logical net {self._sb.net_qty():g} != venue {venue_net:g} — "
+                     f"HALTED ({why})")
         return verdict
+
+    @property
+    def _open_blocked(self) -> bool:
+        """No new opens while the venue is unaccounted for — latched OR merely pending.
+
+        ★ This is what keeps the claim-freshness fix above from being a relaxation. `_halted` used
+        to carry two jobs at once: "block opens" and "a leak was confirmed". They are now separate,
+        and only the second one waits for confirmation."""
+        return self._halted or getattr(self, "_drift_pending", None) is not None
 
     # ── per-slot naked auditor (the netted-venue safety) ─────────────────────
     def assess_slot(self, gate: str, live_coids: set, now_mono: float) -> str:

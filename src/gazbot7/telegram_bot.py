@@ -28,7 +28,18 @@ from datetime import UTC, datetime
 
 log = logging.getLogger("tgbot")
 
-_ENV = "/home/alphabot/alphabot2/.env"
+# ★★2026-09-26 AUDIT, FINDING 15 — THE PHONE BOT READ ITS CREDENTIALS FROM THE RETIRED V5 TREE.
+# CLAUDE.md calls /home/alphabot/alphabot2 RETIRED; notify.py was moved off it on 2026-08-20 for
+# exactly this reason ("deleting a tree CLAUDE.md calls RETIRED would have silenced EVERY alert on
+# this desk"). This file was missed in that pass, so the day that tree is cleaned up, PHONE CONTROL
+# DIES — and it dies the quiet way: the bot exits at startup with a message about a path nobody is
+# looking at, and he simply finds his commands stop working.
+# Our own data/.notify_env carries the same TELEGRAM_TOKEN and TELEGRAM_CHAT (verified before this
+# change), so the primary is now local.
+# ⚠ THE LEGACY PATH REMAINS A FALLBACK, so this change cannot itself cause the outage it prevents —
+# the same belt-and-braces shape as notify.py's own migration.
+_ENV = "/home/alphabot/gazbot7/data/.notify_env"
+_ENV_LEGACY = "/home/alphabot/alphabot2/.env"
 _DATA = "/home/alphabot/gazbot7/data"
 _SWITCH = os.path.join(_DATA, "gate_switches.env")
 _HEALTH = os.path.join(_DATA, "core_health.json")
@@ -50,6 +61,8 @@ _HELP = ("GAZBOT tournament — commands:\n"
 
 # ── env + roster ──────────────────────────────────────────────────────────────
 def load_env(path: str = _ENV) -> dict:
+    """★2026-09-26 reads OUR env first, falling back to the retired V5 tree. A missing or
+    token-less primary must not be fatal while the legacy file still exists."""
     env = {}
     try:
         with open(path) as f:
@@ -60,6 +73,11 @@ def load_env(path: str = _ENV) -> dict:
                     env[k.strip()] = v.strip().strip('"').strip("'")
     except OSError:
         pass
+    # ⚠ FALL BACK ONLY IF THE PRIMARY DID NOT YIELD A TOKEN. Merging blindly would let a stale
+    # legacy value shadow a fresh local one; merging only what is MISSING cannot.
+    if not env.get("TELEGRAM_TOKEN") and path != _ENV_LEGACY:
+        for k, v in load_env(_ENV_LEGACY).items():
+            env.setdefault(k, v)
     return env
 
 
@@ -256,7 +274,8 @@ def run(*, poll_s: int = 30) -> None:
     env = load_env()
     token, chat = env.get("TELEGRAM_TOKEN", ""), str(env.get("TELEGRAM_CHAT", ""))
     if not token or not chat:
-        raise SystemExit("TELEGRAM_TOKEN/CHAT not configured in " + _ENV)
+        raise SystemExit(f"TELEGRAM_TOKEN/CHAT not configured in {_ENV} "
+                         f"(nor in the legacy {_ENV_LEGACY})")
     log.info("tgbot up — authorized chat %s, gates=%s", chat, roster())
     offset = None
     while True:

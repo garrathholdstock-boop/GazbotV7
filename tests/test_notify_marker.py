@@ -7,6 +7,12 @@ buried underneath. His words: "a lot are old and not useful. theres going to be 
 really need so we need to make sure theyre useful so i dont ignore."
 
 An alarm channel he has learned to swipe past is an alarm channel he does not have.
+
+★★★2026-09-26 AUDIT — THE MARK IS NOW OPT-IN, AND TWO TESTS IN THIS FILE WERE REVERSED ON PURPOSE.
+Measured over the three days after the mark shipped: 241 of 456 sends wore it (53%, ~80/day) against
+"under one a day". `mark` defaulted to `critical`, and `critical=True` is set at 56 sites purely for
+the quiet-hours bypass — so the split introduced on 09-24 was never a split. notify.MARK_ALWAYS is
+the list now; see tests/test_notify_mark_is_opt_in.py for the full rule.
 """
 import sys
 
@@ -15,10 +21,17 @@ sys.path.insert(0, "/home/alphabot/gazbot7/src")
 from gazbot7 import notify as N
 
 
-def test_critical_alerts_are_marked():
-    sent = []
-    N.notify("the rider is blind and holding", critical=True, send=sent.append)
-    assert sent[0].startswith(N.CRITICAL_MARK)
+def test_the_alerts_that_can_cost_money_are_marked():
+    """★2026-09-26 THIS USED TO ASSERT ON A STRING NO CALLER EVER SENDS ("the rider is blind and
+    holding"). It passed because `mark` defaulted to `critical`, so ANY text was marked — which
+    means it would have gone on passing even if the REAL message had lost its circle. Now it uses
+    the actual text `gateway_watch` emits, so it tests the path that runs."""
+    for real_message in ("⚠⚠⚠ DESK IS BLIND AND HOLDING — holds 4 lot(s) and venue_ok=false",
+                         "[V7-tournament] SLOT DRIFT: logical net 0 != venue 4 — HALTED",
+                         "DAILY LOSS LIMIT HIT — session P&L $-252.00 after 6 trades"):
+        sent = []
+        N.notify(real_message, critical=True, send=sent.append)
+        assert sent[0].startswith(N.CRITICAL_MARK), f"{real_message[:40]!r} lost its circle"
 
 
 def test_routine_alerts_are_not():
@@ -74,11 +87,25 @@ def test_mark_can_be_declined_without_losing_the_quiet_hours_bypass():
     assert not sent[0].startswith(N.CRITICAL_MARK)
 
 
-def test_mark_defaults_to_critical_so_every_existing_call_site_is_unchanged():
-    """⚠ 56 call sites pass `critical` and nothing else. The default must not move under them."""
+def test_the_default_is_the_MARK_ALWAYS_list_not_critical():
+    """⚠⚠⚠ 2026-09-26 THIS TEST'S ORIGINAL PREMISE WAS THE DEFECT, AND IT IS REVERSED DELIBERATELY.
+
+    It used to assert `mark` defaults to `critical` "so every existing call site is unchanged".
+    That default is exactly what diluted the circle: **241 of 456 sends in the three days after the
+    mark shipped carried it — 53%, ~80/day** against a design intent of under one a day, because
+    `critical=True` is set at 56 sites purely to bypass quiet hours and the default promoted all of
+    them. Leaving the call sites unchanged was the goal; being unchanged is what broke it.
+
+    So the default is now the MARK_ALWAYS list. Call sites are still untouched — the difference is
+    that the mark is decided by WHAT THE MESSAGE IS, not by whether it may wake him.
+    """
     sent = []
     N.notify("naked position", critical=True, send=sent.append)
-    assert sent[0].startswith(N.CRITICAL_MARK)
+    assert sent[0].startswith(N.CRITICAL_MARK), "a NAKED alert is on the list and must be marked"
+    sent = []
+    N.notify("DAY RIDER MANUAL BUY 4 lots @ 30910.25", critical=True, send=sent.append)
+    assert sent and not sent[0].startswith(N.CRITICAL_MARK), (
+        "his own button confirmation must NOT be marked — 45 of them were")
 
 
 def test_a_routine_alert_can_never_be_marked():

@@ -101,7 +101,36 @@ TARGET_PT = tuple(u / 2.0 for u in TARGET_USD_PER_LOT)      # 50/100/200/300pt �
 # ⚠ EXPOSURE, measured over 231 sessions: median worst-adverse 160pt = -$1,284 on 4 lots; the
 #   worst session ran 1,084pt = -$8,672. That is the price of no stop; it was accepted knowingly.
 # REVERT: set PLACE_VENUE_STOP = True.
-PLACE_VENUE_STOP = False
+#
+# ★★★2026-09-26 AUDIT FINDING 01 — IT IS NOW A CONFIG SWITCH, STILL DEFAULTED OFF.
+# The 2026-08-20 decision stands for PAPER and its evidence is unchanged: a 400pt TRADING stop costs
+# $3,451 of expectancy and has a worse worst-day than running naked. Nothing here disputes that.
+# What the audit added is a DIFFERENT argument for a DIFFERENT instrument. Every protection this desk
+# has — the 20:40 hard flat, the watchdog, the EOD flatten, the reconciler, the step-away guard — is
+# a PROCESS ON ONE BOX. If the box dies, the network drops, the gateway wedges or the credentials
+# expire while 4 lots are open, nothing anywhere closes them. All four of those have happened here:
+# 08-21 carried 4 naked lots through the halt into a weekend for -$2,149 because all four closing
+# paths share one ib.connectAsync.
+# A 600pt catastrophe stop is not the 400pt trading stop that study killed. At 4 lots it is -$4,800,
+# it sits far outside every drawdown in the sample, and it therefore NEVER BINDS IN NORMAL TRADING —
+# so it cannot cost the expectancy that was measured. It exists for the case where nothing on this
+# box is running to protect the position.
+# ⚠⚠⚠ DELIBERATELY STILL OFF ON PAPER. Operator, 2026-09-26: "just dont switch on any kill switches
+# while paper trading. i want to be able to trade and learn." So the default is unchanged and the
+# paper desk behaves exactly as it did. `live_mode.json.venue_stop_armed` is the switch, HIS to
+# flip — set it true to exercise the path on paper whenever he wants — and live_preflight() REFUSES
+# a live account until it is true, so January cannot start without this being a deliberate decision.
+def _venue_stop_armed() -> bool:
+    """Read the switch fresh each call. Fail-safe: any error → False → unchanged behaviour."""
+    try:
+        import json as _j
+        with open("/home/alphabot/gazbot7/data/live_mode.json") as _fh:
+            return bool((_j.load(_fh) or {}).get("venue_stop_armed"))
+    except Exception:
+        return False
+
+
+PLACE_VENUE_STOP = _venue_stop_armed()
 # ★ NO NEW ENTRY AFTER THIS. Across all 31 validated sessions the detector confirmed between 13:38 and
 # 14:09 — never later. The service ticks to 21:00, so without this guard it could enter at 17:00 on a
 # setup the backtest contains ZERO examples of, and then hold it with under four hours to the hard flat.

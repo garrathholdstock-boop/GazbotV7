@@ -1,0 +1,19 @@
+[Unit]
+# GAZBOT V7 — OFF-BOX DEAD-MAN'S SWITCH (audit finding 08, 2026-09-26).
+# Every other alarm here is outbound FROM the monitored box, so a hang, a full disk, a network drop
+# or broken notify credentials all present as SILENCE — indistinguishable from a quiet day. The
+# 08-21 outage was exactly this: five services mute for ~12h while sweep read green.
+# ⚠ INERT UNTIL data/live_mode.json carries a `deadman_url`. It exits 0 and says what is missing
+# rather than pretending to protect.
+Description=GAZBOT V7 — ping the off-box watchdog
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/deadman.py --once
+SuccessExitStatus=0
+TimeoutStartSec=60
+MemoryMax=200M

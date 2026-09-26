@@ -1,0 +1,20 @@
+[Unit]
+# GAZBOT V7 — DAILY BOOK-vs-BROKER RECONCILIATION (audit finding 11, 2026-09-26).
+# book_vs_fills used to run ONLY inside sweep.py, i.e. only as a headless Claude job, Mon-Fri,
+# 3-hourly, as a WARN that paged nobody. The question "is the P&L we reason from real?" depended on
+# an LLM job choosing to mention it, and was never asked on a weekend at all.
+# ⚠ READ-ONLY, NO AUTHORITY. A recording fault is not an order-path fault: it pages, and never
+# benches, halts or flattens. Labelling a bad number stays a human decision.
+Description=GAZBOT V7 — does the book match the broker (daily, pages)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+# Exit 1 means it found a divergence and ALREADY PAGED — not a unit failure.
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/book_recon_daily.py
+TimeoutStartSec=600
+MemoryMax=800M

@@ -1,0 +1,15 @@
+{
+  "_README": "THE PAPER/REAL BOUNDARY. See src/gazbot7/livemode.py. Nothing here arms anything while the connected account is a PAPER account \u2014 every LIVE requirement below is checked only in LIVE mode.",
+  "_OPERATOR_NOTE_2026_09_26": "Built during the safety audit. Deliberately NOT armed: 'just dont switch on any kill switches while paper trading. i want to be able to trade and learn.' The keys below are the January checklist, left false/null on purpose so live_preflight() REFUSES a live account until each is a deliberate decision.",
+  "paper_accounts": [
+    "DUQ191770"
+  ],
+  "live_accounts": [],
+  "venue_stop_armed": false,
+  "venue_stop_pt": 600,
+  "equity_loss_limit_usd": null,
+  "max_lots": null,
+  "margin_floor_usd": null,
+  "deadman_url": null,
+  "_TRACKED_RESTORE_PATH": "data/live_mode.json is GITIGNORED, so this tracked copy is the restore path. The 2026-09-25 stand-down hit exactly this trap \u2014 half of it lived in a gitignored file. \u26a0 The PAPER allowlist does NOT depend on this file: livemode.PAPER_ACCOUNTS is a hard-coded floor in tracked source precisely so a missing or corrupt config cannot un-recognise the paper account and take the desk down. What lives ONLY here is the LIVE side and the January requirements."
+}

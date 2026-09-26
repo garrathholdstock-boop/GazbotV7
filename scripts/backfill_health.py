@@ -68,7 +68,10 @@ def main() -> int:
 
     # a desk holding a position is a LEGITIMATE pause, not a stall — the pull yields on purpose
     try:
-        flat = json.load(open(f"{GB}/data/core_health.json")).get("flat", False)
+        # ★2026-09-26 desk_flat (tournament AND rider), not the tournament-scoped `flat`.
+        # Fail-closed: a file without the field predates the change → treat as NOT flat.
+        _h = json.load(open(f"{GB}/data/core_health.json"))
+        flat = bool(_h.get("desk_flat", False))
         r = json.load(open(f"{GB}/data/day_rider_state.json"))
         busy = (not flat) or (bool(r.get("entered")) and not bool(r.get("closed")))
     except Exception:

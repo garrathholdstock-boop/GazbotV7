@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import sqlite3
 import sys
 
@@ -130,9 +131,71 @@ def run(dry: bool):
         con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         print(f"  dropped leftover {', '.join(DROP_TMP)}")
     con.close()
+    total += _prune_depth(dry, floor_ms)
     verb = "would prune" if dry else "pruned"
     print(f"{verb} {total:,} rows total — growth capped (freed pages reused). "
           f"File won't shrink without VACUUM (market-closed window; disk is tight).")
+
+
+# ── depth.db (2026-09-26 audit, finding 13) ───────────────────────────────────────────────────
+DEPTH_DB = "/home/alphabot/gazbot7/data/depth.db"
+#: ★★★ THE AUDIT FOUND depth.db COMPLETELY UNPRUNED. This script only ever touched capture.db, so
+#: depth grew without any ceiling at all: measured 2026-09-26 at 2.96 GB over 26 days = 114 MB/day,
+#: against 21.2 GB of free disk — about 186 days to a full disk, with no alarm below 85%.
+#: ⚠⚠ 60 DAYS IS DELIBERATELY NOT BINDING TODAY. Only 26 days exist, so this run deletes NOTHING; it
+#: installs a CEILING rather than cutting granularity. The operator's standing instruction is
+#: explicit (2026-08-04): "i dont want any short cuts. make sure the DBs are rich granular data. i
+#: will pay for the hd space." A cap he has not agreed to must not silently discard research tape, so
+#: this matches `bars`' own 60-day retention and stops the unbounded case.
+#: ⚠ depth IS archived — tape_mirror.py exports dep.depth_snap and cloud_backup's archive tier
+#: carries the file — so the SAME mirror interlock applies here as to capture.db. That was checked
+#: before this was written, because a delete path over unarchived tape is unrecoverable.
+DEPTH_RETAIN_DAYS = 60
+
+
+def _prune_depth(dry: bool, floor_ms) -> int:
+    """Cap depth.db at DEPTH_RETAIN_DAYS trading days, under the same mirror interlock.
+
+    ⚠ REFUSES TO DELETE ANYTHING if the mirror floor is unknown or zero — identical to the capture
+    path above, and for the identical reason: an archive that MIGHT have run must never feed a delete
+    that always runs.
+    """
+    if not os.path.exists(DEPTH_DB):
+        return 0
+    if floor_ms is None or floor_ms == 0:
+        print("  depth    SKIPPED — no verified mirror floor, so nothing may be deleted")
+        return 0
+    con = sqlite3.connect(DEPTH_DB, timeout=60)
+    con.execute("PRAGMA busy_timeout=60000")
+    try:
+        unit = 86400000
+        have = [r[0] for r in con.execute(
+            "SELECT DISTINCT CAST(ts_ms/86400000 AS BIGINT) d FROM depth_snap ORDER BY d DESC"
+        ).fetchall()]
+        if len(have) <= DEPTH_RETAIN_DAYS:
+            print(f"  depth    nothing to do — {len(have)} trading day(s) on disk, "
+                  f"keeping {DEPTH_RETAIN_DAYS} (the cap is not binding yet)")
+            return 0
+        cutoff = min(have[DEPTH_RETAIN_DAYS - 1] * unit, floor_ms)
+        if dry:
+            n = con.execute("SELECT COUNT(*) FROM depth_snap WHERE ts_ms < ?",
+                            (cutoff,)).fetchone()[0]
+            print(f"  depth    would delete {n:>12,} (keeping {DEPTH_RETAIN_DAYS} trading days)")
+            return n
+        deleted = 0
+        while True:
+            cur = con.execute("DELETE FROM depth_snap WHERE rowid IN "
+                              "(SELECT rowid FROM depth_snap WHERE ts_ms < ? LIMIT ?)",
+                              (cutoff, BATCH))
+            con.commit()
+            con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            deleted += cur.rowcount
+            if cur.rowcount < BATCH:
+                break
+        print(f"  depth    deleted {deleted:>12,} rows (kept {DEPTH_RETAIN_DAYS} trading days)")
+        return deleted
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":

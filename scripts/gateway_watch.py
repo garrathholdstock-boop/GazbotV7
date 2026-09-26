@@ -221,6 +221,25 @@ def read_state() -> dict:
         return {}
 
 
+def clear_blind(st: dict) -> dict:
+    """An episode ended. Restore the restart budget.
+
+    ★★★2026-09-26 THE CAP IS PER-EPISODE, NOT PER-LIFETIME. `blind_restarts` was incremented and
+    NEVER reset, so BLIND_MAX was a lifetime budget: after three episodes EVER — months apart —
+    this would stop rescuing a blind, holding desk and only page. It sat at 1 of 3 when the audit
+    found it, i.e. two episodes from silently disarming itself.
+
+    ⚠ The cap's meaning is "I restarted and it came back, so the fault is not the gateway" — a
+    statement about ONE episode. The within-episode loop is held separately by BLIND_COOLDOWN_S,
+    which is untouched. So the budget is restored only here, on the transition that PROVES the
+    condition cleared, which keeps the cap doing its real job (three tries inside one episode,
+    then page and stop) without letting it become permanent.
+    """
+    st["blind_since"] = None
+    st["blind_restarts"] = 0
+    return st
+
+
 def restart(reason: str, s: dict, blind: bool = False) -> None:
     log(f"RESTARTING THE GATEWAY: {reason}")
     r = subprocess.run(["docker", "restart", "alphabot-gateway"],
@@ -333,9 +352,10 @@ def main() -> int:
                 write_state(st)
                 restart(f"{bwhy or uwhy} (blind for {held:.0f}s)", s, blind=True)
         elif st.get("blind_since"):
-            log("blind/unread cleared")
-            st["blind_since"] = None
-            write_state(st)
+            prev = int(st.get("blind_restarts") or 0)
+            log("blind/unread cleared" + (f" — blind_restarts {prev} → 0 (budget restored)"
+                                          if prev else ""))
+            write_state(clear_blind(st))
         if once:
             print(json.dumps(s, indent=1))
             return 0

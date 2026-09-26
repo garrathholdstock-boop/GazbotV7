@@ -168,6 +168,14 @@ DR_VPP = 2.0               # MNQ $/point
 # No new IB connection is opened to do this — a watcher that grabbed its own clientId to check
 # for confusion between clients would be adding another one.
 DESK_MISMATCH_COOL_S = 600
+# ★2026-09-26 A DWELL LONGER THAN THE RIDER'S OWN TICK (60s). The rider writes venue_net and its
+# own position claim in the SAME file on the same 60s tick, so between reading the venue as flat
+# and updating its own qty it is briefly self-inconsistent — which looked exactly like an orphan
+# and paged 8 times in three days, always "venue +0 but rider claims +/-4". A real orphan outlives
+# the rider's cadence; a write-lag cannot. 90s = one full tick plus margin.
+# ⚠ Not a threshold to tune for sensitivity: desk_reconcile is the detector with AUTHORITY (30s,
+# own clientId, its own claim-freshness gate) and is untouched. This only delays a TEXT.
+DESK_MISMATCH_DWELL_S = 90
 
 
 def emit(msg):
@@ -299,7 +307,7 @@ def main():
         # DAY RIDER (a SEPARATE desk — never fold its numbers into the tournament's)
         "dr_in": False, "dr_peak": None, "last_dr_bleed": 0.0,
         "dr_stale_flat": False, "dr_no_detect": False, "last_mismatch": 0.0,
-        "mismatch_seen": (None, None),
+        "mismatch_seen": (None, None), "mismatch_since": None,
     }
 
     px, tms = last_tick()
@@ -516,13 +524,33 @@ def main():
                 # A real orphan persists across venue reads; a race does not. So a mismatch must be
                 # seen on TWO SEPARATE venue snapshots (different venue_net_ts) before it alerts —
                 # the same two-tick confirmation the direction rule uses, for the same reason.
+                # ★★★2026-09-26 AND A DWELL, BECAUSE THE TWO-READ RULE CANNOT SEE THIS ONE.
+                # Measured: 8 false DESK-MISMATCH pages in three days, every one reading
+                # "venue net +0 but day-rider claims +/-4". The venue read and the rider's own
+                # claim come from THE SAME FILE, written by the same tick — so when the rider has
+                # read the venue as flat but has not yet updated its own qty/closed fields, the
+                # file is INTERNALLY INCONSISTENT, and `venue_net_ts` advances on every tick while
+                # the inconsistency persists. Two "independent" reads are therefore not
+                # independent here, and both land inside the same 1-2 tick self-correcting window.
+                # ⚠ The rider reconciles itself within a tick or two (desk_reconcile, which reads
+                # the venue on its OWN clientId 8 and would kill on a real breach, never fired for
+                # any of the 8). So the discriminator is TIME, not read count: a real orphan
+                # outlives the rider's own cadence, a write-lag does not.
+                # ⚠ This does NOT relax the invariant — desk_reconcile is the authority that stops
+                # the desks, it is untouched, and it runs every 30s with its own claim-freshness
+                # gate. This service only PAGES, so the only thing deferred is a text.
                 mm = book["mismatch"]
                 v_ts = book.get("venue_ts")
                 confirmed = False
                 if mm is not None and abs(mm) >= 1:
                     prev_mm, prev_ts = st["mismatch_seen"]
-                    if prev_mm is not None and abs(prev_mm - mm) < 0.5 and prev_ts != v_ts:
-                        confirmed = True          # same imbalance, a genuinely newer venue read
+                    if prev_mm is None or abs(prev_mm - mm) >= 0.5:
+                        st["mismatch_since"] = wall_time      # a NEW imbalance — start the clock
+                    dwelt = wall_time - st.get("mismatch_since", wall_time)
+                    if (prev_mm is not None and abs(prev_mm - mm) < 0.5 and prev_ts != v_ts
+                            and dwelt >= DESK_MISMATCH_DWELL_S):
+                        confirmed = True   # same imbalance, newer venue read, AND it has outlived
+                                           # the rider's own write cadence
                     st["mismatch_seen"] = (mm, v_ts)
                     if not confirmed:
                         # ★2026-08-13 FIX: this called an undefined `log()`. The NameError raised on
@@ -535,10 +563,12 @@ def main():
                         # read" note, which the comment above calls NOT an event. emit() would page
                         # every 15s through every ordinary position change.
                         print(f"  -> DESK-MISMATCH {mm:+g} seen, awaiting a second venue read "
+                              f"+ {DESK_MISMATCH_DWELL_S:.0f}s dwell (held {dwelt:.0f}s) "
                               f"(transient during a position change looks exactly like this)",
                               file=sys.stderr, flush=True)
                 else:
                     st["mismatch_seen"] = (None, None)
+                    st["mismatch_since"] = None
                 if (confirmed
                         and (wall_time - st["last_mismatch"]) > DESK_MISMATCH_COOL_S):
                     emit(f"⚠DESK-MISMATCH — venue net {book['venue_net']:+g} but tournament "

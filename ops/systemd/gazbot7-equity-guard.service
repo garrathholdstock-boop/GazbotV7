@@ -1,0 +1,19 @@
+[Unit]
+# GAZBOT V7 — THE ACCOUNT READER + the equity loss limit (audit findings 02/03, 2026-09-26).
+# This desk reconciled LOTS every 30s and had NEVER reconciled MONEY: no NLV, no excess liquidity,
+# no margin, no IB realised P&L. account_summary() existed and was called by nothing.
+# ⚠⚠⚠ REPORT-ONLY ON PAPER. The flatten branch needs LIVE mode AND a configured limit, neither of
+# which is set. Operator, 2026-09-26: "just dont switch on any kill switches while paper trading."
+Description=GAZBOT V7 — account/equity reader (read-only; report-only on paper)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/equity_guard.py --once
+# A read that cannot complete must not mark the unit failed — it pages on a streak instead.
+SuccessExitStatus=0
+TimeoutStartSec=120
+MemoryMax=300M

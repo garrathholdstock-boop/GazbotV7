@@ -83,3 +83,49 @@ def test_the_ruled_out_causes_are_written_down():
     src = open(SRC).read()
     for gone in ("subscriptions", "rogue client", "nightly reset", "per-connection leak"):
         assert gone.split()[0].lower() in src.lower()
+
+
+# ── THE PER-EPISODE CAP (2026-09-26 audit) ───────────────────────────────────────────────────
+# ★★★ BLIND_MAX was a LIFETIME budget. `blind_restarts` was incremented on every blind rescue and
+# never reset, so after three episodes EVER — months apart, each one legitimately rescued — the
+# guard would stop restarting a blind, holding desk and only page. Live state carried 1 of 3 when
+# the audit ran, i.e. two episodes from disarming itself with nothing saying so.
+
+def test_a_cleared_episode_RESTORES_the_restart_budget():
+    """★ THE INVARIANT: the cap counts tries WITHIN one episode, never episodes over a lifetime.
+    Stated as behaviour, not as the line that implements it — the clear path may move."""
+    st = {"blind_since": "2026-09-26T10:00:00+00:00", "blind_restarts": 3,
+          "last_blind_restart": "2026-09-26T10:05:00+00:00"}
+    out = gw.clear_blind(st)
+    assert out["blind_restarts"] == 0, "a cleared episode must hand the budget back"
+    assert out["blind_since"] is None
+
+
+def test_the_cap_cannot_be_exhausted_ACROSS_episodes():
+    """Two full episodes, each exhausting the cap. The SECOND must still be able to act — that is
+    the whole difference between a per-episode cap and a lifetime one."""
+    st = {}
+    for episode in (1, 2):
+        st["blind_since"] = "2026-09-26T10:00:00+00:00"
+        for _ in range(gw.BLIND_MAX):
+            st["blind_restarts"] = int(st.get("blind_restarts") or 0) + 1
+        assert int(st["blind_restarts"]) >= gw.BLIND_MAX, f"episode {episode} should hit the cap"
+        st = gw.clear_blind(st)
+        assert int(st["blind_restarts"]) < gw.BLIND_MAX, (
+            f"after episode {episode} cleared, the guard must be able to act again")
+
+
+def test_the_within_episode_loop_is_still_held():
+    """⚠ The fix must not weaken the thing the cap was written for. Two independent brakes remain:
+    a cooldown between tries inside an episode, and the cap itself."""
+    assert gw.BLIND_COOLDOWN_S > 0, "an intra-episode cooldown must still exist"
+    assert gw.BLIND_MAX >= 1, "the per-episode cap must still exist"
+    src = open(SRC).read()
+    assert "BLIND_COOLDOWN_S" in src and "nres >= BLIND_MAX" in src
+
+
+def test_clearing_says_so_in_the_log():
+    """A guard that silently hands itself a fresh budget is the same class of problem as one that
+    silently runs out. The transition is logged."""
+    src = open(SRC).read()
+    assert "budget restored" in src

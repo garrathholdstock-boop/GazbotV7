@@ -303,7 +303,14 @@ def test_reconstructed_state_disagreeing_with_venue_halts():
 
     core2, eng2, sb2, sbrokers2 = _restart(store)
     core2.reconstruct()
-    assert core2.reconcile(0.0) == "drift"             # venue flat (stop filled while down) → HALT
+    # ★2026-09-26 confirmed across a rider-claim rewrite before latching (see reconcile()). The
+    # first call blocks opens; the second, once the rider's stamp has moved and the ledger STILL
+    # disagrees with the venue, latches. A leak that outlives DRIFT_CONFIRM_MAX_S latches even if
+    # the rider never writes again, so this can never go silent.
+    assert core2.reconcile(0.0) == "drift"             # venue flat (stop filled while down)
+    assert core2._open_blocked, "an unconfirmed disagreement must still block opens"
+    core2._drift_pending["stamp"] = "definitely-a-different-stamp"
+    assert core2.reconcile(0.0) == "drift"
     assert core2._halted
 
 
@@ -697,11 +704,39 @@ def test_reconcile_subtracts_the_day_riders_declared_lots(tmp_path):
 
 
 def test_reconcile_still_halts_on_a_real_leak_alongside_the_day_rider(tmp_path):
-    """The invariant must survive the fix: a genuine extra lot still halts."""
+    """The invariant must survive the fix: a genuine extra lot still halts.
+
+    ★2026-09-26 THE TIMING CHANGED, THE INVARIANT DID NOT. A drift is now confirmed across a
+    day-rider claim rewrite before it latches, because 28 of 28 halts in the measured window were
+    the rider's own lots arriving at the venue one second before its claim did
+    (tests/test_slot_drift_claim_race.py). So this drives reconcile to confirmation instead of
+    asserting the latch on the first call — and it additionally asserts the thing that makes the
+    deferral safe: NEW OPENS WERE BLOCKED THE WHOLE TIME.
+    """
     core, _e, _sb, _s, _st = _core()
     core.DR_STATE = _dr_state(tmp_path)                 # day-rider SHORT 2
     assert core.reconcile(-3.0) == "drift", "a real leak was masked by the day-rider subtraction"
-    assert core._halted is True
+    assert core._open_blocked is True, "an unconfirmed leak must still stop new entries"
+    # the rider rewrites its claim and the extra lot is STILL unaccounted for
+    core.DR_STATE = _dr_state(tmp_path, heartbeat=_fresh_hb())
+    assert core.reconcile(-3.0) == "drift"
+    assert core._halted is True, "a real leak must still halt, one claim-rewrite later"
+
+
+def _fresh_hb():
+    """A heartbeat strictly newer than _dr_state's default, so the stamp genuinely advances."""
+    from datetime import UTC as _U, datetime as _dt, timedelta as _td
+    return (_dt.now(_U) + _td(seconds=1)).isoformat()
+
+
+def test_an_unconfirmed_drift_blocks_opens_but_does_not_page(tmp_path):
+    """★ The other half of the same invariant, stated positively: the deferral costs a PAGE and a
+    LATCH, never the protection. 28 false pages in three days is what it buys."""
+    core, _e, _sb, _s, _st = _core()
+    core.DR_STATE = _dr_state(tmp_path)
+    core.reconcile(-3.0)
+    assert core._halted is False
+    assert core._open_blocked is True
 
 
 def test_reconcile_does_not_trust_a_stale_day_rider(tmp_path):

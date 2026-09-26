@@ -132,8 +132,43 @@ def assess() -> tuple[list[str], dict]:
     if not ok:
         faults.append(f"TIMER NOT HEALTHY — gazbot7-router-tick.timer {tdetail}")
 
+    # ★★2026-09-26 AUDIT, FINDING 16 — ISOLATED ABORTS WERE INVISIBLE. Only a STREAK of 3 paged,
+    # so a single ABORT cost five minutes of routing and said nothing at all. The log carries 501 of
+    # them, and on 2026-09-25 alone there were three. Each one is a tick where the desk made no
+    # decision, and the aggregate was never anywhere a human would see it.
+    # ⚠ Deliberately a NOTE, not a fault: a handful a day is the Claude CLI's ordinary flakiness on
+    # a benching-only router, and paging for it would be noise. The number is what matters — it is
+    # the availability figure for the component CLAUDE.md calls critical infrastructure — so it is
+    # counted, published, and carried into the nightly line where its TREND is visible.
+    day_aborts, day_ticks = _today_counts()
     return faults, {"abort_streak": streak, "last_line_age_s": round(age) if age else None,
-                    "last_line": last[:200], "timer": tdetail}
+                    "last_line": last[:200], "timer": tdetail,
+                    "aborts_today": day_aborts, "ticks_today": day_ticks,
+                    "abort_pct_today": (round(100.0 * day_aborts / day_ticks, 1)
+                                        if day_ticks else None)}
+
+
+def _today_counts() -> tuple[int, int]:
+    """(ABORTs, total ticks) logged so far today. Cheap: the file is line-per-tick and we only
+    scan the tail of a day (288 ticks at 5-minute cadence).
+
+    ⚠ Reads the whole file rather than seeking, because the log is appended and small (a tick is
+    one line); if it ever grows large this should tail. Never raises — a counter that can break the
+    health check would be worse than no counter.
+    """
+    try:
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        aborts = ticks = 0
+        with open(HLOG) as fh:
+            for ln in fh:
+                if not ln.startswith(today):
+                    continue
+                ticks += 1
+                if "ABORT:" in ln:
+                    aborts += 1
+        return aborts, ticks
+    except Exception:
+        return (0, 0)
 
 
 def main() -> int:
