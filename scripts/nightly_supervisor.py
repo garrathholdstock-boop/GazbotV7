@@ -270,6 +270,59 @@ def check() -> tuple[list[str], list[str], dict]:
         faults.append("TIMERS ACTIVE BUT NOT FIRING: " + "; ".join(stale))
     detail["stale_timers"] = stale
 
+    # ★★★2026-09-26 THE THIRD INSTANCE OF THIS BUG CLASS, SO IT GETS A CHECK.
+    # A data file created by ROOT that the service which APPENDS to it (User=alphabot) then cannot
+    # write. Twice already:
+    #   · 08-21 `data/.notify_env` written 600 root:root → FIVE services could not page for ~12h
+    #     while the rider crashed mid-flatten and the cross-desk kill fired. Sweep read green.
+    #   · 09-26 `data/equity_guard.jsonl` created by a root test run → the brand-new account reader
+    #     logged "series write failed: PermissionError" every 2 minutes for 25 minutes. The
+    #     measurement the job exists for was not accumulating, and only a soak caught it.
+    # ⚠ The signature is the desk's signature: the job RUNS, exits 0, and cannot record.
+    #
+    # ⚠⚠ APPEND-ONLY FILES, AND ONLY THOSE — this list was WRONG on its first cut and flagged seven
+    # files that were perfectly fine. The distinction is the write PATTERN, not the ownership:
+    #   · tmp + os.replace (every state/json writer here) needs DIRECTORY write, so a root-owned
+    #     target is harmless — verified by running tgbot's exact write pattern as alphabot against
+    #     gate_switches.env: it SUCCEEDED. Flagging those would have produced 7 nightly false faults,
+    #     which is how a real one gets ignored.
+    #   · open(path, "a") needs FILE write. That is the case that actually broke, twice.
+    # Each entry is (file, the unix user of the service that APPENDS to it).
+    APPEND_WRITERS = (
+        ("equity_guard.jsonl", "alphabot"),      # gazbot7-equity-guard
+        ("equity_guard.log", "alphabot"),
+        ("deadman.log", "alphabot"),             # gazbot7-deadman
+        ("gateway_watch.jsonl", "root"),         # gazbot7-gateway-watch runs as root (docker restart)
+        ("gateway_watch.log", "root"),
+        ("router_headless.log", "root"),         # gazbot7-router-tick
+        ("router_trial_log.txt", "root"),
+        ("operator_reads.jsonl", "root"),        # gazbot7-capture-read-*
+    )
+    bad_owner = []
+    try:
+        import pwd
+        for rel, user in APPEND_WRITERS:
+            fp = f"{GB}/data/{rel}"
+            if not os.path.exists(fp):
+                continue                          # not yet created is not a fault
+            try:
+                uid = pwd.getpwnam(user).pw_uid
+            except KeyError:
+                continue
+            if uid == 0:
+                continue                          # root bypasses file permissions
+            st = os.stat(fp)
+            ok = (st.st_uid == uid and st.st_mode & 0o200) or (st.st_mode & 0o002)
+            if not ok:
+                bad_owner.append(f"{rel} needs append by {user} but is uid {st.st_uid} "
+                                 f"mode {oct(st.st_mode & 0o777)}")
+    except Exception as e:
+        notes.append(f"could not check append-file ownership ({type(e).__name__})")
+    if bad_owner:
+        faults.append("APPEND-ONLY FILES NOT WRITABLE BY THEIR SERVICE (the 08-21 shape): "
+                      + "; ".join(bad_owner))
+    detail["unwritable_files"] = bad_owner
+
     # 3. services that must be up
     down = [s for s in REQUIRED_SERVICES if sh("systemctl", "is-active", s) != "active"]
     if down:

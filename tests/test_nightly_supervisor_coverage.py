@@ -162,3 +162,41 @@ def test_the_schedule_is_not_reimplemented_here():
     assert "NextElapseUSecRealtime" in code, "it must ask systemd for the next elapse"
     for reimpl in ("weekday", "strftime", "%a", "calendar", "Mon", "Fri"):
         assert reimpl not in code, f"{reimpl!r} in code means the calendar is being reimplemented"
+
+
+# ── 4. THE APPEND-FILE OWNERSHIP CHECK (2026-09-26, the third instance of this bug) ────────────
+def test_the_append_ownership_check_exists_and_distinguishes_write_patterns():
+    """★★★ A data file created by ROOT that the appending service (alphabot) cannot write. Twice:
+    08-21 `.notify_env` 600 root:root muted FIVE services for ~12h while the rider crashed
+    mid-flatten; 09-26 `equity_guard.jsonl` made the brand-new account reader log a PermissionError
+    every 2 minutes for 25 minutes while exiting 0.
+
+    ⚠⚠ THE CHECK WAS WRONG ON ITS FIRST CUT AND THIS TEST PINS THE CORRECTION. It flagged seven
+    files that were fine, because it ignored the write PATTERN: tmp + os.replace needs DIRECTORY
+    write (so a root-owned target is harmless — verified by running tgbot's exact write against
+    gate_switches.env as alphabot: it succeeded), while open(path,"a") needs FILE write. Seven
+    nightly false faults is how a real one gets ignored.
+    """
+    src = open("/home/alphabot/gazbot7/scripts/nightly_supervisor.py").read()
+    assert "APPEND_WRITERS" in src
+    # ⚠ split on the tuple's CLOSING line, not on the first ")" — that is the first entry's own
+    # paren, which truncated this test's view to one element and failed on a correct list.
+    body = src.split("APPEND_WRITERS = (", 1)[1].split("\n    )", 1)[0]
+    # the atomic-replace files must NOT be in the list
+    for atomic in ("gate_switches.env", "day_rider.env", "core_health.json",
+                   "desk_reconcile_state.json"):
+        assert atomic not in body, (
+            f"{atomic} is written with tmp+os.replace, which needs DIRECTORY write — listing it "
+            f"here manufactures a nightly false fault")
+    # and the ones that actually broke must BE in it
+    for appended in ("equity_guard.jsonl", "gateway_watch.log"):
+        assert appended in body, f"{appended} is append-only and is the case that broke"
+
+
+def test_root_appenders_are_skipped_because_root_bypasses_permissions():
+    """⚠ Checking a root-written file against uid 0 would always pass and always be meaningless —
+    the same false comfort as sweep's 'restarts core: 0' for a unit that never ran. Skipped
+    explicitly instead, so nobody later reads its silence as a verified pass."""
+    src = open("/home/alphabot/gazbot7/scripts/nightly_supervisor.py").read()
+    seg = src.split("APPEND_WRITERS = (", 1)[1]
+    assert "uid == 0" in seg and "root bypasses file permissions" in seg
