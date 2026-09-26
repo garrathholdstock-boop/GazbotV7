@@ -10,6 +10,75 @@
 
 ---
 
+## 2026-09-26 (Sat) — THE REVIEW OF MY OWN AUDIT: MY HEADLINE FIX NEVER FIRED ONCE
+
+**★★★ HE ASKED FOR AN AUDIT AGENT AFTER THE WORK, AND IT CAUGHT THE BEST THING OF THE DAY.** The fix I
+led with — *"the supervisor now speaks every night, so silence is the alarm"* — **sent nothing, on any
+night of the year.** It fires 21:40 UTC = **23:40 Paris** (22:40 CET), quiet hours are 22:00–06:00
+Paris, and the all-clear was correctly `critical=False`. Byte-identical silence to the bug it
+replaced. ⚠⚠ **And my own test pinned it there**: it asserted `critical is False` and called that the
+fix, never once asserting that a line ARRIVES.
+
+★★ **THE DESIGN ERROR WAS DEEPER THAN THE HOUR: A PROCESS CANNOT REPORT ITS OWN ABSENCE.** "The
+supervisor tells you it is alive" cannot work when the supervisor is what died. So the clean-night
+line moved to `overnight_allclear.py` — a DIFFERENT process, on a DIFFERENT timer, at **06:05
+Europe/Paris**, just after quiet hours end — which reads the verdict the supervisor leaves on disk and
+pages CRITICAL when it is missing or stale. ⚠ The rejected alternative was a quiet-hours exemption for
+heartbeats: it would have re-coupled the `critical`/`mark` flags the 09-24 split separated and bought
+a 23:40 buzz every night. **Scheduling beat a new exemption.** ⚠ Stored in Paris, not UTC — a UTC time
+drifts an hour each DST change and falls back inside quiet hours for half the year.
+
+**★★★ AND THE CATASTROPHE STOP WOULD NOT HAVE WORKED IF HE HAD ARMED IT.** It placed a plain
+`StopOrder` on a **ContFuture** — the one contract form this desk banked long ago as not triggering
+([[stop-unfilled-contfuture-root-cause]]), and the very reason `broker_adapter` carries a separate
+`_stop_contract` field. Now a `StopLimitOrder` on the resolved concrete front month, both patterns
+copied from the code that already proved them. ★ **Neither correction is verified live, because the
+switch has never been on**, so `venue_stop_verified` is now its own LIVE requirement: **January cannot
+start on "armed" being mistaken for "working".**
+
+**FOUR MORE, ALL REAL:**
+- **The account guard asserted on EVERY managed account**, so a linked sub-account or an advisor
+  master would have refused every order **including `place_stop`** — and a refused protective stop
+  manufactures the naked position the auditor then escalates on. Now the routed account only, OPENS
+  only, case-insensitive.
+- **`gateway_watch.desk_is_flat()` was RIDER-ONLY**, so with the tournament holding slots it would
+  `docker restart` the gateway and blind an open position — the exact harm its own docstring exists to
+  prevent, in the one flatness consumer that **acts** rather than reports.
+- **`rider_lots` published bare `NaN`**, which is not valid JSON — and only when the rider state is
+  unreadable, i.e. during the very incident the file exists to describe.
+- **`deadman.py` leaked the full ping URL** into its log and state file through a `ValueError` string
+  when the URL lacked a scheme — the likeliest possible paste error, against a docstring promising
+  the opposite.
+- ★ And **the commit that fixed "no safety watcher is watched" installed three new timers and watched
+  none of them.** The same omission, one iteration later.
+
+**THE TEST LESSONS, because three of them are traps this repo already documents:**
+`DRIFT_CONFIRM_MAX_S` — the branch whose comment says *"⚠⚠⚠ closes a hole"* — had **zero assertions**,
+and the test named for its scenario asserted the OPPOSITE, passing only because 50 loop iterations take
+microseconds against a 240-second bound. **A regression deleting the bound entirely would have left the
+suite green.** The fail-open guard test *counted `return` statements in source* without ever calling
+the guard, on the single most consequential property in the work. And two of my own new tests fell to
+documented traps: a **fixed-width 900-char slice** that cut the assertion target off (the
+event-calendar parser's failure), and grepping for `systemctl` where it appears in **advice text**, not
+as a capability.
+
+**★ WHAT THE REVIEW CONFIRMED SOUND, because the negative results matter:** nothing kill-capable is
+armed on paper (it probed raise / `[]` / `[None]` / lowercase / two-account shapes and could not
+construct a counter-case) · the drift invariant holds, and `_open` is the only funnel so `_open_blocked`
+covers every entry · the 🔴 change loses nothing that can cost money, replayed across all 456 real
+sends · the deploy took, and `gazbot7-web` imports none of the changed modules so its staleness costs
+nothing · the depth.db mirror interlock holds (117 verified depth keys in the manifest) · the
+test-suite Telegram block still holds.
+
+**AND THE PUSH.** 109 commits to `origin/refactor/three-service` @ `08ff2d3`, clearing a **19-day**
+backlog on a box that was the only copy. Secret-scanned first (every hit a variable NAME, no values);
+`.notify_env` and `live_mode.json` are gitignored, only `ops/live_mode.example.json` went out. ⚠ GitHub
+warned on a **67 MB** `.npy` from the 09-12 research commit — now permanent in the remote's history.
+
+**1,561 tests pass. 0 Telegrams sent by any of this work.** DECISIONS §367.
+
+---
+
 ## 2026-09-26 (Sat) — THE SAFETY AUDIT: 18 ITEMS, 5 LIVE DEFECTS, AND THREE KILL SWITCHES LEFT OFF ON PURPOSE
 
 **★★★ HE ASKED WHAT THIS DESK WOULD NEED BEFORE $30k GOES IN IN JANUARY.** The audit ran against the

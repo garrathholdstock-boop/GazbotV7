@@ -282,13 +282,23 @@ question answerable, not answered.
 | off-box dead-man's switch | 5 min ★NEW | `deadman` | **inert until a URL is configured** |
 | fills vs submits | 10 min | `monitor` | pages CRIT |
 | **book vs broker (ledger vs fills + IB vs our P&L)** | **daily 21:34Z** ★NEW | `book-recon` | **pages** |
-| timers actually fired · services up | nightly 21:40Z | `nightly-supervisor` | restarts, flat-only |
+| timers actually fired · services up | nightly 21:40Z | `nightly-supervisor` | restarts, flat-only · **faults page here** |
+| **did the supervisor actually run** | **06:05 Paris** ★NEW | `overnight-allclear` | **pages CRITICAL if its verdict is missing/stale** |
 
-★★★ **THE SUPERVISOR NOW SPEAKS EVERY NIGHT, CLEAN OR NOT — so SILENCE IS THE ALARM.** It used to
-send only on faults, which made a clean night and a dead supervisor identical, and nothing else on
-the box checks it. Expect `✅ GAZBOT NIGHTLY SUPERVISOR — all clear …` at 21:40Z on weekdays; a
-weekday gap is itself the signal. ⚠ Weekend quiet legitimately holds it while the venue is shut AND
-the desk is verified flat, so a missing Saturday line is not evidence.
+★★★ **SILENCE IS THE ALARM — AND A DIFFERENT PROCESS IS WHAT NOTICES.** The supervisor used to speak
+only on faults, so a clean night and a dead supervisor were identical silence with nothing else on the
+box checking the thing that checks everything else.
+⚠⚠ **THE FIRST FIX FOR THIS DID NOT WORK AND WAS CORRECTED THE SAME DAY.** Making the supervisor send
+unconditionally achieved nothing: it fires 21:40 UTC = **23:40 Paris** (22:40 CET), quiet hours are
+22:00–06:00 Paris, and a correctly non-critical heartbeat was suppressed **every night of the year**.
+A process cannot report its own absence.
+★ **So: expect `✅ Last night verified clean …` at 06:05 Paris**, from `gazbot7-overnight-allclear` —
+a separate job, on a separate timer, outside quiet hours — which reads the verdict
+`nightly_supervisor` leaves in `data/nightly_supervisor.json` and **pages CRITICAL if it is missing or
+stale**. A missing morning line is the signal.
+⚠ FAULTS still page from the supervisor itself at 21:40Z in real time; they are `critical`, so quiet
+hours never gated them. ⚠ The timer is stored in **Europe/Paris, not UTC** — a UTC time drifts an
+hour each DST change and falls back inside quiet hours for half the year.
 
 ★★ **IT NOW WATCHES EVERY GUARD**, not just the desks: `gateway-watch`, `step-away`, `web` (his
 buttons), `tgbot`, `rider-peak-watch`, `leg-watch`, `breadth-watch`, plus the timers for
@@ -301,21 +311,41 @@ to trade and learn."* All three are wired to `data/live_mode.json` (tracked copy
 
 | thing | state | how it arms |
 |---|---|---|
-| **broker-side catastrophe stop** (600pt = −$4,800 on 4 lots, −$1,200 on 1) | **OFF** — `PLACE_VENUE_STOP` is `False` | set `venue_stop_armed: true` |
+| **broker-side catastrophe stop** (600pt = −$4,800 on 4 lots, −$1,200 on 1) | **OFF** — `PLACE_VENUE_STOP` is `False` | set `venue_stop_armed: true` — ⚠ and then **verify it** (below) |
 | **equity loss limit that can FLATTEN** (open + realised, from IBKR) | **report-only** — it says "WOULD HAVE FIRED" | needs **LIVE mode AND** `equity_loss_limit_usd` |
 | **account allowlist on the order path** | active but inert | paper account is in the allowlist floor; **fails OPEN** on an unreadable account |
 
-★ `livemode.mode()` is decided by the **ACCOUNT ID**, never a flag: `DUQ191770` → PAPER. `live_accounts`
-is EMPTY, so LIVE is unreachable until he adds one, and `live_preflight()` then refuses to start
-until all five January requirements are set.
+★ `livemode.mode()` is decided by the **ACCOUNT ID**, never a flag: `DUQ191770` → PAPER (case- and
+whitespace-insensitive). `live_accounts` is EMPTY, so LIVE is unreachable until he adds one, and
+`live_preflight()` then refuses to start until all **six** January requirements are set.
+
+⚠⚠⚠ **"ARMED" IS NOT "WORKING", AND THE STOP IS THE CASE IN POINT.** The first version of the
+catastrophe stop placed a plain `StopOrder` on a **ContFuture** — the one contract form this desk had
+already banked as not triggering ([[stop-unfilled-contfuture-root-cause]]), and the reason
+`broker_adapter` carries a separate `_stop_contract`. It is now a `StopLimitOrder` (band 100pt) on the
+resolved concrete front month, both patterns copied from `broker_adapter`. **Neither correction has
+been verified live, because the switch has never been on** — so `venue_stop_verified` is its own
+separate requirement. **To verify: paper account, ONE lot, a deliberately near trigger, and watch the
+order REST at the venue and FILL.** Until then January is blocked on it by design.
+⚠ The account guard **fails OPEN** on an unreadable account and **never refuses a close or a stop** —
+a guard must not become a new way for a live exit to fail, and a refused protective stop manufactures
+the naked position the auditor then escalates on.
+⚠ It is wired into the tournament's order path (`broker_adapter`). **The day rider calls
+`ib.placeOrder` directly at 9 sites and is NOT covered** — deliberate for now, because the rider's
+exits must not acquire a new refusal path; extending it to the rider's ENTRIES is a January item.
 
 ### ⛔ STILL OPEN AFTER THE AUDIT — the two that need him, not me
 1. **No off-box watcher yet.** `deadman.py` runs every 5 min and exits saying `deadman_url is not
    set`. Nothing outside this box knows whether the box is alive; a hang, a network drop or broken
    notify credentials all present as SILENCE (12 hours of exactly that on 08-21). **Needs one
    healthchecks.io / Better Stack / Cronitor URL pasted into `data/live_mode.json`.**
-2. **105+ commits committed and never pushed**, oldest 18.6d. This box is the only copy. Pushing is
-   outward-facing and was not authorised.
+2. ~~105+ commits never pushed~~ — **CLOSED 2026-09-26**: 109 commits pushed to
+   `origin/refactor/three-service` @ `08ff2d3` on the operator's instruction, clearing a 19-day
+   backlog. Secret-scanned first; `.notify_env` and `live_mode.json` are gitignored and only the
+   tracked `ops/live_mode.example.json` went out. ⚠ GitHub warned on
+   `reports/regime_2026-09-12/replication/spec_masks_A.npy` (**67 MB**, from the 09-12 research
+   commit `2a3a67d`, not this work) — it is now permanently in the remote's history; stripping it
+   would need a history rewrite.
 
 ★ **FIRST ACCOUNT READ THIS DESK HAS EVER TAKEN** (2026-09-26 15:48Z): NLV **$197,157.13**, excess
 liquidity **$196,141.97**, maint margin $1,015.16, IB realised $0.00 against our clean book $0.00 —

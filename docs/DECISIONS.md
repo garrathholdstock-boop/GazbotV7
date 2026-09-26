@@ -18900,6 +18900,69 @@ Started from *"trying to buy and its not working"* and ended four commits later.
 
 **⚠ WHAT THIS DOES NOT LICENCE.** Backing out $2,916.50 would put the book at roughly +$1,145, and that is **not** a claim that the desk is profitable — inside the paper book the money is really gone. It says the number **is not a measurement of the strategy**. Single-lot fills are clean; every multi-lot comparison is contaminated. Whether a LIVE account behaves this way is UNKNOWN and must not be assumed away. `execution-cost-autopsy-stage1`'s *"the desk bleeds DIRECTION not cost"* was concluded without knowing this and needs re-deriving on the clean subset.
 
+## §367 — 2026-09-26 (Sat) — ★★★ A PROCESS CANNOT REPORT ITS OWN ABSENCE, and the paper/real boundary moves into the code. (gazbot7 — see SESSIONS 2026-09-26.)
+
+**The context.** The operator asked what this desk needs before $30k goes in in January. The audit
+that followed found 18 items; all were approved with one binding constraint — *"jusy dont switch on
+any kill seitches while paper trading. i want to be able to trade and learn."* Four decisions here
+outlive the specific fixes.
+
+---
+
+**1. A GUARD'S CAP IS PER-EPISODE, NEVER PER-LIFETIME.**
+`gateway_watch`'s `BLIND_MAX` counted blind-and-holding rescues and never reset, so three episodes
+EVER — months apart, each legitimately rescued — would have permanently stopped the guard acting and
+left it only paging. It sat at 1 of 3. **The rule:** a cap that exists to stop a LOOP must reset on
+the transition that proves the condition ended; the loop itself is held by a separate cooldown. Any
+counter gating a protective action must have an answer to *"what resets this?"* that is not "a
+restart of the service".
+
+**2. A PROCESS CANNOT REPORT ITS OWN ABSENCE — so the watcher needs a different watcher.**
+`nightly_supervisor` spoke only on faults, making a clean night and a DEAD supervisor identical
+silence, with nothing else on the box checking the thing that checks everything else. The obvious fix
+— send unconditionally — **was implemented and did not work**: it fires 21:40 UTC = 23:40 Paris,
+quiet hours are 22:00–06:00 Paris, and a correctly non-critical heartbeat was suppressed every night
+of the year. Byte-identical silence to the bug it replaced, with a test asserting `critical is False`
+and calling that the fix.
+★ **The decision: the all-clear is delivered by a DIFFERENT PROCESS, on a DIFFERENT TIMER, at an hour
+outside quiet hours** (`overnight_allclear.py`, 06:05 Europe/Paris), reading the verdict the
+supervisor leaves on disk and paging CRITICAL when it is missing or stale.
+⚠ The rejected alternative was a quiet-hours exemption for heartbeats. That would have re-coupled the
+`critical`/`mark` flags the 09-24 split separated, and bought a 23:40 buzz every night — the
+cry-wolf problem quiet hours exist to prevent. **Scheduling beat a new exemption.**
+⚠ And the hour is stored in **Europe/Paris, not UTC**: a UTC time drifts an hour at each DST change
+and would fall back inside quiet hours for half the year. Same rule as the event calendar.
+
+**3. THE PAPER/REAL BOUNDARY LIVES IN THE CODE, KEYED ON THE ACCOUNT ID.**
+Not one account number appeared anywhere in this codebase, so the only thing separating paper from
+real money was which credentials the `ib-gateway` container logged in with. `livemode.py` now decides
+PAPER/LIVE/UNKNOWN from the **account the connection reports**, never from a flag someone can forget
+in one direction. `PAPER_ACCOUNTS` is a hard-coded floor in tracked source so a missing or corrupt
+config cannot un-recognise the paper account and take the desk down.
+⚠ **The guard FAILS OPEN on an unreadable account, and never refuses a CLOSE.** A guard against an
+unlikely misconfiguration must not become a new way for a live exit to fail, and a refused protective
+stop manufactures the naked position the auditor then escalates on. Only a positive identification of
+a wrong account, on an OPEN, refuses.
+★ `live_preflight()` refuses a live account until every January requirement is configured — the
+refusal is the feature.
+
+**4. "ARMED" IS NOT "WORKING", AND THE DIFFERENCE GETS ITS OWN REQUIREMENT.**
+The catastrophe stop was made a config switch and left off. The first implementation placed a plain
+`StopOrder` on a **ContFuture** — the one contract form this desk had already banked as not
+triggering ([[stop-unfilled-contfuture-root-cause]]), and the reason `broker_adapter` carries a
+separate `_stop_contract`. Fixed to a `StopLimitOrder` on the resolved concrete front month.
+★ **Neither correction is verified live, because the switch has never been on** — so
+`venue_stop_verified` is now its own LIVE requirement, distinct from `venue_stop_armed`. January
+cannot start on an assumption about a code path nobody has watched fire.
+
+---
+
+**What this costs and how to revert.** Every item is additive or a config switch. `PLACE_VENUE_STOP`
+returns to a hard `False` by deleting `_venue_stop_armed()`; the account guard by removing
+`_guard_account`'s two call sites; the morning all-clear by disabling one timer. The drift
+claim-freshness port reverts to an immediate latch by deleting the pending branch — ⚠ but read
+SESSIONS first: that latch was firing 28 times in three days on a race, every one false.
+
 ## §366 — 2026-09-07 (Mon) — ★★★ AN UNFILLED ORDER IS NOT A FAILED ORDER. Two guards on the hard flat, and the alarm that reported a race at a settled breach. (gazbot7 — see SESSIONS §391.)
 
 **The decision.** The hard flat may no longer place an order while the venue is shut, and may no
