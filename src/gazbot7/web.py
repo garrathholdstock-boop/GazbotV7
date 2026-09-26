@@ -69,6 +69,54 @@ def _dq(c, show_badfill: bool = False) -> str:
 
 
 
+def entries_today(store_path) -> dict:
+    """HOW MANY TIMES HE HAS GONE IN THIS SESSION — a discipline mirror, not a limit.
+
+    ★★★2026-09-26. Operator, reviewing his own week: "i think i got tempted to trade into lots of
+    little runs all day... my original successes were trading more macro moves not just little runs.
+    but need to be disciplined to not get excited and trade chop."
+    MEASURED, and he was right — entries per session and the median hold, grouped BY ENTRY:
+        09-16   8 entries   55m median   +$1,477.50
+        09-17  15 entries   50m median   +$1,546.50
+        09-20   7 entries   98m median   +$1,464.00
+        09-23  33 entries   14m median     -$613.50
+        09-24  36 entries    5m median      +$55.50
+    And by hold band: under 15m is -$2,257 over 68 entries, 30-60m is +$5,828 over 33, 1-3h is
+    +$4,276 over 31, over 3h is -$7,313 over 24. Everything he has made sits in the MIDDLE.
+    ⚠ Hold time is partly an OUTCOME (a winner gets held, a loser gets cut), which inflates that
+    middle band — but ENTRY COUNT is a pure DECISION, which is why this is the number on the page.
+
+    ⚠⚠ GROUPED BY ENTRY, NEVER BY TRADE ROW. The rows in `trades` are scale-out EXITS of one
+    decision; counting them would show him 80-odd "entries" on a 36-entry day and the mirror would
+    be useless in the one direction that matters.
+    ⚠ Counted from `opened_at` on the 22:00Z session, so the position he is IN right now counts —
+    the number has to include the decision he just made or it is always one behind.
+    ⚠⚠⚠ IT IS NOT A LIMIT AND MUST NOT BECOME ONE. It blocks nothing and pages nothing. His good
+    sessions ran 7-15 entries on NINE sessions of evidence, which is not enough to gate anything on.
+    """
+    out = {"n": None, "band": None}
+    try:
+        import sqlite3 as _sq
+        now = datetime.now(UTC)
+        op = (now.replace(hour=22, minute=0, second=0, microsecond=0)
+              - timedelta(days=(0 if now.hour >= 22 else 1))).isoformat()
+        c = _sq.connect(f"file:{store_path}?mode=ro", uri=True)
+        c.row_factory = _sq.Row
+        rows = c.execute(
+            "SELECT opened_at, entry_price FROM trades WHERE gate='day_rider' "
+            "AND (data_quality IS NULL OR data_quality='') AND opened_at >= ?", (op,)).fetchall()
+        c.close()
+        # one decision = one (5-minute bucket, entry price) pair, the same key days_json uses
+        ents = {(r["opened_at"][:15], round(float(r["entry_price"] or 0), 2)) for r in rows}
+        n = len(ents)
+        out["n"] = n
+        # ⚠ DESCRIPTIVE BANDS, from his own nine sessions — not a fitted threshold and not a rule.
+        out["band"] = "ok" if n <= 15 else ("busy" if n <= 25 else "chop")
+    except Exception as e:
+        out["error"] = f"{type(e).__name__}: {e}"
+    return out
+
+
 def context_json(cap_path, data_dir, store_path):
     """THE METRIC STRIP + THE FOUR THINGS HE ACTUALLY TRADES ON.
 
@@ -157,6 +205,7 @@ def context_json(cap_path, data_dir, store_path):
         out["rvol_n_days"] = len(hist)
         out["surge"] = surge_meters(cap_path)
         out["cvd"] = cvd_meter(cap_path)
+        out["entries_today"] = entries_today(store_path)
         out["rvol_caveat"] = ("this hour so far vs the SAME minutes of that hour on the last "
                               "10 sessions (median) — no linear-accrual assumption. ⚠ bars carry "
                               "no contract column, so a window spanning a roll compares two "

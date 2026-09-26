@@ -71,6 +71,31 @@ def _run(ib, side="BUY", qty=4, ref=29625.50, notify=None):
                                       what=f"TEST {side}", notify=notify))
 
 
+# ── ⚠⚠⚠ THESE THREE USED TO BORROW THE LIVE MARKET (fixed 2026-09-26) ────────────────────────────
+# They called last_tape_price() against the PRODUCTION capture.db and asserted a real price came
+# back. That works while the venue is open and FAILS EVERY WEEKEND: run on Saturday 05:07Z with the
+# newest bar 8.1 HOURS old, all three failed and none of them had a bug — the tape was simply shut.
+# ⚠ It is [[tests-must-not-read-the-wall-clock]] in a new costume: not the clock directly, but a
+# dependency on what the clock implies about the market. 37 core tests once failed only between
+# 00-07 UTC for the same reason.
+# ★ THE INVARIANTS ARE GOOD AND ARE KEPT EXACTLY — the fallback exists, and the symbol filter holds.
+# They are now checked against a FIXTURE with known prices and fresh timestamps, so they test the
+# LOGIC rather than the opening hours of an exchange.
+def _tape_fixture(tmp_path, ages=(5, 5)):
+    """A capture.db with one fresh MNQ bar and one fresh MGC bar, at unmistakable prices."""
+    import sqlite3, time
+    p = tmp_path / "capture.db"
+    c = sqlite3.connect(str(p))
+    c.execute("create table bars (symbol text, timeframe text, bar_ts int, open real, "
+              "high real, low real, close real, volume real)")
+    now = int(time.time())
+    for sym, px, age in (("MNQ", 29500.0, ages[0]), ("MGC", 2410.0, ages[1])):
+        c.execute("insert into bars values (?,'5s',?,?,?,?,?,?)",
+                  (sym, now - age, px, px, px, px, 100.0))
+    c.commit(); c.close()
+    return str(p)
+
+
 def test_the_limit_is_marketable_and_on_the_right_side():
     ib = _IB(4, 29626.0)
     _run(ib)
@@ -183,9 +208,9 @@ def test_both_entry_paths_go_through_place_entry():
 # operator's BUY/SELL is deliberately live across the whole CME session. The fix would have broken
 # the button it was written to protect.
 
-def test_the_reference_falls_back_to_the_live_tape_when_drift_is_blind():
+def test_the_reference_falls_back_to_the_live_tape_when_drift_is_blind(tmp_path):
     import types
-    cfg = types.SimpleNamespace(capture_path="/home/alphabot/gazbot7/data/capture.db", symbol="MNQ")
+    cfg = types.SimpleNamespace(capture_path=_tape_fixture(tmp_path), symbol="MNQ")
     blind = types.SimpleNamespace(price=0.0)            # what drift_read really returns in Asia
     ref = dr.entry_reference(blind, cfg)
     assert ref > 0, "an entry outside US hours would be refused for want of a price"
@@ -193,10 +218,11 @@ def test_the_reference_falls_back_to_the_live_tape_when_drift_is_blind():
     assert dr.entry_reference(live, cfg) == 29500.0, "drift_read wins when it has a real read"
 
 
-def test_the_tape_reference_filters_the_symbol():
+def test_the_tape_reference_filters_the_symbol(tmp_path):
     """capture.db carries MGC too; folding them once made ATR read 1848 against a true 15."""
-    mnq = dr.last_tape_price("/home/alphabot/gazbot7/data/capture.db", "MNQ")
-    mgc = dr.last_tape_price("/home/alphabot/gazbot7/data/capture.db", "MGC")
+    cap = _tape_fixture(tmp_path)
+    mnq = dr.last_tape_price(cap, "MNQ")
+    mgc = dr.last_tape_price(cap, "MGC")
     assert mnq > 20000 and 0 < mgc < 20000, f"symbol filter is not holding: MNQ={mnq} MGC={mgc}"
 
 

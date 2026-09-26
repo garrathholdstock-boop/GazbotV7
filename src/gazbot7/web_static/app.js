@@ -650,12 +650,35 @@
     });
   }
 
+
+  /* ★★★2026-09-26 ENTRIES TODAY — a discipline mirror, on the line he already reads.
+     Operator, reviewing his own week: "i think i got tempted to trade into lots of little runs all
+     day... my original successes were trading more macro moves not just little runs. but need to be
+     disciplined to not get excited and trade chop."
+     MEASURED, and he was right: 09-16 8 entries / 55m median / +$1,477 · 09-17 15 / 50m / +$1,546 ·
+     09-20 7 / 98m / +$1,464 — against 09-23 33 / 14m / -$613 and 09-24 36 / 5m / +$55. By hold band
+     everything he has made is in the MIDDLE: under-15m is -$2,257 over 68 entries, 30-60m +$5,828
+     over 33, 1-3h +$4,276 over 31, over-3h -$7,313 over 24.
+     ⚠ Hold time is partly an OUTCOME — a winner gets held, a loser gets cut — which inflates that
+     middle band. ENTRY COUNT is a pure DECISION, which is why the count is what goes on the page.
+     ⚠ It sits in `hold-meta`, a line that already exists, so it costs NO vertical space — the TRADE
+     tab's one-screen budget is not negotiable and a new row would have been the wrong trade.
+     ⚠⚠⚠ IT IS A MIRROR, NOT A LIMIT. It blocks nothing, pages nothing, and must never do either:
+     his good sessions ran 7-15 entries on NINE sessions of evidence, which is nowhere near enough
+     to gate a decision on. The colour is there to be NOTICED, not obeyed. */
+  function entriesTag() {
+    const e = (STATE.ctx && STATE.ctx.entries_today) || {};
+    if (e.n == null) return "";
+    const cls = e.band === "chop" ? "neg" : (e.band === "busy" ? "warn" : "");
+    return ` · <b class="${cls}">${e.n}</b> in`;
+  }
+
   function renderHolding() {
     const holds = mnqHoldings();
     const body = $("hold-body");
     if (!body) return;
     if (!holds.length) {
-      setTxt("hold-meta", "flat");
+      setHtml("hold-meta", "flat" + entriesTag());
       body.innerHTML = `<div class="empty">flat — no position</div>`;
       if (AL.holding) { AL.holding = false; alFlat(); }
       return;
@@ -663,7 +686,7 @@
     const h = holds[0];
     const side = h.side || (h.qty < 0 ? "SHORT" : "LONG");
     const tot = holds.reduce((s2, x) => s2 + (x.pnl_usd || 0), 0);
-    setTxt("hold-meta", `${holds.length} open`);
+    setHtml("hold-meta", `${holds.length} open` + entriesTag());
     // ⚠ guard()ed: a throw in the alert must never take the holding card down with it. The card is
     // what he actually trades from; the beep is a convenience on top of it.
     if (!AL.holding) { AL.holding = true; alFlat(); }

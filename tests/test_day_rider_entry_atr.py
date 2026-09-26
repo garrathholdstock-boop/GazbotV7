@@ -76,10 +76,40 @@ def test_a_stale_tape_prices_nothing():
     assert dr.last_tape_atr("/nonexistent/capture.db", "MNQ") == 0.0
 
 
-def test_the_atr_reference_prefers_drift_and_falls_back_to_the_tape():
+def _atr_fixture(tmp_path):
+    """60 minutes of 5s MNQ bars with real movement, so a Wilder ATR is computable.
+
+    ⚠⚠⚠ FOURTH TEST IN THIS FAMILY THAT BORROWED THE LIVE MARKET (fixed 2026-09-26). It pointed at
+    the PRODUCTION capture.db and asserted an ATR came back — true while the venue is open, FALSE
+    EVERY WEEKEND. Run on Saturday 05:07Z with the newest bar 8.1 HOURS old it failed, and nothing
+    was broken: the tape was shut. [[tests-must-not-read-the-wall-clock]] wearing a new costume —
+    not the clock, but a dependency on what the clock implies about the market.
+    ⚠ An ATR needs a WINDOW, not a price, so this must be ~720 bars with genuine high/low spread;
+    a single flat bar yields 0.0 and the test would fail for a second, unrelated reason.
+    """
+    import sqlite3, time
+    p = tmp_path / "capture.db"
+    c = sqlite3.connect(str(p))
+    c.execute("create table bars (symbol text, timeframe text, bar_ts int, open real, high real, "
+              "low real, close real, volume real)")
+    now = int(time.time())
+    base = 29500.0
+    rows = []
+    for i in range(720):                      # 60 min of 5s bars, oldest first
+        ts = now - (720 - i) * 5
+        drift = (i % 40) * 0.25               # a slow saw so true range is non-zero throughout
+        o = base + drift
+        rows.append(("MNQ", "5s", ts, o, o + 2.0, o - 2.0, o + 0.5, 50.0))
+    c.executemany("insert into bars values (?,?,?,?,?,?,?,?)", rows)
+    c.commit(); c.close()
+    return str(p)
+
+
+def test_the_atr_reference_prefers_drift_and_falls_back_to_the_tape(tmp_path):
     import types
-    cfg = types.SimpleNamespace(capture_path=CAP, symbol="MNQ")
-    assert dr.entry_atr_reference(types.SimpleNamespace(atr=12.5), cfg) == 12.5
+    cfg = types.SimpleNamespace(capture_path=_atr_fixture(tmp_path), symbol="MNQ")
+    assert dr.entry_atr_reference(types.SimpleNamespace(atr=12.5), cfg) == 12.5, \
+        "drift_read must win whenever it has a real read"
     blind = dr.entry_atr_reference(types.SimpleNamespace(atr=0.0), cfg)
     assert blind > 0, "an entry outside US hours would still freeze arm_atr at 0"
 

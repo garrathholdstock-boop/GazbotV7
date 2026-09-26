@@ -39,11 +39,26 @@ def test_the_manage_path_no_longer_prices_off_its_own_entry():
         "the manage path must take its price from the live tape when drift_read is blind")
 
 
-def test_a_blind_drift_read_still_yields_a_real_market_price():
-    cfg = types.SimpleNamespace(capture_path=CAP, symbol="MNQ")
+def test_a_blind_drift_read_still_yields_a_real_market_price(tmp_path):
+    """⚠⚠⚠ THIS USED TO BORROW THE LIVE MARKET (fixed 2026-09-26). It pointed at the PRODUCTION
+    capture.db and asserted a real price came back — true while the venue is open, FALSE EVERY
+    WEEKEND. Run on Saturday 05:07Z with the newest bar 8.1 HOURS old it failed, and nothing was
+    broken: the tape was shut. That is [[tests-must-not-read-the-wall-clock]] in a new costume — not
+    the clock itself, but a dependency on what the clock implies about the market.
+    ★ THE INVARIANT IS UNCHANGED — a blind drift_read must still yield a real market price — and it
+    is now checked against a fixture, so it tests the FALLBACK rather than the exchange's calendar."""
+    import sqlite3, time
+    cap = tmp_path / "capture.db"
+    c = sqlite3.connect(str(cap))
+    c.execute("create table bars (symbol text, timeframe text, bar_ts int, open real, high real, "
+              "low real, close real, volume real)")
+    c.execute("insert into bars values ('MNQ','5s',?,29500.0,29500.0,29500.0,29500.0,100.0)",
+              (int(time.time()) - 5,))
+    c.commit(); c.close()
+    cfg = types.SimpleNamespace(capture_path=str(cap), symbol="MNQ")
     blind = types.SimpleNamespace(price=0.0, atr=0.0)
     px = dr.entry_reference(blind, cfg)
-    assert px > 20000, f"no usable market price outside US hours: {px}"
+    assert px > 20000, f"the blind-drift fallback produced no usable price: {px}"
 
 
 def test_the_ladder_can_fire_once_the_price_is_real():
