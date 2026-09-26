@@ -37,6 +37,55 @@ _LEGACY_PY = "/home/alphabot/alphabot2/.venv/bin/python"
 _LEGACY_SCRIPT = "/home/alphabot/alphabot2/scripts/notify_operator.py"
 
 
+# ── WEEKEND QUIET (2026-09-26) ────────────────────────────────────────────────────────────────
+# ★★★ Operator, after a Saturday of alarms: "everything should be off on weekends except
+# notifications about reports."
+# ⚠⚠⚠ AND THE CARVE-OUT IS NOT NEGOTIABLE: SUPPRESS ONLY WHILE THE DESK IS FLAT. On 2026-08-21 four
+# naked lots went through the halt into the weekend and cost -$2,149; a weekend gag that silenced
+# THAT would be the worst thing in this file. So the rule is not "it is Saturday, be quiet" — it is
+# "there is nothing at risk, so be quiet", which is a different and safe statement.
+# ⚠ AND IT FAILS OPEN. If we cannot READ the position, we do not know it is flat, and not knowing is
+# not flat — so it sends. Every error path here speaks rather than swallows.
+_WEEKEND_STATE = "/home/alphabot/gazbot7/data/desk_reconcile_state.json"
+_WEEKEND_RIDER = "/home/alphabot/gazbot7/data/day_rider_state.json"
+
+
+def venue_shut_for_the_weekend(now: datetime) -> bool:
+    """Fri 21:00Z (the CME halt) → Sun 22:00Z (the reopen). Nothing trades in that window."""
+    wd, hhmm = now.weekday(), now.hour * 60 + now.minute
+    if wd == 5:                                  # Saturday, all of it
+        return True
+    if wd == 4 and hhmm >= 21 * 60:              # Friday from the halt
+        return True
+    if wd == 6 and hhmm < 22 * 60:               # Sunday until the reopen
+        return True
+    return False
+
+
+def desk_is_flat_and_verified() -> bool:
+    """TRUE only when a FRESH venue read says zero AND our own book agrees.
+
+    ⚠ Four ways to return False, and all of them mean "speak": stale read, unverified read, a venue
+    position, or our book holding. "IBKR IS THE TRUTH" cuts both ways here — the venue alone is not
+    enough if our own book thinks it holds something, because that disagreement is itself an alarm.
+    """
+    try:
+        import json as _j
+        import os as _os
+        import time as _t
+        if _t.time() - _os.path.getmtime(_WEEKEND_STATE) > 300:
+            return False                          # stale is not evidence of flat
+        r = (_j.load(open(_WEEKEND_STATE)) or {}).get("read1") or {}
+        if r.get("ok") is not True or (r.get("venue") or 0) != 0:
+            return False
+        rs = _j.load(open(_WEEKEND_RIDER)) or {}
+        if not rs.get("closed") and float(rs.get("qty") or 0) != 0:
+            return False
+        return True
+    except Exception:
+        return False                              # cannot tell => not flat => send
+
+
 def in_quiet_hours(now: datetime) -> bool:
     """22:00–06:00 Paris — the routine-suppression window (safety overrides it)."""
     h = now.astimezone(_PARIS).hour
@@ -129,7 +178,7 @@ CRITICAL_MARK = "🔴 "
 
 
 def notify(message: str, *, critical: bool = False, mark: bool | None = None,
-           now: datetime | None = None, send=None) -> bool:
+           weekend_ok: bool = False, now: datetime | None = None, send=None) -> bool:
     """Send an operator alert. Returns True if sent. Fail-quiet.
 
     `critical` — bypass quiet hours. "This matters at 3am."
@@ -141,6 +190,11 @@ def notify(message: str, *, critical: bool = False, mark: bool | None = None,
     claiming an urgency the quiet-hours rule itself denies.
     """
     now = now or datetime.now(UTC)
+    # ★★★ WEEKEND QUIET, and it OUTRANKS `critical` — a critical alert about a desk that is shut and
+    # flat is still noise, and it was the 🔴 ones that woke him on a Saturday.
+    # ⚠ `weekend_ok=True` is for the report chain, which is the one thing he asked to keep.
+    if not weekend_ok and venue_shut_for_the_weekend(now) and desk_is_flat_and_verified():
+        return False
     if not critical and in_quiet_hours(now):
         return False
     if mark is None:

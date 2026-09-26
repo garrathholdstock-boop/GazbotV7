@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import os
+import pathlib
 import subprocess
 import sys
 import time
@@ -39,7 +40,7 @@ import time
 sys.path.insert(0, "/home/alphabot/gazbot7/scripts")
 sys.path.insert(0, "/home/alphabot/gazbot7/src")
 
-from friday.friday_phases import PHASES  # noqa: E402
+from friday.friday_phases import PHASES, WEEK  # noqa: E402
 
 GB = "/home/alphabot/gazbot7"
 PY = f"{GB}/.venv/bin/python"
@@ -66,7 +67,11 @@ def log(m: str) -> None:
 def notify(m: str, crit: bool = False) -> None:
     try:
         subprocess.run([PY, "-c", "import sys;from gazbot7.notify import notify;"
-                        f"notify(sys.argv[1],critical={crit})", m[:900]],
+                        # ★2026-09-26 weekend_ok: the Friday report RUNS on a weekend by design (Fri 22:07Z ->
+                        # Sat 05:15Z), and it is the one channel he asked to keep when everything
+                        # else goes quiet. Without this the whole report chain would be silenced by
+                        # the very window it runs in.
+                        f"notify(sys.argv[1],critical={crit},weekend_ok=True)", m[:900]],
                        cwd=GB, env=ENV, timeout=30)
     except Exception:
         pass
@@ -151,7 +156,34 @@ def deps_newer(p, phases, since: float) -> list:
     return out
 
 
-def fresh(path: str, since: float) -> bool:
+def week_stamp(path: str) -> str | None:
+    """Which report WEEK was this artifact built for? None = unstamped (legacy).
+
+    ★★★2026-09-25 REV2 — mtime CANNOT ANSWER THIS, and on 2026-09-25 it published last week
+    twice. fresh() below asks only "is the file newer than the cutoff", and a git operation on
+    09-24 09:43 touched every artifact in reports/friday_v7/sections — so four fragments that
+    grade 2026-09-14→09-18 were all "fresh" against a 09-18T22:00Z cutoff and the runner logged
+    `sections: 0 built, 4 already had, 0 missing` / `HAVE assemble — skipping`. Nothing was
+    rebuilt and the 09-18 report was re-proofread and re-published on the 25th.
+    An mtime is a claim about WHEN a file was touched. The checkpoint needs to know WHAT WEEK it
+    is about, and only the writer knows that — so the writer records it, in a sidecar the runner
+    writes on success and never has to remember to write inside a prompt.
+    """
+    try:
+        return pathlib.Path(f"{path}.week").read_text().strip()[:10] or None
+    except OSError:
+        return None
+
+
+def set_week_stamp(path: str, week: str) -> None:
+    """Record the week an artifact was built for. Called on every successful phase."""
+    try:
+        pathlib.Path(f"{path}.week").write_text(f"{week}\n")
+    except OSError:
+        pass
+
+
+def fresh(path: str, since: float, week: str | None = None) -> bool:
     """Is this artifact from THIS report run, not last week's?
 
     ★★ THE DRY-RUN CAUGHT THIS BEFORE IT SHIPPED. "Artifact exists" as a checkpoint is only correct
@@ -159,11 +191,23 @@ def fresh(path: str, since: float) -> bool:
     check skipped 11 of 12 phases and would have stapled a stale report together and called it
     Friday's. A checkpoint that cannot tell old work from new is not a checkpoint, it is a way to
     publish last week twice.
+
+    ★★★2026-09-25 — AND IT DID, so mtime is no longer the only test. If the artifact carries a
+    week stamp and that stamp is not THIS report's week, it is STALE no matter how new the file
+    is. A stamp that disagrees beats an mtime that agrees: mtime can be laundered by any tool
+    that touches the tree, the stamp cannot. Unstamped artifacts keep the old mtime behaviour so
+    this is backward compatible — but every phase that runs from now on leaves a stamp.
     """
     try:
-        return os.path.getmtime(path) >= since
+        if os.path.getmtime(path) < since:
+            return False
     except OSError:
         return False
+    if week:
+        st = week_stamp(path)
+        if st and st != week:
+            return False
+    return True
 
 
 # ★2026-08-16 Below this a headless section produces nothing at all — measured: gf_MGC was handed
@@ -380,6 +424,12 @@ def run_phase(p, budget_s: float) -> bool:
     # ★ The ARTIFACT is the verdict, not the exit code. On 2026-07-31 the session exited 0 having
     # only DESCRIBED what it would do; the report was never built and the driver called it success.
     log(f"{p['key']}: rc={rc} {took/60:.1f}m artifact={'OK' if ok else 'MISSING'}")
+    # ★★★2026-09-25 STAMP THE WEEK ON SUCCESS. This is the other half of the fix in week_stamp():
+    # the runner records what week the artifact is about at the moment it is built, so no later
+    # mtime change can make a 09-18 fragment look like a 09-25 one. Written here rather than in
+    # each phase's prompt because a prompt instruction is a request and this has to be a fact.
+    if ok:
+        set_week_stamp(p["artifact"], WEEK)
     return ok
 
 
@@ -446,14 +496,24 @@ def main() -> int:
     total = (dl - now).total_seconds()
 
     # Everything written BEFORE this instant belongs to a previous week and must be rebuilt.
+    #
+    # ★★★2026-09-25 REV2 — DERIVED FROM `WEEK`, NOT RE-COMPUTED FROM THE CLOCK. This block used to
+    # recompute "the most recent Friday whose 22:00Z cut has passed" independently, and that made the
+    # cutoff MOVE FORWARD SEVEN DAYS AT 22:00Z, in the middle of every single run. The cron starts at
+    # 21:05Z, so 55 minutes in the cutoff jumped from 09-18T22:00Z to 09-25T22:00Z and every artifact
+    # the run had just built in its first hour was instantly "stale" and would be rebuilt. Observed
+    # live tonight: at 21:37Z the runner printed `artifacts older than 2026-09-18T22:00Z are STALE`
+    # and at 22:08Z the same command printed `2026-09-25T22:00Z`, flipping four finished phases from
+    # HAVE back to todo with nothing on disk having changed.
+    # The cutoff belongs to the REPORT WEEK, which is fixed for the whole night: the week ending
+    # Friday `WEEK` starts at the PREVIOUS Friday's 22:00Z reopen. One source of truth, and it cannot
+    # drift mid-run because it does not consult the clock.
     if a.since:
         since = dt.datetime.fromisoformat(a.since).timestamp()
     else:
-        d = now - dt.timedelta(days=(now.weekday() - 4) % 7)      # most recent Friday
-        cut = d.replace(hour=22, minute=0, second=0, microsecond=0)
-        if cut > now:
-            cut -= dt.timedelta(days=7)
-        since = cut.timestamp()
+        wk = dt.datetime.fromisoformat(WEEK).replace(tzinfo=dt.UTC)
+        since = (wk - dt.timedelta(days=7)).replace(hour=22, minute=0, second=0,
+                                                    microsecond=0).timestamp()
     log(f"=== SERIAL RUN — deadline {dl:%Y-%m-%dT%H:%MZ} ({total/3600:.1f}h), "
         f"reserve {a.reserve_min}m for the tail, "
         f"artifacts older than {dt.datetime.fromtimestamp(since, dt.UTC):%Y-%m-%dT%H:%MZ} are STALE ===")
@@ -493,7 +553,7 @@ def main() -> int:
     if a.dry_run:
         for p in body + tail:
             _sd = deps_newer(p, phases, since)
-            state = ("todo" if _sd else "HAVE") if fresh(p["artifact"], since) else "todo"
+            state = ("todo" if _sd else "HAVE") if fresh(p["artifact"], since, WEEK) else "todo"
             if _sd:
                 state = "REBUILD"
             print(f"  {'TAIL ' if p['key'] in TAIL else '     '}{p['key']:<22} {state}  "
@@ -508,7 +568,7 @@ def main() -> int:
         body = []
     built, skipped, failed = [], [], []
     todo_body = [q for q in body
-                 if a.force or not fresh(q["artifact"], since) or deps_newer(q, phases, since)]
+                 if a.force or not fresh(q["artifact"], since, WEEK) or deps_newer(q, phases, since)]
     skipped = [q["key"] for q in body if q not in todo_body]
     for k in skipped:
         log(f"HAVE {k} — skipping (artifact is the checkpoint)")
@@ -535,7 +595,7 @@ def main() -> int:
     for p in tail:
         left = (dl - dt.datetime.now(dt.UTC)).total_seconds()
         stale_deps = deps_newer(p, phases, since)
-        if fresh(p["artifact"], since) and not a.force and not stale_deps:
+        if fresh(p["artifact"], since, WEEK) and not a.force and not stale_deps:
             log(f"HAVE {p['key']} — skipping"); continue
         if stale_deps:
             log(f"REBUILD {p['key']} — its inputs are newer: {', '.join(stale_deps)}")
@@ -563,7 +623,7 @@ def main() -> int:
             _h2 = _html.count("<h2"); _tb = _html.count("<table")
             _kb = os.path.getsize(_r) // 1024
             _missing = [q["key"] for q in body + tail
-                        if not fresh(q["artifact"], since) and not a.tail_only]
+                        if not fresh(q["artifact"], since, WEEK) and not a.tail_only]
             notify(("✅ Friday report READY — " if tail_ok else "⚠ Friday report INCOMPLETE — ")
                    + f"{os.path.basename(_r)} · {_h2} sections · {_tb} tables · {_kb}KB"
                    + (f" · {len(_missing)} section(s) unbuilt: {', '.join(_missing[:5])}"

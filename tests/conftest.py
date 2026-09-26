@@ -89,6 +89,19 @@ def _no_telegram(monkeypatch, request):
         return _real_run(cmd, *a, **kw)
 
     monkeypatch.setattr(_n.subprocess, "run", _blocked)
+
+    # ★★★2026-09-26 AND NO TEST'S OUTCOME MAY DEPEND ON WHAT DAY IT IS.
+    # The weekend-quiet gate fires only when the venue is shut AND the desk is flat. Adding it
+    # immediately broke three tests that call notify() without an explicit `now` — they would have
+    # passed Monday to Friday and failed every weekend, which is [[tests-must-not-read-the-wall-
+    # clock]] for the FIFTH time in one morning (four of them were live-tape reads fixed an hour
+    # earlier).
+    # ⚠ Neutralised via the FLAT half, not the CALENDAR half: the gate needs both, so reporting
+    # "not flat" makes it inert while leaving `venue_shut_for_the_weekend()` real for the tests whose
+    # subject it is. "Not flat" is also the FAIL-OPEN direction, so a test that forgets to think
+    # about this gets the speaking behaviour rather than the silent one.
+    monkeypatch.setattr(_n, "desk_is_flat_and_verified", lambda: False)
+
     _SENT.clear()
     yield
     if _SENT and "telegram" not in request.fixturenames:

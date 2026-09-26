@@ -64,7 +64,10 @@ TIMEOUT_S = {"ledger-review": 900, "hour-watch": 420, "sweep": 420,
 def page(msg: str, critical: bool = True) -> None:
     try:
         subprocess.run([PY, "-c", "import sys; from gazbot7.notify import notify; "
-                                  "notify(sys.argv[1], critical=sys.argv[2]=='1')",
+                                  # ★2026-09-26 weekend_ok: a JOB FAILURE is how he learns the nightly review or the
+                                  # Friday report never ran, and those run precisely in the weekend
+                                  # window. A silent failed report is worse than a Saturday ping.
+                                  "notify(sys.argv[1], critical=sys.argv[2]=='1', weekend_ok=True)",
                         msg[:900], "1" if critical else "0"],
                        cwd=GB, env={**os.environ, "PYTHONPATH": "src"}, timeout=30)
     except Exception:

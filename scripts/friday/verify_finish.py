@@ -25,7 +25,7 @@ def page(m):
     try:
         sys.path.insert(0, f"{GB}/src")
         from gazbot7.notify import notify
-        notify(m, critical=True)
+        notify(m, critical=True, weekend_ok=True)
     except Exception:
         pass
 

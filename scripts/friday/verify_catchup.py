@@ -29,7 +29,7 @@ def page(msg: str) -> None:
     try:
         sys.path.insert(0, f"{GB}/src")
         from gazbot7.notify import notify
-        notify(msg, critical=True)
+        notify(msg, critical=True, weekend_ok=True)
     except Exception:
         pass
 
