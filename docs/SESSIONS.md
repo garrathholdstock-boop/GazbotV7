@@ -10,6 +10,88 @@
 
 ---
 
+## 2026-09-26 (Sat) — THE SAFETY AUDIT: 18 ITEMS, 5 LIVE DEFECTS, AND THREE KILL SWITCHES LEFT OFF ON PURPOSE
+
+**★★★ HE ASKED WHAT THIS DESK WOULD NEED BEFORE $30k GOES IN IN JANUARY.** The audit ran against the
+running system, not the docs. The machinery is genuinely good — 1,556 tests pass, 38 timers fire, 13
+watchers run, and `desk_reconcile` is the best-built component here — and the headline is still that
+**every guard is a process on one 7.5GB box**, that **nothing had ever reconciled MONEY**, and that the
+only thing separating paper from real was which credentials a Docker container logs in with.
+He approved all 18 with one constraint: *"jusy dont switch on any kill seitches while paper trading. i
+want to be able to trade and learn."* So the three kill-capable items are built, tested and **OFF**.
+
+**★★★ FIVE DEFECTS THAT WERE LIVE AND SILENT.**
+- **`gateway_watch`'s BLIND_MAX was a LIFETIME budget.** `blind_restarts` incremented and never
+  reset, so after three episodes EVER — months apart, each legitimately rescued — the
+  blind-and-holding rescue built after the 18:05 wedge would stop acting and only page. **It sat at
+  1 of 3.** Now per-episode; the intra-episode loop was always held by `BLIND_COOLDOWN_S` anyway.
+- **28 SLOT DRIFT halts in three days, every one false.** All read `logical net 0 != venue ±4` — the
+  rider's own lots. The timestamps settle it: `rider-3894` filled **12:41:07Z**, halt **12:41:09Z**;
+  `rider-3899` filled 12:44:59Z, halt 12:45:00Z. The rider is a **oneshot on a 60s tick**, so after
+  every fill the venue shows a position before the claim explaining it exists.
+  `desk_reconcile.require_fresh_claims()` solved this on 09-03 and **the fix never reached the
+  tournament**; three components check this invariant and only one had it.
+  ⚠ Deferring the LATCH and the PAGE, never the protection — `_open_blocked` blocks opens throughout.
+  ⚠⚠ And the first cut of my own fix opened a hole: waiting only for a claim rewrite meant a rider
+  that never writes again never confirms, while `pending` returns `"drift"` and so keeps skipping the
+  caller's whole safety block — unmanaged AND silent, the 08-06 shape. `DRIFT_CONFIRM_MAX_S` closes it.
+- **The same race on the EXIT side**, 8 false `DESK-MISMATCH` pages, all *"venue +0 but rider claims
+  ±4"*. Its two-independent-reads rule **cannot see this one** because both reads come from the same
+  file: the rider writes `venue_net: 0` beside a stale `qty: 4`. Needed a dwell longer than the
+  rider's own tick, not another read.
+- **🔴 diluted itself in two days.** `mark` defaulted to `critical`, and `critical=True` is set at 56
+  sites purely to bypass quiet hours — so **241 of 456 sends wore the circle (53%, ~80/day)** against
+  "under one a day", including his own MANUAL BUY/SELL confirmations. Now opt-in via `MARK_ALWAYS`;
+  replayed against three days of real traffic before shipping.
+- **The nightly supervisor watched no safety watcher built since 2026-08-13** — no `gateway-watch`, no
+  `step-away`, no `web` (his BUTTONS), no `tgbot` — and checked the router's timer every 0.25h while
+  never checking `desk-reconcile`'s. ★★ And it spoke **only on faults**, so a clean night and a DEAD
+  SUPERVISOR were byte-identical silence, with nothing else on the box checking the thing that checks
+  everything else. **It now speaks every night: silence is the alarm.**
+
+**★★ AND `core_health.flat` WAS STILL TOURNAMENT-SCOPED** — ranked SATURDAY #5 in the 08-21 report and
+open ever since. It called a live 4-lot position flat for **811 of 817 router ticks**, and
+`nightly_supervisor`'s **RESTART gate** believed it: had the 20:40Z flat ever failed, it would have
+restarted services on top of a naked position and logged that the desk was flat. Adds `desk_flat`
+(tournament AND rider, fail-closed on an unreadable claim); `flat` stays as a documented alias
+because sweep, desk_view and the router all read it.
+
+**★★★ THE THREE THAT ARE BUILT AND DISARMED, WHICH IS THE POINT.**
+`livemode.py` — an account allowlist wired into the order path (it **fails OPEN** on an unreadable
+account: a guard must never become a new way for a live exit to fail) plus a LIVE mode that refuses to
+start until all five January requirements are configured · `PLACE_VENUE_STOP` is now a config switch,
+still `False` — **600pt is not the 400pt trading stop the expectancy study correctly killed**, it never
+binds in normal trading and exists only for when nothing on this box is running · `equity_guard.py`
+— **the first thing here that has ever read the account** (NLV $197,157, excess liquidity $196,142) and
+the first to reconcile IB's realised P&L against our clean book on a cadence. Its limit is on **OPEN +
+realised**, unlike the $250 gate rule which is realised-only, so an open −$2,000 could never trip that
+one. Report-only on paper: the flatten branch needs LIVE **and** a configured limit, and the script has
+no order path at all.
+
+**ALSO:** two weekend false-criticals removed (a weekday-only timer is DORMANT BY SCHEDULE — asked of
+systemd rather than reimplementing OnCalendar) · `book_recon_daily` lifts `book_vs_fills` out of the
+weekday Claude job onto a daily timer that PAGES · `deadman.py` installed and **inert until he creates
+a check**, saying so rather than pretending · `depth.db` capped at 60d under the existing mirror
+interlock (**non-binding today** — 24 days on disk — because *"i will pay for the hd space"* is a
+standing instruction) · weekly VACUUM re-enabled · tgbot moved off the RETIRED V5 tree · `core.py`'s
+**clientId 0 collided with the live tournament desk** (harmless only because it never starts) ·
+`weekend-flatten` retired to `ops/systemd/retired/` with the reason it must not be re-armed as written
+· `nightly-review` was running at 882s of a 900s budget and tipped over on 09-25, producing nothing.
+
+**MY OWN FAILURES, because the pattern is the point:** my first drift fix had the silent-forever hole
+above · **my own new test fell to the comment trap** (grepping a function for "Mon-Fri" that lived in
+the docstring explaining the bug) — the seventh instance in three days · and I hypothesised two
+mechanisms that were WRONG and are recorded as such: the research jobs are properly rider-aware, and
+SLOT DRIFT was not a heartbeat-freshness mismatch (`DR_MAX_AGE_S` is 180s against a 60s tick).
+★ One old test **passed on a string no caller ever sends** — it asserted the mark on *"the rider is
+blind and holding"* while the real message is *"DESK IS BLIND AND HOLDING"*; it only passed because
+everything was marked, and would have kept passing after the real alert lost its circle.
+
+⚠ **`gazbot7-web` was deliberately NOT restarted** (it drops his tab), so its imported copy of
+`notify` still has the old mark default until he is happy to take the restart.
+
+---
+
 ## 2026-09-26 (Sat) — MY TEST SUITE WAS PAGING HIM, AND THE FRIDAY REPORT FIXED ITSELF
 
 **★★★ HE ASKED WHY REDUNDANT ALARMS WERE BACK ON A SATURDAY. TWO OF THE THREE WERE MY TEST SUITE.**
