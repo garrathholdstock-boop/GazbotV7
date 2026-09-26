@@ -33,8 +33,23 @@ WEB = f"{GB}/src/gazbot7/web_static"
 # unattended, and this is why: not memory, not time, a filename that cannot exist.
 # WEEK is the report's Friday, resolved the SAME way serial_runner computes its staleness cutoff, so
 # a Saturday-morning resume names the same file the Friday-night run did.
+#
+# ★★★2026-09-25 REV2 — AND IT PUBLISHED LAST WEEK TWICE, exactly as fresh()'s docstring feared.
+# The rule above is "the most recent Friday whose 22:00Z cut has PASSED". The cron starts at
+# 21:05Z on a Friday, 55 minutes BEFORE that cut — so on Friday night `cut > now` was always
+# true and WEEK always rolled back a week. Measured on 2026-09-25 21:05Z: WEEK=2026-09-18,
+# WEEK_TODAY=2026-09-25. Every phase was therefore handed the PREVIOUS week, `assemble`'s
+# artifact resolved to weekly_2026-09-18.html which already existed, and the runner skipped it.
+# The operator was handed a report telling him what to do on a Monday four days in the past, on
+# the week his own hand took 99 entries for -$360.00 — the largest week in the book's history,
+# and the report did not contain it.
+# ⚠ THE 22:00Z CUT IS STILL THE SESSION BOUNDARY and is still right for the DATA queries. It is
+#   wrong as a NAME for the report: a Friday-night run is about the week that is ending tonight,
+#   not the one that ended seven days ago. So: on a Friday, the report week IS today.
 def _report_week() -> str:
     now = _dt.datetime.now(_dt.UTC)
+    if now.weekday() == 4:                 # Friday — the week ending TONIGHT is the subject
+        return f"{now:%Y-%m-%d}"
     d = now - _dt.timedelta(days=(now.weekday() - 4) % 7)      # most recent Friday
     cut = d.replace(hour=22, minute=0, second=0, microsecond=0)
     if cut > now:
