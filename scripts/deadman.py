@@ -149,12 +149,67 @@ def ping(base: str, *, ok: bool, summary: str, timeout: float = TIMEOUT_S) -> tu
         return False, f"{type(e).__name__} contacting {parsed.netloc}"
 
 
+#: The ONLY key this script is allowed to write. `live_mode.json` also holds the kill-switch config
+#: (`venue_stop_armed`, `equity_loss_limit_usd`, `live_accounts`), so a setter that could touch any
+#: key would be a path from "configure monitoring" to "arm a kill switch". Narrow by construction,
+#: and tests/test_deadman_setup.py asserts it against the SOURCE.
+SETTABLE_KEY = "deadman_url"
+
+
+def set_url(new_url: str) -> tuple[bool, str]:
+    """Install the ping URL into data/live_mode.json. Writes ONE key; verifies before it commits.
+
+    ★2026-09-26 Built so the operator's part is a single paste. It validates the URL, PINGS IT FOR
+    REAL, and only writes on a successful round trip — an unverified monitoring URL is worse than
+    none, because it makes the desk look watched when it is not.
+    ⚠ It never prints or logs the URL itself, only its host: the URL is a credential (anyone holding
+    it can silence the alarm by pinging it).
+    """
+    u = (new_url or "").strip().strip('"').strip("'")
+    parsed = urllib.parse.urlparse(u)
+    if parsed.scheme != "https" or not parsed.netloc:
+        return False, ("that is not an https:// URL. Paste the whole ping URL, e.g. "
+                       "https://hc-ping.com/<uuid>")
+    # ★ VERIFY BEFORE WRITING. A URL that 404s is a URL that will never alarm.
+    ok, how = ping(u, ok=True, summary="gazbot7 deadman setup — verification ping")
+    if not ok:
+        return False, (f"the URL did not accept a ping ({how}) — nothing was written. Check you "
+                       f"copied the whole thing, including the id after the host.")
+    conf_path = f"{GB}/data/live_mode.json"
+    try:
+        with open(conf_path) as fh:
+            conf = json.load(fh)
+    except Exception as e:
+        return False, f"cannot read {conf_path}: {e}"
+    before = {k: v for k, v in conf.items() if k != SETTABLE_KEY}
+    conf[SETTABLE_KEY] = u
+    after = {k: v for k, v in conf.items() if k != SETTABLE_KEY}
+    if before != after:                      # belt-and-braces: cannot happen, must never happen
+        return False, "refusing to write — something other than deadman_url would have changed"
+    try:
+        tmp = conf_path + ".tmp"
+        with open(tmp, "w") as fh:
+            json.dump(conf, fh, indent=2)
+        os.replace(tmp, conf_path)
+    except Exception as e:
+        return False, f"cannot write {conf_path}: {e}"
+    return True, (f"verified and installed — {parsed.netloc} accepted a live ping. "
+                  f"The desk now checks in every 5 minutes.")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--once", action="store_true")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--dry-run", action="store_true", help="assess and print; send nothing")
+    ap.add_argument("--set-url", metavar="URL",
+                    help="install the ping URL (verifies it with a real ping first)")
     a = ap.parse_args()
+
+    if a.set_url:
+        ok, msg = set_url(a.set_url)
+        print(("✅ " if ok else "❌ ") + msg)
+        return 0 if ok else 1
 
     u = url()
     healthy, summary = verdict()
