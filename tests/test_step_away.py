@@ -52,7 +52,7 @@ def test_it_holds_no_order_path_at_all():
         assert banned not in src, f"step_away reached for {banned}"
 
 
-def test_firing_writes_a_BARE_stamp_meaning_flatten_all(tmp_path, monkeypatch):
+def test_firing_writes_a_BARE_stamp_meaning_flatten_all(tmp_path, monkeypatch, telegram):
     """⚠ claim_requested() treats a bare ISO stamp as ALL and `<stamp>|lot=N` as one lot. A stray
     suffix here would close ONE lot and leave the rest naked while the guard disarmed itself."""
     _sandbox(tmp_path, monkeypatch, armed=True, limit_usd=200)
@@ -66,7 +66,7 @@ def test_firing_writes_a_BARE_stamp_meaning_flatten_all(tmp_path, monkeypatch):
     _assert_flattens_all(raw, monkeypatch, tmp_path)
 
 
-def test_it_DISARMS_the_instant_it_fires(tmp_path, monkeypatch):
+def test_it_DISARMS_the_instant_it_fires(tmp_path, monkeypatch, telegram):
     """⚠ A killer left armed fires again against the NEXT position — flattening a fresh trade
     seconds after it opens."""
     _sandbox(tmp_path, monkeypatch, armed=True, limit_usd=200)
@@ -129,12 +129,18 @@ def test_the_armed_state_is_visible_on_the_dashboard():
     assert "sa-state" in js and "ARMED" in js
 
 
-def test_the_take_profit_branch_actually_fires(tmp_path, monkeypatch):
+def test_the_take_profit_branch_actually_fires(tmp_path, monkeypatch, telegram):
     """★★2026-09-24 THE TP WAS ACCEPTED BY THE BACKEND FROM DAY ONE AND NEVER SENT BY THE PAGE.
     Six days armed-capable, zero arms, and the operator reasonably concluded it had not been built.
     A control that exists only in the API does not exist — and an untested branch is not a feature."""
     _sandbox(tmp_path, monkeypatch, armed=True, limit_usd=200, take_profit_usd=300)
     sa.fire("take profit", 340.0, {"limit_usd": 200, "take_profit_usd": 300})
+    # ★ The alert is now CAPTURED rather than sent, so its text can finally be asserted — this is
+    #   the 09-24 bug (a take-profit reporting the STOP) pinned on the real message for the first
+    #   time, instead of on the source.
+    assert telegram, "the fire should have produced exactly one alert"
+    assert "take-profit was $300" in telegram[-1], telegram[-1]
+    assert "$200" not in telegram[-1], "a take-profit fire is naming the STOP again"
     assert sa.read_state()["armed"] is False
     assert sa.read_state()["reason"] == "take profit"
     raw = (tmp_path / "day_rider_claim.txt").read_text().strip()

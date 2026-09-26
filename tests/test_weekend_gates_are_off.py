@@ -61,7 +61,7 @@ def test_the_guard_actually_runs_and_disarms(tmp_path, monkeypatch, capsys):
     assert "VENUE SHUT" in capsys.readouterr().out
 
 
-def test_when_open_it_still_arms(tmp_path, monkeypatch):
+def test_when_open_it_still_arms(tmp_path, monkeypatch, telegram):
     """The guard must not swallow the ordinary weeknight reopen."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
