@@ -10,6 +10,59 @@
 
 ---
 
+## 2026-09-27 (Sun) — THE BROKER API WAS ON THE PUBLIC INTERNET. IT IS NOT NOW.
+
+**★★★ HE ASKED FOR SSH-KEY STEPS. SSH WAS THE THIRD MOST URGENT THING ON THE BOX.** The audit that
+followed found **`*:4002` — the IB Gateway API — listening on the open internet.** The container runs
+`network_mode: host`, so no Docker port-mapping was shielding it, and **the IBKR API has no
+password**: it assumes it is only ever reachable from localhost. Anyone who connected could read his
+positions and place orders. Today that is paper; in January it is $30k.
+Also public: **`*:8087`, the dashboard WITH the order buttons**, on plain HTTP bypassing nginx and TLS
+— and it has **no authentication at all**, while by his own design a *full flatten needs no PIN*. And
+`*:4004`. There was **no firewall**: `ufw` installed, inactive, only Docker's own chains present.
+
+**⚠ MEANWHILE THE BOX WAS UNDER CONTINUOUS ATTACK:** 28,054 failed SSH attempts in 7 days, several IPs
+at ~1,805 each, against `passwordauthentication yes` + `permitrootlogin yes` and no fail2ban. His own
+login that morning was `Accepted password`, not `publickey`.
+
+**DONE NOW, on his instruction, while the venue was shut with 14h of window and the desk flat:** `ufw`
+active and enabled at boot, **default deny incoming**, only 22/80/443 open. 4002, 4004 and 8087 shut
+in one rule set.
+
+★ **`DEFAULT_FORWARD_POLICY` SET TO `ACCEPT` *BEFORE* ENABLING, AND THAT ORDER WAS THE POINT.** Docker
+already runs `FORWARD DROP` with its own ACCEPT rules, so ufw's DROP fights it and breaks the bridge —
+and the standard remedy is `systemctl restart docker`, **which would have bounced the IB Gateway**.
+Preventing the problem beat having to fix it. INPUT protection is untouched.
+
+**⚠⚠ MY OWN VERIFICATION WAS INCONCLUSIVE AND I NEARLY REPORTED IT AS A RESULT.** Connecting to
+`178.104.170.58:4002` from the box came back OPEN after the firewall — which looks like failure and
+proves nothing: `ip route get` returns **`dev lo`**, so the kernel delivers traffic to our own public
+IP over loopback, which ufw accepts by design. **A self-test cannot distinguish blocked from open.**
+The authoritative evidence is the ruleset (4002/4004/8087 in no ACCEPT rule, `-i lo` the only
+unconditional accept, policy DROP) plus an external `nc` from his laptop — the one step still his.
+
+**AND I CHECKED THE SCARY LOG LINES AGAINST THE BASELINE INSTEAD OF REASONING ABOUT THEM.** The
+gateway started printing `remove Client 2 / 97 / 0` right after the change. Rather than argue it was
+benign: **486 occurrences in the 30 minutes BEFORE the firewall against 60 in the 5 minutes after** —
+pre-existing housekeeping at the same rate. Decisive proof the desk was unharmed came from a **fresh
+live IBKR read on clientId 11** (NLV $197,157), which only succeeds if new broker connections still
+work.
+
+**VERIFIED:** six loopback ports still open · 6 established connections on 4002 · `core_health` age 0s
+HEALTHY · all 4 containers up, container egress OK, todo app 200 · reconciler and router unaffected ·
+**sweep OK overall, the first fully clean sweep in this stretch** · 0 Telegrams. Restore point in
+`/root/fw-backup/`; revert is `ufw disable`.
+
+**⛔ STILL OPEN, and the runbook order is deliberate:** SSH keys are NOT yet done, because a key exists
+in `authorized_keys` that **nothing has ever logged in with** — disabling passwords on that assumption
+would lock the box. ⚠⚠ And there is a trap waiting:
+`/etc/ssh/sshd_config.d/50-cloud-init.conf` sets `PasswordAuthentication yes`, and in sshd config **the
+FIRST value wins**, so the conventional `99-hardening.conf` would be silently ignored while `sshd -T`
+still read `yes`. Use `01-`, and verify the effective config, never the file. Runbook written and
+handed over; fail2ban and dashboard auth also outstanding, the latter needing his decision.
+
+---
+
 ## 2026-09-26 (Sat) — THE REVIEW OF MY OWN AUDIT: MY HEADLINE FIX NEVER FIRED ONCE
 
 **★★★ HE ASKED FOR AN AUDIT AGENT AFTER THE WORK, AND IT CAUGHT THE BEST THING OF THE DAY.** The fix I

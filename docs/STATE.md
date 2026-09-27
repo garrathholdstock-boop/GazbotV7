@@ -263,6 +263,66 @@ question answerable, not answered.
 
 ---
 
+## 1j. ★★★ THE BOX IS FIREWALLED (2026-09-27) — and what was exposed until then
+
+**★★★ THE IB GATEWAY API WAS LISTENING ON THE PUBLIC INTERNET.** `*:4002`, bound by the gateway's java
+process — the container runs `network_mode: host`, so no Docker port-mapping was shielding it. **The
+IBKR API has no password**; it assumes localhost-only. Anyone reaching it could read positions and
+place orders. Also exposed: **`*:8087`** (the dashboard WITH the order buttons, on plain HTTP,
+bypassing nginx and TLS) and `*:4004` (socat relay).
+⚠ And the box was under continuous attack: **28,054 failed SSH attempts in 7 days**, several IPs at
+~1,805 each, against `passwordauthentication yes` + `permitrootlogin yes` and no fail2ban.
+
+**WHAT IS NOW IN FORCE.** `ufw` active and enabled at boot — **default deny incoming**, allow out,
+with only **22 / 80 / 443** open. That closes 4002, 4004 and 8087 to the internet in one rule set.
+
+| port | before | now |
+|---|---|---|
+| **4002** IB Gateway API | ⛔ public | **closed** — loopback only |
+| **8087** dashboard | ⛔ public, plain HTTP | **closed** — reachable only via nginx `/v7/` |
+| **4004** socat relay | ⛔ public | **closed** |
+| 22 · 80 · 443 | open | open (unchanged) |
+
+★ **`DEFAULT_FORWARD_POLICY` was set to `ACCEPT` BEFORE enabling, deliberately.** Docker already runs
+`FORWARD DROP` with its own `DOCKER-USER`/`DOCKER-FORWARD` ACCEPT rules, so ufw's own DROP fights it
+and breaks the bridge — and **the standard fix for that is `systemctl restart docker`, which would
+BOUNCE THE IB GATEWAY.** Preventing the problem beat having to fix it. INPUT protection — the whole
+point — is untouched.
+
+⚠⚠ **A SELF-TEST CANNOT VERIFY THIS AND MUST NOT BE READ AS IF IT COULD.** `ip route get
+178.104.170.58` returns **`dev lo`**: the kernel delivers traffic to our own public IP over loopback,
+which ufw accepts by design. So connecting to `178.104.170.58:4002` from the box succeeds whether or
+not the firewall works. The authoritative check is the RULESET (4002/4004/8087 appear in no ACCEPT
+rule; `-i lo` is the only unconditional accept; policy is DROP) plus **an external `nc` from his
+laptop**, which is the one step still outstanding.
+
+**VERIFIED AFTER THE CHANGE, while flat and with the venue shut (14h window):** all six loopback
+ports still open · a **fresh live IBKR read on clientId 11** succeeded (NLV $197,157) proving new
+broker connections still work · 6 established connections on 4002 · `core_health` age 0s HEALTHY ·
+all 4 containers up, container egress OK, the todo app returning 200 · sweep **OK overall** ·
+reconciler and router unaffected · 0 Telegrams sent.
+★ The gateway's `remove Client` log lines are **pre-existing housekeeping, not damage**: 486
+occurrences in the 30 min BEFORE the firewall against 60 in the 5 min after — checked against the
+baseline rather than reasoned about.
+
+**Restore point:** `/root/fw-backup/` holds `iptables`/`ip6tables` saves and the original
+`/etc/default/ufw`. **Revert is `ufw disable`** — instant, and it cannot be blocked by a bad rule.
+
+### ⛔ STILL OPEN on the security side
+1. **SSH is still password-authenticated, and root login is permitted.** The runbook order is
+   deliberate: a key exists in `/root/.ssh/authorized_keys`
+   (`SHA256:pCp3vqiLkBw/SIC5rwTdPAaHxfye7wPaRjgQLt1wDB4`) but **nothing has ever logged in with it** —
+   every accepted login is `Accepted password`. Disabling passwords before proving key auth would lock
+   the box. ⚠⚠ **AND THERE IS A TRAP:** `/etc/ssh/sshd_config.d/50-cloud-init.conf` sets
+   `PasswordAuthentication yes`, and in sshd config **the FIRST value wins** — so a `99-` drop-in is
+   silently ignored. Use `01-hardening.conf` and verify with `sshd -T`, never by reading the file.
+2. **No fail2ban.**
+3. **The dashboard has no authentication at all** — nginx `/v7/` carries no `auth_basic`, and by design
+   a **full flatten needs no PIN**, so anyone with the URL could close his positions. Needs his
+   decision: basic auth (recommended) vs an IP allow-list that a changing mobile IP would lock him out of.
+
+---
+
 ## 1i. ★★★ THE SAFETY LAYER AFTER THE 2026-09-26 AUDIT — and what is deliberately OFF
 
 **Every standing check and its cadence.** This is the answer to "how often do we reconcile".
