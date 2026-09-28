@@ -26,6 +26,7 @@ import nightly_supervisor as ns
 GUARDS_THAT_COST_MONEY_WHEN_DOWN = [
     "gazbot7-gateway-watch",      # blind windows measured in hours
     "gazbot7-step-away",          # an armed guard that is not running is not a guard
+    "gazbot7-turn-watch",         # ★2026-09-28 the instrument built to stop the over-trading
 ]
 HIS_OWN_CONTROLS = [
     "gazbot7-web",                # the BUY / SELL / CLAIM buttons

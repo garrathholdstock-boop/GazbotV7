@@ -263,6 +263,59 @@ question answerable, not answered.
 
 ---
 
+## 1k. ★★★ THE TURN CALL (2026-09-28) — and the tape study behind it
+
+**Operator:** *"i just want a way to know reasonably that a turn has happened."* Built:
+`gazbot7-turn-watch`, continuous, READ-ONLY.
+
+**THE RULE.** A **15×ATR retrace from the running extreme** → the move that was running has probably
+ended. Measured over 100 sessions of the rule AS SHIPPED (it flips direction at each confirmed turn):
+
+| retrace | fires/day | old direction never returned in 2h | giveback |
+|---|---|---|---|
+| 4×ATR | 32.4 | 42% | 42pt |
+| 7×ATR | 13.3 | 57% | 67pt |
+| 12×ATR | 5.3 | 73% | 107pt |
+| **15×ATR** | **3.6** | **77%** | **123pt** |
+| 20×ATR | 2.0 | 84% | 160pt |
+
+**15 is the knee** — it matches the **3.1 real legs a day** and costs 123pt of a **298pt median leg**.
+
+⚠⚠⚠ **ITS FIRST CUT CLAIMED "7×ATR, 70%, 2.3/day" AND ALL THREE WERE WRONG** — measured on a study
+that tracked retraces from a running extreme **without ever flipping direction**, a much rarer event
+than the detector implements. **The test asserting the claimed RATE against real tape caught it:** 23
+fires on 09-28 against a claimed 2.3. A measurement of a rule you did not ship is not a measurement.
+⚠ `TURN_RETRACE_ATR` may not be changed without a measured row in `turn_watch.RELIABILITY`; a test
+enforces it.
+
+### THE TAPE STUDY (100 sessions, 2026-05-04..09-18)
+- **3.1 legs/session**, 315 legs. 68 of 100 days had **≤3**. Median leg **298pt over 266min**;
+  IQR 180–454pt; max 1,644pt.
+- ★★★ **HIS OWN BOOK, 168 manual entries, by hold time:** under 15min **−$1,812** over 67 · 15–60min
+  +$717 over 64 · **1–4h +$2,590 over 30 (+$86/entry)** · over 4h **−$5,193 over 7**. His median hold
+  is **21min against a 266min median leg** — 6% of a leg's life. The target zone is 1–4 hours, which
+  is the median leg's own life.
+- **2026-09-28, the session that prompted this:** 23 entries, −$1,882.50. 19 **with** the prevailing
+  line made **+$1,010**; **4 against it lost −$2,892.50** (4/4 losers, three within minutes of a
+  turn). Remove those four and the day is +$1,010.
+- ⚠ **CVD READS INVERTED.** At a turn it is strongly one-sided in the direction that is **ENDING**
+  (agreed with the new direction at only **4 of 26** turns) — a climax, not a confirmation. Useful as
+  a brake. ⚠ `aggressor` lives only in `ticks`, kept **5 days**: ~6 days of it exist and there will
+  never be more history, so all CVD numbers rest on 4 sessions.
+
+### ⚠⚠ WHAT WAS **NOT** ESTABLISHED, because three attempts produced hindsight numbers
+"Exit within 20% of the peak" **cannot be simulated causally** — the peak is only 20% away in
+retrospect. Reading it from the future gives a CEILING (**+$1,782/day at 1 lot across all 315 legs**;
+an earlier variant returned **866 winners from 866 trades**, which is how it was caught). Turning it
+into a rule makes it a trailing stop, which clips winners at +30pt while losers run to −131pt
+(**+$20/day**). The honest bracket — alert entry, fixed target from the leg distribution, $200 clip —
+is **+$19/day at 1 lot** (180pt target) and at 4 lots is **unmeasurable on paper**: a $200 clip is
+**25pt**, smaller than the ~30pt the paper engine fabricates on multi-lot fills (§1d).
+★ So: **the turn detector is a measurement; the exit is not.** Same conclusion as
+[[claiming-cannot-be-backtested]] — 119 failed calibrations, and three more here.
+
+---
+
 ## 1j. ★★★ THE BOX IS FIREWALLED (2026-09-27) — and what was exposed until then
 
 **★★★ THE IB GATEWAY API WAS LISTENING ON THE PUBLIC INTERNET.** `*:4002`, bound by the gateway's java

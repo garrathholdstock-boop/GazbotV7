@@ -10,6 +10,53 @@
 
 ---
 
+## 2026-09-28 (Mon) — THE TURN CALL, AND THREE HINDSIGHT NUMBERS ON THE WAY TO IT
+
+**★★★ HE ASKED FOR ONE THING AND WAS RIGHT ABOUT IT:** *"i just want a way to know reasonably that a
+turn has happened. and dont tell me its not presictable. you jusy said theres a pattern. if fheres 3.2
+a day. then theres a time threshold."* There is a threshold. It is a **RETRACE** threshold, not a time
+one: **15×ATR from the running extreme, 77% over 100 sessions, 3.6 fires a session.** Shipped as
+`gazbot7-turn-watch`. His time intuition was half right — age barely moves that number (67%→71%) but
+strongly affects **pinpointing the top** (a 2×ATR pullback is right 5% on a fresh leg, **21% on a
+four-hour-old one**).
+
+**⚠⚠⚠ AND THE FIRST CUT OF THE INSTRUMENT SHIPPED THREE WRONG NUMBERS — "7×ATR, 70%, 2.3/day".** They
+came from a study that tracked retraces from a running extreme **without ever flipping direction**,
+which is a far rarer event than the detector actually implements. **What caught it was the test that
+asserts the CLAIMED RATE against real tape** — 23 fires on 09-28 against a claimed 2.3. The only
+reason it did not go out is that the claim was written where a test could read it.
+
+**★★★ THE STUDY: 3.1 LEGS A DAY, MEDIAN 298pt OVER 266 MINUTES.** 315 legs / 100 sessions; 68 of 100
+days had ≤3. He said "there usually arent many" and he was right.
+★★ **And his own book already proved his thesis without any model:** 168 manual entries by hold time —
+under 15min **−$1,812 over 67**, **1–4h +$2,590 over 30 (+$86/entry)**, over 4h −$5,193 over 7. **His
+median hold is 21 minutes against a 266-minute median leg.**
+
+**MONDAY ITSELF: 23 entries, −$1,882.50.** 19 **with** the prevailing line made **+$1,010**; **4
+against it lost −$2,892.50** — four for four, three within minutes of a turn. Remove those four and
+the day is +$1,010.
+
+**⚠⚠ THREE HINDSIGHT NUMBERS, ALL MINE, ALL CAUGHT BY THE RESULT LOOKING TOO GOOD:**
+- a P&L model that read each leg's extreme from the future → **866 winners from 866 trades**
+- a "manual exit at 20% of peak" that broke on micro-peaks → median hold **5 min**, median peak **8pt**
+- the same without the break → **+$1,287/day at 1 lot, 98 winning sessions from 100**
+★ The lesson is not "be more careful"; it is that **"exit within 20% of the peak" has no causal
+implementation** — read the peak and you have a ceiling, make it a rule and you have a trailing stop.
+Same wall as [[claiming-cannot-be-backtested]], which says in terms not to run a 120th calibration. I
+ran three.
+
+**⚠ CVD READS INVERTED, and this replicates the desk's own 09-24 climax finding at leg scale.** At a
+turn CVD is violently one-sided in the direction that is **ENDING** (agreed with the new direction at
+**4 of 26** turns; −3,401 into Monday's low, +10,981 at the 16:27 high). Useful as a brake, never as a
+green light. ⚠ `aggressor` lives only in `ticks`, kept 5 days — ~6 days exist, ever.
+
+**ALSO:** the supervisor gained the new watcher and its append-files; and a real residual weekend
+fault was fixed — `nightly-review` is Mon–Fri, so on a Monday evening its last run is legitimately
+~72h old and a 30h window faulted every week. `timer_is_dormant` could not save that one (the next
+elapse is minutes away, so the timer IS due) — the WINDOW was wrong, now 80h.
+
+---
+
 ## 2026-09-27 (Sun) — THE BROKER API WAS ON THE PUBLIC INTERNET. IT IS NOT NOW.
 
 **★★★ HE ASKED FOR SSH-KEY STEPS. SSH WAS THE THIRD MOST URGENT THING ON THE BOX.** The audit that

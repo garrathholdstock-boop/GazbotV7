@@ -78,6 +78,9 @@ REQUIRED_SERVICES = [
     "gazbot7-tgbot",               # phone control
     # ★ his eyes
     "gazbot7-rider-peak-watch", "gazbot7-leg-watch", "gazbot7-breadth-watch",
+    # ★2026-09-28 the turn call — built to stop the over-trading. If it is down he is back to
+    # guessing where a leg ended, which is where the 23-entry session came from.
+    "gazbot7-turn-watch",
 ]
 
 # (unit, max hours since last fire). Only frequent timers — a weekly one has not "failed" by not
@@ -107,7 +110,11 @@ TIMER_FRESHNESS = {
     "gazbot7-overnight-allclear.timer": 30.0, # daily 06:05 Paris — did the supervisor run
     "gazbot7-deadman.timer": 0.5,             # every 5min — the off-box heartbeat
 }
-JOB_MAX_AGE_H = {"sweep": 6, "hour-watch": 26, "ledger-review": 6, "nightly-review": 30}
+# ⚠2026-09-28 A WEEKDAY-ONLY JOB CANNOT HAVE A WINDOW SHORTER THAN A WEEKEND. nightly-review runs
+# Mon-Fri 22:43, so on a Monday evening its last run is legitimately ~72h old and a 30h window
+# faulted every Monday. `timer_is_dormant` does not save this one: by then the next elapse is
+# minutes away, so the timer is genuinely due — it is the WINDOW that was wrong, not the schedule.
+JOB_MAX_AGE_H = {"sweep": 6, "hour-watch": 26, "ledger-review": 6, "nightly-review": 80}
 
 
 def sh(*cmd: str, timeout: int = 20) -> str:
@@ -317,6 +324,8 @@ def check() -> tuple[list[str], list[str], dict]:
         ("router_headless.log", "root"),         # gazbot7-router-tick
         ("router_trial_log.txt", "root"),
         ("operator_reads.jsonl", "root"),        # gazbot7-capture-read-*
+        ("turn_watch.log", "root"),              # gazbot7-turn-watch
+        ("turn_watch.jsonl", "root"),
     )
     bad_owner = []
     try:

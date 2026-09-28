@@ -1,0 +1,43 @@
+[Unit]
+# GAZBOT V7 — THE TURN CALL (2026-09-28).
+# ★★★ Operator: "i just want a way to know reasonably that a turn has happened." He was right that it
+# was answerable and right that a threshold existed. A 15xATR retrace from the running extreme means
+# the old direction did NOT come back within 2h in 77% of 100 measured sessions, and it fires ~3.6
+# times a session — the same order as the ~3.1 real legs a day.
+# ⚠⚠⚠ READ-ONLY. No order path, no switch file, no request file — asserted against the SOURCE by
+# tests/test_turn_watch.py, the same guard leg-watch and rider-peak-watch carry.
+# ⚠⚠ IT IS A DETECTION, NOT A FORECAST. It says the move that WAS running has probably stopped; it
+# says nothing about how far the new direction goes. 23% of the time the old direction resumes and
+# every message says so. tunnel_watch shipped a 1.75x claim that did not replicate and ran nine hours
+# on it, so every number here travels inside the alert where a test can read it.
+# ⚠ THE FIRST CUT CLAIMED "7xATR, 70%, 2.3/day" AND ALL THREE WERE WRONG — measured on a rule that
+# never flipped direction. The test that asserts the claimed RATE against real tape caught it (23
+# fires on 09-28 against a claimed 2.3). Do not change TURN_RETRACE_ATR without a measured row in
+# turn_watch.RELIABILITY; a test fails if you do.
+Description=GAZBOT V7 — TURN CALL (the move that was running has probably ended)
+After=network-online.target gazbot7-md.service
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+Environment=GAZBOT7_CAPTURE=/home/alphabot/gazbot7/data/capture.db
+Environment=TURN_SYMBOL=MNQ
+Environment=TURN_POLL_S=30
+# ★ THE PARAMETER, and the curve it sits on (100 sessions, the shipped flipping rule):
+#   4xATR 32.4/day 42% · 5x 23.1 47% · 7x 13.3 57% · 10x 7.3 66% · 12x 5.3 73% · 15x 3.6 77% · 20x 2.0 84%
+# 15 is the knee: it matches the ~3.1 real legs a day at 77%, and costs 123pt of a 298pt median leg.
+Environment=TURN_RETRACE_ATR=15.0
+Environment=TURN_STALE_S=300
+Environment=TURN_WARM_MIN=600
+WorkingDirectory=/home/alphabot/gazbot7
+# ⚠ 400M, not 256M: gazbot7-tunnel-watch was OOM-killed FOUR times at exactly 256M while systemd
+# still read ActiveState=active. A watcher that dies quietly is worse than one that never ran.
+MemoryMax=400M
+Restart=always
+RestartSec=20
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/turn_watch.py
+
+[Install]
+WantedBy=multi-user.target
