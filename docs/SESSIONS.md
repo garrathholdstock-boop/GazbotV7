@@ -10,6 +10,65 @@
 
 ---
 
+## 2026-09-29 (Tue) — ★★★ SIX FOR SIX. +$1,788 THE DAY AFTER −$1,882, ON THE SAME TAPE.
+
+**★★★ THE FIRST CLEAN FORWARD EVIDENCE FOR THE PATIENCE THESIS, and it is his, not a model's.**
+
+| entry | held | | P&L |
+|---|---:|---|---:|
+| 06:16 LONG @30485.25 | 32min | | **+$479.50** |
+| 07:24 LONG @30572.00 | 76min | | **+$356.00** |
+| 08:52 SHORT @30598.00 | 24min | | +$260.00 |
+| 09:27 SHORT @30549.25 | **5min** | | **+$40.00** |
+| 09:33 LONG @30552.44 | 33min | | +$324.50 |
+| 10:08 LONG @30597.25 | 50min | | +$328.00 |
+| **6 entries** | **median 32min** | **6/6 winners** | **+$1,788.00** |
+
+**Monday: 23 entries, −$1,882.50, median hold 17min. Tuesday: 6 entries, +$1,788.00, median 32min.**
+A **$3,670 swing** on the same instrument in the same week. ★ And the row that proves the mechanism is
+the 5-minute one: **it is the smallest winner by a factor of eight.** The only entry he cut early is
+the only one that made nothing.
+
+**★★ HIS RULE, IN HIS WORDS:** *"once its run a lot and cvd and peice are birh lushinf hard right ill
+claim. and wait for the turn."* Claim when both gauges pin right (the CLIMAX), then re-enter the other
+way when CVD rolls off the extreme. He ran it six times and it worked six times.
+⚠ He also named the failure honestly at 09:16: *"it dropped but i lost my neeve as cvd was still 95 and
+i claimed 275... wasnt patient. meed to understand how cvd moces better."* That question produced the
+study below, and the study says his nerve was the problem and the gauge was not.
+
+**★★★ THE CVD STUDY — 5,963 gauge-minutes, 6 days, the only tick history that will ever exist.**
+Replicated `web.cvd_meter` exactly (session-cumulative level, rolling 180-min scale) rather than
+re-deriving it.
+- **THE GAUGE IS PINNED >90 ONLY 11% OF THE TIME** (and <10 for 24% — the tape was net-sold this week,
+  so "pinned right" is the rarer state). When he sees it, he is reading something real.
+- ★★★ **A PIN LASTS A MEDIAN OF THREE MINUTES.** 93 high pins, longest 45min. **So a CVD reading is a
+  TICK, not a state you can hold a position against** — and the re-pins that broke his nerve (90 → 94
+  → 100 inside 20 minutes) are simply what this gauge does.
+- ★★★ **AND THE RE-PIN CARRIES ALMOST NO INFORMATION.** His trigger (gauge ≥95, then <90) fired 31
+  times: it **snapped back above 95 in 65% of them — and price still fell a median 42.1pt**, against
+  51.2pt when it persisted. **Persistence is nearly irrelevant to whether price falls.** The thing he
+  reacted to is the majority case and costs ~9 points of expectation.
+  → **The operating rule: use the gauge to ENTER, then stop looking at it.**
+- ⚠ n=31 roll-offs. Thin. The 3-minute pin life (n=93) is the solid half.
+
+**⚠⚠ AND I WAS WRONG MID-SESSION, IN THE LEAN, WHICH IS THE COSTLY DIRECTION.** While he was short I
+read "price at the bottom of its range, CVD at the top" as absorption turning against him. Measured:
+that state is 2.3% of the tape and price is **−3.5pt at 30min and −11.5pt at 60min**, rising in only
+45% — mildly FAVOURABLE to the short. I reasoned from the mechanism instead of from the six days of
+data sitting on the box, and said so once the study contradicted me.
+
+**★ AND THE POSITION-CHECK EARNED ITS KEEP.** He described claiming; the rider state read
+`closed=False venue_net=-4.0`. Checking IBKR rather than his description showed a **new** short at
+30549.25 — the +$260 had closed the 30598 lot and he had re-entered. "IBKR IS THE TRUTH" is as much
+about the operator's own account of his position as about the books.
+
+**STATE AT WRITE-UP:** flat on the six, then claimed the top and re-entered **SHORT 4 @ 30649.25** on a
+CVD roll-off to 91 (PX 88), with the up leg **332min old** against a 266min median. `turn_watch` still
+tracks UP and fires at 30494.86 — 155pt below — so he is again ~150pt ahead of his own instrument,
+which is the trade the alert cannot make.
+
+---
+
 ## 2026-09-28 (Mon) — THE TURN CALL, AND THREE HINDSIGHT NUMBERS ON THE WAY TO IT
 
 **★★★ HE ASKED FOR ONE THING AND WAS RIGHT ABOUT IT:** *"i just want a way to know reasonably that a
