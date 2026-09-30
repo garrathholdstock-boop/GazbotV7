@@ -162,7 +162,11 @@ def test_the_dot_reuses_the_flags_own_positions():
     surfaces answering one question differently is this desk's $330 lesson."""
     js = open(JS, encoding="utf-8").read()
     fn = js.split("function ranges()", 1)[1].split("})();", 1)[0]
-    assert "cv.px_pos" in fn and "cv.cvd_pos" in fn
+    # ★2026-09-30 the CVD gauge now places from `press_pos`, normalised SERVER-SIDE for exactly the
+    # reason this test exists. The invariant is unchanged — every marker position comes from the
+    # server — only the field name moved. `cvd_pos` still exists but is read by the divergence pair
+    # in a different function, so asserting it HERE would pin a location rather than the property.
+    assert "cv.px_pos" in fn and "cv.press_pos" in fn
     # ⚠ SCOPE THE BAN TO THE MARKER PLACEMENT. The first version of this test forbade ALL division
     # in the function, and then failed on the ZERO TICK — a genuinely different quantity (where 0
     # falls on the scale) that the server does not send and which MUST be derived here. A test that
@@ -204,14 +208,20 @@ def test_the_cvd_gauge_marks_where_zero_falls():
     html = open(HTML, encoding="utf-8").read()
     assert 'id="rg-cv-zero"' in html
     fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
-    assert "(0 - lo) / (hi - lo)" in fn
+    # ★2026-09-30 the tick is still REQUIRED — his misreading is the reason it exists — but neutral
+    # is now the midpoint by construction, so it is no longer computed from a drifting lo/hi. The
+    # invariant kept is "neutral is marked"; what changed is that it can never move.
+    assert 'z.style.left = "50%"' in fn
 
 
 def test_the_zero_tick_hides_when_zero_is_off_the_scale():
     """⚠ A one-sided session (CVD never crosses zero) would otherwise pin the tick to an end and
     imply a neutral point that is not on the scale at all."""
     fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
-    assert "lo <= 0 && hi >= 0" in fn and "z.hidden" in fn
+    # ★2026-09-30 zero can no longer BE off the scale (a share of volume is bounded ±PRESS_SCALE and
+    # symmetric), so the hiding branch is gone. The tick is now unconditionally shown, which is the
+    # stronger property: it is always on the scale and always at the same place.
+    assert "z.hidden = false" in fn
 
 
 def test_the_cvd_track_is_heat_coded_by_SIDE_not_by_position():
@@ -221,22 +231,52 @@ def test_the_cvd_track_is_heat_coded_by_SIDE_not_by_position():
     side?" — zero sat at 39% of the range that day, so the midpoint is not neutral."""
     fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
     assert "linear-gradient(to right" in fn
-    assert "(0 - lo) / (hi - lo)" in fn, "the split must be computed at zero"
-    assert "50%" not in fn.split("linear-gradient", 1)[1][:200], "the split is hard-coded to mid"
+    # ★2026-09-30 the split is now AT 50% by construction, because the scale is symmetric. The
+    # original assertion (computed from lo/hi, explicitly NOT 50%) was right for a gauge whose
+    # neutral drifted; on a share scale neutral IS the midpoint and hard-coding it is the truth.
+    # ⚠ SCOPED TO THE CVD TRACK. `ranges()` draws TWO gradients — the price track's comes first, so
+    # splitting on the first "linear-gradient" tested the wrong one. That is the same wrong-occurrence
+    # slicing mistake made twice already today; name the block, do not count characters.
+    cvd_block = fn.split("const tk = z && z.parentNode", 1)[1]
+    assert "linear-gradient(to right" in cvd_block
+    assert "50%" in cvd_block.split("linear-gradient", 1)[1][:200], (
+        "on a symmetric scale the CVD split is the midpoint")
 
 
-def test_the_dot_colour_follows_the_SIGN_of_cvd():
-    """⚠ Sign and range-position DISAGREE whenever the range is lopsided — on 2026-09-24 CVD was
-    +1,137 (buyers ahead) while sitting at 45% of its range. He asked which SIDE we are on, and
-    that is the sign."""
-    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
-    assert "cv.cvd > 0" in fn and "cv.cvd < 0" in fn
+def test_the_dot_colour_follows_the_SIGN_of_the_SPAN_IT_SHOWS():
+    """He asked which SIDE we are on, and that is a SIGN, not a range-position. That intent is
+    unchanged. What changed on 2026-09-30 is the SPAN.
+
+    ⚠ The gauge now shows net aggression over the last 5 minutes (the rescale to % of volume). If
+    the dot kept its colour from the session-cumulative level, the MARKER and its COLOUR would
+    describe different spans — press +8% would put the dot right of neutral while a -16,000
+    cumulative painted it red. That contradiction is the same class of confusion the rescale exists
+    to remove.
+    ★ The session-cumulative side is NOT lost: the CVD level readout itself is still classed
+    pos/neg by the sign of `cvd`, so window-side and session-side are both visible, each on the
+    figure it actually describes.
+    """
+    js = open(JS, encoding="utf-8").read()
+    fn = js.split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert "cv.press > 0" in fn and "cv.press < 0" in fn, "dot must be coloured by what it shows"
+    assert 'cvEl.className' in js and 'cv.cvd > 0 ? "pos"' in js, (
+        "the session-cumulative side must still be visible on the level readout")
 
 
-def test_a_one_sided_session_colours_the_whole_track():
-    """⚠ Drawing a split at a zero that is not on the scale would be a lie about where neutral is."""
-    fn = open(JS, encoding="utf-8").read().split("function ranges()", 1)[1].split("})();", 1)[0]
-    assert "lo > 0 ?" in fn
+def test_zero_can_no_longer_fall_OFF_the_scale():
+    """★ OBSOLETE BY CONSTRUCTION, 2026-09-30 — and that is the improvement, not a lost check.
+
+    This used to assert a fallback: when the rolling CVD range was entirely one side of zero, the
+    whole track took that colour, because "drawing a split at a zero that is not on the scale would
+    be a lie about where neutral is." That was the right patch for a gauge whose endpoints moved.
+    The gauge is now a SHARE OF VOLUME on a fixed symmetric scale, so zero is the midpoint always
+    and the off-scale case cannot arise. The branch is gone; this asserts the property that replaced
+    it, so nobody reintroduces a moving neutral.
+    """
+    js = open(JS, encoding="utf-8").read()
+    fn = js.split("function ranges()", 1)[1].split("})();", 1)[0]
+    assert 'z.style.left = "50%"' in fn, "neutral must be fixed at the midpoint"
+    assert "lo > 0 ?" not in fn, "the off-scale fallback should be gone, not merely unused"
 
 
 def test_the_price_track_is_tinted_at_VWAP_not_at_the_midpoint():

@@ -564,6 +564,13 @@ def adverse_meter(data_dir, cap_path) -> dict:
 # one it saw, which is typically a single second of tape.
 # ⚠ ThreadingHTTPServer — concurrent requests WOULD double-count an increment without the lock.
 CVD_WINDOW_MIN = int(os.environ.get("CVD_WINDOW_MIN", "180"))   # rolling 3h — see the note below
+# ★2026-09-30 PRESSURE — net aggression as a SHARE OF VOLUME over a short window, i.e. "right now".
+# 5 minutes because he asked for now, not for the session. Scale and band are the MEASURED 99th
+# percentile and 90% band of |press| over 1,356 five-minute buckets — not invented, and not to be
+# re-picked without re-measuring.
+PRESS_WINDOW_MIN = int(os.environ.get("PRESS_WINDOW_MIN", "5"))
+PRESS_SCALE = 20.0
+PRESS_BAND = 12.4
 _CVD_LOCK = threading.Lock()
 _CVD: dict = {}
 
@@ -642,6 +649,52 @@ def cvd_meter(cap_path) -> dict:
             c.close()
             out["cvd"] = int(st["cvd"])
             out["window_min"] = CVD_WINDOW_MIN
+            # ★★★2026-09-30 THE GAUGE IS NOW NET AGGRESSION AS A SHARE OF VOLUME, not a position in
+            # a rolling range. Operator: "rescale the cvd gauge to % of volume."
+            # ⚠⚠ WHY THE OLD SCALE MISLED, in his words: "cvd is hard left and tape has been
+            # grinding north". Both true — a position-in-range gauge PINS FOR AS LONG AS THE LEVEL
+            # KEEPS TRENDING, because each new minute sets a new 3-hour extreme. So pinned-left meant
+            # "sellers are STILL net-aggressing" and he was reading it as "sellers are EXHAUSTED".
+            # Measured over 49 sessions a left pin is a coin: +1.0pt over the next hour against a
+            # +1.8pt baseline, fell 49% vs 48%.
+            # ★ AND THE LEVEL IS A THIN RESIDUAL: on 2026-09-30 the cumulative reached -16,301 on
+            # ~2.9M contracts — 0.5% of volume. A 3-hour range of a 0.5% residual is mostly a range
+            # of noise, and the old gauge gave it a confident 0-100 scale.
+            # ★★ PRESSURE fixes the two faults that matter: volume-NORMALISED, so 04:00 on 30k
+            # compares with 14:00 on 400k (his 04:47 read framed a morning and was wrong by -$120);
+            # and it CANNOT PIN, being a share of a quantity rather than a position on a moving scale.
+            # ⚠ STILL WEAK, and the page must not imply otherwise: net aggression vs price move in
+            # the same 5 minutes is r=+0.36, about 13% of the variance. Volume is the strong one
+            # (r=+0.80 with distance travelled) and he already has it as PULSE/RVOL.
+            # ⚠ cvd_pos IS STILL COMPUTED BELOW — it feeds the divergence pair he audits by eye, and
+            # scripts/gap_log.py computes its own positions independently, so the pre-registered gap
+            # study (data/prereg_gap_rolling.json) is untouched by this change.
+            try:
+                pw0 = (int(now.timestamp()) - PRESS_WINDOW_MIN * 60) * 1000
+                pr_ = c.execute(
+                    "SELECT SUM(CASE WHEN aggressor='buy' THEN size "
+                    "              WHEN aggressor='sell' THEN -size ELSE 0 END) net, "
+                    "       SUM(size) vol FROM ticks WHERE symbol='MNQ' AND ts_ms>?",
+                    (pw0,)).fetchone()
+                if pr_ and pr_["vol"]:
+                    out["press"] = round(100.0 * (pr_["net"] or 0) / pr_["vol"], 1)
+                    out["press_vol"] = int(pr_["vol"])
+                else:
+                    out["press"], out["press_vol"] = None, 0
+            except Exception:
+                out["press"], out["press_vol"] = None, None
+            out["press_win_min"] = PRESS_WINDOW_MIN
+            out["press_scale"] = PRESS_SCALE
+            out["press_band"] = PRESS_BAND
+            # ★★2026-09-30 THE SERVER NORMALISES, THE CLIENT ONLY PLACES — caught by the existing
+            # test_the_dot_reuses_the_flags_own_positions, which I violated. Its invariant: if the
+            # gauge derives its own marker position, the gauge and any flag reading the same figure
+            # can disagree and nothing on the page says which is right. That is the $330 lesson about
+            # two surfaces answering one question differently, and it applies to press exactly as it
+            # applied to cvd_pos. So the 0..1 position is computed here, once.
+            out["press_pos"] = (None if out.get("press") is None else
+                                round(min(1.0, max(0.0,
+                                     (out["press"] + PRESS_SCALE) / (2 * PRESS_SCALE))), 3))
             vals = [x[1] for x in st["series"]] or [st["cvd"]]
             out["cvd_hi"], out["cvd_lo"] = int(max(vals)), int(min(vals))
             st["hi"], st["lo"] = max(vals), min(vals)

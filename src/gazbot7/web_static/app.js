@@ -993,6 +993,19 @@
         : (cv.cvd > 0 ? "+" : "") + (Math.abs(cv.cvd) >= 1000
           ? (cv.cvd / 1000).toFixed(1) + "k" : String(cv.cvd));
       cvEl.className = cv.cvd == null ? "" : (cv.cvd > 0 ? "pos" : (cv.cvd < 0 ? "neg" : ""));
+      /* ★ AND SAY THE PRESSURE IN WORDS, with the volume it rests on. A 5-minute reading on 2,000
+         contracts is not the same statement as one on 40,000, and the old gauge gave both the same
+         confident 0-100 dot. ⚠ r=+0.36 against price move in the same 5 minutes — real and weak, so
+         the tooltip says so rather than letting the dot imply more. */
+      if (cv.press != null) {
+        cvEl.title = "CVD level " + cv.cvd + " cumulative since 22:00Z.  GAUGE = net aggression as "
+          + "% of volume over the last " + (cv.press_win_min || 5) + "min: "
+          + (cv.press > 0 ? "+" : "") + cv.press + "% on "
+          + (cv.press_vol || 0).toLocaleString() + " contracts."
+          + (Math.abs(cv.press) > (cv.press_band || 12.4)
+              ? "  Outside the usual 90% band (±" + (cv.press_band || 12.4) + "%)." : "")
+          + "  ⚠ weak: r=+0.36 vs price move in the same 5 minutes. Volume/PULSE is the strong one.";
+      }
     }
     if (dvEl) {
       /* ★★★2026-09-24 SHOW THE TWO NUMBERS, NOT THE VERDICT. Operator: "how do u know from what
@@ -1075,48 +1088,62 @@
       const pdot = $("rg-px-dot");
       if (pdot) pdot.style.background = (vw == null || se.last == null) ? "var(--txt)"
         : (se.last > vw ? "#4ade80" : (se.last < vw ? "#ef6a5c" : "var(--txt)"));
-      put("rg-cv-lo", "rg-cv-hi", "rg-cv-dot", cv.cvd_lo, cv.cvd_hi, cv.cvd_pos,
-          (x) => (x > 0 ? "+" : "") + Math.round(x).toLocaleString());
+      /* ★★★2026-09-30 THE CVD GAUGE IS NOW NET AGGRESSION AS A % OF VOLUME. He asked for it:
+         "rescale the cvd gauge to % of volume."
+         ⚠⚠ THE OLD SCALE WAS A POSITION IN A ROLLING 3h RANGE, AND IT PINNED. While the cumulative
+         level keeps trending, every new minute sets a new extreme, so the dot sat hard left for
+         hours — "cvd is hard left and tape has been grinding north". Both readings were correct;
+         pinned-left meant "sellers are STILL net-aggressing" and it reads as "sellers are spent".
+         Measured over 49 sessions, a left pin is a coin (+1.0pt/hr vs a +1.8pt baseline).
+         ★ NOW IT IS A SHARE OF A QUANTITY, so it CANNOT pin, and it is volume-normalised: -3% at
+         04:00 on 30k contracts means what -3% means at 14:00 on 400k.
+         ⚠ ENDPOINTS ARE THE SCALE ITSELF (-20% / +20%) because a share has fixed bounds — unlike
+         the old gauge, whose endpoints moved and once printed SESSION numbers under a 3-HOUR dot.
+         ⚠ The scale is the measured 99th percentile of |press|; the 12.4% band is the 90% band. */
+      {
+        const pz = cv.press, sc = cv.press_scale || 20;
+        setTxt("rg-cv-lo", "-" + sc + "%");
+        setTxt("rg-cv-hi", "+" + sc + "%");
+        /* ⚠⚠ THE POSITION IS THE SERVER'S, NEVER DERIVED HERE. The first cut of this rescale
+           computed (press + scale) / (2 * scale) in the browser and broke the standing invariant
+           that test_the_dot_reuses_the_flags_own_positions exists to protect: a client-derived
+           marker can disagree with any server-side figure reading the same quantity, and nothing on
+           the page would say which was right. */
+        const cd = $("rg-cv-dot");
+        if (cd) cd.style.left = ((cv.press_pos == null ? 0.5 : cv.press_pos) * 100) + "%";
+      }
       /* ★★★ WHERE ZERO FALLS ON THAT SCALE. The range is anchored to TODAY'S extremes, so zero is
          NOT the midpoint: on 2026-09-24 it sat at 39% against -8,072/+12,469. He read 43% as "back
          on the sellers side" within a minute of seeing the gauge, and he was reading it exactly as
          the design invited. Dot RIGHT of the tick = buyers cumulatively ahead. Dot LEFT = sellers.
          ⚠ Hidden when zero is outside the range — a one-sided session would otherwise pin the tick
          to an end and imply a neutral point that is not on the scale at all. */
+      /* ★★★2026-09-30 ZERO IS NOW ALWAYS THE MIDPOINT, and that is the point of the rescale.
+         The zero TICK existed because the old range was anchored to today's extremes, so neutral
+         drifted — it sat at 39% on 09-24 and he read 43% as "back on the sellers side", exactly as
+         the design invited. On a symmetric ±share scale neutral is 50% by construction, so the tick
+         is always visible, never moves, and cannot mislead. The whole class of bug is gone rather
+         than patched.
+         ⚠ The track still splits AT ZERO — red left is sellers' territory, green right is buyers' —
+         which was his ask ("heat map code them to show buy or sell"). Faint 0.20 alpha: this is a
+         3px background behind a marker that must stay the most legible thing on the strip. */
       const z = $("rg-cv-zero");
-      const lo = cv.cvd_lo, hi = cv.cvd_hi;
-      const inside = lo != null && hi != null && hi > lo && lo <= 0 && hi >= 0;
       if (z) {
-        z.hidden = !inside;
-        if (inside) z.style.left = ((0 - lo) / (hi - lo)) * 100 + "%";
+        z.hidden = false;
+        z.style.left = "50%";
       }
-      /* ★★★2026-09-24 HEAT THE CVD TRACK BY SIDE — his ask: "heat map code them to show buy or
-         sell? the cvd one at least."
-         The track splits AT ZERO, not at the midpoint: red left of zero is sellers' territory,
-         green right of it is buyers'. So the gauge answers "which side are we on" by colour and
-         "how far into today's swing" by position, and the two no longer have to be held in the
-         head at once — which is the confusion that produced "does 43% mean its back on the
-         sellers side?" (it did not; zero sat at 39%).
-         ⚠ FAINT (0.20/0.16 alpha). This is a 3px background behind a marker that must stay the
-         most legible thing on the strip — a saturated track would read as the data.
-         ⚠ When zero is off the scale the WHOLE track takes the one side it is on. A split drawn
-         at a boundary that is not on the scale would be a lie about where neutral is.
-         ⚠ The DOT takes its colour from the SIGN of cvd, never from its position in the range —
-         those disagree whenever the range is lopsided, and the sign is the thing he asked for. */
       const tk = z && z.parentNode;
       if (tk) {
-        if (inside) {
-          const zp = ((0 - lo) / (hi - lo)) * 100;
-          tk.style.background =
-            "linear-gradient(to right, rgba(192,57,43,.20) 0%, rgba(192,57,43,.20) " + zp
-            + "%, rgba(31,111,67,.20) " + zp + "%, rgba(31,111,67,.20) 100%)";
-        } else if (lo != null && hi != null) {
-          tk.style.background = (lo > 0 ? "rgba(31,111,67,.16)" : "rgba(192,57,43,.16)");
-        }
+        tk.style.background =
+          "linear-gradient(to right, rgba(192,57,43,.20) 0%, rgba(192,57,43,.20) 50%,"
+          + " rgba(31,111,67,.20) 50%, rgba(31,111,67,.20) 100%)";
       }
       const cdot = $("rg-cv-dot");
-      if (cdot) cdot.style.background = cv.cvd == null ? "var(--txt)"
-        : (cv.cvd > 0 ? "#4ade80" : (cv.cvd < 0 ? "#ef6a5c" : "var(--txt)"));
+      /* ⚠ The DOT takes its colour from the SIGN OF THE PRESSURE now, not from the cumulative
+         level. The gauge shows the last 5 minutes; colouring it by a figure accumulated since
+         22:00Z would have the marker and its colour describing different spans. */
+      if (cdot) cdot.style.background = cv.press == null ? "var(--txt)"
+        : (cv.press > 0 ? "#4ade80" : (cv.press < 0 ? "#ef6a5c" : "var(--txt)"));
     })();
 
     /* ★★ POSITION AGE IS A GUARD, NOT A STAT. Amber past 3h, red past 8h — the buckets are

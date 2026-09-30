@@ -170,8 +170,14 @@ def cvd_15min(now_ts: int) -> float | None:
     turn, CVD is strongly one-sided in the direction that is ENDING — sellers at their most
     aggressive AT the low. So a large reading AGAINST the new direction is the ordinary case and
     mildly corroborating; it is not a confirmation of the new direction, and the alert says so.
-    ⚠ `aggressor` lives only in `ticks`, which the pruner keeps 5 DAYS. There are ~6 days of this in
-    existence and there never will be more history, which is why this is reported and not relied on.
+    ⚠⚠ 2026-09-30 CORRECTION — AN EARLIER VERSION OF THIS NOTE SAID "only ~6 days of aggressor exist
+    and there never will be more". THAT WAS WRONG. `prune_capture` keeps `ticks` for 5 days in the HOT
+    tier, but `tape_mirror` has been exporting the full table to the lake with `aggressor` intact all
+    along: 46 MNQ partitions from 2026-07-24, ~54M ticks, plus more on B2. The operator caught it —
+    "why are we pruning aggressor at 5 says? we have an endless data lake" — and he was right; I had
+    read the pruner and stopped there. This is still reported rather than relied on, but for the real
+    reason: net aggression explains ~13% of the variance in the same 5 minutes (r=+0.36), and at a
+    turn it is one-sided in the direction that is ENDING.
     ⚠ Values are lowercase ('buy'/'sell'/'neutral'). Comparing against uppercase returns exactly 0
     for every row and looks precisely like a clean null — it did, for a while.
     """
