@@ -827,8 +827,11 @@ seconds)**. With hysteresis, 30s→147 and 45s→83 (today's exact rate; `FLOW_W
 imbalance out of trades where nobody crossed the spread.
 
 ### ★ THE GAUGES ARE THE SURFACE HE ACTUALLY USES (2026-09-25)
-Two horizontal tracks under the strip — **PX** and **CVD** — each showing where the value sits
-between **TODAY'S ROLLING 3-HOUR** extremes, with the endpoints printed either side.
+Two horizontal tracks under the strip — **PX** and **CVD** — with the endpoints printed either side.
+⚠⚠⚠ **THEY NO LONGER WORK THE SAME WAY. 2026-09-30: the CVD track was RESCALED to a SHARE OF
+VOLUME** (§5d below) and is no longer a position in a range. **PX is unchanged** and everything in
+the rest of this section describes PX, plus the CVD track only as it stood until 2026-09-30.
+**PX** shows where price sits between **TODAY'S ROLLING 3-HOUR** extremes.
 ⚠⚠ **ROLLING, NOT SESSION-ANCHORED, AND THAT WAS A REAL FIX.** A session range spans up to 24h (so
 a US reading is taken against overnight ASIA extremes) and **it only ever GROWS**, so the gauge
 loses resolution as the day ages. 180 min is argued from mechanism — a full leg (median 43min)
@@ -841,7 +844,11 @@ minute. A gauge whose neutral point is invisible invites exactly that.
 ⚠ **THE INPUTS ARE ON SCREEN, NOT IN A TOOLTIP** — there is no hover on a phone, and a derived
 verdict whose workings cannot be inspected is unauditable.
 
-### ★★ HOW TO READ THE CVD RANGE — the LEVEL and the RANGE answer different questions (2026-09-25)
+### ⏹ HOW TO READ THE CVD RANGE — **SUPERSEDED 2026-09-30, KEPT FOR THE REASONING** (2026-09-25)
+> ⚠⚠ **THE GAUGE THIS DESCRIBES NO LONGER EXISTS** — the CVD track is now net aggression as a % of
+> volume (§5d). Kept because his question and the worked example below are the clearest statement of
+> *why* a cumulative level and a rolling window answer different questions, and because the CVD
+> **NUMBER** is still session-cumulative exactly as described here. Only the TRACK changed.
 Operator: *"if cvd ranges from −13,391 to −869. what is that telling me? sellers dominated all day?
 but the tape has risen a lot today. or is that just in the last 3 hours?"* — a question worth
 recording because the answer is not obvious from the design.
@@ -858,7 +865,13 @@ total **−6,636** — so sellers were net-aggressive throughout, *and* the rang
 3h). A negative level beside a risen tape is not a contradiction — the gauge only speaks about the
 last three hours, which is the entire point of the 09-25 anchor change.
 
-### ★★ THE FOUR GAUGE STATES — what the track colour plus the marker actually say
+### ⏹ THE FOUR GAUGE STATES — **RETIRED 2026-09-30** (the states fell out of a scale that is gone)
+> ⚠⚠⚠ **DO NOT READ THE CVD TRACK THIS WAY ANY MORE.** All four states below are consequences of a
+> range-position scale whose endpoints moved: an "ALL RED track with the marker hard right" is not a
+> picture the % -of-volume gauge can draw, because its endpoints are FIXED at ±20% and zero is always
+> the midpoint. Kept because the 09-24 16:40 example — price holding its highs while CVD drained,
+> then giving back 110 points — is still a real event worth knowing, and because it records that he
+> derived these himself, which is why the pinning fault was his to find.
 He worked this out himself and it is worth having written down, because **none of it was designed as
 a special case — it falls out of the rules**, and two of the four are the most informative pictures
 the gauge produces.
@@ -926,6 +939,66 @@ with the horizon IS the finding: there isn't a stable one yet.
 ★ `gazbot7-surge-log.timer` collects forward — **the only path**, since `ticks` prune at 5 days.
 
 ---
+
+## 5d. PRESSURE — THE CVD GAUGE IS NOW A SHARE OF VOLUME (2026-09-30)
+
+Operator: *"rescale the cvd gauge to % of volume."* He asked after two sessions of the gauge and the
+tape disagreeing, and he was right about the cause.
+
+**`press` = net aggression / total volume over the last 5 minutes**, rendered on a **FIXED ±20%**
+track with zero permanently at the midpoint.
+
+| | old (range position) | new (share of volume) |
+|---|---|---|
+| what it measures | where the cumulative level sits in a rolling 3h range | how one-sided the tape is **right now** |
+| endpoints | today's moving extremes | **FIXED −20% / +20%** |
+| zero | drifts (39% on 09-24) | **always 50%, by construction** |
+| can it pin? | **YES, for hours** | **no** — a share cannot pin |
+| comparable across the day? | no | **yes** — volume-normalised |
+
+### ⚠⚠ WHY THE OLD ONE MISLED, IN HIS WORDS
+*"cvd is hard left and tape has been grinding north since 22hr"* and *"the cvd range was so narrow it
+didnt mean much. it was sitting hard left a lot of the day and the tape kept rising"*.
+**Both readings were correct simultaneously.** A position-in-range gauge **pins for as long as the
+level keeps trending**, because every new minute sets a new 3-hour extreme. So hard-left meant
+*"sellers are STILL net-aggressing"* while he was reading it as *"sellers are exhausted"* — the
+gauge invited the inversion.
+★ **MEASURED, 49 sessions: a left pin is a coin.** +1.0pt over the following hour against a **+1.8pt
+unconditional baseline**, fell 49% of the time vs 48%. Median pin life 3 min (n=1,185).
+★ **AND THE LEVEL IS A THIN RESIDUAL:** on 2026-09-30 the cumulative reached **−16,301 on ~2.9M
+contracts = 0.5% of volume.** A 3-hour range of a 0.5% residual is largely a range of noise, and the
+old gauge gave it a confident 0–100 scale.
+
+### ★ THE SCALE IS MEASURED, NOT CHOSEN
+`PRESS_SCALE = 20.0` is the **99th percentile** of |press| and `PRESS_BAND = 12.4` the **90% band**,
+over **1,356 five-minute buckets**. ⚠ Re-picking either without re-measuring makes every reading on
+the track mean something different — the same class of error as `LEG_RETRACE_ATR`.
+
+### ⚠⚠⚠ IT IS WEAK, AND THE PAGE SAYS SO IN ITS OWN TOOLTIP
+Net aggression vs the price move **in the same 5 minutes is r=+0.36** — ~13% of the variance, and
+that is CONTEMPORANEOUS, not predictive. **VOLUME is the strong one: r=+0.80** against distance
+travelled, and he already has it as PULSE/RVOL. The other level-2 readings measured out at
+**r=+0.07** (book imbalance) and **r=+0.12 and BACKWARDS** (depth vs range). ⚠ So this is the most
+accurate picture of *right now*, which is what he asked for — **it is not a forecast**, and the
+tooltip states the volume the reading rests on because ±3% on 2,000 contracts is not the statement
+±3% on 40,000 is.
+
+### ⚠ WHAT WAS DEPRECATELY KEPT
+`cvd` (the session-cumulative level) and `cvd_pos` **are still computed and still rendered** — the
+level is in the strip text and `cvd_pos` feeds the **PX/CVD divergence pair he audits by eye**.
+★ `scripts/gap_log.py` computes its **own** positions, so the pre-registered gap study
+(`data/prereg_gap_rolling.json`) is **untouched** by the rescale.
+
+### ★★ THE SERVER NORMALISES, THE CLIENT ONLY PLACES
+`press_pos` (0..1) is computed **once, in `web.py`**. The first cut of this change derived it in the
+browser and broke the standing invariant in
+`tests/test_cvd.py::test_the_dot_reuses_the_flags_own_positions` — *two surfaces answering one
+question differently* is this desk's $330 lesson. **The test caught me; I fixed the code, not the
+test.** Six other tests in that file were obsolete **by construction** (a drifting neutral, an
+off-scale zero, a one-sided track) and were rewritten to assert the replacing property with the
+reason recorded. `tests/test_press_gauge.py` is the new cover.
+
+⚠ **NOT VISIBLE UNTIL `gazbot7-web` RESTARTS**, which drops his tab, so it is his call.
 
 ## 5b. RVOL — FIXED 2026-09-24, AND THE OPERATOR FOUND IT FROM THE TAPE
 

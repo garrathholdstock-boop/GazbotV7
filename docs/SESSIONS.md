@@ -10,6 +10,51 @@
 
 ---
 
+## 2026-09-30 (Wed) — THE CVD GAUGE WAS MISLEADING HIM, AND HE FOUND IT FROM THE TAPE
+
+**Operator: *"rescale the cvd gauge to % of volume."*** Shipped, committed `bb846f4`, pushed.
+
+**A → B:** the CVD track was **where the session-cumulative level sat in a rolling 3-hour range**
+(endpoints = today's moving extremes, zero drifting — 39% on 09-24). It is now **`press` = net
+aggression as a % of volume over the last 5 minutes**, on a **fixed ±20%** track with **zero
+permanently at 50%**. Full reasoning and the measured scale in **STATE.md §5d**.
+
+**Why:** *"cvd is hard left and tape has been grinding north since 22hr"*. Both readings were
+correct at once — **a position-in-range gauge pins for as long as the level keeps trending**, because
+each new minute sets a new extreme, so hard-left meant "sellers are STILL net-aggressing" while he
+read it as "sellers are spent". Measured over 49 sessions **a left pin is a coin**: +1.0pt over the
+next hour against a +1.8pt baseline, fell 49% vs 48%, median pin life 3 min (n=1,185). The level is
+also a **0.5%-of-volume residual** (−16,301 on ~2.9M contracts), so its 3h range was largely noise
+under a confident 0–100 scale.
+
+**Superseded in the same breath:** STATE.md's *"HOW TO READ THE CVD RANGE"* is marked SUPERSEDED and
+*"THE FOUR GAUGE STATES"* **RETIRED** — all four states were consequences of a moving scale and the
+new gauge cannot draw them. Both kept, not deleted: the reasoning and his worked examples stand.
+
+**Revert:** `git revert bb846f4`, then restart `gazbot7-web`. `cvd`, `cvd_pos` and the divergence
+pair were never removed, and `gap_log.py` computes its own positions, so
+**`prereg_gap_rolling.json` was never at risk.**
+
+### ⚠⚠⚠ AND A CLAIM I HAD PROPAGATED INTO FOUR FILES WAS SIMPLY WRONG
+**Operator: *"why are we pruning aggressor at 5 says? we have an endless data lake"*** — and he was
+right. I had written that `aggressor` exists for only ~6 days because `prune_capture` keeps `ticks`
+5 days. **`prune_capture` trims the HOT TIER ONLY**; `tape_mirror` has been exporting the full ticks
+table to the lake with the column intact all along — **46 MNQ partitions from 2026-07-24, ~54M
+ticks**, more on B2. **I read the pruner and stopped there.**
+Corrected in `scripts/turn_watch.py`, both CLAUDE.md rows, and `data/prereg_surge.json`.
+★★ **THE PREREG'S FROZEN BLOCK DID NOT MOVE** — `frozen`, `minimum_n`, `minimum_sessions` and
+`verdict_rule` are byte-identical, verified, because a changed parameter restarts the count at zero.
+Only the **rationale** was marked SUPERSEDED (original preserved verbatim). The forward design stands
+on the narrower and still-valid ground that 2026-09-18→24 is where the idea was **found**. What it
+does change: **the surge question is now answerable BACKWARDS on ~49 sessions**, and any such run is
+**in-sample by construction** and may never be substituted for the forward one.
+
+**Tests:** 1,607 collected, exit 0 (1,606 passed, 1 skipped). Live: `press -2.1% on 2,079 contracts
+-> press_pos 0.447 -> dot at 45%`.
+⚠ **NOT VISIBLE until `gazbot7-web` restarts, which drops his tab — his call.**
+
+---
+
 ## 2026-09-29 (Tue) — ★★★ SIX FOR SIX. +$1,788 THE DAY AFTER −$1,882, ON THE SAME TAPE.
 
 **★★★ THE FIRST CLEAN FORWARD EVIDENCE FOR THE PATIENCE THESIS, and it is his, not a model's.**
