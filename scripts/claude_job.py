@@ -56,6 +56,12 @@ TOOLS = {
     "sweep":         "Bash,Read",
     "nightly-review": "Bash,Read,Write,Edit",
     "sunday-ramp":   "Bash,Read",
+    # ★★★2026-10-02 THE NIGHTLY LAB. Operator: "make sure youre involved every night and it is
+    # recursive self learning. i want it to get smarter every night." Needs Write/Edit because its
+    # whole job is to update data/lab_research_memory.json (the EIG re-ranking that makes the loop
+    # recursive rather than a cron) and data/lab_morning_report.md. ⚠ NO order path, no
+    # gate_switches.env, no active policy — the prompt says so and tests assert it.
+    "nightly-lab":   "Bash,Read,Write,Edit",
 }
 # ★2026-09-26 nightly-review raised 900 → 1080. It was running AT its ceiling, not under it:
 # 09-24 finished in 882s of a 900s budget and 09-25 tipped over — rc=-1, 0 chars, a whole night's
@@ -63,8 +69,12 @@ TOOLS = {
 # the failure is silent in the artifact sense (the record says ok=False and the output is empty).
 # ⚠ Ceiling is the unit's TimeoutStartSec=1200, which must stay ABOVE this so the runner's own
 # timeout fires first and PAGES, rather than systemd killing the runner before it can report.
+# ⚠ nightly-lab gets 1500s: it replays a 40-session holdout across 16 candidates AND does its own
+# hypothesis work. Keep the unit's TimeoutStartSec ABOVE this so the runner's own timeout fires and
+# PAGES, rather than systemd killing the runner before it can report — the lesson from
+# nightly-review running at 98% of its ceiling and silently producing nothing.
 TIMEOUT_S = {"ledger-review": 900, "hour-watch": 420, "sweep": 420,
-             "nightly-review": 1080, "sunday-ramp": 600}
+             "nightly-review": 1080, "sunday-ramp": 600, "nightly-lab": 1500}
 
 
 def page(msg: str, critical: bool = True) -> None:

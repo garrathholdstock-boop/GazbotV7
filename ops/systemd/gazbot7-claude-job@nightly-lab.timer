@@ -1,0 +1,23 @@
+[Unit]
+# ★★★2026-10-02 THE NIGHTLY LAB — the recursive half of the trading loop.
+# Operator: "make sure youre involved every night and it is recursive self learning. i want it to
+# get smarter every night."
+#
+# ⚠ 21:45Z, and the time is argued: AFTER the 21:00Z CME halt so the session is final and the desk
+#   is not trading, AFTER tape-mirror (21:05) and capture-prune (21:15) so the lake it reads is
+#   complete, AFTER nightly-supervisor (21:40) so a broken desk is already known — and WELL BEFORE
+#   the 22:00Z reopen, because a research job must never be running when the session restarts.
+# ⚠ NOT inside 18:00-00:00Z historical-pull territory by accident: it reads the LAKE only, never
+#   IBKR. 18 of 25 gateway CLOSE-WAIT episodes start in that window and one wedge cost $2,149.
+# ⚠ Persistent=true — "did last night's research run?" is MORE interesting after a reboot, not
+#   less, and a missing morning report is itself the alarm.
+Description=GAZBOT V7 — nightly lab (recursive entry/exit fine-tuning)
+
+[Timer]
+OnCalendar=*-*-* 21:45:00 UTC
+Persistent=true
+AccuracySec=30s
+Unit=gazbot7-claude-job@nightly-lab.service
+
+[Install]
+WantedBy=timers.target
