@@ -989,10 +989,22 @@
        ⚠ DESCRIPTIVE. Amber says the two disagree; it does not say which one wins. */
     const cv = c.cvd || {}, cvEl = $("ctx-cvd"), dvEl = $("ctx-div");
     if (cvEl) {
-      cvEl.textContent = cv.cvd == null ? "—"
+      /* ★★2026-10-02 THE TILE LEADS WITH THE *CURRENT* READING NOW. Operator: "cvd in reading
+         window still has -14k. it should have the current %." The tile showed only the
+         session-cumulative level, so the one number that describes RIGHT NOW appeared nowhere on
+         screen — the gauge placed a dot for it and the tile answered a different question.
+         ⚠⚠ THE LEVEL IS KEPT, SECOND, NOT REPLACED. It is the meaning he has learned ("net
+         aggression since 22:00Z") and STATE.md §5d is explicit that redefining that number under
+         him is the one change a user cannot detect. So: NOW first, SESSION after.
+         ⚠ The sign class follows PRESS, because press is now the leading number. */
+      const lvl = cv.cvd == null ? "—"
         : (cv.cvd > 0 ? "+" : "") + (Math.abs(cv.cvd) >= 1000
           ? (cv.cvd / 1000).toFixed(1) + "k" : String(cv.cvd));
-      cvEl.className = cv.cvd == null ? "" : (cv.cvd > 0 ? "pos" : (cv.cvd < 0 ? "neg" : ""));
+      cvEl.textContent = (cv.press == null) ? lvl
+        : (cv.press > 0 ? "+" : "") + cv.press.toFixed(1) + "% · " + lvl;
+      cvEl.className = (cv.press != null)
+        ? (cv.press > 0 ? "pos" : (cv.press < 0 ? "neg" : ""))
+        : (cv.cvd == null ? "" : (cv.cvd > 0 ? "pos" : (cv.cvd < 0 ? "neg" : "")));
       /* ★ AND SAY THE PRESSURE IN WORDS, with the volume it rests on. A 5-minute reading on 2,000
          contracts is not the same statement as one on 40,000, and the old gauge gave both the same
          confident 0-100 dot. ⚠ r=+0.36 against price move in the same 5 minutes — real and weak, so
@@ -1020,17 +1032,26 @@
          and lets him watch it approach rather than only hear it arrive.
          ⚠ AMBER, NEVER GREEN OR RED. A divergence is not a side; colouring it like a direction
          would be the page asserting an edge nobody has measured. */
-      const pp = cv.px_pos, cp = cv.cvd_pos;
+      /* ★★★2026-10-02 THE RIGHT HALF IS **PRESS** NOW, NOT THE ROLLING-RANGE POSITION.
+         Operator: "px-cvd window stills shows the old ratio 25-1. fix thst. i like thst window i
+         use it but make it relevant."
+         ⚠⚠ THE "1" HE SAW WAS THE PIN. `cvd_pos` is the exact measure the 09-30 rescale took off
+         the gauge for sitting at an end for hours while the tape ran the other way — and the cell
+         he uses to judge "is this move being paid for" was still answering with it.
+         ★ Both halves stay 0-100 positions so the comparison is like-for-like; the raw % lives on
+         the gauge row, so neither surface repeats the other. */
+      const pp = cv.px_pos, cp = cv.press_pos;
       dvEl.textContent = (pp == null || cp == null) ? "—"
         : Math.round(pp * 100) + "·" + Math.round(cp * 100);
       dvEl.className = cv.divergence ? "warn" : "";
       dvEl.title = pp == null ? ""
-        : "PRICE is at " + Math.round(pp * 100) + "% of today's range, CVD at "
-          + Math.round(cp * 100) + "% of its own."
+        : "PRICE is at " + Math.round(pp * 100) + "% of today's range; AGGRESSION at "
+          + Math.round(cp * 100) + "% of the +/-20%-of-volume scale (50 = balanced)."
           + (cv.divergence ? "  ⚠ " + cv.divergence.toUpperCase()
              + " — they disagree, which does NOT say which one wins."
              : "  They are in line.")
-          + "  Fires bearish above 85·50, bullish below 15·50.";
+          + "  Fires bearish above 85·50, bullish below 15·50 — the right half is now 5-min net "
+          + "aggression as a share of volume, not the rolling-range position that pinned.";
     }
 
     /* ★★★2026-09-24 THE TWO RANGE GAUGES. He asked for these the moment he understood that
@@ -1101,9 +1122,11 @@
          the old gauge, whose endpoints moved and once printed SESSION numbers under a 3-HOUR dot.
          ⚠ The scale is the measured 99th percentile of |press|; the 12.4% band is the 90% band. */
       {
-        const pz = cv.press, sc = cv.press_scale || 20;
-        setTxt("rg-cv-lo", "-" + sc + "%");
-        setTxt("rg-cv-hi", "+" + sc + "%");
+        const pz = cv.press;
+        /* ⚠2026-10-02 NO setTxt FOR rg-cv-lo / rg-cv-hi — those elements are GONE from this
+           row. The scale is FIXED at ±20%, so printing it repeated a constant in the space the
+           live reading needed and the row overflowed its window. The PX row keeps ITS endpoints:
+           those are real prices that move. */
         /* ⚠⚠ THE POSITION IS THE SERVER'S, NEVER DERIVED HERE. The first cut of this rescale
            computed (press + scale) / (2 * scale) in the browser and broke the standing invariant
            that test_the_dot_reuses_the_flags_own_positions exists to protect: a client-derived
@@ -1111,6 +1134,21 @@
            the page would say which was right. */
         const cd = $("rg-cv-dot");
         if (cd) cd.style.left = ((cv.press_pos == null ? 0.5 : cv.press_pos) * 100) + "%";
+        /* ★★2026-10-02 THE NUMBER THE DOT IS PLACING, ON SCREEN BESIDE IT. Operator: "cvd gauge
+           has -20 and 20 on either ends but doesnt tell me what the current reading is."
+           ⚠ It had been in a `title` tooltip — and CLAUDE.md's own gauge rule already forbade
+           that: "THE INPUTS ARE ON SCREEN, NOT IN A TOOLTIP — there is no hover on a phone, and a
+           derived verdict whose workings cannot be inspected is unauditable." A dot without its
+           number is exactly that: a verdict you cannot check.
+           ⚠ UNDERLINED when outside the measured 90% band (±12.4%) — not coloured differently,
+           because colour already carries SIDE and one channel must mean one thing. */
+        const cvv = $("rg-cv-val");
+        if (cvv) {
+          cvv.textContent = (pz == null) ? "—"
+            : (pz > 0 ? "+" : "") + pz.toFixed(1) + "%";
+          cvv.className = (pz == null) ? "" : (pz > 0 ? "pos" : (pz < 0 ? "neg" : ""));
+          if (pz != null && Math.abs(pz) > (cv.press_band || 12.4)) cvv.className += " hot";
+        }
       }
       /* ★★★ WHERE ZERO FALLS ON THAT SCALE. The range is anchored to TODAY'S extremes, so zero is
          NOT the midpoint: on 2026-09-24 it sat at 39% against -8,072/+12,469. He read 43% as "back

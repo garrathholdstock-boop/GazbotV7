@@ -81,9 +81,16 @@ def test_the_cache_is_cleared_when_the_session_rolls():
 def test_divergence_compares_two_scale_free_positions():
     """★ Both sides are 0..1 positions within their own session range, so the rule needs no tuned
     point threshold and cannot drift with volatility."""
+    # ★2026-10-02 THE RIGHT HALF IS `press_pos` NOW, NOT `cvd_pos`. The PROPERTY this test exists
+    # for is unchanged — both sides are 0..1 positions on their own scale, so the rule needs no
+    # tuned point threshold and cannot drift with volatility — but the CVD half had to move: the
+    # operator saw "25·1" and the 1 was a PIN, the same rolling-range measure the 09-30 rescale took
+    # off the gauge for being a coin. `cvd_pos` is still computed and emitted; it is simply no
+    # longer what the pair compares.
     c = _code(_fn(WEB, "cvd_meter"))
-    assert "px_pos" in c and "cvd_pos" in c
-    assert "pr >= 0.85 and cr <= 0.50" in c and "pr <= 0.15 and cr >= 0.50" in c
+    assert "px_pos" in c and "cvd_pos" in c, "both must still be emitted"
+    assert "press_pos" in c, "the divergence pair's right half must be the press position"
+    assert "pr >= 0.85 and dr <= 0.50" in c and "pr <= 0.15 and dr >= 0.50" in c
 
 
 def test_a_shut_venue_reports_absent_not_zero():
@@ -95,10 +102,16 @@ def test_the_divergence_cell_is_amber_never_a_direction():
     """⚠⚠ A divergence is NOT a side. Colouring it green or red would be the page asserting an edge
     that has not been measured — and on this desk every direction study of a disagreement has come
     back a coin."""
+    # ⚠2026-10-02 SLICE BY STRUCTURE, NOT BY DISTANCE. The first version took everything AFTER
+    # `if (dvEl)` up to the next section banner, which swept in the RANGES code — and that code
+    # legitimately uses "pos"/"neg" to colour the gauge dot and its reading by SIDE. The ban belongs
+    # to the divergence cell alone. A test whose slice reaches past its subject fails on correct
+    # work, which is the third time this file has made exactly that mistake.
     js = open(JS, encoding="utf-8").read()
-    blk = js.split("CVD AND THE DIVERGENCE FLAG", 1)[1].split("POSITION AGE IS A GUARD", 1)[0]
-    assert 'dvEl.className = cv.divergence ? "warn" : ""' in blk
-    assert '"pos"' not in blk.split("if (dvEl)", 1)[1]
+    cell = js.split("if (dvEl) {", 1)[1].split("\n    }", 1)[0]
+    assert 'dvEl.className = cv.divergence ? "warn" : ""' in cell
+    assert '"pos"' not in cell and '"neg"' not in cell, (
+        "the divergence cell must never be coloured by direction — amber only")
 
 
 def test_the_tooltip_says_the_correlation_is_not_the_point():
@@ -150,10 +163,20 @@ def test_the_verdict_word_is_not_what_gets_displayed():
 # ⚠ A percentage without its endpoints is a number he must TAKE ON TRUST. With them he can do the
 # arithmetic himself — the difference between an instrument he checks and an oracle he ignores.
 
-def test_both_ranges_show_their_endpoints():
+def test_the_PX_row_shows_endpoints_and_the_CVD_row_shows_its_READING():
+    """★2026-10-02 THE TWO ROWS ARE DELIBERATELY NO LONGER SYMMETRIC, and that asymmetry is the
+    point. Operator: "cvd window has bottom snd top ends not fitting in th window. it shouldjust
+    hwve % as we just said."
+    PX endpoints are REAL PRICES that move, so printing them is information. The CVD endpoints were
+    the CONSTANTS -20%/+20% — the scale never changes, so they repeated a fixed fact in the space
+    the live reading needed, and the row overflowed. Zero still marks neutral at the midpoint."""
     html = open(HTML, encoding="utf-8").read()
-    for i in ("rg-px-lo", "rg-px-hi", "rg-cv-lo", "rg-cv-hi", "rg-px-dot", "rg-cv-dot"):
+    for i in ("rg-px-lo", "rg-px-hi", "rg-px-dot", "rg-cv-dot", "rg-cv-zero", "rg-cv-val"):
         assert i in html, f"{i} missing from the range strip"
+    for gone in ("rg-cv-lo", "rg-cv-hi"):
+        assert gone not in html, (
+            f"{gone} is back — the CVD row's endpoints are a FIXED scale and printing them "
+            "overflows the row; the reading in rg-cv-val is what belongs there")
 
 
 def test_the_dot_reuses_the_flags_own_positions():

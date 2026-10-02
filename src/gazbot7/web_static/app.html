@@ -176,7 +176,9 @@
            the range, not at 50%. Without the tick, 43% looks like "below the middle = sellers"
            when it actually means "just above flat". A gauge whose neutral point is invisible
            invites precisely the wrong reading, and he made it within a minute of seeing it. -->
-      <div class="rg"><i>CVD</i><b id="rg-cv-lo">—</b><span class="tk"><u id="rg-cv-zero"></u><em id="rg-cv-dot"></em></span><b id="rg-cv-hi">—</b></div>
+      <!-- ★2026-10-02 NO ENDPOINT LABELS ON THIS ROW. Operator: "cvd window has bottom snd top ends not fitting in th window. it shouldjust hwve % as we just said."
+           He is right twice over: the row overflowed once the live reading was added, and "-20%"/"+20%" are CONSTANTS — unlike the PX row, whose endpoints are real prices that move, these never change, so they were spending ~110px to repeat the fixed scale. The zero tick still marks neutral at the midpoint and the reading carries the number. -->
+      <div class="rg"><i>CVD</i><var id="rg-cv-val" title="net aggression as a % of volume over the last 5 minutes, on a fixed ±20% scale — zero is the midpoint">—</var><span class="tk"><u id="rg-cv-zero"></u><em id="rg-cv-dot"></em></span></div>
     </div>
     <div class="passrow">
       <input id="pass-note" type="text" maxlength="120" placeholder="looked but didn't trade — why not?">

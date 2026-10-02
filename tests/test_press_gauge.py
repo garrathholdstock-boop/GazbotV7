@@ -9,6 +9,7 @@ Measured over 49 sessions: after a left pin, +1.0pt over the next hour against a
 49% vs 48%. A coin. And the level it scaled is a thin residual — -16,301 on ~2.9M contracts is 0.5% of
 volume, given a confident 0-100 scale.
 """
+import re
 import sys
 
 sys.path.insert(0, "/home/alphabot/gazbot7/src")
@@ -39,13 +40,21 @@ def test_pressure_is_a_share_of_volume_so_it_CANNOT_pin():
     assert "100.0 *" in src.split('out["press"] = ', 1)[1][:60]
 
 
-def test_the_gauge_endpoints_are_the_scale_itself():
-    """⚠ The old gauge's endpoints MOVED, and once printed SESSION numbers under a 3-HOUR dot —
-    labels implying 65% where the marker sat at 43%. Fixed bounds cannot do that."""
-    js = open(JS).read()
-    block = js.split('rescale the cvd gauge to % of volume', 1)[1].split("const z =", 1)[0]
-    assert 'setTxt("rg-cv-lo", "-" + sc + "%")' in block
-    assert 'setTxt("rg-cv-hi", "+" + sc + "%")' in block
+def test_the_gauge_row_prints_NO_endpoint_labels():
+    """★2026-10-02 SUPERSEDES test_the_gauge_endpoints_are_the_scale_itself, which asserted the row
+    printed "-20%" and "+20%". Operator: "cvd window has bottom snd top ends not fitting in th
+    window. it shouldjust hwve % as we just said." Two faults in one: the row overflowed once the
+    live reading was added, AND those labels are CONSTANTS. A fixed scale printed on every refresh
+    is not a reading — the number that changes is. The scale still lives in PRESS_SCALE server-side
+    and in the element's own title, so it remains inspectable without spending the row on it."""
+    html = _html()
+    i = html.index('id="rg-cv-dot"')
+    row = html[html.rindex("<div", 0, i): html.index("</div>", i)]
+    assert 'id="rg-cv-lo"' not in row and 'id="rg-cv-hi"' not in row, \
+        "the CVD row must not print its fixed endpoints — that is what overflowed the window"
+    assert 'id="rg-cv-val"' in row, "the live reading must be there instead"
+    assert float(re.search(r"PRESS_SCALE\s*=\s*([0-9.]+)", open(SRC, encoding="utf-8").read())
+                 .group(1)) == 20.0, "the scale itself is still pinned server-side"
 
 
 def test_zero_is_always_the_midpoint():
@@ -82,14 +91,19 @@ def test_the_tooltip_states_the_weakness_and_the_volume_it_rests_on():
     assert "contracts." in js
 
 
-def test_cvd_pos_SURVIVES_for_the_divergence_pair_and_the_prereg():
-    """⚠⚠ scripts/gap_log.py computes its OWN positions, so the pre-registered gap study
-    (data/prereg_gap_rolling.json) is untouched — but the divergence pair he audits by eye reads
-    cvd_pos from here. Removing it would silently blank a number he uses."""
-    src = open(SRC).read()
-    assert 'out["px_pos"], out["cvd_pos"]' in src
-    js = open(JS).read()
-    assert "cv.cvd_pos" in js
+def test_cvd_pos_SURVIVES_even_though_the_pair_no_longer_uses_it():
+    """★2026-10-02 AMENDED. This test used to assert cvd_pos survived *because the divergence pair
+    read it*. The pair now reads `press_pos` — the operator saw "25·1" and the 1 was the PIN, the
+    very measure the rescale removed from the gauge. cvd_pos is STILL emitted, for two reasons that
+    have nothing to do with the pair: the CVD level's own range is still rendered, and removing a
+    field that other consumers may read is the "audit every consumer" trap.
+    ⚠ THE PRE-REGISTERED GAP STUDY IS UNAFFECTED EITHER WAY — scripts/gap_log.py computes its own
+    positions and does not import cvd_meter, which the test below pins."""
+    c = open(SRC, encoding="utf-8").read()
+    assert 'out["px_pos"], out["cvd_pos"]' in c, "cvd_pos must still be emitted"
+    js = _js()
+    pair = js.split("if (dvEl) {", 1)[1].split("dvEl.textContent", 1)[0]
+    assert "cv.press_pos" in pair, "the pair's right half must now be the press position"
 
 
 def test_the_level_he_learned_is_unchanged():
@@ -181,3 +195,70 @@ def test_an_empty_window_is_zero_volume_NOT_a_failed_read(tmp_path, _open_venue)
     out = web.cvd_meter(cap)
     assert out["press"] is None
     assert out["press_vol"] == 0, "a quiet window must report 0 volume, never a None read-failure"
+
+
+# ──────────────────────────────────────────────────────────────────────────────────────────────
+# ★★★2026-10-02 THE GAUGE SHIPPED WITH ITS NUMBER IN A TOOLTIP ONLY. Operator: "cvd gauge has -20
+# and 20 on either ends but doesnt tell me what the current reading is. cvd in reading window still
+# has -14k. it should have the current %."
+# He was right AND CLAUDE.md already contained the rule I broke — the gauge section says:
+# "THE INPUTS ARE ON SCREEN, NOT IN A TOOLTIP — there is no hover on a phone, and a derived verdict
+# whose workings cannot be inspected is unauditable." A dot placed with no visible number IS that
+# unauditable verdict. These assert the number reaches the SCREEN.
+# ──────────────────────────────────────────────────────────────────────────────────────────────
+
+HTML = "/home/alphabot/gazbot7/src/gazbot7/web_static/app.html"
+CSS = "/home/alphabot/gazbot7/src/gazbot7/web_static/app.css"
+
+
+def _js():
+    return open(JS, encoding="utf-8").read()
+
+
+def _html():
+    return open(HTML, encoding="utf-8").read()
+
+
+def test_the_gauge_row_has_an_element_for_its_own_CURRENT_reading():
+    h = _html()
+    i = h.index('id="rg-cv-dot"')
+    row = h[h.rindex("<div", 0, i): h.index("</div>", i)]
+    assert 'id="rg-cv-val"' in row, (
+        "the CVD gauge row must carry the live reading, not just the two endpoints — "
+        "a dot with no number is a verdict the operator cannot check")
+    # and it must sit in the same row as the track it describes, not elsewhere on the page
+    assert row.index('id="rg-cv-val"') < row.index('id="rg-cv-dot"'), \
+        "the reading belongs beside the scale, read before the track"
+
+
+def test_the_current_reading_is_WRITTEN_TO_THE_DOM_not_only_a_title():
+    js = _js()
+    assert 'rg-cv-val' in js, "nothing populates the readout"
+    blk = js[js.index('$("rg-cv-val")'): js.index('$("rg-cv-val")') + 500]
+    assert "textContent" in blk, (
+        "the reading must be set as TEXT CONTENT. Setting only `.title` puts it in a tooltip, "
+        "which does not exist on the phone he reads this on — the exact fault being fixed here")
+
+
+def test_the_tile_leads_with_NOW_and_keeps_the_SESSION_level():
+    """press first, cvd level second. The level is the meaning he has learned (STATE.md §5d) and
+    must not be replaced; but the number describing RIGHT NOW must be visible at all."""
+    js = _js()
+    i = js.index('cvEl.textContent')
+    blk = js[i: i + 320]
+    assert "press" in blk, "the tile must show the current pressure reading"
+    assert "lvl" in blk, "the session-cumulative level must survive beside it"
+
+
+def test_off_band_is_marked_WITHOUT_stealing_the_colour_channel():
+    """Colour already means SIDE (buyers/sellers). Unusualness needs a different channel, or one
+    channel carries two meanings and neither can be read."""
+    js = _js()
+    i = js.index('$("rg-cv-val")')
+    blk = js[i: i + 600]
+    assert "press_band" in blk, "nothing marks a reading outside the measured 90% band"
+    assert '" hot"' in blk or "' hot'" in blk, "the off-band marker should be its own class"
+    css = open(CSS, encoding="utf-8").read()
+    hot = css[css.index(".rg var.hot"): css.index(".rg var.hot") + 160]
+    assert "color" not in hot.split("}")[0], \
+        "the off-band marker must not set colour — colour is reserved for SIDE"

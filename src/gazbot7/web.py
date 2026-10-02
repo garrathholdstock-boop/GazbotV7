@@ -734,10 +734,27 @@ def cvd_meter(cap_path) -> dict:
                 pr = (px["last"] - px["lo"]) / (px["hi"] - px["lo"])
                 cr = (st["cvd"] - st["lo"]) / (st["hi"] - st["lo"])
                 out["px_pos"], out["cvd_pos"] = round(pr, 3), round(cr, 3)
-                if pr >= 0.85 and cr <= 0.50:
-                    out["divergence"] = "bearish"     # price at highs, buyers not paying for it
-                elif pr <= 0.15 and cr >= 0.50:
-                    out["divergence"] = "bullish"     # price at lows, sellers not pressing it
+                # ★★★2026-10-02 THE DIVERGENCE NOW TESTS **PRESS**, NOT THE ROLLING-RANGE POSITION.
+                # Operator: "px-cvd window stills shows the old ratio 25-1. fix thst. i like thst
+                # window i use it but make it relevant."
+                # ⚠⚠ THE "1" WAS THE PIN. `cvd_pos` is where the session-cumulative level sits in a
+                # rolling 3h range, and that is precisely the measure the 09-30 rescale removed from
+                # the gauge for pinning at an end for hours while the tape did the opposite. Leaving
+                # it as the CVD half of the divergence pair meant the cell kept asserting the exact
+                # reading we had just established was a coin (+1.0pt/hr vs a +1.8pt baseline, n=49
+                # sessions) — and it was the half he reads to judge whether a move is being paid for.
+                # ★ `press_pos` is the replacement: both halves are now a 0-100 position on their own
+                # scale, so the comparison is still like-for-like, and the CVD half can no longer pin.
+                # ⚠⚠⚠ THE AMBER AND THE PRINTED NUMBERS MUST MOVE TOGETHER. Changing the display
+                # while leaving this rule on `cvd_pos` would put the verdict back on invisible
+                # inputs — the 09-24 fault whose fix is documented twelve lines above.
+                dr = out.get("press_pos")
+                if dr is not None:
+                    if pr >= 0.85 and dr <= 0.50:
+                        out["divergence"] = "bearish"   # price at highs, buyers not paying for it
+                    elif pr <= 0.15 and dr >= 0.50:
+                        out["divergence"] = "bullish"   # price at lows, sellers not pressing it
+                out["div_cvd_pos"] = dr                 # what the pair's RIGHT half now shows
     except Exception as e:
         out["error"] = f"{type(e).__name__}: {e}"
     return out
