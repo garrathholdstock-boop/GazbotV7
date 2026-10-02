@@ -10,6 +10,70 @@
 
 ---
 
+## 2026-10-02 (Thu) — THE FEED CAME BACK, AND TWO OF MY OWN TESTS TURNED OUT TO BE WORTHLESS
+
+**THE OUTAGE.** Subscriptions lapsed on a cash transfer. Tape died **2026-10-01 06:07:24Z** with
+`Error 10197 "No market data during competing live session"` — his own Client Portal login holding
+the data session. That cleared, he re-subscribed, and **top-of-book + depth returned while
+tick-by-tick did not**: `bars` and `depth.db` healthy, `ticks` (so `aggressor`, CVD, the press
+gauge, PULSE/FLOW, the surge/gap preregs) dead for **7h20m**.
+
+**A RUNNING IB GATEWAY NEVER RE-READS ENTITLEMENTS.** `reqMktData` streamed a full quote while
+`reqTickByTickData("AllLast")` returned **zero ticks and no error** — the permission gap is
+indistinguishable from a bug. Fixed at **13:28Z** by `docker restart alphabot-gateway` + restarting
+`md`/`depth-capture`, which had to wait until he was flat at 13:20. **Now a standing rule in
+CLAUDE.md.** ⚠ I called the restart a failure 20s after the port opened — entitlements load
+asynchronously and `md` picked them up a minute later. 26 hours of continuous ticks since, the only
+gap being the 21:00–22:00Z CME halt.
+
+★ **I wrongly told him he needed another subscription** (`CME Real-Time (NP,L1)` for streaming
+tick-by-tick). He did not. What he had bought was sufficient; the gateway simply had not restarted.
+
+**THE WEB RESTART (his call) EXPOSED `press: null`.** The 09-30 rescale had never been on his screen
+— `gazbot7-web` had been running since **25 September**, five days older than the commit. Once
+deployed the gauge served every flag correctly and `press`/`press_vol`/`press_pos` as null, because
+**I had inserted the query after `c.close()`**. Fixed in `e422a99`; live at
+`press -6.1% of volume on 55,258 contracts -> dot at 35%`.
+
+### ⚠⚠⚠ THE PART WORTH KEEPING: BOTH FAULTS WERE INVISIBLE TO A GREEN SUITE
+1. **Not one of the ten press-gauge tests called `cvd_meter()`.** All asserted on SOURCE TEXT, which
+   cannot fail for a runtime bug — and my own "live check" built its OWN connection, confirming the
+   formula and never the call path. **A source-text test is a lint.** Three real-path tests added
+   and **proven by reintroducing the bug**.
+2. **`test_a_closed_position_is_flat` was reading the LIVE `core_health.json`.** It patched `RIDER`
+   only, so a "closed" rider fell through to production. It passed the day it shipped and failed two
+   days later on unchanged code. ★ **And the health half of `desk_is_flat()` had NO coverage at
+   all** — the one flatness read on this desk that ACTS rather than reports, gating
+   `docker restart alphabot-gateway`. Four fail-closed tests added.
+
+**Suite 1,614 / 0 failures.** Memories: [[a-source-text-test-is-a-lint-not-a-test]], and the
+wall-clock memory extended to live state.
+
+**HIS DAY (10-01): −$2,114.76.** Morning scalps +$282; then LONG 4 at 31,118.50 (7pt off the session
+high) held **7h19m** through a 324pt slide, closed 13:20 for **−$2,396.88**. The shape his own record
+flags hardest — all five worst trades are LONG, held 3h+, 48% of total losses. ⚠ He traded it blind:
+`rider-peak-watch` reads `MD_STREAM` and was silent the whole way down, so the give-back alert never
+fired.
+
+### ⚠⚠ `turn_watch` IS WORSE THAN ITS 77% CLAIM — THREE DEFECTS, NOT TUNING
+Five fires across 10-01/02: **one good** (17:44, ATR ~19), **one correct but 384pt late** (15:12),
+**three false** — all three in compressed ATR. `TURN_RETRACE_ATR` is a RATIO, so in a volatility
+collapse the threshold shrinks until it crosses a giveback that is already sitting there: the 10:41
+fire came with ATR **9.3** on a **20-point box**, and the 20:28 fire with ATR **5.4** half an hour
+from the halt. Under expansion it fails the other way — ATR **24.9** meant 384pt of a move had to
+pass first. ★ `compose()` also reports an incoherent message (`gave back 384pt of a +175pt move`;
+`110pt of +94pt`) and the leg never re-bases. **NOT FIXED — offered, awaiting his word.** Needs an
+absolute point floor, a refusal when ATR has moved materially since the extreme was set, a
+session-edge/Asia dead zone, the `compose()`/rebase fix, and a re-grade of every logged fire.
+
+### OPEN
+- `core_health.desk_flat` read **False** while the reconciler read `venue +0 = tournament +0 +
+  rider +0`. If they genuinely disagree, `gateway_watch` would never restart when it should — the
+  safe direction, but unexplained. Today's restart used the reconciler, not `desk_flat`. **Raised,
+  not chased.**
+
+---
+
 ## 2026-09-30 (Wed) — THE CVD GAUGE WAS MISLEADING HIM, AND HE FOUND IT FROM THE TAPE
 
 **Operator: *"rescale the cvd gauge to % of volume."*** Shipped, committed `bb846f4`, pushed.

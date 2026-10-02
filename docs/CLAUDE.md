@@ -352,6 +352,21 @@ to look.
   learn."* ⚠⚠ **DO NOT ARM ANY OF THEM WITHOUT HIM SAYING SO**, and note `live_preflight()` refuses
   a live account until all five January requirements are configured — that refusal is a feature.
   ⚠ `data/live_mode.json` is gitignored; the tracked restore path is `ops/live_mode.example.json`.
+- ★★★ **A NEW MARKET-DATA SUBSCRIPTION NEEDS AN IB GATEWAY RESTART. THIS COST FIVE HOURS ON
+  2026-10-02.** His subscriptions lapsed on a cash transfer; he re-subscribed and **top-of-book and
+  depth came back while tick-by-tick did not** — so `bars` and `depth.db` were healthy and `ticks`
+  (and therefore `aggressor`, CVD, the press gauge, PULSE/FLOW and the surge/gap preregs) stayed
+  dead for 7h20m. ⚠⚠ **IT PRESENTS AS A BUG, NOT A PERMISSION:** `reqMktData` streams a full quote
+  while `reqTickByTickData("AllLast")` returns **ZERO ticks and NO ERROR** — no 354, no 10089,
+  nothing in the log. A running gateway never re-reads entitlements; already-entitled feeds keep
+  working, newly-added ones return silence. **`docker restart alphabot-gateway`, then restart
+  `gazbot7-md` and `gazbot7-depth-capture`.** ⚠ Entitlements load ASYNCHRONOUSLY — a probe ~20s
+  after the port opens still showed zero and I wrongly called the restart a failure; `md` picked
+  them up a minute later. ⚠⚠⚠ **FLAT ONLY** (the `gateway_watch` rule) — he was in LONG 4 for the
+  whole outage, which is why nothing could be done until 13:20. ★ Separately, `Error 10197 "No
+  market data during competing live session"` means a SECOND LOGIN (his own Client Portal or phone)
+  holds the data session — that one is fixed by logging the other session out, not by restarting
+  anything.
 - **Tournament changes are SATURDAYS ONLY.**
 - **Warn before restarting `alphabot-dashboard`/web** — it drops the operator's tab.
 - **Credential expiry is the #1 fragility** and he has declined a long-lived key (*"ill just relogin
