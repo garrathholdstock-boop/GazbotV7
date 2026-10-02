@@ -34,11 +34,76 @@ def test_an_unreadable_state_is_NOT_treated_as_flat(tmp_path, monkeypatch):
     assert flat is False and "blind" in why.lower()
 
 
+def _health(tmp_path, monkeypatch, desk_flat=True, age_s=0.0, drop_field=False):
+    """A core_health.json for the TOURNAMENT half of desk_is_flat().
+
+    ⚠⚠2026-10-02 THIS HELPER EXISTS BECAUSE THE TEST BELOW READ THE LIVE FILE. desk_is_flat() was
+    rewritten on 09-26 to require `core_health.desk_flat` as well as the rider, and the test was
+    never updated — it patched RIDER only, so once the rider said "closed" the call fell through to
+    the REAL data/core_health.json. It passed in the session that shipped it (the live desk happened
+    to be flat) and failed two days later with desk_flat=False, 1 second old. A test that reads live
+    desk state is not a test, it is a coin — the same family as the 37 tests that once failed only
+    between 00-07 UTC.
+    """
+    import datetime as _dt
+    h = {"ts": (_dt.datetime.now(_dt.UTC) - _dt.timedelta(seconds=age_s)).isoformat()}
+    if not drop_field:
+        h["desk_flat"] = desk_flat
+    f = tmp_path / "core_health.json"
+    f.write_text(json.dumps(h))
+    monkeypatch.setattr(gw, "HEALTH", str(f))
+    return f
+
+
 def test_a_closed_position_is_flat(tmp_path, monkeypatch):
+    """Rider closed AND the tournament vouching flat = flat. BOTH halves are required."""
     p = tmp_path / "r.json"
     p.write_text(json.dumps({"qty": 4.0, "closed": True}))
     monkeypatch.setattr(gw, "RIDER", str(p))
+    _health(tmp_path, monkeypatch, desk_flat=True)
     assert gw.desk_is_flat()[0] is True
+
+
+# ★★★2026-10-02 THE HEALTH HALF HAD NO COVERAGE AT ALL. desk_is_flat() is the one flatness read on
+# this desk that ACTS rather than reports — it gates `docker restart alphabot-gateway` — and the
+# tournament half of it, added 09-26 precisely because a rider-only read would blind an open
+# tournament position, was asserted by nothing. These four pin the fail-closed contract.
+
+def test_a_flat_rider_is_NOT_enough_if_the_tournament_holds(tmp_path, monkeypatch):
+    """The whole reason for the 09-26 rewrite: rider flat + tournament holding must NOT restart."""
+    p = tmp_path / "r.json"
+    p.write_text(json.dumps({"qty": 0.0, "closed": True}))
+    monkeypatch.setattr(gw, "RIDER", str(p))
+    _health(tmp_path, monkeypatch, desk_flat=False)
+    flat, why = gw.desk_is_flat()
+    assert flat is False
+    assert why, "a refusal must say why — declining silently is how a guard goes dark"
+
+
+def test_a_STALE_core_health_cannot_vouch_for_flatness(tmp_path, monkeypatch):
+    """A tournament that stopped writing cannot report being flat. Stale == unreadable."""
+    p = tmp_path / "r.json"
+    p.write_text(json.dumps({"qty": 0.0, "closed": True}))
+    monkeypatch.setattr(gw, "RIDER", str(p))
+    _health(tmp_path, monkeypatch, desk_flat=True, age_s=gw.HEALTH_STALE_S + 60)
+    assert gw.desk_is_flat()[0] is False, "a stale desk_flat=True must not wave a restart through"
+
+
+def test_a_MISSING_desk_flat_FIELD_is_not_flat(tmp_path, monkeypatch):
+    """A carried-but-absent field must fail closed, not read as False-y and pass."""
+    p = tmp_path / "r.json"
+    p.write_text(json.dumps({"qty": 0.0, "closed": True}))
+    monkeypatch.setattr(gw, "RIDER", str(p))
+    _health(tmp_path, monkeypatch, drop_field=True)
+    assert gw.desk_is_flat()[0] is False
+
+
+def test_an_UNREADABLE_core_health_is_not_flat(tmp_path, monkeypatch):
+    p = tmp_path / "r.json"
+    p.write_text(json.dumps({"qty": 0.0, "closed": True}))
+    monkeypatch.setattr(gw, "RIDER", str(p))
+    monkeypatch.setattr(gw, "HEALTH", str(tmp_path / "no-such-health.json"))
+    assert gw.desk_is_flat()[0] is False
 
 
 def test_it_trips_on_the_CLIMB_not_the_wedge():

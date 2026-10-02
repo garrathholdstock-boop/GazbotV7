@@ -646,6 +646,19 @@ def cvd_meter(cap_path) -> dict:
                            " AND bar_ts>=? ORDER BY bar_ts DESC LIMIT 1) last "
                            "FROM bars WHERE symbol='MNQ' AND timeframe='5s' AND bar_ts>=?",
                            (win0, win0)).fetchone()
+            # ★2026-09-30 PRESS — net aggression as a share of volume.
+            # ⚠⚠ THIS MUST STAY ABOVE `c.close()`. Running it below was the ENTIRE cause of the
+            # 2026-10-02 `press: null` bug — `_conn` does set sqlite3.Row, so by-name access was
+            # never the problem; the connection was simply already closed.
+            try:
+                pw0 = (int(now.timestamp()) - PRESS_WINDOW_MIN * 60) * 1000
+                pr_ = c.execute(
+                    "SELECT SUM(CASE WHEN aggressor='buy' THEN size "
+                    "              WHEN aggressor='sell' THEN -size ELSE 0 END) net, "
+                    "       SUM(size) vol FROM ticks WHERE symbol='MNQ' AND ts_ms>?",
+                    (pw0,)).fetchone()
+            except Exception:
+                pr_ = None
             c.close()
             out["cvd"] = int(st["cvd"])
             out["window_min"] = CVD_WINDOW_MIN
@@ -669,20 +682,21 @@ def cvd_meter(cap_path) -> dict:
             # ⚠ cvd_pos IS STILL COMPUTED BELOW — it feeds the divergence pair he audits by eye, and
             # scripts/gap_log.py computes its own positions independently, so the pre-registered gap
             # study (data/prereg_gap_rolling.json) is untouched by this change.
-            try:
-                pw0 = (int(now.timestamp()) - PRESS_WINDOW_MIN * 60) * 1000
-                pr_ = c.execute(
-                    "SELECT SUM(CASE WHEN aggressor='buy' THEN size "
-                    "              WHEN aggressor='sell' THEN -size ELSE 0 END) net, "
-                    "       SUM(size) vol FROM ticks WHERE symbol='MNQ' AND ts_ms>?",
-                    (pw0,)).fetchone()
-                if pr_ and pr_["vol"]:
-                    out["press"] = round(100.0 * (pr_["net"] or 0) / pr_["vol"], 1)
-                    out["press_vol"] = int(pr_["vol"])
-                else:
-                    out["press"], out["press_vol"] = None, 0
-            except Exception:
-                out["press"], out["press_vol"] = None, None
+            # ⚠⚠ THE QUERY FOR THIS RAN **AFTER** `c.close()` WHEN FIRST SHIPPED (2026-09-30), so
+            # every live call raised ProgrammingError into the bare `except` below and the gauge
+            # served `press: null` while 1,607 tests passed. NOT ONE of the ten tests in
+            # tests/test_press_gauge.py called cvd_meter() — every one asserted on SOURCE TEXT — and
+            # my own "live" check built its own connection, so neither ever exercised this path.
+            # Method trap #8: the lab's tape is not production's tape. `pr_` is now read up beside
+            # the price range, BEFORE the close. Do not move it back down here;
+            # test_press_is_populated_through_the_REAL_call_path fails if you do.
+            if pr_ and pr_["vol"]:
+                out["press"] = round(100.0 * (pr_["net"] or 0) / pr_["vol"], 1)
+                out["press_vol"] = int(pr_["vol"])
+            elif pr_ is None:
+                out["press"], out["press_vol"] = None, None   # the read itself failed
+            else:
+                out["press"], out["press_vol"] = None, 0      # read fine, no volume in the window
             out["press_win_min"] = PRESS_WINDOW_MIN
             out["press_scale"] = PRESS_SCALE
             out["press_band"] = PRESS_BAND

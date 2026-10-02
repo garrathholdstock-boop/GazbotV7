@@ -101,3 +101,83 @@ def test_the_level_he_learned_is_unchanged():
 def test_the_gap_study_is_not_touched_by_this_change():
     gl = open("/home/alphabot/gazbot7/scripts/gap_log.py").read()
     assert "cvd_meter" not in gl, "gap_log must keep computing its own positions"
+
+
+# ──────────────────────────────────────────────────────────────────────────────────────────────
+# ★★★2026-10-02 THE TESTS ABOVE ALL ASSERT ON SOURCE TEXT, AND THAT IS WHY THEY MISSED A REAL BUG.
+# The press query shipped BELOW `c.close()`, so every live call raised ProgrammingError into a bare
+# `except` and the dashboard served `press: null` while all ten tests passed. My own "live" check
+# built its OWN sqlite connection and printed a healthy number, so it confirmed the formula and
+# never the call path. These two call `cvd_meter()` for real against a temp DB.
+# ⚠ `is_open` is forced rather than read: cvd_meter returns early when the venue is shut, and a test
+#   that only passes during trading hours is method trap #10 (37 tests once failed only 00-07 UTC).
+# ──────────────────────────────────────────────────────────────────────────────────────────────
+import sqlite3 as _sq
+import time as _t
+import pytest
+import pytest as _pt
+
+
+def _cap_db(tmp_path, ticks):
+    """A capture.db with the two tables cvd_meter reads. `ticks` = (ms_ago, size, aggressor)."""
+    p = tmp_path / "capture.db"
+    c = _sq.connect(p)
+    c.execute("CREATE TABLE ticks (symbol TEXT, ts_ms INTEGER, size REAL, aggressor TEXT)")
+    c.execute("CREATE TABLE bars (symbol TEXT, timeframe TEXT, bar_ts INTEGER, "
+              "high REAL, low REAL, close REAL)")
+    now_ms = int(_t.time() * 1000)
+    for ago, size, agg in ticks:
+        c.execute("INSERT INTO ticks VALUES ('MNQ',?,?,?)", (now_ms - ago, size, agg))
+    now_s = int(_t.time())
+    for i in range(20):
+        c.execute("INSERT INTO bars VALUES ('MNQ','5s',?,?,?,?)",
+                  (now_s - i * 5, 30900.0, 30880.0, 30890.0))
+    c.commit(); c.close()
+    return str(p)
+
+
+@_pt.fixture
+def _open_venue(monkeypatch):
+    from gazbot7 import session, web
+    monkeypatch.setattr(session, "is_open", lambda *a, **k: True)
+    web._CVD.clear()                      # never inherit another test's session state
+    yield
+    web._CVD.clear()
+
+
+def test_press_is_populated_through_the_REAL_call_path(tmp_path, _open_venue):
+    """THE REGRESSION TEST FOR THE CLOSED-CONNECTION BUG. If the query moves back below
+    `c.close()`, press comes back None and this fails."""
+    from gazbot7 import web
+    # net = +55 - 40 = +15 over volume 150 (neutral counts in VOLUME, never in net) = +10.0%
+    cap = _cap_db(tmp_path, [(10_000, 55.0, "buy"), (20_000, 40.0, "sell"),
+                             (30_000, 55.0, "neutral")])
+    out = web.cvd_meter(cap)
+    assert out["press"] is not None, (
+        "press came back None through the real call path — the symptom of the 2026-10-02 bug. "
+        "Check the query still runs BEFORE c.close().")
+    assert out["press"] == pytest.approx(10.0, abs=0.1), out["press"]
+    assert out["press_vol"] == 150, "neutral size belongs in VOLUME even though it is not in net"
+    # and the SERVER did the normalising: (10 + 20) / 40 = 0.75
+    assert out["press_pos"] == pytest.approx(0.75, abs=0.01)
+
+
+def test_an_off_scale_reading_CLAMPS_instead_of_running_off_the_track(tmp_path, _open_venue):
+    """±20% is the 99th percentile, so real readings do exceed it. The dot must sit AT the end,
+    never past it — a marker rendered outside its own track is the gauge misstating its scale."""
+    from gazbot7 import web
+    cap = _cap_db(tmp_path, [(10_000, 90.0, "buy"), (20_000, 10.0, "sell")])   # +80% of volume
+    out = web.cvd_meter(cap)
+    assert out["press"] == pytest.approx(80.0, abs=0.1)
+    assert out["press_pos"] == 1.0, "must clamp to the end of the track, not overshoot it"
+
+
+def test_an_empty_window_is_zero_volume_NOT_a_failed_read(tmp_path, _open_venue):
+    """The None/0 discrimination is load-bearing: `press_vol: None` means the READ BROKE,
+    `press_vol: 0` means it read fine and nobody traded. That distinction is what identified
+    the closed-connection bug from the live payload alone."""
+    from gazbot7 import web
+    cap = _cap_db(tmp_path, [(9_000_000, 40.0, "buy")])    # 2.5h old — outside the 5-min window
+    out = web.cvd_meter(cap)
+    assert out["press"] is None
+    assert out["press_vol"] == 0, "a quiet window must report 0 volume, never a None read-failure"
