@@ -55,30 +55,55 @@ def load(sessions: int):
     """
     from gazbot7.lake import connect
     con = connect()
-    q = f"""
-    WITH t AS (
-        SELECT
-            CAST((ts_ms / 1000 - {SESSION_ANCHOR_H} * 3600) / 86400 AS INT) AS sess,
-            CAST(ts_ms / 60000 AS INT)                                      AS minute,
-            SUM(CASE WHEN aggressor = 'buy'  THEN size
-                     WHEN aggressor = 'sell' THEN -size ELSE 0 END)         AS net
-        FROM ticks WHERE symbol = 'MNQ' GROUP BY 1, 2
+    # ⚠⚠⚠ THREE BUGS WERE IN THIS QUERY AND THEY CONTAMINATED EVERY ARM THAT IMPORTED IT.
+    # Found 2026-10-02 by the one arm that did NOT use it, which is the argument for independent arms.
+    #
+    # 1. NO `timeframe` FILTER. The lake's `bars` holds EIGHT timeframes for MNQ — 5s, 1min, 1m,
+    #    5mins, 3m, 1hour, 5m and 1day — and `1day` has a MEDIAN RANGE OF 310.8pt. Folding them all
+    #    into one minute bucket with MAX(high)/MIN(low) inflated 7,805 minute ranges by >25pt, worst
+    #    case +1,228pt. ⚠ And because race() tested `fav` BEFORE `adv`, every contaminated bar scored
+    #    as a WIN — so the bias ran one way, toward finding edges that were not there.
+    #    → ONE DOMINANT TIMEFRAME PER SESSION, chosen by row count.
+    # 2. `CAST` ROUNDS, IT DOES NOT FLOOR. CAST(161/60 AS INT) is 3, not 2. So
+    #    CAST((ts - 22h)/86400 AS INT) landed on 22:00+12h = 10:00Z and the "22:00Z session anchor"
+    #    this function claims to replicate from web.cvd_meter was HALF A DAY OFF. The desk's memory
+    #    warns that DuckDB `/` is float; the trap that actually fired was CAST's rounding.
+    #    → FLOOR, explicitly.
+    # 3. SUM(volume) double-counts across timeframes for the same reason as (1) — 5s and 1min rows
+    #    describe the SAME trades. The dominant-timeframe filter fixes that too.
+    q = """
+    WITH tf AS (                      -- the dominant timeframe for each session-day
+        SELECT d, timeframe,
+               ROW_NUMBER() OVER (PARTITION BY d ORDER BY COUNT(*) DESC) rn
+        FROM (SELECT CAST(FLOOR(bar_ts / 86400.0) AS INT) d, timeframe
+              FROM bars WHERE symbol = 'MNQ')
+        GROUP BY d, timeframe
     ), b AS (
-        SELECT CAST(bar_ts / 60 AS INT) AS minute,
-               MAX(high) h, MIN(low) l, ARG_MAX(close, bar_ts) c
-        FROM bars WHERE symbol = 'MNQ' GROUP BY 1
+        SELECT CAST(FLOOR(x.bar_ts / 60.0) AS INT) AS mnt,
+               MAX(x.high) h, MIN(x.low) l, ARG_MAX(x.close, x.bar_ts) c
+        FROM bars x
+        JOIN tf ON tf.d = CAST(FLOOR(x.bar_ts / 86400.0) AS INT)
+               AND tf.timeframe = x.timeframe AND tf.rn = 1
+        WHERE x.symbol = 'MNQ'
+        GROUP BY 1
+    ), t AS (
+        SELECT CAST(FLOOR((ts_ms / 1000 - 22 * 3600) / 86400.0) AS INT) AS sess,
+               CAST(FLOOR(ts_ms / 60000.0) AS INT)                      AS mnt,
+               SUM(CASE WHEN aggressor = 'buy'  THEN size
+                        WHEN aggressor = 'sell' THEN -size ELSE 0 END)   AS net
+        FROM ticks WHERE symbol = 'MNQ' GROUP BY 1, 2
     )
-    SELECT t.sess, t.minute, b.c, b.h, b.l,
-           SUM(t.net) OVER (PARTITION BY t.sess ORDER BY t.minute) AS cvd
-    FROM t JOIN b ON b.minute = t.minute
-    ORDER BY t.sess, t.minute
+    SELECT t.sess, t.mnt, b.c, b.h, b.l,
+           SUM(t.net) OVER (PARTITION BY t.sess ORDER BY t.mnt) AS cvd
+    FROM t JOIN b ON b.mnt = t.mnt
+    ORDER BY t.sess, t.mnt
     """
     rows = con.execute(q).fetchall()
     by: dict[int, list] = {}
-    for sess, minute, c, h, l, cvd in rows:
+    for sess, mnt, c, h, l, cvd in rows:
         if c is None:
             continue
-        by.setdefault(int(sess), []).append((int(minute), float(c), float(h), float(l), float(cvd)))
+        by.setdefault(int(sess), []).append((int(mnt), float(c), float(h), float(l), float(cvd)))
     out = [(s, v) for s, v in sorted(by.items()) if len(v) >= 300]
     return out[-sessions:] if sessions else out
 
@@ -99,17 +124,57 @@ def gauge(series):
 
 
 def race(series, i, direction, n_pt):
-    """Does +n_pt arrive before -n_pt, entering at close[i] in `direction`? 1 / 0 / None."""
+    """Does +n_pt arrive before -n_pt, entering at close[i] in `direction`? 1 / 0 / None.
+
+    ⚠⚠⚠ THIS TESTED `fav` BEFORE `adv`, WHICH TURNED EVERY AMBIGUOUS BAR INTO A WIN. When a single
+    bar's high and low BOTH clear the target, OHLC cannot tell you which came first — and checking
+    favourable first silently resolved every one of those in the rule's favour. Combined with the
+    timeframe contamination above (a 1day bar folded into one minute, range 310pt) that manufactured
+    wins wholesale, and it is the reason a bias in this function ran one way.
+    → an ambiguous bar now returns None and is EXCLUDED, and callers report how many.
+    """
     entry = series[i][1]
     for j in range(i + 1, min(i + 1 + RACE_MIN, len(series))):
         _m, _c, h, l, _v = series[j]
         fav = (h - entry) if direction > 0 else (entry - l)
         adv = (entry - l) if direction > 0 else (h - entry)
-        if fav >= n_pt:
+        hit_f, hit_a = fav >= n_pt, adv >= n_pt
+        if hit_f and hit_a:
+            return None                 # unresolvable from OHLC — never a win by default
+        if hit_f:
             return 1
-        if adv >= n_pt:
+        if hit_a:
             return 0
     return None
+
+
+def control_edge(rule_results, control_draws):
+    """Edge in pp against the MEAN of several control draws, with the draw spread reported.
+
+    ⚠ ONE MATCHED CONTROL IS NOT A CONTROL. Measured on the same rule and the same 168 fires, two
+    draws gave +9.9pp and +7.4pp; control draw-SD runs ±2.7-5.5pp, which is the size of every edge
+    anyone is finding here. A single draw is a coin dressed as a baseline.
+    ⚠⚠ AND THE CONTROL MUST BE SIDE-MATCHED. The lake tape rose +5,712pt over the window, so a
+    long-biased rule beats a random-side control on drift alone — rules scoring +5.8 to +7.6pp
+    against random-side collapsed to +2.0/+2.2pp side-matched.
+    """
+    import statistics as _st
+    r = [x for x in rule_results if x is not None]
+    if not r or not control_draws:
+        return None
+    rule = 100.0 * sum(r) / len(r)
+    means = []
+    for draw in control_draws:
+        d = [x for x in draw if x is not None]
+        if d:
+            means.append(100.0 * sum(d) / len(d))
+    if not means:
+        return None
+    return {"rule_pct": round(rule, 1), "n": len(r),
+            "control_pct": round(sum(means) / len(means), 1),
+            "control_sd": round(_st.stdev(means), 2) if len(means) > 1 else None,
+            "draws": len(means),
+            "edge_pp": round(rule - sum(means) / len(means), 1)}
 
 
 def triggers(series, g, hi: float, lo: float):
