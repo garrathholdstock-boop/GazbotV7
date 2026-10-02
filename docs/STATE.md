@@ -985,7 +985,32 @@ tooltip states the volume the reading rests on because ±3% on 2,000 contracts i
 
 ### ⚠ WHAT WAS DEPRECATELY KEPT
 `cvd` (the session-cumulative level) and `cvd_pos` **are still computed and still rendered** — the
-level is in the strip text and `cvd_pos` feeds the **PX/CVD divergence pair he audits by eye**.
+level is in the strip text. ⚠⚠ **AMENDED 2026-10-02 — `cvd_pos` NO LONGER FEEDS THE PX/CVD PAIR.**
+He read the cell and found it: *"px-cvd window stills shows the old ratio 25-1. fix thst. i like
+thst window i use it but make it relevant."* **The "1" was the PIN** — the pair's right half was
+still the rolling-range position, i.e. the exact measure this section exists to explain away, in
+the one cell he uses to judge whether a move is being paid for. It now reads **`press_pos`**, and
+**the amber rule moved with it** (displaying one number while the verdict reads another is the
+09-24 invisible-inputs fault). `cvd_pos` is still emitted — removing a field other consumers may
+read is the audit-every-consumer trap — it is simply no longer compared.
+★ **So `27·52` = price at 27% of today's range, aggression at 52% of the ±20%-of-volume scale,
+where 50 is balanced.** Both halves are still 0-100 positions, so the comparison stays like-for-like.
+
+### ★ THE GAUGE ROW PRINTS ITS READING, NOT ITS SCALE (2026-10-02)
+`CVD  +0.6%  [═════o═════]` — **no endpoint labels.** Two operator corrections produced this:
+*"cvd gauge has -20 and 20 on either ends but doesnt tell me what the current reading is"*, then
+*"cvd window has bottom snd top ends not fitting in th window. it shouldjust hwve % as we just
+said."*
+⚠⚠ **THE PRESS % HAD BEEN IN A `title` TOOLTIP** — against this file's own rule, written a week
+earlier: *"THE INPUTS ARE ON SCREEN, NOT IN A TOOLTIP — there is no hover on a phone."* He is on the
+iPhone ~96% of the time, so the one number the gauge measures was invisible on the device that
+reads it. **A dot placed with no visible number is an unauditable verdict.**
+⚠ The ±20% endpoints were **CONSTANTS**, so printing them repeated a fixed fact in the ~110px the
+live reading needed, and the row overflowed. **The PX row KEEPS its endpoints** — those are real
+prices that move. The two rows are deliberately no longer symmetric.
+⚠ Off-band (>±12.4%) is **UNDERLINED, never recoloured**: colour already carries SIDE.
+⚠ The tile reads **`+0.6% · −17.0k`** — NOW first, SESSION second. The level is not replaced; it is
+the meaning he has learned, and redefining it under him is the one change a user cannot detect.
 ★ `scripts/gap_log.py` computes its **own** positions, so the pre-registered gap study
 (`data/prereg_gap_rolling.json`) is **untouched** by the rescale.
 
