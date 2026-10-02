@@ -120,13 +120,26 @@ def test_it_fires_at_roughly_the_rate_it_CLAIMS_on_real_tape():
     for d, rows in by_day.items():
         if len(rows) < 600:
             continue
-        atr = TW.atr14(rows)
-        if atr <= 0:
-            continue
+        # ⚠⚠⚠2026-10-02 THIS LOOP WAS MEASURING WRONG AND IT RAISED A FALSE ALARM.
+        # It took `atr = TW.atr14(rows)` ONCE for the whole day and used it as a FIXED threshold
+        # across the entire session. But atr14 returns the mean TR of the LAST 14 BARS of whatever
+        # it is handed (`trs[-14:]`), so that was the ATR of the day's CLOSING fourteen minutes —
+        # applied retroactively to the whole day. Two faults in one: it is LOOK-AHEAD (the morning
+        # judged by the afternoon's volatility) and it is REGIME-MISMATCHED (a quiet close replays
+        # a busy morning at a tiny threshold). On a day that closed quiet it reported 22 fires and
+        # the median hit 12 against a claim of 3.6 — a RED SUITE caused by the test, not the code.
+        # The live service recomputes ATR every poll, so the faithful replay recomputes per bar.
+        # ★ Re-measured this way on 60 lake sessions the shipped rule gives 1.9 fires/session, and
+        #   the live log gives 18 fires over 5 days = 3.6/day — the CLAIM IS FINE.
         cl = [r[3] for r in rows]
+        if len(cl) < 60:
+            continue
         dirn = 1 if cl[10] > cl[0] else -1
         ext = cl[10]; fires = 0
         for i in range(11, len(cl)):
+            atr = TW.atr14(rows[max(0, i - 40):i + 1])      # ROLLING, as the service does
+            if atr <= 0:
+                continue
             if dirn * (cl[i] - ext) > 0:
                 ext = cl[i]
             elif dirn * (ext - cl[i]) >= TW.RETRACE_ATR * atr:
@@ -140,14 +153,41 @@ def test_it_fires_at_roughly_the_rate_it_CLAIMS_on_real_tape():
 
 
 # ── what the alert is allowed to say ──────────────────────────────────────────────────────────
-def test_the_message_states_its_reliability_AND_that_it_is_not_a_forecast():
-    """⚠ tunnel_watch shipped a 1.75x claim that did not replicate and ran nine hours on it. Every
-    number this desk asserts travels with the message now."""
+def test_the_message_says_it_is_an_EXIT_MARKER_and_that_DIRECTION_IS_A_COIN():
+    """★★★2026-10-02 SUPERSEDES test_the_message_states_its_reliability_AND_that_it_is_not_a_forecast,
+    which asserted the text led with "77% / 23%". Re-measuring on 60 lake sessions killed that
+    framing:
+
+      · the 77% scores only "the old direction did not come back within 2h", against a threshold of
+        HALF THE GIVEBACK — and the giveback GROWS with the multiple, so the figure rises
+        monotonically with the threshold (31% at 4xATR -> 85% at 20xATR) while carrying no
+        information about the new direction. It is very nearly a definitional artifact.
+      · measured as a SYMMETRIC RACE from the fire (+N before -N, bar highs/lows, 2h window) it is
+        a COIN: 24 cells over multiples 4-20 and targets 25-100pt span 42-62% and centre on 50,
+        the extremes carrying the smallest n. Max-excursion gave the same answer: fwd minus adverse
+        was +3, -6, -2, -2, -2, -2 points across the six multiples.
+      · that replicates this desk's own [[break-then-join-direction-is-a-coin]] — 0.469-0.506 over
+        24 cells and 239 sessions. The tape says WHEN, never WHICH WAY.
+
+    So the alert must present itself as a "the move you are IN looks finished" marker and must say
+    plainly that entering on it has no measured edge. tunnel_watch ran nine hours on a 1.75x claim
+    that did not replicate; this is the same failure caught before it cost anything."""
     m = TW.compose(1, -300.0, 180, 82.0, 11.7, -2500.0)
-    pct=TW.RELIABILITY[TW.RETRACE_ATR]
-    assert f"{pct}%" in m and f"{100-pct}%" in m, "both sides of the measurement must be in the text"
-    assert "not a forecast" in m.lower()
-    assert "100 sessions" in m
+    low = m.lower()
+    assert "not an entry signal" in low, "it must refuse to be read as an entry"
+    assert "coin" in low or "half the time" in low, "the direction result must be stated"
+    assert "lake sessions" in low, "the re-measurement must be named"
+    # ⚠ and it must NOT lead with the artifact as though it meant something
+    assert low.index("not an entry signal") < low.index("hold frame"), \
+        "the refusal belongs before the hold frame, not buried at the end"
+
+
+def test_the_message_does_not_claim_a_DIRECTIONAL_edge():
+    """⚠ The failure mode is a sentence that reads as a forecast. A test, not a convention."""
+    for new_dir in (1, -1):
+        m = TW.compose(new_dir, 300.0, 180, 82.0, 11.7, 2500.0).lower()
+        for banned in ("will go", "expect", "should run", "likely to run", "target of"):
+            assert banned not in m, f"the alert must not forecast: found {banned!r}"
 
 
 def test_the_message_carries_the_HOLD_FRAME():

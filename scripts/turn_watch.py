@@ -220,13 +220,27 @@ def compose(new_dir: int, old_move: float, old_mins: int, give: float, atr: floa
     nd = "UP" if new_dir > 0 else "DOWN"
     od = "down" if new_dir > 0 else "up"
     pct = RELIABILITY.get(RETRACE_ATR, 70)
+    ran = (f"it ran {abs(old_move):.0f}pt over {old_mins}min" if old_move is not None
+           else f"its extreme was {old_mins}min after the leg began (size unmeasured — the leg "
+                f"starts before the {WARM_MIN}min window)")
     parts = [
         f"🔄 TURN CALL — the {od} move looks over. New direction {nd}.",
-        f"it ran {abs(old_move):.0f}pt over {old_mins}min, and price has now come back "
-        f"{give:.0f}pt ({give/atr:.1f}x ATR {atr:.1f}).",
-        f"MEASURED, 100 sessions: when this fires the old direction does NOT come "
-        f"back within 2h {pct}% of the time. So {100-pct}% of the time it does — this is a "
-        f"detection, not a forecast, and it says nothing about how far {nd} goes.",
+        f"{ran}, and price has now come back {give:.0f}pt ({give/atr:.1f}x ATR {atr:.1f}).",
+        # ★★★2026-10-02 RE-MEASURED ON 60 LAKE SESSIONS AND THE HEADLINE CLAIM DID NOT SURVIVE.
+        # The old text led with "the old direction does not come back within 2h 77% of the time".
+        # That number is very nearly a DEFINITIONAL ARTIFACT: "came back" is scored against half the
+        # giveback, and the giveback GROWS with the multiple, so the percentage rises monotonically
+        # with the threshold (31% at 4xATR -> 85% at 20xATR) while saying nothing whatever about the
+        # new direction. Measured properly as a SYMMETRIC RACE from the fire — does +N arrive before
+        # -N — it is a coin: 24 cells across multiples 4-20 and targets 25-100pt span 42-62% and
+        # centre on 50, with the extreme cells carrying the smallest n. That replicates this desk's
+        # own [[break-then-join-direction-is-a-coin]] (0.469-0.506 over 24 cells, 239 sessions).
+        # ⚠ So this alert says WHEN, never WHICH WAY. It is an EXIT marker — "the move you are in
+        # looks finished" — and entering on it has no measured edge.
+        f"⚠ THIS IS A 'THE OLD MOVE LOOKS FINISHED' MARKER, NOT AN ENTRY SIGNAL. Re-measured on 60 "
+        f"lake sessions: entered at the call, {nd} wins a symmetric race only about half the time "
+        f"(24 cells, 42-62%, centred on 50). The {pct}% figure this used to lead with scores only "
+        f"'the old direction did not come back', and it rises with the threshold by construction.",
     ]
     if cvd is not None:
         aligned = (cvd > 0) == (new_dir > 0)
@@ -252,8 +266,8 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="detect and print; never send")
     a = ap.parse_args()
 
-    log(f"turn_watch up · symbol={SYMBOL} retrace={RETRACE_ATR}xATR "
-        f"(measured {RELIABILITY.get(RETRACE_ATR,'?')}% over 100 sessions) · poll {POLL_S:.0f}s")
+    log(f"turn_watch up · symbol={SYMBOL} retrace={RETRACE_ATR}xATR · poll {POLL_S:.0f}s · "
+        f"EXIT MARKER ONLY — direction measured as a coin on 60 lake sessions (see compose())")
     st = read_state()
     dirn = st.get("dirn") or 0
     ext = st.get("ext")
@@ -308,14 +322,24 @@ def main() -> int:
                 log(f"new extreme {ext:.2f} ({'UP' if dirn > 0 else 'DOWN'} leg, "
                     f"{(now_ts-leg_ts)//60}min old)")
             elif give >= RETRACE_ATR * atr:
-                old_move = dirn * (ext - next((b[3] for b in bars if b[0] >= leg_ts), ext))
+                # ⚠⚠2026-10-02 THIS SILENTLY TRUNCATED AT THE WARM WINDOW. `bars` spans WARM_MIN
+                # (600min); when a leg is OLDER than that, every bar satisfies ts >= leg_ts, so
+                # `next(...)` returned bars[0] — the oldest bar in the window, NOT the leg's start.
+                # The 10-02 16:44 fire had a leg 1051min old, so its "+416pt" was measured over at
+                # most 600min of tape and then LABELLED with the true 1051min age: two different
+                # spans in one sentence. Now the anchor is only used when the leg START is actually
+                # inside the window, and the message says so when it is not.
+                anchor = next((b[3] for b in bars if b[0] >= leg_ts), None)
+                leg_in_window = bool(bars and leg_ts >= bars[0][0])
+                old_move = dirn * (ext - anchor) if (anchor is not None and leg_in_window) else None
                 old_mins = int((ext_ts - leg_ts) // 60)
                 cvd = cvd_15min(now_ts)
                 new_dir = -dirn
                 msg = compose(new_dir, old_move, old_mins, give, atr, cvd)
                 out.update(fired=True, new_dir=new_dir, old_move=round(old_move, 2),
                            old_mins=old_mins, cvd=cvd)
-                log(f"TURN CALL · {'UP' if new_dir > 0 else 'DOWN'} · old move {old_move:+.0f}pt/"
+                _om = f"{old_move:+.0f}pt" if old_move is not None else "unmeasured(leg older than window)"
+                log(f"TURN CALL · {'UP' if new_dir > 0 else 'DOWN'} · old move {_om}/"
                     f"{old_mins}min · gave back {give:.0f}pt ({give/atr:.1f}xATR) · cvd {cvd}")
                 try:
                     with open(SERIES, "a") as fh:
