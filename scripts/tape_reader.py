@@ -201,6 +201,54 @@ Answer with ONLY this JSON and nothing else:
 """
 
 
+def _first_json_object(raw: str) -> dict | None:
+    """The FIRST COMPLETE brace-balanced JSON object in `raw`, or None.
+
+    ⚠⚠⚠ THIS REPLACES `raw[raw.find("{") : raw.rfind("}") + 1]`, WHICH COST 934 OF 966 FAILURES —
+    a quarter of every call this instrument has ever made, silently, for three weeks.
+    First-brace-to-last-brace is correct only when the reply contains EXACTLY ONE braced thing. The
+    model routinely adds a sentence afterwards, a markdown fence, or a second illustrative object,
+    and then that span covers two objects and json.loads reports "Extra data: line 1 column 735".
+    The decision was usually PERFECTLY GOOD and sitting in the first 300 characters.
+    ★ Brace-counting respects STRINGS AND ESCAPES, because the `reason` field is free prose from the
+      model and routinely contains braces and quotes — a naive counter breaks on the first one.
+    ⚠ It returns the FIRST object, never the longest: the answer is what the model led with, and
+      picking the biggest match would prefer a worked example over the decision.
+    """
+    if not raw:
+        return None
+    for start in range(len(raw)):
+        if raw[start] != "{":
+            continue
+        depth, in_str, esc = 0, False, False
+        for k in range(start, len(raw)):
+            ch = raw[k]
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        obj = json.loads(raw[start:k + 1])
+                    except Exception:
+                        break                 # not valid — try the next opening brace
+                    if isinstance(obj, dict) and "decision" in obj:
+                        return obj
+                    break
+        # fall through to the next candidate start
+    return None
+
+
 def decide(ctx: str, timeout: int = 180) -> dict:
     os.makedirs(CTX, exist_ok=True)
     try:
@@ -208,17 +256,20 @@ def decide(ctx: str, timeout: int = 180) -> dict:
                            cwd=CTX, capture_output=True, text=True, timeout=timeout,
                            env={**os.environ, "HOME": "/root"})
         raw = (p.stdout or "").strip()
-        i, j = raw.find("{"), raw.rfind("}")
-        if i < 0 or j < 0:
-            return {"error": "no JSON in reply", "raw": raw[:400]}
-        d = json.loads(raw[i:j+1])
+        d = _first_json_object(raw)
+        if d is None:
+            return {"error": "no parseable JSON object in reply", "raw": raw[:600]}
         if d.get("decision") not in DECISIONS:
-            return {"error": f"invalid decision {d.get('decision')!r}", "raw": raw[:400]}
+            return {"error": f"invalid decision {d.get('decision')!r}", "raw": raw[:600]}
         return d
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout}s"}
     except Exception as e:
-        return {"error": f"{type(e).__name__}: {e}"}
+        # ⚠ `raw` IS CARRIED NOW. The old generic branch dropped it, so 934 of the 966 failures
+        # were recorded as a bare "JSONDecodeError: Extra data: line 1 column 735" with raw=''
+        # — an error message with the evidence thrown away, which is why nobody could diagnose
+        # this for three weeks. A failure that does not keep its input cannot be fixed.
+        return {"error": f"{type(e).__name__}: {e}", "raw": (locals().get("raw") or "")[:600]}
 
 
 def main() -> int:
