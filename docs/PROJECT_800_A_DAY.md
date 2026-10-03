@@ -68,7 +68,16 @@ Ping on:
 - **anything that invalidates earlier work**, immediately, because every significant finding of
   2026-10-03 came from a premise being questioned rather than from more measurement
 
-Never ping: routine iteration completions, or a training-week number. ⚠ A training figure is not
+★★ AMENDED 2026-10-03 — HE LIFTED HIS OWN NO-PROGRESS-PINGS RULE FOR THIS PROJECT:
+> *"can you ping me a quick 2 line progress each time agents come back and your fine tuning? maybe
+> more than 2 lines. just so i dont get tempted to ask you all the time how its going!"*
+So: **ping on every iteration completion and every agent return** — holdout average, the three
+behavioural metrics against their bars, the trend against the previous iteration, and one line on
+what changed. ⚠ CLAUDE.md's "FINAL DELIVERABLES ONLY: no progress pings; one message when done"
+still governs **everything else on this desk**; it is lifted only here, and only because the
+alternative is him asking every twenty minutes.
+
+Still never ping: a training-week number AS PROGRESS. ⚠ A training figure is not
 progress and reporting one as progress is the first step to believing it.
 
 ---

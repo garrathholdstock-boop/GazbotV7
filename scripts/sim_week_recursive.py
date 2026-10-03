@@ -23,8 +23,9 @@ no-flip control top of a kill pile.
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────
 HIS SPEC, as given, and every number here is his rather than mine
-  WINDOW     06:00Z - 13:30Z   "8am paris is the start", stop at the US open. His own book:
-                               04:00-13:30Z is 57% win / 30min holds against 50% / 12min after it.
+  WINDOW     02:00Z - 13:30Z   04:00 Paris to the US open. ★ MOVED 2026-10-03 from 06:00Z: the
+                               Asia block is the ONLY profitable window in his book (+$224/entry
+                               over 11 against -$33 over 80), and 08:00 was only ever when he wakes.
   TARGET     20 points minimum ("if we miss most of it, you can still jump in late for 20-30
                                points and make $200") = 20pt x 4 lots x $2 = $160.
   STYLE      CONFIRMATION, never anticipation. "i watch that the leg has turned and is grinding up
@@ -62,7 +63,18 @@ GB = "/home/alphabot/gazbot7"
 CLAUDE = os.environ.get("CLAUDE_BIN", "claude")
 OUT = f"{GB}/reports/sim_week_recursive"
 
-WIN_START_MIN = 6 * 60          # 06:00Z = 08:00 Paris
+# ★★★2026-10-03 THE WINDOW MOVED TO 02:00Z. Operator: "if youre going to run it autonomously why
+# dont we start at 4am paris time for your first looks. the asia market usually has a good up or
+# down grind going on!!!"
+# ⚠⚠ AND HIS OWN BOOK AGREES, HARD. Clean fills, entry level, 2026-09-11 onward:
+#      02:00-06:00Z (the Asia block we were EXCLUDING):  11 entries, +$2,458, 8/11 winners, +$224/entry
+#      06:00-13:30Z (the window we had been using)    :  80 entries, -$2,646,            -$33/entry
+#   The only profitable window in his book was the one the simulator was shut out of. n=11 is thin,
+#   but +$224 against -$33 is not a small difference — and on 2026-09-18 his 02:37 and 04:50 entries
+#   alone made +$338 and +$414, both outside the old window.
+# ★ The 08:00 start was never about where the money is; it is when HE wakes up. An autonomous system
+#   has no such constraint, which is the whole point he is making.
+WIN_START_MIN = 2 * 60          # 02:00Z = 04:00 Paris — the Asia grind
 WIN_END_MIN = 13 * 60 + 30      # 13:30Z = the US cash open
 STEP_MIN = 5
 LOTS = 4
@@ -220,7 +232,7 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
     except Exception as e:
         shape = f"[shape unavailable: {type(e).__name__}: {e}]"
 
-    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 08:00 Paris to the US open", "",
+    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 04:00 Paris (02:00Z) to the US open", "",
          shape, "",
          "─" * 100,
          f"the numbers, and they are SECONDARY: price {px:.2f} · ATR(14,1m) {atr:.2f}pt · "

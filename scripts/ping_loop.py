@@ -7,7 +7,9 @@ H = "/home/alphabot/gazbot7/reports/recursive_loop/history.json"
 if not os.path.exists(H):
     print("no history"); raise SystemExit(0)
 h = json.load(open(H))
-L = [f"🔁 RECURSIVE LOOP — {len(h)} iteration(s)"]
+won = [x for x in h if x["met"]]
+L = [("★★★ IT NAILED IT — holdout cleared all four bars on iteration "
+      f"{won[-1]['iter']}" if won else f"🔁 RECURSIVE LOOP — {len(h)} iteration(s), bar not met")]
 for x in h:
     L.append(f"it{x['iter']}: train ${x['train']['net_usd']:+,.0f} | HOLDOUT "
              f"${x['holdout']['net_usd']:+,.0f} side {x['holdout']['side_accuracy']} "

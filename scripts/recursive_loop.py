@@ -114,7 +114,7 @@ def score_week(recs: list) -> dict:
         trades += len(rec["trades"])
         bars, _ = SW.load_day(rec["day"])
         d0 = int(dt.datetime.fromisoformat(rec["day"] + "T00:00:00+00:00").timestamp())
-        vis = [b for b in bars if d0 + 6 * 3600 <= b[0] <= d0 + 13 * 3600 + 1800]
+        vis = [b for b in bars if d0 + 2 * 3600 <= b[0] <= d0 + 13 * 3600 + 1800]
         legs = SP._legs(vis) if len(vis) > 30 else []
         offered = sum(abs(l["pts"]) for l in legs) or 1.0
         got = sum(t["points"] for t in rec["trades"])
@@ -248,6 +248,14 @@ def main() -> int:
 
         if ok:
             log(f"★★★ HOLDOUT MET THE BAR ON ITERATION {it}. Stopping.")
+            # ⚠ PING THE MOMENT IT NAILS IT, not at the end of the twelve. He asked to be told when
+            #   it nails it, and waiting for the loop to exhaust its iterations would mean sitting
+            #   on the one result he actually wants for hours.
+            try:
+                subprocess.run([sys.executable, f"{GB}/scripts/ping_loop.py"], cwd=GB,
+                               env={**os.environ, "PYTHONPATH": "src"}, timeout=1200)
+            except Exception as e:
+                log(f"  ping failed: {type(e).__name__}: {e}")
             break
 
         log("  consolidating the week into a rewritten rule set")

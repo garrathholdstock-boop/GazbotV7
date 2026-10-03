@@ -91,7 +91,7 @@ def _legs(bars, min_swing_pt: float | None = None):
     return out
 
 
-def page(bars, trades, day: str, window=(6 * 60, 13 * 60 + 30)) -> str:
+def page(bars, trades, day: str, window=(2 * 60, 13 * 60 + 30)) -> str:
     """One page: the snake, the entries/exits on it, and the per-leg capture table."""
     if not bars:
         return "NO TAPE."
