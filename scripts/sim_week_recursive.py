@@ -72,6 +72,30 @@ HALF_SPREAD_PT = 0.125          # MNQ ticks 0.25; charge half against us each wa
 MIN_TARGET_PT = 20.0            # HIS minimum
 
 DAYS = ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"]
+WEEKS = {
+    "w1": ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"],
+    "w0": ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25"],
+}
+
+# ★★★2026-10-03 THE 2x2, REPLICATED ON TWO WEEKS. Operator: "its the weekend we have heaps of time
+# and heaps of claude tokens lets go crazy and do this properly."
+# Two binary variables, because the first run confounded them:
+#   LESSONS  — does the self-review carried from yesterday change today?
+#   AWARE    — does seeing TODAY'S OWN trade count and P&L change the next decision?
+# ⚠ Both are run on the CORRECTED brief, so the 20pt floor is a floor in every arm. The v1 run
+#   (learned/control) used a brief that said "you need 20-30 points", which it obeyed exactly —
+#   it exited at the EXACT PEAK of all eleven of its winners. That cap was mine, not the market's,
+#   and an arm carrying it cannot be compared with one that does not.
+# ⚠⚠ TWO WEEKS, because four arms on one week is still an anecdote: with ~3 trades a day a single
+#   week is ~15 trades per arm, and this desk has measured that 5,026 specs reproduce a published
+#   t=5.83 from pure noise 13% of the time. The second week is the replication, and an effect that
+#   appears in one week and not the other is noise no matter how large it looks.
+ARMS = {
+    "v2_base":  {"lessons": False, "aware": False},
+    "v2_learn": {"lessons": True,  "aware": False},
+    "v2_aware": {"lessons": False, "aware": True},
+    "v2_both":  {"lessons": True,  "aware": True},
+}
 
 
 # ── tape ────────────────────────────────────────────────────────────────────────────────────────
@@ -152,7 +176,28 @@ def _assert_causal(bars_upto, now_epoch: int) -> None:
         raise AssertionError(f"LOOK-AHEAD: bar {bars_upto[-1][0]} is after now {now_epoch}")
 
 
-def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str) -> str:
+def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
+            done: list | None = None, self_aware: bool = False) -> str:
+    """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
+
+    ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
+    it learns?" Two days in, the reviews were getting sharper every night and the behaviour was
+    identical — 14 trades on Monday, 14 on Tuesday, after a lesson that said "14 entries inside one
+    clean staircase is ten too many".
+    ⚠⚠ THE REASON WAS MINE: THE CONTEXT NEVER TOLD IT WHAT IT HAD ALREADY DONE. It saw price, ATR,
+    the leg narrative, the session shape, its open position and the clock — and NOT the day's trade
+    count, not the day's P&L, not the levels it had already been stopped out in. So it was asked to
+    obey an aggregate constraint ("3-6 trades a day") while being denied the only number that makes
+    the constraint checkable, and every decision was taken as though it were the first of the day.
+    A frequency lesson is unenforceable by a decision-maker with no memory of its own session.
+    ★ Same family as this desk's [[a-memory-is-not-a-rule-until-it-is-in-the-prompt]] — three
+      lessons lost to one missing prompt line — and the one I added this morning,
+      [[a-written-rule-with-no-test-is-a-suggestion]]. Third instance in a day.
+    ⚠ IT IS A FLAG AND NOT A CHANGE, deliberately: the running week must stay internally comparable,
+      exactly as the operator insisted for the stops. The self-aware version is a SEPARATE ARM over
+      the same five days, so the comparison isolates one variable — does telling it what it has
+      already done change what it does next?
+    """
     _assert_causal(bars_upto, now_epoch)
     now = dt.datetime.fromtimestamp(now_epoch, dt.UTC)
     atr = atr14(bars_upto)
@@ -196,6 +241,28 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str) -> str:
     else:
         L += ["", "YOU ARE FLAT."]
 
+    if self_aware:
+        done = done or []
+        net = sum(t["pnl_usd"] for t in done)
+        L += ["", "WHAT YOU HAVE ALREADY DONE TODAY — this is your own record, read it before acting"]
+        if not done:
+            L.append("  no trades yet today.")
+        else:
+            for i, t in enumerate(done, 1):
+                L.append(f"  {i}. {t['side']:5} {t['opened'][11:16]}->{t['closed'][11:16]}Z "
+                         f"{t['held_min']:>4.0f}min  {t['points']:+6.1f}pt  ${t['pnl_usd']:+8.2f}  "
+                         f"peak {t['peak_pt']:+.0f}pt  (in at {t['entry']:.2f}, out at {t['exit']:.2f})")
+            w = sum(1 for t in done if t["pnl_usd"] > 0)
+            flat = sum(1 for t in done if t["peak_pt"] < 8)
+            last_out = max(dt.datetime.fromisoformat(t["closed"]) for t in done)
+            L += [f"  SO FAR: {len(done)} trade(s), {w} winner(s), net ${net:+,.2f}",
+                  f"  {flat} of them never showed +8pt in your favour",
+                  f"  last exit was {(now - last_out).total_seconds()/60:.0f} min ago",
+                  f"  ⚠ YOUR BAND IS 3-6 TRADES A DAY. You are on {len(done)}."]
+            if len(done) >= 6:
+                L.append("  ⚠⚠ YOU ARE AT OR OVER THE LIMIT. Entering again needs a reason you "
+                         "would defend to him in the morning, not a setup that merely looks good.")
+
     mins_left = WIN_END_MIN - (now.hour * 60 + now.minute)
     L += ["", f"⏱ {mins_left} minutes left in the window. At 13:30Z you are flattened "
               f"automatically, whatever you say."]
@@ -217,8 +284,19 @@ WHAT TO READ: the DAY'S STRUCTURE, not a metric at this moment. "what has happen
 ground down for 8 hours, then up for 4 now its starting down again." The leg sequence is given to
 you above — use it.
 
-YOUR TARGET: {MIN_TARGET_PT:.0f} points minimum ({MIN_TARGET_PT * LOTS * VPP:.0f} dollars at {LOTS} lots). You do not need
-the whole leg. You need 20-30 points of a leg that is already going your way.
+YOUR FLOOR IS {MIN_TARGET_PT:.0f} POINTS, AND A FLOOR IS NOT A TARGET.
+  {MIN_TARGET_PT:.0f}pt = ${MIN_TARGET_PT * LOTS * VPP:.0f} at {LOTS} lots. That is the SMALLEST trade worth taking — the level
+  below which jumping in late is not worth the risk. It is NOT what you are aiming for and it is
+  NOT a reason to exit.
+  ⚠⚠ THE LEGS ARE MUCH BIGGER THAN YOUR FLOOR. Median leg on this tape is 298 POINTS over 266
+  minutes. Even entering halfway through one leaves well over a hundred points. On 2026-09-29 the
+  up-leg delivered 308pt and a previous run of this simulator took 22, 23, 26 and 31pt slices out
+  of it and finished the day NEGATIVE — it exited at the exact peak of every winner it had.
+  ★ SO: once a position is more than {MIN_TARGET_PT:.0f}pt ahead, the question is NO LONGER "shall I take it".
+  The question is "has the leg's STRUCTURE broken" — has it stopped making higher lows (if long) or
+  lower highs (if short). Hold while the structure holds. Exit when it breaks, when the window
+  closes, or when the day's narrative says the leg is over. A +25pt exit on an intact leg is
+  leaving the trade early, not banking a win.
 
 CONSTRAINTS YOU CANNOT OVERRIDE (the simulator enforces them):
   · one position at a time, {LOTS} lots, no adding
@@ -275,7 +353,32 @@ def ask(prompt: str, timeout: int = 180) -> dict:
     return {"action": "WAIT", "error": "no parseable action", "raw": raw[:400]}
 
 
-def run_day(day: str, lessons: str, arm: str, resume: bool = True) -> dict:
+def ask_text(prompt: str, timeout: int = 240) -> str:
+    """Claude's answer as TEXT. For the day review, which is prose, not a decision.
+
+    ⚠⚠⚠ THIS EXISTS BECAUSE MONDAY'S LESSONS CAME BACK AS AN ERROR BLOB TRUNCATED TO 400 CHARS.
+    `ask()` requires a JSON object carrying an "action" key — correct for a trading decision, fatal
+    for a review, which the prompt explicitly asks for as numbered prose. So the review fell into
+    ask()'s failure path, which truncates `raw` to 400 characters, and review_day() then stored
+    json.dumps(that_error_dict). Monday produced six lessons; Tuesday would have inherited one and a
+    half of them wrapped in an error object, and lessons 3-6 were simply gone.
+    ★ THE RECURSION WAS THE WHOLE POINT OF THE EXERCISE AND IT WAS SILENTLY CRIPPLED — the one
+      number the experiment exists to produce (does learning compound?) would have been measured on
+      a memory that forgot two thirds of itself every night.
+    """
+    try:
+        p = subprocess.run([CLAUDE, "-p", prompt], cwd=OUT, capture_output=True,
+                           text=True, timeout=timeout,
+                           env={**os.environ, "HOME": "/root"})
+        return (p.stdout or "").strip()
+    except subprocess.TimeoutExpired:
+        return f"[review timed out after {timeout}s — no lessons for tomorrow]"
+    except Exception as e:
+        return f"[review failed: {type(e).__name__}: {e}]"
+
+
+def run_day(day: str, lessons: str, arm: str, resume: bool = True,
+            self_aware: bool = False) -> dict:
     """One session, causally, every STEP_MIN minutes. Returns the day's record."""
     path = f"{OUT}/{arm}_{day}.json"
     if resume and os.path.exists(path):
@@ -292,7 +395,7 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True) -> dict:
         if pos:
             pos["peak"] = max(pos["peak"], pos["dir"] * (px - pos["entry"]))
         d = ask(BRIEF + "\n\n=== THE TAPE ===\n"
-                + context(upto, now_epoch, pos, lessons))
+                + context(upto, now_epoch, pos, lessons, trades, self_aware))
         act = d.get("action", "WAIT")
         calls.append({"ts": dt.datetime.fromtimestamp(now_epoch, dt.UTC).isoformat(),
                       "px": px, "action": act, "conf": d.get("confidence"),
@@ -361,53 +464,76 @@ def review_day(rec: dict, lessons_so_far: str) -> str:
         L.append(f"⚠ {errs} of your calls failed to parse and defaulted to WAIT")
     if lessons_so_far:
         L += ["", "the lessons you were already carrying into today:", lessons_so_far]
-    out = ask(REVIEW + "\n\n=== WHAT YOU DID ===\n" + "\n".join(L), timeout=240)
-    return out.get("reason") or out.get("lessons") or json.dumps(out)[:1500]
+    txt = ask_text(REVIEW + "\n\n=== WHAT YOU DID ===\n" + "\n".join(L), timeout=240)
+    # ⚠ A SHORT REVIEW IS A FAILED REVIEW, AND IT MUST SAY SO RATHER THAN QUIETLY CARRY FORWARD.
+    #   Monday's real answer was ~1,500 chars of specific, numbered, arithmetic-backed lessons; the
+    #   broken path stored 479 and nobody would have noticed from the file alone.
+    if len(txt) < 200:
+        txt = f"[REVIEW SUSPECT — only {len(txt)} chars returned]\n{txt}"
+    return txt
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", choices=("learned", "control", "both"), default="both")
-    ap.add_argument("--days", default=",".join(DAYS))
-    ap.add_argument("--fresh", action="store_true", help="ignore cached day files")
+    ap.add_argument("--arm", default="both",
+                    help="learned|control|selfaware (v1), an ARMS key (v2), or 'matrix'")
+    ap.add_argument("--week", default="w1", choices=("w1", "w0", "all"))
+    ap.add_argument("--days", default="")
+    ap.add_argument("--fresh", action="store_true")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    days = a.days.split(",")
-    arms = ("learned", "control") if a.arm == "both" else (a.arm,)
+
+    weeks = ["w1", "w0"] if a.week == "all" else [a.week]
+    if a.arm == "matrix":
+        arms = list(ARMS)
+    elif a.arm == "both":
+        arms = ["learned", "control"]
+    else:
+        arms = [a.arm]
 
     summary = {}
-    for arm in arms:
-        lessons, rows = "", []
-        for day in days:
-            rec = run_day(day, lessons if arm == "learned" else "", arm, resume=not a.fresh)
-            rows.append(rec)
-            print(f"  {arm:8} {day}  net ${rec['net_usd']:+9,.2f}  "
-                  f"{len(rec['trades'])} trade(s)")
-            if arm == "learned":
-                lp = f"{OUT}/lessons_{day}.txt"
-                if os.path.exists(lp) and not a.fresh:
-                    new = open(lp).read()
-                else:
-                    new = review_day(rec, lessons)
-                    open(lp, "w").write(new)
-                lessons = (lessons + "\n" + new).strip()
-        summary[arm] = rows
-        tot = sum(r["net_usd"] for r in rows)
-        ntr = sum(len(r["trades"]) for r in rows)
-        print(f"  {arm:8} WEEK  net ${tot:+,.2f} over {ntr} trades "
-              f"({ntr/len(days):.1f}/day)")
-        print()
+    for wk in weeks:
+        days = a.days.split(",") if a.days else WEEKS[wk]
+        for arm in arms:
+            spec = ARMS.get(arm, {"lessons": arm != "control", "aware": arm == "selfaware"})
+            tag = f"{arm}_{wk}" if arm in ARMS else arm
+            lessons, rows = "", []
+            for day in days:
+                rec = run_day(day, lessons if spec["lessons"] else "", tag,
+                              resume=not a.fresh, self_aware=spec["aware"])
+                rows.append(rec)
+                print(f"  {tag:14} {day}  net ${rec['net_usd']:+9,.2f}  "
+                      f"{len(rec['trades'])} trade(s)", flush=True)
+                if spec["lessons"]:
+                    lp = f"{OUT}/lessons_{tag}_{day}.txt"
+                    if os.path.exists(lp) and not a.fresh:
+                        new = open(lp).read()
+                    else:
+                        new = review_day(rec, lessons)
+                        open(lp, "w").write(new)
+                    lessons = (lessons + "\n" + new).strip()
+            summary[tag] = rows
+            tot = sum(r["net_usd"] for r in rows)
+            ntr = sum(len(r["trades"]) for r in rows)
+            print(f"  {tag:14} WEEK net ${tot:+,.2f} over {ntr} trades "
+                  f"({ntr/len(days):.1f}/day)", flush=True)
+            print(flush=True)
 
-    if len(arms) == 2:
-        lw = [r["net_usd"] for r in summary["learned"]]
-        cw = [r["net_usd"] for r in summary["control"]]
-        print("=== DID THE LEARNING DO ANYTHING? ===")
-        print(f"  learned week ${sum(lw):+,.2f}   control week ${sum(cw):+,.2f}   "
-              f"difference ${sum(lw)-sum(cw):+,.2f}")
-        print("  ⚠ FIVE DAYS IS FIVE DAYS. A difference here is a reason to run it again on more")
-        print("    weeks, never a validated improvement — and the control exists precisely because")
-        print("    a rising learned arm alone would be unfalsifiable.")
-    json.dump(summary, open(f"{OUT}/summary.json", "w"), indent=1, default=str)
+    # ── the readout ─────────────────────────────────────────────────────────────────────────────
+    if len(summary) > 1:
+        print("=== THE MATRIX ===", flush=True)
+        print(f"  {'arm':16}{'net':>12}{'trades':>8}{'/day':>7}{'win%':>7}", flush=True)
+        for tag, rows in summary.items():
+            t = [x for r in rows for x in r["trades"]]
+            net = sum(r["net_usd"] for r in rows)
+            w = sum(1 for x in t if x["pnl_usd"] > 0)
+            print(f"  {tag:16}{net:>+11,.0f}{len(t):>8}{len(t)/len(rows):>7.1f}"
+                  f"{(100*w/len(t) if t else 0):>6.0f}%", flush=True)
+        print(flush=True)
+        print("  ⚠ READ THE REPLICATION, NOT THE WINNER. An effect present in one week and absent", flush=True)
+        print("    in the other is noise however large. ~15 trades per arm-week is thin, and a", flush=True)
+        print("    P&L ranking across four arms is four chances to be fooled.", flush=True)
+    json.dump(summary, open(f"{OUT}/summary_{a.arm}_{a.week}.json", "w"), indent=1, default=str)
     return 0
 
 
