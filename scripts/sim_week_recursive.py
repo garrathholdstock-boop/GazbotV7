@@ -203,10 +203,31 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
     atr = atr14(bars_upto)
     px = bars_upto[-1][3]
     conf, cur = legs(bars_upto)
-    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · 08:00 Paris to the US open is the window",
-         f"price {px:.2f} · ATR(14,1m) {atr:.2f}pt · {len(bars_upto)} minutes of tape since 22:00Z",
+
+    # ★★★2026-10-03 THE SHAPE LEADS. Operator: "so make the live context show the shape not the
+    # metrics." This context used to open with price, ATR, minutes-of-tape and a leg sentence, and
+    # bury the structure in 15-minute OHLC rows. The day has about five segments in it; at
+    # one-minute resolution that structure is invisible, which is why plain direction flips fire
+    # 42-87 times a session on the same tape where a ZigZag finds five legs — and why an entire
+    # night of signal search came back a coin. It was conducted at the resolution where the answer
+    # cannot be seen.
+    try:
+        import importlib.util as _il
+        _sp = _il.spec_from_file_location("snake", f"{GB}/scripts/snake_page.py")
+        _sm = _il.module_from_spec(_sp)
+        _sp.loader.exec_module(_sm)
+        shape = _sm.live_page(bars_upto, done or [], now_epoch, pos)
+    except Exception as e:
+        shape = f"[shape unavailable: {type(e).__name__}: {e}]"
+
+    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 08:00 Paris to the US open", "",
+         shape, "",
+         "─" * 100,
+         f"the numbers, and they are SECONDARY: price {px:.2f} · ATR(14,1m) {atr:.2f}pt · "
+         f"{len(bars_upto)} min of tape",
+         "─" * 100,
          "",
-         "THE DAY SO FAR — THIS IS THE THING TO READ. The sequence, not the last number."]
+         "the same legs as a list, for precision only — the picture above is the thing to read:"]
     if conf:
         for i, (d, si, ei, pts, mins) in enumerate(conf, 1):
             t0 = dt.datetime.fromtimestamp(bars_upto[si][0], dt.UTC)
@@ -223,9 +244,12 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
           f"  so: {len(conf)} confirmed leg(s) behind us, and the current one has run "
           f"{mins:.0f} minutes for {abs(pts):.0f}pt."]
 
-    L += ["", "THE WHOLE SESSION IN 15-MIN BARS (oldest first) — read the shape"]
+    # ⚠ ONLY THE LAST TWO HOURS AS BARS NOW. The full-session OHLC dump was 60+ rows of numbers
+    #   that the picture renders in one glance, and it was what the model actually leaned on —
+    #   which is precisely the metric-reading behaviour that produced six trades on one 194pt leg.
+    L += ["", "the last two hours in 15-min bars, for the fine detail only"]
     step = 15
-    for k in range(0, len(bars_upto) - step + 1, step):
+    for k in range(max(0, len(bars_upto) - 120), len(bars_upto) - step + 1, step):
         blk = bars_upto[k:k + step]
         t = dt.datetime.fromtimestamp(blk[0][0], dt.UTC)
         o, h, l, c = blk[0][3], max(b[1] for b in blk), min(b[2] for b in blk), blk[-1][3]
@@ -280,7 +304,12 @@ HIS METHOD, in his words:
   and make $200."
   "the gentle grind of asia and london is very friendly to this type of trading."
 
-WHAT TO READ: the DAY'S STRUCTURE, not a metric at this moment. "what has happened so far? it
+WHAT TO READ: THE PICTURE. You are given the session drawn as a shape with your own entries and
+exits on it. Read the SHAPE first — how many legs, which way, how long each ran, and which one you
+are in now. The numbers underneath are secondary and exist for precision, not for the decision.
+⚠ A day has about five legs in it. If you find yourself taking a sixth trade inside one leg, the
+  picture will show you that immediately and no metric will.
+ALSO: the DAY'S STRUCTURE, not a metric at this moment. "what has happened so far? it
 ground down for 8 hours, then up for 4 now its starting down again." The leg sequence is given to
 you above — use it.
 
@@ -433,8 +462,16 @@ def _close(pos, px, epoch, why) -> dict:
             "entry_reason": pos.get("reason", "")}
 
 
-REVIEW = """You traded MNQ today using the method below. Review YOUR OWN decisions honestly and
-write what you will do differently tomorrow.
+REVIEW = """You traded MNQ today. Review YOUR OWN decisions honestly and write what you will do
+differently tomorrow.
+
+★★★ LOOK AT THE PICTURE FIRST, BEFORE ANY NUMBER. You are given the day drawn as a snake with your
+entries (L/S) and exits (x) marked on it, then the leg table, then your trades. Read them in that
+order — the shape, then the legs, then your decisions. The operator reads it that way and the
+numbers are secondary to the shape.
+⚠ THE QUESTION HE ACTUALLY ASKS OF THIS PAGE: were my trades ON the legs? A leg with no trade on it
+is a miss, and a leg carrying six trades that each captured 10-20% of it is one trade chopped into
+six. Both of those are invisible in a list of trades and obvious in the picture.
 
 ⚠ You may ONLY use today's tape and today's decisions. You do not know what happens tomorrow.
 ⚠ Be specific and actionable. "Be more patient" is useless. "I exited three trades inside 10
@@ -464,7 +501,25 @@ def review_day(rec: dict, lessons_so_far: str) -> str:
         L.append(f"⚠ {errs} of your calls failed to parse and defaulted to WAIT")
     if lessons_so_far:
         L += ["", "the lessons you were already carrying into today:", lessons_so_far]
-    txt = ask_text(REVIEW + "\n\n=== WHAT YOU DID ===\n" + "\n".join(L), timeout=240)
+    # ★★★2026-10-03 THE SNAKE GOES FIRST. Operator: "the nightly review needs to look at the whole
+    # day. the 3-5 legs... claude needs to look at the tape every night like i do. a 1 page snake
+    # with entries and exits." Then: "the numbers are secondary. first review is looking at the
+    # image of the snake."
+    # ⚠ Before this the review NEVER SAW THE TAPE — only its own trades — so it could not see what
+    #   a leg did after it exited, and could never learn that it MISSED one. Every lesson it wrote
+    #   was therefore a variant of "I traded too much", because a trade not taken left no trace in
+    #   the material it was given.
+    try:
+        import importlib.util as _il
+        _s = _il.spec_from_file_location("snake", f"{GB}/scripts/snake_page.py")
+        _m = _il.module_from_spec(_s)
+        _s.loader.exec_module(_m)
+        bars, _ = load_day(rec["day"])
+        snake = _m.page(bars, rec["trades"], rec["day"])
+    except Exception as e:
+        snake = f"[snake page failed: {type(e).__name__}: {e}]"
+    txt = ask_text(REVIEW + "\n\n=== THE DAY, AS A PICTURE. READ THIS FIRST ===\n" + snake
+                   + "\n\n=== WHAT YOU DID ===\n" + "\n".join(L), timeout=300)
     # ⚠ A SHORT REVIEW IS A FAILED REVIEW, AND IT MUST SAY SO RATHER THAN QUIETLY CARRY FORWARD.
     #   Monday's real answer was ~1,500 chars of specific, numbered, arithmetic-backed lessons; the
     #   broken path stored 479 and nobody would have noticed from the file alone.
