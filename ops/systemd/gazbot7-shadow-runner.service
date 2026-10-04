@@ -1,0 +1,35 @@
+[Unit]
+Description=GAZBOT V7 — the SHADOW RUNNER (iteration 2's rules, forward, on live tape, PLACES NOTHING)
+# ★★★ THE FORWARD TEST OF THE $620/DAY RESULT. scripts/sim_week_recursive.py scored $620/day over
+# 10 holdout days it had never trained on or reviewed, and it can only trade the PAST — it replays
+# capture.db. This is the SAME harness (it imports the brief, the shape-first context, the JSON
+# parser and the fill model rather than copying them) pointed at `now`.
+#
+# ⚠⚠⚠ READ-ONLY. Two files, both its own: data/shadow_runner.jsonl and
+# data/shadow_runner_state.json, plus one JSON per day under reports/shadow_runner/.
+# tests/test_shadow_runner.py asserts against the AST — not a text grep — that no executable string
+# names day_rider_buy.txt, day_rider_claim.txt, gate_switches.env or any broker call, that it
+# imports no broker library, and that every write targets one of its own paths. Both assertions were
+# verified by deliberately inserting an order-path write and watching them fail.
+#
+# ⚠⚠ WIRING THIS TO THE BUTTONS IS A SEPARATE, OPERATOR-ONLY DECISION. His standing rule on the
+# tape reader is that phase 2 "must be EARNED by the forward grading". This IS the grading.
+#
+# ⚠ The rule set is FROZEN at reports/recursive_loop/rules.txt and each day record carries its
+# sha256 prefix. A forward test whose rules are rewritten nightly is not a forward test.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+# The box is 7.5GB with a history of global_oom kills that took the DESK down. A shadow experiment
+# is never allowed to be the process that does that.
+MemoryMax=900M
+# A headless decision is 10-60s; four minutes is a hung call, not a slow one.
+TimeoutStartSec=240
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/shadow_runner.py --once
+# A runner that cannot decide must never take the desk with it.
+SuccessExitStatus=0 1

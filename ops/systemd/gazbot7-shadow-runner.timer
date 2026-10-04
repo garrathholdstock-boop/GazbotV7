@@ -1,0 +1,19 @@
+[Unit]
+Description=GAZBOT V7 — shadow runner cadence (5 min across his window; the script owns the edges)
+
+[Timer]
+# ★ THE WINDOW LIVES IN ONE PLACE — scripts/shadow_runner.py (WIN_START_MIN / WIN_END_MIN, imported
+# from sim_week_recursive so it is literally the same window that scored $620/day). This timer is
+# deliberately WIDER than the window and the script declines outside it. A window defined in both
+# the timer and the code drifts, and then the forward test runs a different session than the
+# backtest did.
+#
+# 02:00Z = 04:00 Paris, the operator's own tip: "the asia market usually has a good up or down grind
+# going on!!!" — opening the window there turned 2026-09-18 from +$240 into +$2,022.
+# Offset :40s so it never races the router's *:0/5 write or the rider's *:*:05 tick.
+OnCalendar=Mon..Fri 02..13:00/5:40
+AccuracySec=5s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
