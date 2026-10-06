@@ -1,8 +1,14 @@
 {
   "_what": "The weekly Claude token budget the dashboard dial measures against.",
-  "_how_this_number_was_chosen": "INFERRED, NOT KNOWN. No file on this box and no CLI flag reports the plan's real allowance. The week of 2026-09-28 reached 499,288,201 billable tokens and ran out; the four weeks before it ran 19.7M / 206.9M / 167.6M / 237.0M and did not. So the true allowance lies between ~237M and ~500M and 500M is the closest empirical estimate available. REPLACE IT with the real figure when known — the dial is only as honest as this number.",
+  "_how_this_number_was_chosen": "CALIBRATED, not guessed. On 2026-10-06 at 08:13Z the CLI refused with 'You've hit your weekly limit' while this meter read ~406M billable tokens for the week beginning Wed 2026-09-30 05:00Z. That is the wall, measured in this meter's own units, so 410,000,000 is the calibration point rather than the earlier 500M estimate inferred from a weekly total. \u26a0 It stays a FLOOR-based figure: the meter sees this box only, so if he also spends from the phone or desktop app, the true allowance in these units is HIGHER than 410M and the dial will read pessimistically \u2014 which is the safe direction for a budget gauge.",
   "_billable_means": "input + output + cache-creation tokens. Cache READS are excluded because they are the cheapest class by an order of magnitude; see billable() in scripts/claude_usage.py. This is a consistent yardstick, NOT Anthropic's billing formula.",
   "_floor_not_ceiling": "Measured from this box's transcripts only. Usage from the phone or desktop app is invisible here, so the figure under-reports account-wide consumption.",
-  "weekly_token_budget": 500000000,
-  "week_start_dow": 0
+  "weekly_token_budget": 410000000,
+  "_reset": "Operator said 'i go back to zero at 7am every wednesday' (his local wall clock). The CLI's own refusal message is the authority and says 'resets Oct 7, 5am (UTC)' \u2014 so the reset is anchored in UTC, not in Paris. Those are the SAME INSTANT today (CEST = UTC+2) and DIVERGE on 2026-10-25, when 07:00 Paris becomes 06:00Z while the real reset stays 05:00Z. Anchoring on Paris would have been an hour wrong every winter \u2014 the inverse of the usual mistake on this desk, where a UTC time drifts against a local schedule. Here the SCHEDULE is UTC and the local reading is the thing that drifts.",
+  "reset_dow": 2,
+  "reset_tz": "UTC",
+  "reset_hour_utc": 5,
+  "_uncertainty": "\u26a0 THE MAPPING IS NOT EXACT. At 08:13Z on 2026-10-06 a headless job was refused with 'You've hit your weekly limit \u00b7 resets Oct 7, 5am (UTC)' while this meter read ~406M \u2014 and yet direct calls kept succeeding for at least the next two hours, and a 138-call simulated day completed with 0 errors. So the limit is not a single hard token ceiling in these units: it may be per-model or per-tier. Treat the dial as a WEATHER FORECAST, not a fuel gauge. Above 85% it says CHECK APP instead of quoting a remaining figure it cannot stand behind.",
+  "_last_reset_at": "Set when Claude support grants an EARLY reset, which no local signal reports. Overrides the computed week start whenever it is later, so the spent half of the old week stops being counted. Ignored if malformed, in the future, or before the scheduled start.",
+  "last_reset_at": "2026-10-06T09:52:45+00:00"
 }

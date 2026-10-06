@@ -117,6 +117,27 @@ TIMER_FRESHNESS = {
 JOB_MAX_AGE_H = {"sweep": 6, "hour-watch": 26, "ledger-review": 6, "nightly-review": 80}
 
 
+def unit_enabled(unit: str) -> bool:
+    """★2026-10-06 IS THIS UNIT SUPPOSED TO BE RUNNING AT ALL?
+
+    The router was turned off deliberately on 2026-10-06 — it was **51% of the operator's
+    entire weekly Claude spend** (580M of 1.13B tokens, 17.1M/day) to manage six gates its
+    own prompt holds OFF and whose `on` decisions it drops before applying them.
+
+    ⚠⚠ THREE CHECKS IN THIS FILE WOULD HAVE PAGED HIM EVERY NIGHT FOR THAT DECISION, and
+    none of them gated on whether the unit was wanted: the freshness loop only tested
+    `LoadState == loaded` (a disabled unit is still *loaded*), REQUIRED_SERVICES tested
+    `is-active` alone, and the router-health block ran unconditionally. The file's own
+    comment already states the intent — *"An ENABLED timer that has not fired is the exact
+    shape of a silent failure"* — so gating on enabled is what it meant, not a weakening.
+
+    ⚠ A disabled unit is still REPORTED, as a note. Skipping it silently would trade one
+    false alarm for a real blind spot, which is the trap this whole file exists to avoid.
+    """
+    return sh("systemctl", "is-enabled", unit) in ("enabled", "enabled-runtime", "static",
+                                                   "indirect", "generated")
+
+
 def sh(*cmd: str, timeout: int = 20) -> str:
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout.strip()
@@ -227,16 +248,25 @@ def check() -> tuple[list[str], list[str], dict]:
     notes: list[str] = []
     detail: dict = {}
 
-    # 1. the router actually decides
-    rh = sh(PY, f"{GB}/scripts/router_health_check.py", "--json", "--dry-run", timeout=60)
-    try:
-        rhj = json.loads(rh) if rh.strip().startswith("{") else {}
-    except Exception:
-        rhj = {}
-    detail["router"] = rhj
-    detail["router_aborts_today"] = rhj.get("aborts_today")
-    for f in rhj.get("faults", []):
-        faults.append(f"ROUTER: {f}")
+    # 1. the router actually decides — ONLY IF THE ROUTER IS SUPPOSED TO BE RUNNING.
+    # ⚠ Disabling gazbot7-router-health.timer is not enough to silence this: the supervisor
+    # calls router_health_check.py DIRECTLY, so an off-by-choice router would have produced
+    # "ROUTER: tick timer dead" as a nightly FAULT from here regardless of the timer state.
+    if unit_enabled("gazbot7-router-tick.timer"):
+        rh = sh(PY, f"{GB}/scripts/router_health_check.py", "--json", "--dry-run", timeout=60)
+        try:
+            rhj = json.loads(rh) if rh.strip().startswith("{") else {}
+        except Exception:
+            rhj = {}
+        detail["router"] = rhj
+        detail["router_aborts_today"] = rhj.get("aborts_today")
+        for f in rhj.get("faults", []):
+            faults.append(f"ROUTER: {f}")
+    else:
+        detail["router"] = {"state": "DISABLED BY OPERATOR 2026-10-06 — credit cost"}
+        notes.append("router is DISABLED by operator decision (2026-10-06, 51% of weekly "
+                     "Claude spend) — not checked, not a fault. Re-enable: "
+                     "systemctl enable --now gazbot7-router-tick gazbot7-router-health")
 
     # 2. enabled timers are active, and frequent ones have fired
     dead = []
@@ -262,6 +292,13 @@ def check() -> tuple[list[str], list[str], dict]:
         # false CRITICAL on the very night it was installed. LoadState separates them.
         if sh("systemctl", "show", unit, "-p", "LoadState", "--value") != "loaded":
             stale.append(f"{unit} (unit NOT FOUND — was it removed?)")
+            continue
+        # ★2026-10-06 a DISABLED timer is a decision, not a failure. A disabled unit still
+        # reads LoadState=loaded, so without this the router timers would have gone stale
+        # past their 0.25h/0.5h windows and faulted every night from the moment they were
+        # switched off. Reported as a note so the state stays visible.
+        if not unit_enabled(unit):
+            notes.append(f"{unit} is DISABLED — freshness not checked (deliberate?)")
             continue
         raw = sh("systemctl", "show", unit, "-p", "LastTriggerUSec", "--value")
         if raw in ("0", "n/a", ""):
@@ -353,7 +390,13 @@ def check() -> tuple[list[str], list[str], dict]:
     detail["unwritable_files"] = bad_owner
 
     # 3. services that must be up
-    down = [s for s in REQUIRED_SERVICES if sh("systemctl", "is-active", s) != "active"]
+    # ★2026-10-06 skip services that are disabled on purpose — gazbot7-router-watch went off
+    # with the router, and an is-active test alone would have reported it "down" every night.
+    off_by_choice = [s for s in REQUIRED_SERVICES if not unit_enabled(s)]
+    for s_ in off_by_choice:
+        notes.append(f"{s_} is DISABLED — not required (deliberate?)")
+    down = [s for s in REQUIRED_SERVICES
+            if s not in off_by_choice and sh("systemctl", "is-active", s) != "active"]
     if down:
         faults.append(f"SERVICES down: {', '.join(down)}")
     detail["services_down"] = down

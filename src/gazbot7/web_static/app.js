@@ -162,7 +162,13 @@
     const over = u.on_pace === false;
     setTxt("cr-pct", pct.toFixed(pct < 10 ? 1 : 0) + "%");
     const days = Math.floor((u.hours_left || 0) / 24), hrs = Math.round((u.hours_left || 0) % 24);
-    setTxt("cr-rem", tk(u.remaining_tokens) + " LEFT · " + (days ? days + "d" : hrs + "h"));
+    // ★2026-10-06 AT THE TOP OF THE RANGE IT TELLS HIM TO GO AND LOOK, which is what he asked
+    // for: "it would just be a good estimate. if its high i can check the app". The mapping from
+    // this meter's token yardstick to his real allowance is NOT exact — on 2026-10-06 a headless
+    // job was refused with "You've hit your weekly limit" at ~406M measured while direct calls
+    // kept succeeding, so the gauge must point at the authority rather than pretend to be it.
+    setTxt("cr-rem", pct >= 85 ? "CHECK APP · " + (days ? days + "d" : hrs + "h")
+                               : tk(u.remaining_tokens) + " LEFT · " + (days ? days + "d" : hrs + "h"));
     // red when nearly spent OR when the burn rate alone would finish the budget early — a chip that
     // only reacts to the level says nothing on the Saturday that spent 210M in a day.
     chip.classList.add(pct >= 85 || over ? "cr-hot" : pct >= 60 ? "cr-warn" : "cr-ok");

@@ -95,7 +95,10 @@ def assess(now: dt.datetime, path: str = VERDICT) -> tuple[str, str, bool]:
     ra = v.get("router_aborts_today")
     if ra is not None:
         extra += f" · router aborts {ra}"
-    return ("OK", f"✅ Last night verified clean — timers fired, services up, router deciding"
+    # ★2026-10-06 the router was disabled by operator decision, so this line must not keep
+    # asserting "router deciding" — a cheerful morning claim about a process that is switched
+    # off is exactly the false comfort this job exists to prevent.
+    return ("OK", f"✅ Last night verified clean — timers fired, services up"
                   f"{extra}.", False)
 
 
