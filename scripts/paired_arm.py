@@ -47,10 +47,12 @@ will constrain sizing later.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures as cf
 import datetime as dt
 import json
 import os
 import statistics as st
+import time
 import sys
 
 GB = "/home/alphabot/gazbot7"
@@ -63,6 +65,17 @@ OUT = f"{GB}/reports/paired_arm"
 HOLD = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18",
         "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21"]
 POISON = 0.10
+MEM_FLOOR_MB = 1800     # refuse to start another day below this; the desk needs ~820MB
+
+
+def avail_mb() -> int:
+    try:
+        for line in open("/proc/meminfo"):
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) // 1024
+    except Exception:
+        pass
+    return 10 ** 6          # unknown: do not block on a reading we could not take
 
 # ── FROZEN BEFORE THE RUN ────────────────────────────────────────────────────────────────
 PREDICTION = {
@@ -113,6 +126,9 @@ def main() -> int:
     ap.add_argument("--arm", default="exitfix")
     ap.add_argument("--baseline", default="loop2_hold")
     ap.add_argument("--report-only", action="store_true")
+    ap.add_argument("--workers", type=int, default=4,
+                    help="days in parallel. Days are independent; the 138 decisions inside "
+                         "a day are not and never run concurrently.")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
 
@@ -123,11 +139,39 @@ def main() -> int:
 
     if not a.report_only:
         rules = open(a.rules).read()
-        for d in HOLD:
+
+        def one(d: str):
+            # ⚠ FAIL SAFE ON MEMORY, NEVER OOM. The box is 7.5GB and CLAUDE.md records three
+            # global_oom kills that took the DESK down — "it presents as everything keeps
+            # exiting". A research run is never allowed to be the process that does that,
+            # especially while the operator holds a position. Measured: one sim `claude -p`
+            # is ~190MB RSS (the 2.3GB in CLAUDE.md is the Friday report, whose contexts are
+            # far larger), so MEM_FLOOR_MB leaves the desk its ~820MB plus room to breathe.
+            if avail_mb() < MEM_FLOOR_MB:
+                print(f"  [{a.arm}] {d} DEFERRED — only {avail_mb()}MB available, "
+                      f"floor is {MEM_FLOOR_MB}MB", flush=True)
+                time.sleep(60)
+                if avail_mb() < MEM_FLOOR_MB:
+                    return None
             r = SW.run_day(d, rules, f"{a.arm}_hold", resume=True, self_aware=True)
             e = sum(1 for c in r["calls"] if c.get("error"))
             print(f"  [{a.arm}] {d}  ${r['net_usd']:>+9,.2f}  {len(r['trades'])} tr  "
                   f"{e}/{len(r['calls'])} err", flush=True)
+            return r
+
+        # ★2026-10-06 DAYS RUN IN PARALLEL. Within a day the 138 decisions MUST be sequential
+        # — each one depends on whether the previous left a position open — but the days are
+        # independent replays, so ten of them serially was 4.5 hours of wall clock for no
+        # reason. Operator: *"if the box can handle it run a few at a time"*.
+        # ⚠ NOT all ten at once: memory is fine (~1.9GB) but concurrent `claude -p` calls hit
+        # rate limits, and a rate-limited call errors — which is exactly how the rule-9 A/B
+        # lost 16 of 20 arms. Four is the compromise; raise it only with the guard watching.
+        if a.workers > 1:
+            with cf.ThreadPoolExecutor(max_workers=a.workers) as ex:
+                list(ex.map(one, HOLD))
+        else:
+            for d in HOLD:
+                one(d)
 
     base = metrics(a.baseline)
     arm = metrics(f"{a.arm}_hold")
