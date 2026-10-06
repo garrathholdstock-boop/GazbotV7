@@ -515,7 +515,23 @@ six. Both of those are invisible in a list of trades and obvious in the picture.
 ⚠ Do NOT invent a rule you cannot apply from the material you are given. You see the leg sequence,
   the session shape, your position and the clock. Nothing else.
 
-Answer with 3 to 6 numbered lessons, each one sentence, no preamble."""
+★★★2026-10-06 YOU ARE ALSO GIVEN A MEASURED PER-TRADE POST-MORTEM, and it outranks your
+impression of the day. The operator asked for exactly this: *"at what point did it jump in and
+why? at what point did it jump out and why? which one can be improved for tomorrow."* For each
+trade it states how far into its leg you entered, what share of the leg you captured, how many
+POINTS were still available in your direction after you exited, whether price resumed your way
+within 30 minutes (a PREMATURE exit), and what you gave back from the peak.
+⚠⚠ USE THE "DOMINANT FAULT" LINE. It compares dollars lost to late entries against dollars left
+on the table by early exits. Write your lessons about THAT fault, not the other one — on
+2026-08-21 the exits left $3,403 while late entries cost $1,006, and a lesson about entry timing
+on that day would have been aimed at a third of the problem.
+⚠ A PREMATURE exit is not the same as a losing trade. A trade can be closed in profit and still be
+premature, and those are the ones worth fixing: the structure break you cited was real, and price
+resumed anyway.
+
+Answer with 3 to 6 numbered lessons, each one sentence, no preamble.
+⚠ YOUR FIRST LESSON MUST ADDRESS THE DOMINANT FAULT NAMED IN THE POST-MORTEM, and must name a
+number from it."""
 
 
 def review_day(rec: dict, lessons_so_far: str) -> str:
@@ -542,6 +558,19 @@ def review_day(rec: dict, lessons_so_far: str) -> str:
     #   a leg did after it exited, and could never learn that it MISSED one. Every lesson it wrote
     #   was therefore a variant of "I traded too much", because a trade not taken left no trace in
     #   the material it was given.
+    # ★2026-10-06 the measured post-mortem goes in BESIDE the picture, never instead of it.
+    # ⚠ Review-only by construction: trade_review reads the tape AFTER each exit, which is
+    # exactly what a live decision must never see. It is imported HERE, in the review path,
+    # and nowhere in run_day — `_assert_causal` guards that path independently.
+    pm = ""
+    try:
+        import trade_review as TR
+        a = TR.analyse(rec["day"], rec["trades"], rec.get("calls") or [])
+        pm = "\n\n=== THE MEASURED POST-MORTEM (this outranks your impression) ===\n" \
+             + TR.render(a)
+    except Exception as e:
+        pm = f"\n\n[post-mortem unavailable: {type(e).__name__}: {e}]"
+
     try:
         import importlib.util as _il
         _s = _il.spec_from_file_location("snake", f"{GB}/scripts/snake_page.py")
@@ -552,7 +581,7 @@ def review_day(rec: dict, lessons_so_far: str) -> str:
     except Exception as e:
         snake = f"[snake page failed: {type(e).__name__}: {e}]"
     txt = ask_text(REVIEW + "\n\n=== THE DAY, AS A PICTURE. READ THIS FIRST ===\n" + snake
-                   + "\n\n=== WHAT YOU DID ===\n" + "\n".join(L), timeout=300)
+                   + "\n\n=== WHAT YOU DID ===\n" + "\n".join(L) + pm, timeout=300)
     # ⚠ A SHORT REVIEW IS A FAILED REVIEW, AND IT MUST SAY SO RATHER THAN QUIETLY CARRY FORWARD.
     #   Monday's real answer was ~1,500 chars of specific, numbered, arithmetic-backed lessons; the
     #   broken path stored 479 and nobody would have noticed from the file alone.

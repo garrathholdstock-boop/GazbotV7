@@ -54,7 +54,18 @@ import sim_week_recursive as S                      # noqa: E402  the real harne
 STATE = f"{GB}/data/shadow_runner_state.json"
 LOG = f"{GB}/data/shadow_runner.jsonl"
 DAYLOG = f"{GB}/reports/shadow_runner"
-RULES = f"{GB}/reports/recursive_loop/rules.txt"
+# ★★★2026-10-06 THE CHAMPION, NOT THE LATEST. This pointed at `rules.txt`, which the loop
+# overwrites with whatever the MOST RECENT iteration wrote — and that is not the best set.
+# The loop trades the rules it was HANDED and rewrites them at the END, so:
+#   iter 1 traded nothing        -> $509/day
+#   iter 2 traded rules_iter1    -> $620/day   ← the champion
+#   iter 3 traded rules_iter2    -> ~$215-430/day
+# `rules_iter2.txt` is therefore the UNDERPERFORMING set, and the shadow runner was frozen on
+# it (sha 47ae68d3ecb0) ready to paper-trade the losing rules tomorrow morning. The champion
+# is `rules_iter1.txt` (sha 5f0e05decd3b): $620/day, 9/10 positive days, daily SD $724,
+# worst day -$496. Copied to a stable filename so a later iteration cannot overwrite what is
+# being paper-traded.
+RULES = f"{GB}/reports/recursive_loop/rules_live_champion.txt"
 POISON_RATE = 0.10
 ALARM_STREAK = 3                 # three identical failures is a fault, not a blip
 
@@ -134,7 +145,7 @@ def live_bars(key: str, now_epoch: int):
 
 def load_state(key: str) -> dict:
     try:
-        st = json.load(open(STATE))
+        st = json.load(open(STATE), object_hook=_dec)
     except Exception:
         st = {}
     if st.get("key") != key:
@@ -145,9 +156,23 @@ def load_state(key: str) -> dict:
     return st
 
 
+def _enc(o):
+    """⚠ `pos["opened"]` is a datetime because the sim's _close() calls .isoformat() on it,
+    and a oneshot runner must round-trip it through JSON between ticks."""
+    if isinstance(o, dt.datetime):
+        return {"__dt__": o.isoformat()}
+    raise TypeError(type(o))
+
+
+def _dec(d: dict):
+    if "__dt__" in d:
+        return dt.datetime.fromisoformat(d["__dt__"])
+    return d
+
+
 def save_state(st: dict) -> None:
     tmp = STATE + ".tmp"
-    json.dump(st, open(tmp, "w"), indent=1)
+    json.dump(st, open(tmp, "w"), indent=1, default=_enc)
     os.replace(tmp, STATE)                          # atomic; a half-written state is a lie
 
 
@@ -259,13 +284,28 @@ def apply_action(st: dict, act: str, px: float, epoch: int, out: dict) -> dict:
     fabricates 0.1% adverse on every lot beyond the first, which is why the live number
     will come in under this one even on identical decisions.
     """
+    # ⚠⚠⚠ THE POSITION DICT MUST MATCH `run_day`'s EXACTLY — this is the sim's own structure,
+    # not mine to invent. The first cut stored {"side": ±1, "entry", "opened": epoch} and that
+    # was wrong in three ways at once: `S.context()` reads pos["dir"] (KeyError on the very
+    # next tick after an entry), `S._close()` reads pos["dir"] and pos["peak"], and it calls
+    # pos["opened"].isoformat() so `opened` must be a DATETIME, not an int.
+    # None of it ever fired because the runner has never actually held a position — the
+    # binary bug killed day one and today's ticks were all WAIT. It would have crashed on the
+    # first live entry tomorrow morning. Caught by running --dry against a seeded position,
+    # not by reading the code ([[a-source-text-test-is-a-lint-not-a-test]]).
     if act in ("ENTER_LONG", "ENTER_SHORT") and not st["pos"]:
-        side = 1 if act == "ENTER_LONG" else -1
-        st["pos"] = {"side": side, "entry": px + side * S.HALF_SPREAD_PT,
-                     "opened": epoch}
+        dirn = 1 if act == "ENTER_LONG" else -1
+        st["pos"] = {"dir": dirn, "entry": px + dirn * S.HALF_SPREAD_PT, "peak": 0.0,
+                     "opened": dt.datetime.fromtimestamp(epoch, dt.UTC),
+                     "reason": (out.get("reason") or "")[:200]}
     elif act in ("EXIT", "CLAIM", "CUT") and st["pos"]:
         st["done"].append(S._close(st["pos"], px, epoch, act))
         st["pos"] = None
+    elif st["pos"]:
+        # the peak must advance or every giveback figure is zero and `peak_pt` is a lie
+        ahead = st["pos"]["dir"] * (px - st["pos"]["entry"])
+        if ahead > st["pos"]["peak"]:
+            st["pos"]["peak"] = ahead
     return st
 
 

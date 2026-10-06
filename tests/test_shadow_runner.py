@@ -205,3 +205,70 @@ def test_repeated_identical_failure_pages_once_not_every_tick(monkeypatch, tmp_p
         R.tick(now=base + dt.timedelta(minutes=5 * i))
     assert len(paged) == 1, f"paged {len(paged)} times for one fault"
     assert "3 in a row" in paged[0]
+
+
+def test_position_matches_the_sims_own_structure(tmp_path, monkeypatch):
+    """⚠ The runner's position dict must be the SIM's structure, not an invented one.
+
+    The first cut stored {"side": ±1, "entry", "opened": <int epoch>} and was wrong three
+    ways: S.context() reads pos["dir"] (KeyError on the next tick after any entry),
+    S._close() reads pos["dir"] and pos["peak"], and it calls pos["opened"].isoformat() so
+    `opened` must be a datetime. It never fired because the runner had never held a
+    position — it would have crashed on the first live entry.
+    """
+    import datetime as dt
+    import shadow_runner as R
+    monkeypatch.setattr(R, "STATE", str(tmp_path / "st.json"))
+    st = {"key": "2026-10-02", "pos": None, "done": [], "calls": 0, "errors": 0,
+          "closed_out": False}
+    st = R.apply_action(st, "ENTER_LONG", 31000.0, 1759_392_000, {"reason": "x"})
+    p = st["pos"]
+    assert set(("dir", "entry", "peak", "opened", "reason")) <= set(p), f"missing keys: {p}"
+    assert p["dir"] == 1
+    assert isinstance(p["opened"], dt.datetime), "opened must be a datetime for _close()"
+    # the sim's own closer must accept it
+    t = R.S._close(p, 31050.0, 1759_395_600, "TEST")
+    assert t["side"] == "LONG" and t["pnl_usd"] > 0
+
+
+def test_position_survives_the_json_round_trip(tmp_path, monkeypatch):
+    """The runner is ONESHOT: every tick reloads state from disk, so a datetime that cannot
+    round-trip through JSON breaks the next tick rather than this one."""
+    import datetime as dt
+    import shadow_runner as R
+    monkeypatch.setattr(R, "STATE", str(tmp_path / "st.json"))
+    opened = dt.datetime(2026, 10, 2, 8, 0, tzinfo=dt.UTC)
+    R.save_state({"key": "2026-10-02", "pos": {"dir": -1, "entry": 1.0, "peak": 0.0,
+                                               "opened": opened, "reason": "r"},
+                  "done": [], "calls": 0, "errors": 0, "closed_out": False})
+    back = R.load_state("2026-10-02")
+    assert isinstance(back["pos"]["opened"], dt.datetime)
+    assert back["pos"]["opened"] == opened
+
+
+def test_peak_advances_while_holding(tmp_path, monkeypatch):
+    """peak_pt feeds every giveback figure in the post-mortem; if it never advances the
+    nightly review reads 'gave back 0pt' on every trade."""
+    import shadow_runner as R
+    monkeypatch.setattr(R, "STATE", str(tmp_path / "st.json"))
+    st = {"key": "d", "pos": None, "done": [], "calls": 0, "errors": 0, "closed_out": False}
+    st = R.apply_action(st, "ENTER_LONG", 100.0, 0, {})
+    st = R.apply_action(st, "HOLD", 140.0, 60, {})
+    assert st["pos"]["peak"] > 30, f"peak did not advance: {st['pos']['peak']}"
+    st = R.apply_action(st, "HOLD", 110.0, 120, {})
+    assert st["pos"]["peak"] > 30, "peak must RATCHET, not track price"
+
+
+def test_shadow_runner_trades_the_champion_not_the_latest():
+    """2026-10-06: it was frozen on rules_iter2.txt — the set iteration 3 is losing with —
+    because the loop overwrites rules.txt with the MOST RECENT iteration's output, which is
+    not the best one. The champion is iteration 1's set ($620/day via iteration 2)."""
+    import hashlib
+    import pathlib
+    import shadow_runner as R
+    assert R.RULES.endswith("rules_live_champion.txt"), R.RULES
+    champ = hashlib.sha256(pathlib.Path(R.RULES).read_bytes()).hexdigest()[:12]
+    it1 = hashlib.sha256(
+        pathlib.Path("/home/alphabot/gazbot7/reports/recursive_loop/rules_iter1.txt")
+        .read_bytes()).hexdigest()[:12]
+    assert champ == it1, f"live rules {champ} are not the champion {it1}"
