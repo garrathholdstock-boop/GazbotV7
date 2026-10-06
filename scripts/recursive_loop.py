@@ -28,7 +28,51 @@ from pure noise 13% of the time, and 6 of 6 NULL worlds cleared all three naive 
 Wednesday, 24 by Friday, undifferentiated. That is the leading suspect for why the arm CARRYING the
 lessons underperformed the one with none (-$1,960 against +$522 over four days) — advice crowding
 out the picture it was supposed to sharpen. So each review returns a CONSOLIDATED set of at most
-MAX_RULES, and must drop what has stopped earning its place.
+MAX_RULES.
+
+★★★2026-10-06 THE LAW CHANGED HERE AND THIS LINE IS WHY. It used to end "...and must drop
+what has stopped earning its place" — an instruction to rewrite everything, every night. The
+loop obeyed it: three iterations each replaced up to ten rules at once, scored $509 / $620 /
+$406, and nothing accumulated. Iteration 2's set was the best by every measure and iteration
+3 discarded it wholesale. Operator: *"All fine tuning needs to try as best we can to preserve
+the configuration of the best iteration and improve it. We can't be trying things and getting
+worse."* The full reasoning and the evidence for each law is in docs/FINE_TUNING_BIBLE.md;
+these are the ones that bind you.
+
+⚠⚠⚠ L1 — START FROM THE CHAMPION, NEVER A BLANK PAGE. You will be shown THE CHAMPION'S RULE
+SET and its score. Reproduce it VERBATIM and change at most ONE rule. You are editing a
+working configuration, not writing a new one. Rules you are not changing must come back
+word-for-word; rewording a rule you did not mean to change destroys the only record of what
+actually changed.
+
+⚠⚠⚠ L2 — ONE RULE PER ITERATION. Exactly one. Not "one theme", not "a few related clauses".
+Iteration 1 to 2 changed all ten and moved $111/day, which is inside the ±$324 standard error
+of a ten-day mean — so not one dollar of it is attributable to anything. One change a night
+accumulates; ten changes a night is a random walk.
+
+⚠⚠⚠ L5 — NEVER REVERSE A RULE ON ONE WEEK'S IMPRESSION. Reversing needs evidence that THAT
+RULE failed, not that the week went badly. Iteration 1 said "Target 8-15 entries per session"
+and "a session with no trade is a failure"; iteration 2 replaced both with "there is no quota
+and a flat session is not a failure". Trades/day fell 6.4 to 4.1 and $/day fell $620 to $406.
+If you believe a rule must be reversed, say so explicitly in the CHANGELOG using the word
+REVERSE, and name the number that justifies it.
+
+⚠⚠ L9 — DO NOT RE-DERIVE WHAT IS SETTLED. Entries are a coin on a symmetric race (+0.2pp
+side-matched, n=174). Turn entries are a coin at every multiple, timeframe and target tested.
+A bare stall is a coin. The money is in the asymmetric payoff — 4 lots, no stop, hold to
+structure — not in entry timing. A rule aimed at picking better entry moments is aimed at
+something already measured as noise.
+
+⚠⚠ L10 — COUNTS BEFORE DOLLARS. One week cannot resolve $/day: the daily spread is ~$1,000.
+Median hold, premature-exit rate, leg capture, side accuracy and trades/day are counts and
+move well outside their own noise. Aim your change at a COUNT you can name, and say in the
+CHANGELOG which count should move and in which direction.
+⚠ This is NOT a claim that a few hundred dollars a day is immaterial — it is tens of
+thousands a year. It means five days cannot MEASURE it.
+
+⚠ If the week gives you no evidence that any single rule failed, the correct output is the
+champion's set returned UNCHANGED with "CHANGELOG: no change — the week gave no reason to
+alter the rules." A null iteration is a legitimate and cheap outcome. Churn is not.
 
 ⚠ THE BAR IS HIS METHOD, NOT P&L ALONE. His own two best days: 7 of 8 and 13 of 15 trades on the
 dominant leg, 41% and 23% of the available points captured, 8 and 15 entries. P&L alone would reward
@@ -125,8 +169,27 @@ def score_week(recs: list) -> dict:
                 if vis[lg["si"]][0] <= ts <= vis[lg["ei"]][0]:
                     sides.append(1 if (t["side"] == "LONG") == (lg["dir"] > 0) else 0)
                     break
+    # ★★2026-10-06 CONSISTENCY IS NOW MEASURED, because the operator says it is the point:
+    # *"the most important thing is consistency"*. None of the four bar metrics measured it —
+    # a $620/day average built from one +$2,022 day and four losses is a different animal
+    # from the same average spread evenly, and the bar could not tell them apart.
+    # ⚠ `daily_sd` also explains the so-called noise floor: individual days run -$1,180 to
+    # +$2,022, an SD near $1,000, so the standard error of a 10-day mean is ~$324 — the
+    # figure quoted all weekend as "run-to-run variance" is really just THIS, the sampling
+    # error of a short average. Recording it per iteration makes that visible instead of
+    # folklore.
+    dailies = [r["net_usd"] for r in recs]
+    mean = sum(dailies) / max(1, len(dailies))
+    sd = (sum((x - mean) ** 2 for x in dailies) / max(1, len(dailies) - 1)) ** 0.5 \
+        if len(dailies) > 1 else 0.0
     return {"net_usd": round(net, 2), "trades": trades,
             "trades_per_day": round(trades / max(len(recs), 1), 2),
+            "days": len(recs),
+            "usd_per_day": round(mean, 2),
+            "days_positive": sum(1 for x in dailies if x > 0),
+            "daily_sd": round(sd, 2),
+            "worst_day": round(min(dailies), 2) if dailies else 0.0,
+            "stderr_of_mean": round(sd / (len(dailies) ** 0.5), 2) if dailies else 0.0,
             "side_accuracy": round(sum(sides) / len(sides), 3) if sides else None,
             "capture": round(st.mean(caps), 3) if caps else None}
 
@@ -150,10 +213,37 @@ picture with your entries and exits on it, the leg table, and your trades.
 
 Write the CONSOLIDATED RULE SET you will trade with next time — at most {MAX_RULES} rules.
 
-⚠⚠ THIS REPLACES your previous rules, it does not extend them. Carry forward only what has earned
-its place; DROP anything that has not. A list that only grows becomes advice nobody reads, and the
-measured consequence on this desk was that the version carrying accumulated lessons LOST $1,960
-over four days while the version carrying NONE made $522 on the identical tape.
+⚠⚠⚠ L1 — START FROM THE CHAMPION, NEVER A BLANK PAGE. You are shown THE CHAMPION'S RULE SET and
+its score below. Reproduce it VERBATIM and change at most ONE rule. You are editing a working
+configuration, not writing a new one. Rules you are not changing must come back word-for-word —
+rewording a rule you did not mean to change destroys the only record of what actually changed.
+
+⚠⚠⚠ L2 — ONE RULE PER ITERATION. Exactly one. Not "one theme", not "a few related clauses".
+Iteration 1 to 2 changed all ten rules and moved $111/day, which is INSIDE the ±$324 standard error
+of a ten-day mean, so not one dollar of it is attributable to anything. One change a night
+accumulates; ten changes a night is a random walk. The measured record of the random walk is
+$509 -> $620 -> $406 per day, with the best set discarded wholesale at the end of it.
+
+⚠⚠⚠ L5 — NEVER REVERSE A RULE ON ONE WEEK'S IMPRESSION. Reversing needs evidence that THAT RULE
+failed, not that the week went badly. Iteration 1 said "Target 8-15 entries per session" and "a
+session with no trade is a failure"; iteration 2 replaced both with "there is no quota and a flat
+session is not a failure". Trades/day fell 6.4 to 4.1 and $/day fell $620 to $406. If you believe a
+rule must be reversed, use the word REVERSE in the CHANGELOG and name the number that justifies it.
+
+⚠⚠ L10 — COUNTS BEFORE DOLLARS. One week cannot resolve $/day: the daily spread is ~$1,000. Median
+hold, premature-exit rate, leg capture, side accuracy and trades/day are COUNTS and move well
+outside their own noise. Aim your one change at a count you can name, and say in the CHANGELOG
+which count should move and in which direction.
+⚠ This is NOT a claim that a few hundred dollars a day is immaterial — it is tens of thousands a
+year. It means five days cannot MEASURE it.
+
+⚠⚠ A NULL ITERATION IS A LEGITIMATE OUTCOME. If the week gives you no evidence that a specific rule
+failed, return the champion's set UNCHANGED with "CHANGELOG: no change — the week gave no reason to
+alter the rules." Churn is not progress, and the loop reverts anything that scores worse anyway.
+
+⚠ The list must not simply GROW either: the version carrying accumulated lessons LOST $1,960 over
+four days while the version carrying NONE made $522 on the identical tape. At most {MAX_RULES}
+rules, and a rule you replace is replaced, not appended to.
 
 ⚠⚠⚠ EVERY RULE MUST APPLY TO A DAY YOU HAVE NEVER SEEN. You will be tested on a different week and
 you will not be told how it went. So:
@@ -177,8 +267,41 @@ def consolidate(recs: list, prev_rules: str) -> str:
         L.append(SP.page(bars, rec["trades"], rec["day"]))
         L.append(f"  your P&L that day: ${rec['net_usd']:+,.2f} over {len(rec['trades'])} trades")
         L.append("")
+    # ★2026-10-06 L1 NEEDS THE CHAMPION ON THE PAGE, NOT JUST IN THE PROMPT'S PROSE.
+    # Telling the reviewer "start from the champion" while handing it only the CURRENT set is
+    # the same mistake as filing a law in a document: it cannot comply with text it cannot
+    # see. The champion is the best-scoring iteration by $/day, read from history.json.
+    champ_txt, champ_note = "", ""
+    try:
+        hp_ = f"{OUT}/history.json"
+        if os.path.exists(hp_):
+            hist = json.load(open(hp_))
+            cands = [h for h in hist if (h.get("holdout") or {}).get("usd_per_day") is not None]
+            if cands:
+                c = max(cands, key=lambda h: h["holdout"]["usd_per_day"])
+                cp = f"{OUT}/rules_iter{c['iter']}.txt"
+                o = c["holdout"]
+                champ_note = (f"THE CHAMPION IS ITERATION {c['iter']}'s SET: "
+                              f"${o['usd_per_day']:+,.0f}/day, "
+                              f"{o.get('days_positive','?')}/{o.get('days','?')} positive days, "
+                              f"daily SD ${o.get('daily_sd',0):,.0f}, "
+                              f"worst day ${o.get('worst_day',0):+,.0f}, "
+                              f"{o.get('trades_per_day','?')} trades/day. "
+                              f"THIS IS THE NUMBER YOU MUST BEAT, and you beat it by editing "
+                              f"ONE rule of the set below — not by writing a new set.")
+                if os.path.exists(cp):
+                    champ_txt = open(cp).read()
+    except Exception as e:
+        champ_note = f"[champion lookup failed: {type(e).__name__}]"
+    if champ_note:
+        L += ["=== THE CHAMPION ===", champ_note, ""]
+    if champ_txt:
+        L += ["THE CHAMPION'S RULE SET — reproduce this VERBATIM with ONE rule changed:",
+              champ_txt, ""]
     if prev_rules:
-        L += ["THE RULES YOU WERE CARRYING INTO THIS WEEK:", prev_rules, ""]
+        L += ["THE RULES YOU WERE CARRYING INTO THIS WEEK "
+              "(these may NOT be the champion's — if they differ, the champion wins):",
+              prev_rules, ""]
         # ★★★2026-10-06 MAKE IT DECLARE THE DELTA. Operator: *"how do you know what is
         # changing in the logic between iterations? that is important? we need to know what
         # is changing between strategies no? or do we just leave it to claude"*.
@@ -309,6 +432,51 @@ def main() -> int:
             except Exception as e:
                 log(f"  ping failed: {type(e).__name__}: {e}")
             break
+
+        # ★★★2026-10-06 KEEP THE CHAMPION. THIS WAS A RANDOM WALK, NOT HILL-CLIMBING.
+        # `rules = consolidate(...)` ran unconditionally, so the loop always carried forward
+        # the MOST RECENT rule set regardless of how it scored. Iteration 3 discarded the
+        # $620/day set, produced a weaker one, and iteration 4 would then have been built on
+        # the worse rules — three iterations with no selection pressure anywhere in the loop,
+        # which on its own could explain three flat results. The operator asked the right
+        # question: *"Shouldn't we be improving?"*
+        # ⚠ THE CHALLENGER MUST BEAT THE CHAMPION ON BOTH AXES — $/day AND days-positive —
+        # because he is explicit that *"the most important thing is consistency"*, and a
+        # challenger that buys a higher average with more losing days is not an improvement.
+        # ⚠ A REJECTED CHALLENGER IS RECORDED, NEVER DISCARDED SILENTLY: its rules are kept
+        # as rules_iter<N>_rejected.txt so the search path stays auditable.
+        # ⚠ The margin is deliberately ZERO rather than the ~$324 standard error. Requiring a
+        # challenger to clear the sampling error of a 10-day mean would reject every real
+        # $100/day gain, and $100/day is $25k a year — "cannot measure it in ten days" is not
+        # "it does not matter". The guard against drifting on noise is the ratchet itself:
+        # the champion is never replaced by something that scored worse.
+        champ = None
+        for h in history:
+            if h.get("holdout", {}).get("usd_per_day") is not None:
+                if champ is None or h["holdout"]["usd_per_day"] > champ["holdout"]["usd_per_day"]:
+                    champ = h
+        this_pd = s_ho.get("usd_per_day")
+        this_pos = s_ho.get("days_positive", 0)
+        if champ and champ["iter"] != it and this_pd is not None:
+            cpd = champ["holdout"]["usd_per_day"]
+            cpos = champ["holdout"].get("days_positive", 0)
+            if not (this_pd > cpd and this_pos >= cpos):
+                log(f"  ✗ CHALLENGER REJECTED: iter {it} scored ${this_pd:+,.0f}/day with "
+                    f"{this_pos} positive days vs champion iter {champ['iter']} at "
+                    f"${cpd:+,.0f}/day with {cpos}. REVERTING to the champion's rules.")
+                open(f"{OUT}/rules_iter{it}_rejected.txt", "w").write(rules)
+                champ_rules = f"{OUT}/rules_iter{champ['iter']}.txt"
+                if os.path.exists(champ_rules):
+                    rules = open(champ_rules).read()
+                    open(rp, "w").write(rules)
+                log(f"  → iteration {it + 1} will start from iteration "
+                    f"{champ['iter']}'s rules, not this one's")
+                history[-1]["rejected"] = True
+                history[-1]["champion_iter"] = champ["iter"]
+                json.dump(history, open(hp, "w"), indent=1)
+                continue
+            log(f"  ✓ CHALLENGER ACCEPTED: ${this_pd:+,.0f}/day · {this_pos} positive days "
+                f"beats iter {champ['iter']} (${cpd:+,.0f} · {cpos})")
 
         log("  consolidating the week into a rewritten rule set")
         rules = consolidate(tr, rules)
