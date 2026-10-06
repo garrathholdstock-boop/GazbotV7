@@ -161,3 +161,47 @@ def test_rules_are_frozen_and_fingerprinted():
     assert R._sha(R.RULES) != "missing", "the frozen rule set is absent"
     src = SRC.read_text()
     assert "rules_sha" in src, "a day record must fingerprint the rules it traded"
+
+
+def test_claude_binary_is_an_absolute_path_that_exists():
+    """2026-10-05: a bare "claude" made 138 of 138 calls fail under systemd, whose PATH is
+    /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin — the CLI is in
+    /root/.local/bin. An interactive hand-test passed because the shell resolved it, which
+    is [[the-labs-tape-is-not-productions-tape]] in its purest form. tape_reader.py has
+    hardcoded the absolute path since 2026-09-12.
+    """
+    import os
+    import sim_week_recursive as S
+    assert os.path.isabs(S.CLAUDE), f"not absolute: {S.CLAUDE!r} — systemd cannot resolve it"
+    assert os.access(S.CLAUDE, os.X_OK), f"not executable: {S.CLAUDE}"
+
+
+def test_preflight_catches_a_missing_binary_and_decides_nothing(monkeypatch):
+    import datetime as dt
+    import shadow_runner as R
+    monkeypatch.setattr(R.S, "CLAUDE", "/nonexistent/claude")
+    called, paged = [], []
+    monkeypatch.setattr(R.S, "ask", lambda *a, **k: called.append(1) or {"action": "WAIT"})
+    monkeypatch.setattr(R, "_page", lambda m: paged.append(m))
+    out = R.tick(now=dt.datetime(2026, 10, 5, 9, 0, tzinfo=dt.UTC), dry=True)
+    assert "PREFLIGHT FAILED" in out["skip"]
+    assert not called, "decided anyway with no model behind it"
+    assert paged, "failed silently — the whole point of the 2026-10-05 lesson"
+
+
+def test_repeated_identical_failure_pages_once_not_every_tick(monkeypatch, tmp_path):
+    """138 failures must produce ONE page, not 138 and not zero."""
+    import datetime as dt
+    import shadow_runner as R
+    monkeypatch.setattr(R, "STATE", str(tmp_path / "st.json"))
+    monkeypatch.setattr(R, "LOG", str(tmp_path / "l.jsonl"))
+    monkeypatch.setattr(R.S, "ask", lambda *a, **k: {"action": "WAIT", "error": "boom"})
+    monkeypatch.setattr(R, "live_bars",
+                        lambda k, n: [(n - 60 * i, 1.0, 1.0, 1.0) for i in range(40)][::-1])
+    paged = []
+    monkeypatch.setattr(R, "_page", lambda m: paged.append(m))
+    base = dt.datetime(2026, 10, 5, 9, 0, tzinfo=dt.UTC)
+    for i in range(12):
+        R.tick(now=base + dt.timedelta(minutes=5 * i))
+    assert len(paged) == 1, f"paged {len(paged)} times for one fault"
+    assert "3 in a row" in paged[0]

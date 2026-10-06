@@ -56,6 +56,36 @@ LOG = f"{GB}/data/shadow_runner.jsonl"
 DAYLOG = f"{GB}/reports/shadow_runner"
 RULES = f"{GB}/reports/recursive_loop/rules.txt"
 POISON_RATE = 0.10
+ALARM_STREAK = 3                 # three identical failures is a fault, not a blip
+
+
+def _page(msg: str) -> None:
+    """Non-critical, holds past quiet hours. A shadow experiment never buzzes him at 3am."""
+    try:
+        import time
+        from gazbot7.notify import notify, in_quiet_hours
+        held = False
+        while in_quiet_hours(dt.datetime.now(dt.UTC)):
+            held = True
+            time.sleep(300)
+        notify(msg + ("\n(held past quiet hours)" if held else ""),
+               critical=False, mark=False, weekend_ok=True)
+    except Exception as e:                      # an alarm that crashes the runner is worse
+        log(f"could not page: {type(e).__name__}: {e}")
+
+
+def preflight() -> str | None:
+    """Is the thing that makes every decision actually there? Returns a fault or None.
+
+    ⚠ This exists because the answer was NO for a whole trading day and every other
+    signal read healthy: systemd exited 0, the state file advanced, the day record parsed.
+    [[an-instrument-that-reports-healthy-about-something-it-does-not-check]].
+    """
+    if not os.access(S.CLAUDE, os.X_OK):
+        return f"the claude binary is not executable at {S.CLAUDE}"
+    if not os.path.exists(RULES):
+        return f"the frozen rule set is missing at {RULES}"
+    return None
 
 
 def log(m: str) -> None:
@@ -135,6 +165,16 @@ def tick(now: dt.datetime | None = None, dry: bool = False) -> dict:
     st = load_state(key)
     out = {"ts": now.isoformat(), "session": key, "window_min": mod}
 
+    fault = preflight()
+    if fault:
+        out["skip"] = f"PREFLIGHT FAILED: {fault}"
+        if not st.get("alarmed"):
+            st["alarmed"] = True
+            _page(f"⚠ SHADOW RUNNER CANNOT RUN — {fault}\nsession {key}. "
+                  "No orders are involved; the day will be unscoreable.")
+            if not dry:
+                save_state(st)
+        return out
     if now.weekday() >= 5 and not (now.weekday() == 6 and now.hour >= 22):
         out["skip"] = "weekend — the venue is halted"
         return out
@@ -177,6 +217,25 @@ def tick(now: dt.datetime | None = None, dry: bool = False) -> dict:
     st["calls"] += 1
     if d.get("error"):
         st["errors"] += 1
+        st["streak"] = st.get("streak", 0) + 1
+    else:
+        st["streak"] = 0
+
+    # ⚠⚠⚠ AN INSTRUMENT THAT FAILS IDENTICALLY ALL DAY AND TELLS NOBODY. On 2026-10-05 this
+    # made 138 of 138 calls fail with the SAME FileNotFoundError, exited 0 every time,
+    # wrote a well-formed day record, and the operator found out only because he asked.
+    # The poison flag correctly labelled the day — but labelling after the fact is not the
+    # same as being told while the day can still be saved. A repeated identical failure is
+    # the one thing that must escalate, so this pages ONCE per streak, never per tick
+    # ([[a-correct-decision-repeated-every-tick-is-an-alarm-outage]] — dedupe on the
+    # SITUATION, not the message).
+    if st["streak"] == ALARM_STREAK and not st.get("alarmed"):
+        st["alarmed"] = True
+        _page(f"⚠ SHADOW RUNNER IS FAILING EVERY CALL — {st['streak']} in a row\n"
+              f"{d.get('error')}\n"
+              f"session {key}, {st['errors']}/{st['calls']} calls errored so far.\n"
+              "The day will be stamped POISONED and must not be scored. Nothing is at "
+              "risk — this runner places no orders.")
     act = (d.get("action") or "WAIT").upper()
     out.update({"px": px, "action": act, "reason": (d.get("reason") or "")[:300],
                 "error": d.get("error"), "calls": st["calls"], "errors": st["errors"]})

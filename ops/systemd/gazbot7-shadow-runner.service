@@ -24,6 +24,11 @@ Type=oneshot
 User=root
 Environment=HOME=/root
 Environment=PYTHONPATH=src
+# ⚠ systemd's PATH is /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin and the CLI lives
+# in /root/.local/bin. A bare "claude" cost the entire first live day (138/138 FileNotFoundError) on
+# 2026-10-05 while an interactive hand-test passed, because the shell resolved it. Stated here AND
+# defaulted in the script, so neither is load-bearing alone.
+Environment=CLAUDE_BIN=/root/.local/bin/claude
 WorkingDirectory=/home/alphabot/gazbot7
 # The box is 7.5GB with a history of global_oom kills that took the DESK down. A shadow experiment
 # is never allowed to be the process that does that.

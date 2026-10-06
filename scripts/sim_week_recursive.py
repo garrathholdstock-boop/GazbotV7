@@ -60,7 +60,14 @@ import sqlite3
 import statistics as st
 
 GB = "/home/alphabot/gazbot7"
-CLAUDE = os.environ.get("CLAUDE_BIN", "claude")
+# ⚠⚠⚠ ABSOLUTE PATH, NEVER BARE "claude". 2026-10-05: the shadow runner made 138 of 138
+# calls fail with FileNotFoundError because systemd's PATH is
+# /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin and the CLI lives in
+# /root/.local/bin. An interactive shell resolves it and the service never can, so the
+# whole first live day was lost — THE LAB'S TAPE IS NOT PRODUCTION'S TAPE, in its purest
+# form: I tested by hand, in the one environment that hides the bug. `tape_reader.py:39`
+# has hardcoded the absolute path since 2026-09-12 for precisely this reason.
+CLAUDE = os.environ.get("CLAUDE_BIN", "/root/.local/bin/claude")
 OUT = f"{GB}/reports/sim_week_recursive"
 
 # ★★★2026-10-03 THE WINDOW MOVED TO 02:00Z. Operator: "if youre going to run it autonomously why
@@ -82,6 +89,7 @@ VPP = 2.0                       # $ per point per lot for MNQ
 FEE_RT = 1.50                   # per lot round turn — venue truth over 487 fills
 HALF_SPREAD_PT = 0.125          # MNQ ticks 0.25; charge half against us each way
 MIN_TARGET_PT = 20.0            # HIS minimum
+POISON_RATE = 0.10              # above this, the model never really answered — see run_day()
 
 DAYS = ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02"]
 WEEKS = {
@@ -423,7 +431,20 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
     """One session, causally, every STEP_MIN minutes. Returns the day's record."""
     path = f"{OUT}/{arm}_{day}.json"
     if resume and os.path.exists(path):
-        return json.load(open(path))
+        prev = json.load(open(path))
+        pc = prev.get("calls") or []
+        perr = sum(1 for x in pc if x.get("error"))
+        # ⚠⚠⚠ A POISONED ARTEFACT IS NOT A FINISHED DAY. 2026-10-06: iteration 3 held
+        # three days whose calls errored 138/138, 138/138 and 70/138 ("no parseable
+        # action" — the credit budget ran out mid-run). Two of them booked exactly $0.00
+        # with ZERO trades, and 2026-09-18 is a day that made +$2,022 and +$1,524 on the
+        # two previous iterations. `resume` would have skipped all three and scored the
+        # iteration at $488/day with two failures counted as flat sessions.
+        # A day the model never answered must be RE-RUN, not inherited.
+        if pc and perr / len(pc) <= POISON_RATE:
+            return prev
+        print(f"  {arm}_{day}: re-running — {perr}/{len(pc) or 0} calls errored last time",
+              flush=True)
     bars, _ = load_day(day)
     d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
     pos, trades, calls = None, [], []
