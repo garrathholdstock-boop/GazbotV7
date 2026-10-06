@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""ONE CLAUSE CHANGED, PAIRED AGAINST THE CHAMPION ON THE SAME TEN DAYS.
+
+★★★ Why this replaces another free-running iteration. Three iterations of rewriting up to ten
+rules at once produced $509 / $620 / $406 per day and, measured across all 30 holdout
+day-runs, moved the exit NOT AT ALL:
+
+    median hold          45 -> 48 -> 50 min      (legs of 40pt+ run a median of 106 min)
+    holds >= 2 hours     11 -> 11 -> 9
+    PREMATURE exits      48% -> 56% -> 56%       (price resumed our way within 30 min)
+    median capture       -6% -> -4% -> -5%       (the median trade LOSES ground on its leg)
+    $ left at exit    $4,172 -> $4,440 -> $2,965 PER DAY, against $620/day realised
+
+Entries DID improve (lateness 46% -> 33%, against-leg trades halved). The exit is untouched
+and it is where seven times the book is sitting.
+
+THE CAUSE IS ONE CLAUSE, and both rule sets share it:
+    champion  "Hold each entry until price makes a lower low than THE PULLBACK YOU ENTERED FROM"
+    iter 2    "exit when price takes out THE LOW OF THE PULLBACK YOU ENTERED FROM"
+That anchors the exit to a micro-level often a few points wide. On 2026-08-21 trade #4 was cut
+on a 3pt break inside a 30pt range and left 108pt ($863) behind. The rule fired correctly; the
+REFERENCE LEVEL was wrong.
+
+THE DESIGN
+  · ARM = the champion's rule set with rule 7's reference moved to the leg's trailing swing
+    low. Byte-identical otherwise — verified by diff: one line removed, one added, 10 rules
+    both sides.
+  · BASELINE = iteration 2's holdout, ALREADY MEASURED on these exact ten days. So this costs
+    10 day-runs, not 20, and the day-to-day variance cancels because both arms trade the same
+    sessions. Unpaired, a $300 difference is unreadable; paired, the $1,000/day spread that
+    produces the famous "$324 noise floor" drops out of the comparison entirely.
+
+⚠⚠ THE PREDICTIONS ARE FROZEN BELOW, BEFORE THE RUN. They are COUNTS, not dollars, and that
+is deliberate: the $180 gap to the $800 bar is smaller than the standard error of a ten-day
+mean, so $/day cannot be the verdict on one run — while median hold and premature-exit rate
+can. A result that moves the counts and not the dollars is still a result. Writing the
+predictions down first is what stops the outcome being reinterpreted to fit
+([[charge-the-search-and-then-charge-the-bar]]).
+
+⚠ KNOWN COST, STATED IN ADVANCE: holding to leg structure instead of a micro-pullback will
+WIDEN the losing tail. The champion's worst day is -$496. If the worst day deteriorates while
+the counts improve, that is the trade-off working as expected, not a failure — and it is what
+will constrain sizing later.
+
+⚠ READ-ONLY on the desk: simulated fills, no broker, no order path.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+import statistics as st
+import sys
+
+GB = "/home/alphabot/gazbot7"
+sys.path.insert(0, f"{GB}/scripts")
+sys.path.insert(0, f"{GB}/src")
+import sim_week_recursive as SW          # noqa: E402
+import trade_review as TR                # noqa: E402
+
+OUT = f"{GB}/reports/paired_arm"
+HOLD = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18",
+        "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21"]
+POISON = 0.10
+
+# ── FROZEN BEFORE THE RUN ────────────────────────────────────────────────────────────────
+PREDICTION = {
+    "median_hold_min": {"baseline": 48.0, "direction": "up",
+                        "why": "the exit reference widens from a micro-pullback to the leg"},
+    "premature_pct": {"baseline": 56.0, "direction": "down",
+                      "why": "fewer exits should be followed by price resuming our way"},
+    "capture_pct": {"baseline": 14.7, "direction": "up",
+                    "why": "longer holds on the same entries take more of each leg"},
+}
+NOT_DECIDABLE = ("usd_per_day — the $180 gap to the bar is inside the standard error of a "
+                 "10-day mean (~$229 on the champion). Recorded, not a verdict.")
+
+
+def metrics(tag: str) -> dict | None:
+    rows, days, prem, ntr, off, took, nets = [], 0, 0, 0, 0.0, 0.0, []
+    for d in HOLD:
+        p = f"{SW.OUT}/{tag}_{d}.json"
+        if not os.path.exists(p):
+            continue
+        r = json.load(open(p))
+        if sum(1 for c in r["calls"] if c.get("error")) / max(1, len(r["calls"])) > POISON:
+            continue
+        a = TR.analyse(d, r["trades"], r["calls"])
+        days += 1
+        prem += a["premature_exits"]
+        off += a["offered_pt"]
+        took += a["took_pt"]
+        nets.append(r["net_usd"])
+        rows += a["rows"]
+        ntr += len(a["rows"])
+    if not days:
+        return None
+    holds = [x["held_min"] for x in rows if x["held_min"]]
+    return {"days": days, "trades": ntr,
+            "median_hold_min": round(st.median(holds), 1) if holds else 0.0,
+            "holds_over_2h": sum(1 for h in holds if h >= 120),
+            "premature_pct": round(100.0 * prem / max(1, ntr), 1),
+            "capture_pct": round(100.0 * took / max(1e-9, off), 1),
+            "usd_per_day": round(sum(nets) / days, 2),
+            "days_positive": sum(1 for x in nets if x > 0),
+            "worst_day": round(min(nets), 2)}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--rules", default=f"{GB}/reports/recursive_loop/rules_exitfix.txt")
+    ap.add_argument("--arm", default="exitfix")
+    ap.add_argument("--baseline", default="loop2_hold")
+    ap.add_argument("--report-only", action="store_true")
+    a = ap.parse_args()
+    os.makedirs(OUT, exist_ok=True)
+
+    print("=== FROZEN PREDICTIONS (written before the run) ===")
+    for k, v in PREDICTION.items():
+        print(f"  {k}: baseline {v['baseline']} must go {v['direction'].upper()} — {v['why']}")
+    print(f"  NOT DECIDABLE: {NOT_DECIDABLE}\n")
+
+    if not a.report_only:
+        rules = open(a.rules).read()
+        for d in HOLD:
+            r = SW.run_day(d, rules, f"{a.arm}_hold", resume=True, self_aware=True)
+            e = sum(1 for c in r["calls"] if c.get("error"))
+            print(f"  [{a.arm}] {d}  ${r['net_usd']:>+9,.2f}  {len(r['trades'])} tr  "
+                  f"{e}/{len(r['calls'])} err", flush=True)
+
+    base = metrics(a.baseline)
+    arm = metrics(f"{a.arm}_hold")
+    if not base or not arm:
+        print(f"\n  incomplete: baseline={bool(base)} arm={bool(arm)}")
+        return 0
+    print(f"\n=== PAIRED ON {arm['days']} DAY(S) ===")
+    print(f"  {'metric':22} {'champion':>12} {'exit-fix':>12} {'delta':>12}  verdict")
+    verdicts = {}
+    for k in ("median_hold_min", "premature_pct", "capture_pct"):
+        d = arm[k] - base[k]
+        want = PREDICTION[k]["direction"]
+        hit = (d > 0) if want == "up" else (d < 0)
+        verdicts[k] = hit
+        print(f"  {k:22} {base[k]:>12} {arm[k]:>12} {d:>+12.1f}  "
+              f"{'AS PREDICTED' if hit else 'AGAINST PREDICTION'}")
+    for k in ("holds_over_2h", "trades", "days_positive", "worst_day", "usd_per_day"):
+        print(f"  {k:22} {base[k]:>12} {arm[k]:>12} {arm[k]-base[k]:>+12.1f}  "
+              f"{'(not decidable)' if k == 'usd_per_day' else ''}")
+    n_hit = sum(verdicts.values())
+    print(f"\n  {n_hit} of 3 frozen predictions met.")
+    print("  ⚠ $/day is recorded, not a verdict — see NOT DECIDABLE above.")
+    if arm["worst_day"] < base["worst_day"]:
+        print(f"  ⚠ worst day deteriorated ${base['worst_day']:+,.0f} → "
+              f"${arm['worst_day']:+,.0f} — the stated cost of holding to leg structure.")
+    json.dump({"prediction": PREDICTION, "baseline": base, "arm": arm,
+               "predictions_met": n_hit,
+               "generated": dt.datetime.now(dt.UTC).isoformat()},
+              open(f"{OUT}/{a.arm}.json", "w"), indent=1)
+    print(f"\n  → {OUT}/{a.arm}.json")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

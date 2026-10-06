@@ -68,6 +68,48 @@ GB = "/home/alphabot/gazbot7"
 # form: I tested by hand, in the one environment that hides the bug. `tape_reader.py:39`
 # has hardcoded the absolute path since 2026-09-12 for precisely this reason.
 CLAUDE = os.environ.get("CLAUDE_BIN", "/root/.local/bin/claude")
+
+# ★★2026-10-06 ROUTE THE BATCH JOBS TO API CREDITS WHEN A KEY IS PRESENT.
+# Operator: *"i have €250 of credits for claude in the cloud... use the €250 where you can"*.
+# This session is OAuth on his Max subscription and cannot be rerouted mid-flight, but these
+# `claude -p` subprocesses can: the CLI takes `ANTHROPIC_API_KEY`, which bills the Console
+# credit pool instead of the weekly subscription allowance. That is the right split — the
+# batch runs are what exhaust him, and interactive work stays on the subscription.
+# ⚠⚠ A BAD KEY WOULD POISON EVERY DAY SILENTLY, which is this project's signature failure
+# (138/138 errored calls booking $0.00 and reading as a flat session). So the key is PROBED
+# ONCE per process and falls back to OAuth on failure, loudly.
+# ⚠ The key is read from a 0600 file outside git; it is never logged, never printed and never
+# placed on a command line.
+API_KEY_FILE = f"{GB}/data/.api_key"
+_API_ENV: dict | None = None
+
+
+def _api_env() -> dict:
+    """Extra env for the subprocess: the API key if it is present AND it works."""
+    global _API_ENV
+    if _API_ENV is not None:
+        return _API_ENV
+    _API_ENV = {}
+    try:
+        if os.path.exists(API_KEY_FILE):
+            key = open(API_KEY_FILE).read().strip()
+            if key:
+                probe = subprocess.run(
+                    [CLAUDE, "-p", "Reply with the single word OK."],
+                    capture_output=True, text=True, timeout=120,
+                    env={**os.environ, "HOME": "/root", "ANTHROPIC_API_KEY": key})
+                if probe.returncode == 0 and "OK" in (probe.stdout or ""):
+                    _API_ENV = {"ANTHROPIC_API_KEY": key}
+                    print("  [billing] API key accepted — this run bills the Console "
+                          "credit pool, not the weekly subscription", flush=True)
+                else:
+                    print(f"  [billing] ⚠ API key present but REJECTED "
+                          f"(rc={probe.returncode}) — falling back to the subscription so "
+                          f"the run is not poisoned", flush=True)
+    except Exception as e:
+        print(f"  [billing] key check failed ({type(e).__name__}) — using the subscription",
+              flush=True)
+    return _API_ENV
 OUT = f"{GB}/reports/sim_week_recursive"
 
 # ★★★2026-10-03 THE WINDOW MOVED TO 02:00Z. Operator: "if youre going to run it autonomously why
@@ -366,7 +408,7 @@ def ask(prompt: str, timeout: int = 180) -> dict:
     try:
         p = subprocess.run([CLAUDE, "-p", prompt], cwd=OUT, capture_output=True,
                            text=True, timeout=timeout,
-                           env={**os.environ, "HOME": "/root"})
+                           env={**os.environ, "HOME": "/root", **_api_env()})
         raw = (p.stdout or "").strip()
     except subprocess.TimeoutExpired:
         return {"action": "WAIT", "error": f"timeout {timeout}s"}
@@ -418,7 +460,7 @@ def ask_text(prompt: str, timeout: int = 240) -> str:
     try:
         p = subprocess.run([CLAUDE, "-p", prompt], cwd=OUT, capture_output=True,
                            text=True, timeout=timeout,
-                           env={**os.environ, "HOME": "/root"})
+                           env={**os.environ, "HOME": "/root", **_api_env()})
         return (p.stdout or "").strip()
     except subprocess.TimeoutExpired:
         return f"[review timed out after {timeout}s — no lessons for tomorrow]"

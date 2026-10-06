@@ -46,7 +46,13 @@ from gazbot7.notify import notify, in_quiet_hours      # noqa: E402
 GB = "/home/alphabot/gazbot7"
 ART = f"{GB}/reports/sim_week_recursive"
 OUT = f"{GB}/reports/recursive_loop/poison.json"
-LOOP_PAT = r"[.]venv/bin/python .*recursive_loop\.py"
+# ★★2026-10-06 WATCH EVERY RESEARCH RUNNER, NOT JUST THE LOOP. The guard was built for
+# recursive_loop and a 127M-token A/B was launched beside it unguarded — the usage limit hit
+# mid-run and 16 of 20 arms errored 138/138, producing nothing. The loop survived with
+# 1-error days because the guard was watching IT. Guarding one runner and not the next is
+# [[an-instrument-that-reports-healthy-about-something-it-does-not-check]].
+WATCHED = ("recursive_loop.py", "ab_rule_toggle.py", "paired_arm.py")
+LOOP_PAT = r"[.]venv/bin/python .*(recursive_loop|ab_rule_toggle|paired_arm)\.py"
 
 PROBE_EVERY_S = 300
 DEAD_STREAK = 3            # ~15 min of a dead CLI before the night is written off
@@ -78,7 +84,7 @@ def loop_pids() -> list[int]:
             continue
         if not argv or os.path.basename(argv[0]) not in ("python", "python3"):
             continue                      # a shell whose text mentions the script is not the script
-        if not any(a.endswith("recursive_loop.py") for a in argv[1:]):
+        if not any(a.endswith(w) for a in argv[1:] for w in WATCHED):
             continue
         out.append(int(x))
     return out
