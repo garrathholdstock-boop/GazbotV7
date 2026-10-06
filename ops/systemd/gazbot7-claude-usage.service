@@ -1,0 +1,25 @@
+[Unit]
+Description=GAZBOT V7 — CLAUDE WEEKLY USAGE METER (reads its own transcripts; feeds the header dial)
+# ★★2026-10-06. Operator, after the weekend's recursive runs exhausted his weekly budget mid-run and
+# Monday's first live shadow day was lost: "i need a little dial on the dashboard showing how much
+# weekly credits we have used and how much we have to go".
+# Source is the API's OWN per-message `usage` objects in ~/.claude/projects/*.jsonl — 34k files, ~5GB
+# — read INCREMENTALLY off a bytes-read cursor, so a run is ~1s after the first full scan (15.8s).
+# ⚠ It measures THIS BOX. Phone and desktop-app usage are invisible, so the number is a FLOOR on
+# account-wide consumption and the dial's tooltip says so.
+# ⚠ The weekly allowance is NOT reported by any local file or CLI flag, so data/claude_budget.json
+# holds a number INFERRED from the week he actually ran out (499.3M billable, against 167-237M in
+# the four weeks before). Replace it when the real figure is known.
+# ⚠ READ-ONLY: reads transcripts, writes three files of its own (data/claude_usage.json, its cursor,
+# and web_static/claude_usage_web.json). No desk state, no order path.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=500M
+TimeoutStartSec=300
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/claude_usage.py --scan
+SuccessExitStatus=0 1

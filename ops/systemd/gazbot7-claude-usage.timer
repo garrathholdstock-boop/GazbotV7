@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V7 — claude usage meter cadence (every 10 min)
+
+[Timer]
+# 10 minutes: the dial is a budget gauge, not a tachometer, and the incremental scan is ~1s.
+# Offset :15 so it never lands on the router's *:0/5 write or the rider's *:*:05 tick.
+OnCalendar=*:0/10:15
+AccuracySec=30s
+# ★ Persistent: "how much have we spent this week" is MORE interesting after the box was down,
+# not less — the same reasoning as overnight-allclear.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

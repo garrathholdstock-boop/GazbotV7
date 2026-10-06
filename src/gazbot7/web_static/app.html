@@ -23,6 +23,23 @@
   <div class="conn" id="conn"><span class="dot"></span><span id="conn-label">CONNECTING…</span></div>
   <span class="chip" id="mkt-chip">—</span>
   <span class="chip" id="safety-chip">SAFETY —</span>
+  <!-- ★★2026-10-06 THE CLAUDE WEEKLY BUDGET DIAL. Operator: "as we are going to use claude to
+       monitor and execute all the time, i need a little dial on the dashboard showing how much
+       weekly credits we have used and how much we have to go". Built after the weekend's recursive
+       runs exhausted his budget mid-experiment and the first live shadow day was lost.
+       ⚠ THE READING IS ON SCREEN, NOT IN THE TOOLTIP — the ring alone would repeat the CVD-gauge
+       fault he caught on 2026-10-01 ("has -20 and 20 on either ends but doesnt tell me what the
+       current reading is"), so the percent and the remaining budget are both rendered as text and
+       the ring is decoration on top of them.
+       ⚠ Data comes from /static/claude_usage_web.json — a STATIC file, so no web restart and no
+       dropped tab. -->
+  <span class="chip crchip" id="cr-chip">
+    <svg class="crring" viewBox="0 0 26 26" aria-hidden="true">
+      <circle class="crbg" cx="13" cy="13" r="10"></circle>
+      <circle class="crarc" id="cr-arc" cx="13" cy="13" r="10"></circle>
+    </svg>
+    <span class="crtxt"><b id="cr-pct">—</b><span class="rem" id="cr-rem">CLAUDE WK</span></span>
+  </span>
   <div class="spacer"></div>
   <!-- ★2026-08-13 PHONE HEADER REBUILD. Two elements moved OUT of .kpis so each header row can own
        its own vertical space on a phone (the fault was one nowrap overflow-x scroller holding tiles

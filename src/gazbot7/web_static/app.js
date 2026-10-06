@@ -131,6 +131,64 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const sidePill = (side) => `<span class="pill ${side === "SHORT" ? "short" : "long"}">${side || "LONG"}</span>`;
 
+  /* ---------- ★★2026-10-06 CLAUDE WEEKLY BUDGET DIAL ----------
+     Reads /static/claude_usage_web.json, which scripts/claude_usage.py refreshes every 10 min from
+     the API's OWN per-message usage objects in ~/.claude/projects/*.jsonl. No new web route, so no
+     restart and no dropped tab.
+     ⚠ IT RENDERS WHAT IT MEASURES AND SAYS WHAT IT CANNOT. The transcripts are this box only, so
+     phone and desktop-app usage are invisible and the figure is a FLOOR. The budget is a number HE
+     sets in data/claude_budget.json, inferred (500M) from the week he actually exhausted — with no
+     budget the chip shows raw tokens and "NO BUDGET" rather than inventing a percentage.
+     ⚠ It must never throw: this chip sits in the same header as the P&L, and one exception here
+     would stop every later renderer on the page (the 2026 clienterr lesson at the top of this file). */
+  const CR_CIRC = 62.83;
+  function renderCredits(u) {
+    const chip = $("cr-chip"), arc = $("cr-arc");
+    if (!chip || !arc) return;
+    chip.classList.remove("cr-ok", "cr-warn", "cr-hot", "cr-none");
+    const tk = (n) => n >= 1e9 ? (n / 1e9).toFixed(2) + "B"
+                    : n >= 1e6 ? (n / 1e6).toFixed(0) + "M"
+                    : n >= 1e3 ? (n / 1e3).toFixed(0) + "k" : String(n || 0);
+    if (!u || u.budget_tokens == null) {
+      setTxt("cr-pct", u ? tk(u.used_tokens) : "—");
+      setTxt("cr-rem", "NO BUDGET");
+      chip.classList.add("cr-none");
+      arc.style.strokeDashoffset = CR_CIRC;
+      chip.title = "Claude usage this week, measured from this box's transcripts. "
+        + "No weekly budget set — put weekly_token_budget in data/claude_budget.json.";
+      return;
+    }
+    const pct = Math.max(0, Math.min(100, u.pct_used == null ? 0 : u.pct_used));
+    const over = u.on_pace === false;
+    setTxt("cr-pct", pct.toFixed(pct < 10 ? 1 : 0) + "%");
+    const days = Math.floor((u.hours_left || 0) / 24), hrs = Math.round((u.hours_left || 0) % 24);
+    setTxt("cr-rem", tk(u.remaining_tokens) + " LEFT · " + (days ? days + "d" : hrs + "h"));
+    // red when nearly spent OR when the burn rate alone would finish the budget early — a chip that
+    // only reacts to the level says nothing on the Saturday that spent 210M in a day.
+    chip.classList.add(pct >= 85 || over ? "cr-hot" : pct >= 60 ? "cr-warn" : "cr-ok");
+    arc.style.strokeDashoffset = CR_CIRC * (1 - pct / 100);
+    chip.title = "CLAUDE WEEKLY BUDGET\n"
+      + "used " + (u.used_tokens || 0).toLocaleString() + " of "
+      + (u.budget_tokens || 0).toLocaleString() + " billable tokens ("
+      + pct.toFixed(1) + "%)\n"
+      + "week " + u.week_start + " → " + u.week_end + ", " + (u.hours_left || 0) + "h left\n"
+      + "projected at this burn: " + (u.projected_week_tokens || 0).toLocaleString()
+      + (over ? "  ⚠ OVER BUDGET AT THIS RATE" : "  (on pace)")
+      + (u.hours_to_exhaust != null ? "\nexhausted in ~" + u.hours_to_exhaust + "h at this rate" : "")
+      + "\n\nbillable = input + output + cache-creation; cache reads excluded."
+      + "\n" + (u.measures || "")
+      + "\nbudget is INFERRED (see data/claude_budget.json), not reported by the API."
+      + "\nupdated " + (u.updated || "—");
+  }
+  async function pollCredits() {
+    try {
+      renderCredits(await getJSON("static/claude_usage_web.json"));
+    } catch (e) {
+      const chip = $("cr-chip");
+      if (chip) { chip.classList.add("cr-none"); setTxt("cr-pct", "—"); setTxt("cr-rem", "NO DATA"); }
+    }
+  }
+
   /* ---------- fetch ---------- */
   async function getJSON(url) {
     const r = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
@@ -1466,6 +1524,9 @@
   slowTick(); fastTick();
   setInterval(fastTick, POLL_FAST_MS);
   setInterval(slowTick, POLL_SLOW_MS);
+  // ★2026-10-06 the credits dial on its OWN interval, deliberately not inside slowTick: the usage
+  // file refreshes every 10 min, and a failed usage read must never abort the header's P&L render.
+  pollCredits(); setInterval(pollCredits, 60000);
   // the chart draws in pixel space → re-fit it to the new box on resize (debounced), not just next tick
   let _rz; window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(() => { try { renderHero(); } catch (e) { } }, 120); });
 })();
