@@ -4,7 +4,36 @@
 > configuration of the best iteration and improve it. We can't be trying things and getting
 > worse... I believe we need a bible of guidelines for the AI to refer to."*
 
-**⚠ THE OPERATIVE HALF OF THIS FILE IS INJECTED INTO `recursive_loop.CONSOLIDATE`.** A rule
+## ⚠⚠⚠ THIS FILE IS DOCUMENTATION. THE SOURCE IS `src/gazbot7/bible.py`.
+
+Operator, 2026-10-06: *"how do we make the AI always abide. Just like Claude code does. If it
+sits outside CLAUDE.md you don't do it."* That is the right diagnosis: `CLAUDE.md` binds
+because it is **injected into every session automatically**, not because it is well written.
+
+So the laws live in **`src/gazbot7/bible.py`** as one importable constant, and every prompt
+that writes, reviews or judges a rule set calls `laws()`:
+
+| prompt | what it does |
+|---|---|
+| `recursive_loop.CONSOLIDATE` | writes the next rule set |
+| `sim_week_recursive.REVIEW` | writes the nightly lessons that become rules |
+| `preflight_iteration.AUDIT` | judges whether a planned change is sound |
+
+**`tests/test_bible_is_enforced.py` fails if any of those is missing any law.** That test is
+the enforcement; this document is only a readable copy, and a test asserts the two cannot
+drift.
+
+⚠ **The failure this guards against happened twice while building it.** The first attempt
+patched `recursive_loop`'s module DOCSTRING — text no model reads — and the diff looked
+correct; only capturing the assembled prompt and grepping it showed L1, L2 and L5 missing. The
+second attempt spliced from the docstring anchor into the middle of the prompt and **deleted
+201 lines**, including `ALL_WEEKS`, `score_week`, `meets_bar` and the `CONSOLIDATE` assignment
+itself. Restored from the last verified commit and redone with an anchor inside the assignment.
+Both were caught by running the checks, neither by reading the change.
+
+---
+
+**The operative half of this file is injected from `bible.py`.** A rule
 that lives only in a document is a rule the reviewer never sees — this desk has already lost
 three banked lessons to exactly that, which is why `a-memory-is-not-a-rule-until-it-is-in-the-prompt`
 exists. If you edit a law here, edit the prompt in the same commit.
@@ -24,6 +53,47 @@ on iteration 3's weaker rules. And the prompt told the reviewer to *"drop what h
 earning its place"* — an instruction to change everything, every night.
 
 ---
+
+## THE TWO THAT OUTRANK EVERYTHING
+
+### LAW 0 — CONSISTENCY OUTRANKS RETURN. THIS IS THE FIRST LAW.
+> Operator, 2026-10-06: *"Yes we absolutely want to maximise daily return. But consistency is
+> more important. If we maximise one day to $2000 but then have 3 negatives or $200 days it's
+> no good."*
+
+A configuration earning the same money in a straight line is strictly better than one earning
+it in lurches, and the lurching one is **not an improvement however large its average**.
+> *Earned:* the exit-fix arm had the **highest median day of any arm (+$636)** and was the
+> worst configuration tested — 6 of 10 days positive, worst day −$1,882, spread 3.6× its own
+> mean. Ranking on the typical day would have selected it.
+
+### LAW 0b — IMPROVE WHAT ALREADY WORKS. DO NOT TRY NEW THINGS.
+Every change starts from the best-scoring configuration and edits **one** rule of it. You are
+not exploring; you are tightening something that already earns money.
+> *Earned:* three iterations of free rewriting gave $509 → $620 → $406/day and ended by
+> discarding the best set.
+
+### THE CONSISTENCY GATE — Law 0 made mechanical
+Consistency cannot be one statistic: on the same ten days **mean and median disagree** about
+which configuration is better — iteration 2 wins on mean ($620 vs $509), iteration 1 wins on
+median ($595 vs $414). So a challenger is judged on **dominance**:
+
+| # | must not worsen | champion (iter 2) |
+|---|---|---|
+| 1 | days positive | 9 of 10 |
+| 2 | worst single day | −$496 |
+| 3 | spread ÷ mean (CV) | 1.17 |
+| 4 | **then** $/day must be higher | $620 |
+
+CV rather than raw SD is deliberate: a configuration earning twice as much is allowed twice
+the absolute spread, and comparing raw SD would reject every genuine improvement in scale.
+
+Against that gate **every challenger measured so far is rejected** — iteration 1 (6/10,
+−$1,180, CV 2.01), iteration 3 (6/10, −$780, CV 2.24), exit-fix (6/10, −$1,882, CV 3.61).
+That is the gate working: each was worse at the thing that matters most.
+
+⚠ It also refuses a **flat but tidy** challenger — consistency first does not mean consistency
+only. `bible.gate()` returns *"consistency held but no more money"* and keeps the champion.
 
 ## THE TEN LAWS
 

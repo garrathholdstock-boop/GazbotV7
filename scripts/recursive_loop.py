@@ -92,6 +92,16 @@ import sys
 
 GB = "/home/alphabot/gazbot7"
 OUT = f"{GB}/reports/recursive_loop"
+# ★★★2026-10-06 ONE SOURCE OF TRUTH FOR THE LAWS. Operator: *"how do we make the AI always
+# abide. Just like Claude code does. If it sits outside CLAUDE.md you don't do it."* So the
+# laws are NOT written out in this prompt — they are imported from gazbot7.bible, and
+# tests/test_bible_is_enforced.py FAILS if this prompt does not contain every one of them.
+# ⚠ Writing them inline here is how they drift: an earlier attempt put them in this module's
+# DOCSTRING, which no model reads, and the diff looked correct.
+sys.path.insert(0, f"{GB}/src")
+from gazbot7.bible import laws as _laws        # noqa: E402
+
+_BIBLE = _laws()
 CLAUDE = os.environ.get("CLAUDE_BIN", "claude")
 
 # ★★★2026-10-03 RANDOM TRAINING WEEKS. Operator: "will it do random weeks to train itself?"
@@ -213,33 +223,7 @@ picture with your entries and exits on it, the leg table, and your trades.
 
 Write the CONSOLIDATED RULE SET you will trade with next time — at most {MAX_RULES} rules.
 
-⚠⚠⚠ L1 — START FROM THE CHAMPION, NEVER A BLANK PAGE. You are shown THE CHAMPION'S RULE SET and
-its score below. Reproduce it VERBATIM and change at most ONE rule. You are editing a working
-configuration, not writing a new one. Rules you are not changing must come back word-for-word —
-rewording a rule you did not mean to change destroys the only record of what actually changed.
-
-⚠⚠⚠ L2 — ONE RULE PER ITERATION. Exactly one. Not "one theme", not "a few related clauses".
-Iteration 1 to 2 changed all ten rules and moved $111/day, which is INSIDE the ±$324 standard error
-of a ten-day mean, so not one dollar of it is attributable to anything. One change a night
-accumulates; ten changes a night is a random walk. The measured record of the random walk is
-$509 -> $620 -> $406 per day, with the best set discarded wholesale at the end of it.
-
-⚠⚠⚠ L5 — NEVER REVERSE A RULE ON ONE WEEK'S IMPRESSION. Reversing needs evidence that THAT RULE
-failed, not that the week went badly. Iteration 1 said "Target 8-15 entries per session" and "a
-session with no trade is a failure"; iteration 2 replaced both with "there is no quota and a flat
-session is not a failure". Trades/day fell 6.4 to 4.1 and $/day fell $620 to $406. If you believe a
-rule must be reversed, use the word REVERSE in the CHANGELOG and name the number that justifies it.
-
-⚠⚠ L10 — COUNTS BEFORE DOLLARS. One week cannot resolve $/day: the daily spread is ~$1,000. Median
-hold, premature-exit rate, leg capture, side accuracy and trades/day are COUNTS and move well
-outside their own noise. Aim your one change at a count you can name, and say in the CHANGELOG
-which count should move and in which direction.
-⚠ This is NOT a claim that a few hundred dollars a day is immaterial — it is tens of thousands a
-year. It means five days cannot MEASURE it.
-
-⚠⚠ A NULL ITERATION IS A LEGITIMATE OUTCOME. If the week gives you no evidence that a specific rule
-failed, return the champion's set UNCHANGED with "CHANGELOG: no change — the week gave no reason to
-alter the rules." Churn is not progress, and the loop reverts anything that scores worse anyway.
+{_BIBLE}
 
 ⚠ The list must not simply GROW either: the version carrying accumulated lessons LOST $1,960 over
 four days while the version carrying NONE made $522 on the identical tape. At most {MAX_RULES}
@@ -460,7 +444,15 @@ def main() -> int:
         if champ and champ["iter"] != it and this_pd is not None:
             cpd = champ["holdout"]["usd_per_day"]
             cpos = champ["holdout"].get("days_positive", 0)
-            if not (this_pd > cpd and this_pos >= cpos):
+            # ★★★2026-10-06 LAW 0 DECIDES, NOT $/day. Operator: *"consistency is more
+            # important"*. The first ratchet compared $/day and days-positive; `bible.gate()`
+            # adds the worst day and the spread-to-mean ratio, so a challenger that buys a
+            # bigger average with deeper holes is refused — his exact objection, *"If we
+            # maximise one day to $2000 but then have 3 negatives or $200 days it's no good."*
+            from gazbot7.bible import gate as _gate
+            _ok, _why = _gate(s_ho, champ["holdout"])
+            log(f"  CONSISTENCY GATE: {_why}")
+            if not _ok:
                 log(f"  ✗ CHALLENGER REJECTED: iter {it} scored ${this_pd:+,.0f}/day with "
                     f"{this_pos} positive days vs champion iter {champ['iter']} at "
                     f"${cpd:+,.0f}/day with {cpos}. REVERTING to the champion's rules.")

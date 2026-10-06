@@ -537,7 +537,12 @@ def _close(pos, px, epoch, why) -> dict:
             "entry_reason": pos.get("reason", "")}
 
 
-REVIEW = """You traded MNQ today. Review YOUR OWN decisions honestly and write what you will do
+from gazbot7.bible import laws as _laws        # noqa: E402
+_BIBLE = _laws()
+
+REVIEW = f"""{_BIBLE}
+
+You traded MNQ today. Review YOUR OWN decisions honestly and write what you will do
 differently tomorrow.
 
 ★★★ LOOK AT THE PICTURE FIRST, BEFORE ANY NUMBER. You are given the day drawn as a snake with your

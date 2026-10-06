@@ -193,7 +193,34 @@ def state_brief(it: int) -> str:
     return "\n".join(L)
 
 
-AUDIT = """You are auditing a trading research iteration BEFORE it runs, to stop work that
+PLAN = """You are briefing the operator BEFORE a trading research iteration runs. He asked
+for exactly this: *"before iteration runs can you give me a summary of its strategy? how is
+it trying to improve on the 624 per day? i want to know"*.
+
+He is a discretionary futures trader, not a researcher. Write for him: plain sentences, his
+units ($/day at 4 lots), no statistics vocabulary, no hedging, no preamble.
+
+Answer in this exact shape and nothing else:
+
+WHAT IT WILL TRADE: <one sentence naming the actual approach the rule set encodes — the
+  entry trigger, the exit trigger, and the one thing it refuses to do>
+HOW IT TRIES TO BEAT THE CHAMPION: <two sentences at most. Name the specific mechanism. If
+  the rule set is UNCHANGED from the champion's, say so plainly and say that this run is a
+  REPEAT measuring whether the number holds, not an attempt to improve it — that is a
+  legitimate and valuable run, not a wasted one>
+WHAT WOULD HAVE TO HAPPEN: <one sentence: the concrete behavioural change on the tape that
+  would produce a higher number — e.g. "hold the morning leg two hours instead of forty
+  minutes">
+WHAT IT GIVES UP: <one sentence on the cost of this approach — what it will miss or refuse>
+BIGGEST RISK: <one sentence on the most likely way this run disappoints>"""
+
+
+from gazbot7.bible import laws as _laws        # noqa: E402
+_BIBLE = _laws()
+
+AUDIT = f"""{_BIBLE}
+
+You are auditing a trading research iteration BEFORE it runs, to stop work that
 will have to be redone. You are not being asked to approve the strategy — you are being asked
 ONE question:
 
@@ -216,6 +243,17 @@ Rules for your verdict:
 - GO if the iteration is aimed at a real gap and its outcome will be interpretable.
 - Do NOT suggest re-deriving anything listed as known. Do NOT propose new metrics.
 - Be blunt. A GO that should have been FIX-FIRST costs a week of budget."""
+
+
+def plan(it: int, timeout: int = 240) -> str:
+    """The operator's plain-English brief, before a single token is spent on the run."""
+    try:
+        p = subprocess.run([CLAUDE, "-p", PLAN + "\n\n=== STATE ===\n" + state_brief(it)],
+                           capture_output=True, text=True, timeout=timeout,
+                           env={**os.environ, "HOME": "/root"})
+        return (p.stdout or "").strip()
+    except Exception as e:
+        return f"[plan unavailable: {type(e).__name__}]"
 
 
 def audit(it: int, timeout: int = 240) -> dict:
@@ -259,6 +297,10 @@ def main() -> int:
     else:
         print("\n  ✅ all gates pass")
         if not a.no_audit:
+            print("\n=== THE PLAN — what this iteration will actually do ===\n")
+            pl = plan(a.iter)
+            res["plan"] = pl
+            print("\n".join("  " + l for l in pl.splitlines()))
             print("\n=== THE AUDIT ===")
             au = audit(a.iter)
             res["audit"] = au
