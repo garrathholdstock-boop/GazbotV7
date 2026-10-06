@@ -238,10 +238,42 @@ def main() -> int:
         history = json.load(open(hp))
 
     for it in range(a.start, a.start + a.iters):
-        log(f"=== ITERATION {it} ===")
+        # ★★★2026-10-06 THE PRE-ITERATION AUDIT GATE. Operator: *"so we are not forgetting
+        # things and needing to rerun things, can you put an audit agent out each time
+        # before each iteration to make sure whats about to be done is thorough and aimed at
+        # improving the numbers?"*
+        # Deterministic gates FAIL CLOSED (binary resolvable, a live call answers, budget
+        # covers the WHOLE plan, tape present for every day, no poisoned artefact `resume`
+        # would inherit, no holdout day in the training week). Each one is a failure that
+        # already cost this project a day or a week. Then a headless audit judges the one
+        # thing a gate cannot: is this iteration aimed at the metric that is actually
+        # failing, and will its result be distinguishable from the $324/day noise floor.
+        # ⚠ A gate cannot be forced; the audit's STOP can, with GAZBOT_PREFLIGHT_FORCE=1.
+        # ⚠ On its FIRST run it caught a real confound in a 127M-token A/B that had already
+        #   launched — rule 1 carries a second stop-after-losses clause present in every arm.
+        # ★ the training week is chosen HERE, before the gate, because the gate has to check
+        #   the tape and the holdout-leak of the ACTUAL days about to run. The first cut of
+        #   this block referenced a `train_days` variable that did not exist at this point —
+        #   it would have raised NameError on iteration 4 and killed the loop at the gate
+        #   meant to protect it.
         import random as _r
         wk = TRAIN_POOL[(it - 1) % len(TRAIN_POOL)] if it <= len(TRAIN_POOL) \
             else _r.Random(it).choice(TRAIN_POOL)
+        if os.environ.get("GAZBOT_PREFLIGHT", "1") != "0":
+            cmd = [sys.executable, f"{GB}/scripts/preflight_iteration.py",
+                   "--iter", str(it), "--train", ",".join(wk)]
+            if os.environ.get("GAZBOT_PREFLIGHT_FORCE") == "1":
+                cmd.append("--force")
+            pf = subprocess.run(cmd, capture_output=True, text=True, timeout=900,
+                                env={**os.environ, "HOME": "/root",
+                                     "PYTHONPATH": f"{GB}/src"})
+            for line in (pf.stdout or "").splitlines():
+                log(f"  PREFLIGHT {line}")
+            if pf.returncode not in (0,):
+                log(f"  ⛔ PREFLIGHT BLOCKED iteration {it} (rc={pf.returncode}) — stopping. "
+                    f"Fix what it named, or set GAZBOT_PREFLIGHT_FORCE=1 for an audit STOP.")
+                break
+        log(f"=== ITERATION {it} ===")
         log(f"  TRAIN week {wk[0]}..{wk[-1]} with {len(rules)} chars of rules")
         tr = run_week(wk, rules, f"loop{it}_train")
         s_tr = score_week(tr)
