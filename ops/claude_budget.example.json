@@ -1,0 +1,8 @@
+{
+  "_what": "The weekly Claude token budget the dashboard dial measures against.",
+  "_how_this_number_was_chosen": "INFERRED, NOT KNOWN. No file on this box and no CLI flag reports the plan's real allowance. The week of 2026-09-28 reached 499,288,201 billable tokens and ran out; the four weeks before it ran 19.7M / 206.9M / 167.6M / 237.0M and did not. So the true allowance lies between ~237M and ~500M and 500M is the closest empirical estimate available. REPLACE IT with the real figure when known — the dial is only as honest as this number.",
+  "_billable_means": "input + output + cache-creation tokens. Cache READS are excluded because they are the cheapest class by an order of magnitude; see billable() in scripts/claude_usage.py. This is a consistent yardstick, NOT Anthropic's billing formula.",
+  "_floor_not_ceiling": "Measured from this box's transcripts only. Usage from the phone or desktop app is invisible here, so the figure under-reports account-wide consumption.",
+  "weekly_token_budget": 500000000,
+  "week_start_dow": 0
+}
