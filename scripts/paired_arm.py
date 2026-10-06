@@ -90,9 +90,31 @@ NOT_DECIDABLE = ("usd_per_day — the $180 gap to the bar is inside the standard
                  "10-day mean (~$229 on the champion). Recorded, not a verdict.")
 
 
-def metrics(tag: str) -> dict | None:
-    rows, days, prem, ntr, off, took, nets = [], 0, 0, 0, 0.0, 0.0, []
+def clean_days(tag: str) -> list[str]:
+    out = []
     for d in HOLD:
+        p = f"{SW.OUT}/{tag}_{d}.json"
+        if not os.path.exists(p):
+            continue
+        r = json.load(open(p))
+        if sum(1 for c in r["calls"] if c.get("error")) / max(1, len(r["calls"])) <= POISON:
+            out.append(d)
+    return out
+
+
+def metrics(tag: str, days_only: list[str] | None = None) -> dict | None:
+    """⚠⚠ `days_only` IS NOT OPTIONAL IN PRACTICE AND THE FIRST CUT OMITTED IT.
+
+    Without it this computed the baseline over all 10 of its clean days and the arm over
+    whichever of ITS days were clean, then printed the differences as if they were paired.
+    On 2026-10-06 that produced "PAIRED ON 6 DAY(S)" with a champion column covering ten —
+    including +$1,422 and +$1,386 August days the arm's six did not contain. Every delta in
+    that table was meaningless, and the headline ($/day +$78) was an artefact of comparing
+    different sessions. A paired design that silently stops pairing is worse than an
+    unpaired one, because it still claims the pairing.
+    """
+    rows, days, prem, ntr, off, took, nets = [], 0, 0, 0, 0.0, 0.0, []
+    for d in (days_only if days_only is not None else HOLD):
         p = f"{SW.OUT}/{tag}_{d}.json"
         if not os.path.exists(p):
             continue
@@ -173,8 +195,16 @@ def main() -> int:
             for d in HOLD:
                 one(d)
 
-    base = metrics(a.baseline)
-    arm = metrics(f"{a.arm}_hold")
+    # pair on days clean in BOTH arms, and say so loudly when days are dropped
+    cb, ca = clean_days(a.baseline), clean_days(f"{a.arm}_hold")
+    common = [d for d in HOLD if d in cb and d in ca]
+    dropped = [d for d in HOLD if d not in common]
+    if dropped:
+        print(f"  ⚠ {len(dropped)} day(s) EXCLUDED (poisoned or missing in one arm): "
+              f"{', '.join(dropped)}")
+        print("    The comparison below covers ONLY the days clean in both arms.\n")
+    base = metrics(a.baseline, common)
+    arm = metrics(f"{a.arm}_hold", common)
     if not base or not arm:
         print(f"\n  incomplete: baseline={bool(base)} arm={bool(arm)}")
         return 0
