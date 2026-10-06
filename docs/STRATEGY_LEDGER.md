@@ -166,4 +166,151 @@ The bar is in `docs/PROJECT_800_A_DAY.md`: **$800/day at 4 lots on the holdout**
 
 ---
 
-*Generated 2026-10-06 10:46Z from `reports/recursive_loop/` and `reports/sim_week_recursive/`.*
+## Iteration 3
+
+- rule set: `rules_iter3.txt` · sha `0e8938feda15` · 2909 chars
+- holdout: **$+406/day** over 10 clean days ($+4,056) · 6/10 days positive · 4.1 trades/day
+- trades: 41 · win 44% · payoff 2.62 · wins $+7,924 / losses $-3,868
+
+### What it said it was changing
+
+*No declared CHANGELOG — the requirement was added to `consolidate()` on 2026-10-06 and applies from iteration 4 onward. For earlier iterations the change is RECONSTRUCTED below by `scripts/rule_diff.py`, which is weaker evidence: it is inference from prose, not the author stating intent.*
+
+### What actually changed vs iteration 2 (reconstructed)
+
+```
+=== LOGIC CHANGE: iteration 2 → iteration 3 ===
+    10 rules → 10 rules
+
+  [DROPPED]
+        WAS: Read the shape before the numbers and classify the day first: if the picture
+        shows one or two long swings in the same direction, it is a press day — trade it
+        repeatedly at normal size. If it shows four or more swings of similar size with no
+        dominant direction, it is chop — minimum size, and after two losers in that state,
+        stop for the day. The ten-swing day was the only losing day of the week (−$856); the
+        two-swing day was the best (+$940).
+
+  [DROPPED]
+        WAS: Change sides only when a counter-swing grows larger than the biggest swing so
+        far in your direction. Not a pullback, not a long stall, not a losing trade of your
+        own, not a round number, not the clock.
+
+  [DROPPED]
+        WAS: Take no trade against the dominant side, ever. Counter-side trades lost money
+        on every single day they appeared (−$38, −$792, −$418, −$314), including both
+        winning days and the best day of the week. There is no version of this that is worth
+        testing again.
+
+  [DROPPED]
+        WAS: Hold to a structure break, not to a point count: for a long, exit when price
+        takes out the low of the pullback you entered from; mirrored for a short. No fixed-
+        point profit target. The entire week's profit came from the handful of trades held
+        into 26–58% of their swing; the day where every trade was correctly on its swing but
+        each was cut small made almost nothing (+$154 on 7 clean trades).
+
+  [DROPPED]
+        WAS: Cut at once, no widening and no averaging, if price erases the extreme that
+        created the setup. That is the only loss you are allowed to take; a loss from any
+        other cause means a rule was broken, and the next entry waits for a fresh setup.
+
+  [DROPPED]
+        WAS: Mid-session self-check from your own fills: if you have three or more closed
+        trades and each captured only a small fraction of the swing it sat on, the fault is
+        your exits, not your entries — stop adding trades and hold the next correct entry
+        strictly by rule 6.
+
+  [ADDED]
+        NOW: **Trade that side only — no counter-side entry for any reason.** Not a bounce,
+        not an overextension, not a stall, not revenge after a loser, not boredom. Counter-
+        side trades appeared on three days this week and lost on all three (−$328, −$478,
+        −$248); the one day with zero counter-side entries was the smallest loss of the
+        week. When you want the other side, the action is to do nothing.
+
+  [ADDED]
+        NOW: **The side only changes when a swing against it grows larger than the largest
+        swing in its favour.** Then flatten, re-name the side, and continue one-directional.
+        Never hold both sides, and never "hedge" a losing trade with the opposite one.
+
+  [ADDED]
+        NOW: **Stop in with the entry, no wider than half the swing you are joining, moved
+        only in your favour.** One position at a time, identical size on every trade, no
+        averaging down, no widening, no "give it room".
+
+  [ADDED]
+        NOW: **No single trade may lose more than your largest winner so far.** Check it
+        from your own fills. The week's biggest win was 39pt while the week averaged roughly
+        −$117 a trade: wins were cut and losses were allowed to run. A trade through that
+        line is closed on the spot, whatever you think of the chart.
+
+  [ADDED]
+        NOW: **Exits are structural, never a point count.** Hold while each new pullback
+        holds above the prior pullback's extreme (mirrored for shorts), trailing behind it,
+        and exit only when that breaks. If the picture is one or two long legs in one
+        direction, at least one position is held into the end of the session. A day that ran
+        328pt one way returned captures of 4%, 6%, 4%, 8% — that habit is the most expensive
+        thing on this desk.
+
+  [ADDED]
+        NOW: **Re-enter on the next continuation after every exit, win or lose.** The
+        working benchmark is 8–15 entries all on one side, not 4. Any completed swing of
+        40pt+ in your named direction that you sat out is the error to correct next time —
+        untraded 40pt+ legs were flagged on four of five days.
+
+  [REWRITTEN]
+        WAS: Stop for the session after three losing trades, and never try to recover a
+        losing day by taking the other side. The declared side being wrong is a reason to be
+        flat, not a reason to flip.
+        NOW: **Hard daily stop: three stopped-out trades, or a loss of three times your per-
+        trade risk, ends the day.** Flat and done. Never raise size to recover a losing day
+        and never flip sides to recover one — a wrong side is a reason to be flat, not a
+        reason to reverse.
+
+  [REWRITTEN]
+        WAS: Name the dominant side mechanically from what is already drawn: the direction
+        of the largest completed swing of the day so far, with current price on that side of
+        the day's opening area. That is the only side you trade until rule 3 forces a
+        change.
+        NOW: **Name the side before you trade, from the picture.** The side is the direction
+        of the largest completed swing on the chart so far, with price currently on that
+        side of where the day began. Until one swing has completed and you can say the side
+        out loud, you have no trade. Re-read the shape, not the numbers, to do this.
+
+  [REWRITTEN]
+        WAS: Enter only on continuation: price makes a new extreme in the dominant
+        direction, pulls back, and the pullback holds without erasing the prior extreme's
+        base. Re-enter on the next such setup after every exit, win or lose. If no setup
+        appears, take nothing — there is no quota and a flat session is not a failure.
+        NOW: **One entry trigger, every time:** price makes a new extreme in the named
+        direction, pulls back, the pullback stops without erasing the base of that extreme,
+        and you enter the resumption. No entry into a vertical move with no pullback, and no
+        entry merely because you are flat.
+
+  (1 rules carried over with the same meaning, reworded)
+```
+
+### Where the money moved (vs iteration 2)
+
+| day | iter 2 | iter 3 | change |
+|---|---|---|---|
+| 2026-08-17 | $+146 | $-68 | **$-214** |
+| 2026-08-18 | $+1,422 | $+946 | **$-476** |
+| 2026-08-19 | $+10 | $-780 | **$-790** |
+| 2026-08-20 | $+1,386 | $+2,166 | **$+780** |
+| 2026-08-21 | $+200 | $+170 | **$-30** |
+| 2026-09-14 | $+120 | $+658 | **$+538** |
+| 2026-09-15 | $+1,256 | $+578 | **$-678** |
+| 2026-09-16 | $-496 | $-106 | **$+390** |
+| 2026-09-17 | $+628 | $-748 | **$-1,376** |
+| 2026-09-18 | $+1,524 | $+1,240 | **$-284** |
+
+- **3 days improved, 7 days got worse.**
+- winners moved **$-3,440**, losers moved **$+1,300** — the change is in the WINNERS.
+- $/day moved **$-214** against a $324 noise floor → **INSIDE the floor, not evidence of learning**.
+
+**Leave-one-day-out** — how much of the lead rests on one session:
+
+- the direction survives removing any single day (10 of 10 hold)
+
+---
+
+*Generated 2026-10-06 21:10Z from `reports/recursive_loop/` and `reports/sim_week_recursive/`.*
