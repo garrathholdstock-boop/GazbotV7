@@ -179,6 +179,26 @@ def consolidate(recs: list, prev_rules: str) -> str:
         L.append("")
     if prev_rules:
         L += ["THE RULES YOU WERE CARRYING INTO THIS WEEK:", prev_rules, ""]
+        # ★★★2026-10-06 MAKE IT DECLARE THE DELTA. Operator: *"how do you know what is
+        # changing in the logic between iterations? that is important? we need to know what
+        # is changing between strategies no? or do we just leave it to claude"*.
+        # He was right, and until now the answer was that nobody knew: three iterations in,
+        # the rule TEXT was versioned and had never been diffed, so iteration 1 → 2 had
+        # silently REVERSED its own position on trade count (iter 1 ordered "Target 8-15
+        # entries per session" and "a session with no trade is a FAILURE"; iter 2 replaced
+        # both with "there is no quota and a flat session is not a failure") and neither of
+        # us had noticed. `scripts/rule_diff.py` now reconstructs the change after the fact,
+        # but a reconstruction from prose is not the same as the author stating its intent.
+        # ⚠ The CHANGELOG is a statement of INTENT, never evidence that the change worked —
+        # the rules are rewritten from ONE training week, and one week cannot establish that
+        # a rule earned its place.
+        L += ["★ BEFORE YOUR RULE LIST, WRITE A SECTION HEADED 'CHANGELOG:' — at most six "
+              "short lines, each naming ONE change you are making to the rules above and "
+              "the single observation from THIS WEEK that caused it. If you are dropping a "
+              "rule, say which and why it failed to earn its place. If you are reversing a "
+              "rule, say so in those words. If you are changing nothing, write "
+              "'CHANGELOG: no change — the week gave no reason to alter the rules.' "
+              "Then write the numbered rule list as instructed.", ""]
     try:
         p = subprocess.run([CLAUDE, "-p", CONSOLIDATE + "\n\n=== THE WEEK ===\n" + "\n".join(L)],
                            cwd=OUT, capture_output=True, text=True, timeout=600,
@@ -262,7 +282,18 @@ def main() -> int:
         rules = consolidate(tr, rules)
         open(rp, "w").write(rules)
         open(f"{OUT}/rules_iter{it}.txt", "w").write(rules)
+        # ★ split the declared CHANGELOG out to its own file so it is readable without
+        # wading through the rule set, and so a missing one is obvious rather than implied.
+        cl = ""
+        if "CHANGELOG:" in rules:
+            cl = rules.split("CHANGELOG:", 1)[1]
+            cl = cl.split("\n1.", 1)[0].strip()
+        open(f"{OUT}/rules_iter{it}_changelog.txt", "w").write(
+            cl or "[no CHANGELOG section was produced]")
         log(f"  new rules: {len(rules)} chars")
+        for line in (cl or "[no CHANGELOG declared]").splitlines():
+            if line.strip():
+                log(f"    CHANGE: {line.strip()[:160]}")
 
     json.dump(history, open(hp, "w"), indent=1)
     log("=== LOOP DONE ===")
