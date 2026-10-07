@@ -1,0 +1,7 @@
+2026-10-07T06:41:37Z night_guard: armed · probing every 300s · kill after 3 dead probes
+2026-10-07T06:41:41Z night_guard: POISONED DAY fwd_it2_2026-06_2026-06-26.json: 138/138 calls errored — not a trading decision, must not be scored or reviewed
+2026-10-07T06:41:41Z night_guard: POISONED DAY fwd_it2_2026-06_2026-06-29.json: 138/138 calls errored — not a trading decision, must not be scored or reviewed
+2026-10-07T06:41:41Z night_guard: POISONED DAY fwd_it2_2026-06_2026-06-30.json: 138/138 calls errored — not a trading decision, must not be scored or reviewed
+2026-10-07T06:41:41Z night_guard: POISONED DAY loop1_train_2026-07-29.json: 125/138 calls errored — not a trading decision, must not be scored or reviewed
+2026-10-07T06:41:41Z night_guard: POISONED DAY loop1_train_2026-07-30.json: 138/138 calls errored — not a trading decision, must not be scored or reviewed
+2026-10-07T07:42:31Z night_guard: loop is gone — standing down

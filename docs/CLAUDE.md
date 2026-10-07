@@ -174,10 +174,11 @@ I believe we need a bible of guidelines for the AI to refer to."* He was right a
 stopped earning its place"* — an instruction to rewrite everything nightly. Measured consequence:
 **$509 → $620 → $406/day**, the best set discarded wholesale at the end.
 **TEN LAWS**, each earned by a named failure: L1 start from the champion verbatim · L2 **one rule
-per iteration** · L3 declare the change first · L4 beat the champion on $/day **AND** days-positive
-or revert · L5 never reverse a rule on one week's impression · L6 an interim is never a result ·
+per iteration** · L3 declare the change first · L4 a challenger replaces the champion only if days-positive, worst day and spread/mean (CV) do not worsen, and $/day is higher
+(Law 0 made mechanical, `bible.gate`), else revert · L5 never reverse a rule on one week's impression · L6 an interim is never a result ·
 L7 a poisoned day is not a day · L8 one rule changed ≠ one rule isolated · L9 do not re-derive the
-settled list · L10 counts before dollars.
+settled list (new entry SIGNALS and turn calls; entering a little EARLIER along the same proven leg — confirmed on the tape first, never a
+prediction of the next leg — is Law 0e(1) and is allowed) · L10 counts before dollars.
 ★★★ **LAW 0e — THE STRATEGY IS THE HEADLINE (2026-10-07).** Operator: *"we are trying to buy at the
 start of the major intraday leg and exit near the top. Now achieving both of those will be hard so
 at the start we will buy late, half way up the leg and exit early to be safe… with each iteration
@@ -193,8 +194,14 @@ rule or review may cap the count. ★ **THE S LINE** restarted from this with an
 selected by `run_day(line="v2")` / the `@v2` arm suffix in `forward_days.py`. ⚠⚠ **`BRIEF` (v1) is
 FROZEN by sha256 `b314ac3c6cb7…` because `shadow_runner` trades the champion with it** — a new
 brief goes in `BRIEF_V2`, never an edit; `tests/test_strategy_headline.py` fails if v1 moves.
-**A restart is the operator's alone** — no iteration, review or audit may declare one. IT2 stays
-the frozen champion and live forward test; the S line replaces it only through `bible.gate`.
+**A restart is the operator's alone** — no iteration, review or audit may declare one.
+★★ **SECOND RESTART, 2026-10-07: *"Forget the initial iterations. Start fresh from S1. That will be
+our baseline. The others had the wrong brief."*** S1 is the S line's **baseline**; IT1–IT5 (incl.
+IT2's $620/day) are HISTORY on the wrong brief — not the thing to beat, and not a target to quote.
+The S line is gated against itself (S2 onward must dominate S1 via `bible.gate`) once S1 is
+re-measured CLEAN on the amended page under a NEW tag (the two Step 1 records are old-page records).
+The Step 2 IT2 pairing is withdrawn. `shadow_runner` and its frozen v1 prompt are NOT touched —
+only the operator stops or repoints it. See `reports/recursive_loop/S1_change.txt` A2.
 Law 0e says what a rule is FOR; **Law 0 (consistency) still decides which configuration is
 BETTER.** Detail: `docs/FINE_TUNING_BIBLE.md`.
 ⚠⚠⚠ **THE OPERATIVE LAWS ARE INJECTED INTO `recursive_loop.CONSOLIDATE`, AND THE CHAMPION'S RULE

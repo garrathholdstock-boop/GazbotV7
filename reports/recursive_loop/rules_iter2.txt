@@ -1,0 +1,19 @@
+1. Read the shape before the numbers and classify the day first: if the picture shows one or two long swings in the same direction, it is a press day — trade it repeatedly at normal size. If it shows four or more swings of similar size with no dominant direction, it is chop — minimum size, and after two losers in that state, stop for the day. The ten-swing day was the only losing day of the week (−$856); the two-swing day was the best (+$940).
+
+2. Name the dominant side mechanically from what is already drawn: the direction of the largest completed swing of the day so far, with current price on that side of the day's opening area. That is the only side you trade until rule 3 forces a change.
+
+3. Change sides only when a counter-swing grows larger than the biggest swing so far in your direction. Not a pullback, not a long stall, not a losing trade of your own, not a round number, not the clock.
+
+4. Take no trade against the dominant side, ever. Counter-side trades lost money on every single day they appeared (−$38, −$792, −$418, −$314), including both winning days and the best day of the week. There is no version of this that is worth testing again.
+
+5. Enter only on continuation: price makes a new extreme in the dominant direction, pulls back, and the pullback holds without erasing the prior extreme's base. Re-enter on the next such setup after every exit, win or lose. If no setup appears, take nothing — there is no quota and a flat session is not a failure.
+
+6. Hold to a structure break, not to a point count: for a long, exit when price takes out the low of the pullback you entered from; mirrored for a short. No fixed-point profit target. The entire week's profit came from the handful of trades held into 26–58% of their swing; the day where every trade was correctly on its swing but each was cut small made almost nothing (+$154 on 7 clean trades).
+
+7. Cut at once, no widening and no averaging, if price erases the extreme that created the setup. That is the only loss you are allowed to take; a loss from any other cause means a rule was broken, and the next entry waits for a fresh setup.
+
+8. Mid-session self-check from your own fills: if you have three or more closed trades and each captured only a small fraction of the swing it sat on, the fault is your exits, not your entries — stop adding trades and hold the next correct entry strictly by rule 6.
+
+9. Stop for the session after three losing trades, and never try to recover a losing day by taking the other side. The declared side being wrong is a reason to be flat, not a reason to flip.
+
+10. In the last part of the session take new entries only in the direction of the day's largest completed swing, and be flat before the session ends.

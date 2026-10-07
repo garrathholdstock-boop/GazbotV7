@@ -111,7 +111,7 @@ def main() -> int:
     A("## How success is measured, and the one thing this cannot measure")
     A("")
     A(f"The bar is in `docs/PROJECT_800_A_DAY.md`: **$800/day at 4 lots on the holdout**, "
-      f"with trades/day 3-6, side accuracy ≥0.75 and leg capture ≥0.15. All four, on weeks "
+      f"with side accuracy ≥0.75 and leg capture ≥0.15 (trades/day is reported against 3-6, which describes a normal day and is not a bar). All three, on weeks "
       f"never trained on and never reviewed.")
     A("")
     A(f"**The noise floor is ${RUN_VARIANCE:,.0f}/day.** That is the measured spread of this "

@@ -84,12 +84,12 @@ progress and reporting one as progress is the first step to believing it.
 
 ## 3. HOW SUCCESS IS SCORED — his method, not just P&L
 
-All four, on the holdout:
+Three required, on the holdout (trades/day is reported against its band, not a bar — see the amendment below):
 
 | | bar | his own two best days |
 |---|---|---|
 | daily average | **≥ $800** | ~$1,500 |
-| trades/day | 3–6 | 8 and 15 |
+| trades/day (reported, not a bar) | 3–6 describes a normal day | 8 and 15 |
 | side accuracy (on the dominant leg) | ≥ 0.75 | 7/8 and 13/15 |
 | leg capture | ≥ 0.15 | 0.41 and 0.23 |
 
@@ -101,10 +101,11 @@ the band comes from the other direction, the 23-entry day that lost $1,882.
 > direction for a huge part of the day. Keep jumping and harvesting 2-300$. That's great trading.
 > Be broad around that just so it has licence to do it."* The 23-entry day lost because 4 entries
 > went AGAINST the leg (−$2,892) while the 19 with it made +$1,010 — the count was never the fault.
-> The S line's brief (`BRIEF_V2`) and context (`band=False`) therefore carry no cap.
-> ⚠ `recursive_loop.BAR` / `meets_bar` still list 3–6 as a **reporting** bar for the IT line; it is
-> not the promotion gate (`bible.gate` is) and it does not apply to the S line's behaviour read,
-> which uses the mechanical grind test in `reports/recursive_loop/S1_change.txt` (Q5).
+> The S line's brief (`BRIEF_V2`) and context (`band=False`, `leg_list=False`) therefore carry no cap.
+> ⚠ `recursive_loop.meets_bar` now REPORTS trades/day against 3–6 and requires only the other three
+> (daily average, side accuracy, leg capture) for the IT line; the count is not the promotion gate (`bible.gate` is) and it does not apply to the S line's behaviour read,
+> which judges each entry WITH or AGAINST the day's net move and puts no pass/fail on the count
+> (`reports/recursive_loop/S1_change.txt`, Q5 as amended by A1).
 
 ---
 
@@ -112,7 +113,8 @@ the band comes from the other direction, the 23-entry day that lost $1,882.
 
 **Settled and not to be retested**
 - His entries are a **coin** on a symmetric race (+0.2pp side-matched, n=174). The money is in the
-  asymmetric payoff — 4 lots, no stop, scale out — not in entry timing.
+  asymmetric payoff — 4 lots, no stop, scale out — not in finding a new entry signal. (Law 0e(1)
+  exception: entering a little *earlier* into the same proven leg is the strategy's own improvement path.)
 - He is a **continuation** trader joining a 15-min thrust (AUC 0.733 from presses, median +2.19 ATR
   from the book). He does not call turns.
 - **Turn entries are a coin or negative** at every multiple, timeframe and target tested.

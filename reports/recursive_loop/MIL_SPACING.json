@@ -1,0 +1,176 @@
+{
+ "days_measured": [
+  "2026-02-05",
+  "2026-02-19",
+  "2026-03-05",
+  "2026-03-19",
+  "2026-04-02",
+  "2026-04-16",
+  "2026-04-30",
+  "2026-05-14",
+  "2026-05-28",
+  "2026-09-10",
+  "2026-09-11",
+  "2026-09-21",
+  "2026-09-22",
+  "2026-09-23",
+  "2026-09-25",
+  "2026-09-28",
+  "2026-09-29",
+  "2026-09-30",
+  "2026-10-01",
+  "2026-10-02",
+  "2026-10-05",
+  "2026-10-07"
+ ],
+ "market": {
+  "4xATR": {
+   "mil_per_day_mean": 12.1,
+   "mil_per_day_median": 12,
+   "gap_hours_p25/med/p75": [
+    0.4,
+    0.6,
+    1.1
+   ]
+  },
+  "7xATR": {
+   "mil_per_day_mean": 4.2,
+   "mil_per_day_median": 4,
+   "gap_hours_p25/med/p75": [
+    1.0,
+    1.8,
+    2.9
+   ]
+  },
+  "10xATR": {
+   "mil_per_day_mean": 2.2,
+   "mil_per_day_median": 2,
+   "gap_hours_p25/med/p75": [
+    1.5,
+    2.2,
+    3.1
+   ]
+  },
+  "15xATR": {
+   "mil_per_day_mean": 1.0,
+   "mil_per_day_median": 1,
+   "gap_hours_p25/med/p75": [
+    2.5,
+    3.3,
+    5.4
+   ]
+  }
+ },
+ "mil7_median_duration_min": 106,
+ "G_min": 26,
+ "operator_book": {
+  "days": 13,
+  "entries": 64,
+  "entries_per_day": {
+   "mean": 4.9,
+   "p25": 2,
+   "median": 4,
+   "p75": 7,
+   "max": 11
+  },
+  "gap_min": {
+   "p25": 19.9,
+   "median": 42.3,
+   "p75": 114.2,
+   "share_lt30": 0.33
+  },
+  "first_in_mil_side": {
+   "n": 42,
+   "sum_pt_lot": -357.9,
+   "mean": -8.5
+  },
+  "second_plus": {
+   "n": 22,
+   "sum_pt_lot": -731.1,
+   "mean": -33.2
+  },
+  "second_plus_after_loss": {
+   "n": 8,
+   "sum_pt_lot": -391.7,
+   "mean": -49.0
+  },
+  "second_plus_after_win": {
+   "n": 14,
+   "sum_pt_lot": -339.4,
+   "mean": -24.2
+  },
+  "share_second_plus": 0.34,
+  "rule_blocks": {
+   "R1": {
+    "n": 22,
+    "sum_pt_lot": -731.1,
+    "mean": -33.2
+   },
+   "R2": {
+    "n": 8,
+    "sum_pt_lot": -391.7,
+    "mean": -49.0
+   },
+   "R3": {
+    "n": 5,
+    "sum_pt_lot": -386.5,
+    "mean": -77.3
+   }
+  }
+ },
+ "s1b_model": {
+  "days": 9,
+  "entries": 137,
+  "entries_per_day": {
+   "mean": 15.2,
+   "p25": 12,
+   "median": 14,
+   "p75": 19,
+   "max": 21
+  },
+  "gap_min": {
+   "p25": 25.0,
+   "median": 40.0,
+   "p75": 55.0,
+   "share_lt30": 0.26
+  },
+  "first_in_mil_side": {
+   "n": 65,
+   "sum_pt_lot": 168.2,
+   "mean": 2.6
+  },
+  "second_plus": {
+   "n": 72,
+   "sum_pt_lot": -88.0,
+   "mean": -1.2
+  },
+  "second_plus_after_loss": {
+   "n": 35,
+   "sum_pt_lot": 35.5,
+   "mean": 1.0
+  },
+  "second_plus_after_win": {
+   "n": 37,
+   "sum_pt_lot": -123.5,
+   "mean": -3.3
+  },
+  "share_second_plus": 0.53,
+  "rule_blocks": {
+   "R1": {
+    "n": 72,
+    "sum_pt_lot": -88.0,
+    "mean": -1.2
+   },
+   "R2": {
+    "n": 35,
+    "sum_pt_lot": 35.5,
+    "mean": 1.0
+   },
+   "R3": {
+    "n": 19,
+    "sum_pt_lot": -161.2,
+    "mean": -8.5
+   }
+  }
+ }
+}

@@ -1,6 +1,6 @@
-DRAFT ONLY - NOT WIRED IN. Nothing reads this file. The live BRIEF in scripts/sim_week_recursive.py
-is unchanged. Constants (window, lots, floor) are written out here as numbers; wiring would fill
-them from WIN_START_MIN / WIN_END_MIN / LOTS / MIN_TARGET_PT.
+SUPERSEDED PRE-WIRING DRAFT (kept for history). The live text is sim_week_recursive.BRIEF_V2, selected by
+run_day(line="v2") / the @v2 arm suffix. Where this file and BRIEF_V2 differ, BRIEF_V2 governs. Nothing reads this file.
+Constants (window, lots, floor) are written out here as numbers; the code fills them from WIN_START_MIN / WIN_END_MIN / LOTS / MIN_TARGET_PT.
 
 === PART A: THE BRIEF (sent on every trading call) ===
 

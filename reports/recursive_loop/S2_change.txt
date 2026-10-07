@@ -1,0 +1,55 @@
+S2 — DECLARED CHANGE (L3), written BEFORE any S2 run.   S LINE (BRIEF_V2)
+This is an S-line iteration on the line the operator restarted at S1 (RESTART (LAW 0e) is declared in S1_change.txt, NOT here; no iteration, review or audit declares a restart).
+
+Declared by the OPERATOR, 2026-10-07: "Do don't enter against the MIL direction and also do R4 re entry spacing in s2. Confirm scope is ok and we're not changing exits this time?" and, after the scope was confirmed: "Excellent get it ready and audit it and we'll run it over night".
+His earlier asks that these come from: "There should only be 3-6 entries per day ... they should be spanned out ... MILs ... a rule for entries to stop it going back in over and over and losing" and "Not a cap. But the thing I recommended earlier. Only one trade per MIL unless it's long and drawn out".
+
+L2 / L8 — ACCEPTED BY THE OPERATOR, RECORDED AS HIS DECISION: S2 changes TWO entry rules at once (the against-MIL veto and R4 spacing). L2 says one rule per iteration and L8 says one rule changed is not one rule isolated; he chose to ship both. Consequence stated plainly: S2's result CANNOT say which of the two did the work. If S2 is judged against S1b only as a pair, a later iteration that drops one is a new test.
+
+BASELINE (what S2 is gated against): S1b = line v2, BRIEF_V2, EMPTY rule set, Sonnet, tag sline_s1b_*, the 9 days below. (IT1-IT5 are history on the wrong brief and are NOT the baseline.)
+  S1b, 9 days: net -$180, -$20/day, 5/9 days positive, worst day -$1,490, daily SD $1,042, 137 trades (15.2/day).
+  Q1 exits in profit 67/137 (49%) · Q2 never green (peak<5pt) 39/137 (28%) · Q3 give-back (peak>=30pt, finished <=0) 2/46 · Q4 worst trade -$612 · Q5 with the day's net move 77 trades +$2,862, against it 60 trades -$3,042.
+  Stamped BEFORE the run (scripts/s_line_compare.py --tag sline_s1b -> reports/recursive_loop/S1b_COMPARE_BASELINE.json): side accuracy 0.818 · capture 0.085 · hold median 20 min, mean 23.8 min · exits within 5 min 17/137 (12%), within 20 min 81/137 (59%) · against-MIL 36/137 · repeat-in-MIL-before-176 33/137.  (Two SD conventions exist: s_line_diagnostics' population SD $1,042 is the frozen S1b figure quoted above; score_week's n-1 SD is $1,105 and is what bible.gate sees.  The S2 comparison uses each tool against its own S1b figure.)
+  Days: 2026-02-05, 02-19, 03-05, 03-19, 04-02, 04-16, 04-30, 05-14, 05-28.   Same 9 days for S2 (a paired comparison on the same tape).
+
+WHAT CHANGES, EXACTLY (and nothing else):
+  1. RULES: S1.txt (empty) -> S2.txt = two numbered entry rules (1: never ENTER against the MIL direction; 2: one entry per MIL and side unless the MIL is >= 176 min old).
+  2. PAGE: arm suffix @v2+mil.  When the model is FLAT the page carries a new block: "MAJOR INTRADAY LEG (MIL): UP|DOWN, began HH:MMZ, N min old ...", the entries already taken in this MIL (with / against), and ENTER_LONG / ENTER_SHORT as ALLOWED or NOT ALLOWED with the reason.  MIL = the causal 7 x ATR14 retrace tracker (a 1-min close giving back >= 7 x ATR from the running extreme of closes flips it; TR floor 0.25), the same tracker as MIL_SPACING_PREREG.md.  T = 176 min is the frozen p75 of completed MIL durations (not fitted).
+  3. UNCHANGED, verified by test: BRIEF_V2 byte-identical; the HOLDING page is byte-identical with mil on and off (tests/test_mil_context.py); the exit wording, claim wording and no-stops wording are untouched; no trade cap is added anywhere (Law 0e) — a new MIL gives a fresh entry and a MIL >= 176 min old allows repeated entries (the grind exception).
+  4. NOT HARD-BLOCKED: the harness does not refuse a violating entry; enforcement is by the prompt only.  Violations are COUNTED after the run (P1, P2), not prevented.  An entry the model makes against the rules is a finding about the rules' wording.
+  5. NOT TOUCHED: BRIEF v1 (frozen sha256 b314ac3c6cb7...), CHAMPION.txt / rules_live_champion.txt, shadow_runner, the holdout days.
+
+LAW 0e CHECK: S2 serves clause (3), keep exits in profit, and the 'buy late in the proven leg' half of the headline: it refuses entries that structurally cannot be a profitable exit (against the leg that is running, or re-entering a leg the model has already traded and been shaken out of).  It is NOT an earlier-entry change and NOT a later-exit change; exits, the claim wording and the no-stops wording are untouched, and no trade cap is introduced.
+
+WHY (LAW 0c): reports/recursive_loop/S2_cited_trades.json - 10 recorded S1b trades, verified by bible.admissible ("LAW 0c satisfied: 10 recorded trade(s) cited and verified").  They are the worst five of each cohort:
+  GROUP A - entries AGAINST the MIL: 36 of S1b's 137 entries.  Worst: 2026-03-19 09:05 LONG -$612, 05-14 08:15 LONG -$494, 05-14 11:10 LONG -$458, 02-05 09:05 SHORT -$304, 03-05 10:30 LONG -$270 (five = -$2,138).
+  GROUP B - repeat entries in the same MIL+side before it was 176 min old: 33 further entries.  Worst: 05-28 11:30 SHORT -$360, 02-19 07:45 LONG -$272, 05-14 06:30 LONG -$240, 05-14 02:50 SHORT -$214, 04-30 02:50 SHORT -$188 (five = -$1,274).
+  Both cohorts together are 69 of 137 entries.  Development data only; holdout trades are NOT cited.
+
+COUNTERFACTUAL (reproduced two ways: scratchpad equiv.py replaying the in-harness rule over the S1b records, and mil_entry_spacing.py): IN-SAMPLE and a DELETION counterfactual - it deletes the trade and IGNORES the path it would have changed (the model would act differently after a blocked entry), so it is an upper bound, not a forecast.
+                         blocked   value of blocked entries   resulting book   $/day   days +ve   worst day   daily SD
+  S1b (baseline)           0            -                       -$180           -$20      5/9       -$1,490     $1,042
+  veto only               36          -$1,976                  +$1,796          +$200     4/9        -$674       $670
+  R4 only                 37          -$774                      +$594           +$66     5/9      -$1,470       $951
+  BOTH (what S2 tests)    69          -$2,292                  +$2,112          +$235     7/9        -$820       $636
+  per-day (both): 02-05 +38, 02-19 +20, 03-05 -820, 03-19 +58, 04-02 +822, 04-16 +240, 04-30 +670, 05-14 -376, 05-28 +1,460.
+  READ THIS WITH: daily SD $1,042 on 9 days means the standard error of the mean is ~$350/day; a ~$255/day swing is inside it.  The counterfactual is the reason to run S2, it is NOT a result and NOT a promise.  R3 scored slightly better than R4 on this sample; the operator chose R4 and that is not re-litigated.
+
+PRE-REGISTERED CHECKS (mechanism and counts first; every threshold below is fixed now, before any S2 number exists):
+  P1  AGAINST-MIL ENTRIES ~ 0.  Recompute each S2 entry's MIL state causally from the day's bars (mil_state at the entry bar with the entries before it).  Pass: <= 5% of entries against the MIL (S1b: 36/137 = 26%).  More = the veto is not being obeyed; the wording or the page is at fault, diagnose before anything else.
+  P2  REPEAT ENTRIES ~ 0.  Entries that are 2nd+ in the same MIL+side with MIL age < 176 min.  Pass: <= 5% of entries (S1b: 33/137 = 24%).
+  P3  ENTRIES/DAY drops toward ~8 (the counterfactual leaves 68 of 137 = 7.6/day) and is NOT capped.  Reported; a day above 6 entries is read for the grind exception (>= 75% of that day's entries WITH the day's net move) as in S1 Q5.  Fewer than 3 on a day is reported, not penalised on its own.
+  P4  EXITS DID NOT DRIFT (they are unchanged, so any move here is a side effect of fewer/other entries and is read as such):  Q1 share of exits in profit not below 40% (S1b 49%);  Q3 give-back share of peak>=30pt trades not above 20% (S1b 2/46);  Q4 worst trade not worse than -$612;  median and mean hold time and the share of exits within 5/20 min REPORTED against the stamped S1b figures above (median 20 / mean 23.8 min, 12% / 59%).  A breach is a finding about the page, not a reason to edit exits inside S2.
+  P4b SIDE ACCURACY / CAPTURE (the other two bar terms) from s_line_compare against S1b's 0.818 / 0.085.  Reported, not a promotion gate.
+  P5  bible.gate(S2, S1b) terms REPORTED: days positive (S1b 5/9), worst day (-$1,490), spread/mean (CV), $/day (-$20).  Dominance on 9 paired days at SD $1,042 is "passed, unresolved" at best and NEVER a promotion by itself (L6); a single run is one sample.
+  P6  CLEAN DAYS: a day with > 10% errored calls is poisoned (L7), re-run, never scored as flat.  Per-day table + per-trade post-mortem delivered; an interim is never reported as a result.
+
+PRE-REGISTERED, BEFORE THE RUN (preflight audit items 2-3):
+  D1  IF THE PAIR FAILS bible.gate, the proposed S3 DEFAULT is to drop R4 and keep the veto alone (veto only has the stronger counterfactual: +$200/day vs +$66/day; its 4/9 positive days is the one mark against it).  This is a proposal for the operator, who decides; it is written now so a failure does not cost a second week just to decide what to decompose.
+  D2  P5's spread/mean (CV) term is DEGENERATE against a negative-mean baseline (S1b -$20/day): it is reported but cannot be interpreted this iteration, so the dominance read rests on days positive and worst day alone, and $/day.
+  D3  Every flat call record now carries the MIL block the page showed (calls[].mil = dir, age, taken, allowed), so a P1/P2 breach can be split into "the page said NOT ALLOWED and the model entered anyway" versus "the page said ALLOWED".
+
+NOT IN S2 (candidates for S3, each needs its own pre-registration and its own L0c citations):
+  - PATIENCE.  The operator asked for it ("One key thing for this type of trading is PATIENCE" / "Don't exit quickly").  A blanket hold rule is refuted by the recorded trades: holding every early trade to 45 min gives -$2,137 against S1b's -$180 (fee-inclusive), and red exits at 5-20 min were mostly correct cuts.  The surviving form is "hold only a trade that is already green", with the test defined beforehand.
+  - Cutting a loser at about -$400 (the operator parked this for S3/S4).
+  - A hard-block of rule violations in the harness; a grind-test for the R4 exception (is a 176-min-old MIL really a drawn-out grind?).

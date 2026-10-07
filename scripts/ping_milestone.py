@@ -60,7 +60,7 @@ def main() -> int:
         msg = "\n".join([
             f"🔁 iteration {h[-1]['iter']} done — holdout ${avg:,.0f}/day{trend}",
             f"side {ho['side_accuracy']} · capture {ho['capture']} · {ho['trades_per_day']}/day "
-            f"(bars: 0.75 / 0.15 / 3-6)",
+            f"(bars: 0.75 / 0.15; trades/day is reported, not a bar)",
             f"best so far ${best:,.0f}/day · train week was ${tr['net_usd']:+,.0f}",
             f"⚠ train figure is context only, never progress. bar is $800/day on the holdout."])
         held = False
@@ -81,10 +81,10 @@ def main() -> int:
           else f"📈 RUNNING AT ${best:,.0f}/DAY on the holdout (crossed ${s})"),
          f"iteration {best_it['iter']} · holdout ${ho['net_usd']:+,.0f} over {HOLD_DAYS} days",
          f"side {ho['side_accuracy']} (bar 0.75) · capture {ho['capture']} (bar 0.15) · "
-         f"{ho['trades_per_day']}/day (bar 3-6)",
+         f"{ho['trades_per_day']}/day (reported vs 3-6, not a bar)",
          f"iterations so far: {len(h)}"]
     if not cleared:
-        L += ["", "⚠ NOT complete — the bar is $800/day with all four metrics met. "
+        L += ["", "⚠ NOT complete — the bar is $800/day with side accuracy and leg capture met. "
                   f"{'milestone' if s < 800 else 'P&L there but a metric short'}."]
     L.append("holdout = 14-18 Sep + 17-21 Aug, never trained on, never reviewed")
     msg = "\n".join(L)

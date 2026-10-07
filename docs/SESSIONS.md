@@ -10,6 +10,74 @@
 
 ---
 
+## 2026-10-07 (latest) — S2 PREPARED AND LAUNCHED OVERNIGHT: against-MIL veto + R4 re-entry spacing, entries only (committed, not pushed)
+
+Operator: *"Do don't enter against the MIL direction and also do R4 re entry spacing in s2"* then *"Excellent get it ready and audit it and we'll run it over night"*.
+Declared in `reports/recursive_loop/S2_change.txt`; rules in `S2.txt`; pre-registration `MIL_SPACING_PREREG.md`; cited trades `S2_cited_trades.json` (10 S1b trades, `bible.admissible`-checked).
+- **Changed (S1 empty rules -> S2 two entry-only rules):** (1) do not enter against the MIL direction; (2) one entry per MIL+side unless MIL age >= 176 min (`MIL_T`, p75 of completed MIL durations, frozen). MIL = leg of a causal 7xATR14 retrace tracker (`MIL_K=7`, TR floor 0.25). Exits are UNCHANGED. Patience is NOT a hold rule; it is an S3 candidate.
+- **Why (S1b, 9 days, 137 trades):** net -$180 (-$20/day), 5/9 days positive, worst -$1,490. In-sample deletion counterfactual (ignores path changes): veto only 36 blocked +$200/day; R4 only 37 blocked +$66/day; both 69 blocked +$235/day, 7/9 positive, worst -$820. SE of a 9-day mean is ~$350, so this is NOT decidable in one run; "passed, unresolved" is never a promotion (L6). L2/L8: two rules changed, so the run does not isolate either — operator accepted that. D1 S3 proposal (drop R4, keep the veto) is for the operator.
+- **Harness:** `sim_week_recursive.mil_state` + `context(mil=)` + `run_day(mil=)`; the MIL block is shown ONLY when flat (holding page byte-identical, verified by capturing the assembled prompt); enforcement is by prompt only, violations counted after the run (`calls[].mil` stamped on flat calls). `forward_days.py` arm suffix `@v2+mil`, `is_clean(tag, day, line, mil)`.
+- **Tooling:** `scripts/s_line_compare.py` (new; P1/P2 violations, P3 entries/day, P4 exit drift, P4b side accuracy/capture; `S1b_COMPARE_BASELINE.json` is the stamped baseline), `scripts/mil_entry_spacing.py`, `scripts/s_line_diagnostics.py`; `preflight_iteration.py` now knows the S line (`S_LINE_MARK`, `s_line_declared()`) and no longer injects the IT rule-9 text. Tests: `tests/test_mil_context.py`, `tests/test_s_line_diagnostics.py`, extended `test_strategy_headline.py`; all pass.
+- **Audits:** pre-flight gates + headless LLM audit. First verdict FIX-FIRST (no stamped S1b side accuracy/capture/hold stats, missing Law 0e line) -> fixed -> GO (`preflight/iter7.json`); gates-only re-run after final edits GO.
+- **Run:** `forward_days.py --days 2026-02-05,02-19,03-05,03-19,04-02,04-16,04-30,05-14,05-28 --arm s2=reports/recursive_loop/S2.txt@v2+mil --prefix sline --model claude-sonnet-5 --name s2_mil_sonnet --workers 2`; tag `sline_s2`; log `reports/forward_days/s2_mil_sonnet.log`; launcher in the session scratchpad (`launch_s2.sh`). Started 2026-10-07; results NOT yet read. A day with >10% errored calls is poisoned and re-run, never scored flat.
+- **Morning report to produce:** per-day table with total and daily average; `s_line_compare.py --tag sline_s2` vs `S1b_COMPARE_BASELINE.json`; `s_line_diagnostics.py --tag sline_s2` Q1-Q5; `bible.gate(S2, S1b)` with caveats (CV degenerate); per-trade post-mortem.
+- **NOT changed:** `shadow_runner`, `rules_live_champion.txt`, frozen v1 BRIEF (sha b314ac3c6cb7...), IT files. Backups: `sw.pre_s2.py`, `fd.pre_s2.py` in the scratchpad.
+- **Commit scope:** S-line code, tests, docs and `reports/recursive_loop/` only. Unrelated working-tree changes (Friday report artefacts incl. ~600MB of .pkl/.npy, edge_hunt reports, data/ and web_static edits) were deliberately left uncommitted.
+- Revert: `git revert` the S2 commit; the S2 run output lives under `reports/sim_week_recursive/sline_s2_*`.
+
+---
+
+## 2026-10-07 (earlier) — OPERATOR RESTART #2: S1 IS THE BASELINE, IT1–IT5 ARE HISTORY (nothing committed, nothing pushed)
+
+Operator: *"Forget the initial iterations. Start fresh from S1. That will be our baseline. The others had the wrong brief."*
+Recorded as `reports/recursive_loop/S1_change.txt` **A2** (carries the `RESTART (LAW 0e)` mark), `bible.py` (restart paragraph + GATE "AS OF"), `docs/CLAUDE.md`, `docs/FINE_TUNING_BIBLE.md`, memory `the-strategy-is-the-headline`.
+- **Changed:** S1 (empty rules, BRIEF_V2) is the baseline; the S line is gated against itself; the "S replaces IT2 via bible.gate" path and Step 2 (IT2 pairing) are withdrawn; the Q1–Q4 bars stay as behaviour bars. IT trade records stay citable as development data (Law 0c); IT holdout numbers are not S targets.
+- **Why S1 must be re-run:** the two Step 1 records are old-page records (A1.7) so they are discarded as baseline data; the clean baseline is a new tag (`s1b`) on the amended page.
+- **NOT changed:** `shadow_runner`, `rules_live_champion.txt`, `CHAMPION.*`, `IT*.txt`, the frozen v1 BRIEF (sha b314ac3c6cb7…), `recursive_loop.py` (still IT-line only). Stopping/repointing the shadow runner is the operator's call and has not been made.
+
+## 2026-10-07 (later) — S1 audit, second and third pass: the "left unfixed" list fixed (nothing committed, nothing pushed)
+
+The operator asked for the minors from the previous report to be fixed too. Full per-change detail with
+reasons: `reports/recursive_loop/S1_change.txt` A1.7–A1.9. In short:
+* `v2` peak is now the max 1-minute close since the last call (`peak_1m`); v1 keeps the sampled peak
+  byte-for-byte (v1 page pinned by hash in the tests, identical on 6e6f8f3 and 72d47b5).
+* `bible.admissible` checks cited numbers (points, peak, hold, side) against the recorded trade;
+  `missing_laws` needs heading AND full law body; L9 reworded (earlier entry into the SAME proven leg
+  is allowed); GATE paragraph dated and pointed at `CHAMPION.json`.
+* `recursive_loop.champion_record` accepts a hand-written `CHAMPION.json` (`champion_iter`);
+  `meets_bar` / preflight / `ping_*` / docs call trades/day REPORTED, not a bar (three required metrics).
+* `forward_days.py --name` is required; `BRIEF_V2_DRAFT.txt` relabelled superseded.
+* Tests: new real-entry-point tests in `tests/test_bible_is_enforced.py`, each mutation-checked.
+Not fixed, deliberately: v1 `BRIEF` text (frozen champion prompt, sha `b314ac3c6cb7…`, used by
+`shadow_runner`). Not fixable without runs: Q-baseline confound (A1.8) — needs the same-day Sonnet IT2
+pair (Step 2) and an S1 re-run on the amended page; operator's call (credits).
+Revert: `git checkout` the touched files (all uncommitted).
+
+---
+
+## 2026-10-07 — S1 audit: seven material findings fixed (nothing committed, nothing pushed)
+
+A read-only audit of the S1 documents against the constitution returned MATERIAL ISSUES. Fixed:
+1. **Two leg pictures in the v2 page** — `context()` gained `leg_list=True` (default = old behaviour);
+   `run_day(line="v2")` passes `leg_list=False` with `band=False`. v1 and the live `shadow_runner`
+   page are byte-identical (92/92 v1 contexts compared before/after); v1 `BRIEF` sha unchanged.
+2. **Law-presence test was a substring check** (L1/L2/L4 could be deleted and it passed) →
+   `bible.missing_laws()` anchors on the heading; tests delete each law from the real `laws()` text
+   and require it be named; doc check anchors on `### {id} — `.
+3. **L4 wording** now states the gate (days-positive, worst day, CV may not worsen, then $/day) in
+   bible, CLAUDE.md and the bible doc; one shared `L4_ONE_LINE`, drift-tested.
+4/5/7. **S1 stop rule, Q5 and Step 1 ambiguity** — `S1_change.txt` Amendment A1. ⚠ **POST-HOC**: the
+   amendments were written after the Step 1 run; Q1/Q2/Q4 still fail pooled, so the tranche stop
+   stands. Step 1 data came from the OLD page (leg list present) — re-running it is the operator's call.
+6. **L9 / preflight STOP clause could block Law 0e(1) "enter a little earlier"** — explicit exception
+   in `bible.LAWS`, `preflight_iteration.AUDIT` and the docs.
+New tests: `run_day(line="v2")` entry-point test (captured prompt, mutation-checked), L4/L9 drift tests.
+Not fixed, deliberately: v1 BRIEF 06:00Z/3–6 text (frozen champion path), `meets_bar` 3–6 loop stop,
+`admissible()` not verifying `would_have`, Q baselines Opus-vs-Sonnet, hard-coded IT2 numbers in GATE.
+Revert: `git checkout` the nine files listed in the diff (all uncommitted).
+
+---
+
 ## 2026-10-02 (Thu) — THE FEED CAME BACK, AND TWO OF MY OWN TESTS TURNED OUT TO BE WORTHLESS
 
 **THE OUTAGE.** Subscriptions lapsed on a cash transfer. Tape died **2026-10-01 06:07:24Z** with

@@ -1,0 +1,48 @@
+{
+ "tag": "sline_s1b",
+ "model": "claude-sonnet-5",
+ "line": "v2",
+ "days": [
+  "2026-02-05",
+  "2026-02-19",
+  "2026-03-05",
+  "2026-03-19",
+  "2026-04-02",
+  "2026-04-16",
+  "2026-04-30",
+  "2026-05-14",
+  "2026-05-28"
+ ],
+ "S1_rules_sha": "e3b0c44298fc1c14",
+ "BRIEF_V2_sha": "e24645d20fa76e8b",
+ "BRIEF_v1_sha256_pinned": "b314ac3c6cb7",
+ "git_head": "72d47b5",
+ "SW_file_sha": "85dbca3b1462d962",
+ "peak_definition": "v2 = max 1-min close since previous call (peak_1m)",
+ "stopped": "no Q-bar stop; 9 days run to completion",
+ "stamped": "2026-10-07T15:16:59.685017+00:00",
+ "quarantined_old_records": [
+  "sline_s1_2026-02-05.json",
+  "sline_s1_2026-02-19.json"
+ ],
+ "record_stamp": "brief_sha + peak_def in every day record; v2 without peak_def==1m is re-run",
+ "page_hash": "de3a2dc46a504c6e",
+ "page_hash_def": "sha256[:16] of BRIEF_V2 + context(2026-02-05 12:50Z, self_aware, band=False, leg_list=False); scripts/s_line_diagnostics.py --page-hash",
+ "diagnostics": "scripts/s_line_diagnostics.py --tag sline_s1b (frozen Q1-Q5 definitions)",
+ "in_sample_days": {
+  "2026-02-05": "read trade-by-trade in Step 1; A1.1 page fix and A1.2 Q5 amendments were written after reading",
+  "2026-02-19": "same"
+ },
+ "clean_untouched_days": [
+  "2026-03-05",
+  "2026-03-19",
+  "2026-04-02",
+  "2026-04-16",
+  "2026-04-30",
+  "2026-05-14",
+  "2026-05-28"
+ ],
+ "expected_spend": "9 day-runs x ~138 calls = ~1,240 calls; ~120M billable tokens; ~4-5h wall-clock at 2 workers; every stop trigger suspended by A2 item 4, so this is uninterruptible by rule (the operator can still stop it).",
+ "baseline_result_file": "reports/recursive_loop/S1_BASELINE.json (written by scripts/s_line_diagnostics.py --tag sline_s1b --write; S2 reads this, not a write-up)",
+ "poisoned_day_rerun_cap": "forward_days.py makes at most 3 passes (first run + 2 re-runs); a day still >10% errored after that is reported excluded, never counted"
+}

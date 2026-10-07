@@ -96,9 +96,12 @@ time, not by default.
 THE RESTART (granted by the operator, 2026-10-07: *"If things have been dirtied up until now I'm
 ok to start again"* / *"make it part of the constitution and let's start again"*). The S line
 begins from this strategy and an EMPTY rule set — iteration 2's ten rules are NOT carried into it.
-L1 applies within the S line from its first rule onward. Iteration 2 stays the frozen champion
-and the live forward test; the S line replaces it only by passing the consistency gate against it
-(L4), and nothing may repoint the forward test but the operator. A RESTART IS THE OPERATOR'S ALONE:
+L1 applies within the S line from its first rule onward. A SECOND OPERATOR DECLARATION, 2026-10-07:
+*"Forget the initial iterations. Start fresh from S1. That will be our baseline. The others had
+the wrong brief."* S1 (empty rules, BRIEF_V2) is the BASELINE; iterations 1 to 5 ran on the wrong
+brief and are history, not the thing to beat. The S line is gated against ITSELF (S2 onward must
+dominate S1 under the gate below) once S1 has been measured clean. The live shadow_runner is not
+touched by this; nothing may repoint it but the operator. A RESTART IS THE OPERATOR'S ALONE:
 no iteration, review or audit may declare one.
 """
 
@@ -116,10 +119,12 @@ consistency cannot be a single statistic, and a challenger is judged on DOMINANC
   and only then:
     4. $/day                must be > the champion's
 
-Against the current champion (iteration 2: $620/day, 9/10 positive, worst −$496, CV 1.17) this
-gate rejects every challenger so far — iteration 1 (6/10, −$1,180, CV 2.01), iteration 3
-(6/10, −$780, CV 2.24) and the exit-fix arm (6/10, −$1,882, CV 3.61). That is the gate working:
-each of those was worse at the thing that matters most.
+AS OF 2026-10-07 THE IT LINE IS HISTORY (operator restart: S1 is the baseline). The S line's
+champion is S1 once it has been measured clean; until then there is no S champion and nothing may
+be promoted. For the historical IT line, the live record is reports/recursive_loop/CHAMPION.json
+(iteration 2: $620/day, 9/10 positive, worst −$496, CV 1.17), and against it this gate rejected
+iteration 1 (6/10, −$1,180, CV 2.01), iteration 3 (6/10, −$780, CV 2.24) and the exit-fix arm
+(6/10, −$1,882, CV 3.61): each was worse at the thing that matters most.
 """
 
 # ── the ten ─────────────────────────────────────────────────────────────────────────────
@@ -136,8 +141,10 @@ L3 — DECLARE THE CHANGE AND ITS PREDICTED DIRECTION BEFORE IT RUNS. Name the r
 the observation that caused it, and which measured number should move and which way. A
 prediction written afterwards is a story.
 
-L4 — A CHALLENGER MUST PASS THE CONSISTENCY GATE AND THEN EARN MORE, OR IT IS REVERTED. See
-the gate above. A rejected challenger is recorded, never silently discarded.
+L4 — A CHALLENGER MUST PASS THE CONSISTENCY GATE AND THEN EARN MORE, OR IT IS REVERTED.
+Days positive, worst single day and spread/mean (CV) may NONE of them worsen against the
+champion, and only then must $/day be higher (the gate above). A rejected challenger is
+recorded, never silently discarded.
 
 L5 — NEVER REVERSE A RULE ON ONE WEEK'S IMPRESSION. Reversing needs evidence that THAT RULE
 failed, not that the week went badly. Iteration 1 said "Target 8-15 entries per session" and
@@ -159,8 +166,13 @@ the exit reference was predicted to lengthen holds and SHORTENED them.
 
 L9 — DO NOT RE-DERIVE WHAT IS SETTLED. Entries are a coin on a symmetric race (+0.2pp
 side-matched, n=174). Turn entries are a coin at every multiple, timeframe and target tested.
-A bare stall is a coin. The money is in the asymmetric payoff — 4 lots, no stop, hold to
-structure — not in entry timing.
+A bare stall is a coin. Hunting for a new entry SIGNAL or a turn call is therefore closed. The
+money is in the asymmetric payoff — 4 lots, no stop, and the model itself is the exit.
+★ EXCEPTION, BY LAW 0e(1): entering a little EARLIER into the same proven leg is the strategy's
+own improvement path and is NOT re-deriving the settled list. A change that moves the entry
+earlier along the SAME proven leg — a leg the tape has already confirmed (leg confirmed first,
+then entered earlier along it; never a prediction of the next leg) — and cites recorded trades
+(Law 0c), is admissible.
 
 L10 — COUNTS BEFORE DOLLARS. One week cannot resolve $/day: the daily spread is ~$1,000.
 Median hold, premature-exit rate, leg capture, side accuracy and trades/day are COUNTS and
@@ -174,6 +186,48 @@ reason to alter the rules." Churn is not progress.
 """
 
 LAW_IDS = ("LAW 0", "LAW 0b", "LAW 0c", "LAW 0d", "LAW 0e", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10")
+
+L4_ONE_LINE = ("a challenger replaces the champion only if days-positive, worst day and "
+               "spread/mean (CV) do not worsen, and $/day is higher")
+
+
+def _heading_re(law_id: str) -> str:
+    import re
+    return (rf"^★★★ {re.escape(law_id)} — " if law_id.startswith("LAW") else rf"^{re.escape(law_id)} — ")
+
+
+def _law_blocks() -> dict[str, str]:
+    """Each law's whole text (heading line to the line before the next heading), whitespace-
+    normalised, cut from the canonical PRIMARY / LAWS constants."""
+    import re
+    blocks: dict[str, str] = {}
+    for src in (PRIMARY, LAWS):
+        cur, buf = None, []
+        for ln in src.splitlines() + ["\0"]:
+            hit = next((i for i in LAW_IDS if re.search(_heading_re(i), ln)), None)
+            if hit or ln == "\0":
+                if cur:
+                    blocks[cur] = " ".join(" ".join(buf).split())
+                cur, buf = hit, [ln] if hit else []
+            elif cur:
+                buf.append(ln)
+    return blocks
+
+
+def missing_laws(text: str) -> list[str]:
+    """Laws absent or GUTTED in `text`. Two checks, both required per law:
+      1. the HEADING is present, anchored at line start — a bare substring check passes when
+         "L1" is found inside "L10" or "LAW 0" inside the laws() preamble;
+      2. the law's WHOLE canonical text is present (whitespace-normalised) — a prompt that kept
+         the heading and lost the body told the model a law exists and not what it says."""
+    import re
+    flat = " ".join(text.split())
+    blocks = _law_blocks()
+    out = []
+    for i in LAW_IDS:
+        if not re.search("(?m)" + _heading_re(i), text) or blocks.get(i, "\0") not in flat:
+            out.append(i)
+    return out
 
 
 def laws() -> str:
@@ -195,10 +249,16 @@ def gate(challenger: dict, champion: dict) -> tuple[bool, str]:
     for k in need:
         if challenger.get(k) is None or champion.get(k) is None:
             return False, f"cannot judge: {k} missing"
-    cv_c = abs(challenger["daily_sd"] / challenger["usd_per_day"]) \
-        if challenger["usd_per_day"] else float("inf")
-    cv_h = abs(champion["daily_sd"] / champion["usd_per_day"]) \
-        if champion["usd_per_day"] else float("inf")
+    # ★2026-10-07 A NON-POSITIVE MEAN HAS NO MEANINGFUL CV. abs(sd/mean) made a small-negative baseline
+    # read as a HUGE spread that any challenger clears for free. Such a mean gets cv = inf, and a
+    # champion with no meaningful CV can be replaced only by a challenger that actually earns (> $0/day).
+    cv_c = challenger["daily_sd"] / challenger["usd_per_day"] \
+        if challenger["usd_per_day"] > 0 else float("inf")
+    cv_h = champion["daily_sd"] / champion["usd_per_day"] \
+        if champion["usd_per_day"] > 0 else float("inf")
+    if champion["usd_per_day"] <= 0 and challenger["usd_per_day"] <= 0:
+        return False, ("baseline is not profitable (CV undefined) and the challenger is not either: "
+                       f"${challenger['usd_per_day']:+,.0f} vs ${champion['usd_per_day']:+,.0f}")
     fails = []
     if challenger["days_positive"] < champion["days_positive"]:
         fails.append(f"days+ {challenger['days_positive']} < {champion['days_positive']}")
@@ -217,6 +277,7 @@ def gate(challenger: dict, champion: dict) -> tuple[bool, str]:
 
 
 TRADE_FIELDS = ("day", "entry_time", "entry", "exit", "reason", "would_have")
+NUMERIC_TOL = 0.5      # points / minutes; trades are stored rounded
 
 
 def admissible(change: dict, find_trade) -> tuple[bool, str]:
@@ -241,4 +302,15 @@ def admissible(change: dict, find_trade) -> tuple[bool, str]:
         if abs(float(t["exit"]) - float(c["exit"])) > 0.5 or \
                 str(c["reason"]).strip() not in (str(t.get("why", "")) + " " + str(t.get("entry_reason", ""))):
             return False, f"LAW 0c: citation {i} misstates the trade's exit or recorded reason"
+        # the numbers a rule is justified FROM (how far up it got, what it lost, how long it was
+        # held) are checked too, whenever the citation states them — "87pt in profit at its
+        # best" is the whole case for a claim rule, and it was taken on trust.
+        for key, rec_key in (("recorded_pts", "points"), ("peak_pt", "peak_pt"), ("held_min", "held_min")):
+            if str(c.get(key, "")).strip() != "" and t.get(rec_key) is not None and \
+                    abs(float(c[key]) - float(t[rec_key])) > NUMERIC_TOL:
+                return False, (f"LAW 0c: citation {i} states {key}={c[key]} but the recorded trade "
+                               f"has {rec_key}={t[rec_key]}")
+        if str(c.get("side", "")).strip() and t.get("side") and \
+                str(c["side"]).strip().upper() != str(t["side"]).strip().upper():
+            return False, f"LAW 0c: citation {i} states side={c['side']} but the recorded trade is {t['side']}"
     return True, f"LAW 0c satisfied: {len(cites)} recorded trade(s) cited and verified"

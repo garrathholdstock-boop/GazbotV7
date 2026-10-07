@@ -59,9 +59,10 @@ REVERSE, and name the number that justifies it.
 
 ⚠⚠ L9 — DO NOT RE-DERIVE WHAT IS SETTLED. Entries are a coin on a symmetric race (+0.2pp
 side-matched, n=174). Turn entries are a coin at every multiple, timeframe and target tested.
-A bare stall is a coin. The money is in the asymmetric payoff — 4 lots, no stop, hold to
-structure — not in entry timing. A rule aimed at picking better entry moments is aimed at
-something already measured as noise.
+A bare stall is a coin. The money is in the asymmetric payoff — 4 lots, no stop, and the
+model itself is the exit. Hunting for a new entry SIGNAL or a turn call is closed; entering a little
+EARLIER along the same proven leg (confirmed on the tape first, never a prediction of the next
+leg) is Law 0e(1) and is allowed.
 
 ⚠⚠ L10 — COUNTS BEFORE DOLLARS. One week cannot resolve $/day: the daily spread is ~$1,000.
 Median hold, premature-exit rate, leg capture, side accuracy and trades/day are counts and
@@ -134,9 +135,9 @@ HOLDOUT = HOLDOUT_WEEKS[0] + HOLDOUT_WEEKS[1]             # both, scored togethe
 MAX_RULES = 10
 MAX_ITERS = 12
 
-# ── THE BAR. All four must hold on the HOLDOUT week. ────────────────────────────────────────────
+# ── THE BAR. Three must hold on the HOLDOUT week; trades/day is REPORTED, never required (Law 0e). ──
 BAR = {"usd_per_day": 800.0,    # the project bar, at 4 lots, on the holdout
-       "trades_per_day": (3.0, 6.0),
+       "trades_per_day": (3.0, 6.0),   # a description of a normal day, reported only
        "side_accuracy": 0.75,   # share of trades on the dominant leg — he runs 85-88%
        "capture": 0.15}         # share of the day's leg points taken — he runs 23-41%
 
@@ -228,14 +229,15 @@ def meets_bar(s: dict) -> tuple[bool, str]:
     why = []
     if s["usd_per_day"] < BAR["usd_per_day"]:
         why.append(f"${s['usd_per_day']:+,.0f}/day < ${BAR['usd_per_day']:,.0f}")
-    lo, hi = BAR["trades_per_day"]
-    if not (lo <= s["trades_per_day"] <= hi):
-        why.append(f"{s['trades_per_day']}/day outside {lo}-{hi}")
+    # Law 0e: 3-6 a day DESCRIBES a normal day and is never a limit, so the count is reported in the
+    # verdict line and cannot fail the bar (a grind day that harvests $200-300 a jump would never pass)
     if (s["side_accuracy"] or 0) < BAR["side_accuracy"]:
         why.append(f"side {s['side_accuracy']} < {BAR['side_accuracy']}")
     if (s["capture"] or 0) < BAR["capture"]:
         why.append(f"capture {s['capture']} < {BAR['capture']}")
-    return (not why), ("ALL FOUR MET" if not why else "; ".join(why))
+    lo, hi = BAR["trades_per_day"]
+    note = f"trades/day {s['trades_per_day']} (reported against the {lo:g}-{hi:g} description, not a bar)"
+    return (not why), (f"ALL THREE MET; {note}" if not why else "; ".join(why) + f"; {note}")
 
 
 CONSOLIDATE = f"""You have just traded a week of MNQ. Below is every day of it: the day drawn as a
@@ -262,6 +264,31 @@ that side. He does not call turns.
 Answer with the numbered rules and nothing else."""
 
 
+def champion_record(history: list) -> dict | None:
+    """The held champion: CHAMPION.json if it exists, else the bible.gate walk over history in
+    iteration order — never argmax($/day), the one statistic Law 0 says must not decide."""
+    from gazbot7.bible import gate as _g
+    cp = f"{OUT}/CHAMPION.json"
+    if os.path.exists(cp):
+        try:
+            c = json.load(open(cp))
+            # the hand-recorded CHAMPION.json (champion_iter / file / sha) is the shadow runner's
+            # pointer; the loop's ratchet reads iter / rules_path / rules_sha. Same record, two spellings.
+            if "iter" not in c and "champion_iter" in c:
+                c = {**c, "iter": c["champion_iter"],
+                     "rules_path": f"{OUT}/{c.get('file') or 'IT%s.txt' % c['champion_iter']}",
+                     "rules_sha": c.get("sha")}
+            return c
+        except Exception:
+            pass
+    champ = None
+    for h in sorted((x for x in history if (x.get("holdout") or {}).get("usd_per_day") is not None),
+                    key=lambda x: x["iter"]):
+        if champ is None or _g(h["holdout"], champ["holdout"])[0]:
+            champ = h
+    return champ
+
+
 def consolidate(recs: list, prev_rules: str) -> str:
     L = []
     for rec in recs:
@@ -272,27 +299,29 @@ def consolidate(recs: list, prev_rules: str) -> str:
     # ★2026-10-06 L1 NEEDS THE CHAMPION ON THE PAGE, NOT JUST IN THE PROMPT'S PROSE.
     # Telling the reviewer "start from the champion" while handing it only the CURRENT set is
     # the same mistake as filing a law in a document: it cannot comply with text it cannot
-    # see. The champion is the best-scoring iteration by $/day, read from history.json.
+    # see. ⚠ The champion shown here is the one main() HOLDS (CHAMPION.json, replaced only by
+    # bible.gate) — this used to be max($/day) over history and read rules_iter<N>.txt, which is
+    # off by one, so the page could show a different champion and different rules than the gate
+    # was defending (S1 audit, 2026-10-07).
     champ_txt, champ_note = "", ""
     try:
         hp_ = f"{OUT}/history.json"
-        if os.path.exists(hp_):
-            hist = json.load(open(hp_))
-            cands = [h for h in hist if (h.get("holdout") or {}).get("usd_per_day") is not None]
-            if cands:
-                c = max(cands, key=lambda h: h["holdout"]["usd_per_day"])
-                cp = f"{OUT}/rules_iter{c['iter']}.txt"
-                o = c["holdout"]
-                champ_note = (f"THE CHAMPION IS ITERATION {c['iter']}'s SET: "
-                              f"${o['usd_per_day']:+,.0f}/day, "
-                              f"{o.get('days_positive','?')}/{o.get('days','?')} positive days, "
-                              f"daily SD ${o.get('daily_sd',0):,.0f}, "
-                              f"worst day ${o.get('worst_day',0):+,.0f}, "
-                              f"{o.get('trades_per_day','?')} trades/day. "
-                              f"THIS IS THE NUMBER YOU MUST BEAT, and you beat it by editing "
-                              f"ONE rule of the set below — not by writing a new set.")
-                if os.path.exists(cp):
-                    champ_txt = open(cp).read()
+        hist = json.load(open(hp_)) if os.path.exists(hp_) else []
+        c = champion_record(hist)
+        if c:
+            n = c["iter"]
+            o = c["holdout"]
+            cp = c.get("rules_path") or f"{OUT}/IT{n}.txt"
+            champ_note = (f"THE CHAMPION IS ITERATION {n}'s SET: "
+                          f"${o['usd_per_day']:+,.0f}/day, "
+                          f"{o.get('days_positive','?')}/{o.get('days','?')} positive days, "
+                          f"daily SD ${o.get('daily_sd',0):,.0f}, "
+                          f"worst day ${o.get('worst_day',0):+,.0f}, "
+                          f"{o.get('trades_per_day','?')} trades/day. "
+                          f"THIS IS THE NUMBER YOU MUST BEAT, and you beat it by editing "
+                          f"ONE rule of the set below — not by writing a new set.")
+            if os.path.exists(cp):
+                champ_txt = open(cp).read()
     except Exception as e:
         champ_note = f"[champion lookup failed: {type(e).__name__}]"
     if champ_note:
@@ -338,7 +367,10 @@ def run_week(days: list, rules: str, tag: str, fresh: bool = False) -> list:
     recs = []
     for day in days:
         # ⚠ one arm name per ITERATION so a later pass never silently resumes an earlier one's day
-        rec = SW.run_day(day, rules, tag, resume=not fresh, self_aware=True)
+        # line v1 on purpose: history.json, CHAMPION.json and IT<n>.txt are the IT line's single ratchet,
+        # so an S-line (v2) run through here would be gated against the wrong champion. The S line is
+        # run paired through forward_days.py (`@v2`), where each arm carries its own line.
+        rec = SW.run_day(day, rules, tag, resume=not fresh, self_aware=True, line="v1")
         recs.append(rec)
         log(f"    {tag} {day} ${rec['net_usd']:+9,.2f} {len(rec['trades'])} trades")
     return recs
@@ -460,7 +492,7 @@ def main() -> int:
         # the worse rules — three iterations with no selection pressure anywhere in the loop,
         # which on its own could explain three flat results. The operator asked the right
         # question: *"Shouldn't we be improving?"*
-        # ⚠ THE CHALLENGER MUST BEAT THE CHAMPION ON BOTH AXES — $/day AND days-positive —
+        # ⚠ THE CHALLENGER MUST PASS bible.gate — days-positive, worst day, CV may not worsen, then $/day —
         # because he is explicit that *"the most important thing is consistency"*, and a
         # challenger that buys a higher average with more losing days is not an improvement.
         # ⚠ A REJECTED CHALLENGER IS RECORDED, NEVER DISCARDED SILENTLY: its rules are kept
@@ -481,28 +513,12 @@ def main() -> int:
         #     have 3 negatives" — sailing through ungated.
         # The champion is now an explicit, persisted record replaced ONLY when gate() says so.
         from gazbot7.bible import gate as _gate
-        champ = None
         cp = f"{OUT}/CHAMPION.json"
-        if os.path.exists(cp):
-            try:
-                champ = json.load(open(cp))
-            except Exception:
-                champ = None
-        if champ is None:
-            # bootstrap from history by the gate, not by $/day: walk in iteration order and
-            # let each entry challenge the incumbent on Law 0's terms.
-            for h in sorted((x for x in history if (x.get("holdout") or {}).get("usd_per_day")
-                             is not None), key=lambda x: x["iter"]):
-                if champ is None:
-                    champ = h
-                    continue
-                okg, _ = _gate(h["holdout"], champ["holdout"])
-                if okg:
-                    champ = h
-            if champ:
-                json.dump(champ, open(cp, "w"), indent=1)
-                log(f"  champion bootstrapped by the gate: iteration {champ['iter']} "
-                    f"(${champ['holdout']['usd_per_day']:+,.0f}/day)")
+        champ = champion_record(history)
+        if champ and not os.path.exists(cp):
+            json.dump(champ, open(cp, "w"), indent=1)
+            log(f"  champion bootstrapped by the gate: iteration {champ['iter']} "
+                f"(${champ['holdout']['usd_per_day']:+,.0f}/day)")
 
         if champ is not None and champ["iter"] != it:
             okg, whyg = _gate(s_ho, champ["holdout"])

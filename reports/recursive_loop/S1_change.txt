@@ -1,4 +1,5 @@
 S1 — DECLARED CHANGE (L3), written BEFORE any S1 run.   RESTART (LAW 0e)
+SEE AMENDMENT A1 AT THE END (2026-10-07, post-Step-1): it fixes Q5, the Step 1 stop reading, the tranche stop rule and the page.
 
 Declared by the OPERATOR, 2026-10-07: "Fantastic and make it part of the constitution and let's start again."  (After: "If things have been dirtied up until now I'm ok to start again.")
 No iteration, review or audit declared this restart; it is his (Law 0e, THE RESTART).
@@ -54,3 +55,155 @@ HOW IT WILL BE TESTED, CHEAP FIRST (operator: "Don't do a huge run of days if it
          The verdict is bible.gate on the full set of completed pairs; "passed, unresolved" inside the noise floor is never a promotion.  IT2 stays champion and frozen whatever happens.  The holdout (17-21 Aug, 14-18 Sep) is not touched until the S line has a challenger worth scoring there.
   Sonnet via ANTHROPIC_MODEL on the subscription.  A Sonnet number is never reported as the Opus $620.
   QUARANTINE (L7): any day with >10% errored calls is poisoned, excluded and re-run, never scored as flat.  THE v1 BRIEF IS NOT EDITED.
+
+
+============================================================================================
+AMENDMENT A1 — 2026-10-07, WRITTEN AFTER STEP 1 WAS READ.  THIS IS A POST-HOC AMENDMENT AND IS DECLARED AS ONE.
+============================================================================================
+Everything above is the ORIGINAL pre-Step-1 text, kept as written for the record (it is NOT current where A1 amends it: Q5, the stop rules, the L9 reading and the page description).  Where A1 conflicts with it, A1 governs for everything run from here.
+WHY: the operator asked for an audit of the S1 documents and the constitution ("make sure theyre consistent and they aimed at making improvements in profitability and staying consistent").  It found 7 material issues; this amendment and the code changes listed here are the fix.  The audit's evidence is the recorded S1 Step 1 days (reports/sim_week_recursive/sline_s1_2026-02-05.json and sline_s1_2026-02-19.json) and the prompt text itself.
+
+STEP 1 AS IT ACTUALLY RAN (recomputed from the two day records):
+                    02-05            02-19            pooled (27 trades)
+  trades            16               11               27
+  Q1 exits in profit 5/16 = 31%      7/11 = 64%       12/27 = 44.4%   (bar >50%: FAIL pooled; 02-05 FAIL, 02-19 pass)
+  Q2 never green     8/16 = 50%      3/11 = 27%       11/27 = 40.7%   (bar <34%: FAIL pooled; 02-05 FAIL, 02-19 pass)
+  Q3 give-backs      0/2              0/3              0/5             (bar <=20%: pass)
+  Q4 worst trade     -$490            -$200            -$490           (bar -$406: FAIL, 02-05)
+  net               -$1,892          +$632            -$1,260
+  THESE DAYS WERE RUN ON THE OLD PAGE (see A1.1).  They are a mechanism check of that page and are not evidence about the page as amended.
+
+A1.1  THE PAGE (audit finding 1).  The v2 page carried two leg accounts that disagreed under a heading calling them "the same legs": on 02-05 at 12:50Z the shape picture said "DOWN 376pt/269min" while the list said "NOW: UP 324pt over 830min".  CHANGE: context() takes leg_list (default True); run_day passes leg_list=False for line v2, so the shape picture is the ONLY leg account on the S page.  v1 and the live shadow runner call context() without it and are byte-identical: checked on 184 assembled pages (2026-02-05 and 2026-06-18, every 30 min, 4 argument sets) - the 92 v1 pages are unchanged, the 92 v2 pages differ and none contains the list.  BRIEF (v1) sha is unchanged.
+      Consequence stated plainly: Step 1 above ran on the old page.  Whether to re-run Step 1 on the amended page is the operator's call; nothing is run by this amendment.
+
+A1.2  Q5 AMENDED (audit finding 5).  The original Q5 judged the TRADE COUNT (3-9 band; >6 only if >=75% with the day's move; <3 over-simplification).  That contradicts Law 0e: "Judge each trade ... never the count.  No prompt, rule or review may cap the count."  Original Q5 is kept above for the record; its Step 1 reading was: 02-05 16 trades, 56% with the day's move -> failed the >6 test; 02-19 11 trades -> failed the >9 test.  Q5 now reads, per day and per trade (no pass/fail on a count):
+  Q5  Each entry is tagged WITH or AGAINST the day's net move (02:00Z open to 13:30Z close), mechanically.  Reported per day: number of entries with / against, and the P&L of each group.  The failure Law 0e names is entries AGAINST the leg (the 23-entry day: 19 with the leg +$1,010, 4 against -$2,892), not the count.  A trade-by-trade post-mortem row accompanies every against-the-move entry.
+  Q5 is no longer a stop trigger.  Q1-Q4 and the gate terms in A1.4 are.
+  This is changed after seeing Step 1.  It does not change what Step 1 showed: Q1, Q2 and Q4 failed on the pooled days regardless of Q5.
+
+A1.3  STEP 1 STOP RULE, made unambiguous (audit finding 7).  The original "If Q1/Q2/Q3 fail on both days, STOP" did not say per-day or pooled, and read literally it never fires on this data.  Fixed reading: Q1-Q4 are computed on the POOLED trades of the completed days and also shown per day; if ANY of Q1, Q2, Q3 or Q4 fails on the pooled set, STOP and diagnose before Step 2.  Applied to the Step 1 data above: Q1 fail, Q2 fail, Q4 fail -> STOP.  That is the same outcome as the stop already taken on Q4; Step 2 (IT2 pairing) and Step 3 (tranches) have NOT been run.
+
+A1.4  TRANCHE STOP RULE with Law 0 terms (audit finding 4).  The original rule used only cumulative net, Q4 and Q1-Q3.  Law 0 says consistency outranks return, so the rule now also carries the bible.gate terms.  STOP and diagnose after any tranche where, over ALL completed S1/IT2 pairs so far, any of these holds:
+    - S1's days-positive is lower than IT2's on the same days
+    - S1's worst day is deeper than IT2's
+    - S1's spread/mean (CV) is higher than IT2's
+    - S1's cumulative net is below IT2's
+    - Q4 fails, or Q1, Q2 or Q3 fails on the pooled trades
+  Continue only while S1 holds on every one.  On a handful of days these are a stop-and-diagnose trigger, not a verdict; promotion is still only bible.gate(S1, IT2) on the full paired set, and "passed, unresolved" inside the ~$324/day noise floor is never a promotion.
+
+A1.5  ENTERING EARLIER IS ALLOWED (audit finding 6).  L9 ("the money is in the asymmetric payoff ... not in entry timing") and the preflight audit's STOP clause ("targets something already settled as a coin") could be read as blocking Law 0e(1), "enter a little earlier into the same proven leg".  Both now carry the exception in their text: hunting for a new entry SIGNAL or a turn call is closed; moving the entry earlier within a leg the line already trades, citing recorded trades (Law 0c), is admissible.  Docs updated to match (docs/FINE_TUNING_BIBLE.md, docs/CLAUDE.md, docs/PROJECT_800_A_DAY.md).
+
+A1.6  L4 WORDING (audit finding 3) and the LAW-PRESENCE TEST (finding 2) are constitution fixes, not S1 changes: L4 now says what bible.gate does (days-positive, worst day and CV may not worsen, then $/day must be higher) in bible.py, docs/CLAUDE.md and docs/FINE_TUNING_BIBLE.md; tests/test_bible_is_enforced.py now checks each law's HEADING at line start (the old check was a substring match that passed with L1/L2/L4 deleted) and a test deletes laws to prove it fails.
+
+NOT CHANGED (named so nobody assumes otherwise): IT2, its rules, CHAMPION.txt, rules_live_champion.txt, the v1 BRIEF, the shadow runner; the Q1-Q4 bars; the noise-floor statement; the holdout (still untouched).
+
+A1.7  STEP 1 RECORDS ARE OLD-PAGE RECORDS (second audit, 2026-10-07).  reports/sim_week_recursive/sline_s1_2026-02-05.json and sline_s1_2026-02-19.json carry line=v2 but were run BEFORE the leg-list fix, so run_day's resume and forward_days.is_clean (which key on line and error rate only) would count them as clean days on the amended page.  Any Step 2 or Step 1 re-run under tag s1 MUST pass --fresh (or use a new tag) so no old-page day is scored as an amended-page day.
+
+A1.8  THE Q BASELINES ARE NOT THE S1 DAYS (third pass, 2026-10-07).  Q1/Q2/Q4 compare S1 (Sonnet, line v2, empty rules, 2026-02-05 and 2026-02-19) against numbers that were NOT measured on those days with that model: Opus on the 10 holdout days / June, plus Sonnet IT2 on 2026-01-08 and 2026-01-22.  Different days AND (for the Opus figures) a different model, so a Q-bar miss or pass cannot be read as the effect of the v2 line.  The same-day pair, IT2 rules on Sonnet on 2026-02-05 and 2026-02-19 (Step 2, ~276 calls), has NOT been run.  Until it is, Q1/Q2/Q4 are descriptive only and Step 1's pooled failures are not evidence that v2 is worse than IT2.  Running Step 2 also requires an S1 re-run on the amended page (A1.7), ~4 day-runs in all; that spend is the operator's call.
+
+A1.9  LOGIC CHANGES MADE IN THE THIRD PASS (2026-10-07; each cites why, per the record-every-change rule).
+  - peak_1m (sim_week_recursive.run_day, v2 only): the harness sampled the position's peak only at the 5-min decision instants, so a spike that formed and faded between two calls never showed in "peak" and the give-back shown to the model understated what it had been up.  v2 now also takes the max 1-minute close since the previous call.  v1 keeps the sampled peak byte-for-byte (the frozen champion path; tests/test_bible_is_enforced.py pins the v1 page hash be3fbf009452658d, identical on 6e6f8f3, 72d47b5 and now).
+  - bible.admissible (Law 0c): a cited trade is cross-checked against the recorded one (recorded_pts vs points, peak_pt, held_min, side) within NUMERIC_TOL 0.5; before, a citation was accepted if the trade id and day existed, so a fabricated number on a real id passed.
+  - bible.missing_laws: now requires the anchored heading AND the full canonical law body, so a gutted law that keeps only its heading no longer counts as present.
+  - L9 reworded everywhere (bible.py, CONSOLIDATE, preflight KNOWN list and STOP clause, docs): entering earlier along the SAME proven leg is allowed (Law 0e(1)); only new entry SIGNALS and turn calls are settled.  The old text read as forbidding what Law 0e asks for.
+  - GATE paragraph dated and pointed at CHAMPION.json as the live record.
+  - recursive_loop.champion_record / consolidate: a hand-written CHAMPION.json using champion_iter is normalised, so the champion block can no longer silently fall back to the wrong file.
+  - recursive_loop.meets_bar / preflight bar text: trades/day is REPORTED against 3-6, not a pass/fail bar (Law 0e: description, not a limit).  The IT-line bar is three required metrics.
+  - preflight: the rule-9 DEAD TEXT lines are shown only when no restart is declared.
+  - forward_days.py: --name is now required (it defaulted to an IT4 label and could mislabel any other experiment); docstring generalised.
+  - BRIEF_V2_DRAFT.txt header relabelled as a superseded pre-wiring draft.
+DELIBERATELY NOT CHANGED: the v1 BRIEF text (it still mentions 06:00Z and 3-6 trades).  Editing it would change the frozen champion prompt (sha b314ac3c6cb7...) that shadow_runner trades.  v2 carries the corrected wording; v1 is retired with IT2, not edited.
+
+============================================================================================
+AMENDMENT A2 — 2026-10-07.  OPERATOR-DECLARED RESTART: S1 IS THE BASELINE.   RESTART (LAW 0e)
+============================================================================================
+OPERATOR, verbatim: "Forget the initial iterations.  Start fresh from S1.  That will be our baseline.  The others had the wrong brief."
+This is the operator's restart (Law 0e: a restart is the operator's alone); no iteration, review or audit declared it.
+
+WHAT CHANGES (each with its reason; Law 0c cites below):
+  1. S1 (empty rule set, BRIEF_V2, line v2) IS THE BASELINE of the S line.  Reason: IT1-IT5 ran on the v1 brief, which the operator has ruled the wrong brief (it caps at 3-6 trades, mentions 06:00Z, and carries no strategy headline).  A result earned under a different brief says nothing about what BRIEF_V2 does.
+  2. IT1-IT5, including IT2 ($620/day, holdout), are HISTORICAL.  They are no longer the thing to beat.  Their trade records stay citable as DEVELOPMENT data under Law 0c (the Q bars and the evidence for the v2 brief came from them); their holdout figures are not S-line results and are not to be quoted as targets.
+  3. WITHDRAWN: "the S line replaces IT2 only through bible.gate(S1, IT2)" (original text above, A1.4, the GATE paragraph, docs).  S1 is judged against ITSELF: the bible.gate champion of the S line is S1 once S1 has been measured; S2 onward must dominate S1 under bible.gate (days positive, worst day, CV may not worsen, then $/day higher).
+  4. WITHDRAWN: Step 2 (the paired IT2-on-Sonnet run, ~276 calls) and every Q comparison against IT2 (A1.8's confound is moot).  A1.4's tranche stop rule, Step 1's pooled Q1-Q4 stop and the Q4 "-$406 stops the next tranche" trigger are SUSPENDED for the baseline run (preflight audit, 2026-10-07: they are Opus-holdout / cross-day numbers, Step 1 already broke Q4 on day one, and a stop would leave the S line with no baseline, which is the one thing this spend buys).  During the baseline ALL NINE days run to completion; the only exclusion is a poisoned day (>10% errored calls, L7).  Q1-Q4 are reported as DIAGNOSTICS and become stop triggers only from S2 onward, against S1's own measured values.
+  5. S1 MUST BE RE-MEASURED CLEAN.  The two Step 1 records (02-05, 02-19) are OLD-PAGE records (A1.7) and are DISCARDED as baseline data.  The baseline run is S1 on the amended page under a NEW tag (s1b) so nothing old resumes: the S-line development days named in Step 1/Step 3 (02-05, 02-19, 03-05, 03-19, 04-02, 04-16, 04-30, 05-14, 05-28), Sonnet, max 2 workers, preflight first, holdout days never touched.  Its days-positive, worst day, CV and $/day become the S baseline record.  Nothing is called a baseline until that run has completed with no poisoned days.
+  6. NOT A RESULT: a baseline is a starting line, not progress; no S1 number is quoted as progress toward $800 (docs/PROJECT_800_A_DAY.md section 2).
+
+WHAT DOES NOT CHANGE:
+  - The live shadow_runner keeps trading the frozen v1 prompt and rules_live_champion.txt; CHAMPION.json / CHAMPION.txt / IT*.txt are untouched.  Stopping it, or repointing it at S1, is the operator's call and has NOT been made.  It is simply no longer the research baseline.
+  - The v1 BRIEF text (sha b314ac3c6cb7...) stays frozen while shadow_runner imports it.
+  - Laws 0 to 0e, L1 to L10, the preflight, and the holdout rule.
+  - recursive_loop.py still ratchets the IT line only (line v1); it must not be pointed at the S line.  An S-line ratchet (its own history/CHAMPION file) is built only when S2 is declared, not before.
+  - BASELINE RECORD (preflight audit items 2 and 3): the baseline record states the model (claude-sonnet-5), the page (BRIEF_V2 + amended context, sha of S1.txt and of BRIEF_V2), the tag (sline_s1b) and the 9 days.  S2 onward MUST run on the same model and the same 9 days: a Sonnet baseline cannot be dominated by an Opus challenger under bible.gate.  PRE-REGISTERED: a 9-day baseline's days-positive, worst day and CV are themselves noisy (daily SD ~$1,000, $/day standard error ~$330, at the $324 noise floor), so the dollar figure is a point estimate and S2's dominance test has low power; a first S2 "pass" inside the noise floor is UNRESOLVED, not a promotion (L6).  The counts (Q1/Q2 over ~120 trades) are the baseline's measurable deliverable.
+  - NON-PROFITABLE BASELINE (preflight audit 2, pre-registered BEFORE the number exists): bible.gate used abs(sd/mean), so a small-negative baseline looked hugely spread and any S2 cleared the CV term for free.  FIXED in bible.gate (tests/test_bible_is_enforced.py): a non-positive mean has no CV (inf); if S1's $/day <= 0, S2 can replace it only by itself earning > $0/day AND not worsening days-positive or worst day.  A baseline with $/day <= 0 is still the baseline; it is a starting line, not a promotion target.  The IT-line gate is unchanged for any positive champion.
+  - PEAK DEFINITION (audit 2): line v2 reports peak_pt as the max 1-MINUTE close since the previous call (A1.9 peak_1m); every quoted Q baseline (42%, 34%, 3/28, 17/54) used the 5-min sampled peak.  S1's Q2 (never reaches +5pt) and Q3 (peak >= 30pt) are therefore computed on the 1-minute peak and are definitionally lower/wider than the numbers printed beside them; they are comparable to S2 onward (same definition), not to the IT figures.
+  - LAUNCH STAMP (audit 2): the amended-page shas (S1.txt, BRIEF_V2, context(leg_list=False, band=False) page hash) are written to reports/recursive_loop/S1b_launch.json BEFORE the first call, not at write-up.
+
+  - QUARANTINE + PAGE STAMP (preflight audit 3, 2026-10-07): the two Step 1 records were MOVED out of reports/sim_week_recursive/ to reports/recursive_loop/s1_oldpage_quarantine/ (tag sline_s1 -> prefix-matched the new sline_s1b).  Every run_day record now carries brief_sha (sha256[:16] of the brief used) and peak_def ("1m" for v2, "5m_sampled" for v1); a v2 record without peak_def == "1m" is treated as old-page by both run_day's resume and forward_days.is_clean and is re-run, not inherited.
+  - S2 TRIGGERS FROM S1's Q1-Q4, PRE-REGISTERED BEFORE THE NUMBER EXISTS (audit 3): (a) the S1 diagnostics are computed POOLED over all clean baseline days (every closed trade is one observation; Q1 denominator = all closed trades, Q2 and Q3 likewise, Q4 = the single worst trade), and shown per day for reading only.  (b) From S2 onward a Q is a STOP trigger when the S2 pooled value is WORSE than S1's pooled value on the same 9 days by more than one binomial standard error of the S1 proportion sqrt(p(1-p)/n_S1) (Q1-Q3), or when S2's worst trade is worse than S1's worst trade (Q4).  (c) Per-day values never trigger a stop.  (d) These triggers are about diagnosing, not promotion: promotion is bible.gate alone.  The old -$406 / 50% / 34% / 30pt bars are not triggers in the S line.
+  - FROZEN DIAGNOSTICS (preflight audit 4): the Q1-Q5 computation is code, scripts/s_line_diagnostics.py (tested, tests/test_s_line_diagnostics.py), pooled over clean page-stamped days of one tag: Q1 = share of ALL closed trades with points > 0; Q2 = share with peak_1m < 5pt; Q3 = of trades with peak_1m >= 30pt, share finishing <= 0pt; Q4 = worst pnl_usd; Q5 = with/against the 02:00Z->13:30Z net move.  Old-page, wrong-line and poisoned days are excluded and listed.  The assembled-page hash (de3a2dc46a504c6e) is in S1b_launch.json.
+  - Q1 SPLIT, PRE-REGISTERED (preflight audit 5): Q1 as written stays (all closed trades), but the wording test is Q1m = share in profit over MODEL-CHOSEN exits only (why == CLAUDE_EXIT); window-close flattens at 13:30Z are the simulator's, not the model's, and are reported separately as Q1w.  The "more than 50%" bar and S2's trigger apply to Q1m.
+  - IN-SAMPLE DAYS: 2026-02-05 and 2026-02-19 were read trade-by-trade in Step 1 and the A1.1 page fix and A1.2 amendments followed from reading them; they are in-sample for the page.  S1b_launch.json stamps them; the other seven days are untouched.  Any quote of the baseline names this (2 of 9 in-sample).
+
+OPERATOR GUIDANCE, 2026-10-07 (recorded during the S1b baseline run; NOT applied to S1, whose page and brief stay frozen until the 9 days finish):
+  "One key thing for this type of trading is PATIENCE.  Do not react to sudden changes."
+  Evidence seen so far (S1b 03-05 and 03-19, hypothesis from 2 days, to be checked on all 9): 14 of 40 entries never reached +5pt (-$2,444); 21 of 40 were held <=10 min (-$1,556); the entry notes cite "fresh extreme" bars as the confirmation, i.e. the model reacts to the last spike and then is out of it within 5 minutes.
+  Status: S2 CANDIDATE (one rule, L2; cited trades, L0c), to be written only after the baseline is read.  Patience is a strategy-level requirement alongside Law 0e, not a rule to be bolted on mid-run.
+OPERATOR GUIDANCE, 2026-10-07 (second, same status: S2 candidate, NOT applied to S1):
+  "Another tip for s2.  Before it makes a decision.  It should toggle between the day view of the tape and the closer in views to see what it's been doing.  Then ask, am I being patient here.  Normally that's after an entry.  Don't exit quickly."
+  Current page (for the record): a session SHAPE picture of the day (the lead), then the last two hours in 15-min bars for fine detail only.  So the model already sees a day view and one close-in view; what is missing is the instruction to compare them before acting and to ask the patience question, plus a hold-longer bias after entry.
+  L2 NOTE: this is two ideas (a day-vs-close-in check, and "do not exit quickly").  L2 allows one rule per iteration; the operator has not asked for both at once, so S2 takes ONE (decision pending on reading the baseline) and the other waits for S3.  Cited trades: the S1b 5-minute holds (21 of 40 held <=10 min on 03-05 and 03-19).
+
+- S2 CANDIDATE #3 (2026-10-07, operator's MIL entry-spacing idea) — MEASURED, NOT APPLIED. Pre-registered in
+  MIL_SPACING_PREREG.md (sha 46b56a70e49c4755) before any number; script scripts/mil_entry_spacing.py; output
+  MIL_SPACING.json. L2: one candidate competes with PATIENCE and the day-vs-close-in check; S2 takes ONE.
+  Interim (18 days: 13 operator-book + 5 of 9 S1b): 7xATR gives 4.3 MILs/day (median 4), 1.8h median apart,
+  106 min median duration. Operator book 4.9 entries/day; 34% are 2nd+ in the same MIL+side and lose
+  -33pt/lot each vs -8.5 for the first (-49 after a loss). S1b 16.6 entries/day, 53% 2nd+, and those sum
+  +80pt overall (R1/R2 would delete winners) but are negative on 03-05/03-19. Only R3 (26-min cooldown
+  after a losing exit in the same MIL+side, G = median MIL/4) clears the pre-registered both-books bar.
+  S1b book is re-scored ONCE with the same script when all 9 days are in; an interim is not a result.
+
+- S2/S3/S4 CANDIDATE #4 (2026-10-07, operator): CUT A LOSER that is "definitely going the other way", reference
+  level about -$400 (=50pt at 4 lots). RECORDED, NOT APPLIED; operator asked that it wait for S3 or S4 so each
+  effect is isolated (L2). Note the tension with Law 0e "no stops": this is a model-judged cut, with $400 as a
+  guide to when to look, never a mechanical stop. Measured on S1b (6 of 9 days, 95 trades, MAE rebuilt from
+  1-min bars): 1 trade closed <= -$400 (03-19 09:05 long, -$612); 2 touched -50pt adverse, 1 of those
+  recovered to -$372. Deletion counterfactual +$184 over 6 days. The S1b bleed is many small losers, not big ones.
+
+- S2 CANDIDATE #3 REFINED (2026-10-07, operator: NOT a cap; "only one trade per MIL unless it's long and drawn out").
+  = R4 in MIL_SPACING_PREREG.md A1 (exception when MIL age at entry >= T = p75 of MIL durations = 176 min,
+  frozen, not fitted). Result (interim, S1b 6 of 9 days): R4 blocks entries summing -55pt/lot (S1b) and -152
+  (operator book): passes the both-books sign bar but weakly. MIL AGE DOES NOT SEPARATE the exception: operator
+  2nd+ entries older than 176 min sum -579 (13 entries, worse than the blocked ones); S1b age buckets are ~flat.
+  So age alone is not the "drawn out grind" test. Next: define the grind test from the operator's words BEFORE
+  looking at outcomes (candidate: causal progress-per-ATR / efficiency of the MIL so far). Not applied.
+
+- OPERATOR INSTRUCTION (2026-10-07): when the 9-day S1b post-mortem and suggestions are written, EVALUATE EACH
+  OF HIS S2 IDEAS AGAINST THE RECORDED TRADES — "would it have helped us": (1) PATIENCE / do not react to sudden
+  changes, (2) day-vs-close-in check + "am I being patient" + no quick exits, (3) one entry per MIL unless drawn
+  out, (4) cut a definite loser (~-$400; S3/S4). Per idea: which trades it touches, $ effect, and what it would
+  have broken. Evidence only; nothing applied; L2 still allows one per iteration.
+
+=== S1b BASELINE COMPLETE (2026-10-07) — 9 days, sline_s1b, claude-sonnet-5, line v2 ===
+RESULT: 137 trades, 66 wins, net -$180 (-$20/day), days_positive 5/9, worst day -$1,490, daily SD $1,042.
+ 2 in-sample days (02-05, 02-19) +$1,026; 7 untouched days -$1,206 (-$172/day, 3/7 positive).
+ Gross +80.25pt/lot (+$642) minus $6/trade x 137 = $822 cost -> -$180. Q1 exits in profit 67/137, Q2 never-green 39/137,
+ Q3 giveback 2/46, Q4 worst -$612, Q5 with-day-move 77 trades +$2,862 / against 60 trades -$3,042.
+ Detail: reports/recursive_loop/S1_BASELINE.json, S1_BASELINE_POSTMORTEM.md (all 137 trades), MIL_SPACING.json.
+FINDINGS (evidence only; NOTHING applied to S1):
+ * 61 of the 71 red exits never reached +15pt (39 never green, 22 faded from 5-15). Trades reaching >=30pt: 46, 44 won, +$11.5k.
+   Exits work when the trade works; the bleed is entries that do not move.
+ * Day 3/4 hypothesis PARTLY REFUTED: fresh-30m-extreme entries were NET POSITIVE (23, +$830) -> not citable. Short holds hold up:
+   the 3 worst days had 47% of trades held <=10m vs 20% on the other 6 days; never-green 35% vs 24%.
+ * Against the causal 7xATR MIL direction at entry: 36 trades -$1,976 (mean -$55); with: 101 trades +$1,796. 6 of 8 days with
+   such entries negative; 02-05 +$764 and 05-28 +$182 are the exceptions. Operator's own 13-day book does NOT separate
+   (with -19.5pt, against -11.9pt per entry) so this rests on S1b plus the earlier against-the-line findings.
+ * MIL spacing, scored once on 9 days (deletion cf, fees included): R1 removes 72 entries, +$1,136; R2 PARKED (S1b blocked +35pt);
+   R3 removes 19, +$1,404; R4 removes 37, +$774. Support bar met by R1/R3/R4. The age>=176min exception did not isolate winners
+   (exempt entries -19pt in S1b, -579pt in the operator book). 3 worst days: first-in-MIL entries -$2,532, 2nd+ -$1,330, so one
+   entry per MIL would NOT have stopped those days.
+ * Operator idea #4 (cut at -$400): 5 of 137 touched it, +$390 total (+$43/day); median loss is -$183, so it does not touch the bleed.
+ * Operator idea #1 (patience), pre-set test: hold every trade closed <45min to 45min after entry: -$2,137 vs -$180 actual.
+   Red exits 5-20min worsen (-$4,122 -> -$7,119); 20-40min +$531; green exits held to 45 -$670. Day swing -$5,215..+$2,730.
+ Caveats: in-sample, deletion counterfactuals ignore path change, 9 days, daily SD $1,042 so none of these effects is
+ distinguishable from noise on its own.

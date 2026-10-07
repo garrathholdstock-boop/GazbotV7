@@ -1,0 +1,1395 @@
+{
+ "day": "2026-02-19",
+ "arm": "sline_s1",
+ "line": "v2",
+ "trades": [
+  {
+   "side": "LONG",
+   "entry": 24979.62,
+   "exit": 24967.88,
+   "opened": "2026-02-19T02:30:00+00:00",
+   "closed": "2026-02-19T03:50:00+00:00",
+   "held_min": 80.0,
+   "points": -11.75,
+   "peak_pt": 18.38,
+   "pnl_usd": -100.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "the 01:31 pullback bottomed at 24937 and price has since grinded back up through 24977-24985 making fresh local highs, confirming the leg has turned back up and is driving toward the 24995 high."
+  },
+  {
+   "side": "LONG",
+   "entry": 24991.38,
+   "exit": 24970.88,
+   "opened": "2026-02-19T04:20:00+00:00",
+   "closed": "2026-02-19T04:45:00+00:00",
+   "held_min": 25.0,
+   "points": -20.5,
+   "peak_pt": 0.0,
+   "pnl_usd": -170.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The up leg pulled back to 24966 at 03:36 then resumed, printing fresh session highs into 24991+ on two straight up bars, so this is a proven continuation to join, not a top call."
+  },
+  {
+   "side": "SHORT",
+   "entry": 24957.62,
+   "exit": 24956.88,
+   "opened": "2026-02-19T04:50:00+00:00",
+   "closed": "2026-02-19T05:15:00+00:00",
+   "held_min": 25.0,
+   "points": 0.75,
+   "peak_pt": 12.38,
+   "pnl_usd": 0.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The last two 15-min bars show a decisive break from the ~24994 high to 24957.75 with lower lows and closes near the low, confirming the down leg already running \u2014 this joins it rather than calling the"
+  },
+  {
+   "side": "LONG",
+   "entry": 24986.12,
+   "exit": 24992.12,
+   "opened": "2026-02-19T05:35:00+00:00",
+   "closed": "2026-02-19T06:10:00+00:00",
+   "held_min": 35.0,
+   "points": 6.0,
+   "peak_pt": 16.88,
+   "pnl_usd": 42.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The down leg into 24940 has reversed into two consecutive strong bullish 15-min bars (24964, then 24986 closes near their highs), confirming a fresh up leg to join even though it's already run 43pt."
+  },
+  {
+   "side": "LONG",
+   "entry": 25006.62,
+   "exit": 25030.12,
+   "opened": "2026-02-19T06:30:00+00:00",
+   "closed": "2026-02-19T07:40:00+00:00",
+   "held_min": 70.0,
+   "points": 23.5,
+   "peak_pt": 33.88,
+   "pnl_usd": 182.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "After the 06:01 pullback the 06:16 bar drove to a fresh extreme (25015.50) above the prior swing high (25004.50), confirming the up leg has resumed and satisfying the rule to only re-enter on a new ex"
+  },
+  {
+   "side": "LONG",
+   "entry": 25041.62,
+   "exit": 25022.62,
+   "opened": "2026-02-19T08:10:00+00:00",
+   "closed": "2026-02-19T08:35:00+00:00",
+   "held_min": 25.0,
+   "points": -19.0,
+   "peak_pt": 4.12,
+   "pnl_usd": -158.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The up-leg since 05:06 is still driving and price just pushed to a fresh extreme (25041.50) beyond trade 5's peak, confirming the leg again after the pullback at 07:26 was absorbed."
+  },
+  {
+   "side": "SHORT",
+   "entry": 25002.62,
+   "exit": 24962.62,
+   "opened": "2026-02-19T08:45:00+00:00",
+   "closed": "2026-02-19T09:10:00+00:00",
+   "held_min": 25.0,
+   "points": 40.0,
+   "peak_pt": 51.62,
+   "pnl_usd": 314.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "the down leg off the 25054 high has already proven itself with a strong 44pt drop in the last 15-min bar closing at the low, so joining it now is confirmation not a top-call, though today's chop keeps"
+  },
+  {
+   "side": "SHORT",
+   "entry": 24955.62,
+   "exit": 24892.62,
+   "opened": "2026-02-19T09:15:00+00:00",
+   "closed": "2026-02-19T09:55:00+00:00",
+   "held_min": 40.0,
+   "points": 63.0,
+   "peak_pt": 89.62,
+   "pnl_usd": 498.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The down leg made a fresh extreme (24941) well beyond where my last short exited (24962.62), proving itself again and still driving."
+  },
+  {
+   "side": "SHORT",
+   "entry": 24857.88,
+   "exit": 24847.88,
+   "opened": "2026-02-19T10:10:00+00:00",
+   "closed": "2026-02-19T10:55:00+00:00",
+   "held_min": 45.0,
+   "points": 10.0,
+   "peak_pt": 24.38,
+   "pnl_usd": 74.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The down leg just made a fresh extreme (24858) well beyond my last short's exit at 24892.62, and the last two 15-min bars are closing near their lows with no stall, so this is a new confirmed entry in"
+  },
+  {
+   "side": "SHORT",
+   "entry": 24868.88,
+   "exit": 24849.38,
+   "opened": "2026-02-19T11:40:00+00:00",
+   "closed": "2026-02-19T12:05:00+00:00",
+   "held_min": 25.0,
+   "points": 19.5,
+   "peak_pt": 19.62,
+   "pnl_usd": 150.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "the dominant 182pt down leg is still running and the corrective bounce to 24885 just stalled and closed red at 24869, a fresh rejection worth rejoining short with 110 minutes left"
+  },
+  {
+   "side": "LONG",
+   "entry": 24896.38,
+   "exit": 24872.12,
+   "opened": "2026-02-19T12:25:00+00:00",
+   "closed": "2026-02-19T12:55:00+00:00",
+   "held_min": 30.0,
+   "points": -24.25,
+   "peak_pt": 0.0,
+   "pnl_usd": -200.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Price reversed decisively off the 227pt down leg's low, broke to a fresh 23-min high on a strong 36pt bar closing at the extreme, confirming a new up leg to join."
+  }
+ ],
+ "calls": [
+  {
+   "ts": "2026-02-19T02:00:00+00:00",
+   "px": 24977.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up move has run 180 minutes with no confirmed turn yet, and price is still well off the recent swing high after a sharp pullback, so there's no proven, grinding leg to join right now.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:05:00+00:00",
+   "px": 24964.75,
+   "action": "WAIT",
+   "conf": 0.75,
+   "reason": "Only a weak 10pt/185min chop since the open with no confirmed leg turn yet, so there's nothing proven to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:10:00+00:00",
+   "px": 24974.0,
+   "action": "WAIT",
+   "conf": 0.75,
+   "reason": "The last 190 minutes are a 78pt chop between ~24916 and ~24995 with no confirmed turn, so there's no proven leg to join yet even though price has bounced back up.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:15:00+00:00",
+   "px": 24973.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg from 23:00 has run 195min/18pt but no swing has confirmed yet and we're flat with no proven leg to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:20:00+00:00",
+   "px": 24976.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "200 minutes of a single unconfirmed 22pt up-leg with no reversal yet is too shallow and unproven to join; wait for a clearer drive or confirmed turn.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:25:00+00:00",
+   "px": 24973.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The only leg is an unconfirmed 18pt up move over 205 minutes - too small and unproven to join, so wait for it to either extend further or confirm a turn.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:30:00+00:00",
+   "px": 24979.5,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "the 01:31 pullback bottomed at 24937 and price has since grinded back up through 24977-24985 making fresh local highs, confirming the leg has turned back up and is driving toward the 24995 high.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T02:35:00+00:00",
+   "px": 24975.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Only 5 minutes into the trade and -4.6pt on a leg that's still making fresh highs, no sign yet the leg has turned so stay with it.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T02:40:00+00:00",
+   "px": 24978.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Only -1.6pt after 10 minutes, just a shallow pullback within the bounce off the 24922 low, not a reversal of the leg I joined.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T02:45:00+00:00",
+   "px": 24982.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only 15 minutes in and +2.9pt with the leg still making fresh highs, so stay with it rather than exit on a tiny profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T02:50:00+00:00",
+   "px": 24980.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "The up leg is still running (not confirmed turned) and this is just a small pullback from +2.9pt peak, not a reversal of the leg I joined.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T02:55:00+00:00",
+   "px": 24975.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Still long inside the running up-leg which just made a fresh high at 24988.5 before this pullback to 24975 \u2014 a red dip inside an intact leg, not a reversal, so stay.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:00:00+00:00",
+   "px": 24978.75,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Barely red on a small pullback within the still-running up leg, not a reversal of the move I joined, so no reason to exit yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:05:00+00:00",
+   "px": 24989.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Long is up +9.6pt and the leg is still making fresh highs with the last two 15-min bars grinding up (+/+), so the move is still driving, not stalling.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:10:00+00:00",
+   "px": 24984.75,
+   "action": "HOLD",
+   "conf": 0.62,
+   "reason": "Just printed a fresh intrabar high (24990.50) and survived a deep dip back near entry without the leg being undone, so it's still driving, not stalling, and the $41 open profit is well short of a normal 25-40pt target worth banking.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:15:00+00:00",
+   "px": 24989.75,
+   "action": "HOLD",
+   "conf": 0.62,
+   "reason": "Leg is still driving (03:01 bar made a fresh high after the small pullback) and only +10pt banked so far, well under the 20pt minimum, so there's no honest stall signal yet to take profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:20:00+00:00",
+   "px": 24984.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The up-leg is still running and intact - price has only pulled back from +10.1pt to +4.4pt within recent chop, not reversed the leg, so there's no honest tiring signal yet worth cashing a sub-20pt profit for.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:25:00+00:00",
+   "px": 24990.0,
+   "action": "HOLD",
+   "conf": 0.68,
+   "reason": "Long from 24979.62 is only +10pt into a leg that's still printing fresh highs each 15-min bar with no stall yet, so let it run toward the 25-40pt target rather than take a small profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:30:00+00:00",
+   "px": 24998.0,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Still long inside the running up leg making fresh highs with no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:35:00+00:00",
+   "px": 24989.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg is still making fresh highs (25000 just tagged) and the pullback to 24989.50 looks like normal chop inside an intact uptrend, not a reversal, so staying with the +9.9pt long.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:40:00+00:00",
+   "px": 24977.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg just printed a fresh high at 25000 minutes ago and this is only a one-bar pullback to roughly breakeven, not a reversal of the up leg I joined.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:45:00+00:00",
+   "px": 24974.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "The 285-min up-leg hasn't confirmed a turn yet and price is still well above the leg's base, so this sharp pullback from the +18.4pt peak reads as a pullback inside an intact leg, not proof the leg is undone.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:50:00+00:00",
+   "px": 24968.0,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Price made a fresh high at 24999.5 then reversed 33pt in the next 15-min bar to close at session lows below my 24979.62 entry, turning +18.4pt favorable into -11.6pt red, which reads as the leg reversing rather than a normal pullback, so I'm getting out.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T03:55:00+00:00",
+   "px": 24975.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg just failed at a new extreme near 25000 and pulled back sharply to 24966 before a weak bounce to 24975 \u2014 that's chop inside the leg, not a fresh confirmed push, so there's nothing proven to join yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:00:00+00:00",
+   "px": 24991.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price is chopping back toward the recent 24998-25000 high after a sharp pullback to 24966, but hasn't made a fresh extreme beyond that high, and the prior long already got stopped out in this same choppy up-leg, so there's no fresh confirmation to join yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:05:00+00:00",
+   "px": 24986.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg off 22:00Z is still unconfirmed and choppy (two failed pushes near 24990 already reversed), so there's no fresh proven extreme to join yet after the prior loss.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:10:00+00:00",
+   "px": 24988.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Last two hours are choppy alternating 15-min bars with no fresh extreme above the 24999.50 high, so the up move hasn't re-proven itself after the pullback that stopped out my last long.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:15:00+00:00",
+   "px": 24987.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up-leg is still intact but chopping hard (24998\u219224970\u219224992\u219224987 pullbacks), the same chop that stopped out the last long, so better to wait for a fresh push beyond the 25000 extreme before rejoining.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:20:00+00:00",
+   "px": 24991.25,
+   "action": "ENTER_LONG",
+   "conf": 0.62,
+   "reason": "The up leg pulled back to 24966 at 03:36 then resumed, printing fresh session highs into 24991+ on two straight up bars, so this is a proven continuation to join, not a top call.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:25:00+00:00",
+   "px": 24978.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The up leg from ~00:25Z hasn't reversed, just a chop pullback 22pt off the recent high; per the rule, a pullback inside an intact leg isn't a reason to leave a small red position taken 5 minutes ago.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T04:30:00+00:00",
+   "px": 24976.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Down -15pt but still well inside the up-leg from 00:25Z (price 24976 vs leg lows near 24930s) \u2014 this reads as a pullback within an intact leg, not a reversal, so stay rather than exit on the first red tick.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T04:35:00+00:00",
+   "px": 24973.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Price pulled back to 24973 but hasn't broken the 03:36 swing low of 24966.25, so the up leg from 00:25Z looks intact, not reversed - just a pullback against a late entry.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T04:40:00+00:00",
+   "px": 24976.5,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Red but the up-leg from 00:25Z isn't undone - price is still well above its origin and this reads as a pullback/chop inside the leg, not a confirmed reversal, so staying rather than exiting on a pullback.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T04:45:00+00:00",
+   "px": 24971.0,
+   "action": "EXIT",
+   "conf": 0.72,
+   "reason": "The bounce I bought into (24970->24991) has been fully erased - price is back at 24971 making new lows, so the leg I joined is undone, not just pulled back, and this never showed a cent of profit in 25 minutes.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T04:50:00+00:00",
+   "px": 24957.75,
+   "action": "ENTER_SHORT",
+   "conf": 0.62,
+   "reason": "The last two 15-min bars show a decisive break from the ~24994 high to 24957.75 with lower lows and closes near the low, confirming the down leg already running \u2014 this joins it rather than calling the top.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T04:55:00+00:00",
+   "px": 24962.5,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Only 5 minutes into the short with a small pullback within ATR noise, no sign the down leg itself has reversed, so this is a pullback to sit through, not a call to exit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:00:00+00:00",
+   "px": 24956.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The down leg is still driving (consecutive 15m bars making lower lows/closes into 24953), and the short is intact and in profit, so let it run rather than exit on a barely-positive print.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:05:00+00:00",
+   "px": 24952.0,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Short is only +5.6pt (~1 ATR) and the 04:51 bar just printed a fresh low on a wide down range closing near its low, so the leg is still driving, not stalling.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:10:00+00:00",
+   "px": 24945.25,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "The down leg is accelerating, not tiring - the last two 15-min bars each dropped 15-16pt to fresh lows, and price is at its favorable extreme right now, so let it run rather than taking a sub-$160 profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:15:00+00:00",
+   "px": 24956.75,
+   "action": "EXIT",
+   "conf": 0.62,
+   "reason": "gave back almost all of the +12.4pt peak down to barely +1pt after the 05:01 bar wicked to a new low and closed back near its open, so the down leg is stalling and this is a good spot to bank a small win rather than let it go red.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:20:00+00:00",
+   "px": 24964.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The down leg from 03:30 is still the official leg and the bounce off 24940 is only one 15-min bar, not yet a confirmed reversal, so entering now risks the same chop that stopped out the last three trades.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T05:25:00+00:00",
+   "px": 24962.25,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Down leg still running (36pt/115min) and the last bar is only one bounce off a fresh low, not a proven turn, so no leg to join yet after two already-premature entries today.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T05:30:00+00:00",
+   "px": 24980.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "the down leg's low at 24940.50 just produced a sharp 40pt bounce to 24980.75 but that's still below the 03:46-04:01 highs near 24991-24992, so it reads as a pullback not yet a confirmed new up leg, and chasing it after two losers and a scratch today isn't worth it without proof",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T05:35:00+00:00",
+   "px": 24986.0,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "The down leg into 24940 has reversed into two consecutive strong bullish 15-min bars (24964, then 24986 closes near their highs), confirming a fresh up leg to join even though it's already run 43pt.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T05:40:00+00:00",
+   "px": 24983.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Small red dip 5 minutes in, still inside the 34-min up-leg that hasn't reversed off its extreme, so stay rather than treat a pullback as a stop.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:45:00+00:00",
+   "px": 24990.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Fresh up leg off the 24940 low is still driving with two strong closes near highs, and the long is only 10 minutes old and barely into profit, so let it run rather than taking a token gain.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:50:00+00:00",
+   "px": 24996.25,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "The up-leg is still driving with a fresh extreme on the last bar and no stall signs, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T05:55:00+00:00",
+   "px": 24997.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg is still driving with a fresh extreme (25004 high) and the trade is at its peak favourable with no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:00:00+00:00",
+   "px": 24995.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg is still driving (new extreme just made at 25004.50, only 54min/52pt old) and position is green at +9pt, so give it room rather than exit a trade that hasn't shown fading momentum.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:05:00+00:00",
+   "px": 25003.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Still long and the up leg is driving with fresh highs into 25003-25004 and strong closes, no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:10:00+00:00",
+   "px": 24992.25,
+   "action": "EXIT",
+   "conf": 0.62,
+   "reason": "Peak favorable gave back from +16.9pt to +6.1pt after stalling near 25004, so the leg is tiring and this is a profit to bank, not a loser to risk after two red trades already today.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:15:00+00:00",
+   "px": 24998.5,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "The up leg just pushed to a new high near 25004 then pulled back to 24998.50 on the last 15-min bar - that's the first stall sign, too late to chase the leg here and no turn down is confirmed yet to short.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T06:20:00+00:00",
+   "px": 24995.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Up leg from 05:06 pushed to a new high near 25004 but the last 15-min bar closed red and off its high, so the pullback hasn't yet shown it's resumed before jumping back in long",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T06:25:00+00:00",
+   "px": 24995.0,
+   "action": "WAIT",
+   "conf": 0.58,
+   "reason": "The up leg made a fresh high at 25004 after my last profitable exit, but the last two bars show it stalling/chopping just under that high rather than confirming a resumed grind, so I'll wait for a clear re-extension before rejoining.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T06:30:00+00:00",
+   "px": 25006.5,
+   "action": "ENTER_LONG",
+   "conf": 0.62,
+   "reason": "After the 06:01 pullback the 06:16 bar drove to a fresh extreme (25015.50) above the prior swing high (25004.50), confirming the up leg has resumed and satisfying the rule to only re-enter on a new extreme beyond the last exit.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T06:35:00+00:00",
+   "px": 25007.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "the up leg from 05:06 is still making fresh highs (25015.50 just printed) and shows no stalling, so stay with this 5-minute-old long and let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:40:00+00:00",
+   "px": 25006.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only -0.4pt on a 10-minute-old long within a still-intact 63pt/94min up-leg \u2014 this is a pullback from the recent high, not a reversal, so stay.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:45:00+00:00",
+   "px": 24997.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "The up-leg's low is 24961 and price is still at 24997.75, well above it\u2014this is a pullback inside an intact leg, not a reversal, so per the no-stops rule I hold rather than exit a late entry on a red pullback.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:50:00+00:00",
+   "px": 25003.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Up leg still intact (bounced from 24943 to 25016), this is just a pullback off the high, not a reversal, and the trade is barely red so staying is correct per the no-stop rule.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T06:55:00+00:00",
+   "px": 25009.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The up leg is still driving with fresh highs into 25015 and the position is only modestly in profit, so stay with it rather than exit early.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:00:00+00:00",
+   "px": 25022.25,
+   "action": "HOLD",
+   "conf": 0.68,
+   "reason": "Leg 3 is still driving with a fresh extreme just made (25029 high on a strong +bar) and the trade is comfortably in profit, so let it run rather than cap a still-tiring-free move.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:05:00+00:00",
+   "px": 25008.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg is still grinding higher with a fresh intrabar extreme at 25029 and higher closes, so this looks like a pullback within an intact up leg rather than a stall, and profit is too small ($17) to bank yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:10:00+00:00",
+   "px": 25021.5,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Up leg is still making fresh highs (25029 just printed) and position is holding near peak favourable, so let it run rather than exit on a non-stall.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:15:00+00:00",
+   "px": 25021.5,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg is still driving with a fresh extreme at 25029 and last bar closing strong, so let it run rather than cap a still-live move at +15pt.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:20:00+00:00",
+   "px": 25027.75,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Leg 3 is still driving to fresh highs with strong closes, position is at peak favourable with no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:25:00+00:00",
+   "px": 25037.5,
+   "action": "HOLD",
+   "conf": 0.72,
+   "reason": "Still making fresh highs with strong momentum (25037.50, peak favourable right now), the up leg is driving not tiring, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:30:00+00:00",
+   "px": 25038.75,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Still at the peak with price making fresh highs on a strong-bodied up bar, so the leg is still driving and not yet stalling.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:35:00+00:00",
+   "px": 25040.5,
+   "action": "HOLD",
+   "conf": 0.78,
+   "reason": "Up leg still making fresh highs with no stall or momentum fade, position is +33.9pt in profit, let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:40:00+00:00",
+   "px": 25030.25,
+   "action": "EXIT",
+   "conf": 0.72,
+   "reason": "Made a fresh extreme at 25048 then reversed hard to close near the bar low, giving back 10pt from peak favourable - that's the first honest stall sign after a 435min run, so lock in the $189.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T07:45:00+00:00",
+   "px": 25035.75,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "Up-leg made a fresh extreme to 25048 but the last 15-min bar closed down off that high, so there's no confirmed resumption yet to join into flat.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T07:50:00+00:00",
+   "px": 25033.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg just made a fresh high at 25048 but the latest 15-min bar reversed hard off that top down to 25033.50, so it's too soon to tell if this is a pause before another push or the leg rolling over.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T07:55:00+00:00",
+   "px": 25028.25,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "Up-leg made a fresh high at 25048 past my last exit but has since pulled back and is chopping sideways near 25023-25038 rather than grinding back up, so there's no confirmed resumption yet to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T08:00:00+00:00",
+   "px": 25023.25,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "flat after a pullback within the running up-leg\u2014last two 15-min bars are red and closed near their lows, so there's no fresh upward confirmation yet to re-enter on.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T08:05:00+00:00",
+   "px": 25018.5,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Price pulled back hard off the 25048 high into two red 15m bars - the up leg is stalling, not confirming a new extreme to buy nor a proven reversal to sell, so there's no leg to join yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T08:10:00+00:00",
+   "px": 25041.5,
+   "action": "ENTER_LONG",
+   "conf": 0.62,
+   "reason": "The up-leg since 05:06 is still driving and price just pushed to a fresh extreme (25041.50) beyond trade 5's peak, confirming the leg again after the pullback at 07:26 was absorbed.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T08:15:00+00:00",
+   "px": 25034.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only a 5-min pullback from the 25048 high inside the still-running up leg, not a reversal, so stay in.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T08:20:00+00:00",
+   "px": 25045.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg is still making fresh highs (25050.75 this bar) after the 07:36-07:51 pullback, so the up-leg looks intact and driving, not tiring, even though the trade is only marginally green so far.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T08:25:00+00:00",
+   "px": 25044.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "The up-leg just printed a fresh extreme at 25054 and the pullback to 25044.75 is a single bar, not a stalling pattern, so the leg is still driving and the small +3pt profit deserves more room.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T08:30:00+00:00",
+   "px": 25044.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Still long and the up leg is making fresh highs (25054 bar high) with momentum intact, just a minor pullback to 25044.75 \u2014 not yet tiring, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T08:35:00+00:00",
+   "px": 25022.75,
+   "action": "EXIT",
+   "conf": 0.68,
+   "reason": "The 08:21 bar reversed 31pt off the fresh 25054 high straight through the prior support shelf, undoing the leg I joined late and never showed profit\u2014time to get out before it goes further red.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T08:40:00+00:00",
+   "px": 25017.25,
+   "action": "WAIT",
+   "conf": 0.62,
+   "reason": "Sharp 37pt pullback off the 25054 high just stopped out my last long and hasn't turned into a confirmed down leg yet, so there's nothing proven to join in either direction.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T08:45:00+00:00",
+   "px": 25002.75,
+   "action": "ENTER_SHORT",
+   "conf": 0.55,
+   "reason": "the down leg off the 25054 high has already proven itself with a strong 44pt drop in the last 15-min bar closing at the low, so joining it now is confirmation not a top-call, though today's chop keeps confidence moderate.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T08:50:00+00:00",
+   "px": 24985.0,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Short is riding the fresh 66pt down leg with a strong momentum bar into new lows and position still at peak favourable, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T08:55:00+00:00",
+   "px": 24962.0,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Short is +40.6pt at a fresh extreme after a strong 70pt momentum bar, the down leg is still driving with no stall or new extreme failure yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:00:00+00:00",
+   "px": 24962.25,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Short is +40pt right at peak favourable with a fresh low just made on a strong 34pt down bar, so the leg is still driving, not tiring yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:05:00+00:00",
+   "px": 24951.0,
+   "action": "HOLD",
+   "conf": 0.72,
+   "reason": "Short is at a fresh peak (+51.6pt) with the down leg still driving hard (-34pt in the last 15min bar alone), no stall or momentum fade yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:10:00+00:00",
+   "px": 24962.5,
+   "action": "EXIT",
+   "conf": 0.68,
+   "reason": "Already $321/+40pt in profit on a leg that peaked at +51.6pt, and the last 15-min bar made a marginal new low but closed flat/up \u2014 the drive is stalling, so take the decent profit rather than risk giving more back.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:15:00+00:00",
+   "px": 24955.75,
+   "action": "ENTER_SHORT",
+   "conf": 0.6,
+   "reason": "The down leg made a fresh extreme (24941) well beyond where my last short exited (24962.62), proving itself again and still driving.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T09:20:00+00:00",
+   "px": 24951.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Just entered short 5 min ago on the still-running down leg, small profit with no pullback yet, so stay with it until there's an honest sign of stalling.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:25:00+00:00",
+   "px": 24956.5,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Down leg from 25054 to 24941 hasn't reversed, just chopping/pulling back near the lows, so stay short through the small red rather than exit on a pullback.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:30:00+00:00",
+   "px": 24939.25,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Short is riding the live down leg which just printed a fresh low this bar with no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:35:00+00:00",
+   "px": 24936.0,
+   "action": "HOLD",
+   "conf": 0.72,
+   "reason": "Short is at its peak favourable level with the down leg still making fresh lows (25021\u219224925 intrabar), so the leg is still driving and there's no stall yet to take profit against.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:40:00+00:00",
+   "px": 24909.25,
+   "action": "HOLD",
+   "conf": 0.72,
+   "reason": "Short is riding leg 4 which just printed a fresh extreme (24902.50) with a strong down bar and no stall yet, so let the drive continue.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:45:00+00:00",
+   "px": 24891.25,
+   "action": "HOLD",
+   "conf": 0.72,
+   "reason": "Short is +64pt in a 160pt leg that's still making fresh lows every bar with no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:50:00+00:00",
+   "px": 24866.0,
+   "action": "HOLD",
+   "conf": 0.78,
+   "reason": "Down leg is still driving (new extreme to 24866 on the last 15-min bar closing near its low) and position is well in profit, so let it run rather than cap it.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T09:55:00+00:00",
+   "px": 24892.5,
+   "action": "EXIT",
+   "conf": 0.72,
+   "reason": "Short is +63pt/$505 but the last 15-min bar made a fresh low at 24850.50 then bounced 42pt to close at 24892.50, giving back a third of the peak favorable move - that's the first honest sign the down leg is stalling, and a 63pt profit is well past the decent-trade threshold so it's time to take it.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:00:00+00:00",
+   "px": 24886.75,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "Down leg made a fresh extreme to 24850.50 but the latest 15m bar closed well off that low on a 15pt bounce, so momentum looks like it's stalling rather than cleanly continuing - better to wait for the leg to either press a new low or confirm a turn before committing.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T10:05:00+00:00",
+   "px": 24870.75,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "down leg made a fresh extreme to 24850.50 past our last exit but this bar is a bounce off that low, not a renewed push down, so there's no fresh confirmed entry yet and it's too early to call the leg reversed.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T10:10:00+00:00",
+   "px": 24858.0,
+   "action": "ENTER_SHORT",
+   "conf": 0.68,
+   "reason": "The down leg just made a fresh extreme (24858) well beyond my last short's exit at 24892.62, and the last two 15-min bars are closing near their lows with no stall, so this is a new confirmed entry into a still-driving leg, not re-chasing the old one.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T10:15:00+00:00",
+   "px": 24854.5,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Short just entered 5 minutes ago riding the same strong down leg that just paid +40pt and +63pt on the last two trades, only +3.4pt so far with no sign of tiring, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:20:00+00:00",
+   "px": 24849.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only 10 minutes and +8pt into a fresh short on a leg that's still driving (201pt/119min), no sign of stalling yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:25:00+00:00",
+   "px": 24848.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Short is only +9.9pt but the down leg is still making fresh lows each 15-min bar (24832 just printed), so the leg is still driving and it's too early to take a sub-20pt trade.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:30:00+00:00",
+   "px": 24833.5,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "Short is only now at its peak favorable and the 10:01/10:16 bars just made fresh leg lows with no stall, so the down leg is still driving.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:35:00+00:00",
+   "px": 24834.0,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Short is riding the still-driving 217pt down leg with a fresh low just printed and price at peak favourable, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:40:00+00:00",
+   "px": 24843.5,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "the down leg is still making fresh lows with down closes every bar, no stalling yet, so let it run",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:45:00+00:00",
+   "px": 24858.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "the down leg just printed a fresh low at 24825 and this bounce back to breakeven is a pullback inside that leg, not a reversal, so stay short rather than exit flat",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:50:00+00:00",
+   "px": 24857.5,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Short still sits on an intact down leg (price well below the 25050 high and the 24857.88 entry), and the bounce off the 24825 low to 24857.50 reads as a pullback inside that leg, not a confirmed reversal, so there's no edge in bailing for $3 \u2014 need either a fresh low or real stalling before acting.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T10:55:00+00:00",
+   "px": 24847.75,
+   "action": "EXIT",
+   "conf": 0.68,
+   "reason": "Down leg is tiring (shrinking 15m ranges, no new low since 24825, bounced back to 24847.75) and we've given back more than half of peak +24.4pt, so lock the +10pt before it goes red.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T11:00:00+00:00",
+   "px": 24847.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Down leg still running but chopping near the 24825 low since my last short exit, no fresh extreme beyond it yet to justify rejoining.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:05:00+00:00",
+   "px": 24842.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The down leg has run 208pt but the last two 15-min bars closed up off the 24825 low, so it's chopping/bouncing near the bottom rather than confirming a fresh push lower to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:10:00+00:00",
+   "px": 24877.5,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "The down leg just posted a sharp 29pt bounce off the low on strong volume, but that's one 15-min bar after a 173pt drop \u2014 not yet proof of a turned leg, so there's nothing confirmed to join in either direction.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:15:00+00:00",
+   "px": 24873.25,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "The down leg just threw a sharp 34pt bounce into the 11:01 bar but one bar isn't a proven reversal yet, and it could just as easily be a pullback inside the still-running down leg - better to wait for the next move to confirm direction before risking a new entry with only ~2 hours left.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:20:00+00:00",
+   "px": 24868.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "the down leg hasn't confirmed a turn yet - only a 3-bar, ~50pt bounce off the 24825 low, too small against the 182pt leg to call a reversal rather than a pullback.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:25:00+00:00",
+   "px": 24875.25,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "Down leg hit a fresh low near 24825 after my short exit then bounced ~50pt on just two up-closed bars \u2014 that's within normal pullback range for a 176pt/184min leg, not yet proven as a turn, so I want one more bar before calling it a new leg up.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:30:00+00:00",
+   "px": 24879.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Down leg hasn't confirmed turned - the bounce off 24825 is only a partial retracement with a mixed last few bars, not yet a proven new leg to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:35:00+00:00",
+   "px": 24872.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price has bounced ~45pt off the 24825 low on four straight up bars, but the down leg is still unconfirmed as turned and this isn't a fresh low to re-short, so neither direction has proven itself yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:40:00+00:00",
+   "px": 24869.0,
+   "action": "ENTER_SHORT",
+   "conf": 0.58,
+   "reason": "the dominant 182pt down leg is still running and the corrective bounce to 24885 just stalled and closed red at 24869, a fresh rejection worth rejoining short with 110 minutes left",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T11:45:00+00:00",
+   "px": 24872.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Short is only 5 minutes old and barely red, and the DOWN leg is still running (179pt/204min) with the last 15m bar closing lower off the high, so give it room before calling it tired.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T11:50:00+00:00",
+   "px": 24852.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only 10 min in and +16pt, leg is still the running 198pt down-move and momentum just pushed to a fresh low before this small bounce, so let it keep driving.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T11:55:00+00:00",
+   "px": 24869.75,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Barely red after giving back a 16pt peak, but the down leg hasn't been confirmed reversed yet \u2014 this reads as a pullback/chop near the leg's low, not proof the leg is over.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:00:00+00:00",
+   "px": 24863.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Down leg still intact and in profit \u2014 the bounce to 24885 looks like a pullback within the leg, not a reversal, so stay short.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:05:00+00:00",
+   "px": 24849.25,
+   "action": "EXIT",
+   "conf": 0.62,
+   "reason": "Short is up $157 but the last 15m bar swept a fresh day low at 24814 and immediately reversed back to the mid-range close, a stalling/exhaustion sign on a leg that's otherwise just chopped sideways for two hours \u2014 bank the small profit rather than risk giving it back.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:10:00+00:00",
+   "px": 24865.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Just exited the downleg in profit and the last bar swept a new low then reversed hard back up, which is chop/possible exhaustion, not a fresh proven move either way.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T12:15:00+00:00",
+   "px": 24852.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The down leg is still unconfirmed and the last 15-min bar swept a new low then rallied hard back to 24852, so neither a short continuation nor a confirmed upturn is proven yet, with only 75 minutes left I'd rather wait for the next clear leg than chase this chop.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T12:20:00+00:00",
+   "px": 24861.25,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "since the last short exit price has bounced up to 24861 without a fresh low, so the down leg hasn't re-proven itself and the bounce is too choppy yet to call a new up leg.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T12:25:00+00:00",
+   "px": 24896.25,
+   "action": "ENTER_LONG",
+   "conf": 0.62,
+   "reason": "Price reversed decisively off the 227pt down leg's low, broke to a fresh 23-min high on a strong 36pt bar closing at the extreme, confirming a new up leg to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T12:30:00+00:00",
+   "px": 24875.75,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Price is still 62pt above the leg's 24814 origin and only pulled back from the high, not undone the bounce, so this reads as a pullback inside an unproven young leg rather than a reversal \u2014 too early to call it dead after 5 minutes with zero prior green.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:35:00+00:00",
+   "px": 24874.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Pullback from the leg's fresh peak at 24897 to 24874 is still well above the leg's 12:02 low near 24823, so the up-leg isn't undone, just entered too late in its run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:40:00+00:00",
+   "px": 24892.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Just a minor pullback (24897.50 high to 24892.50) inside a young 38-min/69pt up leg off the confirmed turn at 12:02 \u2014 the leg isn't reversed, only 15 minutes in and barely red, so stay.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:45:00+00:00",
+   "px": 24890.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Small pullback (-5.9pt, under 1 ATR) inside the still-running 12:02 up leg which hasn't reversed below its base near 24852, and the last three 15-min bars are closing higher, so this reads as noise not a tired leg.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:50:00+00:00",
+   "px": 24887.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Long is only a shallow ~1-ATR pullback near the recent high (24896) inside the still-running 48min up-leg off the 24814 low, not a reversal of the leg, so this is noise to sit through, not an exit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T12:55:00+00:00",
+   "px": 24872.25,
+   "action": "EXIT",
+   "conf": 0.7,
+   "reason": "The up-bounce I joined at 24896 has given back nearly all of itself and the larger structure since 08:21 still reads as an unconfirmed down leg, so this long has been undone rather than merely pulled back.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-02-19T13:00:00+00:00",
+   "px": 24869.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The bounce off the 12:02 low just rolled over on one 15-min bar but hasn't broken below the recent 24847-24857 lows, so it's not a confirmed resumption of the downtrend yet, and with only 30 minutes left before the forced flatten there's little room for a fresh entry to prove itself.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T13:05:00+00:00",
+   "px": 24859.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "the 12:25 bounce already failed on the 12:51 red bar (24897->24859.50), so the up leg is not proven and with only 25 minutes left before flatten there's no fresh confirmed leg to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T13:10:00+00:00",
+   "px": 24849.0,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Price has round-tripped the whole 68min bounce back to the 24847-49 lows with no confirmed new leg, and only 20 minutes remain before the automatic flatten - not enough room for a fresh entry to prove itself and pay off.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T13:15:00+00:00",
+   "px": 24852.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Flat with only 15 minutes left and a 29pt/73min up-leg that hasn't proven itself against a 227pt downtrend, so there's no edge left to chase before the 13:30Z flatten.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T13:20:00+00:00",
+   "px": 24837.0,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Down leg is running and the last bar closed hard down, but only 10 minutes remain before the automatic 13:30Z flatten, leaving no runway to let a fresh short develop into a safe profit.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-02-19T13:25:00+00:00",
+   "px": 24819.5,
+   "action": "WAIT",
+   "conf": 0.9,
+   "reason": "Only 5 minutes remain before the automatic 13:30Z flatten, not enough time to join and manage a new trade even though the down leg is accelerating.",
+   "error": null,
+   "holding": false
+  }
+ ],
+ "net_usd": 632.0
+}

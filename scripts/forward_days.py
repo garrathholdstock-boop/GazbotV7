@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""PAIRED RUN OF TWO FROZEN RULE SETS OVER A LIST OF PRE-CHOSEN DAYS — NO REVIEW, NO REWRITE.
+"""PAIRED RUN OF FROZEN RULE SETS OVER A LIST OF PRE-CHOSEN DAYS — NO REVIEW, NO REWRITE.
 
-Built for the IT4-vs-IT2 test declared in reports/recursive_loop/IT4_change.txt (L3): 11 mechanically
-chosen unseen Jan-May 2026 days, both arms on the SAME model, same harness, same `self_aware=True`.
-Days are scheduled arm-interleaved so a partial result is always paired. A day is paired only if it is
-clean (<=10% errored calls, L7) for BOTH arms. READ-ONLY on the desk: simulated fills, no order path.
+Each arm is `label=rules_path[@v1|@v2]`; days are chosen mechanically by the caller (never holdout, L7).
+All arms run on the SAME model, same harness, same `self_aware=True`. Days are scheduled
+arm-interleaved so a partial result is always paired. A day is paired only if it is clean
+(<=10% errored calls, L7) for EVERY arm. READ-ONLY on the desk: simulated fills, no order path.
+`--name` is required so a run can never be filed under another experiment's label.
 
 The model is set with ANTHROPIC_MODEL for this process; sim_week_recursive spawns `claude -p` with the
 inherited environment and no --model flag, so every call uses it. The model and rule shas are stamped
@@ -47,12 +48,16 @@ def _load(path: str, name: str):
     return m
 
 
-def is_clean(tag: str, day: str, line: str = "v1") -> bool:
+def is_clean(tag: str, day: str, line: str = "v1", mil: bool = False) -> bool:
     p = f"{SW.OUT}/{tag}_{day}.json"
     if not os.path.exists(p):
         return False
     rec = json.load(open(p))
     if rec.get("line", "v1") != line:          # made under the other brief: not this arm's day
+        return False
+    if line == "v2" and rec.get("peak_def") != "1m":   # old-page v2 record: no page stamp
+        return False
+    if bool(rec.get("mil_ctx", False)) != mil:         # made on the other page (S2's MIL line)
         return False
     c = rec.get("calls") or []
     return bool(c) and sum(1 for x in c if x.get("error")) / len(c) <= POISON
@@ -151,11 +156,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", required=True, help="comma-separated YYYY-MM-DD")
     ap.add_argument("--arm", action="append", required=True,
-                    help="label=rules_path[@v1|@v2] (repeat); @v2 selects the strategy-line brief "
+                    help="label=rules_path[@v1|@v2|@v2+mil] (repeat); @v2+mil adds the S2 MIL line; @v2 selects the strategy-line brief "
                          "(Law 0e), default v1 is the frozen BRIEF")
     ap.add_argument("--prefix", default="snt")
     ap.add_argument("--model", default="claude-sonnet-5")
-    ap.add_argument("--name", default="it4_vs_it2_sonnet")
+    ap.add_argument("--name", required=True, help="output label for this experiment (no default)")
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--report-only", action="store_true")
     a = ap.parse_args()
@@ -169,15 +174,17 @@ def main() -> int:
     arms = {}
     for spec in a.arm:
         lab, path = spec.split("=", 1)
-        line = "v1"
-        if "@" in path and path.rsplit("@", 1)[1] in ("v1", "v2"):
+        line, mil = "v1", False
+        if "@" in path and path.rsplit("@", 1)[1] in ("v1", "v2", "v2+mil"):
             path, line = path.rsplit("@", 1)
+            if line == "v2+mil":
+                line, mil = "v2", True
         txt = open(path).read()
-        arms[lab] = {"tag": f"{a.prefix}_{lab}", "rules": txt, "path": path, "line": line,
+        arms[lab] = {"tag": f"{a.prefix}_{lab}", "rules": txt, "path": path, "line": line, "mil": mil,
                      "sha": hashlib.sha256(txt.encode()).hexdigest()[:12]}
     mode = billing_mode()
     print(f"{a.name}: model {a.model}, billing {mode}, {len(days)} days, arms "
-          + ", ".join(f"{k}={v['sha']}/{v['line']}" for k, v in arms.items()), flush=True)
+          + ", ".join(f"{k}={v['sha']}/{v['line']}{'+mil' if v['mil'] else ''}" for k, v in arms.items()), flush=True)
 
     def one(d: str, lab: str):
         if PA.avail_mb() < PA.MEM_FLOOR_MB:
@@ -187,7 +194,7 @@ def main() -> int:
                 return
         recheck_key()
         r = SW.run_day(d, arms[lab]["rules"], arms[lab]["tag"], resume=True, self_aware=True,
-                       line=arms[lab]["line"])
+                       line=arms[lab]["line"], mil=arms[lab]["mil"])
         e = sum(1 for c in r["calls"] if c.get("error"))
         print(f"  {lab} {d}  ${r['net_usd']:>+9,.2f}  {len(r['trades'])} tr  {e}/{len(r['calls'])} err",
               flush=True)
@@ -195,7 +202,7 @@ def main() -> int:
     if not a.report_only:
         half_sent = False
         for pass_no in (1, 2, 3):
-            todo = [(d, lab) for d in days for lab in arms if not is_clean(arms[lab]["tag"], d, arms[lab]["line"])]
+            todo = [(d, lab) for d in days for lab in arms if not is_clean(arms[lab]["tag"], d, arms[lab]["line"], arms[lab]["mil"])]
             if not todo:
                 break
             print(f"pass {pass_no}: {len(todo)} day-run(s)", flush=True)
@@ -206,13 +213,13 @@ def main() -> int:
                         fut.result()
                     except Exception as e:
                         print(f"  worker error {type(e).__name__}: {e}", flush=True)
-                    done = sum(1 for d in days if all(is_clean(v["tag"], d, v["line"]) for v in arms.values()))
+                    done = sum(1 for d in days if all(is_clean(v["tag"], d, v["line"], v["mil"]) for v in arms.values()))
                     if not half_sent and done >= len(days) // 2:
                         half_sent = True
                         say(f"{a.name} ({a.model}): {done}/{len(days)} days done on every arm. "
                             f"No result yet — an interim is never a result.")
 
-    paired = [d for d in days if all(is_clean(v["tag"], d, v["line"]) for v in arms.values())]
+    paired = [d for d in days if all(is_clean(v["tag"], d, v["line"], v["mil"]) for v in arms.values())]
     dropped = [d for d in days if d not in paired]
     if not paired:
         print("no paired clean days")
@@ -220,7 +227,7 @@ def main() -> int:
     rl = _load(f"{GB}/scripts/recursive_loop.py", "rl")
     stats = {lab: arm_stats(v["tag"], paired, rl) for lab, v in arms.items()}
     rep = {"name": a.name, "model": a.model, "billing": billing_mode(),
-           "arms": {k: {"sha": v["sha"], "tag": v["tag"], "rules": v["path"], "line": v["line"]}
+           "arms": {k: {"sha": v["sha"], "tag": v["tag"], "rules": v["path"], "line": v["line"], "mil": v["mil"]}
                     for k, v in arms.items()},
            "days_planned": days, "days_paired": paired, "dropped_poisoned_or_missing": dropped,
            "stats": stats, "generated": dt.datetime.now(dt.UTC).isoformat()}

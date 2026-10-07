@@ -6,7 +6,7 @@
 
 ## How success is measured, and the one thing this cannot measure
 
-The bar is in `docs/PROJECT_800_A_DAY.md`: **$800/day at 4 lots on the holdout**, with trades/day 3-6, side accuracy ≥0.75 and leg capture ≥0.15. All four, on weeks never trained on and never reviewed.
+The bar is in `docs/PROJECT_800_A_DAY.md`: **$800/day at 4 lots on the holdout**, with side accuracy ≥0.75 and leg capture ≥0.15 (trades/day is reported against 3-6, which describes a normal day and is not a bar). All three, on weeks never trained on and never reviewed.
 
 **The noise floor is $324/day.** That is the measured spread of this harness run twice on IDENTICAL inputs. Any iteration-to-iteration move smaller than it is not evidence of learning, however tidy the story.
 

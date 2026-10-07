@@ -1,0 +1,44 @@
+{
+ "iter": 7,
+ "ts": "2026-10-07T19:53:05.826195+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~57M, have 272M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (2 rules)"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (..........................................                            )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 20.4GB"
+  }
+ ],
+ "gates_failed": [],
+ "verdict": "GO"
+}

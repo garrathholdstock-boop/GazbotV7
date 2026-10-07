@@ -1,0 +1,77 @@
+[
+ {
+  "iter": 1,
+  "train": {
+   "net_usd": -2106.0,
+   "trades": 21,
+   "trades_per_day": 4.2,
+   "side_accuracy": 0.857,
+   "capture": 0.008
+  },
+  "holdout": {
+   "net_usd": 5086.0,
+   "trades": 65,
+   "trades_per_day": 6.5,
+   "side_accuracy": 0.738,
+   "capture": 0.19,
+   "days": 10,
+   "usd_per_day": 508.6,
+   "days_positive": 6,
+   "daily_sd": 1023.77,
+   "worst_day": -1180.0,
+   "stderr_of_mean": 323.75
+  },
+  "met": false,
+  "rules_chars": 0
+ },
+ {
+  "iter": 2,
+  "train": {
+   "net_usd": 902.0,
+   "trades": 33,
+   "trades_per_day": 6.6,
+   "side_accuracy": 0.727,
+   "capture": 0.09
+  },
+  "holdout": {
+   "net_usd": 6196.0,
+   "trades": 64,
+   "trades_per_day": 6.4,
+   "side_accuracy": 0.734,
+   "capture": 0.169,
+   "days": 10,
+   "usd_per_day": 619.6,
+   "days_positive": 9,
+   "daily_sd": 724.21,
+   "worst_day": -496.0,
+   "stderr_of_mean": 229.02
+  },
+  "met": false,
+  "rules_chars": 2659
+ },
+ {
+  "iter": 3,
+  "train": {
+   "net_usd": -2580.0,
+   "trades": 22,
+   "trades_per_day": 4.4,
+   "side_accuracy": 0.727,
+   "capture": 0.0
+  },
+  "holdout": {
+   "net_usd": 4056.0,
+   "trades": 41,
+   "trades_per_day": 4.1,
+   "side_accuracy": 0.78,
+   "capture": 0.135,
+   "days": 10,
+   "usd_per_day": 405.6,
+   "days_positive": 6,
+   "daily_sd": 910.35,
+   "worst_day": -780.0,
+   "stderr_of_mean": 287.88
+  },
+  "met": false,
+  "rules_chars": 2733
+ }
+]

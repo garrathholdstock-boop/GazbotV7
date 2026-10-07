@@ -136,15 +136,20 @@ leaving a bigger one is improved slowly, one cited rule at a time.
 **The restart (2026-10-07).** *"If things have been dirtied up until now I'm ok to start again"* /
 *"make it part of the constitution and let's start again."* The **S line** begins from this
 strategy and an **empty** rule set (`reports/recursive_loop/S1.txt`); iteration 2's ten rules are
-not carried into it. L1 applies within the S line from its first rule. Iteration 2 stays the frozen
-champion and the live forward test; the S line replaces it only by passing the consistency gate
-against it (L4), and only the operator repoints the forward test. **A restart is the operator's
-alone** — no iteration, review or audit may declare one.
+not carried into it. L1 applies within the S line from its first rule. **Second declaration,
+2026-10-07:** *"Forget the initial iterations. Start fresh from S1. That will be our baseline. The
+others had the wrong brief."* S1 (empty rules, `BRIEF_V2`) is the **baseline**; IT1–IT5 ran on the
+wrong (v1) brief and are history, not the thing to beat — their trades remain citable as
+development data (Law 0c) but their holdout numbers are not S-line targets. The S line is gated
+against **itself**: once S1 is measured clean (new tag, amended page, `S1_change.txt` A2), S2
+onward must dominate S1 under the gate (L4). The live `shadow_runner` is untouched by this; only
+the operator repoints or stops it. **A restart is the operator's alone** — no iteration, review or
+audit may declare one.
 
 **How the S line is wired without disturbing the champion.** `sim_week_recursive.BRIEF` is
 byte-identical and frozen (sha256 `b314ac3c6cb7…`) because `shadow_runner` trades it forward. The S
 line uses `BRIEF_V2`, selected by `run_day(line="v2")` / the `@v2` arm suffix in `forward_days.py`,
-and `context(band=False)` suppresses the per-call "YOUR BAND IS 3-6 TRADES" nag that would otherwise
+and `context(band=False, leg_list=False)` suppresses the per-call "YOUR BAND IS 3-6 TRADES" nag that would otherwise
 override the grind exception. A record carries its `line`, and `resume` / `is_clean` refuse to
 inherit a day made under the other brief. Enforced by `tests/test_strategy_headline.py`.
 
@@ -189,9 +194,11 @@ Name the rule, the edit, the observation that caused it, and which measured numb
 move and which way. A prediction written afterwards is a story.
 > *Built:* the `CHANGELOG:` section, required by `consolidate()`, split to its own file.
 
-### L4 — A CHALLENGER MUST BEAT THE CHAMPION ON BOTH AXES, OR IT IS REVERTED
-Higher $/day **and** no fewer positive days. Consistency is the operator's stated priority, so
-a higher average bought with more losing days is not an improvement.
+### L4 — A CHALLENGER MUST PASS THE CONSISTENCY GATE AND THEN EARN MORE, OR IT IS REVERTED
+A challenger replaces the champion only if days-positive, worst day and spread/mean (CV) do not worsen, and $/day is higher.
+Days positive, worst single day and spread/mean (CV) may none of them worsen; only then must $/day
+be higher (the gate section above, `bible.gate`). Consistency is the operator's stated priority, so
+a higher average bought with more losing days, a deeper worst day or a wider spread is not an improvement.
 > *Built:* the champion ratchet. A rejected challenger is kept as
 > `rules_iter<N>_rejected.txt` — recorded, never silently discarded.
 
@@ -230,7 +237,12 @@ rule without a replicate arm.
 ### L9 — DO NOT RE-DERIVE THE SETTLED LIST
 Entries are a coin on a symmetric race (+0.2pp side-matched, n=174). Turn entries are a coin
 at every multiple, timeframe and target tested. A bare stall is a coin. The money is in the
-asymmetric payoff — 4 lots, no stop, hold to structure — not in entry timing.
+asymmetric payoff — 4 lots, no stop, and the model itself is the exit. Hunting for a new entry SIGNAL or a turn call
+is therefore closed.
+**EXCEPTION, by Law 0e(1):** entering a little *earlier* into the same proven leg is the strategy's own
+improvement path and is NOT re-deriving the settled list; a change that moves the entry earlier along
+the SAME proven leg — a leg the tape has already confirmed (leg confirmed first, then entered earlier
+along it; never a prediction of the next leg) — and cites recorded trades (Law 0c) is admissible.
 > *Earned:* 119 exit calibrations and eleven months of studies failed before anyone recorded
 > the operator's actual inputs.
 
@@ -249,11 +261,11 @@ outside their own noise. Judge on those; record the dollars.
 
 | law | enforced by | status |
 |---|---|---|
-| 0e the strategy is the headline | `bible.PRIMARY` in every bound prompt; `BRIEF_V2` + `context(band=False)`; `tests/test_strategy_headline.py` | **NEW 2026-10-07** |
+| 0e the strategy is the headline | `bible.PRIMARY` in every bound prompt; `BRIEF_V2` + `context(band=False, leg_list=False)`; `tests/test_strategy_headline.py` | **NEW 2026-10-07** |
 | L1 start from the champion | `CONSOLIDATE` prompt + the champion ratchet | **NEW 2026-10-06** |
 | L2 one rule per iteration | `CONSOLIDATE` prompt | **NEW 2026-10-06** |
 | L3 declare the change | `consolidate()` demands `CHANGELOG:` | built |
-| L4 beat it on both axes or revert | `recursive_loop` champion ratchet | built |
+| L4 pass the consistency gate, then earn more, or revert | `recursive_loop` champion ratchet | built |
 | L5 no reversal on one week | `CONSOLIDATE` prompt | **NEW 2026-10-06** |
 | L6 no interim results | `paired_arm` pairs on the intersection and names exclusions | built |
 | L7 poisoned ≠ a day | `run_day` resume check, `night_guard`, `preflight_iteration` | built |

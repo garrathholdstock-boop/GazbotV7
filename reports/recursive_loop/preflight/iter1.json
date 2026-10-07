@@ -1,0 +1,49 @@
+{
+ "iter": 1,
+ "ts": "2026-10-07T15:27:11.939559+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~120M, have 327M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (0 rules) \u2014 EMPTY BY DESIGN: the change file declares the Law 0e restart"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (..........................................                            )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 20.8GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: It waits for a leg that has already turned and is grinding one way, jumps in late \u2014 halfway up is fine \u2014 and takes $200\u2013300 (25\u201340 points at 4 lots) at the first honest sign the move is tiring, and it will not enter against a leg that is running.\n\nHOW IT TRIES TO BEAT THE CHAMPION: It isn't trying to \u2014 the champion's ten rules have been deleted, so the only thing steering it is your strategy in your own words (in late, out early, always out in profit, no stops, keep harvesting a grind) with the \"3\u20136 trades\" nag removed. This run is a BASELINE: it measures what that plain instruction does on its own and sets a new starting line, which is worth the spend because every number before it, including the 620, was earned under a brief you've ruled the wrong one.\n\nWHAT WOULD HAVE TO HAPPEN: It would have to hand back fewer winners \u2014 the seven trades that were 50+ points in profit and still closed red would need to come out at +25 to +40 instead.\n\nWHAT IT GIVES UP: The whole first half of every leg, plus every reversal and turn trade, because it only buys or sells what has already proven itself.\n\nBIGGEST RISK: With no rules at all it joins legs that haven't actually proven themselves \u2014 on the two trial days 11 of 27 entries never got 5 points green and one lost $490 \u2014 and those entries pay away what the good trades make.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\n\nFAILING METRIC: $/day \u2014 bar $800; nothing has ever reached it (retired IT best $620, and the S line's only reading is \u2212$630/day on the two discarded old-page days).\n\nAIMED AT IT: PARTLY \u2014 a baseline run cannot move $/day, but the page it measures (BRIEF_V2: no stops, \"take it\", grind exception) targets the mechanism the cited trades show is destroying $/day \u2014 7 trades peaking +445pt that closed \u2212$736, and 4 never-green entries at \u2212$2,648 \u2014 so the number this buys is the line against which that mechanism is later judged.\n\nMEASURABLE: YES \u2014 the pre-registered deliverable is the pooled counts (Q1m, Q2, Q3 over ~120 trades on 9 days), which move well outside their own binomial error; the $/day figure is explicitly pre-registered as a point estimate that 9 days cannot resolve against the $324/day floor, and A2 item 6 forbids quoting it as progress.\n\nMISSING:\n1. The spend is not stated anywhere: 9 day-runs with every stop trigger suspended is the largest uninterruptible commitment this line has made, and the operator's standing instruction is \"don't do a huge run of days if it isn't improving\" \u2014 write the expected call count and wall-clock into `S1b_launch.json` before the first call so the suspension is consented to with a number attached.\n2. No destination is named for the baseline *result*: pre-register the file (e.g. `reports/recursive_loop/S1_BASELINE.json`) that will hold days-positive, worst day, CV and $/day computed by `bible.gate` terms, so S2's gate reads a stamped record and not a write-up.\n3. A poisoned-day re-run is unbounded (L7 + A2 item 4): cap it (one re-run per day, then the day is reported excluded) or a bad feed day can quietly consume the tranche.\n\nREASON: Every artefact the amendments claim is actually on disk and consistent \u2014 quarantine moved, `peak_def`/`brief_sha` stamping live in `scripts/sim_week_recursive.py:593,643`, the Q1m/Q1w split in `scripts/s_line_diagnostics.py:78`, the non-positive-mean CV fix in `src/gazbot7/bible.py:252`, and 43 bible/diagnostics tests passing \u2014 so there is nothing left to quarantine and the run's output will be interpretable. It is not a STOP: the rule set is empty by operator restart rather than unchanged, and it re-derives no settled coin."
+ },
+ "verdict": "GO"
+}

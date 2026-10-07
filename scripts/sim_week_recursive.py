@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import subprocess
@@ -261,8 +262,57 @@ def _assert_causal(bars_upto, now_epoch: int) -> None:
         raise AssertionError(f"LOOK-AHEAD: bar {bars_upto[-1][0]} is after now {now_epoch}")
 
 
+MIL_K = 7            # retrace in ATR14 that ends a major intraday leg (frozen, MIL_SPACING_PREREG.md)
+MIL_T = 176          # minutes: p75 of completed MIL durations (frozen) — the R4 re-entry exception
+
+
+def mil_state(bars_upto, done: list | None = None) -> dict:
+    """S2: the causal major-intraday-leg state at the last bar, and what entries it permits.
+
+    Same tracker as scripts/mil_entry_spacing.tracker (tests/test_mil_context.py pins them equal).
+    Rules, pre-registered: never ENTER against the MIL direction; one entry per MIL+side unless the
+    MIL is already >= MIL_T minutes old (R4). `done` = today's closed trades, which is every entry
+    taken so far because this is only asked when flat."""
+    n = len(bars_upto)
+    cl = [b[3] for b in bars_upto]
+    trs = [0.25]
+    for i in range(1, n):
+        h, lo, pc = bars_upto[i][1], bars_upto[i][2], bars_upto[i - 1][3]
+        trs.append(max(h - lo, abs(h - pc), abs(lo - pc), 0.25))
+    dirn = 1 if cl[10] > cl[0] else -1
+    ext, ext_i = cl[10], 10
+    legs = [[dirn, bars_upto[0][0], None]]
+    leg_at = [0] * n
+    for i in range(11, n):
+        atr = sum(trs[max(1, i - 13):i + 1]) / min(14, i)
+        if dirn * (cl[i] - ext) > 0:
+            ext, ext_i = cl[i], i
+        elif dirn * (ext - cl[i]) >= MIL_K * atr:
+            legs[-1][2] = bars_upto[ext_i][0]
+            dirn = -dirn
+            legs.append([dirn, bars_upto[ext_i][0], None])
+            ext, ext_i = cl[i], i
+        leg_at[i] = len(legs) - 1
+    cur = leg_at[-1]
+    mdir, start = legs[cur][0], legs[cur][1]
+    age = (bars_upto[-1][0] - start) / 60
+    t0 = bars_upto[0][0]
+    taken = {"LONG": 0, "SHORT": 0}
+    for t in done or []:
+        a = int(dt.datetime.fromisoformat(str(t["opened"])).timestamp())
+        k = max(0, min(n - 1, (a - t0) // 60))
+        if leg_at[k] == cur:
+            taken[t["side"]] += 1
+    with_side = "LONG" if mdir > 0 else "SHORT"
+    against = "SHORT" if mdir > 0 else "LONG"
+    ok = {against: False, with_side: taken[with_side] == 0 or age >= MIL_T}
+    return {"dir": mdir, "with": with_side, "against": against, "start": start, "age": age,
+            "taken": taken, "allowed": ok, "leg": cur}
+
+
 def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
-            done: list | None = None, self_aware: bool = False, band: bool = True) -> str:
+            done: list | None = None, self_aware: bool = False, band: bool = True,
+            leg_list: bool = True, mil: bool = False) -> str:
     """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
 
     ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
@@ -310,24 +360,30 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
          "─" * 100,
          f"the numbers, and they are SECONDARY: price {px:.2f} · ATR(14,1m) {atr:.2f}pt · "
          f"{len(bars_upto)} min of tape",
-         "─" * 100,
-         "",
-         "the same legs as a list, for precision only — the picture above is the thing to read:"]
-    if conf:
+         "─" * 100]
+    # ⚠2026-10-07 S1 AUDIT FINDING 1: with leg_list=True the page carried TWO leg pictures that
+    #   disagreed (02-05 12:50Z: the shape said "DOWN 376pt/269min", this list said "NOW: UP 324pt
+    #   over 830min") under a heading calling them "the same legs". The v2 line passes
+    #   leg_list=False so the picture is the ONLY leg account. Default True keeps v1 and the live
+    #   shadow runner byte-identical.
+    if leg_list:
+        L += ["", "the same legs as a list, for precision only — the picture above is the thing to read:"]
+    if leg_list and conf:
         for i, (d, si, ei, pts, mins) in enumerate(conf, 1):
             t0 = dt.datetime.fromtimestamp(bars_upto[si][0], dt.UTC)
             t1 = dt.datetime.fromtimestamp(bars_upto[ei][0], dt.UTC)
             L.append(f"  leg {i}: {'UP  ' if d > 0 else 'DOWN'} {abs(pts):>6.0f}pt over "
                      f"{mins:>4.0f}min   {t0:%H:%M} -> {t1:%H:%M}Z   (CONFIRMED turned)")
-    else:
+    elif leg_list:
         L.append("  no leg has confirmed a turn yet this session")
-    d, si, ei, pts, mins = cur
-    t0 = dt.datetime.fromtimestamp(bars_upto[si][0], dt.UTC)
-    L += [f"  NOW:   {'UP  ' if d > 0 else 'DOWN'} {abs(pts):>6.0f}pt over {mins:>4.0f}min   "
-          f"{t0:%H:%M}Z -> now   (RUNNING, not yet confirmed turned)",
-          "",
-          f"  so: {len(conf)} confirmed leg(s) behind us, and the current one has run "
-          f"{mins:.0f} minutes for {abs(pts):.0f}pt."]
+    if leg_list:
+        d, si, ei, pts, mins = cur
+        t0 = dt.datetime.fromtimestamp(bars_upto[si][0], dt.UTC)
+        L += [f"  NOW:   {'UP  ' if d > 0 else 'DOWN'} {abs(pts):>6.0f}pt over {mins:>4.0f}min   "
+              f"{t0:%H:%M}Z -> now   (RUNNING, not yet confirmed turned)",
+              "",
+              f"  so: {len(conf)} confirmed leg(s) behind us, and the current one has run "
+              f"{mins:.0f} minutes for {abs(pts):.0f}pt."]
 
     # ⚠ ONLY THE LAST TWO HOURS AS BARS NOW. The full-session OHLC dump was 60+ rows of numbers
     #   that the picture renders in one glance, and it was what the model actually leaned on —
@@ -349,6 +405,23 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
               f"  peak favourable so far {pos['peak']:+.1f}pt"]
     else:
         L += ["", "YOU ARE FLAT."]
+        if mil:                            # S2 (v2 only): shown ONLY when flat, so exits see the same page
+            m = mil_state(bars_upto, done)
+            st_ = dt.datetime.fromtimestamp(m["start"], dt.UTC)
+            nw, na = m["taken"][m["with"]], m["taken"][m["against"]]
+            L += ["", f"MAJOR INTRADAY LEG (MIL): {'UP' if m['dir'] > 0 else 'DOWN'}, began "
+                      f"{st_:%H:%M}Z, {m['age']:.0f} min old. It is the long swing the day is making; "
+                      f"it ends only when price gives back 7x ATR from its extreme.",
+                  f"  entries you already took in this MIL: {nw} {m['with']} (with it), {na} "
+                  f"{m['against']} (against it)"]
+            for side, act in (("LONG", "ENTER_LONG"), ("SHORT", "ENTER_SHORT")):
+                if m["allowed"][side]:
+                    L.append(f"  {act}: ALLOWED")
+                elif side == m["against"]:
+                    L.append(f"  {act}: NOT ALLOWED — it is against the MIL")
+                else:
+                    L.append(f"  {act}: NOT ALLOWED — you already entered this MIL {side}; a second "
+                             f"entry opens only once the MIL is {MIL_T} min old (it is {m['age']:.0f})")
 
     if self_aware:
         done = done or []
@@ -563,9 +636,11 @@ def ask_text(prompt: str, timeout: int = 240) -> str:
 
 
 def run_day(day: str, lessons: str, arm: str, resume: bool = True,
-            self_aware: bool = False, line: str = "v1") -> dict:
+            self_aware: bool = False, line: str = "v1", mil: bool = False) -> dict:
     """One session, causally, every STEP_MIN minutes. Returns the day's record."""
     brief = brief_for(line)                # validated before any work, so a typo cannot cost a day
+    if mil and line != "v2":
+        raise ValueError("mil context is a v2-line feature; v1 (the frozen champion's page) must not move")
     path = f"{OUT}/{arm}_{day}.json"
     if resume and os.path.exists(path):
         prev = json.load(open(path))
@@ -582,6 +657,11 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
         if prev.get("line", "v1") != line:
             print(f"  {arm}_{day}: re-running — artefact is line {prev.get('line', 'v1')}, "
                   f"this run is {line}", flush=True)
+        elif line == "v2" and prev.get("peak_def") != "1m":
+            print(f"  {arm}_{day}: re-running — v2 record carries no page stamp (old-page)", flush=True)
+        elif bool(prev.get("mil_ctx", False)) != mil:
+            print(f"  {arm}_{day}: re-running — record mil_ctx={prev.get('mil_ctx', False)}, "
+                  f"this run mil={mil}", flush=True)
         elif pc and perr / len(pc) <= POISON_RATE:
             return prev
         else:
@@ -598,16 +678,32 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
         px = upto[-1][3]
         if pos:
             pos["peak"] = max(pos["peak"], pos["dir"] * (px - pos["entry"]))
+            # ⚠ `peak` above is sampled ONLY at the 5-min call times, so a spike that came and went
+            # between two calls is invisible (S1 audit, 2026-10-07). `peak_1m` takes the max over
+            # every 1-min close since the last call — the same price series as `px`, so no new
+            # look-ahead. v1 keeps the sampled `peak` byte-for-byte (it is printed in the v1 page and
+            # the frozen champion's prompt must not move); v2 shows and records the true one.
+            seg = [b[3] for b in upto if pos["last_ts"] < b[0] <= now_epoch]
+            if seg:
+                pos["peak_1m"] = max(pos["peak_1m"], max(pos["dir"] * (c - pos["entry"]) for c in seg))
+            pos["last_ts"] = now_epoch
+            if line == "v2":
+                pos["peak"] = max(pos["peak"], pos["peak_1m"])
         d = ask(brief + "\n\n=== THE TAPE ===\n"
-                + context(upto, now_epoch, pos, lessons, trades, self_aware, band=(line != "v2")))
+                + context(upto, now_epoch, pos, lessons, trades, self_aware, band=(line != "v2"),
+                          leg_list=(line != "v2"), mil=mil))
         act = d.get("action", "WAIT")
         calls.append({"ts": dt.datetime.fromtimestamp(now_epoch, dt.UTC).isoformat(),
                       "px": px, "action": act, "conf": d.get("confidence"),
                       "reason": (d.get("reason") or "")[:300], "error": d.get("error"),
                       "holding": bool(pos)})
+        if mil and pos is None:            # the MIL block this flat call was shown, so a P1/P2 breach can be split
+            _m = mil_state(upto, trades)
+            calls[-1]["mil"] = {"dir": _m["dir"], "age": _m["age"], "taken": _m["taken"], "allowed": _m["allowed"]}
         if pos is None and act in ("ENTER_LONG", "ENTER_SHORT"):
             dirn = 1 if act == "ENTER_LONG" else -1
             pos = {"dir": dirn, "entry": px + dirn * HALF_SPREAD_PT, "peak": 0.0,
+                   "peak_1m": 0.0, "last_ts": now_epoch,
                    "opened": dt.datetime.fromtimestamp(now_epoch, dt.UTC),
                    "reason": (d.get("reason") or "")[:200]}
         elif pos is not None and act == "EXIT":
@@ -616,7 +712,10 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
     if pos is not None:                    # the forced flat the simulator owns, not Claude
         last = [b for b in bars if b[0] <= d0 + WIN_END_MIN * 60][-1]
         trades.append(_close(pos, last[3], last[0], "WINDOW_CLOSE_1330Z"))
-    rec = {"day": day, "arm": arm, "line": line, "trades": trades, "calls": calls,
+    rec = {"day": day, "arm": arm, "line": line,
+           "brief_sha": hashlib.sha256(brief.encode()).hexdigest()[:16],
+           "peak_def": "1m" if line == "v2" else "5m_sampled", "mil_ctx": mil,
+           "trades": trades, "calls": calls,
            "net_usd": round(sum(t["pnl_usd"] for t in trades), 2)}
     os.makedirs(OUT, exist_ok=True)
     json.dump(rec, open(path, "w"), indent=1, default=str)
@@ -627,14 +726,17 @@ def _close(pos, px, epoch, why) -> dict:
     exit_px = px - pos["dir"] * HALF_SPREAD_PT
     pts = pos["dir"] * (exit_px - pos["entry"])
     gross = pts * LOTS * VPP
-    return {"side": "LONG" if pos["dir"] > 0 else "SHORT",
-            "entry": round(pos["entry"], 2), "exit": round(exit_px, 2),
-            "opened": pos["opened"].isoformat(),
-            "closed": dt.datetime.fromtimestamp(epoch, dt.UTC).isoformat(),
-            "held_min": round((epoch - pos["opened"].timestamp()) / 60, 1),
-            "points": round(pts, 2), "peak_pt": round(pos["peak"], 2),
-            "pnl_usd": round(gross - FEE_RT * LOTS, 2), "why": why,
-            "entry_reason": pos.get("reason", "")}
+    t = {"side": "LONG" if pos["dir"] > 0 else "SHORT",
+         "entry": round(pos["entry"], 2), "exit": round(exit_px, 2),
+         "opened": pos["opened"].isoformat(),
+         "closed": dt.datetime.fromtimestamp(epoch, dt.UTC).isoformat(),
+         "held_min": round((epoch - pos["opened"].timestamp()) / 60, 1),
+         "points": round(pts, 2), "peak_pt": round(pos["peak"], 2),
+         "pnl_usd": round(gross - FEE_RT * LOTS, 2), "why": why,
+         "entry_reason": pos.get("reason", "")}
+    if "peak_1m" in pos:                   # only run_day tracks it; shadow_runner's pos does not
+        t["peak_1m"] = round(max(pos["peak_1m"], pos["peak"]), 2)
+    return t
 
 
 from gazbot7.bible import laws as _laws        # noqa: E402

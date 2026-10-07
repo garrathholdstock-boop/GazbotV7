@@ -1,0 +1,19 @@
+1. **Name the side before you trade, from the picture.** The side is the direction of the largest completed swing on the chart so far, with price currently on that side of where the day began. Until one swing has completed and you can say the side out loud, you have no trade. Re-read the shape, not the numbers, to do this.
+
+2. **Trade that side only — no counter-side entry for any reason.** Not a bounce, not an overextension, not a stall, not revenge after a loser, not boredom. Counter-side trades appeared on three days this week and lost on all three (−$328, −$478, −$248); the one day with zero counter-side entries was the smallest loss of the week. When you want the other side, the action is to do nothing.
+
+3. **The side only changes when a swing against it grows larger than the largest swing in its favour.** Then flatten, re-name the side, and continue one-directional. Never hold both sides, and never "hedge" a losing trade with the opposite one.
+
+4. **Stop in with the entry, no wider than half the swing you are joining, moved only in your favour.** One position at a time, identical size on every trade, no averaging down, no widening, no "give it room".
+
+5. **No single trade may lose more than your largest winner so far.** Check it from your own fills. The week's biggest win was 39pt while the week averaged roughly −$117 a trade: wins were cut and losses were allowed to run. A trade through that line is closed on the spot, whatever you think of the chart.
+
+6. **Exits are structural, never a point count.** Hold while each new pullback holds above the prior pullback's extreme (mirrored for shorts), trailing behind it, and exit only when that breaks. If the picture is one or two long legs in one direction, at least one position is held into the end of the session. A day that ran 328pt one way returned captures of 4%, 6%, 4%, 8% — that habit is the most expensive thing on this desk.
+
+7. **Re-enter on the next continuation after every exit, win or lose.** The working benchmark is 8–15 entries all on one side, not 4. Any completed swing of 40pt+ in your named direction that you sat out is the error to correct next time — untraded 40pt+ legs were flagged on four of five days.
+
+8. **One entry trigger, every time:** price makes a new extreme in the named direction, pulls back, the pullback stops without erasing the base of that extreme, and you enter the resumption. No entry into a vertical move with no pullback, and no entry merely because you are flat.
+
+9. **Hard daily stop: three stopped-out trades, or a loss of three times your per-trade risk, ends the day.** Flat and done. Never raise size to recover a losing day and never flip sides to recover one — a wrong side is a reason to be flat, not a reason to reverse.
+
+10. **Late in the session, new entries only with the day's named direction and only on the rule 8 trigger — and be flat before the session closes.**

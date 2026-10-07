@@ -67,6 +67,13 @@ CHANGE = ""                      # --change: the declared change + its cited tra
 RESTART_MARK = "RESTART (LAW 0e)"   # only the operator declares one; the change file carries the mark
 
 
+S_LINE_MARK = "S LINE (BRIEF_V2)"   # an S-line iteration after the restart: trades BRIEF_V2, not an empty set
+
+
+def s_line_declared() -> bool:
+    return bool(CHANGE) and os.path.exists(CHANGE) and S_LINE_MARK in open(CHANGE).read()
+
+
 def restart_declared() -> bool:
     """LAW 0e: the S line starts from an EMPTY rule set. That is the one case where zero rules is
     the design and not a truncated file, so it is admitted only when the change file says so."""
@@ -212,11 +219,11 @@ def state_brief(it: int) -> str:
                      f"daily SD ${h.get('daily_sd',0):,.0f} · "
                      f"worst day ${h.get('worst_day',0):+,.0f} · "
                      f"side {h['side_accuracy']:.3f} · capture {h['capture']:.2f} · "
-                     f"{h['trades_per_day']:.1f} trades/day · met all four: {x['met']}")
-    L += ["", "THE BAR, ALL FOUR REQUIRED:",
-          f"  $/day >= {BAR['usd_per_day']:,.0f} · trades/day in "
-          f"{BAR['trades_per_day']} · side accuracy >= {BAR['side_accuracy']} · "
+                     f"{h['trades_per_day']:.1f} trades/day (reported, not a bar) · met the three required: {x['met']}")
+    L += ["", "THE BAR, THREE REQUIRED (trades/day is REPORTED against the 3-6 description, not a bar — Law 0e):",
+          f"  $/day >= {BAR['usd_per_day']:,.0f} · side accuracy >= {BAR['side_accuracy']} · "
           f"capture >= {BAR['capture']}",
+          f"  reported only: trades/day vs {BAR['trades_per_day']}",
           "",
           f"MEASURED SINGLE-RUN VARIANCE: ${RUN_VARIANCE:,.0f}/day on IDENTICAL inputs.",
           "Iteration 2 beat iteration 1 by $111/day, which is INSIDE that. So a change whose",
@@ -225,16 +232,28 @@ def state_brief(it: int) -> str:
           "KNOWN AND NOT TO BE RE-DERIVED:",
           "  · his entries are a coin on a symmetric race (+0.2pp side-matched, n=174)",
           "  · he is a CONTINUATION trader; turn entries are a coin at every setting tested",
-          "  · the money is in the asymmetric payoff: 4 lots, no stop, hold to structure",
+          "  · the money is in the asymmetric payoff: 4 lots, no stop, the model itself is the exit",
+          "  · EXCEPTION (Law 0e(1)): entering a little EARLIER along the same proven leg is the",
+          "    strategy's improvement path, not a re-derivation of the entry-is-a-coin finding",
           "  · showing the model the SHAPE instead of the metrics was the biggest single",
           "    lever found (a simulated Monday went -$400 to +$352, 14 trades to 4)",
-          "  · rule 9 ('stop after three losing trades') is DEAD TEXT: ignored on 12 of 12",
-          "    days where it bound, and the P&L after the third loss totals +$8,776 over 32",
-          "    day-runs. It is under separate A/B test; do not also change it here.",
           ""]
+    if not (restart_declared() or s_line_declared()):
+        # IT-line only: a restart's rule set is empty, so there is no rule 9 to be dead text
+        L[-1:-1] = [
+              "  · rule 9 ('stop after three losing trades') is DEAD TEXT: ignored on 12 of 12",
+              "    days where it bound, and the P&L after the third loss totals +$8,776 over 32",
+              "    day-runs. It is under separate A/B test; do not also change it here."
+        ]
     rp = RULES
     if os.path.exists(rp):
         L += ["THE RULE SET THIS ITERATION WILL TRADE:", open(rp).read(), ""]
+    if s_line_declared() and not restart_declared():
+        import sim_week_recursive as SW
+        L += ["THIS IS AN S-LINE ITERATION (line v2, baseline S1b). THE RULES ABOVE ARE ADDED TO",
+              "BRIEF_V2 BELOW; the IT-line rules and 'KNOWN' lines above that conflict with this",
+              "brief are history on the wrong brief. Rule 9 text and IT2 numbers do not apply.",
+              "", SW.BRIEF_V2, ""]
     if restart_declared():
         import sim_week_recursive as SW
         L += ["THIS IS A LAW 0e RESTART. THE RULE SET IS EMPTY BY DESIGN, SO THE BRIEF BELOW IS THE",
@@ -292,7 +311,10 @@ REASON: <two sentences, maximum>
 
 Rules for your verdict:
 - STOP only if running this would waste the budget outright — e.g. the rule set is unchanged
-  from the previous iteration, or it targets something already settled as a coin.
+  from the previous iteration, or it re-tests something settled as a coin (a new entry SIGNAL,
+  a turn call, a bare-stall trigger). ★ Moving the entry a little EARLIER along the SAME proven leg (a leg the
+  tape has already confirmed, never a prediction of the next one) is the strategy's own improvement path (Law 0e(1)) and is never a
+  STOP on "settled" grounds.
 - FIX-FIRST if something cheap and specific should be recorded or quarantined first.
 - GO if the iteration is aimed at a real gap and its outcome will be interpretable.
 - Do NOT suggest re-deriving anything listed as known. Do NOT propose new metrics.

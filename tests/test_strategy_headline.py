@@ -164,7 +164,7 @@ def test_forward_days_routes_each_arm_to_its_own_line(harness, tmp_path, monkeyp
     rules_new = tmp_path / "S1.txt"; rules_new.write_text("")
     calls = []
 
-    def recorder(day, lessons, arm, resume=True, self_aware=False, line="v1"):
+    def recorder(day, lessons, arm, resume=True, self_aware=False, line="v1", mil=False):
         calls.append((arm, line, self_aware, lessons))
         raise RuntimeError("stop after recording")        # main() logs a worker error and carries on
     monkeypatch.setattr(SW, "run_day", recorder)
@@ -183,8 +183,16 @@ def test_forward_days_routes_each_arm_to_its_own_line(harness, tmp_path, monkeyp
 def test_forward_days_still_refuses_a_holdout_day(monkeypatch, tmp_path):
     f = tmp_path / "r.txt"; f.write_text("")
     monkeypatch.setattr(sys, "argv", ["forward_days.py", "--days", "2026-09-15", "--model", "default",
-                                      "--arm", f"s1={f}@v2"])
+                                      "--name", "holdout_probe", "--arm", f"s1={f}@v2"])
     with pytest.raises(AssertionError):
+        FD.main()
+
+
+def test_forward_days_requires_an_explicit_name(monkeypatch, tmp_path):
+    f = tmp_path / "r.txt"; f.write_text("")
+    monkeypatch.setattr(sys, "argv", ["forward_days.py", "--days", "2026-02-05", "--model", "default",
+                                      "--arm", f"s1={f}@v2"])
+    with pytest.raises(SystemExit):
         FD.main()
 
 
@@ -273,3 +281,14 @@ def test_the_audit_is_shown_the_brief_that_is_the_whole_strategy(pf):
 
 def test_the_audit_prompt_itself_carries_law_0e():
     assert "LAW 0e" in PF.AUDIT and "A RESTART IS THE OPERATOR'S ALONE" in PF.AUDIT
+
+
+def test_an_s_line_change_is_shown_brief_v2_and_not_the_it_line_dead_text(pf):
+    """S2 onward: rules are non-empty but the brief traded is BRIEF_V2. The audit must judge that, not rule 9."""
+    rules, change = pf
+    rules.write_text("1. a\n"); change.write_text("S2\nS LINE (BRIEF_V2)\n")
+    brief = PF.state_brief(7)
+    assert SW.BRIEF_V2 in brief and "S-LINE ITERATION" in brief
+    assert "rule 9 ('stop after three losing trades') is DEAD TEXT" not in brief
+    assert "THIS IS A LAW 0e RESTART" not in brief
+    assert not PF.restart_declared(), "an S-line mark must never be read as a restart"

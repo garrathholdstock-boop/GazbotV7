@@ -111,7 +111,7 @@
    "recorded_usd": -1080.0,
    "peak_pt": 4.12,
    "held_min": 30.0,
-   "group": "B: never in profit, one of the four biggest losers",
+   "group": "B: never in profit (peak <=4.1pt), one of the four biggest such losers",
    "would_have": "the entry never showed more than 4.1pt of profit before it lost 134pt: the leg had not proven itself, or the entry was against it; S1's brief enters only into a leg that has already moved ('you get in LATE') and 'never enters against the leg'; behaviour, not a dollar claim"
   },
   {
@@ -125,7 +125,7 @@
    "recorded_usd": -578.0,
    "peak_pt": 0.0,
    "held_min": 35.0,
-   "group": "B: never in profit, one of the four biggest losers",
+   "group": "B: never in profit (peak <=4.1pt), one of the four biggest such losers",
    "would_have": "the entry never showed more than 0.0pt of profit before it lost 72pt: the leg had not proven itself, or the entry was against it; S1's brief enters only into a leg that has already moved ('you get in LATE') and 'never enters against the leg'; behaviour, not a dollar claim"
   },
   {
@@ -139,7 +139,7 @@
    "recorded_usd": -508.0,
    "peak_pt": 0.0,
    "held_min": 5.0,
-   "group": "B: never in profit, one of the four biggest losers",
+   "group": "B: never in profit (peak <=4.1pt), one of the four biggest such losers",
    "would_have": "the entry never showed more than 0.0pt of profit before it lost 63pt: the leg had not proven itself, or the entry was against it; S1's brief enters only into a leg that has already moved ('you get in LATE') and 'never enters against the leg'; behaviour, not a dollar claim"
   },
   {
@@ -153,7 +153,7 @@
    "recorded_usd": -482.0,
    "peak_pt": 0.0,
    "held_min": 5.0,
-   "group": "B: never in profit, one of the four biggest losers",
+   "group": "B: never in profit (peak <=4.1pt), one of the four biggest such losers",
    "would_have": "the entry never showed more than 0.0pt of profit before it lost 60pt: the leg had not proven itself, or the entry was against it; S1's brief enters only into a leg that has already moved ('you get in LATE') and 'never enters against the leg'; behaviour, not a dollar claim"
   }
  ]
