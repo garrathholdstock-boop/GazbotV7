@@ -266,9 +266,51 @@ def test_shadow_runner_trades_the_champion_not_the_latest():
     import hashlib
     import pathlib
     import shadow_runner as R
-    assert R.RULES.endswith("rules_live_champion.txt"), R.RULES
-    champ = hashlib.sha256(pathlib.Path(R.RULES).read_bytes()).hexdigest()[:12]
-    it1 = hashlib.sha256(
-        pathlib.Path("/home/alphabot/gazbot7/reports/recursive_loop/rules_iter1.txt")
-        .read_bytes()).hexdigest()[:12]
-    assert champ == it1, f"live rules {champ} are not the champion {it1}"
+    import json
+    assert R.RULES.endswith("CHAMPION.txt"), R.RULES
+    live = hashlib.sha256(pathlib.Path(R.RULES).read_bytes()).hexdigest()[:12]
+    meta = json.loads(pathlib.Path(
+        "/home/alphabot/gazbot7/reports/recursive_loop/CHAMPION.json").read_text())
+    named = hashlib.sha256(pathlib.Path(
+        f"/home/alphabot/gazbot7/reports/recursive_loop/{meta['file']}").read_bytes()
+        ).hexdigest()[:12]
+    assert live == named, (f"CHAMPION.txt ({live}) is not {meta['file']} ({named}) — "
+                           f"the paper desk is trading something other than the champion")
+
+
+def _drive(monkeypatch, tmp_path, actions, times):
+    """Run REAL tick() calls with a scripted model, reloading state from disk each time."""
+    import datetime as dt
+    import shadow_runner as R
+    monkeypatch.setattr(R, "STATE", str(tmp_path / "st.json"))
+    monkeypatch.setattr(R, "LOG", str(tmp_path / "l.jsonl"))
+    monkeypatch.setattr(R, "DAYLOG", str(tmp_path / "days"))
+    monkeypatch.setattr(R, "preflight", lambda: None)
+    script = iter(actions)
+    monkeypatch.setattr(R.S, "ask", lambda *a, **k: {"action": next(script), "reason": "t"})
+    monkeypatch.setattr(
+        R, "live_bars",
+        lambda k, n: [(n - 60 * i, 100.0 + (40 - i), 100.0 + (40 - i), 100.0 + (40 - i))
+                      for i in range(40)][::-1])
+    return R, [R.tick(now=dt.datetime(2026, 10, 7, h, m, tzinfo=dt.UTC)) for h, m in times]
+
+
+def test_entry_then_hold_then_exit_through_real_ticks(monkeypatch, tmp_path):
+    """⚠ The 2026-10-07 02:05 crash: tick() built the log line from pos["side"] after apply_action
+    had switched the dict to the sim's pos["dir"], so the FIRST live entry raised KeyError before
+    the state was saved. The next tick re-asked, re-entered and crashed again — the runner could
+    never hold a position. Every earlier test called apply_action() alone, never tick()."""
+    R, outs = _drive(monkeypatch, tmp_path, ["ENTER_LONG", "HOLD", "EXIT"],
+                     [(2, 5), (2, 10), (2, 15)])
+    assert outs[0]["position"] == {"side": 1, "entry": outs[0]["position"]["entry"]}
+    assert outs[1]["position"] is not None, "position was lost between ticks"
+    assert outs[2]["position"] is None and outs[2]["trades_today"] == 1
+
+
+def test_open_position_is_closed_at_window_end_through_real_ticks(monkeypatch, tmp_path):
+    R, outs = _drive(monkeypatch, tmp_path, ["ENTER_SHORT", "HOLD"], [(13, 20), (13, 25)])
+    assert outs[1]["position"] is not None
+    import datetime as dt
+    out = R.tick(now=dt.datetime(2026, 10, 7, 13, 35, tzinfo=dt.UTC))
+    assert out.get("day_written") is not None, f"window end did not close the book: {out}"
+    assert R.load_state("2026-10-07")["pos"] is None

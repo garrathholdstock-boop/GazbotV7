@@ -74,9 +74,9 @@ thousands a year. It means five days cannot MEASURE it.
 champion's set returned UNCHANGED with "CHANGELOG: no change — the week gave no reason to
 alter the rules." A null iteration is a legitimate and cheap outcome. Churn is not.
 
-⚠ THE BAR IS HIS METHOD, NOT P&L ALONE. His own two best days: 7 of 8 and 13 of 15 trades on the
-dominant leg, 41% and 23% of the available points captured, 8 and 15 entries. P&L alone would reward
-one lucky trade; this rewards doing it his way.
+⚠ THE BAR IS HIS METHOD, NOT P&L ALONE. He identifies which way the day is going, keeps taking
+that side, and takes a real share of each leg. P&L alone would reward one lucky trade; this rewards
+doing it his way.
 """
 
 from __future__ import annotations
@@ -135,7 +135,7 @@ MAX_RULES = 10
 MAX_ITERS = 12
 
 # ── THE BAR. All four must hold on the HOLDOUT week. ────────────────────────────────────────────
-BAR = {"net_usd": 0.0,          # the week must make money
+BAR = {"usd_per_day": 800.0,    # the project bar, at 4 lots, on the holdout
        "trades_per_day": (3.0, 6.0),
        "side_accuracy": 0.75,   # share of trades on the dominant leg — he runs 85-88%
        "capture": 0.15}         # share of the day's leg points taken — he runs 23-41%
@@ -160,8 +160,27 @@ def log(m: str) -> None:
         fh.write(line + "\n")
 
 
+POISON_RATE = 0.10          # above this a day is not a trading decision — bible L7
+
+
 def score_week(recs: list) -> dict:
-    """His method, measured: side accuracy and leg capture, not just P&L."""
+    """His method, measured: side accuracy and leg capture, not just P&L.
+
+    ⚠⚠⚠2026-10-06 L7 IS NOW APPLIED HERE, NOT ONLY PREACHED IN THE PROMPT. An audit found
+    this function reading `net_usd` and `trades` and never looking at `calls`, so a day
+    poisoned DURING a run — budget exhaustion mid-week, the documented 10-04 and 10-06
+    failures with 138/138 errored calls booking exactly $0.00 — was scored as a real flat
+    session and fed straight into `usd_per_day`, `days_positive` and `worst_day`, i.e. into
+    the consistency gate itself. A $0.00 day even FLATTERS `worst_day`. The law was handed to
+    the model and ignored by the machine that judges it.
+    """
+    dropped = [r["day"] for r in recs
+               if (r.get("calls") and
+                   sum(1 for c in r["calls"] if c.get("error")) / len(r["calls"]) > POISON_RATE)]
+    recs = [r for r in recs if r["day"] not in dropped]
+    if dropped:
+        print(f"  ⚠ L7: {len(dropped)} POISONED day(s) excluded from scoring: "
+              f"{', '.join(dropped)}", flush=True)
     sides, caps, trades, net = [], [], 0, 0.0
     for rec in recs:
         net += rec["net_usd"]
@@ -195,6 +214,7 @@ def score_week(recs: list) -> dict:
     return {"net_usd": round(net, 2), "trades": trades,
             "trades_per_day": round(trades / max(len(recs), 1), 2),
             "days": len(recs),
+            "poisoned_days": len(dropped),
             "usd_per_day": round(mean, 2),
             "days_positive": sum(1 for x in dailies if x > 0),
             "daily_sd": round(sd, 2),
@@ -206,8 +226,8 @@ def score_week(recs: list) -> dict:
 
 def meets_bar(s: dict) -> tuple[bool, str]:
     why = []
-    if s["net_usd"] <= BAR["net_usd"]:
-        why.append(f"net ${s['net_usd']:+,.0f} not positive")
+    if s["usd_per_day"] < BAR["usd_per_day"]:
+        why.append(f"${s['usd_per_day']:+,.0f}/day < ${BAR['usd_per_day']:,.0f}")
     lo, hi = BAR["trades_per_day"]
     if not (lo <= s["trades_per_day"] <= hi):
         why.append(f"{s['trades_per_day']}/day outside {lo}-{hi}")
@@ -236,10 +256,8 @@ you will not be told how it went. So:
   · NO day names.
   · Each rule must be checkable from what you are actually shown: the picture, the leg list, your
     own trade count and P&L so far, and the clock.
-★ The method you are trying to reproduce, measured on the operator's own two best days: 7 of 8 and
-13 of 15 trades ON THE DOMINANT LEG, 41% and 23% of the day's available points captured, 8 and 15
-entries. He identifies which way the day is going and keeps taking that side. He does not call
-turns.
+★ The method you are trying to reproduce: he identifies which way the day is going and keeps taking
+that side. He does not call turns.
 
 Answer with the numbered rules and nothing else."""
 
@@ -366,7 +384,14 @@ def main() -> int:
         import random as _r
         wk = TRAIN_POOL[(it - 1) % len(TRAIN_POOL)] if it <= len(TRAIN_POOL) \
             else _r.Random(it).choice(TRAIN_POOL)
-        if os.environ.get("GAZBOT_PREFLIGHT", "1") != "0":
+        # ⚠⚠⚠2026-10-06 THE GATES ARE NO LONGER OPTIONAL. This block used to be wrapped in
+        # `if os.environ.get("GAZBOT_PREFLIGHT","1") != "0"`, so ONE environment variable
+        # skipped the binary check, the live-call check, the budget check, the tape check, the
+        # poisoned-artefact check AND the holdout-leak check — the last of which is described
+        # in its own source as losing the project's only unbiased number "silently and
+        # permanently". The file simultaneously claimed "a gate cannot be forced". Only the
+        # LLM audit's verdict can be overridden now, and only deliberately.
+        if True:
             cmd = [sys.executable, f"{GB}/scripts/preflight_iteration.py",
                    "--iter", str(it), "--train", ",".join(wk)]
             if os.environ.get("GAZBOT_PREFLIGHT_FORCE") == "1":
@@ -393,8 +418,19 @@ def main() -> int:
         log(f"  HOLDOUT {s_ho}")
         log(f"  BAR: {why}")
 
+        # ★★★2026-10-06 RECORD THE RULES THAT WERE ACTUALLY TRADED. An independent audit found
+        # the revert path loading `rules_iter{champ_iter}.txt`, which is OFF BY ONE: the loop
+        # trades the set it was HANDED and writes `rules_iter{it}.txt` at the END, so
+        # history[2]'s score belongs to rules_iter1.txt. "Reverting to the champion" therefore
+        # loaded the WORST measured set while logging that it was restoring the best.
+        # ⚠ The fix is not to subtract one — an index you have to reason about is the bug. The
+        # traded file and its sha are recorded here, and the revert reads them back.
+        import hashlib as _h
+        _rp = f"{OUT}/IT{it}.txt"          # ★ IT<n> = what iteration n ACTUALLY traded
+        open(_rp, "w").write(rules)
         history.append({"iter": it, "train": s_tr, "holdout": s_ho, "met": ok,
-                        "rules_chars": len(rules)})
+                        "rules_chars": len(rules), "rules_path": _rp,
+                        "rules_sha": _h.sha256(rules.encode()).hexdigest()[:12]})
         json.dump(history, open(hp, "w"), indent=1)
 
         # ★ the honest diagnostic: is the training curve rising while the holdout is not?
@@ -434,41 +470,68 @@ def main() -> int:
         # $100/day gain, and $100/day is $25k a year — "cannot measure it in ten days" is not
         # "it does not matter". The guard against drifting on noise is the ratchet itself:
         # the champion is never replaced by something that scored worse.
+        # ★★★2026-10-06 THE CHAMPION IS HELD, NOT RECOMPUTED FROM argmax($/day).
+        # The audit found two faults in the first version and they compounded:
+        #   · the champion was chosen by `max(usd_per_day)` — $/day ALONE, the one statistic
+        #     Law 0 says must not decide;
+        #   · and `if champ["iter"] != it` meant that whenever the NEWEST iteration posted the
+        #     biggest number it WAS the champion, so `bible.gate()` was never called, nothing
+        #     was logged, and its rules were carried forward with no consistency check at all.
+        #     That is exactly the operator's objection — "maximise one day to $2000 but then
+        #     have 3 negatives" — sailing through ungated.
+        # The champion is now an explicit, persisted record replaced ONLY when gate() says so.
+        from gazbot7.bible import gate as _gate
         champ = None
-        for h in history:
-            if h.get("holdout", {}).get("usd_per_day") is not None:
-                if champ is None or h["holdout"]["usd_per_day"] > champ["holdout"]["usd_per_day"]:
+        cp = f"{OUT}/CHAMPION.json"
+        if os.path.exists(cp):
+            try:
+                champ = json.load(open(cp))
+            except Exception:
+                champ = None
+        if champ is None:
+            # bootstrap from history by the gate, not by $/day: walk in iteration order and
+            # let each entry challenge the incumbent on Law 0's terms.
+            for h in sorted((x for x in history if (x.get("holdout") or {}).get("usd_per_day")
+                             is not None), key=lambda x: x["iter"]):
+                if champ is None:
                     champ = h
-        this_pd = s_ho.get("usd_per_day")
-        this_pos = s_ho.get("days_positive", 0)
-        if champ and champ["iter"] != it and this_pd is not None:
-            cpd = champ["holdout"]["usd_per_day"]
-            cpos = champ["holdout"].get("days_positive", 0)
-            # ★★★2026-10-06 LAW 0 DECIDES, NOT $/day. Operator: *"consistency is more
-            # important"*. The first ratchet compared $/day and days-positive; `bible.gate()`
-            # adds the worst day and the spread-to-mean ratio, so a challenger that buys a
-            # bigger average with deeper holes is refused — his exact objection, *"If we
-            # maximise one day to $2000 but then have 3 negatives or $200 days it's no good."*
-            from gazbot7.bible import gate as _gate
-            _ok, _why = _gate(s_ho, champ["holdout"])
-            log(f"  CONSISTENCY GATE: {_why}")
-            if not _ok:
-                log(f"  ✗ CHALLENGER REJECTED: iter {it} scored ${this_pd:+,.0f}/day with "
-                    f"{this_pos} positive days vs champion iter {champ['iter']} at "
-                    f"${cpd:+,.0f}/day with {cpos}. REVERTING to the champion's rules.")
+                    continue
+                okg, _ = _gate(h["holdout"], champ["holdout"])
+                if okg:
+                    champ = h
+            if champ:
+                json.dump(champ, open(cp, "w"), indent=1)
+                log(f"  champion bootstrapped by the gate: iteration {champ['iter']} "
+                    f"(${champ['holdout']['usd_per_day']:+,.0f}/day)")
+
+        if champ is not None and champ["iter"] != it:
+            okg, whyg = _gate(s_ho, champ["holdout"])
+            log(f"  CONSISTENCY GATE vs champion iter {champ['iter']}: {whyg}")
+            if not okg:
                 open(f"{OUT}/rules_iter{it}_rejected.txt", "w").write(rules)
-                champ_rules = f"{OUT}/rules_iter{champ['iter']}.txt"
-                if os.path.exists(champ_rules):
-                    rules = open(champ_rules).read()
+                # ⚠ revert by the RECORDED path, never by an index
+                crp = champ.get("rules_path") or f"{OUT}/IT{champ['iter']}.txt"
+                if os.path.exists(crp):
+                    rules = open(crp).read()
                     open(rp, "w").write(rules)
-                log(f"  → iteration {it + 1} will start from iteration "
-                    f"{champ['iter']}'s rules, not this one's")
+                    log(f"  ✗ CHALLENGER REJECTED — reverted to {os.path.basename(crp)} "
+                        f"(sha {champ.get('rules_sha','?')})")
+                else:
+                    log(f"  ⚠ CHALLENGER REJECTED but the champion's recorded rules are "
+                        f"MISSING at {crp} — rules left unchanged rather than guessed")
                 history[-1]["rejected"] = True
                 history[-1]["champion_iter"] = champ["iter"]
                 json.dump(history, open(hp, "w"), indent=1)
                 continue
-            log(f"  ✓ CHALLENGER ACCEPTED: ${this_pd:+,.0f}/day · {this_pos} positive days "
-                f"beats iter {champ['iter']} (${cpd:+,.0f} · {cpos})")
+            log(f"  ✓ CHALLENGER ACCEPTED — IT{it} becomes CHAMP")
+            champ = history[-1]
+            json.dump({"champion_iter": it, "file": f"IT{it}.txt",
+                       "sha": champ.get("rules_sha"), "holdout": s_ho}, open(cp, "w"), indent=1)
+            # ⚠ CHAMPION.txt is a COPY, never a symlink: the paper desk reads it and a later
+            # iteration must not be able to change what is trading by rewriting IT<n>.txt.
+            import shutil as _sh
+            _sh.copyfile(_rp, f"{OUT}/CHAMPION.txt")
+            log(f"  → CHAMPION.txt now holds IT{it} (sha {champ.get('rules_sha')})")
 
         log("  consolidating the week into a rewritten rule set")
         rules = consolidate(tr, rules)

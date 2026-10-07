@@ -1,0 +1,110 @@
+IT4 — DECLARED CHANGE (L3), written BEFORE any run.
+
+CHAMPION: IT2, sha 5f0e05decd3b (reports/recursive_loop/CHAMPION.txt). CHALLENGER: IT4, sha a6e6d2a40eeb (reports/recursive_loop/IT4.txt).
+THE ONE CHANGE (L2): rule 7 gains a single exception clause. Everything else is IT2 verbatim.
+  Added to rule 7: claim a decent profit — once a trade has been roughly 30pt or more ahead at its best, if price retraces roughly a third or more of
+  that best open profit (and at least about 15pt) and is not making a new extreme in the trade's direction, exit and bank it. While price keeps making
+  new extremes, hold. The clause says it overrides the brief's "hold while the structure holds" paragraph for this case only.
+WHY (LAW 0d, evidence under LAW 0c): IT2 has no rule that banks a profit; rule 8's stop sits just beyond the entry, so a trade that ran in profit is cut only
+  after it has given the profit back. On IT2's own 129 trades in June 2026 (22 days; development data from here on), 62 trades peaked >=20pt, 54 >=30pt; 19 of
+  those 54 finished red (-$2,870) while the 35 that finished green made +$19,408.
+WHAT THE WORDING WOULD HAVE DONE TO THOSE RECORDED TRADES (counterfactual convention: the claim fires at the first 5-minute call at which the condition holds; fill
+  = that call's close less the half-spread; 4 lots, $2/pt, $6 fees; NO credit for re-entering afterwards, which understates it):
+  46 of 129 trades altered. 35 improved (+$8,364), 11 worsened (-$3,748), net +$4,616. June as run: -$2,410 (8 of 22 days positive, worst day -$1,902);
+  with the claim: +$2,206 (10 of 22 positive, worst day -$1,498). Days made worse: 06-04, 06-09, 06-11, 06-15, 06-17, 06-23, 06-26; unchanged: 06-02, 06-25.
+  Robustness: 11 other (threshold, give-back) wordings tried on the same trades ALL improved June's net by $3,400-$6,100 and days-positive from 8 to 9-12; none changed the
+  worst day by much. This wording was chosen as the middle of that plateau, not its best cell.
+  THE COST IS REAL AND NAMED: the 11 worsened trades are winners the structure exit let run (06-11 L +108pt, 06-04 S +132pt, 06-17 L +91pt, 06-15 L +72pt ...).
+  A mechanical trail cannot tell a pullback inside an intact leg from the end of the leg; that distinction is the model's judgement from the picture, which is exactly what this
+  iteration tests. This June counterfactual is NOT a result (L6) — the result is the paired fresh-days test below.
+KNOWN CONFLICT: the BRIEF (shared, imported by the frozen shadow runner, NOT edited) still says "hold while the structure holds; a +25pt exit on an intact leg is leaving the trade early".
+  The rule overrides it explicitly, as IT2's rule 5 (8-15 entries) already overrides the brief's 3-6. If the model ignores the claim, record it as an L8 finding; do not edit the shared BRIEF.
+HOW IT WILL BE JUDGED: paired IT2 vs IT4, same harness (self_aware=True, forward_month.py), same 11 unseen days chosen mechanically BEFORE any run (every 10th of the 106 weekdays
+  Jan-May 2026 with >=600 bars, starting at the 5th): 2026-01-08 2026-01-22 2026-02-05 2026-02-19 2026-03-05 2026-03-19 2026-04-02 2026-04-16 2026-04-30 2026-05-14 2026-05-28.
+  bible.gate(challenger, champion): days positive, worst day and CV may not worsen, then $/day must be higher. Otherwise IT2 stays champion and the reason is recorded.
+THE RECORDED TRADES CITED (day, entry time Z, side, entry, recorded exit, recorded reason, would_have):
+  2026-06-01 07:35 S in 30526.62 out 30510.62 [CLAUDE_EXIT] recorded +16.0pt $122 | would_have: claim at 08:50Z at +45.0pt (peak 72pt) = $354 vs recorded $122 (+232)
+  2026-06-01 12:05 S in 30459.62 out 30476.62 [CLAUDE_EXIT] recorded -17.0pt $-142 | would_have: claim at 12:20Z at +20.0pt (peak 37pt) = $154 vs recorded $-142 (+296)
+  2026-06-03 08:15 L in 30737.62 out 30730.62 [CLAUDE_EXIT] recorded -7.0pt $-62 | would_have: claim at 12:15Z at +36.5pt (peak 58pt) = $286 vs recorded $-62 (+348)
+  2026-06-04 02:00 S in 30444.62 out 30400.88 [CLAUDE_EXIT] recorded +43.8pt $344 | would_have: claim at 02:20Z at +49.7pt (peak 79pt) = $392 vs recorded $344 (+48)
+  2026-06-04 03:15 L in 30447.88 out 30456.88 [CLAUDE_EXIT] recorded +9.0pt $66 | would_have: claim at 05:05Z at +37.5pt (peak 58pt) = $294 vs recorded $66 (+228)
+  2026-06-04 06:05 L in 30488.12 out 30484.62 [CLAUDE_EXIT] recorded -3.5pt $-34 | would_have: claim at 07:20Z at +11.8pt (peak 52pt) = $88 vs recorded $-34 (+122)
+  2026-06-04 08:10 S in 30439.38 out 30307.38 [CLAUDE_EXIT] recorded +132.0pt $1050 | would_have: claim at 08:30Z at +41.0pt (peak 80pt) = $322 vs recorded $1050 (-728)
+  2026-06-04 10:20 S in 30279.62 out 30266.62 [CLAUDE_EXIT] recorded +13.0pt $98 | would_have: claim at 11:00Z at +20.2pt (peak 57pt) = $156 vs recorded $98 (+58)
+  2026-06-05 04:40 L in 30207.88 out 30181.62 [CLAUDE_EXIT] recorded -26.2pt $-216 | would_have: claim at 05:05Z at +8.0pt (peak 30pt) = $58 vs recorded $-216 (+274)
+  2026-06-05 06:30 S in 30147.38 out 30135.88 [CLAUDE_EXIT] recorded +11.5pt $86 | would_have: claim at 07:25Z at +38.3pt (peak 80pt) = $300 vs recorded $86 (+214)
+  2026-06-08 04:45 S in 29107.38 out 29059.38 [CLAUDE_EXIT] recorded +48.0pt $378 | would_have: claim at 06:00Z at +60.5pt (peak 126pt) = $478 vs recorded $378 (+100)
+  2026-06-08 07:35 L in 29213.12 out 29182.88 [CLAUDE_EXIT] recorded -30.2pt $-248 | would_have: claim at 08:00Z at +20.5pt (peak 56pt) = $158 vs recorded $-248 (+406)
+  2026-06-09 02:30 L in 29494.12 out 29600.12 [CLAUDE_EXIT] recorded +106.0pt $842 | would_have: claim at 07:30Z at +118.8pt (peak 185pt) = $944 vs recorded $842 (+102)
+  2026-06-09 10:55 L in 29683.12 out 29737.12 [WINDOW_CLOSE_1330Z] recorded +54.0pt $426 | would_have: claim at 11:50Z at +20.0pt (peak 40pt) = $154 vs recorded $426 (-272)
+  2026-06-10 04:05 S in 28972.62 out 28945.38 [CLAUDE_EXIT] recorded +27.2pt $212 | would_have: claim at 04:20Z at +5.7pt (peak 36pt) = $40 vs recorded $212 (-172)
+  2026-06-10 08:00 S in 28931.38 out 28794.12 [CLAUDE_EXIT] recorded +137.2pt $1092 | would_have: claim at 09:30Z at +148.3pt (peak 232pt) = $1180 vs recorded $1092 (+88)
+  2026-06-10 10:15 S in 28746.62 out 28799.88 [CLAUDE_EXIT] recorded -53.2pt $-432 | would_have: claim at 10:25Z at -9.8pt (peak 38pt) = $-84 vs recorded $-432 (+348)
+  2026-06-10 11:20 S in 28699.38 out 28714.38 [CLAUDE_EXIT] recorded -15.0pt $-126 | would_have: claim at 11:50Z at +46.8pt (peak 77pt) = $368 vs recorded $-126 (+494)
+  2026-06-11 03:55 L in 28717.88 out 28724.88 [CLAUDE_EXIT] recorded +7.0pt $50 | would_have: claim at 05:00Z at +36.2pt (peak 79pt) = $284 vs recorded $50 (+234)
+  2026-06-11 05:25 L in 28730.12 out 28838.38 [CLAUDE_EXIT] recorded +108.2pt $860 | would_have: claim at 06:30Z at +16.0pt (peak 32pt) = $122 vs recorded $860 (-738)
+  2026-06-12 05:40 S in 29486.88 out 29459.38 [CLAUDE_EXIT] recorded +27.5pt $214 | would_have: claim at 05:55Z at +69.8pt (peak 110pt) = $552 vs recorded $214 (+338)
+  2026-06-12 06:25 S in 29428.38 out 29383.62 [CLAUDE_EXIT] recorded +44.8pt $352 | would_have: claim at 07:35Z at +89.8pt (peak 152pt) = $712 vs recorded $352 (+360)
+  2026-06-12 08:15 L in 29456.12 out 29456.38 [CLAUDE_EXIT] recorded +0.2pt $-4 | would_have: claim at 08:35Z at +26.0pt (peak 75pt) = $202 vs recorded $-4 (+206)
+  2026-06-12 11:20 L in 29617.38 out 29568.12 [CLAUDE_EXIT] recorded -49.2pt $-400 | would_have: claim at 12:00Z at +8.5pt (peak 37pt) = $62 vs recorded $-400 (+462)
+  2026-06-15 02:00 L in 30173.88 out 30246.12 [CLAUDE_EXIT] recorded +72.2pt $572 | would_have: claim at 02:35Z at +20.2pt (peak 35pt) = $156 vs recorded $572 (-416)
+  2026-06-15 10:00 L in 30252.12 out 30256.62 [CLAUDE_EXIT] recorded +4.5pt $30 | would_have: claim at 11:35Z at +40.5pt (peak 64pt) = $318 vs recorded $30 (+288)
+  2026-06-16 03:30 L in 30512.62 out 30512.62 [CLAUDE_EXIT] recorded +0.0pt $-6 | would_have: claim at 03:55Z at +11.3pt (peak 33pt) = $84 vs recorded $-6 (+90)
+  2026-06-16 08:20 L in 30576.38 out 30590.62 [CLAUDE_EXIT] recorded +14.2pt $108 | would_have: claim at 09:20Z at +7.2pt (peak 48pt) = $52 vs recorded $108 (-56)
+  2026-06-16 10:55 L in 30617.38 out 30612.12 [CLAUDE_EXIT] recorded -5.2pt $-48 | would_have: claim at 11:25Z at +19.7pt (peak 42pt) = $152 vs recorded $-48 (+200)
+  2026-06-17 03:30 L in 30122.12 out 30212.88 [CLAUDE_EXIT] recorded +90.8pt $720 | would_have: claim at 04:40Z at +25.8pt (peak 42pt) = $200 vs recorded $720 (-520)
+  2026-06-17 12:25 L in 30156.62 out 30159.88 [CLAUDE_EXIT] recorded +3.2pt $20 | would_have: claim at 13:00Z at +6.0pt (peak 33pt) = $42 vs recorded $20 (+22)
+  2026-06-18 04:25 S in 30006.62 out 30029.62 [CLAUDE_EXIT] recorded -23.0pt $-190 | would_have: claim at 04:50Z at +16.2pt (peak 43pt) = $124 vs recorded $-190 (+314)
+  2026-06-18 07:00 L in 30094.62 out 30081.62 [CLAUDE_EXIT] recorded -13.0pt $-110 | would_have: claim at 08:25Z at +25.5pt (peak 82pt) = $198 vs recorded $-110 (+308)
+  2026-06-19 10:25 S in 30584.88 out 30584.12 [CLAUDE_EXIT] recorded +0.8pt $0 | would_have: claim at 10:45Z at +15.8pt (peak 32pt) = $120 vs recorded $0 (+120)
+  2026-06-22 05:20 L in 30651.88 out 30696.12 [CLAUDE_EXIT] recorded +44.2pt $348 | would_have: claim at 08:05Z at +77.2pt (peak 125pt) = $612 vs recorded $348 (+264)
+  2026-06-23 02:00 S in 30453.12 out 30411.12 [CLAUDE_EXIT] recorded +42.0pt $330 | would_have: claim at 02:15Z at +1.0pt (peak 41pt) = $2 vs recorded $330 (-328)
+  2026-06-23 07:25 S in 29982.12 out 29901.88 [CLAUDE_EXIT] recorded +80.2pt $636 | would_have: claim at 09:05Z at +114.5pt (peak 178pt) = $910 vs recorded $636 (+274)
+  2026-06-23 12:25 S in 29762.88 out 29719.38 [WINDOW_CLOSE_1330Z] recorded +43.5pt $342 | would_have: claim at 13:20Z at +19.3pt (peak 60pt) = $148 vs recorded $342 (-194)
+  2026-06-24 02:25 S in 29786.62 out 29712.12 [CLAUDE_EXIT] recorded +74.5pt $590 | would_have: claim at 03:10Z at +88.7pt (peak 157pt) = $704 vs recorded $590 (+114)
+  2026-06-24 04:10 S in 29699.12 out 29758.38 [CLAUDE_EXIT] recorded -59.2pt $-480 | would_have: claim at 04:30Z at +14.2pt (peak 37pt) = $108 vs recorded $-480 (+588)
+  2026-06-24 05:00 L in 29783.88 out 29801.12 [CLAUDE_EXIT] recorded +17.2pt $132 | would_have: claim at 05:50Z at +39.2pt (peak 78pt) = $308 vs recorded $132 (+176)
+  2026-06-26 06:30 L in 29385.12 out 29417.12 [CLAUDE_EXIT] recorded +32.0pt $250 | would_have: claim at 06:40Z at +18.5pt (peak 34pt) = $142 vs recorded $250 (-108)
+  2026-06-29 02:35 L in 29512.12 out 29495.38 [CLAUDE_EXIT] recorded -16.8pt $-140 | would_have: claim at 03:15Z at +33.8pt (peak 54pt) = $264 vs recorded $-140 (+404)
+  2026-06-30 03:30 L in 30063.62 out 30122.38 [CLAUDE_EXIT] recorded +58.8pt $464 | would_have: claim at 03:55Z at +31.8pt (peak 59pt) = $248 vs recorded $464 (-216)
+  2026-06-30 07:15 S in 30117.88 out 30120.12 [CLAUDE_EXIT] recorded -2.2pt $-24 | would_have: claim at 08:00Z at +12.0pt (peak 47pt) = $90 vs recorded $-24 (+114)
+  2026-06-30 10:15 L in 30103.12 out 30101.88 [CLAUDE_EXIT] recorded -1.2pt $-16 | would_have: claim at 11:25Z at +15.0pt (peak 58pt) = $114 vs recorded $-16 (+130)
+
+==== PRE-REGISTERED BEFORE THE RUN (L3/L8) — added in answer to audit items 1-3; every number below is from IT2's recorded June trades ====
+
+PREDICTION 1 — TRADES/DAY MOVES UP, NOT DOWN, AND THE BAR BAND (3.0-6.0) IS ALREADY EXCEEDED BY THE CHAMPION (6.4 on the holdout).
+  Why up: rule 5 still says re-enter after every exit, and a claim frees the slot earlier — in June the 46 altered trades would have exited a median 25 minutes (range 5-405)
+  before the recorded exit, and the median gap from an exit to the next entry was 30 min (21% of next entries came within 10 min). The June counterfactual credits NO re-entry, so
+  it is blind to this by construction.
+  Bound, not a guess: one extra entry per altered trade = +46/22 = +2.1 trades/day at the very most (June as run 5.86/day, so ceiling about 8.0). Expected: up by less than 2.1/day.
+  Not a gate item — bible.gate does not use the trades band — but recorded per iteration, and any rise is labelled as the claim's side-effect (L8), not a separate change.
+
+PREDICTION 2 — CAPTURE (bar 0.15; champion holdout 0.17, 0.02 of headroom): HELD, NOT RAISED, AND THE RISK IS NAMED.
+  Capture here is exactly recursive_loop.score_week: mean over days of max(0, net points) / the day's leg points on the 02:00-13:30Z tape. Recomputed on the 22 June days with that function's
+  own definition: as run 0.081, with the claim 0.085 (flat; the points given up on the 11 worsened runners are paid for by the points saved on the 35 improved). So the prediction is
+  "no change beyond +/-0.02 of IT2's value on the same 11 days". A fall of more than 0.02 below IT2's own number on the paired days is the failure signature (the clause truncating
+  leg-runners) and is judged a REFUTATION of this wording, not noise; capture < 0.15 on IT4 is reported as a bar failure even if $/day rose.
+
+PREDICTION 3 — THE MECHANISM ITSELF, measurable from the artefacts and independent of $/day noise:
+  Share of trades that peaked >=30pt and then finished at or below 0pt: IT2 June 17 of 54 (31%); under the claim 2 of 54 (4%). IT4 must show that share FALL on the 11 paired days
+  (IT2's own paired figure is the baseline, not June's). If it does not fall, the model is not obeying the clause regardless of $.
+
+QUARANTINE (L7) — applied to EACH of the 11 days of BOTH arms before any number is read: calls with error / calls > 10% = poisoned = excluded and re-run, never scored as flat
+  (score_week already drops them and prints the day; the run's own log is checked for that line and for an errored-call count per day).
+
+OBEDIENCE CHECK — the un-edited BRIEF says "a +25pt exit on an intact leg is leaving the trade early", and IT2's June CLAUDE_EXIT reasons contain the word claim/bank in only 4 of 126.
+  Per day, count CLAUDE_EXIT trades with peak_pt >= 30 whose reason text cites a claim / banking / giving-back, and the count of trades that closed within 15 minutes after reaching
+  a peak >= 30. ZERO claim-cited exits across the 11 days means the BRIEF won and the run tested nothing: that is reported as "wording not obeyed" (an L8 finding about the model's
+  hierarchy), not as "claiming does not work", and the BRIEF stays unedited while IT2 is in the forward test.
+
+WHAT COUNTS AS THE VERDICT: bible.gate(IT4, IT2) on the same 11 paired days — days-positive, worst day and CV may not worsen, then $/day must be higher. The June counterfactual is
+  +$210/day and the single-run noise floor on $/day is ~$324/day, so a $/day improvement alone cannot be resolved on 11 days; that is stated now. A gate pass whose $/day gain is inside
+  the noise floor is recorded as "passed, unresolved" and is NOT a promotion; the interpretable evidence is the counts (days positive, worst day, CV) and Predictions 2-3.
+
+==== AUDIT-GO ADDENDUM (also pre-registered) ====
+WORST-DAY FAILURE ON n=11: the worst day is one order statistic. If IT4's worst day is below IT2's on the paired days, the deepest day's worst trade is named and checked for whether the claim
+  caused the loss (a claim exit that then re-entered and lost, versus a loss the clause never touched) BEFORE the gate verdict is written. The gate verdict itself is unchanged: a worse worst day is a fail.
+THE BAR IS NOT MOVED BY THIS ITERATION: trades/day rises toward ~8.0 (already outside 3.0-6.0), side accuracy is untouched, so "all four bar metrics met" stays False whatever the gate says.
+  A gate pass is progress on consistency/return versus IT2, never progress toward "complete".
+POINTS GIVEN UP ON RUNNERS, REPORTED AS A NUMBER: on the paired days, for every trade where the claim fired and the leg then kept going, report the pts the claim left on the table versus IT2's
+  recorded exit (June: the 11 worsened trades, -$3,748, e.g. 06-11 L +108pt, 06-04 S +132pt, 06-17 L +91pt). Scored on the paired days, not argued from June.

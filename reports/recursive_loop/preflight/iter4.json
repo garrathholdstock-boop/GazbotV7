@@ -1,0 +1,49 @@
+{
+ "iter": 4,
+ "ts": "2026-10-07T09:15:12.930759+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~70M, have 389M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (10 rules)"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (.....................                                                 )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 21.3GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: One side of the day, picked from the shape of the tape and never changed except by a leg bigger than anything in your direction so far \u2014 enter only after a new extreme of the leg and a pullback that holds, get out when price breaks back through the low you entered from, and never take a trade against the declared side.\n\nHOW IT TRIES TO BEAT THE CHAMPION: One clause is new and nothing else is: once a trade has been 30 points or more in your favour at its best, if it hands back a third of that and stops making new extremes, you bank it instead of holding until the structure exit fires \u2014 and that exit sits just beyond the entry, so today a trade that ran $600 in profit is only closed after the $600 is gone. On the champion's own June trades, 54 ran 30 points or more ahead and 19 of them finished red for -$2,870; the new clause rescues most of that.\n\nWHAT WOULD HAVE TO HAPPEN: The trades that go 30 points your way and then stall have to be closed while the money is still on the screen, rather than held through the whole round trip back to the entry.\n\nWHAT IT GIVES UP: The monsters \u2014 the 132-point and 108-point winners get cut at +41 and +16 instead, because a give-back rule cannot tell a pullback inside a leg that is still running from the end of that leg.\n\nBIGGEST RISK: The edge is worth about $210/day in the June figures and one run of this harness moves $324/day on identical inputs, so even a clean win on eleven days won't prove the clause did it \u2014 and if the model follows the old brief's \"hold while the structure holds\" and never claims, the run tests nothing at all.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\n\nFAILING METRIC: $/day = $620 (champion IT2), $180/day \u2014 22.5% \u2014 short of the 800 bar; the only other misses are trades/day 6.4 vs the (3.0, 6.0) band and side 0.734 vs 0.750, both within 7%.\n\nAIMED AT IT: YES \u2014 the rule-7 claim clause attacks the one named source of lost dollars (54 June trades peaked \u226530pt, 19 finished red for \u2212$2,870 while the structure exit sat just beyond entry), and I confirmed by diff that IT4.txt differs from IT2.txt in rule 7 alone with the other nine rules byte-identical, so the $/day move is attributable to that clause and nothing else.\n\nMEASURABLE: NO \u2014 the cited counterfactual is +$210/day against a $324/day single-run floor, so the gate's $/day leg cannot be resolved on 11 paired days; what *is* measurable is pre-registered Prediction 3 (share of \u226530pt peaks finishing \u22640pt, 31% \u2192 4% in the June counterfactual), a count far outside its own noise, and the plan already declares a gate pass inside the floor as \"passed, unresolved\" rather than a promotion.\n\nMISSING:\n1. Pre-register how a worst-day gate failure on n=11 is handled. Worst day is a single order statistic; one day can reject a working clause. Require the deepest day's worst trade to be named and checked for whether the claim caused it before the gate verdict is written.\n2. Record now that Prediction 1 pushes trades/day from 6.4 toward a ceiling of ~8.0, i.e. *further* outside the bar's band, and that nothing in IT4 touches side accuracy \u2014 so \"met all four\" stays False whatever the gate says. Say that before the run so a gate pass is not read as bar progress.\n3. Lock the points given up on the top-decile runners as a reported number (the 11 worsened trades \u2014 06-11 +108pt, 06-04 +132pt, 06-17 +91pt \u2014 are exactly L9's asymmetric payoff). That tension should be scored on the paired days, not argued from June.\n\nREASON: This is the first iteration that starts from the champion, changes exactly one rule, and derives that rule from the champion's own named trades, and it aims at the metric furthest from the bar. Its dollar verdict is unresolvable at this sample size, but it says so up front and puts the weight on counts, which is the correct read of L10 \u2014 so the budget buys interpretable evidence either way."
+ },
+ "verdict": "GO"
+}

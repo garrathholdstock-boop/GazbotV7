@@ -1,0 +1,49 @@
+{
+ "iter": 5,
+ "ts": "2026-10-07T11:58:21.126777+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~63M, have 362M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (10 rules)"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (.....................                                                 )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 21.1GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: It picks a side from the day's structure and only adds to that side on a pullback after a new high/low (never on a turn call), and it refuses to ever take a trade against its declared side.\n\nHOW IT TRIES TO BEAT THE CHAMPION: This is NOT a change to how it enters or picks sides \u2014 rules 1-6 and 8-10 are byte-identical to the champion (iteration 2). The only change is a patch to one claim-exception sentence in rule 7, closing a loophole where it was buying straight back into the same stall it had just banked profit from, so this run is partly a repeat of the champion and partly a narrow mechanism check on whether that one patch holds, not a swing for a bigger number.\n\nWHAT WOULD HAVE TO HAPPEN: On the tape, after it banks a profit on a leg, it has to actually sit out that direction until price makes a brand-new high or low beyond where that trade peaked, instead of buying the same stall back within minutes.\n\nWHAT IT GIVES UP: It will sit out one real continuation leg it would otherwise have caught right after a claim (the June $2,438 winner it would have blocked), trading a few good re-entries to avoid the much larger number of bad ones.\n\nBIGGEST RISK: With only two day-runs first and the champion comparison running in pairs of two, any $/day difference this size will land inside the known $324/day noise floor, so the run can easily look flat or even slightly worse without that meaning the fix failed \u2014 the real verdict here is whether it stops buying back the stall, not the headline dollar number.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\nFAILING METRIC: $/day ($620/day best-of-three vs bar \u2265800, a $180/day gap)\nAIMED AT IT: PARTLY \u2014 the guard removes a named loss source (5 of 9 IT4 same-side re-entries cost \u2212$1,002) but the pre-registered tests (P1\u2013P5) score mechanism/counts, not $/day directly \u2014 correctly deferring the dollar verdict per L10.\nMEASURABLE: YES \u2014 the cited mechanism effect (\u2212$1,002 from the 5 re-entries the guard would block, out of 2 days) exceeds the $324/day noise floor, even though $/day itself stays unresolved until several tranches accumulate.\nMISSING: (1) the tranche stop rule checks only cumulative net + P1/P3 \u2014 it should also carry worst-day and CV (the full dominance gate) per tranche, or a tail-worsening IT5 could survive several tranches before being caught; (2) no stated action if STEP 1 shows partial (not zero) obedience to the 60-min guard, only a clean pass/fail; (3) nothing else \u2014 trade citations, mechanical guard verification, and quarantine protocol are already in place.\nREASON: This is a single well-evidenced rule edit (L2/L3/L0c all satisfied, named trades, mechanical guard check) targeting a real defect surfaced in IT4's own trades, not a re-derivation of settled ground. It should run, but widen the tranche-stop check to the full consistency gate before reading any tranche as progress."
+ },
+ "verdict": "GO"
+}

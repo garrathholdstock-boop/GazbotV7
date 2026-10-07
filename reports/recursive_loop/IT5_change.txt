@@ -1,0 +1,63 @@
+IT5 — DECLARED CHANGE (L3), written BEFORE any IT5 run.
+
+CHAMPION: IT2, sha 5f0e05decd3b (reports/recursive_loop/CHAMPION.txt).  CHALLENGER: IT5, sha cc728bed350d (reports/recursive_loop/IT5.txt).
+IT5 = IT4 (sha a6e6d2a40eeb) plus ONE sentence cluster in rule 7's claim exception. Against IT2 only line 13 (rule 7) differs; rules 1-6 and 8-10 are byte-identical to IT2.
+
+WHAT HAPPENED TO IT4 (recorded, Sonnet, run stopped by the operator after 2 of 11 pairs: "Why isn't it4 improving ... Analyse why it is not. And fix it."):
+  IT2 +$402 / +$426 (mean $414/day) vs IT4 +$94 / +$510 (mean $302/day), trades IT2 5 and 7, IT4 9 and 7 (6.0 vs 8.0 a day), 0 errored calls on 3 of 4 days (IT2 01-22: 1 of 138). Two days is inside the $324/day noise floor and proves nothing about
+  $/day. What the trade log does show is a mechanism. The claim clause is OBEYED (4 of 4 profit-claims: 01-08 02:35->04:25 +33.8pt, 01-08 05:20->06:45 +60.0pt, 01-22 05:45->06:35 +33.5pt, 01-22 07:55->11:30 +111.5pt, each citing
+  rule 7). But rule 5 says "re-enter the same side after every exit" and rule 4 reads a pullback with intact structure as a continuation setup, so after each claim the model bought the same stall straight back.
+  The same tape that rule 7 read as "the leg stopped extending - bank it" rule 4 then read as "new setup - enter", three of the five within 5-10 minutes of the claim and the other two at +30 and +40, and the re-entry sat behind a tight rule-8 exit.
+  Same-side entries after a profit-claim (judged against the most recent prior claim on that side): 9 on the two days. 5 came inside 60 minutes with no new extreme beyond the claimed trade's best price: 0 winners, -$1,002
+  (-$22, -$72, -$496, -$180, -$232). The 4 that did not: 05:20 +$474 (price had made a new low beyond the claimed trade's best first) and three entries 3-5h later (-$16, -$54, +$8).
+  The claims themselves banked profit as written (4 claims, +33.8/+60.0/+33.5/+111.5pt) and the re-entries gave it back and more. The claims' own gain over IT2 is NOT isolated (L8): the one leg
+  both arms traded the same way, 01-22 05:45 short, IT4 claimed +33.5pt against IT2's +28.8pt (+$38); the 01-22 07:55 long that made IT4 +$886 was a longer-held trade than IT2's +$486 on the same move, i.e. model variance, not the claim. The -$496 is the 01-08 07:15 short, entered 30 min after the 06:45 claim into a pullback that
+  never made a new low; IT2, still holding the same short, read that tape as a structure break and banked +70.2pt.
+
+THE ONE CHANGE (L2): after a claim, no same-direction re-entry until price makes a new extreme beyond the best price the claimed trade reached (new low below it for a short, new high above it for a long); an entry in the
+  opposite direction is unaffected; rule 6's one-hour clock still runs from the claim, so after an hour flat a reduced-size rule-4 setup may be taken without waiting for the new extreme. This is not a second rule: it is the other half
+  of the same exception (a claim is only a claim if you do not buy the stall back), and it overrides rule 5's "re-enter after every exit" for a claim only.
+  The 60-minute bound is not a tuned number: it is rule 6's existing one-hour clock. On the June trades the sign of the effect changes with the bound (all-day and 30-minute variants flip on the single 06-23 trade, below), so I used the
+  bound that already exists in the rules rather than picking the best cell.
+
+WHY (LAW 0d, evidence under LAW 0c): the 9 recorded same-side entries below, all verified against the recorded runs by bible.admissible (9 of 9). Guard verdicts were computed mechanically from the 1-minute tape, not by eye.
+  2026-01-08 04:35 S in 25781.38 out 25783.38 [CLAUDE_EXIT] recorded -2.0pt $-22 | entered 10 min after the claim of the 02:35-04:25Z trade (its best price 25773.24); guard: BLOCKS it
+  2026-01-08 05:20 S in 25763.88 out 25703.88 [CLAUDE_EXIT] recorded +60.0pt $+474 | entered 55 min after the claim of the 02:35-04:25Z trade (its best price 25773.24); guard: allows it (new extreme beyond best made first)
+  2026-01-08 06:50 S in 25699.62 out 25707.88 [CLAUDE_EXIT] recorded -8.2pt $-72 | entered 5 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: BLOCKS it
+  2026-01-08 07:15 S in 25717.12 out 25778.38 [CLAUDE_EXIT] recorded -61.2pt $-496 | entered 30 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: BLOCKS it
+  2026-01-08 09:55 S in 25762.62 out 25763.88 [CLAUDE_EXIT] recorded -1.2pt $-16 | entered 190 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: allows it (>60 min, rule 6 clock)
+  2026-01-08 10:45 S in 25760.38 out 25766.38 [CLAUDE_EXIT] recorded -6.0pt $-54 | entered 240 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: allows it (>60 min, rule 6 clock)
+  2026-01-08 11:40 S in 25778.12 out 25776.38 [CLAUDE_EXIT] recorded +1.8pt $+8 | entered 295 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: allows it (>60 min, rule 6 clock)
+  2026-01-22 06:40 S in 25511.38 out 25533.12 [CLAUDE_EXIT] recorded -21.8pt $-180 | entered 5 min after the claim of the 05:45-06:35Z trade (its best price 25485.5); guard: BLOCKS it
+  2026-01-22 07:15 S in 25511.12 out 25539.38 [CLAUDE_EXIT] recorded -28.2pt $-232 | entered 40 min after the claim of the 05:45-06:35Z trade (its best price 25485.5); guard: BLOCKS it
+  Counterfactual convention (and its limit, L8): blocking an entry changes the path after it, so these dollars are what those recorded trades did, not what IT5 will make. The prediction below is therefore about COUNTS and MECHANISM.
+
+INDEPENDENT SAMPLE, AND THE COST NAMED: IT2's own 22 June days on Opus (development data) had no claim clause, so I used the closest proxy for a claim - a profitable exit after a >=30pt peak that gave back >=15pt and >=1/3 of it - and applied the same
+  guard to the entries that followed. 41 same-side entries followed such an exit on that side. The guard (60-min bound) would have blocked 18: net -$416, 5 winners. The blocked set includes one large winner, 2026-06-23 04:10 S (+$2,438), and
+  without it the other 17 blocked entries net -$2,854. So the avoided loss on June is positive with that trade (+$416) and without it (+$2,854) - the sign does not depend on it, the size does - but the guard WOULD have blocked it, and a repeat of that kind of trade is the cost of this change. Across all 41 June same-side re-entries after a proxy claim the net was -$960 on Opus (blocked -$416, allowed -$544), so re-entry after a banked exit was not rewarded in June either; the
+  guard is a bounded filter on the weaker half of that set, and it is mixed and fat-tailed, not a clean separation.
+  Neither sample is a result (L6). 2026-01-08 and 2026-01-22 are DEVELOPMENT data for IT5 from here on: the guard was derived from them and they cannot test it.
+
+PRE-REGISTERED PREDICTIONS (counts and mechanism; on every IT5 day, Sonnet, self_aware):
+  P1  MECHANISM: zero same-side entries within 60 minutes of a profit-claim (peak >=30pt, cited-claim exit) with no new extreme beyond that claimed trade's best price. IT4 had 5 in 2 days. Any occurrence is a failure of obedience (L8
+      finding about the model's hierarchy between rule 5 and rule 7), not a verdict on the idea.
+  P2  TRADES/DAY: IT5 <= IT4 (8.0/day on the two days) and at or above ~IT2 (6.0/day). It must come back toward IT2, not go below 3.0 (rule 6 and the one-hour clock keep it trading).
+  P3  WORST LOSS: no single loss worse than -$250 on a trade entered within 60 minutes after a claim; IT4's were -$496 and -$232.
+  P4  CAPTURE (score_week): within +/-0.02 of IT2's on the same days; a fall of more than 0.02 below IT2 is the signature of the guard keeping it out of continuation legs and is a REFUTATION of this wording.
+  P5  CLAIMS KEPT: trades with peak >=30pt that finish <=0pt stay rare (recorded: IT2 1 of 4 on these two days, IT4 0 of 4), i.e. the guard must not make the model stop claiming.
+
+HOW IT WILL BE TESTED, CHEAP FIRST (operator: "Don't do a huge run of days if it isn't improving"):
+  STEP 1 MECHANISM CHECK, IT5 only, 2026-01-08 and 2026-01-22 (2 day-runs, ~1h). Compared with the IT2/IT4 runs that already exist. NOT A RESULT (L6, and the days are development data): it only answers P1/P2/P3 - does the model obey the guard.
+         If P1 fails, stop and fix the wording before spending anything else.
+  STEP 2 FRESH DAYS, IT5 vs IT2, paired, 2026-02-05 and 2026-02-19 first (4 day-runs, ~2h), then 03-05, 03-19, then 04-02, 04-16, then 04-30, 05-14, 05-28 - the 9 untouched days from the IT4 list, in tranches of 2 pairs.
+         TRANCHE STOP RULE: after each tranche, if IT5's cumulative net is below IT2's on the same days, or P1/P3 fail, STOP and diagnose before running the next tranche. Continue only while IT5 is at or above IT2.
+         Two pairs cannot resolve $/day against a ~$324/day noise floor, so a tranche is read on the mechanism counts (P1-P5) and direction only. The verdict is bible.gate(IT5, IT2) on the full set of completed pairs; a pass inside
+         the noise floor is "passed, unresolved", never a promotion. IT2 stays champion and frozen in the shadow runner whatever happens.
+  Sonnet via ANTHROPIC_MODEL on the subscription (the EUR250 API key file does not exist). The Sonnet IT2 number is not the Opus $620 and is never reported as it.
+  QUARANTINE (L7): any day with >10% errored calls is poisoned, excluded and re-run, never scored as flat. THE BRIEF is not edited.
+
+PREFLIGHT ADDENDUM (audit iteration 5 -> reports/recursive_loop/preflight/iter5.json, verdict GO, all 9 gates pass; two gaps it named, both closed here BEFORE the run):
+  A1  TRANCHE READ USES THE FULL CONSISTENCY GATE, not net alone. After each tranche report, for IT5 and IT2 on the same days: days positive, worst day, CV (bible.gate dominance terms), net, trades/day, and P1-P5.
+      STOP if IT5's worst day is worse than IT2's, or its days-positive is lower, or its cumulative net is below IT2's, or P1/P3 fail. A tail-worsening IT5 does not get another tranche on the strength of a higher mean.
+  A2  PARTIAL OBEDIENCE IN STEP 1: if there is even ONE same-side entry inside the 60-min window with no new extreme beyond the claimed trade's best price (P1), STOP, read that call's `reason` in the day record to see which rule the model
+      cited, and fix the WORDING (L2: still one rule) before any fresh-day run. Zero occurrences + P2/P3 holding = proceed to STEP 2. The audit's note that the dollar edge is unresolved stands: nothing above is a claim about $/day.

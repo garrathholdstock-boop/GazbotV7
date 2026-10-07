@@ -174,6 +174,27 @@ def load_day(day: str):
     d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
     sess_open = d0 - 2 * 3600                      # 22:00Z previous day
     end = d0 + WIN_END_MIN * 60
+    # ★2026-10-06 THE LAKE IS THE DEFAULT SOURCE (operator: "scanning 1 minute bars is going to be much
+    # more efficient than scanning 5 second bars and … nothing happens in 5 seconds"). It carries
+    # the full history; capture.db is pruned to 60 days of bars and is only the fallback for days
+    # the lake has not caught up to. Measured within 0.5pt of the 5s-derived minute bars.
+    import duckdb
+    lake = duckdb.connect().execute(
+        f"SELECT bar_ts, high, low, close FROM read_parquet('{GB}/data/tape/bars/MNQ/backfill_1min.parquet') "
+        "WHERE bar_ts >= ? AND bar_ts < ? ORDER BY bar_ts", [sess_open, end]).fetchall()
+    if len(lake) >= 600:
+        return [(int(t), float(h), float(l), float(c)) for t, h, l, c in lake], sess_open
+    # the lake's dated 5s files (UTC-date partitions) cover everything after the 1-min backfill
+    # and, unlike capture.db, are never pruned — so the held-out weeks cannot be lost to it.
+    files = [f"{GB}/data/tape/bars/MNQ/{(dt.date.fromisoformat(day) + dt.timedelta(days=k)).isoformat()}.parquet"
+             for k in (-1, 0)]
+    if all(os.path.exists(f) for f in files):
+        five = duckdb.connect().execute(
+            "SELECT (bar_ts // 60) * 60 AS m, max(high), min(low), arg_max(close, bar_ts) "
+            f"FROM read_parquet({files!r}) WHERE timeframe='5s' AND bar_ts >= ? AND bar_ts < ? "
+            "GROUP BY 1 ORDER BY 1", [sess_open, end]).fetchall()
+        if len(five) >= 600:
+            return [(int(m), float(h), float(l), float(c)) for m, h, l, c in five], sess_open
     con = sqlite3.connect(f"file:{GB}/data/capture.db?mode=ro", uri=True)
     rows = con.execute(
         "SELECT bar_ts, high, low, close FROM bars WHERE symbol='MNQ' AND timeframe='5s' "
@@ -186,6 +207,8 @@ def load_day(day: str):
         a[1] = min(a[1], l)
         a[2] = c                                   # last close in the minute
     bars = [(m, float(v[0]), float(v[1]), float(v[2])) for m, v in sorted(agg.items())]
+    if len(lake) > len(bars):
+        bars = [(int(t), float(h), float(l), float(c)) for t, h, l, c in lake]
     return bars, sess_open
 
 
@@ -239,7 +262,7 @@ def _assert_causal(bars_upto, now_epoch: int) -> None:
 
 
 def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
-            done: list | None = None, self_aware: bool = False) -> str:
+            done: list | None = None, self_aware: bool = False, band: bool = True) -> str:
     """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
 
     ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
@@ -343,11 +366,14 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
             last_out = max(dt.datetime.fromisoformat(t["closed"]) for t in done)
             L += [f"  SO FAR: {len(done)} trade(s), {w} winner(s), net ${net:+,.2f}",
                   f"  {flat} of them never showed +8pt in your favour",
-                  f"  last exit was {(now - last_out).total_seconds()/60:.0f} min ago",
-                  f"  ⚠ YOUR BAND IS 3-6 TRADES A DAY. You are on {len(done)}."]
-            if len(done) >= 6:
-                L.append("  ⚠⚠ YOU ARE AT OR OVER THE LIMIT. Entering again needs a reason you "
-                         "would defend to him in the morning, not a setup that merely looks good.")
+                  f"  last exit was {(now - last_out).total_seconds()/60:.0f} min ago"]
+            # band=False is the v2 line: its brief says 3-6 is a description and a grind day may
+            # run higher, so a per-call nag saying "AT OR OVER THE LIMIT" would silently override it
+            if band:
+                L.append(f"  ⚠ YOUR BAND IS 3-6 TRADES A DAY. You are on {len(done)}.")
+                if len(done) >= 6:
+                    L.append("  ⚠⚠ YOU ARE AT OR OVER THE LIMIT. Entering again needs a reason you "
+                             "would defend to him in the morning, not a setup that merely looks good.")
 
     mins_left = WIN_END_MIN - (now.hour * 60 + now.minute)
     L += ["", f"⏱ {mins_left} minutes left in the window. At 13:30Z you are flattened "
@@ -402,6 +428,74 @@ ANSWER WITH ONE JSON OBJECT AND NOTHING ELSE:
 {{"action":"ENTER_LONG|ENTER_SHORT|EXIT|HOLD|WAIT","confidence":0.0-1.0,"reason":"<one sentence>"}}
   ENTER_* only when flat. EXIT or HOLD only when holding. WAIT when flat and not interested.
 Be decisive but do not manufacture trades: WAIT is the right answer most of the time."""
+
+
+# ★★★ THE STRATEGY LINE ("S"), 2026-10-07 — Law 0e in src/gazbot7/bible.py. BRIEF above is FROZEN:
+# scripts/shadow_runner.py trades it forward, so editing it would change the champion's forward
+# test mid-flight. A new line gets its own brief, selected by run_day(line="v2").
+BRIEF_V2 = f"""You are trading MNQ for a discretionary trader. This is his strategy. Everything you do answers to it.
+
+THE STRATEGY
+  Buy (or sell) into the major leg of the day, and get out near the top, in profit.
+  To start with you get in LATE - halfway up the leg is fine - and you get out EARLY, to be safe.
+  A profit taken beats a bigger one hoped for. Over time, slightly and safely, you learn to get in
+  a little earlier and out a little later. Always out in profit.
+    "i watch that the leg has turned and is grinding up or down the other way and i jump in."
+    "its not urgent to jump in. if we miss most of it, you can still jump in late for 20-30 points
+     and make $200."
+  He is a CONFIRMATION trader. He never calls the turn. He joins a leg that has already proven
+  itself, in its direction, and he never enters against the leg that is running.
+
+THERE ARE NO STOPS. YOU ARE THE EXIT.
+  This style cannot use stops: ordinary pullbacks inside a good leg would stop you out all day.
+  That is why you are watching every five minutes - you make the call.
+  - IN PROFIT AND THE MOVE IS TIRING (stalling, no new extreme, momentum fading, the shape
+    flattening): TAKE IT. You do not need proof the leg is over, the first honest sign is enough.
+    A decent profit - about $200-300, which is 25-40 points at {LOTS} lots - is a good trade. Do not
+    hand it back waiting for more.
+  - IN PROFIT AND THE LEG IS STILL DRIVING: hold and let it run.
+  - RED: a pullback inside the leg is not a reason to leave. Stay while the leg you joined is
+    intact. If the leg itself has reversed - the move you joined has been undone, not just
+    pulled back - get out; that is a call, not a stop. A red trade means the entry was too early
+    or the leg was not proven yet. The cure is to enter later next time, not to exit sooner.
+  - AFTER YOU TAKE A PROFIT the same stall is not a new trade. Come back in only when the leg
+    proves itself again with a fresh extreme beyond where it ran to, or when a new leg forms.
+
+HOW MANY TRADES
+  A normal day has a few major legs, so a normal day is a few trades (3 to 6). That is a
+  description, not a limit.
+  THE EXCEPTION, and it is great trading: when the tape keeps grinding one way for a large part of
+  the day, keep jumping in and harvesting $200-300 at a time, as many times as it keeps giving.
+  The Asia and London grinds are exactly that. Do not hold back because the count is getting high.
+  Judge each trade, not the total: did it join a leg that had proven itself, in its direction, and
+  did it come out in profit?
+  What a high count is really a symptom of is chop and fighting the leg. In one session 23 entries
+  lost $1,882: the 19 entries with the leg made +$1,010, the 4 against it lost $2,892.
+
+HOW TO READ: THE PICTURE
+  You are given the session drawn as a shape with your own entries and exits on it. Read the SHAPE
+  first - how many legs, which way, how long each ran, which one you are in now. The numbers
+  underneath are for precision, not for the decision. Also read the day's structure:
+    "it ground down for 8 hours, then up for 4, now its starting down again."
+  Legs are big - the median leg on this tape is 298 points over 266 minutes - so even getting in
+  halfway and leaving early still leaves a good trade. The smallest trade worth taking is {MIN_TARGET_PT:.0f} points
+  (${MIN_TARGET_PT * LOTS * VPP:.0f} at {LOTS} lots); a decent one is 25-40.
+
+CONSTRAINTS THE SIMULATOR ENFORCES
+  - one position at a time, {LOTS} lots, no adding
+  - the window is {WIN_START_MIN // 60:02d}:{WIN_START_MIN % 60:02d}Z-{WIN_END_MIN // 60:02d}:{WIN_END_MIN % 60:02d}Z; you are flattened at {WIN_END_MIN // 60:02d}:{WIN_END_MIN % 60:02d}Z whatever you say
+
+ANSWER WITH ONE JSON OBJECT AND NOTHING ELSE:
+{{"action":"ENTER_LONG|ENTER_SHORT|EXIT|HOLD|WAIT","confidence":0.0-1.0,"reason":"<one sentence>"}}
+  ENTER_* only when flat. EXIT or HOLD only when holding. WAIT when flat and no leg has proven itself."""
+
+
+def brief_for(line: str) -> str:
+    if line == "v1":
+        return BRIEF
+    if line == "v2":
+        return BRIEF_V2
+    raise ValueError(f"unknown line {line!r} (expected 'v1' or 'v2')")
 
 
 def ask(prompt: str, timeout: int = 180) -> dict:
@@ -469,8 +563,9 @@ def ask_text(prompt: str, timeout: int = 240) -> str:
 
 
 def run_day(day: str, lessons: str, arm: str, resume: bool = True,
-            self_aware: bool = False) -> dict:
+            self_aware: bool = False, line: str = "v1") -> dict:
     """One session, causally, every STEP_MIN minutes. Returns the day's record."""
+    brief = brief_for(line)                # validated before any work, so a typo cannot cost a day
     path = f"{OUT}/{arm}_{day}.json"
     if resume and os.path.exists(path):
         prev = json.load(open(path))
@@ -483,10 +578,15 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
         # two previous iterations. `resume` would have skipped all three and scored the
         # iteration at $488/day with two failures counted as flat sessions.
         # A day the model never answered must be RE-RUN, not inherited.
-        if pc and perr / len(pc) <= POISON_RATE:
+        # a record made under the other brief is not this line's day (pre-2026-10-07 records carry no "line": v1)
+        if prev.get("line", "v1") != line:
+            print(f"  {arm}_{day}: re-running — artefact is line {prev.get('line', 'v1')}, "
+                  f"this run is {line}", flush=True)
+        elif pc and perr / len(pc) <= POISON_RATE:
             return prev
-        print(f"  {arm}_{day}: re-running — {perr}/{len(pc) or 0} calls errored last time",
-              flush=True)
+        else:
+            print(f"  {arm}_{day}: re-running — {perr}/{len(pc) or 0} calls errored last time",
+                  flush=True)
     bars, _ = load_day(day)
     d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
     pos, trades, calls = None, [], []
@@ -498,8 +598,8 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
         px = upto[-1][3]
         if pos:
             pos["peak"] = max(pos["peak"], pos["dir"] * (px - pos["entry"]))
-        d = ask(BRIEF + "\n\n=== THE TAPE ===\n"
-                + context(upto, now_epoch, pos, lessons, trades, self_aware))
+        d = ask(brief + "\n\n=== THE TAPE ===\n"
+                + context(upto, now_epoch, pos, lessons, trades, self_aware, band=(line != "v2")))
         act = d.get("action", "WAIT")
         calls.append({"ts": dt.datetime.fromtimestamp(now_epoch, dt.UTC).isoformat(),
                       "px": px, "action": act, "conf": d.get("confidence"),
@@ -516,7 +616,7 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
     if pos is not None:                    # the forced flat the simulator owns, not Claude
         last = [b for b in bars if b[0] <= d0 + WIN_END_MIN * 60][-1]
         trades.append(_close(pos, last[3], last[0], "WINDOW_CLOSE_1330Z"))
-    rec = {"day": day, "arm": arm, "trades": trades, "calls": calls,
+    rec = {"day": day, "arm": arm, "line": line, "trades": trades, "calls": calls,
            "net_usd": round(sum(t["pnl_usd"] for t in trades), 2)}
     os.makedirs(OUT, exist_ok=True)
     json.dump(rec, open(path, "w"), indent=1, default=str)

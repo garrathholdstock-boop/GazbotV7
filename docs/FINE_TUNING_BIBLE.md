@@ -54,7 +54,7 @@ earning its place"* — an instruction to change everything, every night.
 
 ---
 
-## THE TWO THAT OUTRANK EVERYTHING
+## THE LAWS THAT OUTRANK EVERYTHING
 
 ### LAW 0 — CONSISTENCY OUTRANKS RETURN. THIS IS THE FIRST LAW.
 > Operator, 2026-10-06: *"Yes we absolutely want to maximise daily return. But consistency is
@@ -72,6 +72,81 @@ Every change starts from the best-scoring configuration and edits **one** rule o
 not exploring; you are tightening something that already earns money.
 > *Earned:* three iterations of free rewriting gave $509 → $620 → $406/day and ended by
 > discarding the best set.
+
+### LAW 0c — NO CHANGE WITHOUT TRADES. ZERO GUESSING.
+> *"Zero guessing as to what we should do… That needs to be written in"* — and *"Claude code
+> rarely guesses. He always answers me based on real data."* (operator, 2026-10-06)
+
+A rule change is admissible only if it is derived from reading the champion's own trades against
+the tape picture, and it names the specific trades it would alter — day, entry time, entry and
+exit price, the exit reason recorded — plus what would have happened to each under the new
+wording. A change that cannot name a trade is a guess and is refused. If the trades give no such
+evidence the answer is "no change". Trades come from DEVELOPMENT weeks; held-out weeks only
+score. Mechanical check: `bible.admissible(change, find_trade)` verifies every cited trade
+exists with that entry price and exit. Enforced by `tests/test_bible_is_enforced.py`.
+
+### LAW 0d — CLAIM THE PROFIT. A STANDING GOAL OF EVERY ITERATION.
+> *"The whole thing about exiting is to claim profit."* — and *"They're jumping in ok. And if
+> Claude is monitoring, then when profit is decent. Take it!"* (operator, 2026-10-07)
+
+Entries are not where the champion loses; the exit is. The champion has no rule that banks a
+profit: rule 7 forbids exiting on a fixed gain, rule 8 exits only on a structure break, and
+that break sits just beyond the entry. So a trade that ran in profit is cut only after it has
+given the profit back.
+> *Earned:* June 2026, 22 unseen days (now development data). Of 126 model-chosen exits, 93 were
+> losses; 54 of those 93 had been in profit first, 26 of them by 20pt or more. The 3 trades the
+> model never exited (13:30Z window close) all won: +$1,932.
+
+How it binds: each iteration asks where the champion's own trades sat in profit and handed it
+back, and names them (Law 0c). A claim is the monitoring model's judgement from the picture,
+not a fixed number — fixed-level claim calibrations against his own claims failed 119 times.
+Still one rule per iteration (L2), still judged by the consistency gate. If no cited trade
+shows profit a specific wording would have banked, the answer is "no change".
+
+### LAW 0e — THE STRATEGY IS THE HEADLINE. EVERY OTHER LAW, RULE AND CHANGE SERVES IT.
+> *"we are trying to buy at the start of the major intraday leg and exit near the top. Now
+> achieving both of those will be hard so at the start we will buy late, half way up the leg and
+> exit early to be safe. That is it. Simple. Then with each iteration all we do is try and fine
+> tune slightly and safely so we get in a little bit earlier and exit a little bit later. Always
+> exiting in profit!!!!!! My desired strategy is quite simple. If we are doing things outside that
+> then we need to simplify."* (operator, 2026-10-07)
+
+**The check.** Every change proposed, reviewed or judged must say in one line which it serves:
+(1) enters a little earlier into the same proven leg · (2) exits a little later while still in
+profit · (3) keeps exits in profit. A change that serves none of the three is cut, and a rule set
+containing anything that serves none is simplified rather than added to. "Slightly and safely" is
+one small step per iteration (L2), never a jump to entering at the start of the leg or exiting at
+its top.
+
+**No stops.** *"using stops with this style of trading won't work. You'll be stop lossed out all
+the time. Hence the reason Claude is watching so we can make calls."* The exit is the monitoring
+model's call from the picture. A pullback inside a good leg is not a reason to leave; the leg
+itself being undone is.
+
+**Trades per day.** 3-6 describes a normal day and is not a limit. When the tape keeps grinding one
+way for a large part of the day, keep jumping in and harvesting $200-300 at a time — *"That's great
+trading."* Each trade is judged (did it join a proven leg in its direction and come out in
+profit), never the count. This amends `PROJECT_800_A_DAY.md` §3; `recursive_loop.BAR` still lists
+3-6 as a *reporting* bar and is not the promotion gate.
+
+**It outranks any instruction that pushes toward holding for a bigger leg capture while in
+profit.** A profit taken at the first honest sign of tiring is correct under this strategy;
+leaving a bigger one is improved slowly, one cited rule at a time.
+
+**The restart (2026-10-07).** *"If things have been dirtied up until now I'm ok to start again"* /
+*"make it part of the constitution and let's start again."* The **S line** begins from this
+strategy and an **empty** rule set (`reports/recursive_loop/S1.txt`); iteration 2's ten rules are
+not carried into it. L1 applies within the S line from its first rule. Iteration 2 stays the frozen
+champion and the live forward test; the S line replaces it only by passing the consistency gate
+against it (L4), and only the operator repoints the forward test. **A restart is the operator's
+alone** — no iteration, review or audit may declare one.
+
+**How the S line is wired without disturbing the champion.** `sim_week_recursive.BRIEF` is
+byte-identical and frozen (sha256 `b314ac3c6cb7…`) because `shadow_runner` trades it forward. The S
+line uses `BRIEF_V2`, selected by `run_day(line="v2")` / the `@v2` arm suffix in `forward_days.py`,
+and `context(band=False)` suppresses the per-call "YOUR BAND IS 3-6 TRADES" nag that would otherwise
+override the grind exception. A record carries its `line`, and `resume` / `is_clean` refuse to
+inherit a day made under the other brief. Enforced by `tests/test_strategy_headline.py`.
 
 ### THE CONSISTENCY GATE — Law 0 made mechanical
 Consistency cannot be one statistic: on the same ten days **mean and median disagree** about
@@ -174,6 +249,7 @@ outside their own noise. Judge on those; record the dollars.
 
 | law | enforced by | status |
 |---|---|---|
+| 0e the strategy is the headline | `bible.PRIMARY` in every bound prompt; `BRIEF_V2` + `context(band=False)`; `tests/test_strategy_headline.py` | **NEW 2026-10-07** |
 | L1 start from the champion | `CONSOLIDATE` prompt + the champion ratchet | **NEW 2026-10-06** |
 | L2 one rule per iteration | `CONSOLIDATE` prompt | **NEW 2026-10-06** |
 | L3 declare the change | `consolidate()` demands `CHANGELOG:` | built |

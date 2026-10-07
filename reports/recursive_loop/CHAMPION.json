@@ -1,0 +1,19 @@
+{
+ "champion_iter": 2,
+ "file": "IT2.txt",
+ "sha": "5f0e05decd3b",
+ "holdout": {
+  "net_usd": 6196.0,
+  "trades": 64,
+  "trades_per_day": 6.4,
+  "side_accuracy": 0.734,
+  "capture": 0.169,
+  "days": 10,
+  "usd_per_day": 619.6,
+  "days_positive": 9,
+  "daily_sd": 724.21,
+  "worst_day": -496.0,
+  "stderr_of_mean": 229.02
+ },
+ "_what": "The current best configuration, chosen by bible.gate() (consistency dominance first, then $/day) \u2014 NOT by argmax($/day). CHAMPION.txt is a copy, so no iteration can overwrite what is paper-trading."
+}

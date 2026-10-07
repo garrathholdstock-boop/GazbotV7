@@ -71,7 +71,8 @@ Units in `ops/systemd/`, prompts in `ops/job_prompts/*.md`. Times UTC unless sta
 ### The desk's floor — if only these run, the desk is still managed
 | unit | schedule | purpose |
 |---|---|---|
-| `gazbot7-router-tick.timer` | `*:0/5` | **THE ROUTER.** Headless Claude, owns `gate_switches.env` |
+| ~~`gazbot7-router-tick.timer`~~ | **OFF 2026-10-06** | ★★★**DISABLED BY OPERATOR DECISION — it was 51% of his entire weekly Claude spend.** Measured by `claude_usage.py`: **580M of 1.13B billable tokens over 34 days, 17.1M/day**, more than three simulated research days every single day. Operator: *"you can probably turn the router off now? we are not using it"* — and he was right twice over, because the router's OWN PROMPT already said `ALL SIX gates are OFF and are HELD off at the 22:00Z reopen` and `ANY CHANGE YOU NAME TO on IS DROPPED before it is applied`. It was paying a fortune to produce decisions it discarded. ⚠ **DISABLED, NOT DELETED** — restore with `systemctl enable --now gazbot7-router-tick gazbot7-router-health gazbot7-router-watch`. ★ **WHAT MADE IT SAFE:** all six gates are in `reactivate_gates.HOLD`, so the 22:00Z re-arm cannot arm them with no router left to bench them — that was the one interaction that could have put the stood-down tournament back in the market overnight, and it was already covered. ⚠⚠ **THREE CHECKS WOULD HAVE PAGED HIM NIGHTLY FOR THIS DECISION and none gated on whether the unit was wanted:** the supervisor's freshness loop tested only `LoadState == loaded` (a *disabled* unit is still loaded, so the 0.25h/0.5h windows would have gone stale forever), `REQUIRED_SERVICES` tested `is-active` alone (so `router-watch` read as "down"), and the supervisor calls `router_health_check.py` **DIRECTLY**, so disabling that timer silenced nothing. All three now gate on `unit_enabled()` and **report a disabled unit as a NOTE** — skipping it silently would trade one false alarm for a real blind spot. `overnight-allclear` also stopped asserting *"router deciding"* every morning about a process that is switched off |
+| ~~`gazbot7-router-health.timer`~~ · ~~`gazbot7-router-watch.service`~~ | **OFF 2026-10-06** | the router's alarm and its event watcher, off with it — *"turn it off and also all telegram alarms associated"*. Nothing else reads `router_headless.log`. The `/router` dashboard page still serves 200 off the last stored read |
 | `gazbot7-router-health.timer` | `*:02/5` | ABORT streak / silent log / full-roster PIN / dead timer → pages **critical**. Offset so it never races the tick's write |
 | `gazbot7-desk-reconcile.timer` | `*:*:0/30` | **THE SAFETY LAYER.** `venue == tournament + rider`, read-only clientId 8. Two reads, then stops BOTH desks. **Never re-arms** — `--release` is a human act |
 | `gazbot7-router-watch.service` | continuous | event watcher → early tick + critical texts |
@@ -92,6 +93,7 @@ Units in `ops/systemd/`, prompts in `ops/job_prompts/*.md`. Times UTC unless sta
 | `gazbot7-request-watch.timer` | `*:*:45` | ★**NEW 2026-09-17 — THE UNREAD-REQUEST ALARM. It watches THE PRESS, not the service.** On 2026-09-17 the gateway's accept queue filled at 00:40Z (`LISTEN 51/50`, sockets stuck in CLOSE-WAIT): **already-open connections kept working and every NEW one hung**, so the rider timed out **244 consecutive times, exited 0 every time, and wrote a FRESH HEARTBEAT every minute**. systemd green, sweep green, dashboard green — and the operator's Claim, pressed on a **+$262** position, sat unread for 27 min, **EXPIRED at `CLAIM_MAX_AGE_S`**, and he found it himself at **−$316**. Every instrument was asking *"is the rider alive?"* and getting a truthful yes; **nobody asked whether the BUTTON LANDED.** The rider DELETES a request when it consumes it, so **`exists and old` IS unread** — no heartbeat, no liveness proxy, nothing that can go stale in the wrong direction. Pages at **120s**, says whether the press can still be honoured or has already expired, and names the likely cause from `day_rider_state.json`. ⚠⚠ It also makes the **known-open BUY-while-holding bug** audible (`owns_position` :978 precedes `buy_requested()` :1017, so that press is never read). ⚠⚠⚠ **READ-ONLY — it never consumes, clears or rewrites a request**; a second reader that disposed of one would silently EAT THE PRESS. `tests/test_request_watch.py` asserts that against the SOURCE |
 | `gazbot7-day-rider-claim.path` | on write | **CLAIM FAST PATH.** inotify on `day_rider_claim.txt` → runs the rider NOW (**0.02s**) instead of waiting up to **60s** for the `*:*:05` tick. ⚠ `PathModified` **not** `PathExists` — an orphaned flag lives 15 min and would loop the rider. The 60s tick is still the floor |
 | `gazbot7-day-rider-buy.path` | on write | **ENTRY FAST PATH (2026-09-03).** The twin of the claim path, for the BUY/SELL button — it was left on the 60s tick when the exit was cut to 0.02s. inotify on `day_rider_buy.txt` → **measured 1.35s to a COMPLETED tick** (twice, written off the `:05` boundary so no timer tick could be mistaken for it). ⚠ `PathModified` **not** `PathExists` — `BUY_MAX_AGE_S` is 5 min and an unread request DOES sit that long. ⚠ **A BUY PRESSED WHILE THE RIDER HOLDS IS NEVER READ** — `owns_position` (:978) takes the branch before `buy_requested()` (:1017), so the request ages out in silence while the dashboard said "requested". Known-open, not fixed: the fix touches the rider's live path and was deferred out of a naked position |
+| `gazbot7-shadow-runner.timer` | Mon–Fri `02..13:00/5:40` | ★★★**NEW 2026-10-04 — THE FORWARD TEST OF THE $620/DAY RESULT, AND IT PLACES NOTHING.** `sim_week_recursive.py` scored **$620/day over 10 holdout days** never trained on and never reviewed (iteration 1 $509 with no rules at all, 9 of 10 days positive on iteration 2) — but it can only trade the PAST: it replays `capture.db`. This is the SAME harness pointed at `now`. ★★ **IT IMPORTS THE SIM RATHER THAN COPYING IT** — brief, shape-first context, JSON parser, leg detector and fill model all come from `sim_week_recursive`, so a forward number is a forward test of the thing that scored $620 and not of a drifted copy. It reads the SAME `bars` table at the SAME 22:00Z anchor, so [[the-labs-tape-is-not-productions-tape]] cannot apply by construction. ⚠⚠⚠ **READ-ONLY. Two files, both its own** (`data/shadow_runner.jsonl`, `data/shadow_runner_state.json`) plus one JSON per day in `reports/shadow_runner/`. `tests/test_shadow_runner.py` asserts **against the AST, not a text grep** (the docstring deliberately NAMES the forbidden files to say it never writes them) that no executable string mentions `day_rider_buy`/`day_rider_claim`/`gate_switches`/`desk_kill`, that it imports no broker library, and that every write targets one of its own paths — **both assertions verified by inserting an order-path write and watching them fail.** ⚠⚠ **WIRING IT TO THE BUTTONS IS OPERATOR-ONLY and is NOT authorised** — the standing rule on `tape_reader` is that phase 2 must be EARNED by forward grading, and this IS the grading. ★ **THE RULES ARE FROZEN** at `reports/recursive_loop/rules.txt` and every day record carries their sha256 prefix; a forward test whose rules are rewritten nightly is iteration 3 with extra steps. The nightly review still runs but is LOGGED AS COMMENTARY and changes nothing. ★ **02:00Z = 04:00 Paris is HIS tip** (*"the asia market usually has a good up or down grind going on!!!"*) — opening the window there turned 09-18 from +$240 into **+$2,022**. ⚠ The timer is deliberately WIDER than the window and the SCRIPT owns the edges: a window defined in both places drifts, and then the forward test runs a different session than the backtest did. ⚠⚠ **A DEAD CLI IS NOT A FLAT DAY** — on 2026-10-03 two days of a training week errored on 125/138 and **138/138** calls and the second booked exactly $0.00, reading as a quiet session in every summary, and the nightly review then wrote rules from it. So every day record carries `calls`/`errors`/`error_rate` and is stamped **`poisoned`** above 10%. A poisoned day must not be scored. ⚠ Declines rather than reading a dead feed (tape >10 min stale) and never carries a position across the 22:00Z session key |
 | `gazbot7-tournament` · `gazbot7-md` · `gazbot7-shadow` · `gazbot7-shadow-mgc` · `gazbot7-web` · `gazbot7-tgbot` · `gazbot7-depth-capture` | continuous | the desks, the feed, the books, the page, phone control, L2 |
 
 ### Trading-day jobs
@@ -119,6 +121,7 @@ Units in `ops/systemd/`, prompts in `ops/job_prompts/*.md`. Times UTC unless sta
 ### Data & backup
 | unit | schedule | purpose |
 |---|---|---|
+| `gazbot7-claude-usage.timer` | `*:0/10:15` | ★★**NEW 2026-10-06 — THE CLAUDE WEEKLY BUDGET METER, and the desk's own spend is now visible.** Operator, after the weekend's recursive runs exhausted his weekly credits mid-experiment and Monday's first live shadow day was lost to it: *"as we are going to use claude to monitor and execute all the time, i need a little dial on the dashboard showing how much weekly credits we have used and how much we have to go."* ★ **THE SOURCE IS THE API'S OWN METER** — every assistant message in `~/.claude/projects/*.jsonl` carries a `usage` object (input / output / cache-creation / cache-read, plus model). 34,280 files, ~5GB, read **INCREMENTALLY** off a bytes-read cursor so a run is ~1s after the one-time 15.8s full scan; a SHRINKING file is re-read from zero rather than skipped. ★★ **IT IMMEDIATELY EXPLAINED THE WEEKEND: Sat 2026-10-03 burned 210.6M billable tokens, 5× an ordinary day**, Sun 72.5M, against 30-50M on a normal weekday — and the single biggest consumer across 34 days is **`router-ctx` at 579.8M, more than half of everything**, i.e. the standing 5-min router, not the experiments. ⚠⚠⚠ **THREE THINGS IT CANNOT KNOW, AND IT SAYS ALL THREE:** (1) it measures **THIS BOX ONLY** — phone and desktop-app usage are invisible, so the figure is a **FLOOR**, never a ceiling; (2) **no local file or CLI flag reports the plan's allowance**, so `data/claude_budget.json` holds a number **INFERRED** from the week he actually ran out (**499.3M**, against 167-237M in the four weeks before) — with no budget configured the dial shows raw tokens and **"NO BUDGET"** rather than inventing a percentage; (3) **a token is not a credit** — cache reads are weighted far below fresh input, so `billable()` counts input + output + cache-creation and EXCLUDES cache reads, which is a consistent yardstick and **not Anthropic's billing formula**. ★★★ **THE DIAL IS A STATIC FILE ON PURPOSE** — `web.py` serves `/static/*` off disk per request, so the chip needed **no new route and no `gazbot7-web` restart**, which is what drops his browser tab. A new API endpoint was the obvious design and the wrong one. ⚠ **THE READING IS ON SCREEN, NOT IN THE TOOLTIP** — percent used AND tokens remaining both render as text, because a ring alone repeats the CVD-gauge fault he caught on 2026-10-01 (*"has -20 and 20 on either ends but doesnt tell me what the current reading is"*). ⚠ It goes **RED ON BURN RATE as well as level**: the Saturday that blew the budget was only at 42% when it happened, so a level-only gauge would have stayed green through the day that cost him the week. ⚠ READ-ONLY — reads transcripts, writes three files of its own, touches no desk state and no order path |
 | `gazbot7-data-inventory.timer` | 4-hourly `:37` | local DBs + all four B2 remotes → `data/data_status.json`, pages on staleness |
 | `gazbot7-tape-mirror.timer` | 21:05 | **★ THE INTERLOCK:** prune may not delete a day the mirror has not exported AND row-count verified |
 | `gazbot7-capture-prune.timer` | 21:15 | prunes `capture.db` **PER TABLE, not to one number** — `book`/`quotes`/`ticks` 5 trading days, **`bars` 60** (`prune_capture.RETAIN`). ⚠ "capture keeps 5 days" is true of TICKS and false of BARS: measured 2026-09-02 bars run 07-15→today, 929,817 rows |
@@ -138,6 +141,103 @@ Units in `ops/systemd/`, prompts in `ops/job_prompts/*.md`. Times UTC unless sta
 
 **To add a job:** write the unit in `ops/systemd/`, the prompt in `ops/job_prompts/`, enable it, and
 **add a row here**. A job nobody has listed is a job nobody checks.
+
+### ★★★ THE FINE-TUNING BIBLE — source `src/gazbot7/bible.py`, docs `docs/FINE_TUNING_BIBLE.md`
+★★★ **LAW 0 IS THAT CONSISTENCY OUTRANKS RETURN.** Operator, 2026-10-06: *"Yes we absolutely want
+to maximise daily return. But consistency is more important. If we maximise one day to $2000 but
+then have 3 negatives or $200 days it's no good."* ★★ **AND CONSISTENCY IS NOT ONE NUMBER** — on the
+same ten days mean and median DISAGREE (iter 2 wins on mean $620 vs $509; iter 1 wins on median
+$595 vs $414), so `bible.gate()` requires **DOMINANCE**: days-positive, worst day and spread÷mean
+may none of them worsen, and only then must $/day be higher. CV not raw SD, so a configuration
+earning twice as much is allowed twice the spread. ★ It rejects **every** challenger measured so far
+and keeps iteration 2 — and it refuses a *flat but tidy* one too ("consistency held but no more
+money"). ⚠ The exit-fix arm had the **HIGHEST median day of any arm (+$636)** and was the worst
+configuration tested (6/10, −$1,882, CV 3.61): a median-ranked rule would have selected it.
+★★★ **HOW IT IS ENFORCED, which is his own question answered —** *"how do we make the AI always
+abide. Just like Claude code does. If it sits outside CLAUDE.md you don't do it."* The laws are ONE
+importable constant in `src/gazbot7/bible.py`, injected via `laws()` into **every** prompt that
+writes, reviews or judges a rule set (`recursive_loop.CONSOLIDATE`, `sim_week_recursive.REVIEW`,
+`preflight_iteration.AUDIT`), and **`tests/test_bible_is_enforced.py` FAILS if any of them is
+missing any law**. The test is the enforcement; the markdown is a readable copy and a test asserts
+they cannot drift.
+⚠⚠⚠ **THE FAILURE THIS GUARDS AGAINST HAPPENED TWICE WHILE BUILDING IT.** First the laws went into
+the module **DOCSTRING** — text no model reads — and the diff looked right; only capturing the
+assembled prompt and grepping it showed L1/L2/L5 **missing**. Then a splice anchored on the
+docstring ran into the prompt and **deleted 201 lines**, taking `ALL_WEEKS`, `score_week`,
+`meets_bar` and the `CONSOLIDATE` assignment with it; restored from the last verified commit.
+**Neither was caught by reading the change; both by running the check.**
+Operator, **2026-10-06**: *"All fine tuning needs to try as best we can to preserve the
+configuration of the best iteration and improve it. We can't be trying things and getting worse...
+I believe we need a bible of guidelines for the AI to refer to."* He was right and the loop was a
+**RANDOM WALK**: `rules = consolidate(...)` ran unconditionally, so it always carried forward the
+**most recent** set rather than the **best**, and the prompt told the reviewer to *"drop what has
+stopped earning its place"* — an instruction to rewrite everything nightly. Measured consequence:
+**$509 → $620 → $406/day**, the best set discarded wholesale at the end.
+**TEN LAWS**, each earned by a named failure: L1 start from the champion verbatim · L2 **one rule
+per iteration** · L3 declare the change first · L4 beat the champion on $/day **AND** days-positive
+or revert · L5 never reverse a rule on one week's impression · L6 an interim is never a result ·
+L7 a poisoned day is not a day · L8 one rule changed ≠ one rule isolated · L9 do not re-derive the
+settled list · L10 counts before dollars.
+★★★ **LAW 0e — THE STRATEGY IS THE HEADLINE (2026-10-07).** Operator: *"we are trying to buy at the
+start of the major intraday leg and exit near the top. Now achieving both of those will be hard so
+at the start we will buy late, half way up the leg and exit early to be safe… with each iteration
+all we do is fine tune slightly and safely so we get in a little bit earlier and exit a little bit
+later. Always exiting in profit!!!!!! … If we are doing things outside that then we need to
+simplify."* Every rule must serve one of three things — **enter a little earlier into the same
+proven leg, exit a little later while still in profit, keep exits in profit** — or it is CUT or
+SIMPLIFIED. ⚠ **NO STOPS** (*"You'll be stop lossed out all the time. Hence the reason Claude is
+watching so we can make calls"*): the model is the exit. ⚠ **3–6 trades a day is a description,
+not a limit**; on a day the tape grinds one way, keep jumping and harvesting $200–300 — no prompt,
+rule or review may cap the count. ★ **THE S LINE** restarted from this with an EMPTY rule set
+(`reports/recursive_loop/S1.txt`, declared in `S1_change.txt`): `sim_week_recursive.BRIEF_V2`,
+selected by `run_day(line="v2")` / the `@v2` arm suffix in `forward_days.py`. ⚠⚠ **`BRIEF` (v1) is
+FROZEN by sha256 `b314ac3c6cb7…` because `shadow_runner` trades the champion with it** — a new
+brief goes in `BRIEF_V2`, never an edit; `tests/test_strategy_headline.py` fails if v1 moves.
+**A restart is the operator's alone** — no iteration, review or audit may declare one. IT2 stays
+the frozen champion and live forward test; the S line replaces it only through `bible.gate`.
+Law 0e says what a rule is FOR; **Law 0 (consistency) still decides which configuration is
+BETTER.** Detail: `docs/FINE_TUNING_BIBLE.md`.
+⚠⚠⚠ **THE OPERATIVE LAWS ARE INJECTED INTO `recursive_loop.CONSOLIDATE`, AND THE CHAMPION'S RULE
+TEXT IS PUT ON THE PAGE.** A law in a document is a law the reviewer never sees —
+[[a-memory-is-not-a-rule-until-it-is-in-the-prompt]], three banked lessons lost to one prompt line.
+★ **I made that exact mistake while building this**: the first patch went into the module
+DOCSTRING, and a probe of the real prompt showed L1/L2/L5 **MISSING** while the champion block was
+present. Verified by capturing the assembled prompt and grepping it, not by reading the diff.
+⚠ L8 is deliberately NOT automated — it constrains *interpretation*, which no script can enforce;
+it lives in the preflight audit's prompt instead.
+★ **THE LIVE DESK IS SEPARATE AND FROZEN**: `shadow_runner` trades `rules_live_champion.txt`, a
+stable copy no iteration can overwrite. The loop may churn; what paper-trades changes only when a
+challenger beats the champion under L4 **and a human repoints it**.
+
+### ★★★ THE PRE-ITERATION AUDIT — "do not start a run that will have to be redone"
+Operator, **2026-10-06**: *"so we are not forgetting things and needing to rerun things, can you
+put an audit agent out each time before each iteration to make sure whats about to be done is
+thorough and aimed at improving the numbers?"* → `scripts/preflight_iteration.py`, wired into
+`recursive_loop.py` so **no iteration starts without it** (`GAZBOT_PREFLIGHT=0` disables).
+
+**TWO LAYERS THAT FAIL DIFFERENTLY.** **GATES** are deterministic and **FAIL CLOSED** — and every
+one is a failure that already cost this project a day or a week: the `claude` binary resolvable
+(138/138 calls lost on 2026-10-05 to PATH), a live call actually answering, the budget covering the
+**WHOLE** plan (three of iteration 3's days errored 138/138, 138/138 and 70/138 on mid-run
+exhaustion, two booking exactly $0.00 and reading as flat sessions), tape present for every planned
+day, **no poisoned artefact `resume` would inherit as finished**, and **no holdout day in the
+training week**. ⚠ **A GATE CANNOT BE FORCED** — "the binary is missing" is not a matter of opinion.
+Then **THE AUDIT**, a headless `claude -p` answering the one thing a gate cannot: *is this iteration
+aimed at the metric that is actually failing, and will its result clear the $324/day noise floor?*
+Verdicts GO / FIX-FIRST / STOP; a STOP blocks unless `GAZBOT_PREFLIGHT_FORCE=1`.
+
+★★★ **IT EARNED ITS PLACE ON ITS FIRST RUN** by catching a confound in a **127M-token A/B that had
+already launched**: rule 1 of the set ends *"…it is chop — minimum size, and after two losers in
+that state, stop for the day"* — a **second** stop-after-losses clause, present in **all four arms
+including OFF**. So "no stop rule" was never an arm, and `ab_rule_toggle.py` measures only whether
+rule 9 adds anything **on top of** rule 1's chop stop. The run was left going (the narrower question
+is still real and restarting costs 127M), but the claim was corrected in the source. It also noted
+that the **$180 gap to the $800 bar is itself inside the $324 floor**, so $/day is *recorded but not
+decidable* in one run — only trades/day and side accuracy come back interpretable.
+⚠ It is a **HEADLESS** call, never a session subagent: the loop runs detached for hours with no
+session attached, and an audit that needs a session is an audit that will not run.
+⚠ READ-ONLY — reads artefacts and config, writes one report per iteration under
+`reports/recursive_loop/preflight/`.
 
 ### ★★★ PRESENCE — "was he even looking?" (`scripts/presence.py`, no timer, read on demand)
 Operator, **2026-09-18**: *"im looking at it periodically during the work day when i have time. not

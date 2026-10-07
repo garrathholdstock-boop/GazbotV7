@@ -21,7 +21,7 @@ in the commit that was supposed to honour them.
 """
 from __future__ import annotations
 
-# ── the two that outrank everything else ────────────────────────────────────────────────
+# ── the laws that outrank everything else ────────────────────────────────────────────────
 PRIMARY = """★★★ LAW 0 — CONSISTENCY OUTRANKS RETURN. THIS IS THE FIRST LAW.
 The operator, in his own words: *"Yes we absolutely want to maximise daily return. But
 consistency is more important. If we maximise one day to $2000 but then have 3 negatives or
@@ -36,6 +36,70 @@ the WORST configuration tested — 6 of 10 days positive, worst day −$1,882, a
 Every change starts from the best-scoring configuration and edits ONE rule of it. You are not
 exploring; you are tightening something that already earns money. Measured: three iterations
 of free rewriting produced $509 → $620 → $406/day and ended by discarding the best set.
+
+★★★ LAW 0c — NO CHANGE WITHOUT TRADES. ZERO GUESSING. THE EVIDENCE IS THE CHAMPION'S OWN TRADES.
+The operator, 2026-10-06: *"Zero guessing as to what we should do… That needs to be written in"*
+and *"Claude code rarely guesses. He always answers me based on real data."* He must never have
+to supply the proposal, and you must never produce one from general trading wisdom.
+A change to the rules is ADMISSIBLE only if it is derived from reading the champion's actual
+trades against the tape picture, and it must NAME THE TRADES it would alter — for each one: the
+day, the entry time, the entry and exit price, the exit reason the trade recorded — and say what
+would have happened to that trade under the new wording, read off the tape. A change that cannot
+name a specific trade is a guess and is REFUSED, however sensible it sounds. If the champion's
+trades give no such evidence, the answer is "no change" (see NULL ITERATION below).
+Trades are drawn from DEVELOPMENT weeks (the generator); the held-out weeks only SCORE the
+result and are never read for ideas.
+
+★★★ LAW 0d — CLAIM THE PROFIT. THIS IS A STANDING GOAL OF EVERY ITERATION.
+The operator, 2026-10-07: *"The whole thing about exiting is to claim profit."* and *"They're
+jumping in ok. And if Claude is monitoring, then when profit is decent. Take it!"*
+Entries are not where the champion loses; the EXIT is. The champion has no rule that banks a
+profit: it forbids exiting on a fixed gain, it exits on a structure break only, and that break
+sits just beyond the entry — so a trade that ran in profit is cut only after it has given the
+profit back. Measured on June 2026 (22 unseen days, now development data): of 126 exits the
+model chose, 93 were losses, 54 of those 93 had been in profit first and 26 of them by 20pt or
+more; the 3 trades the model never got to exit (window close) all won, +$1,932.
+How it binds: every iteration asks where the champion's OWN trades sat in profit and handed it
+back, and names them (Law 0c). A claim is the monitoring model's judgement from the picture,
+made when profit is decent — never a fixed number (fixed-level claim calibrations against the
+operator's own claims failed 119 times, and capturing 1-7% of a leg repeatedly is how a losing
+day is built). It is still ONE rule per iteration (L2) and still judged by the consistency gate:
+a claim that raises $/day but worsens days positive or the worst day is rejected like any other.
+If no cited trade shows profit a specific wording would have banked, the answer is "no change".
+
+★★★ LAW 0e — THE STRATEGY IS THE HEADLINE. EVERY OTHER LAW, RULE AND CHANGE SERVES IT.
+The operator, 2026-10-07, in his own words: *"we are trying to buy at the start of the major
+intraday leg and exit near the top. Now achieving both of those will be hard so at the start we
+will buy late, half way up the leg and exit early to be safe. That is it. Simple. Then with each
+iteration all we do is try and fine tune slightly and safely so we get in a little bit earlier
+and exit a little bit later. Always exiting in profit!!!!!! My desired strategy is quite simple.
+If we are doing things outside that then we need to simplify."*
+THE CHECK. Every change you propose, review or judge must say in one line which of these it serves:
+  (1) it enters a little EARLIER into the same proven leg;
+  (2) it exits a little LATER while the trade is still in profit;
+  (3) it keeps exits IN PROFIT.
+A change that serves none of the three is CUT. A rule set that contains anything serving none of
+them is to be SIMPLIFIED, not added to. "Slightly and safely" means one small step per iteration
+(L2) — never a jump to entering at the start of the leg or exiting at its top.
+NO STOPS. The operator, 2026-10-07: *"using stops with this style of trading won't work. You'll
+be stop lossed out all the time. Hence the reason Claude is watching so we can make calls."* The
+exit is the monitoring model's call from the picture — never a stop, never a fixed level. A
+pullback inside a good leg is not a reason to leave; the leg itself being undone is.
+TRADES PER DAY. 3-6 is a description of a normal day, NOT a limit. When the tape keeps grinding
+one way for a large part of the day, keep jumping in and harvesting $200-300 at a time —
+*"That's great trading."* Judge each trade (did it join a proven leg in its direction and come out
+in profit), never the count. No prompt, rule or review may cap the count.
+THIS OUTRANKS ANY INSTRUCTION BELOW OR ELSEWHERE that pushes toward holding for a bigger leg
+capture while in profit: a profit taken at the first honest sign of tiring is CORRECT under this
+strategy, and leaving a bigger one on the table is what is improved slowly, one cited rule at a
+time, not by default.
+THE RESTART (granted by the operator, 2026-10-07: *"If things have been dirtied up until now I'm
+ok to start again"* / *"make it part of the constitution and let's start again"*). The S line
+begins from this strategy and an EMPTY rule set — iteration 2's ten rules are NOT carried into it.
+L1 applies within the S line from its first rule onward. Iteration 2 stays the frozen champion
+and the live forward test; the S line replaces it only by passing the consistency gate against it
+(L4), and nothing may repoint the forward test but the operator. A RESTART IS THE OPERATOR'S ALONE:
+no iteration, review or audit may declare one.
 """
 
 # ── the consistency gate, which is Law 0 made mechanical ────────────────────────────────
@@ -109,12 +173,14 @@ failed, return the champion's set UNCHANGED with "CHANGELOG: no change — the w
 reason to alter the rules." Churn is not progress.
 """
 
-LAW_IDS = ("LAW 0", "LAW 0b", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10")
+LAW_IDS = ("LAW 0", "LAW 0b", "LAW 0c", "LAW 0d", "LAW 0e", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10")
 
 
 def laws() -> str:
     """The whole bible, for injection into a prompt. One call, one source."""
-    return (f"=== THE FINE-TUNING BIBLE — THESE BIND YOU ===\n\n{PRIMARY}\n"
+    return (f"=== THE FINE-TUNING BIBLE — THESE BIND YOU ===\n"
+            f"Every law below serves the strategy in LAW 0e: LAW 0e says what a rule is FOR, and "
+            f"LAW 0 (consistency) still decides which configuration is BETTER.\n\n{PRIMARY}\n"
             f"{GATE}\n{LAWS}\n=== END OF THE BIBLE ===")
 
 
@@ -148,3 +214,31 @@ def gate(challenger: dict, champion: dict) -> tuple[bool, str]:
     return True, (f"passes the gate and earns more: ${challenger['usd_per_day']:+,.0f} vs "
                   f"${champion['usd_per_day']:+,.0f}, days+ {challenger['days_positive']} vs "
                   f"{champion['days_positive']}, spread/mean {cv_c:.2f} vs {cv_h:.2f}")
+
+
+TRADE_FIELDS = ("day", "entry_time", "entry", "exit", "reason", "would_have")
+
+
+def admissible(change: dict, find_trade) -> tuple[bool, str]:
+    """Law 0c, mechanical. `change["trades"]` is a list of citations, each carrying TRADE_FIELDS.
+    `find_trade(day, entry_time, entry)` returns the recorded trade or None.
+
+    A citation counts only if (a) every field is filled and (b) the trade EXISTS in the
+    champion's recorded runs with that entry price and exit reason — a trade the proposer
+    remembered wrongly, or invented, is exactly the guess this law forbids.
+    """
+    cites = change.get("trades") or []
+    if not cites:
+        return False, "LAW 0c: the change names no trades — it is a guess"
+    for i, c in enumerate(cites, 1):
+        gap = [f for f in TRADE_FIELDS if not str(c.get(f, "")).strip()]
+        if gap:
+            return False, f"LAW 0c: citation {i} is missing {gap}"
+        t = find_trade(c["day"], c["entry_time"], float(c["entry"]))
+        if not t:
+            return False, (f"LAW 0c: citation {i} ({c['day']} {c['entry_time']} @ {c['entry']}) "
+                           "matches no recorded trade")
+        if abs(float(t["exit"]) - float(c["exit"])) > 0.5 or \
+                str(c["reason"]).strip() not in (str(t.get("why", "")) + " " + str(t.get("entry_reason", ""))):
+            return False, f"LAW 0c: citation {i} misstates the trade's exit or recorded reason"
+    return True, f"LAW 0c satisfied: {len(cites)} recorded trade(s) cited and verified"

@@ -62,6 +62,30 @@ RUN_VARIANCE = 324.0
 TOKENS_PER_DAY_RUN = 6.33e6
 POISON = 0.10
 MIN_BARS = 300
+RULES = f"{OUT}/rules.txt"      # --rules points the audit at the set about to be traded
+CHANGE = ""                      # --change: the declared change + its cited trades (Law 0c)
+RESTART_MARK = "RESTART (LAW 0e)"   # only the operator declares one; the change file carries the mark
+
+
+def restart_declared() -> bool:
+    """LAW 0e: the S line starts from an EMPTY rule set. That is the one case where zero rules is
+    the design and not a truncated file, so it is admitted only when the change file says so."""
+    return bool(CHANGE) and os.path.exists(CHANGE) and RESTART_MARK in open(CHANGE).read()
+
+
+def rules_gate(it: int) -> tuple[bool, str]:
+    """Gate 7. Zero rules is a failure (a truncated or unparseable file) EXCEPT for the Law 0e
+    restart, where an empty file is the design and the change file says so."""
+    rp = RULES
+    n = 0
+    if os.path.exists(rp):
+        n = len(re.findall(r"(?m)^\s*\d+\.\s+", open(rp).read()))
+    empty_by_design = (n == 0 and os.path.exists(rp) and not open(rp).read().strip()
+                       and restart_declared())
+    return (n > 0 or it == 1 or empty_by_design,
+            f"rule set parses ({n} rules)"
+            + (" — EMPTY BY DESIGN: the change file declares the Law 0e restart" if empty_by_design
+               else "" if n or it == 1 else " — unparseable"))
 
 
 def gates(it: int, train: list[str], hold: list[str]) -> list[tuple[bool, str]]:
@@ -141,14 +165,27 @@ def gates(it: int, train: list[str], hold: list[str]) -> list[tuple[bool, str]]:
                                      "unbiased number would be gone")))
 
     # 7. the rule set exists and parses
-    rp = f"{OUT}/rules.txt"
-    n = 0
-    if os.path.exists(rp):
-        n = len(re.findall(r"(?m)^\s*\d+\.\s+", open(rp).read()))
-    g.append((n > 0 or it == 1,
-              f"rule set parses ({n} rules)" + ("" if n or it == 1 else " — unparseable")))
+    g.append(rules_gate(it))
 
-    # 8. somewhere to put the output
+    # 8. ★★★2026-10-06 THE LAWS ARE SELF-CHECKING AT THE MOMENT THEY BIND.
+    # `bible.py` and `test_bible_is_enforced.py` both state that the TEST is the enforcement
+    # — and an audit found NOTHING ever runs it: no CI directory, no git hook, zero matches
+    # for pytest in ops/ or scripts/. It passed only because it was run by hand. A test that
+    # never executes enforces nothing, so it is now a GATE: no iteration starts unless every
+    # law is present in every governed prompt.
+    try:
+        tp = subprocess.run([sys.executable, "-m", "pytest", "-q",
+                             f"{GB}/tests/test_bible_is_enforced.py"],
+                            capture_output=True, text=True, timeout=300,
+                            cwd=GB, env={**os.environ, "PYTHONPATH": f"{GB}/src"})
+        ok = tp.returncode == 0
+        tail = (tp.stdout or "").strip().splitlines()[-1:] or [""]
+        g.append((ok, f"the bible is present in every governed prompt ({tail[0][:70]})"
+                  + ("" if ok else " — THE LAWS ARE NOT BINDING; FIX BEFORE RUNNING")))
+    except Exception as e:
+        g.append((False, f"could not verify the bible is enforced — {type(e).__name__}"))
+
+    # 9. somewhere to put the output
     try:
         import shutil
         free = shutil.disk_usage(GB).free / 1e9
@@ -165,7 +202,15 @@ def state_brief(it: int) -> str:
         L.append("SCORED HISTORY (holdout, never trained on, never reviewed):")
         for x in json.load(open(hp)):
             h = x["holdout"]
-            L.append(f"  iter {x['iter']}: ${h['net_usd']/10:+,.0f}/day · "
+            # ⚠2026-10-06 THE CONSISTENCY FIELDS GO IN. The audit found this printing only
+            # $/day, side accuracy and capture while the prompt above it carries Law 0 — the
+            # model was told consistency outranks return and shown nothing but return. All
+            # three fields are computed by score_week and stored in history.
+            L.append(f"  iter {x['iter']}: "
+                     f"${h.get('usd_per_day', h['net_usd'] / 10):+,.0f}/day · "
+                     f"{h.get('days_positive','?')}/{h.get('days','?')} positive days · "
+                     f"daily SD ${h.get('daily_sd',0):,.0f} · "
+                     f"worst day ${h.get('worst_day',0):+,.0f} · "
                      f"side {h['side_accuracy']:.3f} · capture {h['capture']:.2f} · "
                      f"{h['trades_per_day']:.1f} trades/day · met all four: {x['met']}")
     L += ["", "THE BAR, ALL FOUR REQUIRED:",
@@ -187,9 +232,18 @@ def state_brief(it: int) -> str:
           "    days where it bound, and the P&L after the third loss totals +$8,776 over 32",
           "    day-runs. It is under separate A/B test; do not also change it here.",
           ""]
-    rp = f"{OUT}/rules.txt"
+    rp = RULES
     if os.path.exists(rp):
         L += ["THE RULE SET THIS ITERATION WILL TRADE:", open(rp).read(), ""]
+    if restart_declared():
+        import sim_week_recursive as SW
+        L += ["THIS IS A LAW 0e RESTART. THE RULE SET IS EMPTY BY DESIGN, SO THE BRIEF BELOW IS THE",
+              "WHOLE STRATEGY THE MODEL IS GIVEN (line v2). Several 'KNOWN' lines above describe the",
+              "previous line's rules and brief; where they conflict with this brief, this brief is",
+              "what will be traded.", "", SW.BRIEF_V2, ""]
+    if CHANGE and os.path.exists(CHANGE):
+        L += ["THE CHANGE UNDER AUDIT, DECLARED BEFORE THE RUN, WITH THE RECORDED TRADES IT CITES:",
+              open(CHANGE).read(), ""]
     return "\n".join(L)
 
 
@@ -275,8 +329,15 @@ def main() -> int:
     ap.add_argument("--hold", default=",".join(HOLDOUT))
     ap.add_argument("--no-audit", action="store_true", help="gates only, skip the LLM pass")
     ap.add_argument("--force", action="store_true", help="override a STOP verdict, never a gate")
+    ap.add_argument("--allow-fix-first", action="store_true",
+                    help="proceed despite a FIX-FIRST verdict; a gate still cannot be forced")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--rules", default="", help="rule set about to be traded (default rules.txt)")
+    ap.add_argument("--change", default="", help="file declaring the change and its cited trades")
     a = ap.parse_args()
+    global RULES, CHANGE
+    RULES = a.rules or RULES
+    CHANGE = a.change
     train = [x.strip() for x in a.train.split(",") if x.strip()]
     hold = [x.strip() for x in a.hold.split(",") if x.strip()]
 
@@ -322,6 +383,14 @@ def main() -> int:
     print(f"\n  → {REPORT}/iter{a.iter}.json   verdict={res['verdict']}")
     if a.json:
         print(json.dumps(res, indent=1))
+    # ⚠2026-10-06 FIX-FIRST NOW BLOCKS. It used to print "address MISSING above, then
+    # re-run" and return 0, so the iteration ran anyway — and the AUDIT prompt actively
+    # teaches the model to choose FIX-FIRST, making the middle verdict both the likeliest and
+    # the only one with no effect. Override deliberately with --allow-fix-first.
+    if res["verdict"] == "FIX-FIRST" and not a.allow_fix_first:
+        print("  ⛔ FIX-FIRST blocks the iteration. Address the MISSING items, or pass "
+              "--allow-fix-first if they are genuinely not blocking.")
+        return 2
     return 0 if res["verdict"] in ("GO", "FIX-FIRST") else 2
 
 

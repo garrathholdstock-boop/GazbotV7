@@ -51,8 +51,8 @@ OUT = f"{GB}/reports/recursive_loop/poison.json"
 # mid-run and 16 of 20 arms errored 138/138, producing nothing. The loop survived with
 # 1-error days because the guard was watching IT. Guarding one runner and not the next is
 # [[an-instrument-that-reports-healthy-about-something-it-does-not-check]].
-WATCHED = ("recursive_loop.py", "ab_rule_toggle.py", "paired_arm.py")
-LOOP_PAT = r"[.]venv/bin/python .*(recursive_loop|ab_rule_toggle|paired_arm)\.py"
+WATCHED = ("recursive_loop.py", "ab_rule_toggle.py", "paired_arm.py", "forward_month.py")
+LOOP_PAT = r"[.]venv/bin/python .*(recursive_loop|ab_rule_toggle|paired_arm|forward_month)\.py"
 
 PROBE_EVERY_S = 300
 DEAD_STREAK = 3            # ~15 min of a dead CLI before the night is written off
@@ -102,7 +102,7 @@ def cli_ok() -> bool:
 def scan() -> dict:
     """Error rate per day artefact. Never writes the artefact itself."""
     out = {}
-    for f in sorted(glob.glob(f"{ART}/loop*_*.json")):
+    for f in sorted(glob.glob(f"{ART}/loop*_*.json") + glob.glob(f"{ART}/fwd_*.json")):
         try:
             r = json.load(open(f))
         except Exception:

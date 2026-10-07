@@ -1,0 +1,49 @@
+{
+ "iter": 6,
+ "ts": "2026-10-07T12:40:54.872349+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~76M, have 351M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (0 rules) \u2014 EMPTY BY DESIGN: the change file declares the Law 0e restart"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (......................                                                )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 21.0GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: It enters only after a leg has already proven itself in one direction (confirmation, never the turn), exits on the first honest sign the leg is tiring rather than waiting for more, and refuses to ever enter against the leg that's currently running.\n\nHOW IT TRIES TO BEAT THE CHAMPION: The rules are gone and the brief is rewritten from scratch \u2014 no 3-6 trade cap nagging it every call, explicit permission to keep harvesting $200-300 clips as long as a grind continues, and \"there are no stops, you are the exit\" replacing anything that pushed it to hold for a bigger number. This isn't a tweak to the $620/day champion, it's a full restart on a new brief, so it's an attempt to improve, but it's untested \u2014 this run is the first mechanism check on two days, not yet a $/day result.\n\nWHAT WOULD HAVE TO HAPPEN: It would have to stop giving back profit on trades that peaked 50+ points green and stop entering legs that never go green at all \u2014 those two behaviours alone cost the old rule set over $3,300 on the cited trades.\n\nWHAT IT GIVES UP: It will always leave some of the middle of every leg on the table, by design, in exchange for never calling a top or bottom and never fighting the move.\n\nBIGGEST RISK: With the trade-count nag removed and grinding explicitly encouraged, it could over-trade into chop and rack up a lot of small losing entries against the leg, the exact failure that cost $2,892 in one session before.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\nFAILING METRIC: $/day \u2014 best scored iteration (IT2) is $620/day vs the $800 bar, a 22.5% shortfall, far larger than the ~2-7% misses on side accuracy and trades/day.\nAIMED AT IT: PARTLY \u2014 S1 targets the two named behaviors (give-backs on Group A trades, never-proven entries on Group B trades) that plausibly drive the $/day shortfall, but Step 1 explicitly measures mechanism counts (Q1-Q4), not $/day, and the plan correctly refuses to claim a $/day verdict until later tranches.\nMEASURABLE: YES \u2014 Q1-Q4 are proportions/counts (exit-in-profit rate, never-green rate, give-back rate, worst trade) that move outside single-run noise even on 2 days per L10; $/day itself is not being claimed this step, so it isn't subject to the $324/day floor yet.\nMISSING: (1) verify reports/recursive_loop/S1_cited_trades.json actually exists and matches the cited trades before spending compute on the run, since LAW 0c admissibility rests on it; (2) record explicitly that Q1-Q3 percentages on ~10-12 trades across 2 days are mechanism signals only, not to be over-read as rates, before the nightly review drafts S2; (3) confirm the L7 >10%-errored-call quarantine check runs automatically on these two days, since a poisoned day would invalidate the entire mechanism check at this small n.\nREASON: The restart is cheap, operator-authorized, and tied to named trades rather than a guess, with an explicit stop rule if Q1-Q3 fail twice. It is honest about not yet resolving $/day, so nothing here risks wasting a full tranche of budget on an unmeasurable claim."
+ },
+ "verdict": "GO"
+}

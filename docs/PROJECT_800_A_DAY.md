@@ -96,6 +96,16 @@ All four, on the holdout:
 P&L alone would reward one lucky trade. ⚠ His trade counts run above the band on his best days —
 the band comes from the other direction, the 23-entry day that lost $1,882.
 
+> ★ **AMENDED 2026-10-07 (Law 0e): the 3–6 band is a DESCRIPTION OF A NORMAL DAY, NOT A LIMIT.**
+> Operator: *"We can have an exception to 3-6 trades a day if the tape keeps grinding in one
+> direction for a huge part of the day. Keep jumping and harvesting 2-300$. That's great trading.
+> Be broad around that just so it has licence to do it."* The 23-entry day lost because 4 entries
+> went AGAINST the leg (−$2,892) while the 19 with it made +$1,010 — the count was never the fault.
+> The S line's brief (`BRIEF_V2`) and context (`band=False`) therefore carry no cap.
+> ⚠ `recursive_loop.BAR` / `meets_bar` still list 3–6 as a **reporting** bar for the IT line; it is
+> not the promotion gate (`bible.gate` is) and it does not apply to the S line's behaviour read,
+> which uses the mechanical grind test in `reports/recursive_loop/S1_change.txt` (Q5).
+
 ---
 
 ## 4. WHAT IS KNOWN, SO NOTHING IS RE-DERIVED
@@ -147,3 +157,16 @@ replaced it.
 
 **And the verdict is an exit verdict, not a race:** given a position open, does claiming on the dual
 pin beat holding? The incumbent is the 4-lot ladder, and matching it is refutation, not success.
+
+---
+
+## 6. STANDING GOAL OF EVERY ITERATION — CLAIM THE PROFIT (2026-10-07)
+
+> *"The whole thing about exiting is to claim profit."* · *"They're jumping in ok. And if Claude
+> is monitoring, then when profit is decent. Take it!"*
+
+IT2 has no rule that banks a profit (rule 7 forbids a fixed-gain exit; rule 8 cuts only on a
+structure break just beyond the entry). June 2026: 93 of 126 model exits were losses, 54 of those
+had been green first, 26 by 20pt or more. Now **Law 0d** in `src/gazbot7/bible.py`, injected into
+every prompt that writes, reviews or judges a rule set, and tested. IT2 itself stays frozen for the
+forward test; this binds IT4 onward, under L2 (one rule) and the consistency gate.

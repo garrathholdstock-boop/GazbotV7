@@ -1,0 +1,56 @@
+S1 — DECLARED CHANGE (L3), written BEFORE any S1 run.   RESTART (LAW 0e)
+
+Declared by the OPERATOR, 2026-10-07: "Fantastic and make it part of the constitution and let's start again."  (After: "If things have been dirtied up until now I'm ok to start again.")
+No iteration, review or audit declared this restart; it is his (Law 0e, THE RESTART).
+
+CHAMPION (unchanged, frozen, paper-forward-tested by the shadow runner): IT2, sha 5f0e05decd3b, reports/recursive_loop/CHAMPION.txt.   BRIEF v1 (frozen sha256 b314ac3c6cb7...).
+CHALLENGER LINE: "S".  S1 = reports/recursive_loop/S1.txt = an EMPTY rule set, traded under BRIEF_V2 (sim_week_recursive.BRIEF_V2, selected by run_day(line="v2") / the "@v2" arm suffix).
+IT2's ten rules are NOT carried over.  IT4 and IT5 (the claim line) are abandoned as lines: IT4 was stopped by the operator after 2 of 11 pairs; IT5's one run is a mechanism check of an old line, not a result (L6).
+
+WHAT CHANGES, EXACTLY (L1 and L2 are suspended for this one restart only, by Law 0e; L2 binds again from S2: ONE change per iteration):
+  1. RULES: IT2's ten rules -> none.  Everything the model does comes from the brief and the tape.
+  2. BRIEF v1 -> BRIEF_V2, which (a) opens with the strategy in his terms: buy/sell into the major leg, get in LATE (halfway up), get out EARLY, always out in profit, claim a decent profit ("take it"); (b) says THERE ARE NO STOPS, YOU ARE THE EXIT;
+     (c) says 3-6 trades is a description, not a limit, with the grind exception (keep jumping and harvest $200-300 while the tape keeps grinding one way); (d) states the true window (02:00Z-13:30Z; v1 says 06:00Z); (e) drops v1's "a +25pt exit on an intact leg is leaving the trade early"
+     (that sentence contradicts the strategy).  v1 BRIEF is byte-identical and still what the shadow runner trades.
+  3. CONTEXT: context(band=False) removes the per-call "YOUR BAND IS 3-6 TRADES A DAY / AT OR OVER THE LIMIT" nag, which would have overridden the grind exception on every call after the first trade.  Self-awareness (what you have done today) stays on.
+  4. The nightly REVIEW and CONSOLIDATE prompts are unchanged text but now carry Law 0e and the restart clause; Law 0e outranks any instruction that pushes toward holding for a bigger capture while in profit.
+
+WHY (LAW 0e, evidence under LAW 0c): the headline strategy is "buy at the start of the major intraday leg and exit near the top ... buy late, half way up the leg and exit early to be safe ... always exiting in profit."  The recorded IT2 trades below break it in the two ways it forbids.
+Evidence is IT2 on Opus, 22 June forward days (tag fwd_it2_2026-06*): DEVELOPMENT data.  HOLDOUT TRADES ARE NOT CITED (never reviewed).  reports/recursive_loop/S1_cited_trades.json; bible.admissible: "LAW 0c satisfied: 11 recorded trade(s) cited and verified".
+  GROUP A - 7 trades that were >=50pt in profit at their best and were exited UNDER WATER: peaks sum 445pt, finished -86.8pt, -$736.
+    2026-06-18 07:00 LONG  30094.62 -> 30081.62  peak 86.9  -13.0pt  $-110    2026-06-10 11:20 SHORT 28699.38 -> 28714.38  peak 76.9  -15.0pt  $-126
+    2026-06-30 10:15 LONG  30103.12 -> 30101.88  peak 62.1   -1.2pt  $-16     2026-06-03 08:15 LONG  30737.62 -> 30730.62  peak 57.6   -7.0pt  $-62
+    2026-06-08 07:35 LONG  29213.12 -> 29182.88  peak 55.9  -30.2pt  $-248    2026-06-29 02:35 LONG  29512.12 -> 29495.38  peak 53.9  -16.8pt  $-140
+    2026-06-04 06:05 LONG  30488.12 -> 30484.62  peak 52.1   -3.5pt  $-34
+  GROUP B - the 4 biggest losers that were NEVER in profit (peak <=4.1pt): -$2,648.
+    2026-06-11 11:55 LONG  28900.12 -> 28765.88  peak 4.1  -134.2pt $-1080    2026-06-25 12:30 LONG  30242.62 -> 30171.12  peak 0.0  -71.5pt $-578
+    2026-06-24 08:00 SHORT 29768.88 -> 29831.62  peak 0.0   -62.8pt $-508     2026-06-26 05:35 LONG  29404.12 -> 29344.62  peak 0.0  -59.5pt $-482
+  What these show and do NOT show: they show the behaviours the headline forbids (giving a profit back to a loss; entering a leg that never proves itself).  They do not show that BRIEF_V2 prevents them - that is what the predictions test.  Dollars here are what those recorded trades did, not what S1 will make.
+  What IT2 does RIGHT and S1 must not lose (Law 0b): it is the only line with a scored holdout ($620/day, 9 of 10 days positive on Opus).  It stays the champion; S1 replaces it only by passing bible.gate(S1, IT2) on a full paired set.  Nothing here touches it.
+
+BASELINES, recorded (IT2; the S line is read against these):
+                            Opus holdout (10d)   Opus June (22d)     Sonnet Jan (2d)
+  trades/day                6.4                  5.9                 6.0
+  exits in profit           42%                  29% (38/129)        25% (3/12)
+  entries never green       n/a here             34% (44/129)        50% (6/12)     (peak < 5pt)
+  peak>=30pt, finished<=0   3 of 28              17 of 54            1 of 4
+  worst trade               -$406                -$1,080             -$112
+  $/day                     +$620 (9/10 +ve)     -$110               +$414
+  Noise floor: ~$324/day on a single run.  So $/day is RECORDED but not decidable in 2 days, and the first S1 run is a MECHANISM CHECK, not a result (L6).
+
+PRE-REGISTERED PREDICTIONS (mechanism and counts; every S1 day, Sonnet, self_aware, line v2).  A threshold below is a pre-registered bar, not a fitted number:
+  Q1  EXITS IN PROFIT: more than 50% of S1's exits are in profit (points > 0).  IT2's best recorded share is 42%.  At or below 42% REFUTES the wording (the model is not exiting in profit).
+  Q2  NEVER GREEN: the share of entries that never reach +5pt is below 34% (IT2's better baseline).  At or above 34% means it is still entering before the leg has proven itself; the brief's "you get in LATE" is not being obeyed.
+  Q3  GIVE-BACKS: of trades with peak >= 30pt, no more than 20% finish <= 0pt (IT2: 3/28 holdout, 17/54 June).  More is a failure of "take it".
+  Q4  WORST TRADE: no single trade worse than -$406 (IT2's worst holdout trade).  One such trade stops the next tranche until diagnosed.
+  Q5  TRADES/DAY: not capped.  Between 3 and 9 a day on these two days.  More than 6 on a day only if >= 75% of that day's entries are in the direction of the day's net move (02:00Z open to 13:30Z close) - the grind exception, defined mechanically.  Fewer than 3 on BOTH days is over-simplification (it has stopped trading), >9 on any day is the 23-entry failure.
+  Q6  ENTRIES: side accuracy and capture reported as score_week gives them; BAR 0.75 / 0.15 is a reporting bar and not the promotion gate.  No entry against the running leg is a mechanism read from the day table (per-trade post-mortem), not a statistic.
+  Q7  NO RULES WERE WRITTEN: S1.txt is empty for the whole run.  The nightly review is commentary only on S1; rules for S2 are proposed AFTER S1's tranche is read, one change (L2), cited (L0c).
+
+HOW IT WILL BE TESTED, CHEAP FIRST (operator: "Don't do a huge run of days if it isn't improving"):
+  STEP 1  MECHANISM CHECK, S1 only, 2026-02-05 and 2026-02-19 (untouched days; 2 day-runs, ~1h with 2 workers).  Read: per-day table, per-trade post-mortem, Q1-Q5.  Not a result.  If Q1/Q2/Q3 fail on both days, STOP and diagnose the brief wording before spending anything more.
+  STEP 2  If the behaviour is sane, the same two days under IT2 (paired, 2 day-runs), then bible.gate(S1, IT2) terms reported for the pair: days positive, worst day, CV, $/day.  Two pairs cannot resolve $/day against a ~$324/day noise floor; a tranche is read on Q1-Q5 and direction.
+  STEP 3  Tranches of 2 pairs on the remaining untouched days (03-05, 03-19, 04-02, 04-16, 04-30, 05-14, 05-28).  TRANCHE STOP RULE: stop and diagnose after any tranche where S1's cumulative net is below IT2's on the same days, or Q4 fails, or Q1-Q3 fail.  Continue only while S1 holds.
+         The verdict is bible.gate on the full set of completed pairs; "passed, unresolved" inside the noise floor is never a promotion.  IT2 stays champion and frozen whatever happens.  The holdout (17-21 Aug, 14-18 Sep) is not touched until the S line has a challenger worth scoring there.
+  Sonnet via ANTHROPIC_MODEL on the subscription.  A Sonnet number is never reported as the Opus $620.
+  QUARANTINE (L7): any day with >10% errored calls is poisoned, excluded and re-run, never scored as flat.  THE v1 BRIEF IS NOT EDITED.

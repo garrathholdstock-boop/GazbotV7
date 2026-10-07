@@ -65,7 +65,7 @@ DAYLOG = f"{GB}/reports/shadow_runner"
 # is `rules_iter1.txt` (sha 5f0e05decd3b): $620/day, 9/10 positive days, daily SD $724,
 # worst day -$496. Copied to a stable filename so a later iteration cannot overwrite what is
 # being paper-traded.
-RULES = f"{GB}/reports/recursive_loop/rules_live_champion.txt"
+RULES = f"{GB}/reports/recursive_loop/CHAMPION.txt"
 POISON_RATE = 0.10
 ALARM_STREAK = 3                 # three identical failures is a fault, not a blip
 
@@ -268,7 +268,7 @@ def tick(now: dt.datetime | None = None, dry: bool = False) -> dict:
     if not dry:
         st = apply_action(st, act, px, int(now.timestamp()), out)
         out["position"] = None if not st["pos"] else {
-            "side": st["pos"]["side"], "entry": st["pos"]["entry"]}
+            "side": st["pos"]["dir"], "entry": st["pos"]["entry"]}
         out["net_usd_today"] = round(sum(t["pnl_usd"] for t in st["done"]), 2)
         out["trades_today"] = len(st["done"])
         save_state(st)

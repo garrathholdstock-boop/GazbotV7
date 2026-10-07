@@ -1,0 +1,105 @@
+{
+ "change": "IT5: IT4 plus a re-entry guard (bounded by rule 6's one-hour clock) inside rule 7's claim exception",
+ "basis": "Sonnet IT4 day records snt_it4_2026-01-08 / 2026-01-22; development data from here on",
+ "trades": [
+  {
+   "day": "2026-01-08",
+   "entry_time": "04:35",
+   "side": "SHORT",
+   "entry": 25781.38,
+   "exit": 25783.38,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -2.0,
+   "recorded_usd": -22,
+   "would_have": "entered 10 min after the claim of the 02:35-04:25Z trade (its best price 25773.24); guard: BLOCKS it"
+  },
+  {
+   "day": "2026-01-08",
+   "entry_time": "05:20",
+   "side": "SHORT",
+   "entry": 25763.88,
+   "exit": 25703.88,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": 60.0,
+   "recorded_usd": 474,
+   "would_have": "entered 55 min after the claim of the 02:35-04:25Z trade (its best price 25773.24); guard: allows it (new extreme beyond best made first)"
+  },
+  {
+   "day": "2026-01-08",
+   "entry_time": "06:50",
+   "side": "SHORT",
+   "entry": 25699.62,
+   "exit": 25707.88,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -8.2,
+   "recorded_usd": -72,
+   "would_have": "entered 5 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: BLOCKS it"
+  },
+  {
+   "day": "2026-01-08",
+   "entry_time": "07:15",
+   "side": "SHORT",
+   "entry": 25717.12,
+   "exit": 25778.38,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -61.2,
+   "recorded_usd": -496,
+   "would_have": "entered 30 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: BLOCKS it"
+  },
+  {
+   "day": "2026-01-08",
+   "entry_time": "09:55",
+   "side": "SHORT",
+   "entry": 25762.62,
+   "exit": 25763.88,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -1.2,
+   "recorded_usd": -16,
+   "would_have": "entered 190 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: allows it (>60 min, rule 6 clock)"
+  },
+  {
+   "day": "2026-01-08",
+   "entry_time": "10:45",
+   "side": "SHORT",
+   "entry": 25760.38,
+   "exit": 25766.38,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -6.0,
+   "recorded_usd": -54,
+   "would_have": "entered 240 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: allows it (>60 min, rule 6 clock)"
+  },
+  {
+   "day": "2026-01-08",
+   "entry_time": "11:40",
+   "side": "SHORT",
+   "entry": 25778.12,
+   "exit": 25776.38,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": 1.8,
+   "recorded_usd": 8,
+   "would_have": "entered 295 min after the claim of the 05:20-06:45Z trade (its best price 25677.76); guard: allows it (>60 min, rule 6 clock)"
+  },
+  {
+   "day": "2026-01-22",
+   "entry_time": "06:40",
+   "side": "SHORT",
+   "entry": 25511.38,
+   "exit": 25533.12,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -21.8,
+   "recorded_usd": -180,
+   "would_have": "entered 5 min after the claim of the 05:45-06:35Z trade (its best price 25485.5); guard: BLOCKS it"
+  },
+  {
+   "day": "2026-01-22",
+   "entry_time": "07:15",
+   "side": "SHORT",
+   "entry": 25511.12,
+   "exit": 25539.38,
+   "reason": "CLAUDE_EXIT",
+   "recorded_pts": -28.2,
+   "recorded_usd": -232,
+   "would_have": "entered 40 min after the claim of the 05:45-06:35Z trade (its best price 25485.5); guard: BLOCKS it"
+  }
+ ]
+}

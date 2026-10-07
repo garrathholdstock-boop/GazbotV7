@@ -138,6 +138,7 @@ def metrics(tag: str, days_only: list[str] | None = None) -> dict | None:
             "premature_pct": round(100.0 * prem / max(1, ntr), 1),
             "capture_pct": round(100.0 * took / max(1e-9, off), 1),
             "usd_per_day": round(sum(nets) / days, 2),
+            "daily_sd": round(st.stdev(nets), 2) if len(nets) > 1 else 0.0,
             "days_positive": sum(1 for x in nets if x > 0),
             "worst_day": round(min(nets), 2)}
 
@@ -221,6 +222,19 @@ def main() -> int:
     for k in ("holds_over_2h", "trades", "days_positive", "worst_day", "usd_per_day"):
         print(f"  {k:22} {base[k]:>12} {arm[k]:>12} {arm[k]-base[k]:>+12.1f}  "
               f"{'(not decidable)' if k == 'usd_per_day' else ''}")
+    # ★2026-10-06 USE THE GATE, DO NOT HAND-ROLL THE COMPARISON. An audit found this file
+    # computing days_positive, worst_day and usd_per_day and then ranking on $/day alone,
+    # while `bible.gate()` sits in the repo expecting exactly those keys.
+    try:
+        from gazbot7.bible import gate as _gate
+        arm2 = dict(arm); arm2["daily_sd"] = arm2.get("daily_sd") or 0.0
+        base2 = dict(base); base2["daily_sd"] = base2.get("daily_sd") or 0.0
+        if arm2["daily_sd"] and base2["daily_sd"]:
+            okg, whyg = _gate(arm2, base2)
+            print(f"\n  CONSISTENCY GATE (bible Law 0): "
+                  f"{'the arm would REPLACE the champion' if okg else 'REJECTED'} — {whyg}")
+    except Exception as e:
+        print(f"\n  gate unavailable: {type(e).__name__}")
     n_hit = sum(verdicts.values())
     print(f"\n  {n_hit} of 3 frozen predictions met.")
     print("  ⚠ $/day is recorded, not a verdict — see NOT DECIDABLE above.")

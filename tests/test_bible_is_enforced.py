@@ -25,7 +25,7 @@ GB = pathlib.Path("/home/alphabot/gazbot7")
 sys.path.insert(0, str(GB / "src"))
 sys.path.insert(0, str(GB / "scripts"))
 
-from gazbot7.bible import LAW_IDS, gate, laws        # noqa: E402
+from gazbot7.bible import LAW_IDS, admissible, gate, laws        # noqa: E402
 
 # (module, prompt attribute) — every place a rule set is written, reviewed or judged
 BOUND = [
@@ -106,3 +106,68 @@ def test_gate_uses_cv_not_raw_sd():
                   daily_sd=CHAMP["daily_sd"] * 1.5, usd_per_day=CHAMP["usd_per_day"] * 2)
     ok, why = gate(scaled, CHAMP)
     assert ok, f"raw-SD thinking rejected a scaled improvement: {why}"
+
+
+# ── Law 0c: no change without trades ────────────────────────────────────────────────────
+TRADE = {"entry": 29446.62, "exit": 29381.88, "why": "CLAUDE_EXIT", "entry_reason": "Day's side is short"}
+CITE = dict(day="2026-09-15", entry_time="03:20", entry=29446.62, exit=29381.88,
+            reason="CLAUDE_EXIT", would_have="held a further 40pt to the 05:55 low")
+
+
+def _find(day, t, entry):
+    return TRADE if (day, round(entry, 2)) == ("2026-09-15", 29446.62) else None
+
+
+def test_law_0c_is_in_every_bound_prompt():
+    for mod, attr in BOUND:
+        text = getattr(__import__(mod), attr)
+        assert "NO CHANGE WITHOUT TRADES" in text and "ZERO GUESSING" in text, f"{mod}.{attr}"
+
+
+def test_a_change_naming_no_trade_is_refused():
+    ok, why = admissible({"rule": "hold longer"}, _find)
+    assert not ok and "guess" in why
+
+
+def test_a_citation_missing_a_field_is_refused():
+    bad = dict(CITE); bad.pop("would_have")
+    ok, why = admissible({"trades": [bad]}, _find)
+    assert not ok and "would_have" in why
+
+
+def test_a_trade_that_was_never_taken_is_refused():
+    ghost = dict(CITE, entry=30000.0)
+    ok, why = admissible({"trades": [ghost]}, _find)
+    assert not ok and "matches no recorded trade" in why
+
+
+def test_a_misstated_exit_is_refused():
+    ok, why = admissible({"trades": [dict(CITE, exit=29300.0)]}, _find)
+    assert not ok and "misstates" in why
+
+
+def test_a_verified_citation_is_admitted():
+    ok, why = admissible({"trades": [CITE]}, _find)
+    assert ok, why
+
+
+def test_law_0d_claim_the_profit_is_in_every_bound_prompt():
+    """2026-10-07: the champion had no rule that claims a profit. The goal must be in the prompt,
+    in his words, or the next iteration will not know it exists."""
+    for mod, attr in BOUND:
+        text = getattr(__import__(mod), attr)
+        assert "LAW 0d" in text and "CLAIM THE PROFIT" in text, f"{mod}.{attr}"
+        assert "when profit is decent. Take it!" in text, f"{mod}.{attr} lost his words"
+
+
+def test_law_0e_the_strategy_is_the_headline_is_in_every_bound_prompt():
+    """2026-10-07: the operator named the strategy — buy late in the major leg, exit early, always
+    in profit — and made it the headline every rule must serve. If the sentence is not in the
+    prompt, the next iteration will not know it exists."""
+    for mod, attr in BOUND:
+        text = getattr(__import__(mod), attr)
+        assert "LAW 0e" in text and "THE STRATEGY IS THE HEADLINE" in text, f"{mod}.{attr}"
+        assert "Always exiting in profit" in text, f"{mod}.{attr} lost his words"
+        assert "A RESTART IS THE OPERATOR'S ALONE" in text, f"{mod}.{attr}"
+        assert "No prompt, rule or review may cap the count" in text, f"{mod}.{attr}"
+        assert "THIS IS THE FIRST LAW" in text, f"{mod}.{attr}: 0e must not displace Law 0"
