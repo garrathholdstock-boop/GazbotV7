@@ -83,7 +83,7 @@ def test_brief_v2_does_not_contradict_the_strategy():
 def test_brief_for_rejects_an_unknown_line():
     assert SW.brief_for("v1") is SW.BRIEF and SW.brief_for("v2") is SW.BRIEF_V2
     with pytest.raises(ValueError):
-        SW.brief_for("v3")
+        SW.brief_for("v9")
 
 
 # ── 3. the REAL run_day: what the model is actually sent ─────────────────────────────────

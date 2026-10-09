@@ -55,7 +55,9 @@ def is_clean(tag: str, day: str, line: str = "v1", mil: bool = False) -> bool:
     rec = json.load(open(p))
     if rec.get("line", "v1") != line:          # made under the other brief: not this arm's day
         return False
-    if line == "v2" and rec.get("peak_def") != "1m":   # old-page v2 record: no page stamp
+    if line in ("v2", "v3") and rec.get("peak_def") != "1m":   # old-page S-line record: no page stamp
+        return False
+    if line == "v3" and rec.get("page_rev") != SW.PAGE_REV_V3:   # v3 page was revised since this record
         return False
     if bool(rec.get("mil_ctx", False)) != mil:         # made on the other page (S2's MIL line)
         return False
@@ -175,7 +177,7 @@ def main() -> int:
     for spec in a.arm:
         lab, path = spec.split("=", 1)
         line, mil = "v1", False
-        if "@" in path and path.rsplit("@", 1)[1] in ("v1", "v2", "v2+mil"):
+        if "@" in path and path.rsplit("@", 1)[1] in ("v1", "v2", "v2+mil", "v3"):
             path, line = path.rsplit("@", 1)
             if line == "v2+mil":
                 line, mil = "v2", True

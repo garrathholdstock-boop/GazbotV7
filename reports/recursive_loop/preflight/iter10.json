@@ -1,0 +1,49 @@
+{
+ "iter": 10,
+ "ts": "2026-10-08T22:05:26.029054+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~57M, have 89M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (1 rules)"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (..........................................                            )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 19.0GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: It joins a leg that has already turned and is grinding its way, late and in that direction, holds through the normal breathing of the leg, and leaves in profit once price has given back more than about 80 points (7 times the 1-minute ATR on the page) from the trade's best price and the day chart shows the move itself has turned \u2014 and it never enters against a leg that is running.\n\nHOW IT TRIES TO BEAT THE CHAMPION: The rule set is changed, not a repeat: one new rule stops it banging out for 25-40 points at the first stall and makes it sit through the ordinary 80-point in-leg pullback, with a guard that any trade which got 2 ATR green must be closed while still green rather than handed back. It is not pointed straight at the 624 \u2014 it is being graded against this same line's own baseline of -$20/day, so it has to show the later exit is worth real money before it is worth putting in front of the champion.\n\nWHAT WOULD HAVE TO HAPPEN: The typical trade would have to be held about 35 minutes instead of 20 and come out at 90-120 points instead of 17-28 \u2014 one 250-300 point leg ridden once, rather than three small bites out of the middle of it.\n\nWHAT IT GIVES UP: Sitting in a position blocks new entries, so trades drop from about 15 a day to 6-10 and it will miss a lot of the Asia and London grind re-entries that pay $200-300 each.\n\nBIGGEST RISK: The counts move and the money doesn't \u2014 on the nine test days this exact hold-through was worth only about +$64/day in hindsight, which is small next to the $324/day the same run can swing on identical days, and the days it loses on it loses big (one day -$3,619) because the 80 points it sits through is sometimes the leg genuinely ending.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\n\nFAILING METRIC: $/day = \u2212$20 (S1b, 9 days) against the $800 bar \u2014 a $820 gap; capture 0.085 vs 0.15 is the next worst, side 0.818 already clears.\n\nAIMED AT IT: PARTLY \u2014 the rule is exit-only and aimed squarely at the mechanism behind both ($0.6 mean points/trade, 20-min median hold, 48% exits in profit), but its own pre-stated whole-cohort counterfactual is +$64/day (+$121/day for the best as-worded bracket), so it cannot close an $820 gap and is not intended to.\n\nMEASURABLE: YES \u2014 not on dollars (own prior is 1/5 of the $324 floor, and the 9-day SE is $350-460; the declaration already rules $/day recorded-not-decided), but on the pre-registered counts: median hold 20\u219235 min, \u226410-min share 31%\u219220%, exits in profit 48%\u219260% (prior 58-73%) all move far outside count noise, and C1's stamped shallow-green-exit count 67/136 is a zero-cost discriminator.\n\nMISSING:\n1. Stamp a probe page at a **holding** look. The stored probe (`S5_assembled_page_probe.txt`) is a 02:00Z flat look, so it contains ATR but not the `YOUR POSITION / peak favourable so far` block (`scripts/sim_week_recursive.py:536-545`) that the whole 7-ATR-from-best arithmetic depends on. The block does exist in the code path and is identical for both arms, so this is a stamp gap, not a delivery gap \u2014 but without it \"delivered and not obeyed\" is an inference rather than a record.\n2. Record now that `bible.gate` against a loss-making baseline collapses criterion 4: `usd_per_day <= 0` \u2192 `cv_h = inf` (`src/gazbot7/bible.py:255-262`), so S5 passes consistency on days-positive \u2265 5 and worst-day \u2265 \u2212$1,490 alone and then needs only `$/day > \u2212$20` (effectively > $0). A gate PASS here is a $0 threshold well inside the noise floor and must not be quoted as a dollar result.\n3. Stamp S1b's `daily_sd` (\u2248$1,105 from the nine stamped per-day numbers) into the baseline file, since `gate()` requires it on both arms and only days-positive/worst-day are currently stamped.\n\nREASON: The three prior audits' pre-registration gaps are genuinely closed \u2014 C1 has a stamped saturated baseline, C2 was withdrawn and re-registered against the 690-minute occupancy ceiling that made 45 min arithmetically impossible, C4 has a pre-run 58-73% prior from the as-worded counterfactual, and the dollar read is explicitly demoted to a paired sign test with the attribution confound (entries forgone) declared rather than denied. It is exit-only on untouched entries, so it is not re-deriving anything settled, and the counts it is aimed at will be interpretable whichever way the dollars land."
+ },
+ "verdict": "GO"
+}

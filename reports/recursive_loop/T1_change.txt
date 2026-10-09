@@ -1,0 +1,73 @@
+T1 — PROFIT-TAKING TRIAL (technique 1 of the ladder).  Declared 2026-10-09 BEFORE any model call.
+Operator brief: "a trial on one day or 2 days ... see if Claude can maximise profit takes ... the only thing he has to
+focus on. Hone each technique one by one. Maximum 8 trades. Let's give him great entries ... enter when I do, 50% into
+a MIL ... he needs to manage the exit ... telegram at $200 and every $50 above ... maybe from $150, then he watches
+every minute."   (Not an S-line iteration: no rule text, no gate, no champion change. It is a lab on ONE skill.)
+
+WHAT IS TESTED
+  Exit skill only. Can Claude, watching a trade the way the operator does, leave NEAR THE TOP and IN PROFIT, and does it
+  beat plain mechanical exits on the identical entries?
+
+ENTRIES (not Claude's) - DISCLOSED AS A HINDSIGHT LAB CONSTRUCT
+  Every major intraday leg (MIL = the repo tracker: ends on a 7xATR give-back, MIL_K=7) of >= 60 pt whose 50% point
+  falls inside 02:00-13:30Z. Entry signal = close of the first 1-min bar that has covered 50% of the leg's FINAL move;
+  fill = close of the NEXT bar (+half spread), 4 lots, $8/pt, fee $1.50/lot RT. The leg total is known only because
+  the day is finished. So: (a) these entries are not tradeable, (b) every one is guaranteed >= half a leg of room, so
+  the trade is shielded from the usual never-green loss, (c) the result measures EXIT skill and must never be quoted
+  as a strategy P&L. Max 8 trades/day is a LAB constraint (Law 0e forbids a cap in the real line); it does not bind
+  here (4 and 2 entries). A new entry that arrives while a trade is open closes it first (FLIP_NEXT_ENTRY) - that is
+  how a never-exit looks, and it is scored.
+
+THE WATCH MECHANIC (the operator's own)
+  No model call until open profit first reaches +$150 (18.75 pt) on a completed 1-min close. Alerts at $150 and every
+  +$50 above (logged on the page). From the first alert Claude is called at EVERY completed minute until the trade is
+  closed. Answers: HOLD or EXIT. No stop, no target, no trailing rule is given: the model is the exit. A trade that
+  never reaches $150 is not watched and rides to the next entry or 13:30Z (scored as never_alerted).
+  Brief: T1_BRIEF in scripts/t1_profit_take.py, sha 3d08960b1af72210. Page ~660 tokens: position, open/best/give-back
+  ($, pt, ATR), alerts, path since entry (5-min), last 15 min (1-min), last 4 h (15-min), minutes to flat, its own last
+  4 looks. The page carries NO leg end, no MIL info and no 7xATR statement (S5 showed the model obeys a quoted
+  tolerance over the exit-in-profit instruction).
+  Tools off, model claude-sonnet-5, fresh call per look. Harness: scripts/t1_profit_take.py sha 1985874d350e032f.
+
+TIMING / CAUSALITY (look-ahead flag from the S6 audit - VERIFIED)
+  Lake 1-min bar_ts is the minute START and its close is the price 55 s later (checked against 5 s bars on 3 days:
+  120/120 start-labelled, <=9/120 end-labelled). sim_week_recursive.run_day keeps bars with bar_ts <= now, so a look
+  labelled t actually sees, and fills at, the close of the minute starting at t: an off-by-one LABEL with a
+  ZERO-LATENCY fill. Not a peek at information beyond the fill price, and identical in every S arm, so it does not
+  bias arm-vs-arm comparisons; it does make absolute $ optimistic. (My first "honest re-mark" of the S arms was
+  invalid - it filled at prices the model never saw - and is withdrawn.) T1 therefore uses: a bar is complete only when
+  bar_ts+60 <= now; decision at that close; fill at the NEXT bar's close. Same rule for Claude and every baseline.
+  The S-line records are not edited.
+
+CONTROLS (same engine, same entries, zero model cost, run BEFORE Claude; none tuned - all numbers come from desk
+  constants: $150 first alert, $300 top of his "$200-300", $75 give-back and 3 min stall from rider-peak-watch)
+  6 trades, 2 days   $      pt     share of leg remainder (M1)   in profit
+  B0 hold to next flip   1,526  195.2   0.281        4/6   (never exit - 03-05 gives it all back)
+  B1 exit at first alert 1,372  176.0   0.253        6/6
+  B2 take $300           2,220  282.0   0.406        6/6   <- best mechanical
+  B3 give-back $75 off peak 2,156 274.0 0.394        6/6
+  B4 stall 3 min        2,192  278.5   0.401        6/6
+  B5 ORACLE leg top (hindsight) 5,012 631.0 0.908    6/6   <- ceiling, not an incumbent
+  Mechanical rules are CONTROLS, not rules for the line (they are stops/targets; Law 0e forbids them as strategy).
+
+DAYS (chosen before any Claude call)
+  2026-03-05 (S1b loser -1,204; 4 legs 77/118/213/168 pt) and 2026-04-30 (S1b winner +544; 2 giant legs 431/351 pt).
+  One day with several mid-size legs where giving it back is easy, one clean snake where holding is rewarded.
+
+PRE-REGISTERED SCORE (all reported whatever the outcome; n=6 trades is a TRIAL, not a result - Law L6)
+  M1 share of the leg remainder captured (sum exit pt / sum available pt to the leg top)   [B2 0.406, oracle 0.908]
+  M1b share of the trade's own best captured (sum exit pt / sum best-close pt; can exceed 1 when it exits on a spike)
+  M2 alerted trades closed in profit (pnl_usd > 0)                                          [controls 6/6]
+  M3 mean give-back from the best (pt)         M4 alerted trades that ended red             M5 total $ net of fees
+  PASS needs all of: M2 >= 5/6, M5 > $2,220 (beat the best control), M1 >= 0.45. Anything less: PARTIAL if it beat
+  B0/B1 only, else FAIL. A PASS earns a wider run (more days, same entries) - never a ship.
+  A day with > 10% errored calls is poisoned (L7) and is re-run, not scored. Max 900 calls/day.
+
+KNOWN LIMITS
+  Two days, six trades, in-sample choice of days. The hindsight entries shield the exit from the usual loss, so even a
+  PASS says nothing about entries. 5 mechanical controls on six trades differ by < $150 - Claude must clear the best,
+  not the average. Cost: ~1.1k-token pages, est. 3-8M billable tokens for both days; weekly meter 34.7M left at
+  06:20Z (floor, this box only), reset Wed 2026-10-14 05:00Z.
+
+OPEN RULING (does not block T1): whether a green-only "lock" clause (leave once back to +0.5 ATR after 2 ATR) counts
+  as a stop under Law 0e. T1 gives Claude no lock, so it is not needed here; it is needed before S6.

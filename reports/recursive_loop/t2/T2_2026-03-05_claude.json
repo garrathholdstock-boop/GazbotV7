@@ -1,0 +1,1316 @@
+{
+ "day": "2026-03-05",
+ "who": "claude",
+ "trades": [
+  {
+   "side": "LONG",
+   "entry": 25062.88,
+   "exit": 25070.12,
+   "opened": "2026-03-05T03:57:00+00:00",
+   "closed": "2026-03-05T04:35:00+00:00",
+   "held_min": 38.0,
+   "points": 7.25,
+   "pnl_usd": 52.0,
+   "why": "POLICY_EXIT_first",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "04:23"
+    ],
+    [
+     200.0,
+     "04:30"
+    ]
+   ],
+   "best_pt": 26.12,
+   "mfe_hl_pt": 26.88,
+   "giveback_pt": 18.88,
+   "avail_pt": 40.12,
+   "leg_total_pt": 77.0,
+   "share_of_leg_remainder": 0.181,
+   "share_of_best": 0.278,
+   "kind": "first"
+  },
+  {
+   "side": "LONG",
+   "entry": 25084.38,
+   "exit": 25088.88,
+   "opened": "2026-03-05T04:38:00+00:00",
+   "closed": "2026-03-05T04:47:00+00:00",
+   "held_min": 9.0,
+   "points": 4.5,
+   "pnl_usd": 30.0,
+   "why": "POLICY_EXIT_re",
+   "alerted": true,
+   "alerts": [],
+   "best_pt": 5.38,
+   "mfe_hl_pt": 7.38,
+   "giveback_pt": 0.88,
+   "avail_pt": 18.62,
+   "leg_total_pt": 77.0,
+   "share_of_leg_remainder": 0.242,
+   "share_of_best": 0.837,
+   "kind": "re"
+  },
+  {
+   "side": "LONG",
+   "entry": 25099.12,
+   "exit": 25077.12,
+   "opened": "2026-03-05T04:50:00+00:00",
+   "closed": "2026-03-05T05:17:00+00:00",
+   "held_min": 27.0,
+   "points": -22.0,
+   "pnl_usd": -182.0,
+   "why": "POLICY_EXIT_re",
+   "alerted": true,
+   "alerts": [],
+   "best_pt": 3.88,
+   "mfe_hl_pt": 7.38,
+   "giveback_pt": 25.88,
+   "avail_pt": 3.88,
+   "leg_total_pt": 77.0,
+   "share_of_leg_remainder": -5.677,
+   "share_of_best": -5.677,
+   "kind": "re"
+  },
+  {
+   "side": "SHORT",
+   "entry": 25047.38,
+   "exit": 25010.12,
+   "opened": "2026-03-05T05:57:00+00:00",
+   "closed": "2026-03-05T06:20:00+00:00",
+   "held_min": 23.0,
+   "points": 37.25,
+   "pnl_usd": 292.0,
+   "why": "POLICY_EXIT_first",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "06:01"
+    ],
+    [
+     200.0,
+     "06:07"
+    ],
+    [
+     250.0,
+     "06:07"
+    ],
+    [
+     300.0,
+     "06:08"
+    ],
+    [
+     350.0,
+     "06:09"
+    ],
+    [
+     400.0,
+     "06:10"
+    ],
+    [
+     450.0,
+     "06:10"
+    ]
+   ],
+   "best_pt": 62.12,
+   "mfe_hl_pt": 66.62,
+   "giveback_pt": 24.88,
+   "avail_pt": 62.12,
+   "leg_total_pt": 117.8,
+   "share_of_leg_remainder": 0.6,
+   "share_of_best": 0.6,
+   "kind": "first"
+  },
+  {
+   "side": "SHORT",
+   "entry": 24994.12,
+   "exit": 25002.62,
+   "opened": "2026-03-05T06:34:00+00:00",
+   "closed": "2026-03-05T06:40:00+00:00",
+   "held_min": 6.0,
+   "points": -8.5,
+   "pnl_usd": -74.0,
+   "why": "POLICY_EXIT_re",
+   "alerted": true,
+   "alerts": [],
+   "best_pt": 2.12,
+   "mfe_hl_pt": 4.88,
+   "giveback_pt": 10.62,
+   "avail_pt": 8.88,
+   "leg_total_pt": 117.8,
+   "share_of_leg_remainder": -0.958,
+   "share_of_best": -4.0,
+   "kind": "re"
+  },
+  {
+   "side": "SHORT",
+   "entry": 24997.38,
+   "exit": 25055.88,
+   "opened": "2026-03-05T06:42:00+00:00",
+   "closed": "2026-03-05T06:52:00+00:00",
+   "held_min": 10.0,
+   "points": -58.5,
+   "pnl_usd": -474.0,
+   "why": "POLICY_EXIT_re",
+   "alerted": true,
+   "alerts": [],
+   "best_pt": 0.0,
+   "mfe_hl_pt": 1.62,
+   "giveback_pt": 58.5,
+   "avail_pt": 12.12,
+   "leg_total_pt": 117.8,
+   "share_of_leg_remainder": -4.825,
+   "share_of_best": null,
+   "kind": "re"
+  },
+  {
+   "side": "LONG",
+   "entry": 25080.62,
+   "exit": 25184.62,
+   "opened": "2026-03-05T07:01:00+00:00",
+   "closed": "2026-03-05T09:14:00+00:00",
+   "held_min": 133.0,
+   "points": 104.0,
+   "pnl_usd": 826.0,
+   "why": "POLICY_EXIT_first",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "09:05"
+    ],
+    [
+     200.0,
+     "09:06"
+    ],
+    [
+     250.0,
+     "09:06"
+    ],
+    [
+     300.0,
+     "09:06"
+    ],
+    [
+     350.0,
+     "09:07"
+    ],
+    [
+     400.0,
+     "09:07"
+    ],
+    [
+     450.0,
+     "09:08"
+    ],
+    [
+     500.0,
+     "09:08"
+    ],
+    [
+     550.0,
+     "09:09"
+    ],
+    [
+     600.0,
+     "09:09"
+    ],
+    [
+     650.0,
+     "09:10"
+    ],
+    [
+     700.0,
+     "09:11"
+    ],
+    [
+     750.0,
+     "09:11"
+    ],
+    [
+     800.0,
+     "09:11"
+    ],
+    [
+     850.0,
+     "09:12"
+    ],
+    [
+     900.0,
+     "09:12"
+    ]
+   ],
+   "best_pt": 117.38,
+   "mfe_hl_pt": 125.88,
+   "giveback_pt": 13.38,
+   "avail_pt": 117.38,
+   "leg_total_pt": 212.8,
+   "share_of_leg_remainder": 0.886,
+   "share_of_best": 0.886,
+   "kind": "first"
+  },
+  {
+   "side": "SHORT",
+   "entry": 25094.62,
+   "exit": 25068.38,
+   "opened": "2026-03-05T09:40:00+00:00",
+   "closed": "2026-03-05T13:00:00+00:00",
+   "held_min": 200.0,
+   "points": 26.25,
+   "pnl_usd": 204.0,
+   "why": "POLICY_EXIT_first",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "12:49"
+    ],
+    [
+     200.0,
+     "12:49"
+    ],
+    [
+     250.0,
+     "12:51"
+    ],
+    [
+     300.0,
+     "12:52"
+    ],
+    [
+     350.0,
+     "12:53"
+    ],
+    [
+     400.0,
+     "12:54"
+    ]
+   ],
+   "best_pt": 52.62,
+   "mfe_hl_pt": 57.12,
+   "giveback_pt": 26.38,
+   "avail_pt": 64.62,
+   "leg_total_pt": 168.0,
+   "share_of_leg_remainder": 0.406,
+   "share_of_best": 0.499,
+   "kind": "first"
+  }
+ ],
+ "calls": [
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T04:35:00+00:00",
+   "px": 25070.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "the pullback from the 25089 high has run to 18.8pt (2.6x ATR) with the 04:35 bar closing flat at 0.0 after making a fresh low (-3.5), showing no turn or reclaim of a recent high yet"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T04:36:00+00:00",
+   "px": 25079.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "04:36 close of +8.8 is still well inside the prior range (high +10.2/low -1.8) and hasn't taken out the 04:34 pre-dip high of +14.2, so this is a bounce inside the pullback, not yet a confirmed break of the recent high."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T04:37:00+00:00",
+   "px": 25093.0,
+   "action": "REENTER",
+   "error": null,
+   "reason": "04:37 closed at +22.8, a fresh high (24.0) that took out the prior swing high of +19.5 (04:31) and the pre-dip high of +18.8 (04:30), confirming the pullback low at 0.0 (04:35) has turned and the move resumed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:39:00+00:00",
+   "px": 25088.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "1 minute into a re-entry at only $31 with no give-back and a prior 15-min window showing +126 pt of room run from here, far too early to judge the leg over."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:40:00+00:00",
+   "px": 25088.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 2 min into re-entry at $31 with trivial 0.2pt give-back and the 4h window still showing +114/+130pt of room from here, nowhere near enough evidence the leg has turned."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:41:00+00:00",
+   "px": 25089.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "3 minutes into re-entry at only $37 with zero give-back and still riding off a fresh bounce low, far too early relative to the 4h window's prior +100pt+ room to judge the leg over."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:42:00+00:00",
+   "px": 25089.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "4 minutes into re-entry at $41 with zero give-back, still accelerating minute to minute (3.6\u21924.6\u21925.1), and the 4h window still shows +50 to +136pt of room from here, no evidence of a turn yet"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:43:00+00:00",
+   "px": 25089.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "5 minutes into re-entry at only $43 with zero give-back, still accelerating minute to minute, and the 4h window still shows ample room run from here, too early to call the leg done"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:44:00+00:00",
+   "px": 25084.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "6 minutes into re-entry with a single sharp pullback to +0.4 off a +5.4 peak (0.6x ATR give-back), but the 1-min high of 04:44 was +6.6 and the 5-min bar still shows net +5, so this reads as a pause not a reversal with the 4h window still showing ample room above."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:45:00+00:00",
+   "px": 25083.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "7 minutes into re-entry, only $43 best and now red at -$11, but this is the first real pullback (0.8x ATR) after a clean 5.4pt run and price is still well inside the 4h window's prior +100p+ range, so one sharp dip isn't yet proof the leg is done."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:46:00+00:00",
+   "px": 25084.5,
+   "action": "EXIT",
+   "error": null,
+   "reason": "Run from +5.4 has fully round-tripped to +0.1 with two failed bounce attempts (-1.4, +0.1) showing no reacceleration, so the leg that drove this re-entry looks over."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T04:47:00+00:00",
+   "px": 25089.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No breakout: price is sitting flat at exit (0.0 pt since exit, -0.8 pt off the 25089.75 high) with no new high taken out yet, so there's nothing to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T04:48:00+00:00",
+   "px": 25089.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is still 0.8pt below the 25089.75 high with no fresh high taken out since the pullback began, so there's no confirmed resumption to buy back into."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T04:49:00+00:00",
+   "px": 25093.75,
+   "action": "REENTER",
+   "error": null,
+   "reason": "Price just took out the prior swing high (04:49 close 25093.75 vs prior high 25089.75, with the 04:49 bar high at +7.0 making a fresh extreme) after a pullback that stayed within 0.9x ATR, confirming resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:51:00+00:00",
+   "px": 25096.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 1 minute in, position is -$19 against a $150 alert threshold with ATR of 6.9pt, too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:52:00+00:00",
+   "px": 25098.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 2 minutes in, position is marginally negative (-$5) with best-so-far still at breakeven, nowhere near the $150 alert threshold and well within normal 1-min noise versus 6.8pt ATR."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:53:00+00:00",
+   "px": 25094.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "3 minutes into the re-entry, -$39 is still inside normal noise (0.7x ATR), nowhere near the $150 alert threshold, too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:54:00+00:00",
+   "px": 25091.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "4 minutes into the re-entry, -$61 (1.1x ATR) is a normal pullback well before the $150 alert threshold, too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:55:00+00:00",
+   "px": 25092.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "5 minutes into the re-entry, -$57 (1.0x ATR) is still a normal pullback well below the $150 alert threshold, too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:56:00+00:00",
+   "px": 25093.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "6 minutes into the re-entry, -$43 (0.8x ATR) is still inside normal pullback range and well below the $150 alert threshold, too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:57:00+00:00",
+   "px": 25096.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "7 minutes into the re-entry, -$25 (0.4x ATR) has actually recovered off the -7.6 low and is well inside normal noise, nowhere near the $150 threshold, too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:58:00+00:00",
+   "px": 25095.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "8 minutes into the re-entry, -$29 (0.5x ATR) has recovered off the -7.6 low back toward flat, still well below the $150 threshold so too early to judge the leg has failed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T04:59:00+00:00",
+   "px": 25098.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "9 minutes into the re-entry, -$9 (0.2x ATR) has recovered almost back to flat off the -7.6 low, far below the $150 threshold, so nothing to judge yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:00:00+00:00",
+   "px": 25103.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "10 minutes into the re-entry at only +$31 (0.5x ATR), well below the $150 alert threshold with the leg context (+106 to +0 fading on the 15-min view) still unresolved, so nothing to judge yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:01:00+00:00",
+   "px": 25099.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "11 minutes in at only +$3 (0.1x ATR), far below the $150 threshold, bounced off the -7.6 low back to +3.9 best and still chopping near flat so nothing yet to judge as a turn."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:02:00+00:00",
+   "px": 25096.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "12 minutes in at only -$21, still well below the $150 threshold, chopping between -7.6 and +3.9 with no clear drive yet so nothing to judge."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:03:00+00:00",
+   "px": 25088.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "13 minutes into the re-entry at only -$89, far below the $150 threshold and never got there, so this is just chop/failed re-entry to let play out without judgment yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:04:00+00:00",
+   "px": 25086.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "14 minutes in at -$105, never reached the $150 threshold, still inside the same chop range (-17.4 to +4.6) with no confirmed drive to judge an exit against."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:05:00+00:00",
+   "px": 25092.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "15 minutes in, never reached the $150 threshold, still chopping in the -17.4 to +5.4 range with the last print -7.1, so nothing confirmed to act on yet"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:06:00+00:00",
+   "px": 25089.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached the $150 threshold, still inside the same chop band (-17.4 to +5.4) with last print -10.1, no confirmed drive either way to act on."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:07:00+00:00",
+   "px": 25090.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached the $150 threshold, still in the same -17.4 to +5.4 chop band with last print -9.1, no confirmed drive to act on."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:08:00+00:00",
+   "px": 25092.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached the $150 threshold, still inside the same -17.4 to +5.4 chop band with last print -7.1, no confirmed drive to act on."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:09:00+00:00",
+   "px": 25099.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached the $150 threshold and now back to -0.1 after a brief bounce off the -13.1 low, so this is still unresolved chop with no confirmed drive to exit into."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:10:00+00:00",
+   "px": 25100.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached $150, price just reclaimed +1.6 off the -13.1 low with the last two bars turning up, so still unresolved chop with no confirmed drive to exit on."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:11:00+00:00",
+   "px": 25094.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached $150, open P/L is still negative at -5.1pt and the last bar's -5.1 close sits inside the same -17.4/+5.4 chop band with no confirmed drive either way."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:12:00+00:00",
+   "px": 25096.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached $150, open P/L still negative at -3.1pt with price chopping inside the same -17.4/+5.1 band and the 4hr trend already flattened to +0, so there's no confirmed drive to exit a position that hasn't shown profit to protect."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:13:00+00:00",
+   "px": 25093.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached $150, open P/L is -5.9pt but price just ticked up off a basing attempt (05:09-05:13 holding above the -13.1 low) while the 4hr trend has flattened to +0, so this is still unresolved chop with no confirmed drive either way."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:14:00+00:00",
+   "px": 25091.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached $150 so no give-back gate applies, price is basing just off the -13.1 low with the 4hr trend flattening to +0, so the drive is unresolved but not yet confirmed dead."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:15:00+00:00",
+   "px": 25089.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Never reached $150 so no give-back gate applies; price is attempting to base off the -13.1 low (-9.4 close holding above -11.4 low) but the 4hr trend has flattened to +0, so the drive is still unresolved rather than confirmed dead."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T05:16:00+00:00",
+   "px": 25082.5,
+   "action": "EXIT",
+   "error": null,
+   "reason": "Never reached the $150 arm, the re-entry has gone -16.6pt with a fresh low (-17.6) just printed and the 4hr trend already flat, so this re-entry is failing outright with no evidence of a base worth defending."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:17:00+00:00",
+   "px": 25077.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is 25.8pt (3.6x ATR) and still deepening with price at the lows (05:17 close 0.0, low -1.0), no higher-high retake yet to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:18:00+00:00",
+   "px": 25072.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still deepening (31.0pt, 4.4x ATR) with price printing fresh lows into the close (05:18 close -5.2, low -7.0) and no higher-high retake to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:19:00+00:00",
+   "px": 25070.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still deepening (32.2pt, 4.6x ATR) with price printing a fresh low into the close (05:19 close -6.5, low -7.0) and no higher-high retake to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:20:00+00:00",
+   "px": 25071.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still 31.5pt (4.6x ATR) with a fresh low this minute (-7.8) and no higher-high retake, so the pullback is deepening, not resolving."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:21:00+00:00",
+   "px": 25076.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback remains 26.8pt (3.8x ATR) with no higher-high retake yet; the last minute's slight bounce off the -8.0 low is a single tick, not a confirmed resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:22:00+00:00",
+   "px": 25072.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still 30.8pt (4.3x ATR), last minute printed a fresh low (-8.0) with no higher-high retake, so the pullback remains unresolved."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:23:00+00:00",
+   "px": 25070.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is 32.2pt (4.7x ATR) and still fresh low at 05:23 close -6.5 (low -9.8), with no higher-high retake off the lows \u2014 still unresolved."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:24:00+00:00",
+   "px": 25074.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still 29.0pt (4.2x ATR) and 05:24's -1.8 high is well below any prior swing high, so there's no higher-high retake confirming resumption yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:25:00+00:00",
+   "px": 25076.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is 26.2pt (4.0x ATR) and still deep with the 05:25 high (+1.8) far below any recent swing high, so no higher-high retake has confirmed resumption yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:26:00+00:00",
+   "px": 25087.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:26 printed +10.0 off a 0.0 low but only retook the 05:21 minor high (+0.0), still far below the 05:16 swing high (+13.0) and the 25103 move high, so this is one bounce bar inside a 15.8pt pullback, not a confirmed higher-high resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:27:00+00:00",
+   "px": 25081.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:26-05:27's +12.8/+12.0 bounce only retakes the minor 05:21 high (0.0), still well below the 05:16 swing high (+13.0) and far from the 25103 high, so the 21.2pt (2.8x ATR) pullback has no higher-high retake confirming resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:28:00+00:00",
+   "px": 25083.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:26-05:28's bounce (+12.8 high) still only retakes the minor 05:21 high (0.0), nowhere near the 05:16 swing high (+13.0) let alone the 25103 move high, so no higher-high retake confirms resumption yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:29:00+00:00",
+   "px": 25081.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:29's +7.2 high still only sits inside the 05:26-05:28 range and well below the 05:16 swing high (+13.0), let alone the 25103 move high, so no higher-high retake has confirmed resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:30:00+00:00",
+   "px": 25077.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:30's bounce stalled at +6.0 high, still inside the 05:26-05:29 range and far below the 05:16 swing high (+13.0) or the 25103 move high, so no higher high has been retaken."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:31:00+00:00",
+   "px": 25068.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:31's close just broke below the entire 05:18-05:30 pullback range (prior low -9.8, now -11.0) on a fresh low, confirming the pullback is still deepening rather than turning, so no higher high to buy into."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:32:00+00:00",
+   "px": 25071.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:31-05:32 broke to a fresh pullback low (-11.2) well beyond the -9.8 prior low, still nowhere near retaking the 05:16/05:26 swing highs let alone the 25103 move high, so the pullback is deepening, not resolving."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:33:00+00:00",
+   "px": 25078.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "05:33's close barely bounced off -11.2 and the high (+3.2) still sits well inside the 05:18-05:32 pullback range, nowhere near the 05:16/05:26 swing highs let alone the move high, so no retake yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:34:00+00:00",
+   "px": 25079.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is only +2.5 off a -11.2 pullback low and still inside the entire 05:18-05:33 range, far below the 05:26 (+12.8) and 05:16 (+13.0) swing highs, so no fresh high is taken yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:35:00+00:00",
+   "px": 25077.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is flat at 0.0 off exit, still inside the 05:18-05:35 chop range and 25.8 pt below the 05:16/05:26 swing highs, with no fresh high to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:36:00+00:00",
+   "px": 25075.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is 28pt off the high and still inside the entire 05:18-05:36 chop range with no fresh swing high above 05:26's +12.8/+12.0, so there's no confirmed resumption to buy back into."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:37:00+00:00",
+   "px": 25069.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price just made a fresh pullback low (-9.5 on the 05:37 bar) with the close near the low, still well inside the 05:18-05:37 chop range and far below the 05:26 swing high of +12.8, so there's no break of a recent high confirming resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:38:00+00:00",
+   "px": 25064.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Fresh pullback low (-14.2) on the 05:38 bar with the close near the low, still deep inside the 05:18-05:38 chop range and 39pt below the 05:26 swing high, so there's no reversal/breakout to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:39:00+00:00",
+   "px": 25062.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price made a fresh pullback low on the 05:39 bar (-16.5) with close near the low (-15.2), still deep inside the 05:18-05:39 chop range and 41pt below the 25103 high, with no sign of a turn or fresh swing high to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:40:00+00:00",
+   "px": 25064.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price just made a fresh pullback low on the 05:40 bar (-19.5), close still near the low 38.8pt off the high with no break back above the 05:26 swing high (+12.8), so there's no resumption signal yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:41:00+00:00",
+   "px": 25060.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Fresh pullback low just made on the 05:41 bar (-17.2), still deep inside the 05:18-05:41 chop range with no break back above the 05:26 swing high, so the pullback keeps extending rather than turning."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:42:00+00:00",
+   "px": 25056.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Fresh pullback low on the 05:42 bar (-23.0) with close near the low at -21.0, 46.8pt below the 05:26 swing high with no reclaim, so the pullback is still deepening, not turning."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:43:00+00:00",
+   "px": 25056.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price made a fresh pullback low on the 05:43 bar (-24.8) with close near the low (-21.2), still deep inside the chop range 68pt below the 05:26 swing high with no reclaim."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:44:00+00:00",
+   "px": 25058.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price made a fresh pullback low on the 05:43 bar and the 05:44 close remains well below the 05:26 swing high with no reclaim, so the pullback is still extending, not resuming."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:45:00+00:00",
+   "px": 25055.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price made a fresh pullback low on the 05:45 bar (-22.8) with no reclaim of the 05:26 swing high, still 68pt+ below it, so the pullback is still deepening, not resuming."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:46:00+00:00",
+   "px": 25057.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is still making fresh pullback lows (05:46 low -23.2) with no reclaim of the 05:26 swing high, 45.8pt still deep inside a pullback already 6.2x ATR, so the move hasn't turned yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:47:00+00:00",
+   "px": 25054.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is still printing fresh pullback lows (05:47 low -24.8) with no reclaim of the 05:26/05:30 swing high, pullback still 6.5x ATR deep with no reversal structure yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:48:00+00:00",
+   "px": 25061.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No reclaim of the 05:26/05:30 swing high: pullback is 41.5pt (5.5x ATR) with fresh lows as recently as 05:47 and only a small 05:48 bounce, no higher high printed yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:49:00+00:00",
+   "px": 25058.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No reclaim of the swing high yet: price is still 44.8pt below the 25103 high (5.97x ATR), with the 05:49 bounce to -10.8 not breaking the 05:33/05:34 pullback-rally highs, so no confirmed turn to buy back into."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:50:00+00:00",
+   "px": 25059.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No reclaim of any swing high: price is still 44pt/6.1x ATR off the 25103 high, with the 05:49-05:50 bounce stalling at -18.2 well inside the lows of this pullback leg, so there's still no confirmed turn to buy back into."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:51:00+00:00",
+   "px": 25058.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No reclaim of any swing high: price is still 44.5pt/6.6x ATR below the 25103 high, with the 05:49-05:50 bounce stalling at -18.2/-18.8 and still printing fresh pullback territory, no higher high to confirm resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:52:00+00:00",
+   "px": 25056.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No reclaim of any swing high: still 46.5pt/6.9x ATR off the 25103 high, fresh low at 05:52 close (-20.8) with low -24.2, no higher-high bounce yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:53:00+00:00",
+   "px": 25054.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Still 48.5pt/7.5x ATR below the 25103 high with a fresh low at 05:53 close and no higher-high reclaim of any swing high yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:54:00+00:00",
+   "px": 25054.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Still 48.2pt/7.9x ATR below the 25103 high with a fresh low at 05:53-05:54 (low -26.2) and no higher-high reclaim of any swing high yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:55:00+00:00",
+   "px": 25047.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "No reclaim of any swing high: price just printed a fresh low at 05:55 (-29.5, low -32.0), now 55.2pt/9.1x ATR off the 25103 high with the pullback deepening, not turning."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T05:56:00+00:00",
+   "px": 25042.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Fresh low at 05:56 close (-35.0, low -35.0) with no higher-high reclaim of any swing high, still 60.8pt/10.3x ATR off the 25103 high and accelerating against the old direction."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:20:00+00:00",
+   "px": 25010.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price just fell back to -0.0 (flat vs exit) on the 06:20 bar after failing to hold +9.8 to +24.8, a lower high each of the last three bars, so the pullback is still deepening rather than turning and taking out the 06:16 high."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:21:00+00:00",
+   "px": 25010.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is 25pt/2.1x ATR with price flat at -0.2 right at the exit level, no higher-high reversal, so the bounce from -29 has stalled, not resumed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:22:00+00:00",
+   "px": 25015.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is now 30pt/2.6x ATR with price making a fresh low on the bounce (-5.2, new low of the retrace since -0.0), no higher-high reversal, so the bounce has broken down further rather than resumed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:23:00+00:00",
+   "px": 25019.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is now 3.0x ATR and still deepening with a fresh low (-9.5, worse than -5.2) and no higher-high taken out, so the bounce is failing, not resuming."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:24:00+00:00",
+   "px": 25017.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still deepening at 32.2pt/3.0x ATR with a fresh lower low (-9.5 to -7.5 range, worse than -5.2) and no higher-high taken out, so the bounce remains a failing retrace, not a resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:25:00+00:00",
+   "px": 25015.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback still 3.3x ATR with price making fresh lows into the close (-9.5 to -5.2 range) and no higher-high taken out above -0.0, so the bounce remains a failed retrace, not a resumption."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:26:00+00:00",
+   "px": 25010.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is 25.2pt/2.5x ATR and the last bar made a slightly higher low (-0.5 vs -9.5) but has not taken out any prior swing high (-0.0 at 06:20/06:21), so no reversal confirmation yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:27:00+00:00",
+   "px": 25007.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Pullback is still 2.2x ATR with no higher-high taken out above -0.0 (06:20/06:21), so the small bounce to +2.5 is not yet a reclaim of structure."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:28:00+00:00",
+   "px": 25005.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Bounce to +4.5 still hasn't reclaimed the -0.0 swing high at 06:20/06:21, and pullback remains a deep 2.1x ATR with the 15-min trend still down, so no higher-high confirmation to re-enter on."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:29:00+00:00",
+   "px": 25007.25,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Still no higher-high above the -0.0 swing at 06:20/06:21, pullback remains 2.2x ATR with the 15-min trend down, so the bounce to +2.8 is not yet a reclaim of structure."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:30:00+00:00",
+   "px": 25010.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Still no higher-high above the -0.0 swing at 06:20/06:21, pullback remains a deep 3.9x ATR with price now rolling over again to -0.8, so no reclaim of structure has occurred."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:31:00+00:00",
+   "px": 25005.0,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Bounce to +5.0 still hasn't reclaimed the -0.0 swing high at 06:20/06:21, pullback remains a deep 2.2x ATR with the 15-min trend down, so no structural reclaim yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:32:00+00:00",
+   "px": 24993.75,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price at +16.2 is still below the 06:20/06:21 swing high of -0.0... wait, that's wrong"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:33:00+00:00",
+   "px": 24992.75,
+   "action": "REENTER",
+   "error": null,
+   "reason": "Price has decisively reclaimed the 06:20/06:21 swing high (-0.0) with three consecutive accelerating bars (06:31 +5.0, 06:32 +16.2, 06:33 +17.2, highs 11.8/17.5/23.2), unlike the earlier failed +4.5 bounce that rolled over, so the old direction has resumed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:35:00+00:00",
+   "px": 24997.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 1 minute into the re-entry, still well under the $150 alert threshold with no confirmed break of structure, so give the move room."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:36:00+00:00",
+   "px": 24993.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 2 minutes in, open profit is negligible ($3) and well under the $150 threshold, with no give-back yet to judge against \u2014 give the re-entry room."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:37:00+00:00",
+   "px": 24992.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 3 minutes into the re-entry with just $17 open and no give-back yet to judge against, so give the move room before the $150 alert."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:38:00+00:00",
+   "px": 24997.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 4 minutes into the re-entry, open loss of just $27 with no $150 alert yet and prior bar's +2.1 high intact, so give the move room before judging it broken."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:39:00+00:00",
+   "px": 25006.0,
+   "action": "EXIT",
+   "error": null,
+   "reason": "Re-entry failed: price broke to -11.9 pt (new low of the trade, -14.4 intraday extreme) well past the prior best +2.1, confirming the bounce that justified the re-entry has reversed into a fresh leg against us."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:40:00+00:00",
+   "px": 25002.5,
+   "action": "WAIT",
+   "error": null,
+   "reason": "Price is still 10.5pt below the 06:37Z high and just printed a lower close at 06:39-06:40 after the bounce stalled, so the pullback has not yet turned and taken out that high."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_look",
+   "ts": "2026-03-05T06:41:00+00:00",
+   "px": 24991.5,
+   "action": "REENTER",
+   "error": null,
+   "reason": "06:41Z closed at +11.0, a new high of the move, decisively taking out the prior 06:37Z high of +10.5 and the 06:32-38 range, confirming the pullback has turned and the old direction has resumed."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:43:00+00:00",
+   "px": 25002.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 1 minute in, re-entry still testing breakeven near entry, no real give-back on a thesis to abandon yet"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:44:00+00:00",
+   "px": 25004.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only 2 minutes in and already round-tripped from +6.9 to -6.9 with the 4hr trend showing recent chop near +6/-3, give-back is still under 1x ATR so not yet thesis-breaking"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:45:00+00:00",
+   "px": 25008.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "3 minutes into the re-entry, give-back is still under 1x ATR (1.2x but off a +0 best, not a real peak) and no 4hr structure break yet, so the thesis isn't falsified despite the round-trip to -11.1"
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:46:00+00:00",
+   "px": 25002.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "4 minutes into the re-entry, give-back is 0.5x ATR off a flat best with no real peak yet, and the 4hr trend still shows the recent down-leg (-73 to -98) intact so the short thesis isn't broken, just noisy."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:47:00+00:00",
+   "px": 25006.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "5 minutes into the re-entry, give-back is only 1.1x ATR off a flat (0) best so no real peak has formed yet, and the thesis (short continuation) isn't broken even though the bar is round-tripping near entry."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:48:00+00:00",
+   "px": 25008.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "6 minutes in, give-back is only 1.3x ATR off a flat (0) best so no real peak has formed and the position is barely underwater (-$87), not a confirmed break of the short thesis yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:49:00+00:00",
+   "px": 25002.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "7 minutes in, still only $39 give-back (0.6x ATR) off a flat $0 best with no real peak, and the 4hr column just turned positive (-32 to +2 to +8) suggesting the down-leg thesis may be stalling, but it's too early with no confirmed break to exit a trade that hasn't even gone green yet."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:50:00+00:00",
+   "px": 25026.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "8 minutes in, give-back is still off a flat $0 best (never actually profitable) so there is no real peak to defend yet, but the sharp drop to -29.1 on the last bar is a strong continuation signal for the short thesis, not a reversal against it."
+  },
+  {
+   "day": "2026-03-05",
+   "kind": "reentry_trade_look",
+   "ts": "2026-03-05T06:51:00+00:00",
+   "px": 25058.0,
+   "action": "EXIT",
+   "error": null,
+   "reason": "Re-entry is 9 minutes in and -$485 with a -60.6pt bar that just printed (5.1x ATR give-back off a flat entry, never profitable), the thesis is refuted and the 4hr column is now strongly positive against the short."
+  }
+ ],
+ "n_calls": 110,
+ "error_rate": 0.0,
+ "poisoned": false,
+ "brief_sha": {
+  "re": "0f0aa1a0382d8cbf",
+  "exit": "911619a661462d9d"
+ },
+ "score": {
+  "n_trades": 8,
+  "n_first": 4,
+  "n_reentries": 4,
+  "usd": 674.0,
+  "pts": 90.2,
+  "M1_share_of_leg_remainder": 0.318,
+  "first_usd": 1374.0,
+  "reentry_usd": -700.0,
+  "reentries_in_profit": "1/4",
+  "reentry_round_trip_cost_usd": 24.0,
+  "all_trades_in_profit": "5/8"
+ },
+ "dry": false,
+ "model": "claude-sonnet-5"
+}

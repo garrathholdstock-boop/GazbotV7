@@ -1,0 +1,10 @@
+T2 RESULT (2026-10-09) - declared in T2_change.txt before any call. VERDICT: FAIL.
+Claude (replayed T1 exits + Claude re-entry + Claude re-exit), 03-05 + 04-30, 346 calls, 0 errors, neither day poisoned.
+  total $850 vs C0 (no re-entry) $2,222  -> re-entry increment -$1,372 (bar was >= +$300)   R1 FAIL
+  re-entries: 10, in profit 3/10 (30%; bar 60%)                                              R2 FAIL
+  worst re-entered trade -$474 (bar no worse than -$300)                                     R3 FAIL
+  M1 share of leg remainder combined 0.17 (118 pt of 695), T1 was 0.406 (bar 0.50)    R4 FAIL
+  03-05: 1,374 -> 674 (re-entries 1/4, -$700).  04-30: 848 -> 176 (re-entries 2/6, -$672).
+  Mechanical controls lost -$230..-$376; Claude lost 4x that. Oracle (perfect re-entry) +$2,484.
+  Pattern: re-entries triggered on "took out the prior swing high" inside a pullback; first re-entry each day was green
+  (+30, +88), the 8 later ones were 1/8 green. n=2 days, observation found AFTER the run - not a rule.

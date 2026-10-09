@@ -1,0 +1,797 @@
+{
+ "day": "2026-03-05",
+ "who": "claude_A",
+ "trades": [
+  {
+   "side": "LONG",
+   "entry": 25062.88,
+   "exit": 25078.88,
+   "opened": "2026-03-05T03:57:00+00:00",
+   "closed": "2026-03-05T04:36:00+00:00",
+   "held_min": 39.0,
+   "points": 16.0,
+   "pnl_usd": 122.0,
+   "why": "CLAUDE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "04:23"
+    ],
+    [
+     200.0,
+     "04:30"
+    ]
+   ],
+   "best_pt": 26.12,
+   "mfe_hl_pt": 26.88,
+   "giveback_pt": 10.12,
+   "avail_pt": 40.12,
+   "leg_total_pt": 77.0,
+   "share_of_leg_remainder": 0.399,
+   "share_of_best": 0.612
+  },
+  {
+   "side": "SHORT",
+   "entry": 25047.38,
+   "exit": 25026.38,
+   "opened": "2026-03-05T05:57:00+00:00",
+   "closed": "2026-03-05T06:06:00+00:00",
+   "held_min": 9.0,
+   "points": 21.0,
+   "pnl_usd": 162.0,
+   "why": "CLAUDE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "06:01"
+    ]
+   ],
+   "best_pt": 24.38,
+   "mfe_hl_pt": 29.12,
+   "giveback_pt": 3.38,
+   "avail_pt": 62.12,
+   "leg_total_pt": 117.8,
+   "share_of_leg_remainder": 0.338,
+   "share_of_best": 0.862
+  },
+  {
+   "side": "LONG",
+   "entry": 25080.62,
+   "exit": 25164.12,
+   "opened": "2026-03-05T07:01:00+00:00",
+   "closed": "2026-03-05T09:17:00+00:00",
+   "held_min": 136.0,
+   "points": 83.5,
+   "pnl_usd": 662.0,
+   "why": "CLAUDE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "09:05"
+    ],
+    [
+     200.0,
+     "09:06"
+    ],
+    [
+     250.0,
+     "09:06"
+    ],
+    [
+     300.0,
+     "09:06"
+    ],
+    [
+     350.0,
+     "09:07"
+    ],
+    [
+     400.0,
+     "09:07"
+    ],
+    [
+     450.0,
+     "09:08"
+    ],
+    [
+     500.0,
+     "09:08"
+    ],
+    [
+     550.0,
+     "09:09"
+    ],
+    [
+     600.0,
+     "09:09"
+    ],
+    [
+     650.0,
+     "09:10"
+    ],
+    [
+     700.0,
+     "09:11"
+    ],
+    [
+     750.0,
+     "09:11"
+    ],
+    [
+     800.0,
+     "09:11"
+    ],
+    [
+     850.0,
+     "09:12"
+    ],
+    [
+     900.0,
+     "09:12"
+    ]
+   ],
+   "best_pt": 117.38,
+   "mfe_hl_pt": 125.88,
+   "giveback_pt": 33.88,
+   "avail_pt": 117.38,
+   "leg_total_pt": 212.8,
+   "share_of_leg_remainder": 0.711,
+   "share_of_best": 0.711
+  },
+  {
+   "side": "SHORT",
+   "entry": 25094.62,
+   "exit": 25056.12,
+   "opened": "2026-03-05T09:40:00+00:00",
+   "closed": "2026-03-05T13:30:00+00:00",
+   "held_min": 230.0,
+   "points": 38.5,
+   "pnl_usd": 302.0,
+   "why": "WINDOW_CLOSE_1330Z",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "12:49"
+    ],
+    [
+     200.0,
+     "12:49"
+    ],
+    [
+     250.0,
+     "12:51"
+    ],
+    [
+     300.0,
+     "12:52"
+    ],
+    [
+     350.0,
+     "12:53"
+    ],
+    [
+     400.0,
+     "12:54"
+    ],
+    [
+     450.0,
+     "13:06"
+    ],
+    [
+     500.0,
+     "13:10"
+    ]
+   ],
+   "best_pt": 64.62,
+   "mfe_hl_pt": 73.38,
+   "giveback_pt": 26.12,
+   "avail_pt": 64.62,
+   "leg_total_pt": 168.0,
+   "share_of_leg_remainder": 0.596,
+   "share_of_best": 0.596
+  }
+ ],
+ "calls": [
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:23:00+00:00",
+   "px": 25086.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Deep 28pt pullback already recovered to new best with no current give-back, pushes in favor accelerating (17.4/16.6/18.6/23.4) off a higher low at +16.4 last bar, so structure is intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:24:00+00:00",
+   "px": 25085.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 1.0pt (0.1xATR) off a new best, pushes-in-favor just accelerated to +23.4 off a higher low, and the last 5-min swing low is well intact, so no structure break yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:25:00+00:00",
+   "px": 25084.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 2.0pt (0.2xATR) off a fresh best made one minute ago, pushes-in-favor are still dominant (17.4/16.6/18.6/23.4/22.4/21.4) off an intact higher-low structure, and the last 5-min swing low near +9 is far from threatened, so no structure break yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:26:00+00:00",
+   "px": 25082.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 3.5pt (0.4xATR, 15% of the move) off a best made 3 min ago, pushes-in-favor are still the dominant recent bars (17.4/16.6/18.6/23.4/22.4/21.4/19.9) and the last 5-min swing low near +9 is untouched, so no structure break yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:27:00+00:00",
+   "px": 25081.25,
+   "action": "HOLD",
+   "error": "no parseable action",
+   "reason": ""
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:28:00+00:00",
+   "px": 25086.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is just 0.2pt (0.0xATR) off a new best made 5 min ago, the only pullback this trade (28pt/3.4xATR) was recovered to a higher best, and the 5-min swing low near +14-17 is untouched, so structure is intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:29:00+00:00",
+   "px": 25087.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "At a new best with zero give-back, pushes-in-favor still dominant (17.4/16.6/18.6/23.4/22.4/21.4/18.4/23.1/24.1) and both prior pullbacks (28pt, 7.8pt) were recovered to higher highs, so structure is intact and uptrend unbroken."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:30:00+00:00",
+   "px": 25089.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "At a new best (+26.1pt) with zero give-back, pushes-in-favor (17.4/16.6/18.6/23.4/22.4/21.4/18.4/23.1/24.1/26.1) still dominate and both prior pullbacks (28pt, 7.8pt) were recovered to new highs, so structure remains intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:31:00+00:00",
+   "px": 25085.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 3.8pt/0.5xATR off a new best made 1 min ago, pushes-in-favor (23.1/24.1/26.1) still dominate the recent pushes-against, and both prior pullbacks (28pt, 7.8pt) were recovered to new bests so the trend structure is intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:32:00+00:00",
+   "px": 25083.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 5.2pt/0.7xATR off a best made 2 min ago, pushes-in-favor (23.1/24.1/26.1) still outweigh the small pullback, and both prior pullbacks this trade (28pt, 7.8pt) were recovered to new highs, so structure is intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:33:00+00:00",
+   "px": 25083.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 5.5pt/0.8xATR off a best made 3 min ago, the 1-min lows (16.4/19.9/16.4/19.6/19.1/16.9/17.9) are still holding above the last 5-min swing low near +9, and both larger pullbacks this trade already recovered to new highs."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:34:00+00:00",
+   "px": 25080.25,
+   "action": "HOLD",
+   "error": "no parseable action",
+   "reason": ""
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T04:35:00+00:00",
+   "px": 25070.25,
+   "action": "EXIT",
+   "error": null,
+   "reason": "The 04:35 bar's 10pt single-minute collapse (17.4\u21927.4) took out both the 04:30 and 04:25 five-minute swing lows (+14 and +9) without recovering, pushes-against now dominate after three straight shrinking in-favor closes, and the 18.8pt/2.6xATR give-back is 72% of the whole move\u2014this is a structure b"
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T06:01:00+00:00",
+   "px": 25028.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "4 min into the trade, no give-back from the best, and the last three 1-min pushes are accelerating in my direction (4.9, 10.4, 19.1) with zero pullbacks \u22651 ATR, so there is no structure break to leave on yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T06:02:00+00:00",
+   "px": 25023.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "5 minutes in, zero give-back from the best, and pushes are still accelerating (4.9, 10.4, 19.1, 24.4) with no pullback \u22651 ATR yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T06:03:00+00:00",
+   "px": 25029.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "First give-back of the trade is only 6.2pt (0.8x ATR, 26% of the move) with zero pullbacks \u22651 ATR so far, and this minute's low (14.6) still sits above the prior bar's low (9.1), so structure hasn't broken yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T06:04:00+00:00",
+   "px": 25034.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Only one 1xATR pullback so far (1.3xATR, 45% of the move), this minute's low (7.1 low... actually 14.6 bar low) still holding above the prior 5-min swing low near +6, and the 06:00 and 06:04 5-min bars both have higher lows than entry, so structure isn't broken yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T06:05:00+00:00",
+   "px": 25039.0,
+   "action": "EXIT",
+   "error": null,
+   "reason": "On an only 24pt-deep, 8-min-old move, three straight down-closes (24.4\u219218.1\u219213.4\u21928.4) have erased 66% of the gain (1.7x ATR), open profit falling from $195 to $67 with no basing or new-best push, the exact 'let it evaporate' failure for a run this shallow."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:05:00+00:00",
+   "px": 25103.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Just recovered from a 104pt/6.9xATR pullback to a brand-new best with the last two 1-min bars printing higher highs and higher lows (+13.1 then +23.1), so the structure just confirmed the uptrend rather than broke it."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:06:00+00:00",
+   "px": 25124.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Just broke to a brand-new best with zero give-back, last three 1-min bars show higher highs/lows off the recovered 104pt/6.4xATR pullback, and the 5-min series flipped from -29 to +23 to +44 \u2014 structure is turning up, not breaking."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:07:00+00:00",
+   "px": 25132.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Just printed a brand-new best with zero give-back off the fully-recovered 104pt/5.9xATR pullback, and the 5-min series shows three straight rising closes (-29\u2192+23\u2192+52) with higher highs/lows on the 1-min, so the structure is still trending in my favor."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:08:00+00:00",
+   "px": 25148.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Brand-new best with zero give-back, the 104pt/5.8xATR pullback is fully recovered and the 5-min series shows four straight rising closes (-29\u2192+23\u2192+67) with no structure break against the position."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:09:00+00:00",
+   "px": 25160.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh new best with zero give-back, the 104pt/5.6xATR pullback stayed fully recovered and the 5-min series shows five straight rising closes (-59\u2192-29\u2192+23\u2192+80) with higher highs/lows every 1-min bar since 09:03, so structure is still intact and the run can give back well more than this before it's ov"
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:10:00+00:00",
+   "px": 25162.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Zero give-back from a new best, five straight rising 5-min closes off the fully-recovered 104pt/5.5xATR pullback, with structure still making higher highs/lows on the 1-min bars."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:11:00+00:00",
+   "px": 25185.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Zero give-back at a fresh best, six straight rising 5-min closes off the fully-recovered 104pt/5.2xATR pullback with higher highs/lows intact, so the structure is still trending with no break to exit against."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:12:00+00:00",
+   "px": 25198.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Zero give-back at a brand-new best, seven straight rising 5-min closes off the fully-recovered 104pt pullback, with higher highs/lows intact through 09:12 so the structure is still trending, not breaking."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:13:00+00:00",
+   "px": 25176.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "One-minute pullback of 1.0xATR off a brand-new best inside a run already 117pt/5.2xATR deep, with higher highs/lows and the fully-recovered 104pt pullback intact, so this is noise not a structure break."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:14:00+00:00",
+   "px": 25184.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 0.6xATR (13pt) off a brand-new 09:12 best inside a 117pt run, last minute still held well above the prior 5-min low with higher-highs/lows and the earlier 104pt pullback fully recovered, so this is a one-minute wobble, not a structure break."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:15:00+00:00",
+   "px": 25184.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 0.6xATR (14pt) off the 09:12 best inside a 117pt run, last minute held above the prior 5-min low with higher-highs/lows and the fully-recovered 104pt pullback intact, so structure hasn't broken."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T09:16:00+00:00",
+   "px": 25157.5,
+   "action": "EXIT",
+   "error": null,
+   "reason": "This bar broke below every 1-min low of the prior 5 minutes (78.1 down to 76.6) and closed at 76.9, right on that low with no intra-minute recovery, while highs/closes had already been decaying since 09:12 (121.4\u2192107.6\u2192116.1\u2192111.4 highs, 117.4\u219295.4\u2192104.1\u2192103.4\u219276.9 closes) \u2014 this is the first pullba"
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:49:00+00:00",
+   "px": 25068.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Price just printed a fresh best with zero give-back and the last five 1-min bars (12:45-12:49) show accelerating pushes in our favor with no break of the prior 5-min swing low."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:50:00+00:00",
+   "px": 25076.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 0.5xATR off a fresh best with the last 5-min low (-62pt) untouched and no lower low on the 1-min bars, so this reads as a normal pullback inside a trend that has already recovered 4xATR dips twice."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:51:00+00:00",
+   "px": 25063.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh best this bar with zero give-back, last 5-min low (-62pt) untouched, and pushes accelerated (12:49-12:51 made new highs after breaking above 12:38's +11.6 high), so structure is still intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:52:00+00:00",
+   "px": 25057.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh best with zero give-back, acceleration confirmed (12:49-12:52 broke the prior +32.6 high and kept printing new highs), and the last 5-min swing low (-62pt) remains untouched, so this is still trend continuation after the 59.8pt pullback was recovered."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:53:00+00:00",
+   "px": 25048.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh best this bar with zero give-back, pushes still accelerating (12:49-12:53 broke the +32.6 high repeatedly to +46.9), and the last 5-min swing low (-62pt) remains untouched, so the structure is intact and this is still a trending run, not a reversal."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:54:00+00:00",
+   "px": 25042.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh best this bar with zero give-back, acceleration intact (12:44-12:54 broke repeatedly to new highs up to +57.1), and the last 5-min swing low (-62pt) remains untouched, so structure is still trending, not broken."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:55:00+00:00",
+   "px": 25055.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 13.5pt (0.8xATR, 26% of the move) after a fresh best of +52.6, the last 5-min swing low near -62pt is untouched, and this is one pullback bar after five bars of accelerating new highs, not a break of structure."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:56:00+00:00",
+   "px": 25056.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is still only 14.2pt (0.8xATR) off a fresh best, pushes are accelerating (five straight new highs 12:49-12:54 to +57.1) with the swing low at -62pt untouched, so structure hasn't broken."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:57:00+00:00",
+   "px": 25060.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is still only 18.8pt (1.1xATR, 36% of the move) off a fresh 12:54 best, the 5-min swing low near -62pt is untouched, and the last two 5-min pullbacks of similar/larger size (12:09 and 09:57) both recovered to new highs."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:58:00+00:00",
+   "px": 25071.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is 29.5pt/1.8xATR (56% of the move) but still shallower than the two earlier pullbacks (59.8pt/62.8pt) that this same trade recovered from, and the 5-min swing low near -13/-16 remains untouched by a wide margin, so this still reads as a pullback inside the trend rather than a structure br"
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T12:59:00+00:00",
+   "px": 25070.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Five straight lower highs since the 12:54 peak show real deceleration, but giveback just ticked down (29.5->28.0pt, 1.8xATR) on this bar rather than extending, it's still far shallower than the two 3.9-4.1xATR pullbacks this same trade already recovered from, and no 5-min swing low has been touched."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:00:00+00:00",
+   "px": 25068.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is 26.2pt/1.8xATR (50% of the move), still far shallower than the two earlier 4.1-4.3xATR pullbacks this same trade recovered from, no 5-/15-min swing low has been taken out (last swing near -62pt untouched), and the 13:00 bar closed near its high (29.4/18.1) showing the slide stabilizing r"
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:01:00+00:00",
+   "px": 25064.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is only 22.2pt/1.5xATR (42% of the move) off the 12:54 best, still shallower than the two 4xATR pullbacks this trade already recovered from, no 5-/15-min swing low taken out, and price just made a higher low (18.1->18.6 intraminute) with the last bar closing back up at +30.4, so structure h"
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:02:00+00:00",
+   "px": 25061.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is only 19.2pt/1.3xATR (37% of the move) off the 12:54 best, shallower than the two 4xATR pullbacks this trade already recovered from, no 5-/15-min swing low taken out, and this bar's low (21.6) held above last bar's low, so structure is still intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:03:00+00:00",
+   "px": 25065.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is only 23.2pt/1.7xATR (44%) off the 12:54 best, still shallower than the two ~4.5xATR pullbacks already recovered in this trade, last 3 one-min bars show higher lows (24.4/21.6/24.4) with no break of the 12:49 5-min-swing low, so structure is intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:04:00+00:00",
+   "px": 25061.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is only 19.2pt/1.4xATR (37% of the move) off the 12:54 best, shallower than two ~4-4.5xATR pullbacks already recovered this trade, price just made a new 1-min high (13:04 high +35.4 above 13:02 high +34.4) with no 5-/15-min swing low taken out, so structure is intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:05:00+00:00",
+   "px": 25053.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is only 11pt/0.8xATR (21% of the move) off the 12:54 best, far shallower than the three prior pullbacks (1.8x-4.7x ATR) already recovered this trade, and the last bar just pushed back to +41.6 with a 44.4 high, no 5-/15-min swing low taken out."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:06:00+00:00",
+   "px": 25035.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Zero giveback at a fresh best (+59.1pt, new high on the last bar's high too), still inside a trend that's already recovered four 1.8x-4.5xATR pullbacks, no swing low broken."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:07:00+00:00",
+   "px": 25046.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh new best on last bar's high (66.6) with giveback only 0.8xATR/19%, well inside the four 1.8-4.5xATR pullbacks already recovered, 5-min bars still making higher highs (57,44,67) and push-structure intact."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:08:00+00:00",
+   "px": 25046.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Giveback is only 11.2pt/0.8xATR off a fresh best made on 13:06's high, shallower than all four prior 1.8-4.5xATR pullbacks already recovered this trade, with 5-min bars still rising and no break of the recent swing low."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:09:00+00:00",
+   "px": 25039.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is just 3.8pt/0.3xATR off a fresh 13:06 best, far shallower than the four 1.8-4.6xATR pullbacks already recovered this trade, with 5-min bars still making higher highs and no 5-min swing low taken out."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:10:00+00:00",
+   "px": 25031.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Fresh best at 13:10 with zero giveback, 5-min bars still climbing (+42\u2192+63), and this pullback-recovery pattern (4 prior 1.8-4.5xATR dips all recovered) shows the trend intact with no structure break yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:11:00+00:00",
+   "px": 25032.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is just 1.0pt/0.1xATR off a fresh 13:10 best, far shallower than all four prior 1.8-4.5xATR pullbacks already recovered, with 5-min bars still making new highs (+42\u2192+63)."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:12:00+00:00",
+   "px": 25040.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is just 8.5pt/0.6xATR off a fresh 13:10 best, far shallower than all four prior 1.8-4.5xATR pullbacks already recovered, 5-min bars still show higher highs into 13:10, and the last two 1-min closes are just chop near the top, not a break of the last swing low."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:13:00+00:00",
+   "px": 25039.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 8.2pt/0.6xATR off the fresh 13:10 best, far shallower than all four prior 1.8-4.4xATR pullbacks already recovered this trade, 5-min bars still printing higher highs through 13:10, and no 5-/15-min swing level against the position has been taken out."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:14:00+00:00",
+   "px": 25042.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is still only 11.2pt/0.8xATR off the fresh 13:10 best, far shallower than all four prior 1.8-4.3xATR pullbacks already recovered this trade, and 5-min bars still show higher highs (+42\u2192+63\u2192+52) with no break of the last 5-min swing low."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:15:00+00:00",
+   "px": 25042.75,
+   "action": "HOLD",
+   "error": "no parseable action",
+   "reason": ""
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:16:00+00:00",
+   "px": 25055.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is 23.5pt/1.6xATR (37% of the move), still shallower than the 4.1-4.3xATR pullbacks already recovered this trade, and price remains far above the last 5-min swing low (+18 at 12:50) with no break of structure yet."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:17:00+00:00",
+   "px": 25053.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is 22.0pt/1.5xATR off the 13:10 best, still shallower than the 2.0x-4.3xATR pullbacks already recovered this trade, and price (41.1) remains well above the last 5-min swing low (+17-19 at 12:55/13:00), with only 13 min to the forced flatten."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:18:00+00:00",
+   "px": 25046.75,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is still only 15.2pt/1.1xATR off the 13:10 best, well inside the 2.1-4.4xATR pullbacks already recovered this trade, price (47.9) remains far above the last 5-min swing low (18 at 13:00) and the structural low (-43 area), so no swing has been taken out against the position."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:19:00+00:00",
+   "px": 25038.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 7.0pt/0.5xATR off the 13:10 best, well inside the 2.1-4.4xATR pullbacks already recovered this trade, and the 13:19 close of +56.1 is back above the 13:16-13:18 range, so structure is still intact with no new low against the position."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:20:00+00:00",
+   "px": 25049.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 18.0pt/1.3xATR off the 13:10 best (29% of the move), shallower than the four >=1xATR pullbacks already recovered this trade (1.7x-4.6x), and the 13:20 close of +45.1 still sits well above the prior 12:45-13:05 range, so structure is intact with only 10 minutes to the forced flat."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:21:00+00:00",
+   "px": 25046.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 14.5pt/1.1xATR (23% of the move) off the 13:10 best, shallower than the 1.7x-4.6xATR pullbacks already recovered this trade, and price remains far above the prior 5-min swing lows."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:22:00+00:00",
+   "px": 25044.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 12.8pt/1.0xATR off the 13:10 best, shallower than the four recovered 1.7-4.7xATR pullbacks this trade, price (50.4) remains above the recent 5-min swing lows (35-44) with no lower low or failed recovery yet, and 8 minutes to the flat makes forcing an exit here premature."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:23:00+00:00",
+   "px": 25044.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 12.5pt/1.0xATR (20% of the move) off the 13:10 best, shallower than the four already-recovered 1.8-4.9xATR pullbacks this trade, and price (50.6) is holding above the recent 5-min lows with pushes-against still smaller than the trend, so structure hasn't broken."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:24:00+00:00",
+   "px": 25037.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 5.5pt/0.4xATR (9% of the move) off the 13:10 best, far shallower than the four 1.9-5.0xATR pullbacks already recovered this trade, and price (57.6) is pushing back toward the best, not breaking the recent 5-min swing low."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:25:00+00:00",
+   "px": 25031.5,
+   "action": "HOLD",
+   "error": null,
+   "reason": "New best just made at 13:25 (+63.1) with zero give-back, structure intact above the recovered 1.9-5.0xATR pullbacks, and the 15-min trend (-96 to -0) shows pushes still expanding in my direction."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:26:00+00:00",
+   "px": 25030.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "New best just made at 13:26 (+64.6) with zero give-back, price holding above the recovered 1.9-4.9xATR pullbacks and the 15-min trend (-125 to -0) still pushing in my favor into the flatten."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:27:00+00:00",
+   "px": 25045.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is only 15.0pt/1.2xATR (23% of the move) off the 13:26 best, still shallower than the 1.9-2.4xATR pullbacks already recovered this trade, and the 15-min trend (-96 to -0) keeps pushing toward new highs with only 3 minutes left to the 13:30 flat anyway."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:28:00+00:00",
+   "px": 25048.25,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is 18.2pt/1.5xATR (28% of the move) off the 13:26 best, still shallower than the 2.0-2.5xATR pullbacks already recovered this trade, and the 15-min trend is still net positive with only 2 minutes left to the automatic 13:30 flatten anyway."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:29:00+00:00",
+   "px": 25051.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is 21.0pt/1.7xATR (32% of the move) off the 13:26 best, still within the 2.0-2.5xATR pullbacks already recovered this trade, 15-min trend still net positive, and the position flattens automatically in 1 minute regardless."
+  },
+  {
+   "day": "2026-03-05",
+   "ts": "2026-03-05T13:30:00+00:00",
+   "px": 25056.0,
+   "action": "HOLD",
+   "error": null,
+   "reason": "Give-back is 26.0pt/2.2xATR (40% of the move) off the 13:26 best, still within the 2.0-2.5xATR pullbacks already recovered this trade, price holds above the 13:19 5-min low (+46.6) and the 15-min trend row is still net positive (+13/-0 last two), so structure isn't broken yet."
+  }
+ ],
+ "n_calls": 72,
+ "error_rate": 0.042,
+ "poisoned": false,
+ "brief_sha": {
+  "A": "acf91fcc866ee53c",
+  "B": "911348f59d0207a3"
+ },
+ "score": {
+  "n_trades": 4,
+  "n_alerted": 4,
+  "usd": 1248.0,
+  "pts": 159.0,
+  "M1_share_of_leg_remainder": 0.559,
+  "M1b_share_of_best": 0.684,
+  "M2_alerted_closed_in_profit": "4/4",
+  "M3_mean_giveback_pt": 18.4,
+  "M4_alerted_ended_red": 0,
+  "never_alerted": 0
+ },
+ "dry": false,
+ "model": "claude-sonnet-5"
+}

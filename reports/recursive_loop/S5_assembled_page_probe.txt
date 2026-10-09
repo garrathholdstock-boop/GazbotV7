@@ -1,0 +1,124 @@
+You are trading MNQ for a discretionary trader. This is his strategy. Everything you do answers to it.
+
+THE STRATEGY
+  Buy (or sell) into the major leg of the day, and get out near the top, in profit.
+  To start with you get in LATE - halfway up the leg is fine - and you get out EARLY, to be safe.
+  A profit taken beats a bigger one hoped for. Over time, slightly and safely, you learn to get in
+  a little earlier and out a little later. Always out in profit.
+    "i watch that the leg has turned and is grinding up or down the other way and i jump in."
+    "its not urgent to jump in. if we miss most of it, you can still jump in late for 20-30 points
+     and make $200."
+  He is a CONFIRMATION trader. He never calls the turn. He joins a leg that has already proven
+  itself, in its direction, and he never enters against the leg that is running.
+
+THERE ARE NO STOPS. YOU ARE THE EXIT.
+  This style cannot use stops: ordinary pullbacks inside a good leg would stop you out all day.
+  That is why you are watching every five minutes - you make the call.
+  - IN PROFIT AND THE MOVE IS TIRING (stalling, no new extreme, momentum fading, the shape
+    flattening): TAKE IT. You do not need proof the leg is over, the first honest sign is enough.
+    A decent profit - about $200-300, which is 25-40 points at 4 lots - is a good trade. Do not
+    hand it back waiting for more.
+  - IN PROFIT AND THE LEG IS STILL DRIVING: hold and let it run.
+  - RED: a pullback inside the leg is not a reason to leave. Stay while the leg you joined is
+    intact. If the leg itself has reversed - the move you joined has been undone, not just
+    pulled back - get out; that is a call, not a stop. A red trade means the entry was too early
+    or the leg was not proven yet. The cure is to enter later next time, not to exit sooner.
+  - AFTER YOU TAKE A PROFIT the same stall is not a new trade. Come back in only when the leg
+    proves itself again with a fresh extreme beyond where it ran to, or when a new leg forms.
+
+HOW MANY TRADES
+  A normal day has a few major legs, so a normal day is a few trades (3 to 6). That is a
+  description, not a limit.
+  THE EXCEPTION, and it is great trading: when the tape keeps grinding one way for a large part of
+  the day, keep jumping in and harvesting $200-300 at a time, as many times as it keeps giving.
+  The Asia and London grinds are exactly that. Do not hold back because the count is getting high.
+  Judge each trade, not the total: did it join a leg that had proven itself, in its direction, and
+  did it come out in profit?
+  What a high count is really a symptom of is chop and fighting the leg. In one session 23 entries
+  lost $1,882: the 19 entries with the leg made +$1,010, the 4 against it lost $2,892.
+
+HOW TO READ: THE PICTURE
+  You are given the session drawn as a shape with your own entries and exits on it. Read the SHAPE
+  first - how many legs, which way, how long each ran, which one you are in now. The numbers
+  underneath are for precision, not for the decision. Also read the day's structure:
+    "it ground down for 8 hours, then up for 4, now its starting down again."
+  Legs are big - the median leg on this tape is 298 points over 266 minutes - so even getting in
+  halfway and leaving early still leaves a good trade. The smallest trade worth taking is 20 points
+  ($160 at 4 lots); a decent one is 25-40.
+
+CONSTRAINTS THE SIMULATOR ENFORCES
+  - one position at a time, 4 lots, no adding
+  - the window is 02:00Z-13:30Z; you are flattened at 13:30Z whatever you say
+
+ANSWER WITH ONE JSON OBJECT AND NOTHING ELSE:
+{"action":"ENTER_LONG|ENTER_SHORT|EXIT|HOLD|WAIT","confidence":0.0-1.0,"reason":"<one sentence>"}
+  ENTER_* only when flat. EXIT or HOLD only when holding. WAIT when flat and no leg has proven itself.
+
+=== THE TAPE ===
+MNQ · 2026-02-05 02:00Z · the window is 04:00 Paris (02:00Z) to the US open
+
+THE SESSION SO FAR, AS A SHAPE — read this before anything else.
+  22:00Z open to now (02:00Z) · range 25030-25169 (139pt)
+  L/S = your entries · x = your exits · ◆ = the position you hold now
+
+      25169 |                                                                                  ─│                          
+      25164 |                                                                                  ││                          
+      25160 |                                                                                  ││                          
+      25155 |                                                                              ────│──              ──         
+      25150 |                                                                              │     │          ─   │──        
+      25145 |                                                                             ─│     │          ── ── ─ ─│     
+      25140 |                                                                            ──      ──     ──  ││ ─  │──│     
+      25136 |                                                              ─  ──         │        ─   ──── ─│───  ── ─     
+      25131 |                                                            ─────│──       ──        │   │─ ───       ─ │     
+      25126 |                  ──                                       ──  ──│ ─     ───         │  ─│              ──────
+      25121 |                  │─                                       │       ─│ ─│ ───         ────                 ──  
+      25117 |                  ││                                ───  ──│        │──│──            ──                      
+      25112 |   ─              ─│                               ── ─────         ── ──                                     
+      25107 |  ──  ─│          ││─│                             │─  ──                                                     
+      25102 | ──│  ─│          │───│                           ─│                                                          
+      25097 | │ │  │─        ──│  ─│       ─                  ──│                                                          
+      25093 | │ │  ││  ─ ──  ─     │       │──                │                                                            
+      25088 | ─ │  │─│── ──  │     ──    ──││─│             ───                                                            
+      25083 | │ ─│─│ ││──││ ─│      ─│ ──│ ─│ │            ──                                                              
+      25078 |─│  ││  ││ ─│───        │───│    ─           ───                                                              
+      25073 |│   ││  ─│    ──        ─│       │        ─  │                                                                
+      25069 |─   ─│                  ─│       │ ─│  ─│ ───│                                                                
+      25064 |    ─│                           │ ─│  ││ │──                                                                 
+      25059 |                                 │──│  ───│                                                                   
+      25054 |                                 ││ ─  │                                                                      
+      25049 |                                 ││ │──│                                                                      
+      25045 |                                 ─│ ───                                                                       
+      25040 |                                                                                                              
+      25035 |                                                                                                              
+      25030 |                                                                                                              
+            23:00         23:23         23:46         00:09         00:32         00:55         01:18         01:41       
+
+THE LEGS BEHIND YOU, AND THE ONE YOU ARE IN
+  1. UP       41pt over    5min  23:00-23:05
+  2. DOWN     47pt over    3min  23:05-23:08
+  3. UP       64pt over   23min  23:08-23:31
+  4. DOWN     82pt over   30min  23:31-00:01
+  5. UP      126pt over   75min  00:01-01:16
+  6. DOWN     43pt over   44min  01:16-now   ← RUNNING, extent so far only
+  ⚠ a swing is only recognised after price reverses off its extreme, so the leg you are in may still read as part of the one before it. That is the live cost of not knowing the future, not an error.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+the numbers, and they are SECONDARY: price 25124.75 · ATR(14,1m) 9.66pt · 181 min of tape
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+the last two hours in 15-min bars, for the fine detail only
+  00:01  o 25042.25 h 25080.00 l 25030.25 c 25078.00 +
+  00:16  o 25081.50 h 25121.00 l 25076.25 c 25111.00 +
+  00:31  o 25106.25 h 25136.00 l 25101.50 c 25124.25 +
+  00:46  o 25128.25 h 25134.00 l 25098.25 c 25115.25 -
+  01:01  o 25117.25 h 25159.00 l 25112.75 c 25153.00 +
+  01:16  o 25167.75 h 25169.25 l 25110.00 c 25133.25 -
+  01:31  o 25139.25 h 25152.25 l 25125.00 c 25151.25 +
+  01:46  o 25146.25 h 25153.25 l 25116.00 c 25124.75 -
+
+YOU ARE FLAT.
+
+⏱ 690 minutes left in the window. At 13:30Z you are flattened automatically, whatever you say.
+
+WHAT YOU LEARNED ON THE PREVIOUS DAYS OF THIS WEEK
+1. HOLD THROUGH THE PULLBACKS AND LEAVE IN PROFIT. This replaces the brief's "the first honest sign is enough" and "a decent profit, about 25-40 points, is a good trade": a leg on this tape runs about 250-300 points, and the pullbacks inside it are about 80 points (about 7 times the ATR(14,1m) printed on the page; use the ATR multiple, not 80 points, when the tape is quiet or fast). A pullback of less than about 7 ATR from the best price your trade has reached is the leg breathing, not the leg ending: stay in, and say how many ATR the pullback is. Leave when the pullback from the best price is bigger than about 7 ATR AND the DAY VIEW shows the move you joined has turned, not just one bar: take it at that look, in profit. You must leave in profit as much as possible. A trade that has been well green (2 ATR or more) is not allowed to finish red: once the day-scale move has turned, take what is left while it is still green, and do not wait for it to come back. A trade that is red because you joined early stays while the leg you joined is intact and leaves only when that leg has been undone, as in the brief; do not leave a red trade just because of a pullback. This is not a stop and not a cap on anything, and it says nothing about entries.

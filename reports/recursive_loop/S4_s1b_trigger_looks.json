@@ -1,0 +1,462 @@
+[
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T03:30:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 25001.25,
+  "entry": 25025.62,
+  "final": -372.0,
+  "reason": "Only 5 minutes in and still well above the leg-7 swing low near 24950-24960, so this reads as a pullback inside the intact up-leg rather than a reversal, not a reason to bail."
+ },
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T04:30:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24951.25,
+  "entry": 24932.88,
+  "final": -154.0,
+  "reason": "Entered short right at the low of a choppy 68-min down leg and it already round-tripped from +9.9pt favorable to -18.4pt against in just 5 minutes, matching this session's whipsaw pattern that has been stopping out both longs and shorts since 02:16 \u2014 take the small loss rather than let a reversed le"
+ },
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T05:25:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24986.25,
+  "entry": 24971.12,
+  "final": -128.0,
+  "reason": "Shorted into a still-running up-leg (#7, 04:26\u2192now), peak favorable was only +2pt before price pushed back to new local highs, so the leg I fought is intact and this is a losing fight, not a pullback to hold through."
+ },
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T07:40:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 25059.25,
+  "entry": 25075.12,
+  "final": -104.0,
+  "reason": "The up-leg from 04:26 is still intact (price near 25059 vs leg low near 24933), so this 30pt pullback from the 25089 high is a normal retracement, not a reversal, and the strategy says stay while the leg holds rather than exit on a red pullback."
+ },
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T09:20:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 25019.0,
+  "entry": 24981.88,
+  "final": -304.0,
+  "reason": "Short was entered right at the down-leg low; price has since ripped 41pt off that low back to 25019 on a strong-momentum bar closing near its high, with peak favourable still 0 \u2014 the down leg looks undone, not just pulled back, likely resuming the larger uptrend from leg 7."
+ },
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T10:35:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 25048.0,
+  "entry": 25077.12,
+  "final": -240.0,
+  "reason": "Entered late into the up-leg near 25077, it barely extended to +11pt then round-tripped straight through entry down to -29pt - that's the leg undone, not a pullback, so get out now rather than hope it recovers."
+ },
+ {
+  "day": "2026-02-05",
+  "ts": "2026-02-05T12:40:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 24841.75,
+  "entry": 24819.12,
+  "final": 126.0,
+  "reason": "Short is only pulling back inside the running down leg (new low 24804.50 just made this bar, now bouncing) \u2014 no confirmed reversal of the leg yet, so stay rather than cut on a dip."
+ },
+ {
+  "day": "2026-02-19",
+  "ts": "2026-02-19T08:35:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 25022.75,
+  "entry": 25035.88,
+  "final": -272.0,
+  "reason": "the 08:21 bar is a sharp pullback off a fresh high (25054) but the up-leg from 05:06 is still net higher and hasn't broken down to confirm a reversal, so this is a red pullback to ride through, not a proven turn."
+ },
+ {
+  "day": "2026-02-19",
+  "ts": "2026-02-19T12:30:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 24875.75,
+  "entry": 24896.38,
+  "final": -200.0,
+  "reason": "Price pulled back from the 24897.5 spike high to 24875.75 but remains well above the leg's 24814 low, so the up-leg is not undone\u2014just a pullback inside it, no reason to exit on a stop-free style."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T02:55:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 25086.0,
+  "entry": 25113.62,
+  "final": -228.0,
+  "reason": "Entry chased a spike to 25125 that fully round-tripped back below entry within minutes (peak favourable only +0.6pt), landing right back in the same 25044-25095 chop zone that already cost two losing shorts today \u2014 this isn't a proven leg, it's whipsaw, so take the small loss rather than fight it."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T07:35:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 25060.5,
+  "entry": 25089.62,
+  "final": -260.0,
+  "reason": "Entry was late near the leg-5 spike high so it's never been green, but price is still well above the leg's 24981 low and hasn't broken the recent pullback lows, so this reads as a pullback inside an intact up-leg, not a reversal."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T08:35:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 25009.5,
+  "entry": 24989.62,
+  "final": -166.0,
+  "reason": "The down leg made a fresh low at 24973 then snapped back sharply through my 24989.62 short entry to 25009.50 - that's the leg reversing, not just a pullback, so I'm out before it costs more."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T08:45:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 25012.25,
+  "entry": 24988.88,
+  "final": -194.0,
+  "reason": "The down leg made its low at 24973 right where I entered short, and price has since ripped back 39pt to 25012 on a strong green bar - that reads as the leg undone, not just a pullback, so I'm out before it costs more."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T09:35:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 25142.0,
+  "entry": 25126.88,
+  "final": 80.0,
+  "reason": "Only 5min in and still well below the leg-7 swing high near 25206, with the 09:21 bar rejecting back down from 25195 to 25142 \u2014 the down-leg isn't undone, just a pullback, so stay short."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T10:40:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 25107.75,
+  "entry": 25140.62,
+  "final": -270.0,
+  "reason": "This long was entered against leg 8's still-running downtrend (89min and counting, making fresh lower lows through 10:26), never showed a point of favor, and there's no sign of reversal to justify holding a counter-trend trade deeper into a loss."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T10:55:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 25118.5,
+  "entry": 25097.38,
+  "final": -178.0,
+  "reason": "Only 5 minutes in and the leg-8 downmove from 25198 to current 25118 is still intact (not undone), so this reads as a pullback within the leg, not a reversal worth cutting."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T11:35:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 25117.0,
+  "entry": 25132.12,
+  "final": -128.0,
+  "reason": "The bounce I joined topped at 25152 and failed, erasing the +14.6pt peak and dropping to -15.1pt, meaning the up-move reversed rather than just pulled back, while the running leg is DOWN 144min 09:11-now \u2014 the leg I joined is undone."
+ },
+ {
+  "day": "2026-03-05",
+  "ts": "2026-03-05T13:15:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 25055.0,
+  "entry": 25032.38,
+  "final": -196.0,
+  "reason": "Short still inside the running 09:11 down-leg; this is a bounce/pullback not a confirmed reversal, and only 15min remain before auto-flatten anyway."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T05:55:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24399.0,
+  "entry": 24375.12,
+  "final": -198.0,
+  "reason": "The 193-min down leg bottomed at 24363 and the last bar reversed hard back through my 24375 entry to 24399, erasing the move I joined, so this reads as the leg turning rather than a normal pullback."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T06:30:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 24384.5,
+  "entry": 24403.62,
+  "final": -160.0,
+  "reason": "The weak 18pt bounce I joined has fully round-tripped from +15.6pt to -19.1pt against the dominant 138pt down leg, so this is the bounce reversing, not just pulling back."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T08:00:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24363.0,
+  "entry": 24338.38,
+  "final": -204.0,
+  "reason": "the 07:46 bar made a new leg-low at 24327.50 then slammed back to 24363, retracing ~80% of the down leg against my short - that's the leg reversing, not pulling back, so I'm out of the red before it compounds."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T08:10:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24354.75,
+  "entry": 24337.12,
+  "final": -148.0,
+  "reason": "the down leg swept a new low at 24325.75 then reversed hard back above my 24337 entry to 24354.75, a one-bar 29pt reversal signaling the leg has turned rather than just pulled back, so I'm cutting the red trade."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T09:25:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 24290.75,
+  "entry": 24366.38,
+  "final": -612.0,
+  "reason": "The up-leg I joined has reversed hard\u201490pt down in 3 minutes breaking below prior swing lows\u2014so this is undone, not a pullback, and I'm cutting the loss rather than hoping for recovery."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T09:45:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 24327.75,
+  "entry": 24348.62,
+  "final": -174.0,
+  "reason": "Joined leg 7 up right at its top (peak only +1.1pt before reversing), and the bounce off that high has already erased 20pt in 5 minutes - that is the leg undone, not a pullback, so get out before it compounds like trade 11 did."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T10:30:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24397.0,
+  "entry": 24380.88,
+  "final": -136.0,
+  "reason": "short was taken against leg 7, which is still an intact up-leg (65min, 106pt, last 15-min bar closed green near the high with no stall), so there's no confirmed down-leg to justify holding and this is exactly the against-the-leg pattern that cost $2,892 today."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T11:10:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 24368.0,
+  "entry": 24352.12,
+  "final": 102.0,
+  "reason": "Still inside the running down-leg from 09:57 (price below its 24409 start and below the last swing high), this is only a 5-minute pullback bounce off the 24347 low, not a reversal of the leg I joined."
+ },
+ {
+  "day": "2026-03-19",
+  "ts": "2026-03-19T12:35:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 24279.25,
+  "entry": 24273.38,
+  "final": -54.0,
+  "reason": "The spike to 24231 that gave +28.6pt favourable has fully round-tripped back above entry to 24279 - that's the leg reversing, not a pullback, so get out now before the loss grows."
+ },
+ {
+  "day": "2026-04-02",
+  "ts": "2026-04-02T05:00:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 23814.5,
+  "entry": 23797.12,
+  "final": -206.0,
+  "reason": "Only 5 minutes in and -17pt is a shallow 2-ATR bounce off a fresh session low, nowhere near undoing the 420-minute down leg, so this reads as a pullback inside an intact leg, not a reversal."
+ },
+ {
+  "day": "2026-04-02",
+  "ts": "2026-04-02T08:05:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 23844.5,
+  "entry": 23845.62,
+  "final": -16.0,
+  "reason": "The 07:51 bar made a fresh high (23882.25) then reversed hard to close near its low, round-tripping the trade from +33pt peak to flat/-1pt \u2014 that's the first honest stall sign in a leg that's really just a bounce inside the larger 8-hour down move, so take the exit near breakeven rather than let it "
+ },
+ {
+  "day": "2026-04-02",
+  "ts": "2026-04-02T13:00:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 23731.25,
+  "entry": 23751.12,
+  "final": -166.0,
+  "reason": "Long was a counter-trend bounce entry against the running down-leg, never got past +1.6pt, and the latest 15-min bar rolled back over with price at session lows again \u2014 the bounce it joined has failed, not just pulled back, with only 30 minutes left before forced flatten."
+ },
+ {
+  "day": "2026-04-16",
+  "ts": "2026-04-16T11:25:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 26394.5,
+  "entry": 26410.38,
+  "final": -134.0,
+  "reason": "The up leg I joined topped near 26422 and has reversed hard, erasing my entire +10pt peak and pushing me below entry to -15.9pt - the move is undone, not just pulled back, so I'm out."
+ },
+ {
+  "day": "2026-04-30",
+  "ts": "2026-04-30T03:00:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 27443.5,
+  "entry": 27420.88,
+  "final": -188.0,
+  "reason": "The down leg's low was already in near 27386 before entry and price has since bounced persistently (intrabar spike to 27469, then grinding closes higher), so with peak favorable only 7.6pt and now -22.6pt the leg joined has already turned, not just pulled back."
+ },
+ {
+  "day": "2026-04-30",
+  "ts": "2026-04-30T04:45:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 27277.75,
+  "entry": 27273.88,
+  "final": 44.0,
+  "reason": "Short is only slightly red and the leg down is still intact after a fresh impulse to 27273, no reversal proven yet so stay with it."
+ },
+ {
+  "day": "2026-04-30",
+  "ts": "2026-04-30T09:45:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 27380.5,
+  "entry": 27420.38,
+  "final": -454.0,
+  "reason": "the up leg just printed a fresh extreme at 27442.75 before this pullback to 27380.50, so the leg is intact and this reads as a pullback, not a reversal, even though the entry was poorly timed at the spike top."
+ },
+ {
+  "day": "2026-05-14",
+  "ts": "2026-05-14T02:05:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 29624.0,
+  "entry": 29606.62,
+  "final": -182.0,
+  "reason": "The last bar's long lower wick to 29600.50 before bouncing to 29624 is a pullback of only ~25% of the 93pt down-leg from 29693, not a reversal that undoes the leg the short joined."
+ },
+ {
+  "day": "2026-05-14",
+  "ts": "2026-05-14T05:30:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 29571.25,
+  "entry": 29547.88,
+  "final": -194.0,
+  "reason": "Peak favourable was only +11.4pt and price has now reversed 35pt off that low with a strong bullish 15-min close near the bar high, undoing the down leg this short joined rather than just pulling back."
+ },
+ {
+  "day": "2026-05-14",
+  "ts": "2026-05-14T07:50:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 29610.0,
+  "entry": 29628.62,
+  "final": -156.0,
+  "reason": "This long was bought chasing a brief bounce right into a fresh lower high while leg 8's down move is still running, it's never gone positive and is now -$149, so the leg I joined looks undone rather than just pulled back."
+ },
+ {
+  "day": "2026-05-14",
+  "ts": "2026-05-14T08:10:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 29589.25,
+  "entry": 29557.38,
+  "final": -262.0,
+  "reason": "The down leg you shorted into has bounced 40+pt off its low back above your entry with zero favourable excursion, which reads as the leg turning rather than a pullback, so cut the short."
+ },
+ {
+  "day": "2026-05-14",
+  "ts": "2026-05-14T08:25:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 29594.25,
+  "entry": 29610.38,
+  "final": -494.0,
+  "reason": "Price is still above the leg 9 up-swing's origin, so this is a pullback inside an intact leg, not a reversal - no call to get out yet."
+ },
+ {
+  "day": "2026-05-14",
+  "ts": "2026-05-14T11:25:00+00:00",
+  "action": "EXIT",
+  "side": "LONG",
+  "px": 29517.25,
+  "entry": 29573.62,
+  "final": -458.0,
+  "reason": "The up-leg I joined at 29573.62 has been fully undone by the 58pt down-leg now running (price 29517.25, never showed even 1pt of profit), so this is a reversed leg, not a pullback, and the call is to get out."
+ },
+ {
+  "day": "2026-05-28",
+  "ts": "2026-05-28T04:10:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 29818.0,
+  "entry": 29803.38,
+  "final": 150.0,
+  "reason": "Still in the running 266pt down leg which hasn't reversed\u2014price made a fresh low at 29776 and the bounce to 29818 is a pullback within the leg, not proof the leg is undone, so stay with it."
+ },
+ {
+  "day": "2026-05-28",
+  "ts": "2026-05-28T04:35:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 29810.25,
+  "entry": 29785.12,
+  "final": -262.0,
+  "reason": "The down leg ran 274pt to a 29763 low and this is only a 47pt bounce off it, not a reversal, so the entry is early-but-not-wrong and the pullback doesn't yet undo the leg."
+ },
+ {
+  "day": "2026-05-28",
+  "ts": "2026-05-28T05:10:00+00:00",
+  "action": "HOLD",
+  "side": "SHORT",
+  "px": 29796.5,
+  "entry": 29775.12,
+  "final": -352.0,
+  "reason": "Still within the same down leg from 00:58 - the bounce off 29763 to 29822 looks corrective and price is already drifting back down to 29796, so this reads as a pullback inside an intact leg, not a reversal, and there are no stops to force an exit on a red but unconfirmed turn."
+ },
+ {
+  "day": "2026-05-28",
+  "ts": "2026-05-28T09:10:00+00:00",
+  "action": "HOLD",
+  "side": "LONG",
+  "px": 29965.5,
+  "entry": 29984.62,
+  "final": -210.0,
+  "reason": "The up-leg from 04:21 is still structurally intact (price 29965 is far above its 29771 origin) and this is a pullback off the recent 29999 high, not a reversal of the leg, so I stay despite being red."
+ },
+ {
+  "day": "2026-05-28",
+  "ts": "2026-05-28T11:15:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 29898.5,
+  "entry": 29878.12,
+  "final": -170.0,
+  "reason": "Entered short right at the leg-5 low and the last 15-min bar has already flipped up with a 36pt bounce off that low, so the down leg looks undone rather than just pulling back \u2014 take the small loss now."
+ },
+ {
+  "day": "2026-05-28",
+  "ts": "2026-05-28T11:40:00+00:00",
+  "action": "EXIT",
+  "side": "SHORT",
+  "px": 29930.5,
+  "entry": 29886.38,
+  "final": -360.0,
+  "reason": "Shorted at 29886 right as the down leg bottomed near 29862; two straight up bars have now broken back above my entry to 29930 with higher highs and closes, so the leg I joined has reversed, not just pulled back."
+ }
+]

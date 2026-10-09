@@ -1,0 +1,49 @@
+{
+ "iter": 9,
+ "ts": "2026-10-08T11:59:42.473477+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~57M, have 160M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (7 rules)"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (..........................................                            )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 19.9GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: It joins a major leg of the day late, in the direction the leg is already running, takes the money off at the first look where the open profit is 2x ATR and at least $200 (roughly 25-40 points at 4 lots), and it refuses to go back in after a trade that didn't make that $200 \u2014 it has to wait for the next major move.\n\nHOW IT TRIES TO BEAT THE CHAMPION: It isn't. This is not the champion's rule set and not the champion's days \u2014 it's the S line, seven new rules on a new brief, measured against a baseline that loses $20/day, and the declaration says in writing that it makes no dollar claim; the mechanism it is actually testing is churn \u2014 one trade per major move, and a jump back in only after a claimed profit with price still past that trade's best level, aiming to cut 17.6 trades a day down to 8 or fewer. So treat this as a behaviour run: it is trying to make the model trade like you, not to print a number above $624.\n\nWHAT WOULD HAVE TO HAPPEN: It would have to stop re-poking the tape within fifteen minutes of a losing exit and let the day's first three legs be the whole day's work \u2014 on the last S-line run the first three trades made +$1,988 and trades seven onward lost $4,080.\n\nWHAT IT GIVES UP: It blocks good trades along with the bad \u2014 fifteen claims worth +$3,514 on the last run would have been refused \u2014 and by taking 25-40 points out of a 298-point median leg it will hold a smaller slice of each move than before.\n\nBIGGEST RISK: The trade count falls exactly as designed and the money doesn't follow, and because the same run twice can differ by $324/day on nine days that were read while writing these rules, whatever dollar figure comes out won't settle it either way.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\n\nFAILING METRIC: $/day = \u2212$20 (S1b baseline), i.e. $820 below the $800 bar \u2014 far further from its bar than side accuracy (0.818, passing) or capture (0.085, bar 0.15).\n\nAIMED AT IT: PARTLY \u2014 S4 attacks the churn that funds the losses (15.2\u2192\u22648 trades/day, non-claim rebuys, patience) and pre-commits to making no dollar claim, so it aims at the *mechanism* behind $/day without being able to resolve $/day itself; its own cited trades net \u22480 (\u2212$1,550 group A vs +$1,570 group C).\n\nMEASURABLE: YES \u2014 the declared verdict is C1\u2013C10 counts, not dollars, and those move far outside their own noise (trades/day 15.2/17.6 \u2192 mean \u22648 with \u22656 of 9 days \u22648; held \u226410 min 31/35% \u2192 \u226415%; non-claim median hold 15 \u2192 \u226525 min); the dollar reading is correctly fenced off as in-sample and inside the $324/day floor.\n\nMISSING:\n1. Reconcile the two gate-implied entry rates before the run: the labeller (verified today, `reports/recursive_loop/S4_label_replay.txt`) passes only 23/137 and 21/158 recorded entries = **2.3\u20132.6 entries/day**, against the change file's \"the gate alone leaves 6.3\u20138.0/day\". They measure different things (recorded entries classified vs. entries permitted), but C1's threshold and C3's floor were set off the higher number \u2014 record which is C1's expectation and that C3 (no day under 2 trades) is the live failure mode if S4 lands near 2.5/day.\n2. Record the per-day MIL count for the nine days now (zero model cost, harness already tracks it): it is the ceiling on permitted \"new major move\" entries and therefore the denominator C1 and C3 are actually read against. Without it, a C1 pass cannot be told apart from a tape that simply had few major moves.\n3. Pre-declare rule-7 format compliance as a reported count (share of reasons parsing `DAY:` / `BOOK:` / `NOW:`). H(iii)'s \"rule not shown to bind\" is unreadable if you cannot show the model was reading the page at all; C5/C6 only cover the gate label.\n\nREASON: Four preflight rounds have already closed the real interpretive holes \u2014 the labeller replay is causal and runs, the dollar reading is pre-committed as unresolvable, C9 is split so scratching cannot pass it, C7/C8 are split by exit class, C1 carries a dispersion term, and the BRIEF_V3-plus-scorecard confound is stated rather than hidden. The remaining gap is a 2.5\u00d7 unreconciled discrepancy in the one number that decides the run (C1/C3), which is cheap to record from artifacts already on disk and does not justify spending another cycle before launch."
+ },
+ "verdict": "GO"
+}

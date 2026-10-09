@@ -1,0 +1,45 @@
+T3 - HOLD-THROUGH TRIAL (declared 2026-10-09 before any model call)
+=====================================================================
+Operator request: "test the hold through but maintain the 150 start monitoring technique of course".
+
+WHAT STAYS EXACTLY AS T1 (frozen scripts/t1_profit_take.py sha 1985874d350e032f, imported unchanged):
+  days 2026-03-05 and 2026-04-30; same 6 hindsight lab entries (50% into a hindsight leg, fill next bar close + half spread);
+  no calls until the trade first shows $150 open (18.75 pt); alerts at $150 then each +$50; from the first alert a look at EVERY
+  completed minute; decide at a completed bar's close, fill at the NEXT bar's close; 4 lots, $8/pt, $1.50/lot RT; no stop, no target;
+  no re-entry (T2 failed); flat at 13:30Z; model = claude-sonnet-5; MAX_CALLS_DAY 900.
+WHAT CHANGES (one thing - what the exit sees and is told; scripts/t3_holdthrough.py sha c845607bd3a3cb7e):
+  1. New block "THE MOVE SO FAR": best close and time, minutes in trade and average pt/min, every pullback of >=1xATR inside the trade
+     and whether it was RECOVERED to a new best, current give-back in pt / ATR / % of the move, 5-min bars since entry (last 14), day range position.
+  2. Brief rewritten for the single skill: tolerance scales with the size of the move; a recovered dip is evidence of trend; leave on a
+     STRUCTURE break (last 5/15-min swing taken out and not recovered, pushes shrinking), promptly and in profit.
+  Arm A (primary) brief sha acf91fcc866ee53c. Arm B = A + one descriptive base-rate sentence (median MIL ~2h45 / ~245pt, longer-aged legs
+  have longer left; from the 100-day tape, not these two days) sha 911348f59d0207a3 - run ONLY if A earns it AND budget allows.
+  No stop, no lock, no target is given to the model. Mechanical trailing rules are CONTROLS only, never part of the line.
+
+DISCLOSURES: entries are hindsight (exit skill only, never strategy P&L); n = 6 trades on 2 in-sample days; the move-so-far block uses only
+completed bars up to the decision bar (no leg-end, no MIL info reaches the page). The 04-30 legs (231.9 and 178.6 pt available) were
+already seen in T1, so this is a second look at the same days, not a holdout.
+
+CONTROLS (zero model cost, same engine/entries/costs; run BEFORE any call):  total $ / M1 (share of the 694.7 pt available to leg top)
+  T1 Claude (reference)              $2,222  0.406   (03-05 $1,374, 04-30 $848)
+  B0 hold to flip                    $1,526
+  B2 take $300                       $2,220
+  K3 trail 3xATR give-back           $2,214  0.405   (03-05 $1,058, 04-30 $1,156)
+  K4 trail 5xATR                     $1,116  0.207
+  K5 trail 7xATR                     $2,182  0.399   (03-05 $64 [2/4 trades in profit], 04-30 $2,118 / 0.649)
+  K6 trail 30% of best               $2,136  0.391
+  K7 trail max(3xATR,40% of best)    $2,198  0.402
+  K8 trail max(3xATR,50% of best)    $2,026  0.371
+  B5 oracle (exit at leg top)        $5,012  0.91
+  Reading: fixed mechanical widths top out at ~$2,200 / 0.40 - a wide trail wins 04-30 and destroys 03-05, a tight one the reverse.
+  The only way past the controls is a rule that is wide on the giants and tight on the small legs, which is what the model is asked to judge.
+  (K7/K8 were added after seeing K3-K6 on these same days; they are controls, not candidates.)
+
+PASS BARS (arm A, fixed now, judged once):
+  H1  total >= $2,522  (T1 and the best control +$300; both $2,222 and $2,214 are inside noise of each other)
+  H2  M1 >= 0.45  (>= 312.6 pt of the 694.7 available)
+  H3  all 6 trades close in profit (law: exit in profit)
+  H4  guard: 03-05 >= $1,174 (no worse than T1 by more than $200) AND 04-30 >= $1,300
+  H5  mean give-back per trade <= 30 pt (wide holds will give back more than T1's 20.9 / 7.5, but not the K5 tail of ~70)
+  PASS = H1..H5 all.  PARTIAL = H1 and H3 and H4 hold.  FAIL = otherwise.
+  A day with call error rate >10% is poisoned (L7) and not scored. An interim is not a result (L6): one report when both days complete.

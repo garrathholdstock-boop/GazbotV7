@@ -1,0 +1,97 @@
+{
+ "day": "2026-04-30",
+ "who": "B1_exit_at_first_alert",
+ "entries": [
+  {
+   "dir": -1,
+   "sig_i": 289,
+   "start_i": 159,
+   "ext_i": 491,
+   "leg_total_pt": 430.8,
+   "ext_px": 27189.0,
+   "leg_start": 1777509540,
+   "leg_end": 1777529460
+  },
+  {
+   "dir": 1,
+   "sig_i": 570,
+   "start_i": 491,
+   "ext_i": 869,
+   "leg_total_pt": 350.5,
+   "ext_px": 27539.5,
+   "leg_start": 1777529460,
+   "leg_end": 1777552140
+  }
+ ],
+ "trades": [
+  {
+   "side": "SHORT",
+   "entry": 27420.88,
+   "exit": 27381.62,
+   "opened": "2026-04-30T02:51:00+00:00",
+   "closed": "2026-04-30T04:04:00+00:00",
+   "held_min": 73.0,
+   "points": 39.25,
+   "pnl_usd": 308.0,
+   "why": "RULE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "04:03"
+    ]
+   ],
+   "best_pt": 23.38,
+   "mfe_hl_pt": 29.38,
+   "giveback_pt": -15.88,
+   "avail_pt": 231.88,
+   "leg_total_pt": 430.8,
+   "share_of_leg_remainder": 0.169,
+   "share_of_best": 1.679
+  },
+  {
+   "side": "LONG",
+   "entry": 27360.88,
+   "exit": 27389.62,
+   "opened": "2026-04-30T07:32:00+00:00",
+   "closed": "2026-04-30T08:40:00+00:00",
+   "held_min": 68.0,
+   "points": 28.75,
+   "pnl_usd": 224.0,
+   "why": "RULE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "08:39"
+    ]
+   ],
+   "best_pt": 19.38,
+   "mfe_hl_pt": 22.88,
+   "giveback_pt": -9.38,
+   "avail_pt": 178.62,
+   "leg_total_pt": 350.5,
+   "share_of_leg_remainder": 0.161,
+   "share_of_best": 1.484
+  }
+ ],
+ "calls": [],
+ "n_calls": 0,
+ "error_rate": 0.0,
+ "poisoned": false,
+ "brief_sha": "3d08960b1af72210",
+ "score": {
+  "n_trades": 2,
+  "n_alerted": 2,
+  "usd": 532.0,
+  "pts": 68.0,
+  "M1_share_of_leg_remainder": 0.166,
+  "M1b_share_of_best": 1.59,
+  "M2_alerted_closed_in_profit": "2/2",
+  "M3_mean_giveback_pt": -12.6,
+  "M4_alerted_ended_red": 0,
+  "never_alerted": 0
+ },
+ "model": null,
+ "dry": false
+}

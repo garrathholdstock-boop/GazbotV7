@@ -70,8 +70,16 @@ RESTART_MARK = "RESTART (LAW 0e)"   # only the operator declares one; the change
 S_LINE_MARK = "S LINE (BRIEF_V2)"   # an S-line iteration after the restart: trades BRIEF_V2, not an empty set
 
 
+S_LINE_MARK_V3 = 'S LINE, NEW "v3" LINE'   # S4 onward: BRIEF_V3 plus the harness DAY SCORECARD on the page
+
+
+def s_line_v3() -> bool:
+    return bool(CHANGE) and os.path.exists(CHANGE) and S_LINE_MARK_V3 in open(CHANGE).read()
+
+
 def s_line_declared() -> bool:
-    return bool(CHANGE) and os.path.exists(CHANGE) and S_LINE_MARK in open(CHANGE).read()
+    return bool(CHANGE) and os.path.exists(CHANGE) and (
+        S_LINE_MARK in open(CHANGE).read() or s_line_v3())
 
 
 def restart_declared() -> bool:
@@ -250,10 +258,13 @@ def state_brief(it: int) -> str:
         L += ["THE RULE SET THIS ITERATION WILL TRADE:", open(rp).read(), ""]
     if s_line_declared() and not restart_declared():
         import sim_week_recursive as SW
-        L += ["THIS IS AN S-LINE ITERATION (line v2, baseline S1b). THE RULES ABOVE ARE ADDED TO",
-              "BRIEF_V2 BELOW; the IT-line rules and 'KNOWN' lines above that conflict with this",
+        v3 = s_line_v3()
+        L += [f"THIS IS AN S-LINE ITERATION (line {'v3' if v3 else 'v2'}, baseline S1b). THE RULES ABOVE ARE ADDED TO",
+              f"{'BRIEF_V3' if v3 else 'BRIEF_V2'} BELOW; the IT-line rules and 'KNOWN' lines above that conflict with this",
               "brief are history on the wrong brief. Rule 9 text and IT2 numbers do not apply.",
-              "", SW.BRIEF_V2, ""]
+              *(["The page also carries a harness-computed DAY SCORECARD at the top (see the change file)."]
+                if v3 else []),
+              "", SW.BRIEF_V3 if v3 else SW.BRIEF_V2, ""]
     if restart_declared():
         import sim_week_recursive as SW
         L += ["THIS IS A LAW 0e RESTART. THE RULE SET IS EMPTY BY DESIGN, SO THE BRIEF BELOW IS THE",

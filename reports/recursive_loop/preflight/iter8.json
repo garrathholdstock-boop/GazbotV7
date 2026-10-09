@@ -1,0 +1,49 @@
+{
+ "iter": 8,
+ "ts": "2026-10-08T07:19:37.734151+00:00",
+ "gates": [
+  {
+   "ok": true,
+   "check": "claude binary executable at /root/.local/bin/claude"
+  },
+  {
+   "ok": true,
+   "check": "a live call returns an answer"
+  },
+  {
+   "ok": true,
+   "check": "budget covers the plan: need ~120M, have 217M"
+  },
+  {
+   "ok": true,
+   "check": "tape present for every planned day"
+  },
+  {
+   "ok": true,
+   "check": "no poisoned artefact in this iteration's arm"
+  },
+  {
+   "ok": true,
+   "check": "no holdout day in the training week"
+  },
+  {
+   "ok": true,
+   "check": "rule set parses (1 rules)"
+  },
+  {
+   "ok": true,
+   "check": "the bible is present in every governed prompt (..........................................                            )"
+  },
+  {
+   "ok": true,
+   "check": "disk free 20.3GB"
+  }
+ ],
+ "gates_failed": [],
+ "plan": "WHAT IT WILL TRADE: Join a leg that has already proven itself, in its direction, and get out when your open profit reaches about twice the ATR printed on the page \u2014 in a quiet grind that's a dozen points, after the US open it's forty \u2014 and never enter against the leg that's running, with no stop anywhere.\n\nHOW IT TRIES TO BEAT THE CHAMPION: It doesn't, and it can't \u2014 this is the restarted line, which runs a different brief and whose own empty-rules baseline on these nine days is **-$20/day**, not $620; the one rule added is \"bank it while it's green,\" and it is measured against that -$20/day, not against the champion. The mechanism is specific: on the baseline, 51 of 137 trades were at least 2x ATR green at some look, the model banked only 2 of them, and the 49 it held finished **$2,125 under** their best mark \u2014 this run tells it to take that money instead of waiting for the leg to turn.\n\nWHAT WOULD HAVE TO HAPPEN: On most of those 49 trades the model has to hit EXIT at the look where it's +25 or +40 points instead of holding for the reversal and handing it back \u2014 and then re-join the same grind when it makes a fresh extreme, so a long one-way morning gets harvested in three or four $200-300 pieces instead of one round trip.\n\nWHAT IT GIVES UP: The runners \u2014 the 28 May short that ran to +$1,268 gets claimed at +$261, and that single trade is where almost the entire cost of the rule sits.\n\nBIGGEST RISK: It obeys the rule, books lots of small green exits, and then buys the stall straight back, so the share of profitable exits jumps while $/day goes nowhere \u2014 and because one night swings about $350/day on identical inputs, a flat dollar number tonight won't tell you whether the rule is good or just unlucky.",
+ "audit": {
+  "verdict": "GO",
+  "raw": "VERDICT: GO\n\nFAILING METRIC: $/day = **-$20/day** on the S1b baseline against the 800 bar (\u2212$820 short); capture 0.085 vs 0.15 is the other miss but is explicitly not an S-line bar and this rule is declared to worsen it.\n\nAIMED AT IT: PARTLY \u2014 the rule attacks the mechanism that feeds $/day (48.2% of exits in profit, and 35 of 49 held-past-target trades finishing below their mark for \u2212$2,125), but the pre-registered primary outcome is an obedience count, so this run cannot itself close the dollar gap or show that it closed.\n\nMEASURABLE: YES \u2014 P1 is a count that must move from 2/51 (3.9%) to \u226570% on \u226525 first target looks, which is an order of magnitude outside sampling noise; the dollars are NOT measurable (SE $368/day on this 9-day baseline exceeds the $324 floor) and the pre-registration already stamps \"no dollar claim\" absent a replicate, so nothing will hinge on them.\n\nMISSING:\n1. Get the operator's yes/no on the S1b replicate recorded in the launch file before S3 runs \u2014 if the answer never gets stamped, S3's dollars become permanently unreadable and the +$2,127 counterfactual (a method that is 0-for-1 on sign, having put S2 at +$235/day against an actual \u2212$229.78) will be the only number left to argue from.\n2. Reconcile exits-in-profit: `S3_CLAIM_BASELINE.json` says 66/137 (48.2%), `S1b_COMPARE_BASELINE.json` says 67/137 (48.9%). It does not change the P1b verdict at the 60% threshold, but fix which file is the P1b source now so the denominator cannot be chosen after the result is seen.\n3. Stamp the per-trade list of the 51 S1b first target looks (day, entry time, look time, ATR on page, mark, the model's reason) alongside the summary JSON, so S3's cohort is compared trade-for-trade on the same tape instead of re-derived after the numbers exist.\n\nREASON: The frozen S3.txt hashes match the declaration, the baseline and claim stamps predate any S3 number, and the citations disclose that the rule is a net \u2212$92 on the ten named trades with the whole cost in the 05-28 runner \u2014 this is pre-registered honestly and aimed at a real 96-percentage-point obedience gap rather than at a settled entry question. It is a GO as a count experiment only; any reading of its $/day without the replicate would be the failure mode this audit exists to prevent."
+ },
+ "verdict": "GO"
+}

@@ -1,0 +1,299 @@
+{
+ "tag": "sline_s1b",
+ "spike_pt": 15.0,
+ "exits": 137,
+ "red_spike_exits_by_day": {
+  "2026-02-05": [
+   5,
+   20
+  ],
+  "2026-02-19": [
+   0,
+   11
+  ],
+  "2026-03-05": [
+   7,
+   21
+  ],
+  "2026-03-19": [
+   8,
+   19
+  ],
+  "2026-04-02": [
+   3,
+   12
+  ],
+  "2026-04-16": [
+   1,
+   12
+  ],
+  "2026-04-30": [
+   1,
+   11
+  ],
+  "2026-05-14": [
+   5,
+   17
+  ],
+  "2026-05-28": [
+   2,
+   14
+  ]
+ },
+ "spike_exits": [
+  47,
+  137
+ ],
+ "spike_exit_share": 0.343,
+ "spike_exits_red": [
+  32,
+  47
+ ],
+ "spike_exits_green": [
+  15,
+  47
+ ],
+ "red_spike_exit_share": 0.234,
+ "spike_actual_usd": -3726,
+ "one_look_delay_delta_usd": {
+  "all": 1642,
+  "red": 895,
+  "green": 747
+ },
+ "hold_median_min": 20.0,
+ "by_threshold": {
+  "15.0": {
+   "spike_exits": [
+    47,
+    137
+   ],
+   "red_spike_exit_share": 0.234,
+   "spike_exits_red": [
+    32,
+    47
+   ],
+   "obedience": {
+    "tag": "sline_s1b",
+    "spike_pt": 15.0,
+    "window_min": 5,
+    "first_trigger_looks": 46,
+    "held": 19,
+    "exited": 27,
+    "hold_share": 0.413,
+    "later_looks": 9,
+    "later_held": 5,
+    "later_hold_share": 0.556
+   },
+   "held_cost": {
+    "spike_pt": 15.0,
+    "held_trades": 19,
+    "net_vs_first_look_usd": -123,
+    "deeper": 13,
+    "deeper_share": 0.684
+   }
+  },
+  "20.0": {
+   "spike_exits": [
+    30,
+    137
+   ],
+   "red_spike_exit_share": 0.161,
+   "spike_exits_red": [
+    22,
+    30
+   ],
+   "obedience": {
+    "tag": "sline_s1b",
+    "spike_pt": 20.0,
+    "window_min": 5,
+    "first_trigger_looks": 31,
+    "held": 12,
+    "exited": 19,
+    "hold_share": 0.387,
+    "later_looks": 3,
+    "later_held": 1,
+    "later_hold_share": 0.333
+   },
+   "held_cost": {
+    "spike_pt": 20.0,
+    "held_trades": 12,
+    "net_vs_first_look_usd": -134,
+    "deeper": 10,
+    "deeper_share": 0.833
+   }
+  },
+  "25.0": {
+   "spike_exits": [
+    19,
+    137
+   ],
+   "red_spike_exit_share": 0.095,
+   "spike_exits_red": [
+    13,
+    19
+   ],
+   "obedience": {
+    "tag": "sline_s1b",
+    "spike_pt": 25.0,
+    "window_min": 5,
+    "first_trigger_looks": 16,
+    "held": 3,
+    "exited": 13,
+    "hold_share": 0.188,
+    "later_looks": 0,
+    "later_held": 0,
+    "later_hold_share": null
+   },
+   "held_cost": {
+    "spike_pt": 25.0,
+    "held_trades": 3,
+    "net_vs_first_look_usd": -127,
+    "deeper": 3,
+    "deeper_share": 1.0
+   }
+  }
+ },
+ "page_unit_15min": {
+  "20.0": {
+   "obedience": {
+    "tag": "sline_s1b",
+    "spike_pt": 20.0,
+    "window_min": 15,
+    "first_trigger_looks": 31,
+    "held": 9,
+    "exited": 22,
+    "hold_share": 0.29,
+    "later_looks": 10,
+    "later_held": 5,
+    "later_hold_share": 0.5
+   },
+   "held_cost": {
+    "spike_pt": 20.0,
+    "held_trades": 9,
+    "net_vs_first_look_usd": 125,
+    "deeper": 7,
+    "deeper_share": 0.778
+   },
+   "aged_out": {
+    "tag": "sline_s1b",
+    "spike_pt": 20.0,
+    "window_min": 15,
+    "first_trigger_looks": 31,
+    "held": 9,
+    "exited": 22,
+    "hold_share": 0.29,
+    "later_looks": 3,
+    "later_held": 2,
+    "later_hold_share": 0.667
+   },
+   "wait_distribution": {
+    "spike_pt": 20.0,
+    "window_min": 15,
+    "held_first_looks": 9,
+    "closed_green_under_15": 0,
+    "median_min": 10.0,
+    "under_10min": 4,
+    "from_10_to_15": 2,
+    "at_least_15": 3,
+    "minutes_sorted": [
+     5,
+     5,
+     5,
+     5,
+     10,
+     10,
+     40,
+     50,
+     70
+    ]
+   }
+  },
+  "30.0": {
+   "obedience": {
+    "tag": "sline_s1b",
+    "spike_pt": 30.0,
+    "window_min": 15,
+    "first_trigger_looks": 11,
+    "held": 3,
+    "exited": 8,
+    "hold_share": 0.273,
+    "later_looks": 4,
+    "later_held": 2,
+    "later_hold_share": 0.5
+   },
+   "held_cost": {
+    "spike_pt": 30.0,
+    "held_trades": 3,
+    "net_vs_first_look_usd": -283,
+    "deeper": 3,
+    "deeper_share": 1.0
+   },
+   "aged_out": {
+    "tag": "sline_s1b",
+    "spike_pt": 30.0,
+    "window_min": 15,
+    "first_trigger_looks": 11,
+    "held": 3,
+    "exited": 8,
+    "hold_share": 0.273,
+    "later_looks": 1,
+    "later_held": 1,
+    "later_hold_share": 1.0
+   },
+   "wait_distribution": {
+    "spike_pt": 30.0,
+    "window_min": 15,
+    "held_first_looks": 3,
+    "closed_green_under_15": 0,
+    "median_min": 5.0,
+    "under_10min": 2,
+    "from_10_to_15": 0,
+    "at_least_15": 1,
+    "minutes_sorted": [
+     5,
+     5,
+     70
+    ]
+   }
+  },
+  "40.0": {
+   "obedience": {
+    "tag": "sline_s1b",
+    "spike_pt": 40.0,
+    "window_min": 15,
+    "first_trigger_looks": 5,
+    "held": 0,
+    "exited": 5,
+    "hold_share": 0.0,
+    "later_looks": 0,
+    "later_held": 0,
+    "later_hold_share": null
+   },
+   "held_cost": {
+    "spike_pt": 40.0,
+    "held_trades": 0,
+    "net_vs_first_look_usd": 0,
+    "deeper": 0,
+    "deeper_share": null
+   },
+   "aged_out": {
+    "tag": "sline_s1b",
+    "spike_pt": 40.0,
+    "window_min": 15,
+    "first_trigger_looks": 5,
+    "held": 0,
+    "exited": 5,
+    "hold_share": 0.0,
+    "later_looks": 0,
+    "later_held": 0,
+    "later_hold_share": null
+   },
+   "wait_distribution": {
+    "spike_pt": 40.0,
+    "window_min": 15,
+    "held_first_looks": 0,
+    "closed_green_under_15": 0
+   }
+  }
+ }
+}

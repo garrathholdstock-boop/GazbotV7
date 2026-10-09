@@ -1,0 +1,8 @@
+T3 RESULT - HOLD-THROUGH (arm A, claude-sonnet-5; declared in T3_change.txt before any call)
+Total $2,564 / 325.0 pt (T1 $2,222 / 282.3 pt; best mechanical control K3 $2,214). M1 = 325.0/694.7 = 0.468 (T1 0.406).
+03-05  $1,248 (T1 $1,374): +122, +162, +662, +302 ; 4/4 in profit; 72 calls, 4.2% unparseable (counted HOLD); trade 4 ran to the 13:30Z close at its full 64.6 pt
+04-30  $1,316 (T1 $848):   +1,212 (174 of 232 pt available, T1 91) , +104 (32 of 179 pt, T1 31) ; 2/2 in profit; 60 calls, 1.7% unparseable
+Bars: H1 $2,564>=$2,522 PASS | H2 0.468>=0.45 PASS | H3 6/6 in profit PASS | H4 03-05 $1,248>=$1,174 and 04-30 $1,316>=$1,300 PASS (04-30 by $16) | H5 mean give-back ~19 pt <=30 PASS
+VERDICT: PASS, narrowly. n=6 trades, 2 in-sample days, hindsight entries. Arm B not run (A earned it but the margin on H1/H4 is thin; budget).
+Where it worked: 04-30 trade 1 (+$364 over T1). Where it did not: 03-05 trades 1-2 still sold small legs early (26/40 and 24/62 pt) and cost $126 vs T1;
+04-30 trade 2 sold 32 of 179 pt - the second giant leg is still the miss.

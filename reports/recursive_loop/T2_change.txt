@@ -1,0 +1,50 @@
+T2 — RE-ENTRY TRIAL (technique 2 of the ladder).  Declared 2026-10-09 BEFORE any model call.
+Operator: "if it exits on those [huge wobbles], can't it jump back in to grab the next part? That's the re-entry on a
+big run scenario."  (Also: the $150 alert + every-minute watch is HIS technique, adopted in T1 and kept here.)
+A lab on ONE skill, not an S-line iteration: no rule text, no gate, no champion change.
+
+QUESTION   After Claude has banked a profit and left a leg early, can it get back in the SAME direction and take more of
+           the same leg, net of the extra spread and fees, without turning a banked profit into a loss?
+
+DESIGN = A PAIRED INCREMENT ON T1  (scripts/t2_reentry.py sha 69cea0373ca0d503; T1 harness unchanged)
+  * Same days (2026-03-05, 2026-04-30), same hindsight lab entries (50% bar of each >=60 pt MIL), same costs, same timing
+    (decide at a completed bar's close, fill at the NEXT bar's close), same $150/+$50 alerts.
+  * The FIRST trade of every leg REPLAYS Claude's own T1 exit decisions (read from T1_<day>_claude.json), so the leg
+    exits are identical to T1 and the ONLY new thing is what happens after them. Control C0 reproduces T1 exactly
+    (1,374 + 848 = $2,222) — verified before any call.
+  * After an exit the lab watches for 60 min. Each completed minute Claude is asked WAIT|REENTER (same direction only).
+    The page: exit price/time, banked $, high of the move, pullback depth (pt and ATR), pullback now, tape since exit
+    (20 x 1-min, 4 h x 15-min), watch time left, buy-backs left. It does NOT carry the leg end, the leg size or any MIL
+    figure. A re-entry fills at the next bar's close. A re-entered trade is watched EVERY minute from its entry (no $150
+    gate, he would be watching), same exit brief as T1 plus a one-line note it is a buy-back. No stop, no target.
+  * Cap (LAB constraint; Law 0e forbids a cap in the real line): 8 trades/day, with the lab entries reserved first, so
+    re-entries allowed = 8 - lab entries: 4 on 03-05, 6 on 04-30. The next lab entry cancels any watch and flips as in T1.
+  * Brief shas: re-entry brief 0f0aa1a0382d8cbf, exit brief (T1 brief + buy-back note) 911619a661462d9d; script sha above.
+  * Hindsight caveat as T1: entries are not tradeable and every leg has guaranteed room; the re-entry question is only
+    "does it resume", but a re-entry on a leg that has actually finished is possible (that is the failure measured).
+
+CONTROLS (zero model cost, all run before Claude; re-entry rules are CONTROLS, not rules for the line)
+  RA = buy back on the first close that takes out the leg's best close.
+  RB = same, but only after a pullback >= 1 x ATR14(1-min) from the high.   Mechanical re-entered trades exit on $75 give-back.
+  Totals over 2 days / 6 first trades                  total $   re-entry $   re-entries in profit
+  C0 Claude exits, NO re-entry (= T1)                    2,222        0           -
+  C1 replay + RA + give-back75                           1,852      -370         5/9
+  C2 replay + RB + give-back75                           1,846      -376         3/8
+  C4 give-back75 firsts + RB + give-back75               1,926      -230         4/9
+  C3 take-$300 firsts + RB + take-$300                   2,370      +150         1/2    (firsts differ: not a pure increment)
+  C5 ORACLE (replay, re-buy only while the leg top is still ahead, exit at the top)  4,706   +2,484   4/4
+  => A mechanical "new high" re-entry LOSES about $300 over the two days. Ceiling for the increment is about +$2,484.
+  C0 -> C5 is the room; C1/C2 are the bar a rule-based re-entry sets (it is negative).
+
+PRE-REGISTERED SCORE (all reported whatever happens; n is tiny — a TRIAL, not a result, Law L6)
+  R1  re-entry increment = total $ minus C0's $2,222            PASS needs >= +$300 (total >= $2,522)
+  R2  re-entries closed in profit                               PASS needs >= 60%
+  R3  worst single re-entered trade                             PASS needs no worse than -$300
+  R4  M1 share of leg remainder over both days                  PASS needs >= 0.50  (T1 0.406; oracle 0.86)
+  PASS = all four.  PARTIAL = re-entry net > 0 but misses any of R1-R4.  FAIL = re-entry net <= 0 (it would have been
+  better never to re-enter, as every mechanical control showed).  A day with > 10% errored calls is poisoned (L7),
+  re-run not scored.  A PASS earns a wider run (more days, sizing the room) — never a ship.
+
+COST    ~60 calls per exit watched + ~1 per minute of any re-entered trade; est. 150-450 calls/day, ~1.1k tokens each:
+        under 10M billable for both days. Weekly meter has ~30M left (floor, this box only); reset Wed 2026-10-14 05:00Z.
+OPEN    Law 0e "no stops" vs a green-only lock is still unruled; T2 gives Claude no lock.

@@ -1,0 +1,177 @@
+{
+ "day": "2026-04-30",
+ "who": "B4_stall_3min",
+ "entries": [
+  {
+   "dir": -1,
+   "sig_i": 289,
+   "start_i": 159,
+   "ext_i": 491,
+   "leg_total_pt": 430.8,
+   "ext_px": 27189.0,
+   "leg_start": 1777509540,
+   "leg_end": 1777529460
+  },
+  {
+   "dir": 1,
+   "sig_i": 570,
+   "start_i": 491,
+   "ext_i": 869,
+   "leg_total_pt": 350.5,
+   "ext_px": 27539.5,
+   "leg_start": 1777529460,
+   "leg_end": 1777552140
+  }
+ ],
+ "trades": [
+  {
+   "side": "SHORT",
+   "entry": 27420.88,
+   "exit": 27304.38,
+   "opened": "2026-04-30T02:51:00+00:00",
+   "closed": "2026-04-30T04:28:00+00:00",
+   "held_min": 97.0,
+   "points": 116.5,
+   "pnl_usd": 926.0,
+   "why": "RULE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "04:03"
+    ],
+    [
+     200.0,
+     "04:04"
+    ],
+    [
+     250.0,
+     "04:04"
+    ],
+    [
+     300.0,
+     "04:04"
+    ],
+    [
+     350.0,
+     "04:06"
+    ],
+    [
+     400.0,
+     "04:06"
+    ],
+    [
+     450.0,
+     "04:07"
+    ],
+    [
+     500.0,
+     "04:07"
+    ],
+    [
+     550.0,
+     "04:07"
+    ],
+    [
+     600.0,
+     "04:11"
+    ],
+    [
+     650.0,
+     "04:12"
+    ],
+    [
+     700.0,
+     "04:13"
+    ],
+    [
+     750.0,
+     "04:17"
+    ],
+    [
+     800.0,
+     "04:18"
+    ],
+    [
+     850.0,
+     "04:19"
+    ],
+    [
+     900.0,
+     "04:19"
+    ],
+    [
+     950.0,
+     "04:22"
+    ],
+    [
+     1000.0,
+     "04:23"
+    ],
+    [
+     1050.0,
+     "04:23"
+    ]
+   ],
+   "best_pt": 134.88,
+   "mfe_hl_pt": 142.12,
+   "giveback_pt": 18.38,
+   "avail_pt": 231.88,
+   "leg_total_pt": 430.8,
+   "share_of_leg_remainder": 0.502,
+   "share_of_best": 0.864
+  },
+  {
+   "side": "LONG",
+   "entry": 27360.88,
+   "exit": 27383.88,
+   "opened": "2026-04-30T07:32:00+00:00",
+   "closed": "2026-04-30T08:45:00+00:00",
+   "held_min": 73.0,
+   "points": 23.0,
+   "pnl_usd": 178.0,
+   "why": "RULE_EXIT",
+   "alerted": true,
+   "alerts": [
+    [
+     150.0,
+     "08:39"
+    ],
+    [
+     200.0,
+     "08:40"
+    ],
+    [
+     250.0,
+     "08:41"
+    ]
+   ],
+   "best_pt": 31.38,
+   "mfe_hl_pt": 35.88,
+   "giveback_pt": 8.38,
+   "avail_pt": 178.62,
+   "leg_total_pt": 350.5,
+   "share_of_leg_remainder": 0.129,
+   "share_of_best": 0.733
+  }
+ ],
+ "calls": [],
+ "n_calls": 0,
+ "error_rate": 0.0,
+ "poisoned": false,
+ "brief_sha": "3d08960b1af72210",
+ "score": {
+  "n_trades": 2,
+  "n_alerted": 2,
+  "usd": 1104.0,
+  "pts": 139.5,
+  "M1_share_of_leg_remainder": 0.34,
+  "M1b_share_of_best": 0.839,
+  "M2_alerted_closed_in_profit": "2/2",
+  "M3_mean_giveback_pt": 13.4,
+  "M4_alerted_ended_red": 0,
+  "never_alerted": 0
+ },
+ "model": null,
+ "dry": false
+}

@@ -1,0 +1,122 @@
+{
+ "tag": "sline_s1b",
+ "k_atr": 2.0,
+ "trades": 137,
+ "exits_in_profit": 66,
+ "exits_in_profit_share": 0.482,
+ "trades_reaching_target": 51,
+ "reach_share": 0.372,
+ "claimed_at_target": 2,
+ "claim_share": 0.039,
+ "held_past_target": 49,
+ "held_finished_red": 3,
+ "held_net_vs_mark": -2125.0,
+ "held_median_delta": -63.0,
+ "held_deeper_count": 35,
+ "claimed_net_delta_vs_actual": 2.0,
+ "rebuy_same_side_15min": {
+  "n": 23,
+  "net_usd": 528.0
+ },
+ "rebuy_same_side_30min": {
+  "n": 32,
+  "net_usd": -220.0
+ },
+ "claim_rebuy_15min": {
+  "n": 1,
+  "winners": 1,
+  "net_usd": 126.0
+ },
+ "per_day": {
+  "2026-02-05": {
+   "trades": 20,
+   "target_looks": 8,
+   "claimed": 1
+  },
+  "2026-02-19": {
+   "trades": 11,
+   "target_looks": 6,
+   "claimed": 0
+  },
+  "2026-03-05": {
+   "trades": 21,
+   "target_looks": 5,
+   "claimed": 0
+  },
+  "2026-03-19": {
+   "trades": 19,
+   "target_looks": 3,
+   "claimed": 0
+  },
+  "2026-04-02": {
+   "trades": 12,
+   "target_looks": 8,
+   "claimed": 0
+  },
+  "2026-04-16": {
+   "trades": 12,
+   "target_looks": 4,
+   "claimed": 0
+  },
+  "2026-04-30": {
+   "trades": 11,
+   "target_looks": 6,
+   "claimed": 0
+  },
+  "2026-05-14": {
+   "trades": 17,
+   "target_looks": 4,
+   "claimed": 1
+  },
+  "2026-05-28": {
+   "trades": 14,
+   "target_looks": 7,
+   "claimed": 0
+  }
+ },
+ "post_exit_30min_extension_pt": {
+  "after_any_profit_exit_median": 22.5,
+  "after_any_profit_exit_n": 66,
+  "after_claim_at_target_median": 108.8,
+  "after_claim_at_target_n": 2
+ },
+ "target_pt_at_look": {
+  "median": 22.4,
+  "low_atr_lt8_n": 11,
+  "high_atr_ge12_n": 16,
+  "low_median_pt": 14.6,
+  "high_median_pt": 41.6
+ },
+ "by_k": {
+  "1.5": {
+   "trades_reaching_target": 64,
+   "claimed_at_target": 2,
+   "claim_share": 0.031,
+   "held_past_target": 62,
+   "held_finished_red": 5,
+   "held_net_vs_mark": -738.0,
+   "held_deeper_count": 40,
+   "claimed_net_delta_vs_actual": 2.0
+  },
+  "2.0": {
+   "trades_reaching_target": 51,
+   "claimed_at_target": 2,
+   "claim_share": 0.039,
+   "held_past_target": 49,
+   "held_finished_red": 3,
+   "held_net_vs_mark": -2125.0,
+   "held_deeper_count": 35,
+   "claimed_net_delta_vs_actual": 2.0
+  },
+  "3.0": {
+   "trades_reaching_target": 31,
+   "claimed_at_target": 0,
+   "claim_share": 0.0,
+   "held_past_target": 31,
+   "held_finished_red": 2,
+   "held_net_vs_mark": -1075.0,
+   "held_deeper_count": 22,
+   "claimed_net_delta_vs_actual": 0
+  }
+ }
+}

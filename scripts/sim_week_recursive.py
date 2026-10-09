@@ -310,9 +310,133 @@ def mil_state(bars_upto, done: list | None = None) -> dict:
             "taken": taken, "allowed": ok, "leg": cur}
 
 
+# ★★★ S4 (the "v3" line), 2026-10-08 — THE DAY SCORECARD. Specified by reports/recursive_loop/
+# S4_independent_review.md §8, §10. Every look is a fresh, stateless call, so the only memory the model
+# has of its own day is what the page prints. These numbers are computed HERE from the ledger — the model
+# never decides whether a trade "was a claim" — and tests/test_s4_page.py pins them to the ledger.
+S4_CLAIM_USD = 200.0     # operator: "a decent profit - about $200-300"
+S4_CLAIM_ATR = 2.0       # S3: claim at >= 2 x ATR(14,1m)
+S4_REJOIN_MIN = 15       # "in a few minutes it's still grinding": three looks, not the very next one
+S4_SIXTH = 6             # from the 7th trade of the day only the claim-and-running test counts (NOT a cap)
+PAGE_REV_V3 = "v3.1"     # change it and every v3 record made on the old page is re-run, not inherited
+
+
+def _ep(s_) -> int:
+    return int(dt.datetime.fromisoformat(str(s_)).timestamp())
+
+
+def is_claim(t: dict, bars_upto) -> bool:
+    """Closed green by >= S4_CLAIM_ATR x ATR14 (at the exit) AND >= S4_CLAIM_USD net of costs."""
+    ce = _ep(t["closed"])
+    a = atr14([b for b in bars_upto if b[0] <= ce])
+    return bool(a > 0 and t["pnl_usd"] >= S4_CLAIM_USD and t["points"] >= S4_CLAIM_ATR * a)
+
+
+def day_card(bars_upto, now_epoch: int, pos: dict | None, done: list | None) -> dict:
+    """The numbers the v3 page prints at the top, and the entry test. Pure and causal: uses only
+    bars up to now and trades already closed."""
+    done = sorted(done or [], key=lambda t: t["closed"])
+    px = bars_upto[-1][3]
+    held = []
+    if pos:
+        held = [{"opened": pos["opened"].isoformat(), "side": "LONG" if pos["dir"] > 0 else "SHORT"}]
+    m = mil_state(bars_upto, list(done) + held)
+    mil_trades = sum(m["taken"].values())
+    flags = [is_claim(t, bars_upto) for t in done]
+    n = len(done)
+    last = done[-1] if done else None
+    last_idx = max((i for i, f in enumerate(flags) if f), default=None)
+    since = done[last_idx + 1:] if last_idx is not None else []
+    card = {"n_trades": n, "winners": sum(1 for t in done if t["pnl_usd"] > 0),
+            "net": round(sum(t["pnl_usd"] for t in done), 2),
+            "mil_no": m["leg"] + 1, "mil_start": m["start"], "mil_age": round(m["age"]),
+            "mil_trades": mil_trades,
+            "last_claimed": bool(flags and flags[-1]),
+            "last_claim_ts": done[last_idx]["closed"] if last_idx is not None else None,
+            "last_claim_usd": done[last_idx]["pnl_usd"] if last_idx is not None else None,
+            "since_claim_trades": len(since), "since_claim_net": round(sum(t["pnl_usd"] for t in since), 2),
+            "entry_test": None}
+    if last:
+        card["last_usd"] = last["pnl_usd"]
+        card["last_pts"] = last["points"]
+        card["last_atr"] = round(atr14([b for b in bars_upto if b[0] <= _ep(last["closed"])]), 2)
+    if pos:
+        return card
+    passes, fails = [], []
+    if n == 0:
+        passes.append(("this is your first trade of the day", ["LONG", "SHORT"]))
+    else:
+        if mil_trades == 0:
+            if n < S4_SIXTH:
+                passes.append(("this major move has no trade of yours in it yet", ["LONG", "SHORT"]))
+            else:
+                fails.append(f"this major move has no trade yet, but you have taken {n} trades today and from "
+                             f"the 7th on only a claim followed by a still-running move counts")
+        else:
+            fails.append(f"this major move already has {mil_trades} trade(s) of yours in it")
+        if flags[-1]:
+            side = last["side"]
+            dirn = 1 if side == "LONG" else -1
+            mins = (now_epoch - _ep(last["closed"])) / 60
+            best = last["entry"] + dirn * max(last.get("peak_1m", 0.0), last["peak_pt"])
+            card["claim_best_px"], card["claim_mins"] = round(best, 2), round(mins)
+            if mins >= S4_REJOIN_MIN and dirn * (px - best) > 0:
+                passes.append((f"your last trade was a claim ({side}, +${last['pnl_usd']:,.0f}, {mins:.0f} min ago) "
+                               f"and price {px:.2f} is still beyond the best that trade reached ({best:.2f})", [side]))
+            elif mins < S4_REJOIN_MIN:
+                fails.append(f"your last trade was a claim but closed only {mins:.0f} min ago "
+                             f"(the test needs {S4_REJOIN_MIN}: three looks, not the very next one)")
+            else:
+                fails.append(f"your last trade was a claim but price {px:.2f} is not beyond the best that trade "
+                             f"reached ({best:.2f}), so the move is not still running")
+        else:
+            fails.append("your last trade was not a claim, so you have not earned a jump back in")
+    card["entry_test"] = {"ok": bool(passes), "passes": [{"why": w, "sides": sd} for w, sd in passes],
+                          "fails": fails}
+    return card
+
+
+def card_lines(c: dict, holding: bool) -> list:
+    L = ["DAY SCORECARD - counted by the harness from your own trades. You do not remember earlier looks; "
+         "this is your memory of today."]
+    L.append(f"  today so far: net ${c['net']:+,.2f} from {c['n_trades']} closed trade(s), {c['winners']} winner(s)")
+    st_ = dt.datetime.fromtimestamp(c["mil_start"], dt.UTC)
+    L.append(f"  major move (MIL) #{c['mil_no']}: began {st_:%H:%M}Z, {c['mil_age']} min old. Trades of yours in it: "
+             f"{c['mil_trades']}{' (counting the one you hold)' if holding and c['mil_trades'] else ''}")
+    if c["n_trades"]:
+        if c["last_claimed"]:
+            L.append(f"  last trade: CLAIMED +${c['last_usd']:,.0f} ({c['last_pts']:+.1f}pt, ATR {c['last_atr']:.1f}) - "
+                     f"closed green by 2 ATR or more AND $200 or more")
+        elif c["last_usd"] > 0:
+            L.append(f"  last trade: NOT a claim. +${c['last_usd']:,.0f} ({c['last_pts']:+.1f}pt, ATR {c['last_atr']:.1f}) "
+                     f"is below the claim level (2 ATR and $200)")
+        else:
+            L.append(f"  last trade: RED ${c['last_usd']:+,.0f} ({c['last_pts']:+.1f}pt). Not a claim.")
+    if c["last_claim_ts"]:
+        L.append(f"  Last claim: {c['last_claim_ts'][11:16]}Z +${c['last_claim_usd']:,.0f}. Since then: "
+                 f"{c['since_claim_trades']} trade(s), net ${c['since_claim_net']:+,.2f}")
+    else:
+        L.append("  Last claim: none yet today")
+    if holding:
+        L.append("  you hold a position, so no entry test applies; it is computed again when you are flat")
+    else:
+        t = c["entry_test"]
+        if t["ok"]:
+            for p_ in t["passes"]:
+                sd = "either side" if len(p_["sides"]) == 2 else p_["sides"][0] + " only"
+                L.append(f"  ENTRY TEST: PASSES ({sd}) - {p_['why']}")
+            if t["fails"]:
+                L.append("    (these do not apply: " + "; ".join(t["fails"]) + ")")
+        else:
+            L.append("  ENTRY TEST: DOES NOT PASS - " + "; ".join(t["fails"]) + ". The default is WAIT.")
+    L.append("  HOW THIS DAY IS JUDGED, at 13:30Z: it ends profitable, it is not a big red day, and it was a few "
+             "well-chosen trades each taken for a reason - not on whether this one look has a trade in it.")
+    return L
+
+
 def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
             done: list | None = None, self_aware: bool = False, band: bool = True,
-            leg_list: bool = True, mil: bool = False) -> str:
+            leg_list: bool = True, mil: bool = False, card: bool = False) -> str:
     """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
 
     ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
@@ -355,8 +479,14 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
     except Exception as e:
         shape = f"[shape unavailable: {type(e).__name__}: {e}]"
 
-    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 04:00 Paris (02:00Z) to the US open", "",
-         shape, "",
+    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 04:00 Paris (02:00Z) to the US open", ""]
+    if card:                               # v3 (S4): scorecard FIRST, then the day view, then the close-in view
+        shape = shape.replace(" — read this before anything else.", ".")   # the scorecard is read first now
+        L += card_lines(day_card(bars_upto, now_epoch, pos, done), holding=bool(pos))
+        L += ["", "READ IN THIS ORDER: this scorecard, then the DAY VIEW (the whole session since the 22:00Z open), then "
+                  "the CLOSE-IN VIEW (the last two hours). Decide only after all three.", "",
+              "DAY VIEW - the whole session as a shape, with your entries (L/S) and exits (x):", ""]
+    L += [shape, "",
          "─" * 100,
          f"the numbers, and they are SECONDARY: price {px:.2f} · ATR(14,1m) {atr:.2f}pt · "
          f"{len(bars_upto)} min of tape",
@@ -388,7 +518,8 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
     # ⚠ ONLY THE LAST TWO HOURS AS BARS NOW. The full-session OHLC dump was 60+ rows of numbers
     #   that the picture renders in one glance, and it was what the model actually leaned on —
     #   which is precisely the metric-reading behaviour that produced six trades on one 194pt leg.
-    L += ["", "the last two hours in 15-min bars, for the fine detail only"]
+    L += ["", "CLOSE-IN VIEW - the last two hours in 15-min bars, for the fine detail only" if card
+          else "the last two hours in 15-min bars, for the fine detail only"]
     step = 15
     for k in range(max(0, len(bars_upto) - 120), len(bars_upto) - step + 1, step):
         blk = bars_upto[k:k + step]
@@ -437,9 +568,10 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
             w = sum(1 for t in done if t["pnl_usd"] > 0)
             flat = sum(1 for t in done if t["peak_pt"] < 8)
             last_out = max(dt.datetime.fromisoformat(t["closed"]) for t in done)
-            L += [f"  SO FAR: {len(done)} trade(s), {w} winner(s), net ${net:+,.2f}",
-                  f"  {flat} of them never showed +8pt in your favour",
-                  f"  last exit was {(now - last_out).total_seconds()/60:.0f} min ago"]
+            if not card:       # v3: the scorecard at the top carries the totals; "N min ago" was a clock on idleness
+                L += [f"  SO FAR: {len(done)} trade(s), {w} winner(s), net ${net:+,.2f}",
+                      f"  {flat} of them never showed +8pt in your favour",
+                      f"  last exit was {(now - last_out).total_seconds()/60:.0f} min ago"]
             # band=False is the v2 line: its brief says 3-6 is a description and a grind day may
             # run higher, so a per-call nag saying "AT OR OVER THE LIMIT" would silently override it
             if band:
@@ -562,18 +694,114 @@ ANSWER WITH ONE JSON OBJECT AND NOTHING ELSE:
 {{"action":"ENTER_LONG|ENTER_SHORT|EXIT|HOLD|WAIT","confidence":0.0-1.0,"reason":"<one sentence>"}}
   ENTER_* only when flat. EXIT or HOLD only when holding. WAIT when flat and no leg has proven itself."""
 
+# ★★★ S4 (the "v3" line), 2026-10-08. BRIEF_V2 above stays byte-identical (robot_core / robot_loop pin its sha);
+# every edit below is one of the rows in reports/recursive_loop/S4_independent_review.md §12 and is declared in
+# reports/recursive_loop/S4_change.txt. The brief is the FRAME; the rule under test is in the rules file.
+BRIEF_V3 = f"""You are trading MNQ for a discretionary trader. This is his strategy. Everything you do answers to it.
+
+THE STRATEGY
+  Buy (or sell) into the major leg of the day, and get out near the top, in profit.
+  To start with you get in LATE - halfway up the leg is fine - and you get out EARLY, to be safe.
+  A profit taken beats a bigger one hoped for. Over time, slightly and safely, you learn to get in
+  a little earlier and out a little later. Always out in profit.
+    "i watch that the leg has turned and is grinding up or down the other way and i jump in."
+    "its not urgent to jump in. if we miss most of it, you can still jump in late for 20-30 points
+     and make $200."
+  He is a CONFIRMATION trader. He never calls the turn. He joins a leg that has already proven
+  itself, in its direction, and he never enters against the leg that is running.
+
+HOW THE DAY IS JUDGED
+  You are called every five minutes and every call is new: you do not remember the earlier ones.
+  The page opens with a DAY SCORECARD that the harness counts from your own trades. It is your
+  memory of today. The day is judged at 13:30Z on three things: it ends profitable, it is not a
+  big red day, and it was a few well-chosen trades, each taken for a reason. It is not judged on
+  whether this one look has a trade in it. Most looks end with no action.
+
+READ IN THIS ORDER
+  1. the DAY SCORECARD, 2. the DAY VIEW (the whole session since the 22:00Z open, with your own entries and
+  exits on it), 3. the CLOSE-IN VIEW (the last two hours). Decide only after all three. A bounce of
+  one or two ATR on the close-in view is not by itself a change in the day.
+
+WHAT A CLAIM IS
+  A claim is a trade that closed green by at least 2 x ATR(14,1m) AND at least $200. The harness
+  decides it and prints it on the page ("CLAIMED" or "NOT a claim"); you do not. A smaller green
+  exit is fine, but it is not a claim and it does not earn a jump back in.
+
+THERE ARE NO STOPS. YOU ARE THE EXIT.
+  This style cannot use stops: ordinary pullbacks inside a good leg would stop you out all day.
+  That is why you are watching - you make the call to leave, and most looks the call is to stay.
+  - IN PROFIT AT OR ABOVE THE CLAIM LEVEL (2 ATR and $200): TAKE IT. A decent profit - about
+    $200-300, which is 25-40 points at {LOTS} lots - is a good trade. Do not wait for the leg to
+    stall, tire or reverse first, and do not hand it back waiting for more.
+  - IN PROFIT BUT BELOW THE CLAIM LEVEL: STAY. One quiet look, or one small bar against you, is
+    not a reason to leave. Leave only when the move you joined has clearly stopped making progress
+    over several looks, and say how many.
+  - IN PROFIT AND THE LEG IS STILL DRIVING: hold and let it run.
+  - RED: a pullback inside the leg is not a reason to leave. Stay while the leg you joined is
+    intact. If the leg itself has reversed - the move you joined has been undone, not just
+    pulled back - get out; that is a call, not a stop. In the first 10 minutes of a trade, say what
+    the DAY VIEW's big move is doing, not what the last bar did. A red trade means the entry was
+    too early or the leg was not proven yet. The cure is to enter later next time, not to exit sooner.
+  - AFTER YOU TAKE A PROFIT the same stall is not a new trade. A fresh extreme is not enough. You
+    come back in only through the ENTRY TEST below: a claim, and the move still running past the
+    best price your claimed trade reached - or a new major move.
+
+HOW MANY TRADES
+  A normal day has a few major moves (the numbered MIL on the scorecard), so a normal day is a few
+  trades (3 to 6). That is a description, not a limit.
+  THE ENTRY TEST. The scorecard prints PASSES or DOES NOT PASS when you are flat. A new entry
+  needs one of: (1) this is your first trade of the day; (2) this major move has no trade of yours
+  in it yet; (3) your last trade was a claim, it closed at least 15 minutes ago (three looks, not
+  the very next one), and price is still beyond the best price that trade reached. From your 7th
+  trade of the day only (3) counts. When the test does not pass, the answer is WAIT.
+  THE EXCEPTION, and it is great trading: when the tape keeps grinding one way for a large part of
+  the day, you keep jumping in and harvesting $200-300 at a time, as many times as it keeps giving -
+  but every jump back in is a (3): you claimed a decent profit and the move is still running. If you
+  did not claim a decent profit, you do not jump back in.
+  What a high count is really a symptom of is chop and fighting the leg. In one session 23 entries
+  lost $1,882: the 19 entries with the leg made +$1,010, the 4 against it lost $2,892. And being with
+  the big move is not safe on its own: on one recorded day 12 trades with the major move lost $752
+  and 11 against it lost $1,196. In chop, a trade at every look only pays the costs.
+
+HOW TO READ: THE PICTURE
+  You are given the session drawn as a shape with your own entries and exits on it. Read the SHAPE
+  first - how many moves, which way, how long each ran, which one you are in now. The numbers
+  underneath are for precision, not for the decision. Also read the day's structure:
+    "it ground down for 8 hours, then up for 4, now its starting down again."
+  Legs are big - the median leg on this tape is 298 points over 266 minutes. The unit you count in
+  is the numbered major move on the scorecard, and one good trade in it is the aim. The smallest
+  trade worth taking is {MIN_TARGET_PT:.0f} points (${MIN_TARGET_PT * LOTS * VPP:.0f} at {LOTS} lots); a
+  decent one is 25-40.
+
+CONSTRAINTS THE SIMULATOR ENFORCES
+  - one position at a time, {LOTS} lots, no adding
+  - the window is {WIN_START_MIN // 60:02d}:{WIN_START_MIN % 60:02d}Z-{WIN_END_MIN // 60:02d}:{WIN_END_MIN % 60:02d}Z; you are flattened at {WIN_END_MIN // 60:02d}:{WIN_END_MIN % 60:02d}Z whatever you say
+
+ANSWER WITH ONE JSON OBJECT AND NOTHING ELSE:
+{{"action":"ENTER_LONG|ENTER_SHORT|EXIT|HOLD|WAIT","confidence":0.0-1.0,"reason":"DAY: <what today has done so far, a few words>. BOOK: <your trade count, your last claim, the trades in this major move>. NOW: <what the close-in view shows>."}}
+  Write the reason in that order, DAY then BOOK then NOW, before you decide.
+  ENTER_* only when flat and the ENTRY TEST passes. EXIT or HOLD only when holding.
+  WAIT when flat and the test does not pass, or when no leg has proven itself."""
+
 
 def brief_for(line: str) -> str:
     if line == "v1":
         return BRIEF
     if line == "v2":
         return BRIEF_V2
-    raise ValueError(f"unknown line {line!r} (expected 'v1' or 'v2')")
+    if line == "v3":
+        return BRIEF_V3
+    raise ValueError(f"unknown line {line!r} (expected 'v1', 'v2' or 'v3')")
+
+
+def _claude_cmd(prompt: str) -> list:
+    # ROBOT sets ROBOT_NO_TOOLS=1 (default off): `--tools=` with the `=` form so the variadic option cannot swallow the prompt
+    return [CLAUDE] + (["--tools="] if os.environ.get("ROBOT_NO_TOOLS") == "1" else []) + ["-p", prompt]
 
 
 def ask(prompt: str, timeout: int = 180) -> dict:
     try:
-        p = subprocess.run([CLAUDE, "-p", prompt], cwd=OUT, capture_output=True,
+        p = subprocess.run(_claude_cmd(prompt), cwd=OUT, capture_output=True,
                            text=True, timeout=timeout,
                            env={**os.environ, "HOME": "/root", **_api_env()})
         raw = (p.stdout or "").strip()
@@ -625,7 +853,7 @@ def ask_text(prompt: str, timeout: int = 240) -> str:
       a memory that forgot two thirds of itself every night.
     """
     try:
-        p = subprocess.run([CLAUDE, "-p", prompt], cwd=OUT, capture_output=True,
+        p = subprocess.run(_claude_cmd(prompt), cwd=OUT, capture_output=True,
                            text=True, timeout=timeout,
                            env={**os.environ, "HOME": "/root", **_api_env()})
         return (p.stdout or "").strip()
@@ -641,6 +869,7 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
     brief = brief_for(line)                # validated before any work, so a typo cannot cost a day
     if mil and line != "v2":
         raise ValueError("mil context is a v2-line feature; v1 (the frozen champion's page) must not move")
+    s_line = line in ("v2", "v3")          # the S line: 1m peak, no band nag, no second leg list
     path = f"{OUT}/{arm}_{day}.json"
     if resume and os.path.exists(path):
         prev = json.load(open(path))
@@ -657,8 +886,11 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
         if prev.get("line", "v1") != line:
             print(f"  {arm}_{day}: re-running — artefact is line {prev.get('line', 'v1')}, "
                   f"this run is {line}", flush=True)
-        elif line == "v2" and prev.get("peak_def") != "1m":
-            print(f"  {arm}_{day}: re-running — v2 record carries no page stamp (old-page)", flush=True)
+        elif s_line and prev.get("peak_def") != "1m":
+            print(f"  {arm}_{day}: re-running — {line} record carries no page stamp (old-page)", flush=True)
+        elif line == "v3" and prev.get("page_rev") != PAGE_REV_V3:
+            print(f"  {arm}_{day}: re-running — v3 record page_rev={prev.get('page_rev')}, "
+                  f"this page is {PAGE_REV_V3}", flush=True)
         elif bool(prev.get("mil_ctx", False)) != mil:
             print(f"  {arm}_{day}: re-running — record mil_ctx={prev.get('mil_ctx', False)}, "
                   f"this run mil={mil}", flush=True)
@@ -687,16 +919,21 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
             if seg:
                 pos["peak_1m"] = max(pos["peak_1m"], max(pos["dir"] * (c - pos["entry"]) for c in seg))
             pos["last_ts"] = now_epoch
-            if line == "v2":
+            if s_line:
                 pos["peak"] = max(pos["peak"], pos["peak_1m"])
         d = ask(brief + "\n\n=== THE TAPE ===\n"
-                + context(upto, now_epoch, pos, lessons, trades, self_aware, band=(line != "v2"),
-                          leg_list=(line != "v2"), mil=mil))
+                + context(upto, now_epoch, pos, lessons, trades, self_aware, band=(not s_line),
+                          leg_list=(not s_line), mil=mil, card=(line == "v3")))
         act = d.get("action", "WAIT")
         calls.append({"ts": dt.datetime.fromtimestamp(now_epoch, dt.UTC).isoformat(),
                       "px": px, "action": act, "conf": d.get("confidence"),
-                      "reason": (d.get("reason") or "")[:300], "error": d.get("error"),
+                      "reason": (d.get("reason") or "")[:600 if line == "v3" else 300], "error": d.get("error"),
                       "holding": bool(pos)})
+        if line == "v3":                   # what the page told the model at this look, so compliance is countable
+            _c = day_card(upto, now_epoch, pos, trades)
+            calls[-1]["card"] = {k: _c[k] for k in ("n_trades", "net", "mil_no", "mil_trades", "last_claim_ts",
+                                                      "last_claim_usd", "since_claim_trades", "since_claim_net")}
+            calls[-1]["card"]["entry_ok"] = None if pos else _c["entry_test"]["ok"]
         if mil and pos is None:            # the MIL block this flat call was shown, so a P1/P2 breach can be split
             _m = mil_state(upto, trades)
             calls[-1]["mil"] = {"dir": _m["dir"], "age": _m["age"], "taken": _m["taken"], "allowed": _m["allowed"]}
@@ -706,6 +943,15 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
                    "peak_1m": 0.0, "last_ts": now_epoch,
                    "opened": dt.datetime.fromtimestamp(now_epoch, dt.UTC),
                    "reason": (d.get("reason") or "")[:200]}
+            if line == "v3":               # the gate verdict the page showed for THIS entry (violating entry = test said WAIT)
+                _t = calls[-1]["card"]
+                _ok = _t["entry_ok"]
+                _side_ok = True
+                if _ok:
+                    _sd = [p_ for p_ in day_card(upto, now_epoch, None, trades)["entry_test"]["passes"]
+                           if ("LONG" if dirn > 0 else "SHORT") in p_["sides"]]
+                    _side_ok = bool(_sd)
+                pos["entry_gate"] = "pass" if (_ok and _side_ok) else "violating"
         elif pos is not None and act == "EXIT":
             trades.append(_close(pos, px, now_epoch, "CLAUDE_EXIT"))
             pos = None
@@ -714,7 +960,8 @@ def run_day(day: str, lessons: str, arm: str, resume: bool = True,
         trades.append(_close(pos, last[3], last[0], "WINDOW_CLOSE_1330Z"))
     rec = {"day": day, "arm": arm, "line": line,
            "brief_sha": hashlib.sha256(brief.encode()).hexdigest()[:16],
-           "peak_def": "1m" if line == "v2" else "5m_sampled", "mil_ctx": mil,
+           "peak_def": "1m" if s_line else "5m_sampled", "mil_ctx": mil,
+           **({"page_rev": PAGE_REV_V3} if line == "v3" else {}),
            "trades": trades, "calls": calls,
            "net_usd": round(sum(t["pnl_usd"] for t in trades), 2)}
     os.makedirs(OUT, exist_ok=True)
@@ -736,6 +983,8 @@ def _close(pos, px, epoch, why) -> dict:
          "entry_reason": pos.get("reason", "")}
     if "peak_1m" in pos:                   # only run_day tracks it; shadow_runner's pos does not
         t["peak_1m"] = round(max(pos["peak_1m"], pos["peak"]), 2)
+    if "entry_gate" in pos:                # v3 only: did the entry pass the page's own ENTRY TEST
+        t["entry_gate"] = pos["entry_gate"]
     return t
 
 

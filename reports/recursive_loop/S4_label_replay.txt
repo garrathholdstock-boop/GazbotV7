@@ -1,0 +1,6 @@
+sline_s1b: trades 137; v3 gate PASS 23 (17%, net $4,220), VIOLATING 114 (83%, net $-4,400)
+  green trades 66; of those under 25pt 42, under $200 42; v3 CLAIMS (>=2xATR14 and >=$200) 20
+  entries made right after a v3 claim: 19; of those PASS 2
+sline_s3: trades 158; v3 gate PASS 21 (13%, net $3,350), VIOLATING 137 (87%, net $-2,940)
+  green trades 79; of those under 25pt 38, under $200 42; v3 CLAIMS (>=2xATR14 and >=$200) 34
+  entries made right after a v3 claim: 32; of those PASS 3
