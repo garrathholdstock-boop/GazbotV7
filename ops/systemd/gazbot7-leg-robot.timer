@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V7 — leg robot cadence (every minute at :20, after the minute's last 5s bar has landed; the script owns the edges)
+
+[Timer]
+OnCalendar=*:*:20
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

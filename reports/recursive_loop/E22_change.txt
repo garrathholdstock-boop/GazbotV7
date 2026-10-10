@@ -1,0 +1,10 @@
+E22 - LEG ROBOT ARM H -> F (declared 2026-10-09, before the edit; Law 3)
+Operator, 2026-10-09: "Go back to our normal detector and 4 lot at 50pts. That we know is gold. Have you built that to go for Sunday night? We can then fine tune in paper trading."
+CHANGE  scripts/leg_robot.py ARM = "H" -> "F".  File field becomes 100,100,100,100 = $100/lot = 50pt/lot at $2/pt (rider divides by VPP=2). One constant. Detector v1, K=11, ATR14, 4 lots, flat-only, entry to 19:40Z, 20:40Z flat, start/stop window: all UNCHANGED.
+WHY THIS IS A CHANGE FROM E15: E15 chose H on bible.gate over 40 days (F's worst day was worse). The operator now overrides that choice by instruction. This is his call, recorded as such.
+WHAT THE LATER EVIDENCE SAYS (stated before the first signal, not hidden):
+ - ALL100 (5 sets, 100 days): F ~ +$2/d (ex-0605 +$114/d), worst day about -$11k. H +$43/d, worst day -$5.8k, and H PASSES bible.gate vs F on ALL100.
+ - F by set: DEV +728, TEST +683, JUNE -36, MAY -679, APR -686. The April/May bleed is counter-trend shorts into a melt-up (19 of 24 red entries).
+ - So F is the higher-variance configuration and H is the one that dominates on consistency. Arm F is a one-line revert (ARM = "H").
+ - No loss-cut, profit lock, tiered take or re-entry arm improved F (E20, E21). The only untested lever is a trend/regime filter on signals.
+FORWARD READ-OUT: unchanged from E15 (counts first, rider-booked dollars only, first read after ~10 session days). Because F and H share the same signals, the same forward signals can be replayed under both ladders in the sim for a paired comparison.

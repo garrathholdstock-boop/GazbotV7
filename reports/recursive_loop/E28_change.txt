@@ -1,0 +1,14 @@
+E28 - BASELINE FOR PAPER: DETECTOR v1 + 05:00 PARIS ENTRY VETO + F LADDER (declared 2026-10-10, before the edit; Law 3)
+Operator, 2026-10-10: "I think the detector, 5am veto and that exit strategy can be our base line. Let's build all that to go into paper at midnight Sunday night."
+BASELINE = detector v1 (K=11 x ATR14 on 1-min closes, sha af0ace53e6dc9faa, unchanged) + F ladder (4 lots x 50pt, no stop, 20:40Z floor; already armed by E22) + NEW entry veto.
+CHANGE  scripts/leg_robot.py: a confirmed turn whose decision time ct (= confirm bar + 60s) is BEFORE 05:00 Europe/Paris on the SESSION date is logged as action VETOED_BEFORE_05_PARIS and not pressed. last_confirm_ts still advances, the robot stays flat, and the next signal may be taken. Constant VETO_PARIS_HOUR = 5.
+  Session date = UTC date + 1 when the decision time is >= 22:00Z (same as session_day). Cutoff = 05:00 in Europe/Paris on that date via zoneinfo, so it is 03:00Z in CEST and 04:00Z in CET (Paris DST ends 2026-10-25; the robot's stop is 2026-10-30, before US DST on 11-01).
+  This is exactly the sim's rule: cutoff(d,5) = datetime(d, 5h, Europe/Paris); skip if ct < cutoff.
+  NOT changed: detector, K, ladder, qty, flat-only, entry end 19:40Z, floor 20:40Z, start/stop window, rider, shadow_runner, live account. The robot still has no order path (AST-tested).
+BACKTEST BASIS (pooled 119 days, F ladder, 4 lots, $/day): no veto $99/d, 05:00 veto $367/d, worst day -3,464 (vs about -13k). Months: gains Apr/May/Jun, loses Mar/Jul/Sep (every filter tried trades those against each other).
+CAVEATS stated before the first signal:
+ - The 05:00 cutoff was picked from 5 clock cutoffs on the same 119 days, and about 18 variants have been charged on them in total. The $367/d is an optimistic point estimate.
+ - Paper fabricates a 0.1% adverse fill on lots 2-4; backtest fills are optimistic. Fill-cost haircut still owed.
+ - The veto mostly removes the early-session (Asia/Europe pre-open) signals that confirm about 2h after a turn.
+FORWARD READ-OUT: unchanged from E15 (counts first, rider-booked dollars only, first read after about 10 session days). VETOED signals are logged with their would-be side, so a counterfactual of the vetoed entries can be replayed against the tape at the read-out.
+REVERT: set VETO_PARIS_HOUR = None (veto off) - one constant.

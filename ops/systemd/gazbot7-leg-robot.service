@@ -1,0 +1,21 @@
+[Unit]
+Description=GAZBOT V7 — LEG ROBOT (E15: frozen detector v1 + H ladder, presses the rider's BUY file; places NOTHING itself)
+# Declared in reports/recursive_loop/E15_change.txt. Self-gates: does nothing before 2026-10-11T22:00Z or after
+# 2026-10-30T21:00Z, and nothing unless data/leg_robot.env says leg_robot=on. Kill switch = that file.
+# ⚠ It has no order path: it writes data/day_rider_buy.txt, the file the dashboard's BUY/SELL button writes, and the
+#   rider does the rest (venue-first, ownership, booking, ladder, 20:40Z flat). tests/test_leg_robot.py asserts that
+#   against the AST.
+# ⚠ Each press is also snapshotted into operator_reads.jsonl by gazbot7-capture-read-buy.path; data/leg_robot.jsonl
+#   lists the robot's presses so they can be excluded from any fitting of the operator's reads.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=300M
+TimeoutStartSec=45
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/leg_robot.py --once
+SuccessExitStatus=0 1

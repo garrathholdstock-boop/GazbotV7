@@ -1,0 +1,11 @@
+GAZBOT V8 ROBO — VERSION LEDGER (operator, 2026-10-10: "call these GazBot V8 Robo. Sunday's setup is V1. When we fine tune it becomes v1.01 etc. So we track the upgrades.")
+
+Rule: every fine-tune bumps VERSION in scripts/leg_robot.py (stamped on every data/leg_robot.jsonl record as "robot"/"version"),
+gets its own E-declaration FIRST (Law 3), one rule family per bump (Law 2), and a line below. Paper P&L is read per version —
+never pool two versions into one number.
+
+v1.00  2026-10-10  Paper from 2026-10-11T22:00Z (self-gated to 2026-10-30T21:00Z).
+       Detector v1 (K=11 x ATR14, 1-min closes, sha af0ace53e6dc9faa) + 05:00 Europe/Paris entry veto (E28)
+       + H ladder 25,50,75,100 x 4 lots = 12.5/25/37.5/50pt (E29). Flat-only, no stop, 20:40Z hard flat by the rider.
+       Backtest basis (119 days, optimistic, ~18 variants charged): H+veto $295/d, worst -2,570, 85/119 green.
+       Declarations: E15, E22, E28, E29.

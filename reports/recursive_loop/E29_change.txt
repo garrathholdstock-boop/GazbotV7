@@ -1,0 +1,9 @@
+E29 - LEG ROBOT ARM F -> H, KEEPING THE 05:00 PARIS VETO (declared 2026-10-10, before the edit; Law 3)
+Operator, 2026-10-10: "Can we switch to the H ladder easily? I think that was more robust."
+CHANGE  scripts/leg_robot.py ARM = "F" -> "H". File field becomes 25,50,75,100 = lots exit at 12.5/25/37.5/50pt (rider divides by VPP=2). One constant. Detector v1, K=11, 4 lots, flat-only, 05:00 Paris veto (E28), entry end 19:40Z, floor 20:40Z, window: all UNCHANGED. Revert = ARM = "F".
+EVIDENCE, same 119 days, 4 lots, WITH the 05:00 Paris veto (stated before the first signal, not hidden):
+ F + veto: $43,616 = $367/d, worst day -3,464, 84/119 days positive. Months 03..09: +14,370 -724 +8,974 +4,072 +8,828 +5,116 +2,980.
+ H + veto: $35,139 = $295/d, worst day -2,570, 85/119 days positive. Months 03..09: +11,763 -2,009 +7,305 +4,912 +5,360 +4,684 +3,123.
+ No veto: F $99/d worst -11,044 ; H $128/d worst -5,798.
+ So H gives up about $72/d (-20%) for a worst day 26% shallower and one more green day. Under bible.gate H does NOT dominate F with the veto ($/day is lower), so this is the operator's call on robustness, recorded as such, as E22 was. H is the better ladder without the veto (+$29/d, worst day half as deep), which is the case for it if the veto's gain proves optimistic forward.
+FORWARD READ-OUT: unchanged. The robot logs signals identically under either ladder, so F and H can be replayed on the same forward signals for a paired comparison.
