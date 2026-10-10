@@ -409,6 +409,12 @@ def check() -> tuple[list[str], list[str], dict]:
         max_h = JOB_MAX_AGE_H.get(name)
         if not max_h:
             continue
+        # ★2026-10-10 a job whose timer is DISABLED is a decision, not a stall: the 2026-10-10 V7
+        # wind-down switched off hour-watch / ledger-review / nightly-review, whose stale records
+        # would otherwise fault every night. Noted, not skipped silently.
+        if not unit_enabled(f"gazbot7-claude-job@{name}.timer"):
+            notes.append(f"JOB {name}: timer DISABLED — record age not checked (deliberate?)")
+            continue
         try:
             rec = json.load(open(path))
             age_h = (now - os.path.getmtime(path)) / 3600

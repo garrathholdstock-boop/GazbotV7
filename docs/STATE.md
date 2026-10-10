@@ -1,5 +1,7 @@
 # GAZBOT V7 — STATE
 
+> **2026-10-10 — V7 WIND-DOWN for the GazBot V8 Robo start (Sun 2026-10-11 22:00Z).** 17 timers DISABLED (the 17th, `shadow-runner`, later the same day on the operator's call — GBV8 Robo replaces it as the forward test) (not deleted): router-era headless Claude jobs (hour-watch, ledger-review, nightly-review, nightly-lab, sunday-ramp, friday-report, tape-reader), tournament-era (open-hour-watch, cl-worker, clip-revert, macro-watch), and gateway-hammering research (overnight, backfill, backfill-health, driftlab, capture-vacuum). Safety floor, GBV8 chain, desks, `monitor` and `claude-job@sweep` untouched. Restore: `systemctl enable --now <unit>`. See CLAUDE.md "V7 WIND-DOWN".
+
 > **The living snapshot: what the desk IS, right now.** Overwritten to stay current — no history by
 > design. History lives in **`SESSIONS.md`**, architectural "why" in **`DECISIONS.md`**, and the
 > instructions I read at session start in **`/root/CLAUDE.md`** (which is NOT a state file).
