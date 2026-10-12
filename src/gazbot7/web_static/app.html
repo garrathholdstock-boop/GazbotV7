@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GAZBOT V7 · MNQ DESK</title>
-<link rel="stylesheet" href="static/app.css">
+<link rel="stylesheet" href="static/app.css?v=1012d">
 </head>
 <body>
 
@@ -64,6 +64,22 @@
       id="k-today-trn">—</span><i>·</i><span id="k-today-rdr">—</span></div>
 </header>
 <div class="halt-banner" id="halt">DESK HALTED</div>
+
+<!-- ★2026-10-12 LEG TRACKER — is the robot tracking a major leg, and how close is the confirmation?
+     Fed by static/leg_tracker_web.json (scripts/leg_tracker.py, every minute). Read-only. -->
+<section class="legstrip leg-none" id="leg-strip" aria-label="Robot leg tracker">
+  <div class="leg-head">
+    <span class="leg-tag">ROBO LEG</span>
+    <span class="leg-title" id="leg-title">—</span>
+    <span class="leg-sum" id="leg-sum"></span>
+    <span class="leg-state"><span class="lg" id="leg-state">—</span><span class="sm" id="leg-state-s">—</span></span>
+  </div>
+  <div class="leg-bar" id="leg-bar"><i id="leg-fill"></i><b id="leg-mark"></b></div>
+  <div class="leg-scale"><span id="leg-lo">—</span><span id="leg-mid">—</span><span id="leg-hi">—</span></div>
+  <div class="leg-line" id="leg-line">—</div>
+  <div class="leg-hist" id="leg-hist"></div>
+  <div class="leg-note">Robot detector: turn confirms on an 11×ATR retrace (not turn-watch's 15×). Descriptive, not a forecast.</div>
+</section>
 
 <!-- phone tab bar (hidden on desktop) -->
 <nav class="tabbar" id="tabbar">
@@ -241,6 +257,6 @@
   </div>
 </div>
 
-<script src="static/app.js"></script>
+<script src="static/app.js?v=1012d"></script>
 </body>
 </html>

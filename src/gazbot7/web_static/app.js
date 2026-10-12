@@ -195,6 +195,88 @@
     }
   }
 
+
+  /* ★2026-10-12 LEG TRACKER strip. Reads static/leg_tracker_web.json (scripts/leg_tracker.py, every
+     minute, read-only). Every reading is on screen as text, not in a tooltip. Must never throw:
+     it sits above the P&L renderers (see the clienterr lesson at the top of this file). */
+  const LEG_GATE = {
+    ARMED_WAITING:       ["ARMED", "ready", "ARMED"],
+    VETO_ACTIVE:         ["VETO UNTIL 05:00 PARIS", "block", "VETO"],
+    IN_TRADE:            ["IN A TRADE", "block", "IN TRADE"],
+    LATCHED_AFTER_TRADE: ["ROBOT WILL SKIP: SESSION ALREADY TRADED", "bad", "WILL SKIP"],
+    ENTRY_WINDOW_CLOSED: ["ENTRY WINDOW CLOSED", "block", "CLOSED"],
+    FEED_STALE:          ["FEED STALE", "bad", "STALE"],
+    SWITCH_OFF:          ["ROBOT SWITCH OFF", "bad", "SW OFF"],
+    OUTSIDE_RUN_WINDOW:  ["OUTSIDE RUN WINDOW", "block", "OUTSIDE"],
+  };
+  function legDur(min) { min = Math.max(0, Math.round(min || 0)); return min >= 60 ? Math.floor(min / 60) + "h" + String(min % 60).padStart(2, "0") + "m" : min + "m"; }
+  function legHHMM(ts) { const d = new Date(ts * 1000); return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }); }
+  function renderLeg(L) {
+    const el = $("leg-strip");
+    if (!el) return;
+    el.classList.remove("leg-none", "leg-warm", "leg-ready", "leg-block", "leg-bad");
+    if (!L || L.status !== "OK") {
+      el.classList.add("leg-none", "leg-bad");
+      setTxt("leg-title", "No reading");
+      setTxt("leg-state", !L ? "NO DATA" : (L.status || "ERROR")); setTxt("leg-state-s", !L ? "NO DATA" : (L.status || "ERROR")); setTxt("leg-sum", "");
+      setTxt("leg-line", L && L.error ? String(L.error) : "Leg tracker has no current reading.");
+      setTxt("leg-lo", ""); setTxt("leg-mid", ""); setTxt("leg-hi", ""); setTxt("leg-hist", "");
+      return;
+    }
+    const up = L.dir === 1, name = up ? "UP" : "DOWN";
+    const pct = Math.max(0, Math.min(100, L.retrace_pct || 0));
+    setTxt("leg-title", name + " leg · " + legDur(L.leg_age_min) + " · " + Math.round(L.leg_size_pts) + "pt");
+    const g = (LEG_GATE[L.gate] || [String(L.gate || "?"), "block", String(L.gate || "?")]).slice();
+    const side = up ? "SELL" : "BUY";
+    if (L.gate === "ARMED_WAITING") { g[0] = "ARMED: " + side + "S WHEN LEG TURNS"; g[2] = side + " ARMED"; }
+    setTxt("leg-state", g[0]); setTxt("leg-state-s", g[2] || g[0]);
+    el.classList.add(g[1] === "ready" && pct >= 60 ? "leg-warm" : "leg-" + g[1]);
+    $("leg-fill").style.width = pct + "%";
+    $("leg-mark").style.left = "calc(" + pct + "% - 1px)";
+    setTxt("leg-lo", "extreme " + L.extreme_px.toFixed(2) + " (" + legDur(L.extreme_age_min) + " ago)");
+    setTxt("leg-mid", pct.toFixed(0) + "% · " + L.retrace_pts.toFixed(0) + " of " + L.trigger_pts.toFixed(0) + "pt");
+    setTxt("leg-hi", "confirms at " + L.trigger_px.toFixed(2));
+    setTxt("leg-sum", pct.toFixed(0) + "% to turn · " + side + " @ " + L.trigger_px.toFixed(2));
+    setTxt("leg-line", "Price " + L.price.toFixed(2) + " · robot will " + side + " 4 lots on a "
+      + L.trigger_pts.toFixed(0) + "pt " + (up ? "drop" : "bounce") + " (11×ATR " + L.atr14.toFixed(1) + ") · "
+      + (L.gate === "VETO_ACTIVE" ? "veto lifts 05:00 Paris" : "veto not in force"));
+    const h = $("leg-hist");
+    if (h) {
+      h.textContent = "";
+      (L.recent_legs || []).slice(-5).forEach((x) => {
+        const s = document.createElement("span");
+        s.textContent = (x.dir === 1 ? "▲ " : "▼ ") + x.pts + "pt/" + (x.min > 1440 ? "over a gap" : legDur(x.min));
+        h.appendChild(s);
+      });
+      const t = document.createElement("span");
+      t.textContent = "updated " + legHHMM(Date.parse(L.updated) / 1000) + " Paris";
+      h.appendChild(t);
+    }
+  }
+  let _legRaw = null;
+  /* the tracker file is written every ~10s from SETTLED 1-min bars; the chart ticks every 1s. Overlay
+     the chart's latest price so the strip moves with the tape: a new extreme resets the retrace, else
+     the retrace is price vs extreme. The robot itself still acts only on the detector's closed bars. */
+  function renderLegLive() {
+    const L = _legRaw;
+    if (!L || L.status !== "OK") { renderLeg(L); return; }
+    const bs = STATE.bars && STATE.bars.bars, px = bs && bs.length ? Number(bs[bs.length - 1].close) : NaN;
+    if (!isFinite(px) || !isFinite(L.trigger_pts) || L.trigger_pts <= 0) { renderLeg(L); return; }
+    const up = L.dir === 1, A = Object.assign({}, L);
+    let ext = L.extreme_px;
+    if (up ? px > ext : px < ext) { ext = px; A.extreme_age_min = 0; }
+    A.price = px; A.extreme_px = ext;
+    A.retrace_pts = up ? ext - px : px - ext;
+    A.retrace_pct = 100 * A.retrace_pts / L.trigger_pts;
+    A.trigger_px = up ? ext - L.trigger_pts : ext + L.trigger_pts;
+    if (isFinite(L.leg_pivot_px)) A.leg_size_pts = Math.abs(ext - L.leg_pivot_px);
+    renderLeg(A);
+  }
+  async function pollLeg() {
+    try { _legRaw = await getJSON("static/leg_tracker_web.json"); renderLegLive(); }
+    catch (e) { try { _legRaw = null; renderLeg(null); } catch (e2) { } }
+  }
+
   /* ---------- fetch ---------- */
   async function getJSON(url) {
     const r = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
@@ -222,6 +304,7 @@
       guard("fast.renderConn", () => renderConn(us != null));
       guard("fast.renderSafety", renderSafety);
       guard("fast.renderHero", renderHero);
+      guard("fast.renderLegLive", renderLegLive);
       guard("fast.renderHolding", renderHolding);
       guard("fast.renderContext", renderContext);
     } finally { _fastBusy = false; }
@@ -1533,6 +1616,7 @@
   // ★2026-10-06 the credits dial on its OWN interval, deliberately not inside slowTick: the usage
   // file refreshes every 10 min, and a failed usage read must never abort the header's P&L render.
   pollCredits(); setInterval(pollCredits, 60000);
+  pollLeg(); setInterval(pollLeg, 5000);
   // the chart draws in pixel space → re-fit it to the new box on resize (debounced), not just next tick
   let _rz; window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(() => { try { renderHero(); } catch (e) { } }, 120); });
 })();

@@ -296,6 +296,30 @@ table.tourn-tbl tr.promo-cand td:first-child{color:var(--grn)}
 #p-trades{grid-column:2;grid-row:2}
 @media (min-width:900px){ .hero-body{flex:1} }
 
+/* ★2026-10-12 leg tracker strip */
+.legstrip{margin:6px 10px;padding:8px 12px;border:1px solid var(--line2);background:var(--panel);border-radius:3px;display:flex;flex-direction:column;gap:5px}
+.leg-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.leg-tag{font-size:10px;letter-spacing:1.6px;color:var(--mut)}
+.leg-title{font-size:15px;font-weight:600;color:var(--txt);letter-spacing:.3px}
+.leg-state{font-size:11px;letter-spacing:1.2px;padding:1px 7px;border:1px solid var(--line2);border-radius:2px;color:var(--mut)}
+.leg-bar{position:relative;height:10px;background:var(--panel2);border:1px solid var(--line2);border-radius:2px}
+.leg-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--cyan-dim)}
+.leg-bar b{position:absolute;top:-3px;bottom:-3px;width:2px;left:0;background:var(--txt)}
+.leg-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums}
+.leg-line{font-size:13px;color:var(--txt2);font-variant-numeric:tabular-nums}
+.leg-hist{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:4px 14px}
+.leg-note{font-size:10px;color:var(--mut2)}
+.legstrip.leg-warm .leg-bar i{background:var(--amb)} .legstrip.leg-warm .leg-state{color:var(--amb);border-color:rgba(224,168,58,.6)}
+.legstrip.leg-ready .leg-bar i{background:var(--grn)} .legstrip.leg-ready .leg-state{color:var(--grn);border-color:rgba(55,208,122,.5)}
+.legstrip.leg-block .leg-state{color:var(--amb)}
+.legstrip.leg-bad{border-color:rgba(255,90,95,.7)} .legstrip.leg-bad .leg-state{color:var(--red);border-color:rgba(255,90,95,.6)}
+.legstrip.leg-none .leg-bar{opacity:.4}
+
+/* leg strip: long/short state label — desktop shows the long one, phone the short one */
+.leg-sum{display:none;font-size:12px;color:var(--txt2);font-variant-numeric:tabular-nums}
+.leg-state .sm{display:none}
+
+
 /* ---------- phone / narrow: tabs + stack (priority format) ---------- */
 
 
@@ -665,27 +689,43 @@ tr.uncounted td:nth-child(5), tr.uncounted td:nth-child(6) { text-decoration: li
   /* ── THE TRADE TAB. Everything except the chart gave up ~a third; the chart takes it back.
      ⚠ EXACTLY ONE RULE SIZES THE CHART. The previous block declared #p-trade .chart-host twice and
      the second silently cancelled the first. */
-  #p-trade > .hero-body{padding:0 6px;gap:5px}
+  #p-trade > .hero-body{padding:0 6px;gap:5px;overflow:visible;min-height:auto}
+  /* ★2026-10-12 THE HIDDEN TAPE TOGGLES. In a trade the HOLDING card + the ROBO LEG strip push the
+     rigid rows past the panel. .hero-body was overflow:hidden with min-height:0, so it was squeezed
+     BELOW chart-floor + tfbar and clipped its own last child (the 30m/1h/2h/MNQ/MGC row) AND the
+     chart's bottom edge, silently. overflow:visible + min-height:auto makes its minimum the content
+     (chart floor + toggles), so a genuine shortfall scrolls #p-trade (overflow-y:auto) instead of
+     cutting the toggles off. The paddings below pay back the rest. */
   /* ⚠ A LOWER FLOOR THAN IT LOOKS. This is not the chart's target size — it flexes to ~330px on an
      iPhone 14/15 — it is how far it may GIVE before a rigid row gets cut off. A 270px floor meant a
      20px overshoot clipped the PASS row instead of shortening the chart by 20px; a 0 floor would
      let renderHero's zero-size guard fire and draw nothing at all. */
-  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:120px}
+  #p-trade .chart-host{flex:1 1 auto;height:auto;min-height:100px}
   /* ⚠ tightened 2026-09-24 to pay for the second strip row (PULSE/FLOW) */
   .tstrip .tm{padding:2px 7px 2px}
   .tstrip .tm b{font-size:12px}
   .actions{gap:5px;padding:4px 6px 1px}
-  .orb{max-width:56px}
+  .orb{max-width:50px}
   .awayset{padding:0 6px 3px;gap:8px}
   .passrow{padding:3px 6px 4px}
   #p-trade .tfbar{padding:3px 5px}
-  .holdcard{margin:4px 6px 2px;padding:7px 10px}
+  .holdcard{margin:3px 6px 2px;padding:5px 10px}
   .holdcard .hc-pnl{font-size:23px}
   .holdcard .hc-px{margin-top:4px;gap:11px}
   .holdcard .hc-tp{margin-top:5px}
-  .holdcard .hc-tp button{min-height:30px;padding:6px 5px}
+  .holdcard .hc-tp button{min-height:28px;padding:4px 5px}
   #symnote{font-size:9.5px;left:40px}
 
+  /* ── ROBO LEG strip (compact) */
+  .legstrip{margin:2px 4px;padding:3px 8px;gap:2px;flex:0 0 auto}
+  .leg-tag,.leg-scale,.leg-line,.leg-hist,.leg-note{display:none}
+  .leg-head{gap:2px 8px;flex-wrap:nowrap;align-items:center;min-width:0}
+  .leg-title{font-size:13px;white-space:nowrap}
+  .leg-sum{display:inline;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .leg-state{flex:0 0 auto;font-size:10px;letter-spacing:.6px;padding:0 6px;white-space:nowrap}
+  .leg-state .lg{display:none} .leg-state .sm{display:inline}
+  .leg-bar{height:5px}
+  .leg-bar b{top:-2px;bottom:-2px}
   /* ── DAYS: touch targets, not hover affordances. */
   #days-tbl td{padding:9px 5px}
   #days-tbl tr.dayrow{min-height:48px}
