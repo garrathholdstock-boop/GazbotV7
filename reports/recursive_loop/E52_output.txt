@@ -1,0 +1,21 @@
+E52 OUTPUT (2026-10-12). Declaration: E52_change.txt (+A1, A2). Code: E52_code/. NQ 1-min bars 2015-2025, MNQ backfill for SEALED.
+
+IN-SAMPLE, STATED UP FRONT: TRAIN (2015-2020) and TUNE (2021-22) are in-sample for the model / theta / c / (a,b). CONFIRM-A/B are out-of-sample for frozen cells but T=0.4S, the entry window and the claim grid came from my reading of earlier studies; CONFIRM-B was scored by other detectors before. SEALED (MNQ 2025-09-15..2026-03-08, 113 sessions) opened once and is the only clean block, a different contract.
+
+DETECTOR (the 'quick confirmation' question): BETTER than plain retrace on TUNE, CONFIRM-A, CONFIRM-B. At equal precision 0.5/0.6/0.7 median lag is 0.54/0.62/0.63 (TUNE), 0.52/0.56/0.65 (A), 0.43/0.46/0.44 (B) of the control's, recall equal or higher. E.g. TUNE precision 0.5: model fires 18 min after the extreme, plain retrace 33 min.
+
+TRADE (2 lots, no stop, flat-only, today's points, $1.50/lot RT): declared verdict = NOT PASSED. 0 of 539 model cells beat the control champion under bible.gate on TUNE; CONFIRM-A negative for every carried model cell.
+Carried cells ($/day, 2 lots):
+model 0.7 20/30 | TUNE +25 | CONFIRM_A -17 (flip -36, rand p95 +43, d+ 274/415, worst -2822, stuck 11%) | CONFIRM_B +24 (flip -57, rand p95 +50, d+ 149/240, worst -4395, stuck 12%) | SEALED +101 (flip -46, rand p95 +75, d+ 83/113, worst -1021, stuck 10%)
+model 0.7 25/30 | TUNE +27 | CONFIRM_A -20 (flip -32, rand p95 +56, d+ 273/415, worst -3546, stuck 11%) | CONFIRM_B +31 (flip -60, rand p95 +57, d+ 148/240, worst -4395, stuck 12%) | SEALED +97 (flip -65, rand p95 +83, d+ 81/113, worst -1555, stuck 10%)
+model 0.7 17.5/30 | TUNE +20 | CONFIRM_A -19 (flip -36, rand p95 +38, d+ 272/415, worst -2827, stuck 11%) | CONFIRM_B +22 (flip -44, rand p95 +45, d+ 149/240, worst -4395, stuck 12%) | SEALED +100 (flip -46, rand p95 +73, d+ 83/113, worst -1021, stuck 10%)
+model 0.7 12.5/35 | TUNE +2 | CONFIRM_A -34 (flip -21, rand p95 +33, d+ 255/415, worst -2827, stuck 14%) | CONFIRM_B +33 (flip -40, rand p95 +51, d+ 146/240, worst -2174, stuck 14%) | SEALED +77 (flip -40, rand p95 +57, d+ 79/113, worst -1021, stuck 12%)
+control 0.35 15/80 | TUNE +31 | CONFIRM_A +7 (flip -43, rand p95 +42, d+ 252/415, worst -2799, stuck 28%) | CONFIRM_B -9 (flip -67, rand p95 +34, d+ 137/240, worst -4395, stuck 34%) | SEALED -20 (flip +57, rand p95 +49, d+ 63/113, worst -1999, stuck 32%)
+control 0.35 12.5/35 | TUNE +13 | CONFIRM_A -6 (flip -39, rand p95 +40, d+ 287/415, worst -2989, stuck 14%) | CONFIRM_B +14 (flip -59, rand p95 +33, d+ 164/240, worst -2174, stuck 15%) | SEALED -7 (flip +3, rand p95 +47, d+ 77/113, worst -2105, stuck 13%)
+
+WHY THE SPEED DOES NOT BECOME MONEY (TUNE, model theta0.7 fires): true-pivot fires (78%) end the day +31pt on average (median MAE 117pt before it works); false fires (22%) end -108pt. 87% of trades hit the small targets whichever way they point (FLIP wins 88%), so the P&L is the 10-14% held to 20:40Z at about -$650 each. Signed move 60 min after fire: 50.0% up, mean +2.5pt. The detector finds the turn faster, it does not predict the next leg; same conclusion as E51.
+
+OPERATOR EXAMPLE 12.5/35 at the best theta: TUNE +2, A -34, B +33, SEALED +77 ($/day); pooled out-of-sample (A+B+SEALED, 768 days) about +$3/day = breakeven.
+BEST OOS CELL by consistency: model theta0.7 17.5/30: A -19, B +22, SEALED +100; pooled ~+$13/day. Beats its FLIP on all three out-of-sample blocks; beats the RANDOM 95th percentile only on SEALED.
+
+RANKED SHORTLIST (to trial on paper or shadow, none proven): 1) model theta0.7, 17.5/30 (or 20/30); 2) model theta0.7, 12.5/35 (the operator's example); 3) control c0.35, 12.5/35 (the generic baseline, to keep the comparison honest). Verdict: NOT PASSED on the declared rule; PROMISING only on the strength of one clean block of 113 days.

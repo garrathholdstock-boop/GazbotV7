@@ -1,0 +1,25 @@
+E56 (2026-10-12) ONE LOT FIRST. Declared BEFORE code runs. Operator (mid-turn): "If just doing it as 1 lot is simplest first, then do that. Might be the easiest then we expand once that works." And: "keep going until it's making money."
+E55's confirm-block run is ON HOLD (frozen cells M1-M4 are written in E55_change.txt; CONFIRM-A/B and SEALED are unopened for E55).
+DATA STATUS, SAID UP FRONT: TUNE (NQ 2021-22, 508 sessions) is in-sample for this grid. CONFIRM-A (415), CONFIRM-B (240) and SEALED (MNQ 113) are all second looks, because E52 scored cells on them. No clean block exists; a pass is PROMISING until it runs forward.
+1. TRADE. ONE lot MNQ-equivalent, $2/pt, fee $1.50 RT. Entry at fire-bar close +-0.25pt adverse. Take-profit at +a (limit, needs 0.25pt trade-through). No stop. Hard flat 20:40Z (last bar opening before 20:40Z, 0.25pt adverse). Flat-only (K=1): a fire while the lot is open is skipped. Today's-points scaling as E52 (S_ref 458.9). Detector, state rule, fires, FLIP and RANDOM controls: all unchanged from E52.
+2. GRID (TUNE, one pass): target a in {5,7.5,10,12.5,15,17.5,20,25,30,35,40,50,60,80,100,150}; model theta {0.6,0.7,0.8}; control c {0.30,0.35,0.40}; entry cutoff CUT {19:30 (E52), 18:00 (E55 carry)}. 
+3. WHY ONE LOT CAN BEHAVE DIFFERENTLY: the 2-lot cell pays two fees and holds the runner to 20:40Z when stuck; one lot has one target, one fee, and the stuck share is a function of a alone. This is a simplification of the trade, not a new signal.
+4. REPORTED PER CELL: trades/day, hit rate (target before 20:40Z), stuck share, mean stuck P&L, $/day, daily SD, R=($/day)/SD, days positive, worst day, FLIP.
+5. SELECTION. Champion = best-R 1-lot CONTROL cell on TUNE (tpd >= 0.5). A model cell must pass bible.gate vs it. Freeze the top 3 model cells by R, one per distinct a if possible, plus the single best cell from each cut. Then CONFIRM-A, CONFIRM-B, SEALED with FLIP and RANDOM (30 draws, p95).
+6. VERDICT. PASS = a frozen cell positive $/day on CONFIRM-A, CONFIRM-B AND SEALED, beats its FLIP on each, passes bible.gate vs the control champion on at least two of the three. PROMISING = positive on two of three and beats FLIP on those. Else REFUTED. Ranked shortlist either way.
+7. AFTER 1 LOT: only if it reaches PROMISING does the second lot come back (declared as its own iteration).
+
+RESULT A (TUNE only; in-sample; written before CONFIRM-A/B or SEALED are run)
+Model theta 0.7, 1 lot, CUT 19:30: every target from 5pt to 150pt lands between -$18 and +$14/day; best a=30 +$13.8 (R .049, 332/508 days +). Model FLIP is about zero at every a (e.g. a=30: +$1.1 vs flip +$1.1) => no directional edge in the model's fires at one lot.
+With CUT 18:00: model a=30 +$18.6 (R .070, 338/508 days +, worst -1,922); a=25 +$14.0 (R .058).
+Control c0.35 (plain retrace): small targets are the consistent ones. CUT 18:00, a=15 +$12.0 (R .066, 422/508 days +, worst -1,211, SD 182) ; a=12.5 +$10.6 (R .065, 432/508 days +). Its FLIP is -$11 to -$16, so the control's DIRECTION carries about +$25/day over its mirror image; the model's carries ~$0. Faster confirmation (model) bought less direction than a plain retrace.
+bible.gate vs the best control cell (c0.35 CUT18 a=15): 0 model cells pass (days-positive 338 vs 422 is the failure).
+FROZEN CARRY-FORWARD: model (theta0.7, CUT18, a=30) ; model (theta0.7, CUT18, a=25) ; model (theta0.7, CUT19:30, a=30) ; CONTROL CHAMPIONS (c0.35, CUT18, a=15) and (c0.35, CUT18, a=12.5). No other cell is carried. Blocks: CONFIRM-A, CONFIRM-B, SEALED(MNQ).
+
+RESULT B (CONFIRM-A, CONFIRM-B, SEALED; all second looks; $/day, 1 lot, K=1)
+model theta0.7 CUT18 a=25 : A -10.0 (flip -1.8) | B +18.1 (flip -32.4) | SEALED +44.1 (flip -44.0). a=30: -8.4 | +13.5 | +45.0. CUT19:30 a=30: -7.8 | +12.9 | +51.1.
+control c0.35 CUT18 a=15 (champion): +4.3 | -5.3 | +13.0 ; a=12.5: +0.2 | -0.3 | +9.2. RANDOM p95 about +12..+47, so the model beats RANDOM p95 only on SEALED (and not on CONFIRM-A or B).
+Pooled over the three later blocks (768 sessions): model CUT18 a=25 ~ +$6.7/day ; a=30 ~ +$6.3/day. Daily SD ~ $250, so the standard error of that pooled mean is ~ $9/day: NOT distinguishable from zero. bible.gate vs control champion: fail for every model cell on every block.
+VERDICT (section 6): PROMISING-WEAK, not PASS. Positive on 2 of 3 blocks and beats FLIP on those (the model's FLIP is -$24 to -$44 out-of-sample, so there IS directional information), but CONFIRM-A is negative, the pooled mean is inside the noise, and SEALED (+$45) is the one block already opened. It is NOT making money reliably.
+RANKED: (1) model theta0.7 CUT18 a=25, 1 lot. (2) same a=30. (3) control c0.35 CUT18 a=15 (the consistent one, ~0 out-of-sample). 
+WHY: the payoff is a short-volatility shape: ~91% small wins (+$48) against ~9% stuck trades (~-$400). Break-even hit rate at a=25 is ~89%; the model hits ~91-92%. The margin is real but thin. Only a lever that acts on the stuck tail can widen it. NEXT (declared as E57): a profit lock that never exits at a loss.

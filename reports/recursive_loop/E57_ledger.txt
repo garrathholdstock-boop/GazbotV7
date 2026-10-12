@@ -1,0 +1,5 @@
+E54 K>1 packages: REFUTED on TUNE (no cell passes gate; worst day doubles).
+E55 entry-time cutoff: small, mechanism-consistent gain on TUNE; confirm run ON HOLD at operator's "1 lot first".
+E56 one lot: model ~0 pooled out-of-sample (+$6/day, inside noise); control champion ~0. PROMISING-WEAK.
+E57 one lot + profit lock (never exits at a loss): M1 positive on CONFIRM-A +10.7, CONFIRM-B +25.0, SEALED +44.3 (pooled +$20.1/day, stress-tested to 3pt lock slippage). PASS on declared rule; PROMISING-STRONG, not proven; money is mostly structure (FLIP also positive on 2 blocks). Uncommitted. Nothing touched on robot/rider/account.
+E58 lock shape, 1 lot: S2 two-stage lock REFUTED (ties M1 later; TUNE gain was target 60). Trailing lock T1 (a60, arm +12.5, trail peak-5, floor +6) PROMISING-STRONG: +20.4/+36.7/+55.3 vs M1 +10.7/+25.0/+44.3, gate PASS x3, positive at 2pt slippage. Disclosed non-gate comparator; in-sample; FLIP also positive.

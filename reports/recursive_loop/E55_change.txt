@@ -1,0 +1,17 @@
+E55 (2026-10-12) ENTRY-TIME CUTOFF. Declared BEFORE the grid runs. One rule family: the latest minute a fire may open a package. Operator: "keep going until it's making money." No stops (Law 0e). No reference to the live robot.
+DATA STATUS, SAID UP FRONT: the observation that motivated this was made on TUNE (2021-22), the same block the cutoff is tuned on, so TUNE is in-sample twice over. SEALED was opened in E52 and CONFIRM-A/B were scored by E52's cells: all are SECOND LOOKS. No clean block exists. Anything that passes is PROMISING, not proven.
+MOTIVATION (counts, not dollars; model theta 0.7, 17.5/30, K=1, TUNE): stuck share (lot B never hit its target by 20:40Z) is ~5-12% for fires before 15:00Z and 21-24% for fires at 18:00Z and later (control: 17-28%). Mechanism: a later fire has less session left to reach +30. This predicts the cutoff should help the control as well; if it helps only the model it is noise.
+1. RULE. Skip any fire with time >= CUT (UTC). Entry window otherwise as E52 (06:00Z start). Hard flat 20:40Z unchanged.
+2. GRID (TUNE, one pass): CUT in {19:30 (=E52), 19:00, 18:30, 18:00, 17:00, 16:00}; model theta {0.6,0.7,0.8}; (a,b) in {12.5/35, 17.5/30, 20/30}; control c 0.30/0.35/0.40 same cells. K=1.
+3. REPORTED: trades/day, stuck share, worst day, days positive, FLIP, and the E52 no-cutoff cell beside each.
+4. SELECTION. Champion = E52 cell (theta 0.7, CUT 19:30, 17.5/30). A challenger must pass bible.gate on TUNE; top 3 by R (>=0.5 trades/day) frozen, plus 12.5/35 always; then CONFIRM-A, CONFIRM-B, SEALED (second looks). 
+5. VERDICT. PROMISING if a frozen cell passes bible.gate vs the no-cutoff cell on TUNE and CONFIRM-A and CONFIRM-B, is positive on both, and the control shows the same direction of effect. PASS (money-making) additionally needs: positive $/day on CONFIRM-A, CONFIRM-B and SEALED, beating FLIP on each. Else REFUTED. Ranked list either way.
+
+RESULT A (TUNE, in-sample twice; written before any other block is run)
+Model theta 0.7, K=1: cutoff 19:30 (E52) -> 18:00 : 17.5/30 +$19.5 -> +$26.3 ; 20/30 +$25.1 -> +$32.1 ; 12.5/35 +$2.0 -> +$14.0. Trades/day 2.23 -> 2.00. Stuck share 10.5% -> 9.7%.
+Control c0.35 moves the SAME direction: 17.5/30 +$15.2 -> +$22.8 ; 12.5/35 +$12.7 -> +$19.0. (Direction consistent with the declared mechanism.)
+Size: +$5-13/day against a standard error of about $20/day on 508 sessions. Worst day unchanged (-$2,456): the big losers are early-day stuck trades, which a late cutoff cannot touch. bible.gate: 8 of 54 model cells and 4 of 54 control cells pass vs the E52 champion.
+FROZEN CARRY-FORWARD (selected on TUNE, none chosen on any later block): 
+ M1 theta0.7 CUT18:00 20/30 (R .073) ; M2 theta0.7 CUT19:00 20/30 (R .071) ; M3 theta0.7 CUT18:00 17.5/30 (R .061) ; M4 theta0.7 CUT18:00 12.5/35 (operator ask).
+ Controls (direction check only): c0.35 CUT18:00 17.5/30 and 12.5/35.
+ Baselines for the gate: the SAME cell with CUT 19:30 on the same block.

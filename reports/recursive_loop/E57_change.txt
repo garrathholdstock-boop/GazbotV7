@@ -1,0 +1,33 @@
+E57 (2026-10-12) PROFIT LOCK ON THE ONE-LOT CELLS. Declared BEFORE code runs. One rule family: a lock-in-profit exit. Law 0e: it NEVER exits at a loss and is not a stop-loss; it only turns a trade that was already in profit into a small win instead of letting it drift back and sit in the stuck tail.
+DATA STATUS, SAID UP FRONT: TUNE (NQ 2021-22) in-sample. CONFIRM-A/B and SEALED were all seen by E52 and E56: second, third looks. No clean block exists. Pass = PROMISING at best.
+WHY: 8-12% of 1-lot trades never reach +a and end at 20:40Z at about -$400. Many of those were up before they failed (mean favourable excursion not yet measured; E57 reports it first, as a count).
+1. RULE. Once the trade's favourable excursion reaches m points (a bar high/low, +0.25 trade-through), arm a lock at entry+k. From the NEXT bar on, if the bar trades back to entry+k, exit there with 0.25pt adverse slippage (fill at k-0.25). k >= 2.5 so the net is positive after $1.50 fee. If the target a is reached before the lock triggers, take the target. Same-bar conflict is resolved against us (lock first). Otherwise hard flat 20:40Z as before. No stop below entry. K=1 flat-only on the EXIT time.
+2. CELLS (from E56 frozen list, nothing re-selected): model theta0.7 CUT18 a=25 and a=30; model theta0.7 CUT19:30 a=30; control c0.35 CUT18 a=15 and 12.5. Grid on TUNE only: m in {7.5,10,12.5,15,20} (m<a), k in {2.5,4,6,8} (k<m). 
+3. FIRST REPORT (counts): of the baseline stuck trades, the share that had reached +m before 20:40Z, for each m.
+4. SELECTION. Champion = the same cell with NO lock. A lock cell must pass bible.gate vs it on TUNE. Freeze the best 3 (R) lock settings over the 5 cells, plus the best control. Then CONFIRM-A, CONFIRM-B, SEALED, with FLIP and RANDOM (random draws use the same lock rule).
+5. VERDICT. PASS = $/day positive on all three later blocks AND passes bible.gate vs the no-lock cell on at least two. PROMISING = positive on two of three, beats FLIP on those. Else REFUTED. Ranked list either way.
+
+RESULT A (TUNE only, in-sample; written before CONFIRM-A/B or SEALED are run)
+COUNTS FIRST: of the model's stuck trades (theta0.7 CUT18, a=30; n=122 of 1,224), 68% had reached +7.5pt, 57% +12.5pt, 33% +20pt before failing. So most of the tail was in profit first. Control (c0.35, a=15): 43% reached +7.5, 26% +10.
+Lock effect, model CUT18 a=30 (no lock +$18.6, R .070, stuck 9.7%, SD 265): best-R lock m7.5/k6 +$15.4, R .089, stuck 2.9%, SD 173, 399/508 days+. m12.5/k8 +$17.3, R .087, SD 198. So the lock halves-to-thirds the stuck share and cuts the spread by a third, but it also clips winners: $/day does NOT rise.
+Control CUT18 a=15 (no lock +$12.0, R .066, 422 d+): m10/k8 +$16.3, R .107, stuck 3.9%, SD 152, 439/508 d+, worst -1,209. bible.gate passes on 10 of 75 lock cells.
+FROZEN CARRY-FORWARD: C1 control a=15 m10 k8 ; C2 control a=15 m7.5 k6 ; C3 control a=15 m10 k6 ; M1 model(theta0.7 CUT18 a=30) m7.5 k6 (best model by R, added as the model comparator). Nothing else is carried. Blocks: CONFIRM-A, CONFIRM-B, SEALED.
+
+RESULT B (CONFIRM-A, CONFIRM-B, SEALED; all second/third looks, M1 selected on TUNE only). $/day, 1 lot MNQ-equivalent, K=1.
+M1 = model theta0.7, entry before 18:00Z, target +30, profit lock m7.5/k6:
+  TUNE   +15.4  (399/508 days +, worst -1,328)   [in-sample]
+  CONF-A +10.7  (324/415 days +, worst -1,508, SD 187)  no-lock -8.4  gate vs no-lock PASS
+  CONF-B +25.0  (179/240 days +, worst   -718, SD  94)  no-lock +13.5 gate vs no-lock PASS
+  SEALED +44.3  (100/113 days +, worst   -239, SD  60)  no-lock +45.0 gate vs no-lock fail (no-lock already high); unscaled MNQ points +34.8
+  Pooled later blocks (768 sessions): +$20.1/day. Stuck share 2.6-3.2% (SEALED 0.7%).
+STRESS (lock exit slipped 1 / 2 / 3 pt instead of 0.25): pooled later blocks +17.8 / +14.6 / +11.4; every block stays positive (CONFIRM-A +8.4 / +5.2 / +2.1).
+CONTROLS, SAID PLAINLY: (1) RANDOM (same fires/day, random minutes+sides, same lock): mean +5.4 / +9.3 / +7.0, p95 +14.8 / +21.5 / +28.2 => M1 beats RANDOM p95 on CONFIRM-B and SEALED, NOT on CONFIRM-A (10.7 vs 14.8). (2) FLIP (same fires, opposite side, same lock): +14.8 on CONFIRM-A (HIGHER than M1), +16.7 on CONFIRM-B, -7.1 on SEALED. So most of the money comes from the STRUCTURE (small harvest + profit lock, which raises hit-rate to ~97%), not from picking direction. Direction adds on the order of +$5-35/day over random on two of three blocks, and nothing on CONFIRM-A.
+Control cells (plain retrace) with the same lock: C2 +5.4 / +9.1 / +33.3; C1 +4.1 / +1.8 / +25.5. Positive on all three but small outside SEALED.
+THIN MARGIN: average winner ~ +$10, average stuck trade ~ -$400; break-even stuck share ~2.4%; M1 runs 2.6-3.2% stuck on NQ blocks and the lock claws it back by converting would-be-stuck trades. A short-volatility shape: the left tail (worst day -$1.5k on CONFIRM-A) is real and one regime change can erase weeks.
+VERDICT (declared rule): PASS for M1 (positive on all three later blocks; gate vs no-lock passes on two). Honest label: PROMISING-STRONG, NOT PROVEN. Every later block was seen before; there is no clean block. The pooled edge is ~3.7 standard errors from zero in-sample-ish but is largely structural (FLIP also positive on two blocks).
+RANKED SHORTLIST (best first):
+ 1. M1 model theta0.7 entry<18:00Z, +30 target, lock m7.5/k6, 1 lot. Forward-test it as a log-only logger (no orders).
+ 2. Same with +25 target and lock m12.5/k8 (TUNE gate-pass, $16.1, R .082) - not run on later blocks.
+ 3. Control C2 (plain retrace c0.35, +15, lock m7.5/k6): simplest to implement, positive on all three, smaller.
+ 4. Expand to 2 lots (operator's original ask: 12.5 and 35) with the lock - declare as E58.
+ 5. Do NOT: allow >1 open package (E54 refuted), second-stage filter (E53 refuted).

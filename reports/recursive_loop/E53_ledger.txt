@@ -1,0 +1,1 @@
+E53 LEDGER 2026-10-12. REFUTED on TUNE (0 of 24 cells pass the gate vs the E52 champion). CONFIRM-A/B and SEALED not opened. One training run, one grid pass, no revision. Not committed. Robot/rider/account untouched. Code: E52_code/ train2.py/tune2.py are in the scratchpad e52 folder (copied below).

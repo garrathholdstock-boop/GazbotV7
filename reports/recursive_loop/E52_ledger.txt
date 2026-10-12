@@ -1,0 +1,3 @@
+E52 LEDGER 2026-10-12. Closed. Detector: BETTER than plain retrace (all 3 NQ blocks). Trade (2 lots, no stop): NOT PASSED on declared rule; carried cells positive only on CONFIRM-B and SEALED.
+Tuning used: 1 training run (214 rounds), 0 revisions, 1 grid pass. Correction logged in A1 (recall clause read one-sided as declared).
+Not committed. Robot, rider, account untouched. No reference to the live robot.

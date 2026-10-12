@@ -1,0 +1,14 @@
+E54 (2026-10-12) IMPROVE E52 BY REMOVING MY OWN "FLAT-ONLY" RESTRICTION. Declared BEFORE code runs. One rule family: the concurrency cap. No reference to the live robot. No stops (Law 0e unchanged).
+WHY: E52 skipped every fire while any lot was open (222-285 of ~1,100 per 508 sessions at theta 0.7). Flat-only was MY declaration in E52 section 5, not the operator's rule ("keep jumping and harvesting"). Skipped calls arrive precisely while a lot is stuck, and a later call is a fresh, better-priced entry. E53 showed that filtering entries does not help; this changes what happens to calls that were already made.
+DATA STATUS, SAID UP FRONT: SEALED was opened in E52 and is a SECOND LOOK here, not clean. CONFIRM-A/B were scored by E52's cells and are second looks. Nothing here is chosen on them. TUNE (2021-22) is in-sample for this grid.
+1. RULE. A "package" = 2 lots (A at +a, B at +b), exactly as E52. On a fire, enter a new package if the number of packages still open is < K. Opposite-direction fires are taken too (they are fresh MIL calls, the old package keeps its own targets; no lot is ever closed early; netting is a broker matter, P&L is per-package). Hard flat 20:40Z closes everything.
+2. GRID (TUNE, ONE pass): K in {1 (=E52), 2, 3, 4}; model theta {0.6, 0.7, 0.8}; (a,b) {12.5/35, 17.5/30, 20/30}. Control (plain retrace c 0.30/0.35/0.40) with the same K and (a,b). Everything else (fees, slippage, today's-points scaling, FLIP, RANDOM x30 with the same K) unchanged from E52.
+3. REPORTED ALONGSIDE EVERY CELL: trades/day, peak open lots (2 x packages), stuck share, worst day, days positive. The cost of K>1 is risk; it must be shown, not hidden.
+4. SELECTION. Champion = E52's best model cell re-run (theta 0.7, K=1, 17.5/30). Challenger must pass bible.gate vs it on TUNE; top 3 by R frozen; then CONFIRM-A, CONFIRM-B, then SEALED (second look). 12.5/35 always reported. R = $/day / daily SD.
+5. VERDICT. PASS only if a frozen K>1 cell passes the gate vs the K=1 champion on TUNE, CONFIRM-A and CONFIRM-B and beats FLIP and RANDOM p95 on both CONFIRM blocks. Else REFUTED. Ends in a ranked list either way.
+
+RESULT (TUNE only, 2021-22, in-sample; CONFIRM/SEALED NOT opened): REFUTED.
+Model theta 0.7, 17.5/30: K=1 +$19.5/day (worst day -2,456) ; K=2 +$5.5 (-2,989) ; K=3 +$2.0 (-4,888) ; K=4 +$3.1 (-4,704).
+12.5/35: K=1 +$2.0 ; K=2 -$10.7 ; K=3 -$14.8 ; K=4 -$13.7. Control best K>1 (c0.35 17.5/30 K=2) +$7.8 vs K=1 +$15.2.
+Every K>1 cell has lower R and worse worst-day than K=1; 0 pass bible.gate. More packages = more stuck lots, not more profit.
+Ranked: (1) keep K=1. (2) next family = entry-time cutoff (declared in E55). 

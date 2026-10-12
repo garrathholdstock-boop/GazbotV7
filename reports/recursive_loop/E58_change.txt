@@ -1,0 +1,52 @@
+E58 (2026-10-12) LOCK SHAPE ON THE ONE-LOT CELL. Declared BEFORE code runs. Operator: "Keep going and improving on 1 lot." One rule family: the shape of the profit lock. Never exits at a loss; no stop-loss (Law 0e). No reference to the live robot.
+DATA STATUS, SAID UP FRONT: TUNE (NQ 2021-22) is the only block used to choose. CONFIRM-A/B and SEALED were seen in E52, E56 and E57, so they are 2nd/3rd/4th looks; no clean block exists. A pass is PROMISING, never proven. The champion M1 was itself chosen on TUNE, so beating it on TUNE is partly selection; the later blocks are the check.
+CHAMPION = M1: model theta0.7, entry before 18:00Z, +30 target, lock m7.5/k6, 1 lot (E57). Same fires, same fee/slippage/scaling, K=1 flat-only, hard flat 20:40Z, lock exit fill at k-0.25 (and stress at 1/2/3pt).
+1. SHAPES (stop level at bar i uses only bars before i; a stage is armed when the prior-bars favourable excursion >= m+0.25; same-bar conflict resolved against us):
+   S0 single stage (E57). 
+   S2 two stages: (7.5,6) then (m2,k2): m2 in {15,20,25}, k2 in {10,14,18} with k2 < m2-2.
+   ST trailing: (7.5,6) then once excursion >= mt in {12.5,15,20} the stop trails at max(6, peak-g), g in {5,7.5,10}.
+   Target a in {30,40,60} for S2 and ST (a larger target only matters if the lock lets winners run).
+   Also S0 re-run at a in {40,60} for the like-for-like baseline.
+2. CELLS: model theta0.7 CUT18 as above; plus control c0.35 CUT18 with a=15 as the direction check (S0 C2 vs best shape only; no wider grid).
+3. COUNTS FIRST: share of M1's winners (target hit) that would have been stopped by each shape's lock before the target; share of M1's stuck trades converted.
+4. SELECTION. Challenger must pass bible.gate vs M1 on TUNE. Freeze the top 3 by R (tpd >= 0.5). Then CONFIRM-A, CONFIRM-B, SEALED with FLIP, RANDOM (same lock) and the 2pt-lock-slippage stress.
+5. VERDICT. IMPROVEMENT = frozen cell positive on all three later blocks, passes bible.gate vs M1 on at least two of the three, AND stays positive under the 2pt stress. Otherwise M1 stays champion. Ranked list either way.
+
+--- E58 TUNE RESULT (508 sessions, 48 shapes; all in-sample) ---
+Counts: 2.22 trades/day for every cell (same fires). Stuck share 2.9% for every shape (the second stage and the trail change winners, not the stuck tail). Baseline M1 (S0 a30): +15.41/day, R .089, 399/508, worst -1,328; M1 lock stops 796, of which 719 would otherwise have hit the target.
+Gate vs M1 on TUNE: 11 of 48 pass. Best passing: S2 a60 (7.5,6)->(15,10) +20.15 R .112; (20,10) +19.65 R .109; (25,10) +19.13 R .106. Passing cells gain +$3 to +$5/day over M1. Most of that is the larger target a=60 (S0 a60 alone is +18.90 R .103, which also passes).
+Disclosed finding: TRAILING cells earn more (ST a60 mt12.5 g5: +27.14/day, R .152, 398/508, worst -1,309) but miss the gate by ONE positive day (398 vs 399). Under the declared rule they are not eligible.
+FROZEN (declared rule: top 3 gate-passing by R, plus M1 as champion, plus ONE disclosed non-gate comparator):
+  F1 model th0.7 cut18 a60 ladder (7.5,6)->(15,10)
+  F2 model th0.7 cut18 a60 ladder (7.5,6)->(20,10)
+  F3 model th0.7 cut18 a60 ladder (7.5,6)->(25,10)
+  T1 (non-gate comparator, disclosed) model th0.7 cut18 a60 ladder (7.5,6) trail mt12.5 g5 floor6
+  M1 champion: a30 ladder (7.5,6)
+  Control direction check: control c0.35 cut18 a15 (7.5,6) [C2] and the same with F1's ladder at a60? NO: control only at S0 C2 and its best of the same 4 shapes is NOT searched; only C2 and the control with T1's trail at a=15 are run, labelled as a direction check.
+Next: CONFIRM-A, CONFIRM-B, SEALED once each with FLIP and RANDOM (same lock) and 2pt lock-slippage stress.
+
+--- E58 CONFIRM-A / CONFIRM-B / SEALED RESULT (each cell once; 2nd/3rd/4th looks; NO clean block) ---
+1 lot, $/day (2pt-lock-slippage stress in brackets). Gate = bible.gate vs M1 on the same block.
+ cell                 A(415)            B(240)            SEALED(113)        
+ M1  a30 (7.5,6)      +10.7 [+5.2]      +25.0 [+19.9]     +44.3 [+37.8]
+ F1  a60 +(15,10)     +10.1 [+3.1]      +24.5 [+18.3]     +43.2 [+35.4]
+ F2  a60 +(20,10)     +9.9  [+3.1]      +23.9 [+17.8]     +41.6 [+33.9]
+ F3  a60 +(25,10)     +9.7  [+2.9]      +24.4 [+18.3]     +40.5 [+32.7]
+ T1  a60 trail 12.5/5 +20.4 [+12.9]     +36.7 [+30.1]     +55.3 [+47.0]
+ T1 days positive     325/415           179/240           100/113
+ T1 worst day         -1,449            -698              -239
+ T1 stuck share       3.2%              2.6%              0.7%
+ T1 gate vs M1        PASS              PASS              PASS
+ T1 FLIP / RANDOM p95 +27.2 / +19.5     +25.1 / +25.6     +8.5 / +33.3
+ (SEALED re-run without MNQ->NQ scaling: M1 +34.8, F1 +39.0, T1 +44.0; T1 gate PASS.)
+ Control direction check: C2 +5.4/+9.1/+33.3, CT +6.5/+10.3/+34.4; both fail the gate vs M1 and trail the model on all three.
+VERDICTS
+ F1-F3 (the three declared, gate-passing S2 cells): REFUTED as improvements. They tied or trailed M1 on every block (-0.6 to -4 $/day). The TUNE gain was the bigger target, not the second stage.
+ T1 (disclosed non-gate comparator, trailing stop at peak-5 after +12.5, never below +6, target 60): PROMISING-STRONG, not proven. It is +$9.7, +$11.7 and +$11.0/day over M1 on the three later blocks (pooled about +$11), passes the gate vs M1 on all three, stays positive at 2pt lock slippage, and sits in a broad region on TUNE (12 of the top 15 shapes were trailing). It was not eligible under the declared rule, so it is a candidate, not a replacement.
+CAVEATS (kept): in-sample selection on TUNE then three looks at later blocks; money is largely structure, since FLIP with the same exit is positive on all three blocks and beat the model outright on A (+27.2 vs +20.4); on B and SEALED the model is under RANDOM p95 only by a small margin (B 36.7 vs 25.6, SEALED 55.3 vs 33.3 are above it; A 20.4 vs 19.5 barely). Worst day is unchanged (the trail does not touch the stuck tail). Trail gap 5 is the smallest value on the grid, so the true optimum may be tighter and the edge was not explored.
+RANKED SHORTLIST (best first)
+ 1. T1 trailing lock as the new 1-lot exit candidate; log forward, no orders.
+ 2. Tighter trail gaps (g 2.5-4) and earlier trail starts, as the next declared family (E59), TUNE first.
+ 3. Left tail: stuck trades still cost the same -$400; a time-in-profit exit for trades that were up once is the next lever.
+ 4. Model vs control entry: control trails the model on all later blocks at 1 lot.
+ 5. Forward log-only run of T1 (the only clean read).
