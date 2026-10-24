@@ -1,0 +1,44 @@
+E104 - THE NO-PRESS SHADOWS: "PAST THE LOCK" and "PAST 13:30Z", declared 2026-10-23 BEFORE any shadow call or number.
+Operator go: "1" (= the SESSIONS.md 2026-10-23 NEXT THING TO DO: build a no-press shadow past the lock and past 13:30Z).
+WHY: the live v1.02+LOCK stops calling Claude once the day touches +$1,000, and the live window ends 13:30Z. Both are decisions made on replay
+  evidence only (E95 lock; E96 PM replay n=20 days, +$231/day) and neither has ever seen a FORWARD afternoon or a forward post-lock entry.
+  Ride-through since 10-15 is 27/28 against a break-even of ~95.7%; the detector-only proxy hits 86% (AM) / 70% (PM). The question each shadow answers:
+  "what would the entries the robot is NOT allowed to take have done?"  It answers it by forward collection, not by replay.
+
+TWO OWN ARMS (never pooled with each other, with the live v1.02 / v1.02+LOCK arm, with v1.02-EXT, or with the E96 replay):
+  v1.02-LOCKSHADOW  decisions from the first 5-min boundary the live robot skipped as DAY_LOCKED, to the last AM boundary (13:25Z). Sim book + trade list are
+                    INHERITED from the live robot's state at the lock (the live Claude would have carried them).  Active only on sessions that locked.
+  v1.02-PM-shadow   decisions at 13:30Z, 13:35Z ... 19:50Z (77/day), every weekday, whether or not the day locked.  Sim book starts FLAT at 13:30Z (the E96 convention);
+                    the page text is rewritten exactly as hybrid_robot.ext_text does ("13:30Z" -> "19:55Z", minutes-left recomputed).
+
+WHAT IS RUN (the live system, nothing changed, nothing tuned): same Claude CLI call as the live robot (S.ask, BRIEF_V2, empty rules, closed-bar page),
+  same frozen detector (K=11 x ATR14, det_dir at op-60, cts+60<=t), same 05:00 Europe/Paris veto, same STALE rule (decision older than 240s is not entered),
+  same RECONCILE_SIM. The ENTRY CHAIN is the live one with the press replaced by a log line:
+     NOT_WITH_LEG / NO_DETECTOR_LEG -> VETOED_BEFORE_05_PARIS -> STALE_NOT_ENTERED -> SKIPPED_<real rider_gate reason> -> SKIPPED_SHADOW_HOLDING -> WOULD_PRESS_<side>
+  FLAT-ONLY is judged two ways, both stated: the REAL rider gate (a real position - the morning's, or the operator's - blocks, exactly as it would block the live robot)
+  AND the shadow's OWN would-be position (held until its +37.5pt print + 30s, or 20:40Z; re-entry then allowed - the proxy.py convention).  Every skip is logged with its reason.
+  Claude's EXIT is not acted on; it only closes his own sim book (the live switch hybrid_exit_live is OFF too, E101).
+
+GRADING (scripts/hybrid_shadow.py --grade, daily 20:56Z, after the 20:40Z flat and after hybrid_nightly):
+  Each WOULD_PRESS entry, entered at the decision px (close of the last closed 1-min bar = IDEAL fill, no spread, no 0.1% fabrication), from the decision boundary on the 5s tape,
+  4 lots all out at +37.5pt (path_stats - the hybrid_nightly counterfactual function, imported), NO stop, ride to the 20:40Z flat, $2/pt/lot, $1.50/lot ($6) fee.
+  A HIT = the first 5s bar reaching +37.5pt.  A MISS = no hit by 20:40Z (marked at the last print).  MAE and hold time recorded.
+  A poisoned day (>10% of its calls errored) is NOT scored, it is named.  A day whose tape ends before 20:40Z is labelled PARTIAL.
+
+PRE-STATED READING (fixed now, before results):
+  1. FIRST: per arm, n entries, n days, n MISSES, P(miss) (break-even P(miss) at +37.5/no stop is the miss-loss-to-win ratio; the live arm's is ~4.3%), then the TAIL = the worst five entries' net $
+     and the worst MAE.  COUNTS BEFORE DOLLARS.
+  2. THEN $/day at 4 lots (over the days the arm was ACTIVE, point estimate first), days positive, worst day.  Split by hour block by ENTRY time: 13:30-16:00 / 16:00-18:00 / 18:00-19:55Z for PM; no split for LOCKSHADOW.
+  3. LABELS: n<10 entries = UNDERPOWERED; PROMISING needs >=10 entries, a positive point estimate and not one day carrying it; NO FITTING, NO TUNING, NO DECISION below 30 would-be entries per arm.
+  4. The detector-only proxy (reports/analysis_3day_20261023/proxy.py) is the comparator for the same hours: the shadow must be read against it, not against zero.
+  5. This reading never changes the live robot by itself. Moving the lock, extending the live window, or arming any of this is the operator's and a Saturday's (Law 0 consistency applies:
+     days-positive, worst day and CV may not worsen).
+
+SAFETY / AUTHORITY: READ-ONLY. No request file, no switch file, no broker, no Telegram. Writes ONLY: data/hybrid_shadow.jsonl, data/hybrid_shadow_state.json, reports/hybrid_shadow/*.
+  Reads the live robot's state file (never writes it), the rider state, capture.db and the ledger (mode=ro).  tests/test_hybrid_shadow.py asserts that against the AST.
+  Switch: data/hybrid_shadow.env  (hybrid_shadow=on; shadow_lock=on; shadow_pm=on).  Refuses to run on a dead CLI / changed detector (logged, nothing at risk).
+  Self-gate: LOCKSHADOW exists only while the live robot locks (live self-gate ends 2026-10-30T21:00Z). PM-shadow has NO end date: it outlives the live self-gate on purpose (the live
+  robot's afternoon is never exercised, so this is the only forward afternoon evidence there will be) - the operator can switch it off with shadow_pm=off.
+COST: PM 77 calls/day (~3M billable tokens/day at the ~40k/call implied by 6.3M per 138-call day), LOCKSHADOW ~60-80 calls on a lock day. Weekly meter was ~19M of 410M at declaration.
+Files: scripts/hybrid_shadow.py, tests/test_hybrid_shadow.py, ops/systemd/gazbot7-hybrid-shadow{,-grade}.{service,timer}.
+No commit, no restart of any long-running service (gazbot7-web is NOT touched).

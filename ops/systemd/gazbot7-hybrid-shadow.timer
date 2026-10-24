@@ -1,0 +1,12 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 no-press shadows cadence (every 5 min Mon-Fri; the script owns the window edges and which arm is live)
+
+[Timer]
+# Wider than any window: scripts/hybrid_shadow.py picks the arm by minute-of-day (02:00-13:30Z LOCKSHADOW, 13:30-19:55Z PM-shadow).
+# :50 = half a minute after the live robot's :20 tick, so the two headless Claude calls never start together.
+OnCalendar=Mon..Fri 02..19:00/5:50
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

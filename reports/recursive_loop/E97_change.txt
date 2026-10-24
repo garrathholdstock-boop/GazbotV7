@@ -1,0 +1,7 @@
+E97 - OPTION 2: AUTO-FLATTEN ANY STILL-OPEN MORNING POSITION AT 13:30Z (replay only), declared 2026-10-15 before any number.
+Operator go: "Test option 2".  Question: does cutting what is still open at 13:30Z beat letting it ride to 20:40Z?
+Re-scores the SAME recorded Claude S1b morning entries (E81/E85/E88 day records, 25 days) with the SAME engine F, ladder all4@+37.5, with-leg + 05:00 Paris veto, IDEAL fills. NO new Claude calls.
+ARMS (own arms, never pooled with the live v1.02):  A = control, flat 20:40Z (as shipped).  B = flat everything open at 13:30Z.  C = flat at 13:30Z ONLY IF the trade is red at 13:30Z (total mark incl. lots already sold < 0), else ride to 20:40Z.
+READING FIXED NOW: counts first (entries open at 13:30Z, red vs green); then $/day, days positive, worst day, worst entry; holdout (Sep 14-18) shown separately and pooled 25 labelled non-independent. Point estimate first; n labelled; PROMISING needs >=10 affected entries; nothing fitted (no threshold is tuned: B and C are the only two arms).
+Also reported: what the 13:30Z-open entries went on to do 13:30->20:40 (the cost/benefit of the cut), and the interaction with the afternoon (E96 is not added).
+No live file, switch, timer, request file or rider state is touched. Script: E78_code/e97_floor.py. Results: E97_result.txt.

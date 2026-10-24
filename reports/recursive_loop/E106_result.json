@@ -1,0 +1,162 @@
+{
+ "arm": "v1.02-LIVE+POSTLOCK-sim",
+ "days": [
+  "2026-10-21",
+  "2026-10-22",
+  "2026-10-23"
+ ],
+ "bad": {},
+ "per_day": {
+  "2026-10-21": {
+   "cut": "lock 08:50Z",
+   "live_to_cut": {
+    "entries": 4,
+    "usd": 1178.98,
+    "free_after": "08:53"
+   },
+   "live_as_ran": {
+    "entries": 4,
+    "usd": 1178.98,
+    "after_cut": []
+   },
+   "sim": {
+    "calls": 133,
+    "errors": 0,
+    "claude_entries": 15,
+    "with_leg": 10,
+    "blocked_by_live_pos": 1,
+    "entries": 5,
+    "wins": 4,
+    "total": 592,
+    "list": [
+     {
+      "t": "09:50",
+      "usd": 320,
+      "lots_hit": 4
+     },
+     {
+      "t": "11:30",
+      "usd": 274,
+      "lots_hit": 4
+     },
+     {
+      "t": "15:00",
+      "usd": 348,
+      "lots_hit": 4
+     },
+     {
+      "t": "15:25",
+      "usd": 340,
+      "lots_hit": 4
+     },
+     {
+      "t": "16:55",
+      "usd": -690,
+      "lots_hit": 0
+     }
+    ]
+   },
+   "combined": {
+    "entries": 9,
+    "usd": 1770.94
+   }
+  },
+  "2026-10-22": {
+   "cut": "first lock 05:25Z",
+   "live_to_cut": {
+    "entries": 3,
+    "usd": 886.98,
+    "free_after": "05:40"
+   },
+   "live_as_ran": {
+    "entries": 5,
+    "usd": 1424.48,
+    "after_cut": [
+     {
+      "t": "06:25",
+      "usd": 283.5
+     },
+     {
+      "t": "10:40",
+      "usd": 254.0
+     }
+    ]
+   },
+   "sim": {
+    "calls": 174,
+    "errors": 0,
+    "claude_entries": 14,
+    "with_leg": 10,
+    "blocked_by_live_pos": 1,
+    "entries": 5,
+    "wins": 5,
+    "total": 1594,
+    "list": [
+     {
+      "t": "07:10",
+      "usd": 346,
+      "lots_hit": 4
+     },
+     {
+      "t": "08:55",
+      "usd": 302,
+      "lots_hit": 4
+     },
+     {
+      "t": "15:10",
+      "usd": 322,
+      "lots_hit": 4
+     },
+     {
+      "t": "18:00",
+      "usd": 312,
+      "lots_hit": 4
+     },
+     {
+      "t": "18:30",
+      "usd": 312,
+      "lots_hit": 4
+     }
+    ]
+   },
+   "combined": {
+    "entries": 8,
+    "usd": 2480.94
+   }
+  },
+  "2026-10-23": {
+   "cut": "no lock; live window ended 13:30Z",
+   "live_to_cut": {
+    "entries": 3,
+    "usd": 904.0,
+    "free_after": "14:50"
+   },
+   "live_as_ran": {
+    "entries": 3,
+    "usd": 904.0,
+    "after_cut": []
+   },
+   "sim": {
+    "calls": 77,
+    "errors": 0,
+    "claude_entries": 10,
+    "with_leg": 2,
+    "blocked_by_live_pos": 1,
+    "entries": 1,
+    "wins": 1,
+    "total": 286,
+    "list": [
+     {
+      "t": "18:50",
+      "usd": 286,
+      "lots_hit": 4
+     }
+    ]
+   },
+   "combined": {
+    "entries": 4,
+    "usd": 1190.04
+   }
+  }
+ }
+}

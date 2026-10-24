@@ -1,0 +1,20 @@
+
+######## HOLDOUT Sep 14-18 (confirmation)  (5 days)
+entries 20; still open at 13:30Z (result differs if cut) 4: red at 13:30 4, green/flat at 13:30 0
+  of the 4 red-at-13:30: ride-to-20:40 total $1,328 vs cut $-2,914; recovered to profit 4/4
+  of the 0 green-at-13:30: ride total $0 vs cut $0
+  A control, ride to 20:40Z      $ 1,250/d  +days 5/5  worst day $   944  median $ 1,284
+  B cut everything at 13:30Z     $   401/d  +days 3/5  worst day $  -364  median $   276
+  C cut only if red at 13:30Z    $   401/d  +days 3/5  worst day $  -364  median $   276
+  worst entry: A $282  B $-1,334
+  affected entries (day, A ride, B cut): [('09-15', 314, -1334), ('09-16', 362, -354), ('09-17', 316, -254), ('09-18', 336, -972)]
+
+######## POOLED recorded days (NOT independent: ladder picked on 20 of them)  (25 days)
+entries 94; still open at 13:30Z (result differs if cut) 18: red at 13:30 16, green/flat at 13:30 2
+  of the 16 red-at-13:30: ride-to-20:40 total $-1,016 vs cut $-12,762; recovered to profit 12/16
+  of the 2 green-at-13:30: ride total $544 vs cut $298
+  A control, ride to 20:40Z      $   925/d  +days 23/25  worst day $-2,312  median $ 1,242
+  B cut everything at 13:30Z     $   446/d  +days 15/25  worst day $-1,682  median $   384
+  C cut only if red at 13:30Z    $   455/d  +days 15/25  worst day $-1,682  median $   384
+  worst entry: A $-2,918  B $-1,682
+  affected entries (day, A ride, B cut): [('08-24', 182, -652), ('08-26', 308, -744), ('08-27', 308, -1016), ('08-28', 384, -484), ('09-15', 314, -1334), ('09-16', 362, -354), ('09-17', 316, -254), ('09-18', 336, -972), ('09-21', 358, -222), ('09-22', 290, -1086), ('09-24', 254, 220), ('09-25', -640, -1378), ('09-28', 294, -1232), ('10-01', -790, -678), ('10-05', -2918, -654), ('10-06', 358, -20), ('10-07', -478, -1682), ('10-08', 290, 78)]

@@ -1,0 +1,42 @@
+HYBRID ROBOT — WEEKLY PACK 2026-W42  (generated 2026-10-18T20:50:00.158623+00:00)
+
+ARM v1.02+LOCK · this_week: 2 session(s), 7 entries, net $-4586.00  (4 closed by the operator's hands) mean $-2293.00/day · median $-2293.00 · positive 0/2 · worst $-3951.50 · best $-634.50 · CV 0.72
+ARM v1.02+LOCK · cumulative: 2 session(s), 7 entries, net $-4586.00  (4 closed by the operator's hands) mean $-2293.00/day · median $-2293.00 · positive 0/2 · worst $-3951.50 · best $-634.50 · CV 0.72
+   target grid on 7 real entr(ies), $/entry ideal: 12.5pt:+94  25.0pt:+194  37.5pt:-682  50.0pt:-596  62.5pt:-1479  75.0pt:-1408  100.0pt:-2229
+   candidates by category (mean cf@37.5 $/entry, n, reached%): VETOED_BEFORE_05_PARIS +294 n=18 100% · PRESSED -687 n=7 86% · NOT_WITH_LEG -98 n=16 94% · SKIPPED_HOLDING -3084 n=2 50%
+   health this week: {'2026-10-15': 'WARN', '2026-10-16': 'OK', '2026-10-17': 'OK', '2026-10-18': 'OK'} · Claude calls 276 (errors 0)
+
+   THE DISCIPLINE TABLE — this week's days, best → worst (normal robot, no early cut; REAL ledger + 5s tape)
+   day         day$  @13:30  trades  open at 13:30Z (side, entered, px, lots)     pos@13:30   pos@18:00   pos@20:40  pos-low>13:30   day-low
+   --------------------------------------------------------------------------------------------------------------------------------------------
+   2026-10-15     -634    -634       5  flat                                                    -           -           -              -     -2131
+   2026-10-16    -3952    -766      10  LONG  04:00Z 30197.75 x1                            -1362       -4547       -4547          -4698     -4102
+   Reading: pos columns are ONE position's total (lots already sold at +37.5 included); marks are 'if flattened now' (half-tick spread + $1.50/lot);
+   day-low is the deepest the whole day's book (booked + open) sat at any 5s bar. The point of the table: even the good days sat red first. Do not intervene.
+
+   RANKED SHORTLIST FOR SATURDAY (never applied):
+     1. [PROMISING] REMOVE the detector-leg filter (take Claude entries against the leg too) — against-the-leg entries average -97.9 $/entry counterfactual vs -1219.6 for with-the-leg (n=16)
+         The detector is FROZEN (sha af0ace53e6dc9faa); this tests whether it should remain a FILTER. Not a detector change.
+     2. [UNDERPOWERED] all-four-lots target 37.5pt → 25.0pt — +876.0 $/entry ideal-fill vs the shipped 37.5pt (replayed on the 7 real entries) (n=7)
+         ONE rule per iteration (L2); start from the champion verbatim (L1); a challenger must DOMINATE on days-positive, worst day and CV before $/day counts (L4). A target change is a rider-config change, not a brief change.
+     3. [PARKED (operator: leave it for now)] 05:00 Paris veto earlier/removed — PARKED BY THE OPERATOR 2026-10-14 (data only) — vetoed entries average +294.0 $/entry counterfactual (reached the target 100%) (n=18)
+         Not to be proposed unless the operator reopens it.
+     4. [DATA ONLY — the rider cannot take a second entry while holding (BUY-while-holding is a known-open bug)] stack a second position while the rider is holding (flat-only is the current rule) — entries skipped because the rider was busy average -3083.5 $/entry counterfactual (n=2)
+         Needs a rider change; operator-only.
+
+ARM v1.02-EXT · this_week: 1 session(s), 6 entries, net $+256.02  (1 closed by the operator's hands) mean $+256.02/day · median $+256.02 · positive 1/1 · worst $+256.02 · best $+256.02 · CV 0.0
+ARM v1.02-EXT · cumulative: 1 session(s), 6 entries, net $+256.02  (1 closed by the operator's hands) mean $+256.02/day · median $+256.02 · positive 1/1 · worst $+256.02 · best $+256.02 · CV 0.0
+   target grid on 6 real entr(ies), $/entry ideal: 12.5pt:-1  25.0pt:+82  37.5pt:+166  50.0pt:+249  62.5pt:+332  75.0pt:+317  100.0pt:+450
+   candidates by category (mean cf@37.5 $/entry, n, reached%): PRESSED +182 n=6 83% · SKIPPED_HOLDING +294 n=1 100%
+   health this week: {'2026-10-14': 'OK'} · Claude calls 59 (errors 0)
+   (discipline table: this week's day reports predate it; re-run `hybrid_nightly.py --day <d> --quiet` to fill it in)
+   RANKED SHORTLIST FOR SATURDAY (never applied):
+     1. [UNDERPOWERED] all-four-lots target 37.5pt → 100.0pt — +284.8 $/entry ideal-fill vs the shipped 37.5pt (replayed on the 6 real entries) (n=6)
+         ONE rule per iteration (L2); start from the champion verbatim (L1); a challenger must DOMINATE on days-positive, worst day and CV before $/day counts (L4). A target change is a rider-config change, not a brief change.
+     2. [DATA ONLY — the rider cannot take a second entry while holding (BUY-while-holding is a known-open bug)] stack a second position while the rider is holding (flat-only is the current rule) — entries skipped because the rider was busy average +294.0 $/entry counterfactual (n=1)
+         Needs a rider change; operator-only.
+
+policy: v1.02 and v1.02-EXT are separate arms and are NEVER pooled.
+policy: Nothing here is applied. The brief (BRIEF_V2) and the detector (K=11xATR14) stay frozen; a retune is Saturday-only, one rule per iteration, gated by bible.gate.
+policy: n is the number of REAL entries, not days: below 10 every counterfactual is UNDERPOWERED and a ranking is a story about noise (L10: counts before dollars).
+policy: Counterfactuals are ideal-fill on the 5s tape; the paper engine's 0.1% adverse fill on lots 2-4 flatters the real book and is not in them.

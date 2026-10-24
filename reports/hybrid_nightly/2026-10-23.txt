@@ -1,0 +1,60 @@
+HYBRID ROBOT v1.02 — NIGHTLY REVIEW 2026-10-23  [v1.02+LOCK]  VERDICT: OK
+generated 2026-10-23T20:50:00.156801+00:00
+
+  (no findings)
+
+COVERAGE  138/138 slots decided · missed 0 (feed 0, logged-crash 0, refused 0, unexplained 0)
+CALLS     n=138 errors=0 actions={'ENTER_SHORT': 15, 'WAIT': 66, 'ENTER_LONG': 5, 'HOLD': 44, 'EXIT': 8} conf̄=0.646 latency p50/p95/max=13.0/28.2/36.9s
+FUNNEL    ENTER signals 20 → with the leg 8 (against/none 12) · vetoed<05:00Paris 2 · stale 0 · rider busy 3 · other skips 0 → PRESSED 3 → filled 3
+LEDGER    net $+904.00 over 3 entries · lots 12 closed (12 by target, 0 other) · winners 3
+CLAUDE SIM book (own exits, not the real ladder): $-778.0 over 8 trade(s)
+  ENTRY 05:45:58Z BUY @ 29162.50  net $+294.00  MFE 163.2 / MAE 176.2pt  +125.8pt beyond the target  vs-ideal-37.5 0.0  exits TARGET_75
+      lot 1367 x1: TARGET_75   @ 29199.75 pnl +73.00 slip -0.25pt rung-lag 4.9s
+      lot 1368 x1: TARGET_75   @ 29200.0 pnl +73.50 slip 0.0pt rung-lag 5.4s
+      lot 1369 x1: TARGET_75   @ 29199.75 pnl +73.00 slip -0.25pt rung-lag 6.0s
+      lot 1370 x1: TARGET_75   @ 29200.5 pnl +74.50 slip 0.5pt rung-lag 6.5s
+      grid(4-lot ideal $): 12.5:+94  25.0:+194  37.5:+294  50.0:+394  62.5:+494  75.0:+594  100.0:+794
+  ENTRY 06:20:52Z BUY @ 29216.62  net $+332.50  MFE 109.1 / MAE 230.4pt  +71.6pt beyond the target  vs-ideal-37.5 38.5  exits TARGET_75
+      lot 1371 x1: TARGET_75   @ 29260.0 pnl +85.25 slip 5.88pt rung-lag 5.9s
+      lot 1372 x1: TARGET_75   @ 29260.75 pnl +86.75 slip 6.62pt rung-lag 6.4s
+      lot 1373 x1: TARGET_75   @ 29257.5 pnl +80.25 slip 3.38pt rung-lag 6.9s
+      lot 1374 x1: TARGET_75   @ 29257.5 pnl +80.25 slip 3.38pt rung-lag 7.5s
+      grid(4-lot ideal $): 12.5:+94  25.0:+194  37.5:+294  50.0:+394  62.5:+494  75.0:+594  100.0:+794
+  ENTRY 08:15:41Z BUY @ 29253.00  net $+277.50  MFE 72.8 / MAE 266.8pt  +35.2pt beyond the target  vs-ideal-37.5 -16.5  exits TARGET_75
+      lot 1375 x1: TARGET_75   @ 29289.0 pnl +70.50 slip -1.5pt rung-lag 1.9s
+      lot 1376 x1: TARGET_75   @ 29287.5 pnl +67.50 slip -3.0pt rung-lag 2.5s
+      lot 1377 x1: TARGET_75   @ 29288.0 pnl +68.50 slip -2.5pt rung-lag 3.0s
+      lot 1378 x1: TARGET_75   @ 29289.25 pnl +71.00 slip -1.25pt rung-lag 3.5s
+      grid(4-lot ideal $): 12.5:+94  25.0:+194  37.5:+294  50.0:+394  62.5:+494  75.0:-702  100.0:-702
+
+ENTER CANDIDATES (counterfactual = ideal 4-lot ladder @37.5 / flat 20:40Z):
+  02:00Z SELL VETOED_BEFORE_05_PARIS     conf 0.6  MFE 138/MAE 201  cf37 $+294  reached
+  02:05Z SELL VETOED_BEFORE_05_PARIS     conf 0.55  MFE 104/MAE 236  cf37 $+294  reached
+  02:30Z BUY  NOT_WITH_LEG               conf 0.55  MFE 174/MAE 166  cf37 $+294  reached
+  02:35Z BUY  NOT_WITH_LEG               conf 0.55  MFE 140/MAE 199  cf37 $+294  reached
+  04:40Z SELL NOT_WITH_LEG               conf 0.6  MFE 150/MAE 190  cf37 $+294  reached
+  04:45Z SELL NOT_WITH_LEG               conf 0.56  MFE 149/MAE 190  cf37 $+294  reached
+  04:50Z SELL NOT_WITH_LEG               conf 0.62  MFE 139/MAE 201  cf37 $+294  reached
+  04:55Z SELL NOT_WITH_LEG               conf 0.6  MFE 147/MAE 193  cf37 $+294  reached
+  05:05Z SELL NOT_WITH_LEG               conf 0.66  MFE 142/MAE 197  cf37 $+294  reached
+  05:10Z SELL NOT_WITH_LEG               conf 0.6  MFE 150/MAE 189  cf37 $+294  reached
+  05:15Z SELL NOT_WITH_LEG               conf 0.6  MFE 148/MAE 191  cf37 $+294  reached
+  05:30Z SELL NOT_WITH_LEG               conf 0.62  MFE 133/MAE 206  cf37 $+294  reached
+  05:45Z BUY  PRESS_BUY                  conf 0.58  MFE 157/MAE 183  cf37 $+294  reached
+  06:20Z BUY  PRESS_BUY                  conf 0.58  MFE 106/MAE 234  cf37 $+294  reached
+  07:45Z SELL NOT_WITH_LEG               conf 0.62  MFE 181/MAE 159  cf37 $+294  reached
+  08:15Z BUY  PRESS_BUY                  conf 0.62  MFE 85/MAE 255  cf37 $+294  reached
+  09:10Z SELL NOT_WITH_LEG               conf 0.6  MFE 229/MAE 111  cf37 $+294  reached
+  10:05Z SELL SKIPPED_HOLDING            conf 0.68  MFE 110/MAE 229  cf37 $+294  reached
+  10:55Z SELL SKIPPED_HOLDING            conf 0.6  MFE 113/MAE 226  cf37 $+294  reached
+  12:35Z SELL SKIPPED_HOLDING            conf 0.62  MFE 71/MAE 268  cf37 $+294  reached
+
+DETECTOR  sha_ok=True turns=25 replay-mismatches=0
+  leg DOWN pivot 22:24Z @29160.75  confirmed 23:40Z (+76.0min, 117.2pt in)  size so far 129.2pt
+  leg UP   pivot 00:10Z @29031.5  confirmed 02:39Z (+149.0min, 168.5pt in)  size so far 242.8pt
+  leg DOWN pivot 08:22Z @29274.25  confirmed 09:26Z (+64.0min, 123.8pt in)  size so far 265.2pt
+  leg UP   pivot 13:35Z @29009.0  confirmed 14:51Z (+76.0min, 283.2pt in)  size so far 309.5pt
+  leg DOWN pivot 14:52Z @29318.5  confirmed 17:34Z (+162.0min, 159.2pt in)  size so far 151.5pt
+
+note: Counterfactuals: 5s tape, +-5s, ideal fills, no stop, flat at 20:40Z. The paper engine's 0.1% adverse fill on lots 2-4 is NOT in them.
+note: PRESS_RESULT in hybrid_robot.jsonl is unreliable (reads the rider before it saves); the ledger is used instead.

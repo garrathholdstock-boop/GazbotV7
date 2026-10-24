@@ -1,0 +1,251 @@
+{
+ "robot": "GazBot V8 Robo",
+ "version": "1.02",
+ "day": "2026-10-22",
+ "partial_from": null,
+ "claude_sim_trades": [
+  {
+   "side": "SHORT",
+   "entry": 29636.88,
+   "exit": 29612.88,
+   "opened": "2026-10-22T03:35:00+00:00",
+   "closed": "2026-10-22T04:25:00+00:00",
+   "held_min": 50.0,
+   "points": 24.0,
+   "peak_pt": 34.88,
+   "pnl_usd": 186.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 204-minute down leg is still driving \u2014 the current 15-min bar swept a fresh session low and closed on it \u2014 so I join it short, late and with the leg, for 20-30 points.",
+   "peak_1m": 34.88
+  },
+  {
+   "side": "LONG",
+   "entry": 29526.12,
+   "exit": 29491.12,
+   "opened": "2026-10-22T10:40:00+00:00",
+   "closed": "2026-10-22T11:10:00+00:00",
+   "held_min": 30.0,
+   "points": -35.0,
+   "peak_pt": 15.12,
+   "pnl_usd": -286.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 10-hour down leg bottomed at 29416 nearly two hours ago and price has since ground up with higher lows and higher highs (29424\u219229544), the last bar driving +60pt, so I am joining the proven turn l",
+   "peak_1m": 15.12
+  },
+  {
+   "side": "SHORT",
+   "entry": 29487.88,
+   "exit": 29461.88,
+   "opened": "2026-10-22T11:20:00+00:00",
+   "closed": "2026-10-22T11:25:00+00:00",
+   "held_min": 5.0,
+   "points": 26.0,
+   "peak_pt": 32.62,
+   "pnl_usd": 202.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The day's 13-hour down leg is still the structure; the 10:20-10:35 bounce to 29546 has been fully undone by three straight red 15-min bars back under 29490, so I'm joining the proven down direction la",
+   "peak_1m": 32.62
+  },
+  {
+   "side": "LONG",
+   "entry": 29522.62,
+   "exit": 29535.62,
+   "opened": "2026-10-22T12:35:00+00:00",
+   "closed": "2026-10-22T12:50:00+00:00",
+   "held_min": 15.0,
+   "points": 13.0,
+   "peak_pt": 26.38,
+   "pnl_usd": 98.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 8-hour down leg bottomed at 29446 and the tape has turned up with higher highs and higher lows for the last hour (29446\u219229492\u219229515 lows, 29493\u219229547\u219229554 highs), so I'm joining the proven new up",
+   "peak_1m": 26.38
+  },
+  {
+   "side": "SHORT",
+   "entry": 29489.88,
+   "exit": 29495.38,
+   "opened": "2026-10-22T13:05:00+00:00",
+   "closed": "2026-10-22T13:25:00+00:00",
+   "held_min": 20.0,
+   "points": -5.5,
+   "peak_pt": 23.12,
+   "pnl_usd": -50.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The counter-trend bounce to 29554 has been fully undone in one 15-min bar back to 29490, so the day's dominant down leg is running again and I'm joining it late with 25 minutes to harvest 20-30 points",
+   "peak_1m": 23.12
+  }
+ ],
+ "claude_sim_net_usd": 150.0,
+ "presses": [
+  {
+   "decision_ts": "2026-10-22T03:00:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-22T03:00:35.767560+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": null
+  },
+  {
+   "decision_ts": "2026-10-22T03:35:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-22T03:35:28.833741+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 29682.75
+  },
+  {
+   "decision_ts": "2026-10-22T04:40:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-22T04:40:28.035328+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 29630.25
+  },
+  {
+   "decision_ts": "2026-10-22T06:25:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-22T06:25:30.632238+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 29587.5625
+  },
+  {
+   "decision_ts": "2026-10-22T10:40:00+00:00",
+   "side": "BUY",
+   "request": "2026-10-22T10:40:44.217353+00:00|BUY|4|75,75,75,75",
+   "consumed": true,
+   "entry": 29529.75
+  }
+ ],
+ "sim_reconciled": [
+  {
+   "decision_ts": "2026-10-22T02:05:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29753.375,
+   "sim_opened": "2026-10-22T02:00:00+00:00",
+   "px": 29749.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:10:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29749.125,
+   "sim_opened": "2026-10-22T02:05:00+00:00",
+   "px": 29736.5,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:15:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29736.375,
+   "sim_opened": "2026-10-22T02:10:00+00:00",
+   "px": 29719.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:20:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29718.875,
+   "sim_opened": "2026-10-22T02:15:00+00:00",
+   "px": 29694.5,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:25:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29694.375,
+   "sim_opened": "2026-10-22T02:20:00+00:00",
+   "px": 29703.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:30:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29703.125,
+   "sim_opened": "2026-10-22T02:25:00+00:00",
+   "px": 29697.75,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:35:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29697.625,
+   "sim_opened": "2026-10-22T02:30:00+00:00",
+   "px": 29699.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:40:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29699.125,
+   "sim_opened": "2026-10-22T02:35:00+00:00",
+   "px": 29710.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:45:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29709.875,
+   "sim_opened": "2026-10-22T02:40:00+00:00",
+   "px": 29684.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:50:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29683.875,
+   "sim_opened": "2026-10-22T02:45:00+00:00",
+   "px": 29688.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T02:55:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29688.125,
+   "sim_opened": "2026-10-22T02:50:00+00:00",
+   "px": 29675.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T03:00:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29675.125,
+   "sim_opened": "2026-10-22T02:55:00+00:00",
+   "px": 29687.75,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T03:35:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29687.625,
+   "sim_opened": "2026-10-22T03:00:00+00:00",
+   "px": 29637.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T04:40:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29590.875,
+   "sim_opened": "2026-10-22T04:35:00+00:00",
+   "px": 29587.5,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T06:25:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29587.375,
+   "sim_opened": "2026-10-22T04:40:00+00:00",
+   "px": 29531.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-22T09:55:00+00:00",
+   "side": "SELL",
+   "sim_entry": 29531.125,
+   "sim_opened": "2026-10-22T06:25:00+00:00",
+   "px": 29459.0,
+   "real": "FLAT"
+  }
+ ],
+ "calls": 85,
+ "errors": 0,
+ "error_rate": 0.0,
+ "poisoned": false,
+ "brief_sha": "e24645d20fa76e8b"
+}

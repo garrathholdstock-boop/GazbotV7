@@ -1,0 +1,15 @@
+E105 v1.02-NOLOCK-replay - the hybrid over the WHOLE session 02:00Z-19:55Z, 4 lots all out at +37.5pt, no stop, flat 20:40Z, engine F, IDEAL fills. Each day starts FLAT. REPLAY, not forward.
+days scored 3/3; unscored: none
+
+day         calls err claudeE withleg | NO-LOCK: ent win     AM$     PM$   total$ | WITH-LOCK(replay):  lock@ ent       $ | LIVE: ent        $
+2026-10-21    215   1      24      15 | NO-LOCK:   3   2  -1,262       0   -1,262 | WITH-LOCK(replay):   none   3  -1,262 | LIVE:   4 1,178.98
+2026-10-22    215   0      22      15 | NO-LOCK:   9   9   1,766     962    2,728 | WITH-LOCK(replay): 07:48Z   4   1,212 | LIVE:   5 1,424.48
+2026-10-23    215   0      31      12 | NO-LOCK:   5   4      40       0       40 | WITH-LOCK(replay): 12:36Z   4   1,200 | LIVE:   3   904.00
+TOTAL                                 | NO-LOCK total $1,506 | WITH-LOCK(replay) total $1,150 | LIVE total $3,507.46
+
+ENTRY LIST (no-lock replay): day time $ lots-on-target
+  2026-10-21: 04:55Z $398 (4/4); 05:45Z $316 (4/4); 08:55Z $-1,976 (0/4)
+  2026-10-22: 03:35Z $320 (4/4); 05:25Z $260 (4/4); 06:45Z $324 (4/4); 07:20Z $308 (4/4); 08:10Z $262 (4/4); 09:45Z $292 (4/4); 15:10Z $322 (4/4); 18:05Z $346 (4/4); 19:10Z $294 (4/4)
+  2026-10-23: 03:55Z $280 (4/4); 06:30Z $316 (4/4); 09:55Z $304 (4/4); 12:10Z $300 (4/4); 13:15Z $-1,160 (0/4)
+
+CAVEATS: n=3 days = a story, not a result. Replay != live: Claude's replay calls differ from the live ones (replay page, sampling) so the replay's entries are NOT the live entries; ideal fills (paper fabricates 0.1% on lots 2-4); flat start 02:00Z; nothing tuned; arms never pooled; lock in the replay is approximated from 5s marks (realised + open 4-lot mark, spread and fee included), and is NOT the live robot's own lock clock. Live column = ledger from reports/hybrid_nightly (includes paper fills and the 10-21 never-filled press / 10-22 8-lot FAULT).

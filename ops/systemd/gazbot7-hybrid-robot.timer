@@ -1,0 +1,14 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 hybrid robot cadence (every 5 min Mon-Fri; the script owns the 02:00-13:30Z window edges)
+
+[Timer]
+# The window lives in scripts/hybrid_robot.py (same WIN_START/WIN_END as the sim that scored it); this timer is deliberately
+# wider. :20 = after the boundary minute's last 5s bar has landed, clear of the rider's *:*:05 tick.
+OnCalendar=Mon..Fri 02..13:00/5:20
+# E90 one-off: the 2026-10-14 afternoon extension (14:55-19:55Z). Expired after that date; delete this line then.
+OnCalendar=2026-10-14 14..19:00/5:20
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

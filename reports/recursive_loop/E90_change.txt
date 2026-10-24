@@ -1,0 +1,17 @@
+E90 — GazBot V8 Robo 1.02: ONE-OFF AFTERNOON EXTENSION, 2026-10-14 (declared 14:59Z, before the first afternoon decision)
+
+CHANGE (operator: "make it live for the rest of today on paper and lets see"):
+  START_AFTER 2026-10-14T22:00Z -> 14:55Z; for the session 2026-10-14 ONLY the window ends 19:55Z (last decision 19:50Z) instead of
+  13:30Z; the page Claude reads is rewritten for that session only (13:30Z -> 19:55Z, minutes-left recomputed) so it is not told the
+  window is over. Timer gets one extra OnCalendar line for that date. Nothing else changes: same BRIEF_V2 (empty rules), same detector
+  leg filter, 05:00 Paris veto (already satisfied), flat-only, re-entry allowed, +37.5pt x4, rider flat at 20:40Z.
+
+WHAT THIS IS NOT: 14:55-19:55Z was NEVER replayed (S.WIN_END_MIN=13:30Z). The US cash open and afternoon are higher-volatility and
+outside the 25-day replay and the 5-day holdout. This is an UNVALIDATED extension, a first look, n=1 session.
+  - the day is PARTIAL (first decision ~15:00Z, partial_from set in the day record, sim book starts flat mid-session)
+  - its P&L is NEVER pooled with the 02:00-13:30Z forward sessions from 2026-10-15; read it as its own arm ("v1.02-EXT")
+  - any verdict from one afternoon is a story, not a result
+
+KILL: data/hybrid_robot.env -> hybrid_robot=off. Expires by itself: EXT_KEY is the date, and the script reverts to 13:30Z on 10-15.
+RISK: paper only. Rider flat 20:40Z. Paper 0.1% adverse fill on lots 2-4 flatters multi-lot dollars.
+Tests: tests/test_hybrid_robot.py (26) + tests/test_leg_robot.py pass.

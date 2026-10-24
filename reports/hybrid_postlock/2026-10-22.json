@@ -1,0 +1,101 @@
+{
+ "schema": 1,
+ "generated_at": "2026-10-24T19:35:39.844335+00:00",
+ "day": "2026-10-22",
+ "weekday": "Thu",
+ "locks": [
+  {
+   "decision_ts": "2026-10-22T05:25:00+00:00",
+   "touched_at": "2026-10-22T05:24:45+00:00",
+   "peak": 1016.0,
+   "equity_now": 984.0
+  },
+  {
+   "decision_ts": "2026-10-22T06:30:00+00:00",
+   "touched_at": "2026-10-22T06:28:30+00:00",
+   "peak": 1054.98,
+   "equity_now": 900.98
+  }
+ ],
+ "live": {
+  "cut": "05:25",
+  "cut_label": "first DAY_LOCK 05:25Z",
+  "to_cut": {
+   "entries": 3,
+   "usd": 886.98,
+   "list": [
+    {
+     "t": "03:00",
+     "decision_ts": "2026-10-22T03:00:00+00:00",
+     "side": "SELL",
+     "usd": 261.5
+    },
+    {
+     "t": "03:35",
+     "decision_ts": "2026-10-22T03:35:00+00:00",
+     "side": "SELL",
+     "usd": 296.0
+    },
+    {
+     "t": "04:40",
+     "decision_ts": "2026-10-22T04:40:00+00:00",
+     "side": "SELL",
+     "usd": 329.48
+    }
+   ]
+  },
+  "as_ran": {
+   "entries": 5,
+   "usd": 1424.48
+  },
+  "after_lock_live_presses": [
+   {
+    "t": "06:25",
+    "decision_ts": "2026-10-22T06:25:00+00:00",
+    "side": "SELL",
+    "usd": 283.5
+   },
+   {
+    "t": "10:40",
+    "decision_ts": "2026-10-22T10:40:00+00:00",
+    "side": "BUY",
+    "usd": 254.0
+   }
+  ]
+ },
+ "arms": {
+  "LOCK": {
+   "status": "NO_DATA",
+   "n": 0,
+   "hits": 0,
+   "misses": 0,
+   "usd": 0.0,
+   "list": [],
+   "coverage": "0/0 slots",
+   "poisoned": false
+  },
+  "PM": {
+   "status": "NO_DATA",
+   "n": 0,
+   "hits": 0,
+   "misses": 0,
+   "usd": 0.0,
+   "list": [],
+   "coverage": "0/0 slots",
+   "poisoned": false
+  }
+ },
+ "combined": {
+  "entries": 3,
+  "usd": 886.98,
+  "sim_entries": 0,
+  "sim_usd": 0.0,
+  "delta_vs_live_as_ran": -537.5,
+  "sim_arms_scored": true
+ },
+ "flags": [
+  "LOCK_LEAK x2",
+  "LOCK_RELATCH x2",
+  "SHADOW_RECORD_MISSING"
+ ]
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 post-lock report, daily 21:00Z (after hybrid-nightly 20:50Z and shadow grade 20:56Z)
+
+[Timer]
+OnCalendar=*-*-* 21:00:00 UTC
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

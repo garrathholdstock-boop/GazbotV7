@@ -1,0 +1,13 @@
+E104 NO-PRESS SHADOWS - COUNTS FIRST, THEN DOLLARS. Arms are NEVER pooled. Ideal fills, 4 lots all out at +37.5pt, no stop, 20:40Z flat, $6 fee.
+Read-only forward collection: nothing here is a decision. No fitting / tuning / decision below 30 would-be entries per arm.
+
+== v1.02-LOCKSHADOW ==   [NO DATA]
+  entries 0 over 0 scored days (active 0, poisoned none); hits 0, MISSES 0, P(miss) n/a; break-even P(miss) n/a (needs >=3 misses)
+  TAIL worst 5 entries (net $, day, time): none; worst MAE Nonept
+  $/day at 4 lots None; days positive 0/0; worst day None; coverage 0/0 slots
+
+== v1.02-PM-shadow ==   [UNDERPOWERED (n<10)]
+  entries 1 over 1 scored days (active 1, poisoned none); hits 1, MISSES 0, P(miss) 0.0%; break-even P(miss) n/a (needs >=3 misses)
+  TAIL worst 5 entries (net $, day, time): [(294.0, '2026-10-23', '17:40')]; worst MAE 61.25pt
+  $/day at 4 lots 294.0; days positive 1/1; worst day 294.0; coverage 47/77 slots
+  by hour block (entry time): 13:30-16:00 n=0 miss=0 $0; 16:00-18:00 n=1 miss=0 $294.0; 18:00-19:55 n=0 miss=0 $0

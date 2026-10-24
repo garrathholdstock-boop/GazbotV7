@@ -1,0 +1,40 @@
+E98 - WIN-PAUSE replay for the hybrid robot (v1.02).  DECLARED BEFORE ANY NUMBER WAS RUN.  2026-10-16.
+(The brief called this E97; E97 is already taken by the 13:30Z auto-flatten study, so this is E98. E97 files untouched.)
+
+REPLAY ONLY. No live state touched, no Claude calls (cached S1b day records only: e81/e85/e88_s1b_<day>.json, 25 days),
+no commit, nothing in STATE.md. Engine = E88 "engine F": 5s bars, ideal fills (HALF spread + $1.5/RT), 4 lots all out at +37.5pt
+(P.FIX(37.5)*4), flat 20:40Z, flat-only, re-entry allowed, Claude entries gated exactly as v1.02 (side == detector dir at op-60,
+decision >= 05:00 Paris). Detector K=11xATR14 frozen. Script: E78_code/e98_pause.py
+
+ORIGIN: the operator's idea after the 2026-10-16 LONG-4 -$4.4k day: "a 2 win pause ... 1-2 hours to assess ... not the whole time ...
+each win after that also pauses 1-2 unless it's sure of a continuation or turn."  The pause DESIGN IS IN-SAMPLE (formed after seeing
+a bad day; Sep14-18 is the E88 holdout for the v1.02 ROBOT, not for this pause).
+
+PAUSE RULE (no real presses; Claude's sim calls continue, so the sim book is unchanged)
+  - A round trip is "a win" if its net P&L (4 lots, ideal fills, fees) > 0, evaluated at the bar its last lot exits.
+  - FIRST TRIGGER: at a winning exit, if (winning round trips this session incl. this one) >= 2 OR (session realised P&L incl. this one) >= +$500.
+  - AFTER the first trigger, EVERY winning exit re-triggers.   Losing exits never trigger.
+  - Pause runs from the winner's exit time for P minutes (60 or 120). Any Claude ENTER whose decision time falls in [exit, exit+P)
+    and is not released early is SUPPRESSED (it is never pressed). Normal gates still apply after release (side==detector dir,
+    05:00 Paris veto, flat-only).  A later trigger replaces the window (window = latest trigger).  "session" = the trading day, 22:00Z reopen.
+EARLY RELEASE (arms D, E, F; pre-declared, NOT tuned; first match inside the pause ends it; release time = that event's time)
+  - CONTINUATION: a CLOSED 15-min bar (UTC-aligned, bars from the 22:00Z reopen) closing after the pause start makes a new SESSION
+    extreme (high > every earlier 15m high for a LONG winner / low < every earlier 15m low for a SHORT winner) in the direction
+    of the last winner's side (the detector leg it was on).
+  - TURN: the frozen detector's confirmed direction (confirm time +60s, as claude_set does) at/after the pause start is the OPPOSITE of
+    the last winner's side.  (State-based: a flip that already happened during the winner's hold releases at once.)
+ARMS (each its own arm, NEVER pooled with v1.02)
+  A0  baseline v1.02 (reproduction check: holdout Sep14-18 all4@37.5 ~ $1,250/d 5/5; pooled-25 ~ $844/d; if not within rounding STOP)
+  B   pause 60, no early release          C   pause 120, no early release
+  D   pause 60 + early release            E   pause 120 + early release
+  F   D + red-only Claude EXIT            F0  A0 + red-only Claude EXIT (isolates the exit; no pause)
+RED-ONLY CLAUDE EXIT: when the real position is open and below entry (5s close < entry, before spread) at the bar of Claude's sim
+  CLAUDE_EXIT call for the SAME entry, close all lots there at that 5s close (ideal fill, same fee). Winners and flat positions untouched.
+  Sim calls exist only 02:00-13:30Z (138 calls/day; the one WINDOW_CLOSE_1330Z is not an EXIT call), so "honoured after 13:30Z"
+  cannot be computed from cached calls; the exit result is the inside-window result and is reported as such.
+JUDGING: bible.gate vs A0 (Law 0: days-positive, worst day, CV may not worsen, then $/day higher). Labels REFUTED/PROMISING/PROVEN.
+  Point estimate ($/day at 4 lots) first, then n (days AND entries), day-clustered bootstrap CI (fixed seed, resample days).
+  PROMISING requires >= 10 affected entries.  Report: days pause triggered, entries suppressed, suppressed entries' OWN P&L,
+  per-day delta vs A0 for all 25 days.
+CAVEATS stated up front: iteration bundles pause + early-release + exit (Law 2) -> isolated arms; pause design in-sample; pooled-25 not
+  independent (ladder picked on 20 of them); ideal fills; Claude calls are cached recorded decisions, not re-asked.

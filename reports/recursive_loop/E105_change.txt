@@ -1,0 +1,11 @@
+E105 - "WHAT IF THE $1000 LOCK HAD NOT STOPPED IT": the v1.02 hybrid over the WHOLE session 02:00Z-19:55Z on 2026-10-21, 10-22, 10-23 (replay only), declared 2026-10-24 before any call.
+Operator, verbatim: "Last week Wednesday to Friday were successful. They were the days we let it run automatically and we cut it off at $1000. I wanted you to simulate what would
+happen if we didn't lock off at $1000 and kept trading the whole session."  (E104 is a FORWARD collection and does not answer this; the E96 replay covered only 13:30-19:55 on older days.)
+ARM LABEL: v1.02-NOLOCK-replay. Own arm. NEVER pooled with the live v1.02+LOCK, E96 PM replay, or E104 shadows.
+WHAT IS RUN: same as E96 (sim_week_recursive, BRIEF_V2, empty rules, self-aware page, mil off, claude-sonnet-5, a call every 5 min) but ONE continuous window 02:00Z..19:50Z (214 calls/day),
+  "13:30Z" in the page rewritten to "19:55Z" as hybrid_robot.ext_text does. Scored with the E88/E96 engine: with-leg (frozen detector K=11xATR14) + 05:00 Paris veto + flat-only,
+  4 lots all out at +37.5pt, no stop, flat 20:40Z, engine F (5s), IDEAL fills.  Day starts FLAT at 02:00Z.
+READING (fixed now): (1) per day: replayed entries and $, split AM (<13:30Z) / PM; (2) the SAME replay with the lock applied (stop new entries once day equity first touches +$1000, marks
+  from the 5s tape) -> the lock's cost/benefit measured inside one replay, not against live; (3) the live ledger for the three days shown beside it, labelled: the replay's Claude calls differ
+  from the live ones (replay page, sampling), so replay != live, and ideal fills flatter paper.  n = 3 days: a story, not a result. No tuning, nothing applied.
+No live file, switch, timer, request file or rider state touched. Scripts: E78_code/e105_run.py, e105_score.py. Results: E105_result.txt.

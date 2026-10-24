@@ -1,0 +1,19 @@
+E106 v1.02-LIVE+POSTLOCK-sim - ACTUAL live entries up to the cut, then only the slots the live robot did not call are simulated (Claude S1b hybrid, 4 lots all out at +37.5pt, no stop, flat 20:40Z, engine F, IDEAL fills on the sim side). REPLAY after the cut, not forward.
+days scored 3/3; unscored: none
+
+day         cut                              | LIVE to cut: ent        $ | SIM after: calls claudeE withleg blocked ent win        $ | COMBINED ent        $ | LIVE as it ran ent        $
+2026-10-21  lock 08:50Z                      |                4    1,179 |              133      15      10       1   5   4      592 |            9    1,771 |                  4    1,179
+2026-10-22  first lock 05:25Z                |                3      887 |              174      14      10       1   5   5    1,594 |            8    2,481 |                  5    1,424
+2026-10-23  no lock; live window ended 13:30Z |                3      904 |               77      10       2       1   1   1      286 |            4    1,190 |                  3      904
+TOTAL                                        | live to cut $2,970 | sim after $2,472 | COMBINED $5,442 | live as it ran $3,507.46
+
+LIVE ENTRIES (actual): day time lots $ ; * = at/after the cut
+  2026-10-21: 04:40Z 4lots $293; 05:25Z 4lots $346; 05:40Z 4lots $278; 08:40Z 4lots $262
+  2026-10-22: 03:00Z 4lots $262; 03:35Z 4lots $296; 04:40Z 4lots $329; 06:25Z* 4lots $284; 10:40Z* 4lots $254
+  2026-10-23: 05:45Z 4lots $294; 06:20Z 4lots $332; 08:15Z 4lots $278
+SIM ENTRIES (after the cut): day time $ lots-on-target
+  2026-10-21: 09:50Z $320 (4/4); 11:30Z $274 (4/4); 15:00Z $348 (4/4); 15:25Z $340 (4/4); 16:55Z $-690 (0/4)
+  2026-10-22: 07:10Z $346 (4/4); 08:55Z $302 (4/4); 15:10Z $322 (4/4); 18:00Z $312 (4/4); 18:30Z $312 (4/4)
+  2026-10-23: 18:50Z $286 (4/4)
+
+CAVEATS: n=3 days = a story, not a result. Sim side starts FLAT at the cut and Claude is non-deterministic; ideal fills flatter the sim side only (the live side is actual paper fills). Sim entries before the last live lot was out are dropped (rider busy). Thu 22: the live lock leaked (06:25 and 10:40 entries after the 05:25 lock) - 'live to cut' excludes them, 'live as it ran' includes them. Fri 23 never locked: its sim is the PM after the live window. Open positions at 20:40Z flat are marked at the flat. Nothing tuned or applied.

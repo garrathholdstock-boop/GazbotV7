@@ -1,0 +1,20 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 — NO-PRESS SHADOWS (E104: v1.02-LOCKSHADOW past the +$1000 lock, v1.02-PM-shadow 13:30-19:55Z; log only, presses NOTHING)
+# Declared in reports/recursive_loop/E104_change.txt. Switches: data/hybrid_shadow.env (hybrid_shadow=, shadow_lock=, shadow_pm=).
+# ⚠ NO ORDER PATH AND NO REQUEST FILE: it writes only data/hybrid_shadow.jsonl, data/hybrid_shadow_state.json and reports/hybrid_shadow/*.
+#   tests/test_hybrid_shadow.py asserts that against the AST. It never writes day_rider_buy.txt, day_rider_claim.txt or any switch file.
+# ⚠ Reads the live robot's state/log read-only (to know when it locked); the live robot and the shadow never share a file they write.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+# ⚠ systemd's PATH does not include /root/.local/bin — a bare "claude" cost a whole day on 2026-10-05.
+Environment=CLAUDE_BIN=/root/.local/bin/claude
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=900M
+TimeoutStartSec=240
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_shadow.py --once
+SuccessExitStatus=0 1

@@ -1,0 +1,15 @@
+{
+ "schema": 1,
+ "generated_at": "2026-10-23T20:50:00.156801+00:00",
+ "key": "2026-10-23",
+ "arm": "v1.02+LOCK",
+ "verdict": "OK",
+ "faults": [],
+ "warns": [],
+ "infos": [],
+ "net_usd": 904.0,
+ "entries": 3,
+ "decided": 138,
+ "expected": 138,
+ "week_pack": "reports/hybrid_nightly/week_2026-W43.txt"
+}

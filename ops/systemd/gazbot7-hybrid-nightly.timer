@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 — hybrid nightly review, daily 20:50Z (after the 20:40Z hard flat)
+
+[Timer]
+# EVERY DAY, not Mon-Fri: the supervisor watches this timer with a 26h freshness window, and a weekday-only timer would false-fault
+# on Sunday evening. At the weekend the script refreshes the weekly pack (Saturday is the tuning day).
+# 20:50Z is after the 20:40Z flat and BEFORE the 21:00Z halt; capture.db is complete for the session and the ledger has closed every lot.
+OnCalendar=*-*-* 20:50:00 UTC
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

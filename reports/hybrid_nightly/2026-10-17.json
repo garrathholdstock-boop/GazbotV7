@@ -1,0 +1,91 @@
+{
+ "schema": 1,
+ "generated_at": "2026-10-17T20:50:00.163239+00:00",
+ "key": "2026-10-17",
+ "arm": "v1.02+LOCK",
+ "version": "1.02",
+ "verdict": "OK",
+ "health": [
+  {
+   "sev": "INFO",
+   "code": "NO_SESSION",
+   "msg": "2026-10-17 is a weekend \u2014 the hybrid does not run; weekly pack refreshed only."
+  }
+ ],
+ "coverage": {
+  "expected": 0,
+  "decided": 0,
+  "missed": 0,
+  "journal_ok": true,
+  "locked": 0,
+  "late_tick": 0,
+  "refused_or_preflight": 0,
+  "by_status": {},
+  "no_tick_at_all": 0,
+  "feed_explained": 0,
+  "refused": 0,
+  "crash_logged": 0,
+  "unexplained": 0,
+  "longest_unexplained_run": 0,
+  "unexplained_runs": [],
+  "extra_decisions": 0,
+  "switch_on_at_review": true
+ },
+ "calls": {
+  "n": 0,
+  "errors": 0,
+  "actions": {},
+  "conf_mean": null,
+  "latency_p50": null,
+  "latency_p95": null,
+  "latency_max": null,
+  "first": null,
+  "last": null
+ },
+ "funnel": {
+  "enter_signals": 0,
+  "with_leg": 0,
+  "not_with_leg": 0,
+  "vetoed_before_05_paris": 0,
+  "stale": 0,
+  "skipped_rider_busy": 0,
+  "skipped_other": 0,
+  "pressed": 0,
+  "filled_entries": 0
+ },
+ "candidates": [],
+ "presses": [],
+ "unattributed_entries": [],
+ "totals": {
+  "ledger_net_usd": 0.0,
+  "presses": 0,
+  "filled": 0,
+  "lots_closed": 0,
+  "lots_by_target": 0,
+  "lots_other_exit": 0,
+  "manual_exit_entries": 0,
+  "winners": 0
+ },
+ "flat_complete": true,
+ "discipline": {
+  "trades": 0,
+  "day_total_usd": 0.0,
+  "total_1330_usd": 0.0,
+  "pos": null,
+  "day_low_usd": null,
+  "complete": true
+ },
+ "claude_sim": null,
+ "detector": {
+  "ok": false,
+  "error": "no tape",
+  "sha_ok": true,
+  "n_turns": 0,
+  "legs": [],
+  "replay_mismatches": 0
+ },
+ "notes": [
+  "Counterfactuals: 5s tape, +-5s, ideal fills, no stop, flat at 20:40Z. The paper engine's 0.1% adverse fill on lots 2-4 is NOT in them.",
+  "PRESS_RESULT in hybrid_robot.jsonl is unreliable (reads the rider before it saves); the ledger is used instead."
+ ]
+}

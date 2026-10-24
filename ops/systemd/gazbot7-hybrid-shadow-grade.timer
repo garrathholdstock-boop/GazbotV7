@@ -1,0 +1,10 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 no-press shadows grade, daily 20:56Z (after the 20:40Z flat and hybrid-nightly's 20:50Z)
+
+[Timer]
+OnCalendar=*-*-* 20:56:00 UTC
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

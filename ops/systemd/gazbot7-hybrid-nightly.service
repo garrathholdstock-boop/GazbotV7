@@ -1,0 +1,20 @@
+[Unit]
+# GAZBOT V8 ROBO v1.02 — THE HYBRID'S NIGHTLY REVIEW (E92, 2026-10-14).
+# Operator: "nightly review, analysis and tuning of both detector and Claude only if need be. Perhaps the analysis is collected for
+# weekend tuning? Only critical things that are clearly broken or not working are fixed nightly?" -> HEALTH every night (FAULT pages
+# critical, nothing else does), ANALYSIS collected every night, the RANKED SHORTLIST is read on Saturday and never auto-applied.
+# ⚠ READ-ONLY, NO AUTHORITY: writes only inside reports/hybrid_nightly/. Repairs nothing, edits no brief, touches no detector, no switch
+# and no request file. tests/test_hybrid_nightly.py asserts that against the AST.
+# ⚠ Exit 3 means it found a FAULT and ALREADY PAGED — not a unit failure. Exit 1 (an import-time crash) and 2 (a caught crash) ARE failures.
+Description=GAZBOT V8 ROBO 1.02 — hybrid nightly review (health, analysis, Saturday pack)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+SuccessExitStatus=0 3
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_nightly.py
+TimeoutStartSec=300
+MemoryMax=600M

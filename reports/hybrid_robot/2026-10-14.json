@@ -1,0 +1,152 @@
+{
+ "robot": "GazBot V8 Robo",
+ "version": "1.02",
+ "day": "2026-10-14",
+ "partial_from": "2026-10-14T15:00:00+00:00",
+ "claude_sim_trades": [
+  {
+   "side": "SHORT",
+   "entry": 30429.88,
+   "exit": 30390.38,
+   "opened": "2026-10-14T15:05:00+00:00",
+   "closed": "2026-10-14T15:15:00+00:00",
+   "held_min": 10.0,
+   "points": 39.5,
+   "peak_pt": 50.38,
+   "pnl_usd": 310.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The day's dominant direction is down and leg 3 has just made a fresh low (30417.50) after a two-bar pause, so I'm joining the proven down leg late rather than calling a turn.",
+   "peak_1m": 50.38
+  },
+  {
+   "side": "SHORT",
+   "entry": 30378.12,
+   "exit": 30330.38,
+   "opened": "2026-10-14T15:35:00+00:00",
+   "closed": "2026-10-14T16:00:00+00:00",
+   "held_min": 25.0,
+   "points": 47.75,
+   "peak_pt": 57.38,
+   "pnl_usd": 376.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 105-minute down leg is still grinding with clean lower highs (30526>30511>30498>30439>30427) and has posted a fresh low at 30364.75 beyond where I exited, so I rejoin it late and short at 30378.",
+   "peak_1m": 57.38
+  },
+  {
+   "side": "SHORT",
+   "entry": 30312.12,
+   "exit": 30260.38,
+   "opened": "2026-10-14T16:10:00+00:00",
+   "closed": "2026-10-14T16:20:00+00:00",
+   "held_min": 10.0,
+   "points": 51.75,
+   "peak_pt": 76.12,
+   "pnl_usd": 408.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The all-day down leg just printed a fresh session low at 30301.75, below where my last short ran to, and closed near it \u2014 that re-proves the leg, so I rejoin short.",
+   "peak_1m": 76.12
+  },
+  {
+   "side": "SHORT",
+   "entry": 30218.38,
+   "exit": 30286.38,
+   "opened": "2026-10-14T16:25:00+00:00",
+   "closed": "2026-10-14T16:45:00+00:00",
+   "held_min": 20.0,
+   "points": -68.0,
+   "peak_pt": 20.62,
+   "pnl_usd": -550.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 573pt down leg is still driving and has printed a fresh extreme at 30214 \u2014 roughly 46pt below my last exit at 30260 \u2014 so this is a re-proven leg, not the stall I sold into.",
+   "peak_1m": 20.62
+  },
+  {
+   "side": "SHORT",
+   "entry": 30148.62,
+   "exit": 30187.88,
+   "opened": "2026-10-14T18:05:00+00:00",
+   "closed": "2026-10-14T18:15:00+00:00",
+   "held_min": 10.0,
+   "points": -39.25,
+   "peak_pt": 4.12,
+   "pnl_usd": -320.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The all-day down leg is still driving - fresh low at 30103 minutes ago after four straight lower 15-min bars - so I rejoin short with the proven direction on this small bounce off the low.",
+   "peak_1m": 4.12
+  },
+  {
+   "side": "SHORT",
+   "entry": 30098.62,
+   "exit": 30174.12,
+   "opened": "2026-10-14T19:05:00+00:00",
+   "closed": "2026-10-14T19:20:00+00:00",
+   "held_min": 15.0,
+   "points": -75.5,
+   "peak_pt": 12.62,
+   "pnl_usd": -610.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The all-day down leg just made a fresh low at 30088 and the 18:50 bar closed on its low, so I am joining the proven grind in its direction for a quick 20-30 points before the 19:55Z flatten.",
+   "peak_1m": 12.62
+  }
+ ],
+ "claude_sim_net_usd": -386.0,
+ "presses": [
+  {
+   "decision_ts": "2026-10-14T15:05:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-14T15:05:28.574631+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": null
+  },
+  {
+   "decision_ts": "2026-10-14T15:35:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-14T15:35:32.485923+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 30425.5
+  },
+  {
+   "decision_ts": "2026-10-14T16:10:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-14T16:10:34.041572+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 30384.25
+  },
+  {
+   "decision_ts": "2026-10-14T16:25:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-14T16:25:29.356726+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 30308.1875
+  },
+  {
+   "decision_ts": "2026-10-14T18:05:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-14T18:05:31.110038+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 30230.25
+  },
+  {
+   "decision_ts": "2026-10-14T19:05:00+00:00",
+   "side": "SELL",
+   "request": "2026-10-14T19:05:31.724354+00:00|SELL|4|75,75,75,75",
+   "consumed": true,
+   "entry": 30145.875
+  }
+ ],
+ "sim_reconciled": [
+  {
+   "decision_ts": "2026-10-14T18:05:00+00:00",
+   "side": "SELL",
+   "sim_entry": 30177.875,
+   "sim_opened": "2026-10-14T17:30:00+00:00",
+   "px": 30148.75,
+   "real": "FLAT"
+  }
+ ],
+ "calls": 59,
+ "errors": 0,
+ "error_rate": 0.0,
+ "poisoned": false,
+ "brief_sha": "e24645d20fa76e8b"
+}

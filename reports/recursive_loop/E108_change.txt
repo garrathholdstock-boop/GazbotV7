@@ -1,0 +1,20 @@
+E108 - NIGHTLY "LIVE-TO-LOCK + SIMULATE-AFTER" REPORT (declared 2026-10-24, BEFORE any run)
+Operator, 2026-10-24: "we should simulate this every night at close and report to me in the morning and then do a weekly including everything." Desk stays as is.
+
+WHAT: scripts/hybrid_postlock_report.py. ZERO Claude tokens, READ-ONLY. It does NOT re-run a Claude replay (E106 cost ~7.3M tokens a week-of-3-days);
+the forward E104 shadows already ARE the simulate-after, collected live at the live robot's own cadence. This only COMBINES three things per session:
+  1. LIVE to the lock   = the hybrid's ledger-attributed presses (reports/hybrid_nightly/<day>.json, ledger_net_usd) with decision_ts BEFORE the first DAY_LOCK
+                          (no lock -> the whole live window to 13:30Z)
+  2. SIM after the lock = reports/hybrid_shadow/<day>.json arm v1.02-LOCKSHADOW (only exists on locked sessions)
+  3. SIM afternoon      = arm v1.02-PM-shadow (13:30-19:55Z every weekday, flat start)
+  COMBINED = 1 + 2 + 3, shown beside "LIVE AS IT RAN". Arms are listed separately and NEVER pooled into a decision; combined is a narrative line.
+OUTPUTS (reports/hybrid_postlock/): <day>.json/.txt, latest.json (default day only), week_<ISO>.json/.txt + LATEST_WEEK.txt (Saturday pack: every day of the week,
+  the shadow SUMMARY, the nightly week shortlist pointer and the Saturday losers study LATEST.txt pointer).
+SCHEDULE: gazbot7-hybrid-postlock.timer 21:00Z daily (after nightly 20:50Z and shadow grade 20:56Z); gazbot7-hybrid-postlock-morning.timer 06:10 Europe/Paris, Persistent
+  (just after quiet hours; one NON-critical Telegram; CRITICAL only if the report is missing/stale on a weekday - a process cannot report its own absence).
+DISCIPLINE: counts before dollars; n labelled per arm; no decision/fitting below 30 would-be entries per arm (inherits E104); ideal-fill sim vs paper-fill live is stated.
+FLAGS (findings, never repairs): LOCK_LEAK = a live press with decision_ts at/after a DAY_LOCK (the Thursday 10-22 anomaly: lock latched 05:25Z, presses at 06:25Z and 10:40Z followed);
+  LOCK_RELATCH = more than one DAY_LOCK event in a session; SHADOW_MISSING_LOCK_ARM; POISONED arm; PARTIAL_TAPE.
+NOT TOUCHED: hybrid_robot.py (the lock leak is reported, not fixed - operator keeps the desk as is), any switch, request file, broker, the web service.
+AST-tested (tests/test_hybrid_postlock_report.py): no broker/subprocess, only the notify import for the morning send, every write inside reports/hybrid_postlock/, DBs not opened.
+BACKFILL CAVEAT: the shadows began 2026-10-23, so 10-21/10-22 have NO sim arms in this report (use E106_result.txt for those: live-to-cut +$2,970 / sim-after +$2,472 / combined +$5,442).

@@ -1,0 +1,232 @@
+{
+ "robot": "GazBot V8 Robo",
+ "version": "1.02",
+ "day": "2026-10-19",
+ "partial_from": null,
+ "claude_sim_trades": [
+  {
+   "side": "LONG",
+   "entry": 29738.62,
+   "exit": 29764.62,
+   "opened": "2026-10-19T03:00:00+00:00",
+   "closed": "2026-10-19T03:25:00+00:00",
+   "held_min": 25.0,
+   "points": 26.0,
+   "peak_pt": 34.38,
+   "pnl_usd": 202.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "A single 387pt up-leg has run all session and is still making fresh highs into 02:45, so I join it late in its proven direction.",
+   "peak_1m": 34.38
+  },
+  {
+   "side": "LONG",
+   "entry": 29774.88,
+   "exit": 29799.88,
+   "opened": "2026-10-19T03:30:00+00:00",
+   "closed": "2026-10-19T06:20:00+00:00",
+   "held_min": 170.0,
+   "points": 25.0,
+   "peak_pt": 30.12,
+   "pnl_usd": 194.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The up-grind made a fresh extreme at 29790 beyond where my last trade ran to, so the leg has re-proven itself and I am rejoining it on the small pullback to 29774.75.",
+   "peak_1m": 30.12
+  },
+  {
+   "side": "LONG",
+   "entry": 29802.62,
+   "exit": 29741.88,
+   "opened": "2026-10-19T06:25:00+00:00",
+   "closed": "2026-10-19T07:15:00+00:00",
+   "held_min": 50.0,
+   "points": -60.75,
+   "peak_pt": 3.38,
+   "pnl_usd": -492.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 8-hour grind is still driving and has printed a fresh extreme at 29813.50 above where my last trade ran to, so I rejoin the proven up-leg.",
+   "peak_1m": 3.38
+  },
+  {
+   "side": "SHORT",
+   "entry": 29723.12,
+   "exit": 29729.88,
+   "opened": "2026-10-19T07:55:00+00:00",
+   "closed": "2026-10-19T08:35:00+00:00",
+   "held_min": 40.0,
+   "points": -6.75,
+   "peak_pt": 23.12,
+   "pnl_usd": -60.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The all-day up leg topped at 29814 and has been grinding down for 90 minutes in lower highs and lower lows, with the 07:40 bar breaking to a new low and closing on it \u2014 I'm joining the turned leg in i",
+   "peak_1m": 23.12
+  },
+  {
+   "side": "SHORT",
+   "entry": 29699.62,
+   "exit": 29713.38,
+   "opened": "2026-10-19T08:50:00+00:00",
+   "closed": "2026-10-19T09:25:00+00:00",
+   "held_min": 35.0,
+   "points": -13.75,
+   "peak_pt": 17.38,
+   "pnl_usd": -116.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The leg running now is down ~115pt off 29814 with four lower highs (29800/29789/29782/29736) and the 08:20 bounce rejected and closed on its low, so I am joining a proven down leg late rather than cal",
+   "peak_1m": 17.38
+  },
+  {
+   "side": "LONG",
+   "entry": 29764.62,
+   "exit": 29707.62,
+   "opened": "2026-10-19T10:55:00+00:00",
+   "closed": "2026-10-19T11:10:00+00:00",
+   "held_min": 15.0,
+   "points": -57.0,
+   "peak_pt": 0.38,
+   "pnl_usd": -462.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The pullback to 29668 is fully undone and the tape has ground back up with higher highs into the close at 29764.50, so I'm joining the proven up leg late with ~30-50pt of headroom to the day's 29793-2",
+   "peak_1m": 0.38
+  },
+  {
+   "side": "SHORT",
+   "entry": 29686.12,
+   "exit": 29702.88,
+   "opened": "2026-10-19T11:40:00+00:00",
+   "closed": "2026-10-19T11:45:00+00:00",
+   "held_min": 5.0,
+   "points": -16.75,
+   "peak_pt": 0.0,
+   "pnl_usd": -140.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The last 45 minutes have broken the shape of the morning \u2014 29769 down to 29665 with three straight lower 15-min closes and the 29690 shelf that held all session now gone \u2014 so I am joining a proven dow",
+   "peak_1m": 0.0
+  },
+  {
+   "side": "LONG",
+   "entry": 29765.88,
+   "exit": 29776.88,
+   "opened": "2026-10-19T12:15:00+00:00",
+   "closed": "2026-10-19T13:15:00+00:00",
+   "held_min": 60.0,
+   "points": 11.0,
+   "peak_pt": 25.12,
+   "pnl_usd": 82.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 11:30 low at 29665 has turned and ground up for 45 minutes with rising lows and rising highs into a close near the session's upper shelf, which is with the day's up structure, so I join it late fo",
+   "peak_1m": 25.12
+  }
+ ],
+ "claude_sim_net_usd": -792.0,
+ "presses": [
+  {
+   "decision_ts": "2026-10-19T03:00:00+00:00",
+   "side": "BUY",
+   "request": "2026-10-19T03:00:26.426062+00:00|BUY|4|75,75,75,75",
+   "consumed": true,
+   "entry": 29742.75
+  },
+  {
+   "decision_ts": "2026-10-19T03:30:00+00:00",
+   "side": "BUY",
+   "request": "2026-10-19T03:30:28.298254+00:00|BUY|4|75,75,75,75",
+   "consumed": true,
+   "entry": 29742.75
+  }
+ ],
+ "sim_reconciled": [
+  {
+   "decision_ts": "2026-10-19T02:10:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29726.125,
+   "sim_opened": "2026-10-19T02:05:00+00:00",
+   "px": 29712.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:15:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29712.125,
+   "sim_opened": "2026-10-19T02:10:00+00:00",
+   "px": 29718.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:20:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29718.375,
+   "sim_opened": "2026-10-19T02:15:00+00:00",
+   "px": 29711.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:25:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29711.125,
+   "sim_opened": "2026-10-19T02:20:00+00:00",
+   "px": 29699.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:30:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29699.125,
+   "sim_opened": "2026-10-19T02:25:00+00:00",
+   "px": 29708.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:35:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29708.125,
+   "sim_opened": "2026-10-19T02:30:00+00:00",
+   "px": 29713.25,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:40:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29713.375,
+   "sim_opened": "2026-10-19T02:35:00+00:00",
+   "px": 29720.75,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:45:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29720.875,
+   "sim_opened": "2026-10-19T02:40:00+00:00",
+   "px": 29737.0,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:50:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29737.125,
+   "sim_opened": "2026-10-19T02:45:00+00:00",
+   "px": 29731.5,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T02:55:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29731.625,
+   "sim_opened": "2026-10-19T02:50:00+00:00",
+   "px": 29739.5,
+   "real": "FLAT"
+  },
+  {
+   "decision_ts": "2026-10-19T03:00:00+00:00",
+   "side": "BUY",
+   "sim_entry": 29739.625,
+   "sim_opened": "2026-10-19T02:55:00+00:00",
+   "px": 29738.5,
+   "real": "FLAT"
+  }
+ ],
+ "calls": 138,
+ "errors": 0,
+ "error_rate": 0.0,
+ "poisoned": false,
+ "brief_sha": "e24645d20fa76e8b"
+}

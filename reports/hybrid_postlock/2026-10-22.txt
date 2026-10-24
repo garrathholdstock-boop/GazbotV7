@@ -1,0 +1,11 @@
+E108 POST-LOCK REPORT 2026-10-22 (Thu) - counts first, then dollars. Live = paper fills; sim arms = IDEAL fills, 4 lots all out at +37.5pt, no stop, 20:40Z flat, $6 fee.
+Arms are listed separately and never pooled into a decision; COMBINED is a narrative line. Nothing here is a decision below 30 would-be entries per arm.
+
+LIVE   to cut [first DAY_LOCK 05:25Z]: 3 entries  $887   | live AS IT RAN: 5 entries  $1,424
+SIM    v1.02-LOCKSHADOW   [NO DATA] 0 entries (0 hit / 0 miss)  $0   status NO_DATA, coverage 0/0 slots
+SIM    v1.02-PM-shadow    [NO DATA] 0 entries (0 hit / 0 miss)  $0   status NO_DATA, coverage 0/0 slots
+COMBINED (live to cut + sims): 3 entries  $887    vs live as it ran $1,424   => lock saved $538
+LIVE entries to cut: 03:00Z SELL $262; 03:35Z SELL $296; 04:40Z SELL $329
+!! LOCK_LEAK - live presses AFTER the lock (the lock should have stopped these): 06:25Z SELL $284; 10:40Z BUY $254
+FLAGS: LOCK_LEAK x2, LOCK_RELATCH x2, SHADOW_RECORD_MISSING
+CAVEAT: n is days x arm shown above; a one-day sim is a story, not a result. Sims start flat at their window and do not inherit a live open position.

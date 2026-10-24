@@ -1,0 +1,49 @@
+HYBRID ROBOT v1.02 — NIGHTLY REVIEW 2026-10-19  [v1.02+LOCK]  VERDICT: OK
+generated 2026-10-19T20:50:00.156284+00:00
+
+  [INFO ] OPERATOR_EXIT: entry 03:30:30Z was closed by the OPERATOR's hands (MANUAL_CLAIM) — its P&L is the operator's exit, not the ladder's; keep it out of any ladder comparison.
+  [INFO ] UNATTRIBUTED_ENTRIES: 7 rider entries not made by the hybrid (his own hands or another robot) — excluded from the hybrid's numbers.
+
+COVERAGE  138/138 slots decided · missed 0 (feed 0, logged-crash 0, refused 0, unexplained 0)
+CALLS     n=138 errors=0 actions={'WAIT': 39, 'ENTER_LONG': 16, 'HOLD': 72, 'EXIT': 8, 'ENTER_SHORT': 3} conf̄=0.654 latency p50/p95/max=10.4/19.4/39.6s
+FUNNEL    ENTER signals 19 → with the leg 16 (against/none 3) · vetoed<05:00Paris 11 · stale 0 · rider busy 3 · other skips 0 → PRESSED 2 → filled 2
+LEDGER    net $+280.50 over 2 entries · lots 8 closed (4 by target, 4 other) · winners 1
+CLAUDE SIM book (own exits, not the real ladder): $-792.0 over 8 trade(s)
+  ENTRY 03:00:28Z BUY @ 29742.75  net $+290.50  MFE 240.5 / MAE 89.5pt  +203.0pt beyond the target  vs-ideal-37.5 -3.5  exits TARGET_75
+      lot 1282 x1: TARGET_75   @ 29780.5 pnl +74.00 slip 0.25pt rung-lag 6.0s
+      lot 1283 x1: TARGET_75   @ 29780.0 pnl +73.00 slip -0.25pt rung-lag 6.5s
+      lot 1284 x1: TARGET_75   @ 29779.5 pnl +72.00 slip -0.75pt rung-lag 7.0s
+      lot 1285 x1: TARGET_75   @ 29779.25 pnl +71.50 slip -1.0pt rung-lag 7.5s
+      grid(4-lot ideal $): 12.5:+94  25.0:+194  37.5:+294  50.0:+394  62.5:+494  75.0:+594  100.0:+794
+  ENTRY 03:30:30Z BUY @ 29779.00  net $-10.00  MFE 204.2 / MAE 125.8pt  +166.8pt beyond the target  vs-ideal-37.5 -304.0  exits MANUAL_CLAIM
+      lot 1286 x4: MANUAL_CLAIM @ 29778.5 pnl -10.00
+      grid(4-lot ideal $): 12.5:+94  25.0:+194  37.5:+294  50.0:+394  62.5:+494  75.0:+594  100.0:+794
+
+ENTER CANDIDATES (counterfactual = ideal 4-lot ladder @37.5 / flat 20:40Z):
+  02:05Z BUY  VETOED_BEFORE_05_PARIS     conf 0.66  MFE 257/MAE 73  cf37 $+294  reached
+  02:10Z BUY  VETOED_BEFORE_05_PARIS     conf 0.66  MFE 271/MAE 59  cf37 $+294  reached
+  02:15Z BUY  VETOED_BEFORE_05_PARIS     conf 0.66  MFE 265/MAE 65  cf37 $+294  reached
+  02:20Z BUY  VETOED_BEFORE_05_PARIS     conf 0.62  MFE 272/MAE 58  cf37 $+294  reached
+  02:25Z BUY  VETOED_BEFORE_05_PARIS     conf 0.6  MFE 284/MAE 46  cf37 $+294  reached
+  02:30Z BUY  VETOED_BEFORE_05_PARIS     conf 0.62  MFE 275/MAE 55  cf37 $+294  reached
+  02:35Z BUY  VETOED_BEFORE_05_PARIS     conf 0.6  MFE 270/MAE 60  cf37 $+294  reached
+  02:40Z BUY  VETOED_BEFORE_05_PARIS     conf 0.62  MFE 262/MAE 68  cf37 $+294  reached
+  02:45Z BUY  VETOED_BEFORE_05_PARIS     conf 0.62  MFE 246/MAE 84  cf37 $+294  reached
+  02:50Z BUY  VETOED_BEFORE_05_PARIS     conf 0.62  MFE 252/MAE 78  cf37 $+294  reached
+  02:55Z BUY  VETOED_BEFORE_05_PARIS     conf 0.66  MFE 244/MAE 86  cf37 $+294  reached
+  03:00Z BUY  PRESS_BUY                  conf 0.68  MFE 245/MAE 85  cf37 $+294  reached
+  03:30Z BUY  PRESS_BUY                  conf 0.66  MFE 208/MAE 122  cf37 $+294  reached
+  06:25Z BUY  SKIPPED_HOLDING            conf 0.72  MFE 181/MAE 149  cf37 $+294  reached
+  07:55Z SELL NOT_WITH_LEG               conf 0.62  MFE 70/MAE 260  cf37 $+294  reached
+  08:50Z SELL SKIPPED_HOLDING            conf 0.62  MFE 46/MAE 284  cf37 $+294  reached
+  10:55Z BUY  NOT_WITH_LEG               conf 0.62  MFE 219/MAE 111  cf37 $+294  reached
+  11:40Z SELL SKIPPED_HOLDING            conf 0.56  MFE 33/MAE 297  cf37 $-513  NOT reached
+  12:15Z BUY  NOT_WITH_LEG               conf 0.6  MFE 217/MAE 113  cf37 $+294  reached
+
+DETECTOR  sha_ok=True turns=14 replay-mismatches=0
+  leg DOWN pivot 06:20Z @29806.5  confirmed 08:45Z (+145.0min, 102.5pt in)  size so far 136.8pt
+  leg UP   pivot 11:32Z @29669.75  confirmed 12:32Z (+60.0min, 103.0pt in)  size so far 310.0pt
+  leg DOWN pivot 15:37Z @29979.75  confirmed 16:50Z (+73.0min, 160.0pt in)  size so far 230.8pt
+
+note: Counterfactuals: 5s tape, +-5s, ideal fills, no stop, flat at 20:40Z. The paper engine's 0.1% adverse fill on lots 2-4 is NOT in them.
+note: PRESS_RESULT in hybrid_robot.jsonl is unreliable (reads the rider before it saves); the ledger is used instead.

@@ -1,0 +1,58 @@
+E108 WEEKLY PACK 2026-W43 (through 2026-10-23) - everything in one place. Counts first, then dollars; arms never pooled into a decision.
+
+day           lock | LIVE to cut ent       $ | LOCKSHADOW  n       $ | PM-shadow  n       $ | COMBINED ent        $ | live as ran       $ | flags
+2026-10-21   08:50 |              4   1,179 |            0       0 |           0       0 |           4    1,179 |              1,179 | SHADOW_RECORD_MISSING
+2026-10-22   05:25 |              3     887 |            0       0 |           0       0 |           3      887 |              1,424 | LOCK_LEAK x2,LOCK_RELATCH x2,SHADOW_RECORD_MISSING
+2026-10-23       - |              3     904 |            0       0 |           1     294 |           4    1,198 |                904 | -
+WEEK               | live to cut $2,970 | LOCKSHADOW n=0 [NO DATA] | PM-shadow n=1 [UNDERPOWERED (n<10)] | COMBINED $3,264 | live as ran $3,507
+days 3; live presses after a lock: 2
+
+--- SHADOW ARMS (cumulative, reports/hybrid_shadow/SUMMARY.txt) ---
+E104 NO-PRESS SHADOWS - COUNTS FIRST, THEN DOLLARS. Arms are NEVER pooled. Ideal fills, 4 lots all out at +37.5pt, no stop, 20:40Z flat, $6 fee.
+Read-only forward collection: nothing here is a decision. No fitting / tuning / decision below 30 would-be entries per arm.
+
+== v1.02-LOCKSHADOW ==   [NO DATA]
+  entries 0 over 0 scored days (active 0, poisoned none); hits 0, MISSES 0, P(miss) n/a; break-even P(miss) n/a (needs >=3 misses)
+  TAIL worst 5 entries (net $, day, time): none; worst MAE Nonept
+  $/day at 4 lots None; days positive 0/0; worst day None; coverage 0/0 slots
+
+== v1.02-PM-shadow ==   [UNDERPOWERED (n<10)]
+  entries 1 over 1 scored days (active 1, poisoned none); hits 1, MISSES 0, P(miss) 0.0%; break-even P(miss) n/a (needs >=3 misses)
+  TAIL worst 5 entries (net $, day, time): [(294.0, '2026-10-23', '17:40')]; worst MAE 61.25pt
+  $/day at 4 lots 294.0; days positive 1/1; worst day 294.0; coverage 47/77 slots
+  by hour block (entry time): 13:30-16:00 n=0 miss=0 $0; 16:00-18:00 n=1 miss=0 $294.0; 18:00-19:55 n=0 miss=0 $0
+
+--- NIGHTLY WEEK SHORTLIST (reports/hybrid_nightly/LATEST_WEEK.txt, head) ---
+HYBRID ROBOT — WEEKLY PACK 2026-W43  (generated 2026-10-23T20:50:00.156801+00:00)
+
+ARM v1.02+LOCK · this_week: 5 session(s), 23 entries, net $+3562.98  (5 closed by the operator's hands) mean $+712.60/day · median $+904.00 · positive 4/5 · worst $-224.98 · best $+1424.48 · CV 0.85
+ARM v1.02+LOCK · cumulative: 7 session(s), 30 entries, net $-1023.02  (9 closed by the operator's hands) mean $-146.15/day · median $+280.50 · positive 4/7 · worst $-3951.50 · best $+1424.48 · CV 11.63
+   target grid on 30 real entr(ies), $/entry ideal: 12.5pt:+94  25.0pt:+194  37.5pt:+66  50.0pt:+163  62.5pt:-93  75.0pt:-46  100.0pt:-176
+   candidates by category (mean cf@37.5 $/entry, n, reached%): VETOED_BEFORE_05_PARIS +294 n=52 100% · PRESSED +72 n=31 97% · NOT_WITH_LEG +184 n=57 98% · SKIPPED_HOLDING -288 n=13 85%
+   health this week: {'2026-10-19': 'OK', '2026-10-20': 'WARN', '2026-10-21': 'FAULT', '2026-10-22': 'FAULT', '2026-10-23': 'OK'} · Claude calls 581 (errors 0)
+
+   THE DISCIPLINE TABLE — this week's days, best → worst (normal robot, no early cut; REAL ledger + 5s tape)
+   day         day$  @13:30  trades  open at 13:30Z (side, entered, px, lots)     pos@13:30   pos@18:00   pos@20:40  pos-low>13:30   day-low
+   --------------------------------------------------------------------------------------------------------------------------------------------
+   2026-10-22    +1424    +820       5  LONG  10:40Z 29529.75 x4                             -350        +254        +254           -738      -106
+   2026-10-21    +1179   +1179       4  flat                                                    -           -           -              -       -89
+   2026-10-23     +904   -1394       3  LONG  08:15Z 29253.00 x4                            -2020        +278        +278          -2100     -1474
+   2026-10-19     +280    +280       9  flat                                                    -           -           -              -      -650
+   2026-10-20     -225   -1194      14  SHORT 12:10Z 29502.25 x4                             -672        +297        +297           -810     -1723
+   Reading: pos columns are ONE position's total (lots already sold at +37.5 included); marks are 'if flattened now' (half-tick spread + $1.50/lot);
+   day-low is the deepest the whole day's book (booked + open) sat at any 5s bar. The point of the table: even the good days sat red first. Do not intervene.
+
+   RANKED SHORTLIST FOR SATURDAY (never applied):
+     1. [PROMISING] REMOVE the detector-leg filter (take Claude entries against the leg too) — against-the-leg entries average +184.0 $/entry counterfactual vs -33.9 for with-the-leg (n=57)
+         The detector is FROZEN (sha af0ace53e6dc9faa); this tests whether it should remain a FILTER. Not a detector change.
+     2. [PROMISING] all-four-lots target 37.5pt → 25.0pt — +127.7 $/entry ideal-fill vs the shipped 37.5pt (replayed on the 30 real entries) (n=30)
+         ONE rule per iteration (L2); start from the champion verbatim (L1); a challenger must DOMINATE on days-positive, worst day and CV before $/day counts (L4). A target change is a rider-config change, not a brief change.
+     3. [PARKED (operator: leave it for now)] 05:00 Paris veto earlier/removed — PARKED BY THE OPERATOR 2026-10-14 (data only) — vetoed entries average +294.0 $/entry counterfactual (reached the target 100%) (n=52)
+         Not to be proposed unless the operator reopens it.
+     4. [DATA ONLY — the rider cannot take a second entry while holding (BUY-while-holding is a known-open bug)] stack a second position while the rider is holding (flat-only is the current rule) — entries skipped because the rider was busy average -287.7 $/entry counterfactual (n=13)
+         Needs a rider change; operator-only.
+
+ARM v1.02-EXT · this_week: no sessions
+
+--- SATURDAY LOSERS STUDY (reports/hybrid_losers/LATEST.txt, head) ---
+(not produced yet - the Saturday losers timer writes it)

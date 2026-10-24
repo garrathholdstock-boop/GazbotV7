@@ -1,0 +1,32 @@
+E96 - THE v1.02 HYBRID OVER THE AFTERNOON, 13:30Z-19:55Z, 20 SESSIONS (replay only), declared 2026-10-15 before any afternoon call.
+Operator go: "Run the current Robo system over the rest of the afternoon over a 4 week period as a start."
+ARM LABEL: v1.02-PM-replay. Own arm. NEVER pooled with the 02:00-13:30Z replay (E81/E85/E88), the live v1.02 sessions, or the live 10-14 v1.02-EXT afternoon (n=1, shown for reference only).
+
+WHAT IS RUN (the current Robo system, nothing changed, nothing tuned):
+  ENTRY SOURCE  Claude S1b: sim_week_recursive.BRIEF_V2, EMPTY rule set, self_aware page, mil off, model claude-sonnet-5 (same as the E81-E88 replays;
+                the live robot uses the CLI default - a stated difference), a call every 5 min at 13:30Z,13:35Z ... 19:50Z = 77 calls/day. Decisions on the
+                closed-bar page (the replay page, not the live closed-bar page - same known difference as E89 #3).
+  PAGE TEXT     identical to the live E90 EXT rewrite: every "13:30Z" in the prompt becomes "19:55Z" (hybrid_robot.ext_text); minutes-left is computed off the new
+                window end. The brief therefore says "the window is 02:00Z-19:55Z", exactly as the live EXT afternoon did.
+  SIM BOOK      starts FLAT at 13:30Z each day (SIMPLIFICATION: the live robot would carry a morning position and a morning-session trade list into the afternoon;
+                here the afternoon is a clean arm). Claude's own sim book is closed at 19:55Z.
+  FILTERS       (scored in e96_score.py with the SAME engine as E88 Part B): WITH-LEG = side equals the frozen detector (K=11 x ATR14) direction at decision time - 60s;
+                05:00 Paris veto (always satisfied after 13:30Z; kept for fidelity); FLAT-ONLY = an entry is skipped while a real 4-lot position is open; re-entry allowed.
+  LADDER        4 lots, all four out at +37.5pt, no stop, rider flat 20:40Z, engine F (5-second path), IDEAL fills (half-spread each side, $1.50 RT/lot), $2/pt/lot.
+                The paper engine fabricates 0.1% adverse on lots 2-4, so live paper dollars would be LOWER than these.
+DAYS (the 20 most recent sessions with complete 5s tape, ending before 2026-10-14): 2026-09-16,17,18, 09-21..25, 09-28..10-02, 10-05..09, 10-12, 10-13.
+  OVERLAP, stated: every one of these 20 days' MORNING sits inside the earlier replays (25 pooled days = 09-21..10-09; Sep 14-18 holdout incl. 16-18). Nothing is tuned here,
+  so the contamination concern is only that the ladder (+37.5), the veto and the with-leg rule were SELECTED on mornings of these same days. The AFTERNOON was never seen by Claude.
+  The frozen detector's pool ended 2026-09-11, so the detector has seen none of these days. 10-12 is a US bond-market holiday (thin tape) - kept, labelled.
+COST: 77 calls x 20 days = 1,540 calls; est. 6.33M/138-call day -> ~71M tokens (gate uses a 1.5x margin ~106M). Weekly meter ~22% used, ~320M left; the live hybrid needs ~6M/day.
+  Preflight gates (binary, live call, budget with 3x cover, tape to 19:50Z each day, no poisoned artefact) PASS before launch. Max 2 workers. Resumable. A day with >10% errored calls
+  is POISONED: re-run up to 3 passes, otherwise left UNSCORED and named.
+PRE-STATED READING (fixed now, before results):
+  1. COUNTS FIRST: Claude sim entries; with-leg presses; real entries taken (flat-only); winners (entry pnl > 0); lots on +37.5 / lots total.
+  2. THEN $/day (point estimate first), n days and n entries labelled, days positive, worst day, worst entry. Split by hour block 13:30-16:00 / 16:00-18:00 / 18:00-19:55Z by ENTRY time.
+  3. COMPARATORS on the same window and engine, price-only: detector-alone (every confirmed leg, 05:00 veto) and Claude-alone (all Claude entries, no with-leg filter), and the E94 blind with-leg
+     entry every 5 min as the zero-skill control. Morning-arm numbers are quoted only for reference, never pooled.
+  4. PROMISING needs >= 10 entries AND a positive point estimate AND not carried by one day; below 30 entries nothing is fitted. A single result on 20 days is a ranked shortlist, not a verdict.
+  5. If the PM arm is clearly worse than the morning arm that is a FINDING (it would support the E94 decay of with-leg hit rate, ~88% morning -> ~53% late); no rule is changed off it here.
+KILL / SAFETY: no live file, switch, timer, request file, rider state or ledger is touched. No order path. No commit, no restart.
+Files: reports/recursive_loop/E78_code/e96_run.py (run), e96_score.py (score); day records reports/sim_week_recursive/e96_pm_<day>.json; results E96_result.json/.txt.

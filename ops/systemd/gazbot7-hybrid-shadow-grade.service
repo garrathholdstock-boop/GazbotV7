@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 — no-press shadows GRADE (E104: ideal fills on the 5s tape, +37.5pt target, ride to 20:40Z, $6 fee; read-only, zero Claude tokens)
+# ⚠ Writes only inside reports/hybrid_shadow/. Counts, P(miss) and the tail are printed BEFORE any dollar figure; no decision below 30 entries per arm.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_shadow.py --grade
+TimeoutStartSec=300
+MemoryMax=600M

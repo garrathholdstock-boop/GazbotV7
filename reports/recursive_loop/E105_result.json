@@ -1,0 +1,191 @@
+{
+ "arm": "v1.02-NOLOCK-replay",
+ "days": [
+  "2026-10-21",
+  "2026-10-22",
+  "2026-10-23"
+ ],
+ "bad": {},
+ "per_day": {
+  "2026-10-21": {
+   "calls": 215,
+   "errors": 1,
+   "claude_entries": 24,
+   "with_leg": 15,
+   "nolock": {
+    "entries": 3,
+    "wins": 2,
+    "am": -1262,
+    "pm": 0,
+    "total": -1262
+   },
+   "lock_replay": {
+    "lock_at": null,
+    "entries": 3,
+    "total": -1262
+   },
+   "live": {
+    "entries": 4,
+    "net": 1178.98,
+    "lock": "08:46Z",
+    "note": "locked; 56 slots uncalled; one press never filled"
+   },
+   "entries": [
+    {
+     "t": "04:55",
+     "usd": 398,
+     "lots_hit": 4,
+     "exit_idx": 524
+    },
+    {
+     "t": "05:45",
+     "usd": 316,
+     "lots_hit": 4,
+     "exit_idx": 2090
+    },
+    {
+     "t": "08:55",
+     "usd": -1976,
+     "lots_hit": 0,
+     "exit_idx": 8460
+    }
+   ]
+  },
+  "2026-10-22": {
+   "calls": 215,
+   "errors": 0,
+   "claude_entries": 22,
+   "with_leg": 15,
+   "nolock": {
+    "entries": 9,
+    "wins": 9,
+    "am": 1766,
+    "pm": 962,
+    "total": 2728
+   },
+   "lock_replay": {
+    "lock_at": "07:48",
+    "entries": 4,
+    "total": 1212
+   },
+   "live": {
+    "entries": 5,
+    "net": 1424.48,
+    "lock": "05:24Z",
+    "note": "locked; 53 slots uncalled; one entry opened 8 lots (4 BADFILL)"
+   },
+   "entries": [
+    {
+     "t": "03:35",
+     "usd": 320,
+     "lots_hit": 4,
+     "exit_idx": 771
+    },
+    {
+     "t": "05:25",
+     "usd": 260,
+     "lots_hit": 4,
+     "exit_idx": 196
+    },
+    {
+     "t": "06:45",
+     "usd": 324,
+     "lots_hit": 4,
+     "exit_idx": 306
+    },
+    {
+     "t": "07:20",
+     "usd": 308,
+     "lots_hit": 4,
+     "exit_idx": 522
+    },
+    {
+     "t": "08:10",
+     "usd": 262,
+     "lots_hit": 4,
+     "exit_idx": 556
+    },
+    {
+     "t": "09:45",
+     "usd": 292,
+     "lots_hit": 4,
+     "exit_idx": 3375
+    },
+    {
+     "t": "15:10",
+     "usd": 322,
+     "lots_hit": 4,
+     "exit_idx": 1149
+    },
+    {
+     "t": "18:05",
+     "usd": 346,
+     "lots_hit": 4,
+     "exit_idx": 647
+    },
+    {
+     "t": "19:10",
+     "usd": 294,
+     "lots_hit": 4,
+     "exit_idx": 445
+    }
+   ]
+  },
+  "2026-10-23": {
+   "calls": 215,
+   "errors": 0,
+   "claude_entries": 31,
+   "with_leg": 12,
+   "nolock": {
+    "entries": 5,
+    "wins": 4,
+    "am": 40,
+    "pm": 0,
+    "total": 40
+   },
+   "lock_replay": {
+    "lock_at": "12:36",
+    "entries": 4,
+    "total": 1200
+   },
+   "live": {
+    "entries": 3,
+    "net": 904.0,
+    "lock": null,
+    "note": "never locked; 138/138 slots, window to 13:25Z"
+   },
+   "entries": [
+    {
+     "t": "03:55",
+     "usd": 280,
+     "lots_hit": 4,
+     "exit_idx": 1691
+    },
+    {
+     "t": "06:30",
+     "usd": 316,
+     "lots_hit": 4,
+     "exit_idx": 1330
+    },
+    {
+     "t": "09:55",
+     "usd": 304,
+     "lots_hit": 4,
+     "exit_idx": 791
+    },
+    {
+     "t": "12:10",
+     "usd": 300,
+     "lots_hit": 4,
+     "exit_idx": 540
+    },
+    {
+     "t": "13:15",
+     "usd": -1160,
+     "lots_hit": 0,
+     "exit_idx": 5340
+    }
+   ]
+  }
+ }
+}

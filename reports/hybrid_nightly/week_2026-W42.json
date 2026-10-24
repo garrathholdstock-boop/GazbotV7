@@ -1,0 +1,256 @@
+{
+ "schema": 1,
+ "generated_at": "2026-10-18T20:50:00.158623+00:00",
+ "week": "2026-W42",
+ "arms": {
+  "v1.02+LOCK": {
+   "this_week": {
+    "days": 2,
+    "net_usd": -4586.0,
+    "mean_usd_day": -2293.0,
+    "median_usd_day": -2293.0,
+    "days_positive": 0,
+    "worst_day": -3951.5,
+    "best_day": -634.5,
+    "cv": 0.72,
+    "entries": 7,
+    "winners": 3,
+    "manual_exit_entries": 4,
+    "daily": {
+     "2026-10-15": -634.5,
+     "2026-10-16": -3951.5
+    }
+   },
+   "cumulative": {
+    "days": 2,
+    "net_usd": -4586.0,
+    "mean_usd_day": -2293.0,
+    "median_usd_day": -2293.0,
+    "days_positive": 0,
+    "worst_day": -3951.5,
+    "best_day": -634.5,
+    "cv": 0.72,
+    "entries": 7,
+    "winners": 3,
+    "manual_exit_entries": 4,
+    "daily": {
+     "2026-10-15": -634.5,
+     "2026-10-16": -3951.5
+    }
+   },
+   "cumulative_cf": {
+    "real_entries": 7,
+    "grid_total_usd": {
+     "12.5": 658.0,
+     "25.0": 1358.0,
+     "37.5": -4774.0,
+     "50.0": -4174.0,
+     "62.5": -10354.0,
+     "75.0": -9854.0,
+     "100.0": -15604.0
+    },
+    "grid_per_entry_usd": {
+     "12.5": 94.0,
+     "25.0": 194.0,
+     "37.5": -682.0,
+     "50.0": -596.29,
+     "62.5": -1479.14,
+     "75.0": -1407.71,
+     "100.0": -2229.14
+    },
+    "by_category": {
+     "VETOED_BEFORE_05_PARIS": {
+      "n": 18,
+      "mean_cf37_usd": 294.0,
+      "reached_pct": 100.0
+     },
+     "PRESSED": {
+      "n": 7,
+      "mean_cf37_usd": -687.0,
+      "reached_pct": 86.0
+     },
+     "NOT_WITH_LEG": {
+      "n": 16,
+      "mean_cf37_usd": -97.94,
+      "reached_pct": 94.0
+     },
+     "SKIPPED_HOLDING": {
+      "n": 2,
+      "mean_cf37_usd": -3083.5,
+      "reached_pct": 50.0
+     }
+    }
+   },
+   "shortlist": [
+    {
+     "change": "REMOVE the detector-leg filter (take Claude entries against the leg too)",
+     "point_estimate": "against-the-leg entries average -97.9 $/entry counterfactual vs -1219.6 for with-the-leg",
+     "n": 16,
+     "status": "PROMISING",
+     "governance": "The detector is FROZEN (sha af0ace53e6dc9faa); this tests whether it should remain a FILTER. Not a detector change.",
+     "rank": 1
+    },
+    {
+     "change": "all-four-lots target 37.5pt \u2192 25.0pt",
+     "point_estimate": "+876.0 $/entry ideal-fill vs the shipped 37.5pt (replayed on the 7 real entries)",
+     "n": 7,
+     "status": "UNDERPOWERED",
+     "governance": "ONE rule per iteration (L2); start from the champion verbatim (L1); a challenger must DOMINATE on days-positive, worst day and CV before $/day counts (L4). A target change is a rider-config change, not a brief change.",
+     "rank": 2
+    },
+    {
+     "change": "05:00 Paris veto earlier/removed \u2014 PARKED BY THE OPERATOR 2026-10-14 (data only)",
+     "point_estimate": "vetoed entries average +294.0 $/entry counterfactual (reached the target 100%)",
+     "n": 18,
+     "status": "PARKED (operator: leave it for now)",
+     "governance": "Not to be proposed unless the operator reopens it.",
+     "rank": 3
+    },
+    {
+     "change": "stack a second position while the rider is holding (flat-only is the current rule)",
+     "point_estimate": "entries skipped because the rider was busy average -3083.5 $/entry counterfactual",
+     "n": 2,
+     "status": "DATA ONLY \u2014 the rider cannot take a second entry while holding (BUY-while-holding is a known-open bug)",
+     "governance": "Needs a rider change; operator-only.",
+     "rank": 4
+    }
+   ],
+   "discipline_this_week": {
+    "2026-10-15": {
+     "trades": 5,
+     "day_total_usd": -634.5,
+     "total_1330_usd": -634.5,
+     "pos": null,
+     "day_low_usd": -2131.01,
+     "complete": true
+    },
+    "2026-10-16": {
+     "trades": 10,
+     "day_total_usd": -3951.5,
+     "total_1330_usd": -766.5,
+     "pos": {
+      "side": "LONG",
+      "entered_at": "2026-10-16T04:00:35.027966+00:00",
+      "entry": 30197.75,
+      "lots_open": 1,
+      "pnl_1330": -1362.0,
+      "pnl_1800": -4547.0,
+      "pnl_close": -4547.0,
+      "low_after_1330": -4698.0,
+      "low_ts": "2026-10-16T16:03:00+00:00",
+      "dir": 1
+     },
+     "day_low_usd": -4102.5,
+     "complete": true
+    }
+   },
+   "health_this_week": {
+    "2026-10-15": "WARN",
+    "2026-10-16": "OK",
+    "2026-10-17": "OK",
+    "2026-10-18": "OK"
+   },
+   "calls_this_week": 276,
+   "errors_this_week": 0
+  },
+  "v1.02-EXT": {
+   "this_week": {
+    "days": 1,
+    "net_usd": 256.02,
+    "mean_usd_day": 256.02,
+    "median_usd_day": 256.02,
+    "days_positive": 1,
+    "worst_day": 256.02,
+    "best_day": 256.02,
+    "cv": 0.0,
+    "entries": 6,
+    "winners": 4,
+    "manual_exit_entries": 1,
+    "daily": {
+     "2026-10-14": 256.02
+    }
+   },
+   "cumulative": {
+    "days": 1,
+    "net_usd": 256.02,
+    "mean_usd_day": 256.02,
+    "median_usd_day": 256.02,
+    "days_positive": 1,
+    "worst_day": 256.02,
+    "best_day": 256.02,
+    "cv": 0.0,
+    "entries": 6,
+    "winners": 4,
+    "manual_exit_entries": 1,
+    "daily": {
+     "2026-10-14": 256.02
+    }
+   },
+   "cumulative_cf": {
+    "real_entries": 6,
+    "grid_total_usd": {
+     "12.5": -6.0,
+     "25.0": 494.0,
+     "37.5": 994.0,
+     "50.0": 1494.0,
+     "62.5": 1994.0,
+     "75.0": 1903.0,
+     "100.0": 2703.0
+    },
+    "grid_per_entry_usd": {
+     "12.5": -1.0,
+     "25.0": 82.33,
+     "37.5": 165.67,
+     "50.0": 249.0,
+     "62.5": 332.33,
+     "75.0": 317.17,
+     "100.0": 450.5
+    },
+    "by_category": {
+     "PRESSED": {
+      "n": 6,
+      "mean_cf37_usd": 182.5,
+      "reached_pct": 83.0
+     },
+     "SKIPPED_HOLDING": {
+      "n": 1,
+      "mean_cf37_usd": 294.0,
+      "reached_pct": 100.0
+     }
+    }
+   },
+   "shortlist": [
+    {
+     "change": "all-four-lots target 37.5pt \u2192 100.0pt",
+     "point_estimate": "+284.8 $/entry ideal-fill vs the shipped 37.5pt (replayed on the 6 real entries)",
+     "n": 6,
+     "status": "UNDERPOWERED",
+     "governance": "ONE rule per iteration (L2); start from the champion verbatim (L1); a challenger must DOMINATE on days-positive, worst day and CV before $/day counts (L4). A target change is a rider-config change, not a brief change.",
+     "rank": 1
+    },
+    {
+     "change": "stack a second position while the rider is holding (flat-only is the current rule)",
+     "point_estimate": "entries skipped because the rider was busy average +294.0 $/entry counterfactual",
+     "n": 1,
+     "status": "DATA ONLY \u2014 the rider cannot take a second entry while holding (BUY-while-holding is a known-open bug)",
+     "governance": "Needs a rider change; operator-only.",
+     "rank": 2
+    }
+   ],
+   "discipline_this_week": {
+    "2026-10-14": null
+   },
+   "health_this_week": {
+    "2026-10-14": "OK"
+   },
+   "calls_this_week": 59,
+   "errors_this_week": 0
+  }
+ },
+ "policy": [
+  "v1.02 and v1.02-EXT are separate arms and are NEVER pooled.",
+  "Nothing here is applied. The brief (BRIEF_V2) and the detector (K=11xATR14) stay frozen; a retune is Saturday-only, one rule per iteration, gated by bible.gate.",
+  "n is the number of REAL entries, not days: below 10 every counterfactual is UNDERPOWERED and a ranking is a story about noise (L10: counts before dollars).",
+  "Counterfactuals are ideal-fill on the 5s tape; the paper engine's 0.1% adverse fill on lots 2-4 flatters the real book and is not in them."
+ ]
+}

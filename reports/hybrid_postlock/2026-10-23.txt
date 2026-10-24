@@ -1,0 +1,11 @@
+E108 POST-LOCK REPORT 2026-10-23 (Fri) - counts first, then dollars. Live = paper fills; sim arms = IDEAL fills, 4 lots all out at +37.5pt, no stop, 20:40Z flat, $6 fee.
+Arms are listed separately and never pooled into a decision; COMBINED is a narrative line. Nothing here is a decision below 30 would-be entries per arm.
+
+LIVE   to cut [no lock; live window ends 13:30Z]: 3 entries  $904   | live AS IT RAN: 3 entries  $904
+SIM    v1.02-LOCKSHADOW   [NO DATA] 0 entries (0 hit / 0 miss)  $0   status NO_DATA, coverage 0/0 slots
+SIM    v1.02-PM-shadow    [UNDERPOWERED (n<10)] 1 entries (1 hit / 0 miss)  $294   status ACTIVE, coverage 47/77 slots
+         17:40Z SELL HIT $294 (MAE 61.25pt)
+COMBINED (no lock today: live window + PM sim): 4 entries  $1,198    vs live as it ran $904   => PM sim adds $294
+LIVE entries to cut: 05:45Z BUY $294; 06:20Z BUY $332; 08:15Z BUY $278
+FLAGS: none
+CAVEAT: n is days x arm shown above; a one-day sim is a story, not a result. Sims start flat at their window and do not inherit a live open position.

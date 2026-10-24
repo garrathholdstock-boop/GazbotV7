@@ -1,0 +1,15 @@
+[Unit]
+# E108 morning line: one NON-critical Telegram with last night's post-lock result (Saturday adds the week). CRITICAL only if last night's report is missing —
+# a process cannot report its own absence, so this is a different process on a different timer. Needs alphabot (data/.notify_env is 600 alphabot).
+Description=GAZBOT V8 ROBO 1.02 — post-lock morning line (E108)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+SuccessExitStatus=0 1
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_postlock_report.py --morning
+TimeoutStartSec=120
+MemoryMax=200M

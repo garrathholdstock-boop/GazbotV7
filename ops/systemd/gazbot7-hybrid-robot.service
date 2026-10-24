@@ -1,0 +1,25 @@
+[Unit]
+Description=GAZBOT V8 ROBO 1.02 — HYBRID ROBOT (E89: Claude S1b entries kept only WITH the frozen detector's leg and after the 05:00 Paris veto, presses the rider's BUY file; places NOTHING itself)
+# Declared in reports/recursive_loop/E89_change.txt. Self-gates: nothing before 2026-10-14T22:00Z or after 2026-10-30T21:00Z,
+# and nothing unless data/hybrid_robot.env says hybrid_robot=on. Kill switch = that file (set hybrid_robot=off).
+# Refuses to run while data/leg_robot.env says leg_robot=on (two robots must not both press the same rider).
+# ⚠ No order path: the only non-own file it writes is data/day_rider_buy.txt (the file the dashboard BUY/SELL button writes);
+#   the rider does the rest (venue-first, ownership, booking, four lots out at +37.5pt, 20:40Z flat). tests/test_hybrid_robot.py
+#   asserts that against the AST.
+# ⚠ Each press is also snapshotted into operator_reads.jsonl by gazbot7-capture-read-buy.path; data/hybrid_robot.jsonl lists
+#   the robot's presses so they can be excluded from any fitting of the operator's reads.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+# ⚠ systemd's PATH does not include /root/.local/bin — a bare "claude" cost a whole day on 2026-10-05.
+Environment=CLAUDE_BIN=/root/.local/bin/claude
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=900M
+# A headless decision is 10-60s; four minutes is a hung call, not a slow one.
+TimeoutStartSec=240
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_robot.py --once
+SuccessExitStatus=0 1

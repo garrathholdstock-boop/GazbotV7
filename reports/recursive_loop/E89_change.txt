@@ -1,0 +1,31 @@
+E89 - GAZBOT V8 ROBO v1.02: THE HYBRID GOES TO PAPER (Law 3), declared 2026-10-14 before the first live call.
+Operator go: "fantastic, wire this up to go live into paper trading now ... this will be gazbot V8 ROBO 1.02".
+
+WHAT v1.02 IS (deploys E81-E88; changes none of their rules):
+  ENTRY SOURCE  Claude S1b (sim_week_recursive.BRIEF_V2, line "v2", empty rule set, self_aware=True, mil=False, model = the CLI default)
+                decides every 5 min 02:00Z-13:25Z against a simulated book of its own (S.context / S.ask / S._close, imported, not copied).
+                Its simulated ENTER_LONG/ENTER_SHORT is the candidate entry. Its EXITs only close its simulated book - the real exits are the ladder.
+  FILTER 1      WITH THE LEG: side must equal the frozen detector's direction at (decision time - 60s)  [leg_robot.confirmed_turns, K=11 x ATR14, sha af0ace53e6dc9faa].
+  FILTER 2      05:00 Europe/Paris veto: decision time >= 05:00 Paris on the session date (leg_robot.veto_cutoff).
+  FILTER 3      FLAT-ONLY: leg_robot.rider_gate(now) is None (rider on, heartbeat fresh, not holding, not blind, venue flat, no pending request).
+  RE-ENTRY      allowed as soon as the rider is flat again (no latch) - the replay assumed this (~3-4 entries/day, ~70% re-entries).
+  PRESS         data/day_rider_buy.txt  "ISO|BUY/SELL|4|75,75,75,75"  = 4 lots, ALL FOUR out at +37.5pt ($75/lot at $2/pt). The rider does everything else.
+  EXITS         ladder only; 20:40Z hard flat by the rider. No stop. Claude's own EXIT does not touch the real position.
+  Switch        data/hybrid_robot.env (hybrid_robot=on). Refuses to run while data/leg_robot.env has leg_robot=on (two presses on one rider).
+  Window        self-gated 2026-10-14T22:00Z (first session 2026-10-15) -> 2026-10-30T21:00Z, the same forward window as v1.0x.
+
+EVIDENCE BEHIND IT (E85-E88, 5-second engine, flat 20:40Z, 4 lots):
+  25 days pooled, +37.5 all-four: ~$900/day replay; holdout Sep 14-18 (n=5): ~$1,250/day, 5/5 days positive; +37.5 and +50 tied pooled (+50 offered better holdout return/DD).
+  The ladder level and the veto were selected on the earlier 20 days, so the pooled 25 is not independent; n=5 holdout days is small; 5 of the 20 earlier days sit in the detector's in-sample pool.
+  Claude alone and the detector alone do NOT make money in the same tables - the combination is the claim.
+
+KNOWN DIFFERENCES BETWEEN THE REPLAY AND THE LIVE ROBOT (read before trusting the first week):
+  1. The IBKR paper engine fabricates 0.1% adverse on lots 2-4 of a multi-lot order -> paper dollars are LOWER than the replay on identical decisions (CLAUDE.md trap 13). Entries are marketable limits now; exits per lot are market orders.
+  2. LATENCY: the replay entered at the decision minute with zero latency. Live: ~10-60s for the Claude call + ~1.4s for the rider. Decisions use CLOSED bars only (no 1-minute look-ahead); the press is dropped if it is older than 240s.
+  3. The replay's Claude decided on a minute bar whose stamp equalled the decision time (up to ~1 min of price after it). The live page is built from closed bars <= decision time. This is a (small, causal) difference in what Claude sees.
+  4. Session day 1 may start mid-window: Claude's simulated book then begins flat at the first tick (partial day; the day record says so).
+  5. The v1.01 LATCHED_AFTER_TRADE behaviour is NOT carried over (replay allowed re-entry).
+
+HOW IT IS READ: paper P&L for v1.02 is read per version, never pooled with v1.00/v1.01, from the rider's ledger (trades with the hybrid press) and data/hybrid_robot.jsonl.
+Comparison basis: the replay $/day, days positive, max DD closed/intraday, worst-day heat, entries/day. A day with >10% errored Claude calls is POISONED and not scored (L7).
+Nothing is tuned live. A change to ANY of the above bumps the version (v1.03) with its own declaration.

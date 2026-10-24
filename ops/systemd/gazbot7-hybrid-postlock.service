@@ -1,0 +1,15 @@
+[Unit]
+# GAZBOT V8 ROBO v1.02 — NIGHTLY "LIVE TO THE LOCK, THEN SIMULATE AFTER" REPORT (E108, 2026-10-24). Operator: "simulate this every night at close and report to me in the morning".
+# Combines the live ledger-to-lock (hybrid_nightly) with the E104 forward shadows (LOCKSHADOW + PM-shadow). ZERO Claude tokens, READ-ONLY, writes only reports/hybrid_postlock/.
+# ⚠ Runs AFTER hybrid-nightly (20:50Z) and the shadow grade (20:56Z). tests/test_hybrid_postlock_report.py asserts the authority against the AST.
+Description=GAZBOT V8 ROBO 1.02 — post-lock report (live to lock + shadow sims, E108)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=alphabot
+WorkingDirectory=/home/alphabot/gazbot7
+Environment=PYTHONPATH=src
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_postlock_report.py
+TimeoutStartSec=120
+MemoryMax=200M

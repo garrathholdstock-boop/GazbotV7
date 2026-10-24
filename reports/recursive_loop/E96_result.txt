@@ -1,0 +1,60 @@
+E96 v1.02-PM-replay - afternoon 13:30Z-19:55Z (last decision 19:50Z), 4 lots all out at +37.5pt, no stop, flat 20:40Z, engine F, IDEAL fills. Each day starts FLAT. REPLAY, not forward.
+days scored 20/20; poisoned (>10% errors, unscored): none; missing: none
+COUNTS FIRST (robot rule: Claude entry WITH detector leg, flat-only): Claude entries 146 -> with-leg 87 -> taken 51 -> winners 42 (82%); lots on +37.5 164/204
+THEN DOLLARS: $231/day over n=20 days (51 entries); median $617; days positive 13/20; worst day $-1,708; worst entry $-1,708; ex-best-day 166/day
+LOSS SHAPE: 9 losing entries sum $-8,808; mean winner $319; losers (day time $): 2026-10-05 14:00Z $-1,708; 2026-10-07 13:40Z $-1,636; 2026-09-28 14:55Z $-1,488; 2026-09-30 15:50Z $-1,246; 2026-09-23 14:25Z $-808; 2026-10-01 17:45Z $-688; 2026-09-24 19:00Z $-682; 2026-10-13 17:50Z $-510; 2026-09-29 13:30Z $-42
+
+day         calls err claudeE withleg taken wins       $
+2026-09-16     77   0       8       6     4    4   1,444
+2026-09-17     77   0       6       5     2    2     578
+2026-09-18     77   0       6       4     2    2     632
+2026-09-21     77   0       5       5     5    5   1,462
+2026-09-22     77   0       8       4     3    3     890
+2026-09-23     77   0      11       9     3    2    -166
+2026-09-24     77   0       9       6     5    4     676
+2026-09-25     77   0       7       2     2    2     678
+2026-09-28     77   0       7       2     1    0  -1,488
+2026-09-29     77   0       9       4     1    0     -42
+2026-09-30     77   0       7       4     3    2    -644
+2026-10-01     77   0       8       5     3    2      60
+2026-10-02     77   0       9       3     2    2     760
+2026-10-05     77   0       6       5     1    0  -1,708
+2026-10-06     77   0       8       4     2    2     606
+2026-10-07     77   0       7       5     1    0  -1,636
+2026-10-08     77   0       8       5     4    4   1,400
+2026-10-09     77   0       4       2     2    2     628
+2026-10-12     77   0       7       5     3    3     678
+2026-10-13     77   0       6       2     2    1    -198
+
+BY ENTRY-TIME BLOCK (entries / wins / $ total / $ per day):
+  claude_withleg_veto (THE ROBOT): $231/d, 51 entries, 42 wins, +days 13/20, worst day $-1,708, lots on 164/204
+      13:30-16:00: 33 entries, 27 wins, $1,846 (= $92/day)
+      16:00-18:00: 11 entries, 9 wins, $1,570 (= $78/day)
+      18:00-19:55: 7 entries, 6 wins, $1,194 (= $60/day)
+  claude_all (Claude alone, no filter): $356/d, 69 entries, 56 wins, +days 13/20, worst day $-1,636, lots on 216/276
+      13:30-16:00: 46 entries, 38 wins, $4,704 (= $235/day)
+      16:00-18:00: 17 entries, 13 wins, $1,744 (= $87/day)
+      18:00-19:55: 6 entries, 5 wins, $666 (= $33/day)
+  claude_against_leg: $184/d, 39 entries, 30 wins, +days 12/20, worst day $-1,320, lots on 112/156
+      13:30-16:00: 26 entries, 19 wins, $1,578 (= $79/day)
+      16:00-18:00: 9 entries, 8 wins, $2,108 (= $105/day)
+      18:00-19:55: 4 entries, 3 wins, $-8 (= $0/day)
+  detector_alone (every confirmed leg): $187/d, 21 entries, 18 wins, +days 13/20, worst day $-824, lots on 60/84
+      13:30-16:00: 6 entries, 6 wins, $1,880 (= $94/day)
+      16:00-18:00: 11 entries, 8 wins, $1,266 (= $63/day)
+      18:00-19:55: 4 entries, 4 wins, $600 (= $30/day)
+  blind_WITH_every_5min (zero-skill control): $-103/d, 88 entries, 68 wins, +days 8/20, worst day $-2,266, lots on 272/352
+      13:30-16:00: 75 entries, 62 wins, $2,250 (= $112/day)
+      16:00-18:00: 9 entries, 4 wins, $-4,180 (= $-209/day)
+      18:00-19:55: 4 entries, 2 wins, $-124 (= $-6/day)
+
+REFERENCE (never pooled): from reports/hybrid_nightly/2026-10-14.txt: partial from 15:00Z; 7 ENTER signals, 6 pressed, ledger +$256 over 6 entries (one MANUAL_CLAIM -$579.50); ideal cf37 ~ +$1,095 (5 reached, 1 not); paper 0.1% on lots 2-4 included in the ledger figure, not in cf
+Morning arm for reference only: 25-day pooled ~$925/d at +37.5, holdout Sep14-18 ~$1,250/d; E94: with-leg +37.5 hit rate falls ~88% (02-08Z) -> ~53% (18-19:55Z), detector-alone ~$0/entry.
+CAVEATS: replay not forward; ideal fills (paper fabricates 0.1% on lots 2-4); flat start at 13:30Z; model claude-sonnet-5 vs live CLI default; 09-16..18 are the spent Sep14-18 holdout; morning ladder/veto/with-leg rule were chosen on mornings of these same days (afternoon never seen); nothing tuned.
+
+RANKED SHORTLIST (best first; a shortlist, not a verdict; replay, ideal fills, n=20 days; nothing fitted):
+ 1. Claude-alone, no with-leg filter, afternoon: +$356/d on 69 entries (56 wins), 13/20 days positive, worst day -$1,636. Best point estimate, but it is the arm the with-leg filter was meant to improve on - trial-worthy as its OWN arm only.
+ 2. The robot as live (Claude + with-leg + flat-only): +$231/d on 51 entries, 82% wins, worst day -$1,708. PROMISING by the pre-stated bar; about a quarter of the morning arm; the loss is three no-stop single-entry days.
+ 3. Detector-alone in the afternoon: +$187/d on 21 entries (18 wins). Small n; the E94 "$0/entry" is not reproduced here - park, watch.
+ Not worth trialling: blind with-leg every 5 min -$103/d (88 entries) - Claude's timing beats the zero-skill control by ~$330/d.
+ Open question the data cannot answer: whether a stop or a claim on the three big losers would help is a morning-arm-style tuning question; <30 losers, nothing fitted here.

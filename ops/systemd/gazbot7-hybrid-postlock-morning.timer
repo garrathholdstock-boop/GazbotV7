@@ -1,0 +1,12 @@
+[Unit]
+# 06:10 EUROPE/PARIS - just after quiet hours end (22:00-06:00 Paris) and 5 min after overnight-allclear, so no quiet-hours exemption is needed.
+# Paris, not UTC: a UTC time drifts an hour at each DST change and lands back inside quiet hours for half the year.
+Description=GAZBOT V8 ROBO 1.02 post-lock morning line (06:10 Paris)
+
+[Timer]
+OnCalendar=*-*-* 06:10:00 Europe/Paris
+AccuracySec=60s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

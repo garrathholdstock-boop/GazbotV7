@@ -1,0 +1,28 @@
+E95 - v1.02+LOCK: the $1000 day lock on the hybrid (operator-authorised 2026-10-14, applies from session key 2026-10-15)
+=========================================================================================================================
+Operator, verbatim: "I want to try the $1000 limit for a few days. Can you put that in for tomorrow please?
+As soon as we are over $1000 robot blocks new entries"
+
+WHAT CHANGES
+- scripts/hybrid_robot.py: LOCK_USD = 1000.0, LOCK_FROM = "2026-10-15". Each 5-min step, before the Claude call, the robot
+  computes the session's day equity = realised day_rider pnl (ledger, net of fees, EXCLUDE/BADFILL removed)
+  + open lots marked to the 5s capture close (open marks ignore fees). The first time that equity is >= $1000 (checked on the
+  path of 5s bars, not just at the tick, so a touch between ticks counts) the robot writes st["lock"], logs DAY_LOCK, pages
+  once, and returns DAY_LOCKED on every later step: NO Claude call, NO press. Session-scoped: state resets on the next key.
+- NOT TOUCHED: the open position. The rider keeps its +37.5 ladder, manual exits and the 20:40Z flat. No stops added.
+- Fail-open: if the equity read errors the robot logs LOCK_CHECK_ERROR, pages once ("NOT protecting") and carries on trading.
+- Switch: a line `hybrid_lock=off` in data/hybrid_robot.env disables it (default on). hybrid_robot=off still stops everything.
+- Nightly review: arm label v1.02+LOCK for keys >= 2026-10-15 (never pooled with v1.02 or v1.02-EXT). Slots after the lock are
+  classified `locked` (explained, healthy), so LOST_SLOTS/COVERAGE do not false-fault. INFO DAY_LOCK; WARN LOCK_CHECK_ERROR.
+
+WHY IT IS A TRIAL, NOT A FINDING (E93, E94)
+- E93 replay: a hard $1000 cap on new entries cost -$96/d (829 vs 925) over 25 days; 16 of 25 days touched +$1000 and 14 of
+  those finished higher or ~flat; only 2 days gave real money back. REFUTED as a free lunch.
+- E94: the "late tape runs back" idea is a coin (54% continue / 46% reverse, n=61).
+- The operator is choosing consistency (Law 0) over the replay's higher mean, for a few days. Success is judged on the
+  forward LOCK days: $/day, days-positive, worst day, and what the entries it blocked WOULD have done (counterfactual
+  recorded by the nightly review; ideal fills). n will be tiny - label it, do not conclude from < 10 lock days.
+- UNREPLAYED: the lock reads live marks. Sanity check on 2026-10-14: peak +$1,293 at 16:32Z, first touch of $1000 at
+  16:12:05Z, +$74 at 19:40Z - i.e. it WOULD have blocked everything after 16:12Z that day (it had already given back).
+
+TESTS: tests/test_hybrid_robot.py (45) and tests/test_hybrid_nightly.py all pass. VERSION stays 1.02. Nothing committed.

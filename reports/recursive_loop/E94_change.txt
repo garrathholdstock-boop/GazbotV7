@@ -1,0 +1,21 @@
+E94 - LATE-SESSION TEST (2026-10-14). Read-only study; nothing wired, no arm, VERSION stays 1.02.
+Question (operator): in the last 4-5h before the 21:00Z (23:00 Paris) close, does the tape turn and run back?
+Script: reports/recursive_loop/E78_code/e94_late_session.py   Result: reports/recursive_loop/E94_result.json
+Method: 61 session days of 5s tape (2026-07-17 on). Claude-FREE: every 5-min slot 02:00-19:55Z where the frozen detector
+(K=11xATR14, at t-60) has a leg and the 05:00 Paris veto is passed -> enter WITH the leg, 4 lots all out at +37.5, flat 20:40Z.
+Plus a direct probe: day trend at 16:00Z vs the move 16:00Z -> 20:40Z.
+RESULT (point estimates, n labelled):
+  Late "turn and run back" probe, n=61 days: late move continues the day's trend on 33 (54%), reverses on 28 (46%);
+    mean in-trend move +2.7pt (se 15pt). On the 33 days already >=150pt trending by 16:00Z: 18 continue / 15 reverse, +8.5pt.
+    -> NO turn-back detected. It is a coin. REFUTED as a general rule (absence of evidence of ANY late reversal at n=61).
+  With-leg entry, hit rate of the +37.5 ladder by entry hour: 02-08Z 88% | 08-13Z 84% | 13-16Z 77% | 16-18Z 69% | 18-19:55Z 53%.
+    $/entry is ~0 in every bucket (+30/-19/+5/+11/0, day-clustered 95% half-width 70-120) - detector alone has no edge anywhere,
+    so this does NOT say what Claude's calls do late; the Claude replay never covered the afternoon.
+  Late entries that miss +37.5 end the day about -12pt (held to 20:40Z), vs -4pt in the early session.
+CAVEATS: hit-rate fall is partly MECHANICAL (less time to 20:40Z, quieter tape), not a reversal. Detector window is in-sample to ~Sep 11.
+Detector-only, ideal fills. Today's 19:05 short is ONE trade.
+RANKED SHORTLIST (all PARKED/PROMISING, none applied):
+  1. v1.02+LOCK day lock (stop NEW entries once day P&L touched +$1000) - addresses today's actual wipe-out; awaits operator go-ahead.
+  2. Collect v1.02-EXT afternoon entries forward (n small); judge by hit-rate vs the 53-69% above before extending permanently.
+  3. Afternoon-only entry cutoff (e.g. none after 18:00Z) - cheap, but this study cannot show it helps ($/entry ~0 either way).
+  4. Late-session mean-reversion fade - REFUTED here (54/46).

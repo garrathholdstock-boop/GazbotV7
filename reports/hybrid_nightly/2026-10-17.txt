@@ -1,0 +1,16 @@
+HYBRID ROBOT v1.02 — NIGHTLY REVIEW 2026-10-17  [v1.02+LOCK]  VERDICT: OK
+generated 2026-10-17T20:50:00.163239+00:00
+
+  [INFO ] NO_SESSION: 2026-10-17 is a weekend — the hybrid does not run; weekly pack refreshed only.
+
+COVERAGE  0/0 slots decided · missed 0 (feed 0, logged-crash 0, refused 0, unexplained 0)
+CALLS     n=0 errors=0 actions={} conf̄=None latency p50/p95/max=None/None/Nones
+FUNNEL    ENTER signals 0 → with the leg 0 (against/none 0) · vetoed<05:00Paris 0 · stale 0 · rider busy 0 · other skips 0 → PRESSED 0 → filled 0
+LEDGER    net $+0.00 over 0 entries · lots 0 closed (0 by target, 0 other) · winners 0
+
+ENTER CANDIDATES (counterfactual = ideal 4-lot ladder @37.5 / flat 20:40Z):
+
+DETECTOR  sha_ok=True turns=0 replay-mismatches=0
+
+note: Counterfactuals: 5s tape, +-5s, ideal fills, no stop, flat at 20:40Z. The paper engine's 0.1% adverse fill on lots 2-4 is NOT in them.
+note: PRESS_RESULT in hybrid_robot.jsonl is unreliable (reads the rider before it saves); the ledger is used instead.

@@ -1,0 +1,16 @@
+E106 - "LIVE UP TO THE LOCK, THEN SIMULATE": declared 2026-10-24 before any call. Supersedes E105 as the answer to the operator's question (E105 was a full-session replay and is NOT what was asked).
+Operator, verbatim: "Why didn't you use what happened live and then just simulate after we locked out. I didn't want a full replay."
+ARM LABEL: v1.02-LIVE+POSTLOCK-sim. Own arm. NEVER pooled with live v1.02+LOCK, E105, E96 or the E104 shadows.
+WHAT IS KEPT (actual, from the ledger gate=day_rider / hybrid_nightly): every live entry up to and including the lock cut. WHAT IS SIMULATED: only the slots the live robot did not call after the cut,
+  through 19:55Z, same Claude S1b hybrid (BRIEF_V2, empty rules, self-aware page, mil off, claude-sonnet-5, 5-min), "13:30Z"->"19:55Z" rewritten as hybrid_robot.ext_text does.
+CUTS (from data/hybrid_robot.jsonl DAY_LOCK + DECISION list, verified live 2026-10-24):
+  Wed 21 Oct: DAY_LOCK decision slot 08:50Z (touched 08:46Z) -> sim slots 08:50Z..19:50Z. Live 08:40Z SELL was still open (last lot out 08:53:45Z): sim entries before that are dropped.
+  Thu 22 Oct: FIRST DAY_LOCK slot 05:25Z (touched 05:24:45Z) -> sim slots 05:25Z..19:50Z. Live 04:40Z SELL still open (last lot out 05:40:18Z): sim entries before that are dropped.
+     ANOMALY (reported, not fixed here): the 05:25Z lock was NOT sticky - the 06:25Z slot called and pressed (SELL, +$283.5), a fresh DAY_LOCK latched 06:30Z, then calls resumed 09:55Z and pressed
+     BUY 10:40Z (+$254). The live ledger therefore contains two post-lock entries. They are shown as "live as it actually ran" and are NOT part of "live to the lock".
+  Fri 23 Oct: never locked; the live robot called every slot 02:00-13:25Z and stopped by design at 13:30Z. Sim slots 13:30Z..19:50Z, a PM arm after the live window, not a post-lock sim
+     (last live lot out 14:50:38Z: earlier sim entries dropped).
+READING (fixed now): per day, (1) live to the cut (entries, $), (2) simulated after the cut (entries, wins, $ and the entry list), (3) combined, (4) live as it actually ran, beside it. Counts before dollars.
+CAVEATS: sim starts FLAT at the cut and with no memory of the live entries beyond what the tape shows; Claude is non-deterministic; ideal fills (paper fabricates 0.1% on lots 2-4) flatter the sim
+  side only, live side is actual paper fills; scored with-leg + 05:00 Paris veto + flat-only, 4 lots all out at +37.5pt, no stop, flat 20:40Z. n=3 days = a story, not a result. Nothing tuned or applied.
+No live file, switch, timer, request file or rider state touched. Scripts: E78_code/e106_run.py, e106_score.py. Results: E106_result.txt.

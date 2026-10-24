@@ -1,0 +1,1420 @@
+{
+ "day": "2026-10-21",
+ "arm": "e106_post",
+ "line": "v2",
+ "brief_sha": "e24645d20fa76e8b",
+ "peak_def": "1m",
+ "mil_ctx": false,
+ "trades": [
+  {
+   "side": "SHORT",
+   "entry": 29809.12,
+   "exit": 29766.88,
+   "opened": "2026-10-21T08:50:00+00:00",
+   "closed": "2026-10-21T09:05:00+00:00",
+   "held_min": 15.0,
+   "points": 42.25,
+   "peak_pt": 74.38,
+   "pnl_usd": 332.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The down leg from 07:29 has proven itself (108pt/81min) and is still driving hard \u2014 last two 15-min bars broke to a fresh low (29827 then 29793) with no sign of stalling, so joining the running leg no",
+   "peak_1m": 74.38
+  },
+  {
+   "side": "LONG",
+   "entry": 29805.12,
+   "exit": 29825.62,
+   "opened": "2026-10-21T09:25:00+00:00",
+   "closed": "2026-10-21T09:40:00+00:00",
+   "held_min": 15.0,
+   "points": 20.5,
+   "peak_pt": 47.12,
+   "pnl_usd": 158.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The down leg clearly bottomed at 29731 and the last two 15-min bars are both up with a strong 70pt bounce to 29805, confirming a fresh up leg worth joining.",
+   "peak_1m": 47.12
+  },
+  {
+   "side": "SHORT",
+   "entry": 29792.38,
+   "exit": 29804.62,
+   "opened": "2026-10-21T09:50:00+00:00",
+   "closed": "2026-10-21T09:55:00+00:00",
+   "held_min": 5.0,
+   "points": -12.25,
+   "peak_pt": 0.0,
+   "pnl_usd": -104.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The last 15-min bar erased the entire 58pt up-leg and closed near its low (29851\u219229792.50), a confirmed turn back down off the recent swing high, worth joining after two clean wins already banked toda",
+   "peak_1m": 0.0
+  },
+  {
+   "side": "SHORT",
+   "entry": 29765.62,
+   "exit": 29757.62,
+   "opened": "2026-10-21T10:05:00+00:00",
+   "closed": "2026-10-21T10:20:00+00:00",
+   "held_min": 15.0,
+   "points": 8.0,
+   "peak_pt": 31.62,
+   "pnl_usd": 58.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Leg 9 down is still driving with fresh lows and closes near the low on the last two 15-min bars, so re-joining short after the earlier small loss is entering later into a proven leg.",
+   "peak_1m": 31.62
+  },
+  {
+   "side": "LONG",
+   "entry": 29805.38,
+   "exit": 29831.38,
+   "opened": "2026-10-21T10:40:00+00:00",
+   "closed": "2026-10-21T11:15:00+00:00",
+   "held_min": 35.0,
+   "points": 26.0,
+   "peak_pt": 59.12,
+   "pnl_usd": 202.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The up leg is proven (two straight up 15-min bars, +71pt/24min) and holding firm near its high rather than rolling over, so joining it mid-leg is in-direction even as it nears the prior 29815-29825 re",
+   "peak_1m": 59.12
+  },
+  {
+   "side": "LONG",
+   "entry": 29889.38,
+   "exit": 29846.88,
+   "opened": "2026-10-21T11:30:00+00:00",
+   "closed": "2026-10-21T12:55:00+00:00",
+   "held_min": 85.0,
+   "points": -42.5,
+   "peak_pt": 4.62,
+   "pnl_usd": -346.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Leg 10's up move just pushed to a fresh extreme at 29896 after the small pullback, confirming the leg is still driving beyond where the last long exited.",
+   "peak_1m": 4.62
+  },
+  {
+   "side": "LONG",
+   "entry": 29884.62,
+   "exit": 29841.38,
+   "opened": "2026-10-21T13:30:00+00:00",
+   "closed": "2026-10-21T13:35:00+00:00",
+   "held_min": 5.0,
+   "points": -43.25,
+   "peak_pt": 0.0,
+   "pnl_usd": -352.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "After 2hrs chopping 29832-29913, the 13:16 bar broke to a fresh high at 29913.75 with three straight up closes, confirming leg 10's uptrend resuming.",
+   "peak_1m": 0.0
+  },
+  {
+   "side": "LONG",
+   "entry": 29896.38,
+   "exit": 29844.88,
+   "opened": "2026-10-21T14:00:00+00:00",
+   "closed": "2026-10-21T14:05:00+00:00",
+   "held_min": 5.0,
+   "points": -51.5,
+   "peak_pt": 28.62,
+   "pnl_usd": -418.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Leg 11 down finished at 13:43 and the new leg has already driven 117pt in 17min with the latest bar still closing in the upper part of its range, so this is a confirmed up leg to join even though a ch",
+   "peak_1m": 28.62
+  },
+  {
+   "side": "SHORT",
+   "entry": 29806.12,
+   "exit": 29827.12,
+   "opened": "2026-10-21T14:10:00+00:00",
+   "closed": "2026-10-21T14:15:00+00:00",
+   "held_min": 5.0,
+   "points": -21.0,
+   "peak_pt": 4.38,
+   "pnl_usd": -174.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The new down leg has already dropped 119pt in 7 minutes (3.6x ATR) off the top of the prior up leg, with the last 15-min bar closing right at its low and no bounce yet, so it's proven and worth joinin",
+   "peak_1m": 4.38
+  },
+  {
+   "side": "LONG",
+   "entry": 29932.62,
+   "exit": 29933.62,
+   "opened": "2026-10-21T15:00:00+00:00",
+   "closed": "2026-10-21T15:20:00+00:00",
+   "held_min": 20.0,
+   "points": 1.0,
+   "peak_pt": 44.38,
+   "pnl_usd": 2.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Leg 14 is up 138pt over 44min with a pullback to 29830 at 14:31 that has already resumed to a fresh local high (29943) and holding near 29932, confirming the up leg is intact and still driving.",
+   "peak_1m": 44.38
+  },
+  {
+   "side": "LONG",
+   "entry": 29974.38,
+   "exit": 30023.62,
+   "opened": "2026-10-21T15:25:00+00:00",
+   "closed": "2026-10-21T16:00:00+00:00",
+   "held_min": 35.0,
+   "points": 49.25,
+   "peak_pt": 77.38,
+   "pnl_usd": 388.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Leg 14 is a sustained 69min/200+pt up-move making a fresh extreme (15:11 bar high 29982 beats the last trade's peak) with no stall yet, so it has proven itself and I'm flat after only a scratch exit.",
+   "peak_1m": 77.38
+  },
+  {
+   "side": "SHORT",
+   "entry": 30001.38,
+   "exit": 30065.12,
+   "opened": "2026-10-21T16:35:00+00:00",
+   "closed": "2026-10-21T16:40:00+00:00",
+   "held_min": 5.0,
+   "points": -63.75,
+   "peak_pt": 0.0,
+   "pnl_usd": -516.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "three straight 15-min bars with lower highs and lower lows off the 30059 peak show the up-leg has turned and is grinding down, so joining the new leg mid-pullback rather than calling the exact top.",
+   "peak_1m": 0.0
+  },
+  {
+   "side": "LONG",
+   "entry": 30082.88,
+   "exit": 30046.12,
+   "opened": "2026-10-21T16:55:00+00:00",
+   "closed": "2026-10-21T18:00:00+00:00",
+   "held_min": 65.0,
+   "points": -36.75,
+   "peak_pt": 28.12,
+   "pnl_usd": -300.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "Leg 12 is still driving up, just printed a fresh session high (30105.75) after only a shallow two-bar pullback, so joining the confirmed uptrend now instead of fighting it like the last losing short.",
+   "peak_1m": 28.12
+  },
+  {
+   "side": "LONG",
+   "entry": 30076.38,
+   "exit": 30015.38,
+   "opened": "2026-10-21T18:25:00+00:00",
+   "closed": "2026-10-21T18:50:00+00:00",
+   "held_min": 25.0,
+   "points": -61.0,
+   "peak_pt": 11.62,
+   "pnl_usd": -494.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 282pt leg since 14:16 pulled back from 30114 to 30040 but stayed well above the leg's base and is now confirmed resuming with two straight up closes into 30076, so rejoin the still-intact uptrend.",
+   "peak_1m": 11.62
+  },
+  {
+   "side": "SHORT",
+   "entry": 29942.38,
+   "exit": 29910.12,
+   "opened": "2026-10-21T19:00:00+00:00",
+   "closed": "2026-10-21T19:05:00+00:00",
+   "held_min": 5.0,
+   "points": 32.25,
+   "peak_pt": 45.12,
+   "pnl_usd": 252.0,
+   "why": "CLAUDE_EXIT",
+   "entry_reason": "The 100min/168pt down leg just broke decisively through its recent consolidation to a new leg-low on a strong impulse candle (30069\u219229942), confirming continuation, not exhaustion.",
+   "peak_1m": 45.12
+  }
+ ],
+ "calls": [
+  {
+   "ts": "2026-10-21T08:50:00+00:00",
+   "px": 29809.25,
+   "action": "ENTER_SHORT",
+   "conf": 0.65,
+   "reason": "The down leg from 07:29 has proven itself (108pt/81min) and is still driving hard \u2014 last two 15-min bars broke to a fresh low (29827 then 29793) with no sign of stalling, so joining the running leg now.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T08:55:00+00:00",
+   "px": 29751.5,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "Leg 7 down is still driving with a fresh low just made on a strong impulsive bar, no stall yet, so let the +57pt profit run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T09:00:00+00:00",
+   "px": 29736.25,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "Fresh low just printed on a strong down bar closing near its low, so the leg is still driving and the $583 profit deserves room to run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T09:05:00+00:00",
+   "px": 29766.75,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Made a fresh low at 29731 then bounced 35pt back to 29766.75 within the last bar, a first honest stall sign after a good +42pt profit, so take it rather than give it back.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T09:10:00+00:00",
+   "px": 29767.75,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Down leg just made a fresh low past my exit and is bouncing on one 15-min bar, but that single up bar isn't yet proof of a turned leg, so stay flat.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T09:15:00+00:00",
+   "px": 29786.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Down leg is running but the last bar just bounced hard off 29731 to 29786, not yet enough to call the leg turned up or the down leg resumed, so wait for it to prove itself either way.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T09:20:00+00:00",
+   "px": 29787.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price is bouncing off the 29731 low but this is one 15-min bar inside the still-running down leg, not yet a proven turn, and I already harvested this leg's profit on the short so I need a fresh extreme or confirmed new leg before acting again.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T09:25:00+00:00",
+   "px": 29805.0,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "The down leg clearly bottomed at 29731 and the last two 15-min bars are both up with a strong 70pt bounce to 29805, confirming a fresh up leg worth joining.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T09:30:00+00:00",
+   "px": 29818.25,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Fresh long only 5 minutes in, still at its favorable peak with the leg 8 upswing actively driving, no stall or new extreme failure yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T09:35:00+00:00",
+   "px": 29851.25,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Up leg still driving with a fresh extreme (09:21 bar closed 29851 near its high of 29859), position sitting right at peak favourable with no stall yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T09:40:00+00:00",
+   "px": 29825.75,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Gave back more than half the peak favorable move (+47pt down to +20.6pt) with a sharp pullback on the last bar, a clear sign the up-leg is stalling \u2014 take the $165 rather than let a decent profit erode further.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T09:45:00+00:00",
+   "px": 29831.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up-leg already gave a fresh extreme to 29859.5 after my last exit but has now pulled back ~28pt (nearly 3x ATR) in one bar, so it's unclear if this is just a dip or the leg stalling, and I'd rather wait for a clear fresh extreme or a confirmed reversal than chase a pullback.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T09:50:00+00:00",
+   "px": 29792.5,
+   "action": "ENTER_SHORT",
+   "conf": 0.58,
+   "reason": "The last 15-min bar erased the entire 58pt up-leg and closed near its low (29851\u219229792.50), a confirmed turn back down off the recent swing high, worth joining after two clean wins already banked today.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T09:55:00+00:00",
+   "px": 29804.5,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Price plunged to 29783 then ripped back to 29834 and holds near 29804, undoing the down-move this short was betting against the still-live up-leg, so take the small loss now rather than fight a leg that hasn't turned.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T10:00:00+00:00",
+   "px": 29794.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The pullback off the 29859 high is choppy (last short got stopped in 5 minutes) with no fresh down extreme to confirm a new leg, and re-shorting into it now would be fighting the still-unresolved up leg rather than joining a proven move.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T10:05:00+00:00",
+   "px": 29765.75,
+   "action": "ENTER_SHORT",
+   "conf": 0.6,
+   "reason": "Leg 9 down is still driving with fresh lows and closes near the low on the last two 15-min bars, so re-joining short after the earlier small loss is entering later into a proven leg.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T10:10:00+00:00",
+   "px": 29763.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Short is in the running down leg with the pullback shallow (faded from +10.9pt to +2.4pt, not reversed), so this is a normal dip inside an intact leg, not a reason to exit yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T10:15:00+00:00",
+   "px": 29745.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg 9 is still driving down with a fresh low this bar and only a minor 3pt pullback from peak, so let it run rather than taking a sub-$200 profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T10:20:00+00:00",
+   "px": 29757.5,
+   "action": "EXIT",
+   "conf": 0.6,
+   "reason": "Short has given back most of its 31.6pt peak down to just 8pt after the last 15-min bar made a new low then bounced hard back to 29757.50, a tiring/reversal signal worth banking a small profit on rather than risking red.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T10:25:00+00:00",
+   "px": 29768.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Down leg just made a new session low then bounced to a flat/positive 15-min close - that's one bar, not a proven reversal, and shorting here would be chasing a leg that already undercut and stalled; let it show direction before joining.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T10:30:00+00:00",
+   "px": 29778.5,
+   "action": "WAIT",
+   "conf": 0.56,
+   "reason": "Price bounced hard off the session low (29727) closing near the bar's high, but that's one 15-min reversal bar after a 74pt down leg and recent whipsaws (trades 3 & 4) - want to see it hold above 29785 before calling the leg turned.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T10:35:00+00:00",
+   "px": 29794.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The down leg just bottomed near 29727 and one 15-min bar has bounced hard to 29794, but that's only one bar of confirmation for a new up leg after a leg we already profited from shorting, so wait for a second bar to prove the turn before joining long.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T10:40:00+00:00",
+   "px": 29805.25,
+   "action": "ENTER_LONG",
+   "conf": 0.55,
+   "reason": "The up leg is proven (two straight up 15-min bars, +71pt/24min) and holding firm near its high rather than rolling over, so joining it mid-leg is in-direction even as it nears the prior 29815-29825 resistance shelf.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T10:45:00+00:00",
+   "px": 29822.0,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Long is +16.6pt with the leg still driving higher (10:16 and 10:31 bars both strong up closes near highs, no stall yet), so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T10:50:00+00:00",
+   "px": 29815.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Pulled back from +20pt to +10pt but the up leg since 10:16 is still intact with the last two 15-min bars closing higher, so this is a pullback inside the leg, not a reversal.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T10:55:00+00:00",
+   "px": 29814.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Pullback from +20pt to +9.4pt is noise within a still-climbing leg (consecutive up 15m bars, including a new high at 10:26), not a reversal of the move I joined.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:00:00+00:00",
+   "px": 29844.0,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Still LONG and leg 10 is still driving (last two 15m bars strong green, price making fresh highs), so let it run rather than taking the $309 now.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:05:00+00:00",
+   "px": 29864.5,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Leg 10 is still driving with fresh highs each 15-min bar and I'm up +59pt, so let it run rather than cap a good trade early.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:10:00+00:00",
+   "px": 29844.75,
+   "action": "HOLD",
+   "conf": 0.62,
+   "reason": "Leg still driving \u2014 last 15-min bar accelerated to a new high (29873) before easing back to 29844.75, so this is pullback inside an intact up-leg with the trade still +39pt, not fading momentum worth banking yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:15:00+00:00",
+   "px": 29831.5,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Gave back a third of the move after a new high (11:01 bar rejected from 29873 to close 29831.50 near the bar low) while sitting on a solid +$209 - the leg is tiring and this is a decent profit to bank.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:20:00+00:00",
+   "px": 29846.5,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Flat after taking profit on the up-leg; 11:06 bar pulled back from the 29869.75 high without a fresh extreme yet, so this is the same leg stalling, not a new entry signal.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T11:25:00+00:00",
+   "px": 29859.75,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "Leg 10 is still up but price (29859.75) hasn't cleared the recent swing high at 29873.25 from the 10:56 bar, so there's no fresh extreme to justify re-entering long after already banking +26pt on this leg - better to wait for a clean break above 29873 or a new leg.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T11:30:00+00:00",
+   "px": 29889.25,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "Leg 10's up move just pushed to a fresh extreme at 29896 after the small pullback, confirming the leg is still driving beyond where the last long exited.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T11:35:00+00:00",
+   "px": 29864.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Still well above the recent swing low near 29827 and the leg's base near 29746, so this is a pullback inside an intact up-leg, not a reversal, and there are no stops to honor here.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:40:00+00:00",
+   "px": 29852.25,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "The up-leg from ~29726 to 29902 isn't undone at 29852 \u2014 just a pullback after a late entry near the top, so I'm staying with it rather than calling the turn on one down bar.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:45:00+00:00",
+   "px": 29864.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Entry was late near the top and the reversal bar is a hard pullback, but price (29864) is still far above leg 10's base near 29734-29778, so the up leg isn't undone yet \u2014 stay while it's intact.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:50:00+00:00",
+   "px": 29874.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Red is just a pullback from the leg 10 high (29902), price is still above the pullback low and the last two 15-min bars closed higher, so the up leg looks intact, not reversed.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T11:55:00+00:00",
+   "px": 29884.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg 10's up-move is only pulling back from its 29902 high, not reversed - price is still well above where the leg started, so this small -$39 red is noise inside an intact leg, not a stop signal.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:00:00+00:00",
+   "px": 29855.5,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Price pulled back from the 29902 high but is still holding above the recent swing lows near 29809-29828, so the up-leg looks pulled back not reversed, and the last bar ticked positive again.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:05:00+00:00",
+   "px": 29868.75,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "The up-leg's base is still way down near 29815, so this is a pullback/chop near the highs after a 135pt run, not a reversal of the leg I joined, so I'll give it room rather than bail on a modest red.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:10:00+00:00",
+   "px": 29860.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The up-leg's high (29902 at 11:26) hasn't been undone - price is still well above the leg's 29727 origin, so this reads as a pullback/consolidation near the top rather than a reversal, and a pullback inside an intact leg isn't a reason to exit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:15:00+00:00",
+   "px": 29855.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Price has pulled back from the 29902 high but is still far above leg 10's base near 29727, so the up-leg isn't undone yet \u2014 a pullback inside an intact leg, not a reversal, so no exit call yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:20:00+00:00",
+   "px": 29860.5,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Leg 10 is still an up-leg that hasn't reversed - price has only pulled back ~42pt from its 29902 high within a 126pt run, so this reads as a pullback inside the leg, not an undoing of it.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:25:00+00:00",
+   "px": 29862.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Long is red but leg 10's up-move from ~29764 to ~29902 is still intact \u2014 price at 29862 is just a pullback within the leg, not a reversal below where it started, so this is a stay-not-a-stop situation.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:30:00+00:00",
+   "px": 29869.5,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Down -19.9pt but the up-leg hasn't reversed, just chopping between 29845-29902 for the last hour without breaking below the leg's prior lows, so this is a pullback inside the leg, not proof it's over.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:35:00+00:00",
+   "px": 29873.25,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Price pulled back ~29pt from the 11:21 high within the still-intact 139min up-leg (12:21 bar is already pushing back toward 29895), so this reads as a normal pullback not a leg reversal, and the entry is red on a late top-tick, not a broken leg.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:40:00+00:00",
+   "px": 29868.25,
+   "action": "HOLD",
+   "conf": 0.68,
+   "reason": "Up-leg from 10:16 is only pulling back from its 29902 high, not reversed - price is still well above the leg's starting low, so this is a red pullback inside an intact leg, not a stop-out signal.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:45:00+00:00",
+   "px": 29845.0,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Price is still well above the leg-10 origin and above the last clear swing low (29828), so this reads as chop/consolidation inside the up-leg rather than a reversal that undoes it, and with no stops a pullback alone isn't a reason to exit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:50:00+00:00",
+   "px": 29854.75,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Price is still well above the leg's 10:16 origin near 29800 and even retested highs near 29895 at 12:21, so this reads as a deep pullback inside the running up-leg rather than a reversal, and the strategy says to stay through pullbacks as long as the leg is intact.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T12:55:00+00:00",
+   "px": 29847.0,
+   "action": "EXIT",
+   "conf": 0.62,
+   "reason": "Since the 11:26 high at 29902 price has carved lower highs and a fresh lower low on the last bar (29832.50), the up-leg I joined late at 29889 has turned over into a new down leg rather than just pulling back, so I'm taking the small loss before it grows.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T13:00:00+00:00",
+   "px": 29875.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "last 2 hours are choppy sideways chop between 29826-29902 with fading highs, no fresh leg has proven itself in either direction yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:05:00+00:00",
+   "px": 29877.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price has chopped in a 29832-29902 range for two hours without a fresh extreme above the prior high, so the up-leg hasn't re-proven itself after the last long got chopped out at a loss.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:10:00+00:00",
+   "px": 29857.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Last 2 hours is choppy two-way action between 29826-29902 with no fresh proven extreme in either direction, and the prior long just got chopped for -42.5pt in this same range.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:15:00+00:00",
+   "px": 29872.0,
+   "action": "WAIT",
+   "conf": 0.62,
+   "reason": "Last long got stopped out near this same level (entered 29889, peak only +5pt) and price is just chopping back up to 29872 without a fresh extreme beyond the prior 29887-29902 highs, so the leg hasn't re-proven itself yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:20:00+00:00",
+   "px": 29878.0,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Price has chopped between ~29832 and ~29902 for the last hour without a fresh extreme, and the last long got stopped out in this exact band, so there's no proven leg to join yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:25:00+00:00",
+   "px": 29882.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price is back at 29882-29904, the same resistance zone that just stopped out the last long for -42pt, and the recent 15-min bars are whipsawing rather than showing a clean fresh breakout to confirm.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:30:00+00:00",
+   "px": 29884.5,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "After 2hrs chopping 29832-29913, the 13:16 bar broke to a fresh high at 29913.75 with three straight up closes, confirming leg 10's uptrend resuming.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:35:00+00:00",
+   "px": 29841.5,
+   "action": "EXIT",
+   "conf": 0.72,
+   "reason": "The up leg topped at 29913 right after my entry and has reversed hard, breaking below recent chop lows to 29825 \u2014 the leg I joined is undone, not just pulled back, so get out now rather than let a stopless loser grow.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T13:40:00+00:00",
+   "px": 29859.25,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "The last 15-min bar spiked to a new high then crashed 100pt and only partly recovered - that's a whipsaw, not a proven leg, and I just got stopped out of a long in this exact chop.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:45:00+00:00",
+   "px": 29852.0,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "The up-leg is only 2 minutes old off a sharp bounce inside a choppy range where my last two long entries both got reversed, so there's no proven leg yet to confirm into.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:50:00+00:00",
+   "px": 29885.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "This up-leg is only 7 minutes old inside a wildly whipsawing 15-min bar (918 high to 771 low to 886 close), too fresh to call proven after two straight losing longs in this same chop.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T13:55:00+00:00",
+   "px": 29859.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The bounce off the 29771 low already happened inside the last 15-min bar and price has stalled flat at 29859.50 since, right in the same zone where my last two longs just failed in the whipsaw chop, so this leg isn't proving continuation yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:00:00+00:00",
+   "px": 29896.25,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "Leg 11 down finished at 13:43 and the new leg has already driven 117pt in 17min with the latest bar still closing in the upper part of its range, so this is a confirmed up leg to join even though a chunk of it is already run.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:05:00+00:00",
+   "px": 29845.0,
+   "action": "EXIT",
+   "conf": 0.75,
+   "reason": "The up leg I joined late has been violently erased \u2014 price spiked to only +28pt favorable then crashed 80pt in 2 minutes through my entry, so this is a reversed leg, not a pullback, and I'm getting out before it worsens.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T14:10:00+00:00",
+   "px": 29806.25,
+   "action": "ENTER_SHORT",
+   "conf": 0.6,
+   "reason": "The new down leg has already dropped 119pt in 7 minutes (3.6x ATR) off the top of the prior up leg, with the last 15-min bar closing right at its low and no bounce yet, so it's proven and worth joining late.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:15:00+00:00",
+   "px": 29827.0,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Price has rallied back through the entry to 29827, undoing the down leg the short joined, and with only +4.4pt ever in favor this looks like the same early-entry-into-chop pattern that cost today's three losing longs.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T14:20:00+00:00",
+   "px": 29811.5,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Just stopped out shorting this same down-leg and it did push to a new low (29787) but the last bar closed 24pt off that low, so the bounce isn't yet proof of a reversal nor is the down-leg clearly still driving - after four straight losing re-entries into this choppy stretch, better to let the next ",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:25:00+00:00",
+   "px": 29838.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Last two trades got whipsawed in this same 29800-29900 chop zone and the 14:11 bar is just one bounce off the low, not a confirmed turn, so better to wait for a fresh extreme or clean leg before re-entering.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:30:00+00:00",
+   "px": 29869.25,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "The last four 20-minute legs have been violent chop (146pt up, 130pt down, now 75pt up in 14min) that already cost four straight quick losses today, so this fast up-move is more likely another whipsaw than a proven leg worth chasing.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:35:00+00:00",
+   "px": 29885.75,
+   "action": "WAIT",
+   "conf": 0.55,
+   "reason": "Leg 14 up has just spiked to 29904.50 and pulled back to 29885.75, too young and already stalling off its high to join safely after a choppy day of quick reversals.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:40:00+00:00",
+   "px": 29846.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up-leg off the 14:16 low rallied to 29904.50 but has already given back more than half of that (now 29846.50), so it's stalling/fading rather than proving itself, and no fresh down-leg is confirmed yet - better to wait after a day that's already churned 9 trades to -$644 by entering mid-chop.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:45:00+00:00",
+   "px": 29882.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The 29min up-leg already stalled on the last bar (high 29907.50 giving back to a 29882.25 close), and today's pattern of quick whipsaw losses says don't chase a leg that's already faltering.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:50:00+00:00",
+   "px": 29940.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Leg 14 has already run 146pt in 34min into a zone that's capped the last several swings, and today's pattern has been fast 13-20min reversals burning late entries, so I'd rather see it clear 29944 with momentum or pull back for a cleaner join than chase it here.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T14:55:00+00:00",
+   "px": 29909.0,
+   "action": "WAIT",
+   "conf": 0.62,
+   "reason": "Price is back in the 29880-29940 zone that already stopped out three long entries today (trades 6,7,8), and the latest 15m bar spiked to 29943 then faded to 29909, so this looks like the same chop rather than a clean leg to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T15:00:00+00:00",
+   "px": 29932.5,
+   "action": "ENTER_LONG",
+   "conf": 0.55,
+   "reason": "Leg 14 is up 138pt over 44min with a pullback to 29830 at 14:31 that has already resumed to a fresh local high (29943) and holding near 29932, confirming the up leg is intact and still driving.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T15:05:00+00:00",
+   "px": 29928.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only 5min in and barely red after a pullback from the new high of a still-intact up leg, not a reversal of the move itself, so no reason to leave yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:10:00+00:00",
+   "px": 29954.25,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Still at peak favourable with the latest 15-min bar closing near its high, so the leg I joined is still driving, not tiring.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:15:00+00:00",
+   "px": 29972.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg 14 is still driving (last 15m bar made a fresh high closing near its top) and position is near peak favourable, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:20:00+00:00",
+   "px": 29933.75,
+   "action": "EXIT",
+   "conf": 0.68,
+   "reason": "Gave back the entire +44pt peak down to roughly breakeven after a clear rejection wick at 29982, a textbook stall-and-fade that should be taken before it turns red like today's other held-too-long trades.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:25:00+00:00",
+   "px": 29974.25,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "Leg 14 is a sustained 69min/200+pt up-move making a fresh extreme (15:11 bar high 29982 beats the last trade's peak) with no stall yet, so it has proven itself and I'm flat after only a scratch exit.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T15:30:00+00:00",
+   "px": 29992.5,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg 14 is still driving (strong green 15m bars into new highs) and the trade is only 5 minutes old and at its peak, so let it run rather than cutting an uncompleted leg early.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:35:00+00:00",
+   "px": 30009.0,
+   "action": "HOLD",
+   "conf": 0.7,
+   "reason": "Leg 14 is still driving with a fresh extreme just made at 30011/30009 on strong up bars, no stall yet, so let the winner run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:40:00+00:00",
+   "px": 30032.5,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "Leg 14 is still driving with higher highs and strong bullish 15-min closes, only 6pt off peak, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:45:00+00:00",
+   "px": 30047.5,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "Still in the running up-leg at a fresh extreme with no stall yet, so hold the +73pt and let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:50:00+00:00",
+   "px": 30046.25,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg 14 is still driving (252pt/94min, fresh highs into 30059) and the position is up $575 off peak +77pt with only a minor pullback, so no stall signal yet to take profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T15:55:00+00:00",
+   "px": 30040.5,
+   "action": "HOLD",
+   "conf": 0.72,
+   "reason": "The current 246pt leg is still driving with consecutive higher-high 15-min bars and no stall, so let the winner run rather than exit a pullback from peak.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T16:00:00+00:00",
+   "px": 30023.75,
+   "action": "EXIT",
+   "conf": 0.65,
+   "reason": "Made a fresh high at 30059 then reversed hard to close red at 30023.75, giving back half the peak (+77pt) to +49pt \u2014 the first honest stall sign after a strong push, and $395 is a solid profit to bank given today's choppy record.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T16:05:00+00:00",
+   "px": 30028.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Leg 14 just made a fresh high at 30059 then the last 15-min bar reversed hard into 30028.75, so momentum is stalling right at the top with no confirmed new leg yet in either direction.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:10:00+00:00",
+   "px": 30011.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg just pulled back hard off its 30059 high on one down bar - not yet a confirmed reversal or a fresh extreme to rejoin, so no proven leg to join either way.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:15:00+00:00",
+   "px": 30013.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Already banked +49pt off this up-leg at 30023 and price has since made a lower high (30059\u219230038) and two down closes to 30013 with no fresh extreme beyond 30059, so it's the same stall, not a new confirmed leg.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:20:00+00:00",
+   "px": 30019.5,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "Flat after banking profit on the up-leg; the last two bars are pulling back from the 30059 high with no fresh extreme beyond it and no confirmed new leg down yet, so there's nothing proven to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:25:00+00:00",
+   "px": 30001.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Up leg 14 just rolled over into two red 15-min bars off the 30059 high, but that's not yet a proven reversal leg nor a renewed up-thrust, so there's no confirmed direction to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:30:00+00:00",
+   "px": 29999.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Flat after a profitable exit near the top at 30023; the last three 15-min bars rolled over from 30059 to 29999 but that's only 60pt against a 204pt/134min up leg, not yet a proven reversal to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:35:00+00:00",
+   "px": 30001.5,
+   "action": "ENTER_SHORT",
+   "conf": 0.55,
+   "reason": "three straight 15-min bars with lower highs and lower lows off the 30059 peak show the up-leg has turned and is grinding down, so joining the new leg mid-pullback rather than calling the exact top.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:40:00+00:00",
+   "px": 30065.0,
+   "action": "EXIT",
+   "conf": 0.72,
+   "reason": "Short was taken against the up leg which just printed a fresh extreme (30106) and is still driving, not reversing, so this is a bad counter-trend entry to cut rather than a pullback to ride out.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T16:45:00+00:00",
+   "px": 30054.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg just struck a fresh extreme at 30105.75 but has pulled back ~51pt to 30054.75 within the last bar, so it's unconfirmed whether this is a pullback inside the running leg or a fresh turn down \u2014 no edge in chasing longs right after a losing countertrend short five minutes ago.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:50:00+00:00",
+   "px": 30069.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Leg 12 is still the dominant up-leg but the last 15-min bar spiked to 30105.75 then sold off hard to 30069.50, so the pullback hasn't resolved yet - wait for it to either make a fresh high (resume) or break down (leg over) before committing, especially after two quick counter-trend losses today.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T16:55:00+00:00",
+   "px": 30082.75,
+   "action": "ENTER_LONG",
+   "conf": 0.6,
+   "reason": "Leg 12 is still driving up, just printed a fresh session high (30105.75) after only a shallow two-bar pullback, so joining the confirmed uptrend now instead of fighting it like the last losing short.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T17:00:00+00:00",
+   "px": 30079.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Long entered 5min ago into leg 12's still-running 285pt up move; current -3.4pt is just a shallow pullback from the 30105.75 high, not a reversal of the leg, so stay.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:05:00+00:00",
+   "px": 30073.0,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Only -9.9pt (under 1 ATR) on a bounce entry after the leg's 30106 spike; this reads as a pullback within the still-intact 278pt up leg, not a reversal, so staying rather than exiting on noise.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:10:00+00:00",
+   "px": 30093.75,
+   "action": "HOLD",
+   "conf": 0.75,
+   "reason": "Leg 12 is still driving with expanding range and a fresh session high on the last 15-min bar, so hold the long rather than take a small +11pt profit.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:15:00+00:00",
+   "px": 30094.75,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg 12 is still driving with fresh highs (30105.75) and consecutive up bars, only 20min into a small profit, no stall yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:20:00+00:00",
+   "px": 30111.0,
+   "action": "HOLD",
+   "conf": 0.65,
+   "reason": "Leg 12 just printed a fresh extreme to 30111 with the close near the high, so the up-move is still driving, not stalling, and the trade is comfortably positive with no pullback yet.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:25:00+00:00",
+   "px": 30086.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Leg 12 just printed a fresh high at 30114 and this pullback to +3.9pt looks like a normal dip within an intact, still-driving uptrend, not a confirmed reversal.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:30:00+00:00",
+   "px": 30078.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Still red by only $35 after a +28pt peak, and the pullback from the 30114 high is just a retracement inside the still-running 284pt leg, not a reversal of it, so staying is right until the leg itself breaks.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:35:00+00:00",
+   "px": 30062.5,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Price pulled back to 30062 after making a fresh leg extreme at 30114, but the 268pt up-leg from 14:16 is nowhere near undone, so this reads as a pullback inside an intact leg rather than a reversal.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:40:00+00:00",
+   "px": 30066.75,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Two red 15-min bars after the 30114 high are a pullback inside the still-intact 272pt up-leg (price nowhere near undoing the move from 29807), not a confirmed reversal, so no exit signal yet despite being red.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:45:00+00:00",
+   "px": 30064.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The 270pt leg up from 29807 is intact despite this two-bar pullback to 30064; nothing says the leg itself has reversed yet, so hold the long through this red stretch rather than treat a pullback as a stop.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:50:00+00:00",
+   "px": 30058.25,
+   "action": "HOLD",
+   "conf": 0.55,
+   "reason": "Leg 12's up-move isn't broken (price 30058 is still far above the leg's 14:16 base near 29850, just pulled back from the 30114 high) so this reads as a pullback inside an intact leg, not a reversal, and it's a call to make only when the leg itself is undone, not on a red pullback.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T17:55:00+00:00",
+   "px": 30059.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "The up-leg from ~29794 is still intact and well above its origin; the last three bars are just a pullback through our entry, not a reversal, so per the no-stops rule we stay red rather than cut on a pullback.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:00:00+00:00",
+   "px": 30046.25,
+   "action": "EXIT",
+   "conf": 0.6,
+   "reason": "Three straight 15-min bars down from the 30114 high have erased the full +28pt peak and pushed this below entry into a -36.6pt loss with no bounce, so the push I joined has reversed rather than merely pulled back.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:05:00+00:00",
+   "px": 30050.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up leg stalled after a new high at 30114 and has pulled back to 30050 with three straight lower closes, but that's a pullback inside the running leg, not a proven reversal, so there's no clean confirmation to join either direction yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T18:10:00+00:00",
+   "px": 30063.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Only one 15-min bar has turned up after a 74pt pullback from the 30114 high, not enough to call the leg resumed or a new leg proven yet.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T18:15:00+00:00",
+   "px": 30079.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Just stopped out of this same up-leg attempt 15 minutes ago on the pullback from 30114 to 30040, and the bounce to 30079 hasn't yet cleared that prior high, so there's no fresh proof the leg has resumed rather than just another chop swing.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T18:20:00+00:00",
+   "px": 30080.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price is churning inside the 30040-30114 range after two failed breakout attempts already cost losses today, so no fresh extreme confirms a new push and there's no proven leg to join.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T18:25:00+00:00",
+   "px": 30076.25,
+   "action": "ENTER_LONG",
+   "conf": 0.55,
+   "reason": "The 282pt leg since 14:16 pulled back from 30114 to 30040 but stayed well above the leg's base and is now confirmed resuming with two straight up closes into 30076, so rejoin the still-intact uptrend.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T18:30:00+00:00",
+   "px": 30088.0,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "5 minutes into a long in the still-driving 294pt leg, price just closed at the bar high with no stall yet, so let it run.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:35:00+00:00",
+   "px": 30080.75,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Only 10min in on a 4lot long riding the 286pt running up-leg, last two 15-min bars are grinding to marginal new highs not stalling, so the pullback from +11.6pt to +4.4pt is noise inside an intact leg, not a reversal.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:40:00+00:00",
+   "px": 30078.25,
+   "action": "HOLD",
+   "conf": 0.6,
+   "reason": "Still inside the 264-min up leg making higher highs near 30114, this was just a quick pullback off peak and the leg hasn't reversed, so stay with it rather than exit a barely-profitable fresh entry.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:45:00+00:00",
+   "px": 30070.25,
+   "action": "HOLD",
+   "conf": 0.58,
+   "reason": "Price made a fresh high at 30114 then this is just a pullback within the still-running up-leg, not a reversal, so a small red giveback is not a reason to leave.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:50:00+00:00",
+   "px": 30015.5,
+   "action": "EXIT",
+   "conf": 0.75,
+   "reason": "The up-leg I joined broke hard through the 30046-30061 support shelf down to 30015, a decisive reversal not a pullback, and this trade has gone from +11.6pt peak to -60.9pt with only ~65 min left in the window.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T18:55:00+00:00",
+   "px": 30020.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Down leg off the 30114 high is real but the last bar bounced hard off 29990.50 back to 30020, so neither the down leg nor a fresh up move is confirmed yet, and after four straight red trades there's no reason to force an entry with only an hour left.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:00:00+00:00",
+   "px": 29942.5,
+   "action": "ENTER_SHORT",
+   "conf": 0.58,
+   "reason": "The 100min/168pt down leg just broke decisively through its recent consolidation to a new leg-low on a strong impulse candle (30069\u219229942), confirming continuation, not exhaustion.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:05:00+00:00",
+   "px": 29910.0,
+   "action": "EXIT",
+   "conf": 0.68,
+   "reason": "Short is +$259 but has faded from +45pt peak to +32pt after a 25pt bounce off the 29885 low on the last bar - the drive is stalling, so take the profit rather than risk giving more back.",
+   "error": null,
+   "holding": true
+  },
+  {
+   "ts": "2026-10-21T19:10:00+00:00",
+   "px": 29915.25,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Down leg 13 is still intact but the last bar's sharp bounce off 29885.75 to 29915.25 isn't yet a proven new leg, and with only 45 minutes left there's no time to let a fresh entry develop.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:15:00+00:00",
+   "px": 29963.5,
+   "action": "WAIT",
+   "conf": 0.65,
+   "reason": "The 19:01 bar's sharp bounce off 29885.75 to 29963.50 is one bar against the still-running down leg, not a proven new leg, and with only 40 minutes left there's little room to let a fresh entry develop before the 19:55Z flatten.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:20:00+00:00",
+   "px": 29983.0,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Price bounced hard off 29886 back to 29983 but that's one 15-min bar inside a running down leg, not yet a proven reversal, and with only 35 minutes left before the forced flatten there's little room to let a fresh long prove itself.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:25:00+00:00",
+   "px": 30011.75,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The bounce off 29886 to 30012 looks like a proven reversal but it's already run 114pt with no fresh bar confirming it's still driving, and with only 30 minutes left before forced flatten there's too little room to manage a fresh entry safely.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:30:00+00:00",
+   "px": 30024.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "Leg 14 is a genuine proven up-move off the 19:02 low, but with only 25 minutes to forced flatten there's no room to let a new entry develop or exit on my own terms, and today's losses already came from forcing trades near reversals.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:35:00+00:00",
+   "px": 30031.5,
+   "action": "WAIT",
+   "conf": 0.6,
+   "reason": "The up-leg already ran 134pt in 33min and price is chasing near its recent high with only 20 minutes left before mandatory flatten, leaving no room to manage a fresh entry safely.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:40:00+00:00",
+   "px": 30007.75,
+   "action": "WAIT",
+   "conf": 0.75,
+   "reason": "Only 15 minutes left before automatic flatten, last 15-min bar just rolled over from 30039 to 30007.75 so the bounce is fading with no fresh extreme to confirm a new leg worth joining.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:45:00+00:00",
+   "px": 30033.5,
+   "action": "WAIT",
+   "conf": 0.75,
+   "reason": "Leg 14 is up 136pt and still driving, but only 10 minutes remain before the 19:55Z forced flatten \u2014 not enough room to join and let it work, so better to stay flat and let the window close.",
+   "error": null,
+   "holding": false
+  },
+  {
+   "ts": "2026-10-21T19:50:00+00:00",
+   "px": 30039.0,
+   "action": "WAIT",
+   "conf": 0.9,
+   "reason": "Only 5 minutes left before automatic flatten at 19:55Z, no time to safely join or profit from the current leg.",
+   "error": null,
+   "holding": false
+  }
+ ],
+ "net_usd": -1312.0
+}
