@@ -1,0 +1,35 @@
+E112 - THE LIVE DESK (v1.02+LOCK) REPLAYED ON MONTHS CLAUDE HAS NEVER SEEN, AND ONE TUNED CLAUDE RULE AGAINST THE BAD ENTRIES.  Declared 2026-10-25 BEFORE any E112 call.
+Operator, 2026-10-25: "the detector doesn't call entries for us. Claude does... can you run our live desk setup on a fresh month we've never seen before? But fine tune something to try and avoid
+the bad entries. I don't know what that something is. ... The live desk only enters when Claude agrees with the detector." And: "No I don't want an exit." -> NO stop, NO exit change, ladder fixed.
+E110/E111 were detector-only and are NOT the live desk; this study puts Claude back in the loop.
+
+THE REPLAYED DESK = scripts/hybrid_robot.py v1.02+LOCK, reproduced call for call (reports/recursive_loop/E112_code/replay.py; imports sim_week_recursive, leg_robot, hybrid_robot - not copies):
+  every 5 min 02:00Z..13:25Z: Claude is asked with the LIVE prompt  S.brief_for("v2") + "=== THE TAPE ===" + S.context(closed 1-min bars <= decision, Claude's own sim position, rules,
+  Claude's own closed sim trades, self_aware=True, band=False, leg_list=False, mil=False, card=False); model = the CLI default the live service uses (measured 2026-10-25: claude-sonnet-5-5),
+  no ANTHROPIC_MODEL override. Claude's ENTER opens its sim book; the press is made only if (1) side == frozen detector direction at decision-60s (leg_robot.series_for 4 warm days +
+  confirmed_turns K=11, sha af0ace53e6dc9faa, hybrid_robot.det_dir, >= 200 bars), (2) decision >= 05:00 Europe/Paris (leg_robot.veto_cutoff), (3) the replayed rider is flat.
+  RIDER: 4 lots, ALL FOUR out at +37.5pt from the fill (trade-through 0.25pt), else flattened at the close of the last bar opening before 20:40Z; NO stop. Fill = decision price + 0.125pt adverse
+  (live fills vs decisions 10-14..10-23: median 1.1pt worse, mean 0.4pt better - no systematic slippage). $2/pt/lot, $1.50/lot fees. Claude's EXIT closes only its sim book (hybrid_exit_live=off).
+  RECONCILE: when the rider is flat and Claude's sim book holds, the sim position is dropped unbooked (RECONCILE_SIM). LOCK: once day equity (realised + open, marked at every 1-min close) touches
+  +$1,000, no further entries AND no further Claude calls that session (as live). Tape: MNQ 1-min backfill (verified identical to our own 5s capture on 32,395 minutes); the live robot reads 1-min
+  bars built from 5s - same series. Holidays/short sessions with < 600 page bars are skipped and listed.
+  KNOWN DIFFERENCE: the replay cannot reproduce live latency (median 32 s decision->fill) - the 0.125pt fill is the cost model; and a 1-min bar is the target-hit resolution (no stop, so order inside a bar
+  cannot change a hit, only its minute).
+
+PHASE A - TUNE MONTH: October 2025 (every weekday session 2025-10-01..2025-10-31 with tape). Arm "v102" (rules = "", exactly live). Never seen by any Claude replay (replay records exist only for
+  2026-01..2026-10). The detector-only studies E52-E58/E110/E111 used these bars WITHOUT Claude; they selected nothing for this study.
+TUNING (between A and B, written into amendment A1 BEFORE any Phase B call): from Phase A only, list every pressed entry with its page, Claude's reason, outcome, MAE and held minutes; BAD = net <= -$1,000
+  or MAE >= 150pt; contrast them with the winners. Write ONE rule text R (<= 200 words, plain instructions to Claude about WHEN NOT TO ENTER; no exit, no stop, no size, no window change). R goes in the
+  live prompt's rules slot (S.context `lessons`, the slot forward_days already uses). In-sample check, cheap and labelled in-sample: re-ask Claude WITH R at every Phase A slot where v102 pressed, on the
+  identical page; report how many BAD vs good presses R would have declined. R is frozen with its sha in A1. At most ONE revision of R, only if that check declines more winners than bad entries, logged.
+PHASE B - TEST MONTH: November 2025 (every weekday session 2025-11-03..2025-11-28 with tape), never seen by Claude or by the tuning. Two arms run PAIRED and day-interleaved: "v102" (live) and
+  "v102R" (live + R). Same engine, same tape, same model.
+METRICS per arm, counts before dollars: sessions, Claude calls, errored calls, ENTER calls, presses, blocked (not with leg / veto / holding), entries, wins (+37.5), entries <= -$1,000 / <= -$2,000 /
+  <= -$4,000, worst entry, MAE>=150pt entries; per day: $/day, days positive, worst day, 5th-pct day, daily SD, CV, max drawdown, days <= -$2,000, lock days. Every entry listed one by one.
+VERDICT (Phase B only; Phase A is in-sample for R): (1) bible.gate(v102R, v102) - the desk's mechanical Law 0 gate; (2) the operator's stated priority, CONSISTENCY: v102R passes if worst day, days positive
+  and CV are all no worse AND it has fewer entries <= -$1,000 than v102, regardless of $/day (reported beside the gate, never instead of it). ~20 days / ~60 entries per arm is a STORY, not a result:
+  the label is PROMISING / NO-BETTER / WORSE, never "proven". December 2025 is RESERVED, unseen, as the confirmation month - run only on the operator's go. A PROMISING R then goes to a no-press
+  live shadow first; only the operator changes the live desk.
+POISON: a day with > 10% errored calls is unscored and re-run (L7). COST (stated): ~$0.07 list per call, ~2,800 calls per month-arm; Phase A ~2.8k calls, the in-sample check ~60-100, Phase B ~5.6k.
+Read-only on the desk: no switch, request file, rider state, timer or order path is touched; all output under reports/recursive_loop/E112_* and reports/e112/.
+AMENDMENTS: appended below, dated, before the affected run.
