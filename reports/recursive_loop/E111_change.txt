@@ -1,0 +1,34 @@
+E111 - "THE TURN IS ALREADY IN": can anything known at entry see that the leg has already made its final extreme?  Declared 2026-10-25 BEFORE any E111 feature is computed.
+ORIGIN (stated honestly): the E110 Phase 0 census (reports/recursive_loop/E110_census.txt, section 6) showed, as a HINDSIGHT label, that 69-73% of D2 (<= -$2,000) candidates were entered AFTER the
+leg's final extreme (turn in, not yet confirmed) vs 29-36% of all candidates, in TRAIN, TEST and FORWARD alike. That label was read on ALL periods, so this hypothesis was formed with TEST/FORWARD in
+view. The E111 FEATURES below were never tabulated anywhere; their reads on TEST/FORWARD are first looks at the features, second looks at the hypothesis. Labelled so. Objective as E110: PAUSE
+conditions that cut the disaster tail by more than they cost in forgone wins (Law 0: consistency, not $/day). Nothing trades or changes on the desk.
+
+DATA: the E110 census unchanged (data/research/E110_census.parquet, 741,772 candidates, built 2026-10-25 by reports/recursive_loop/E110_code/census.py: rolls back-adjusted, 2025-06-12..20 dropped,
+detector sha af0ace53e6dc9faa, exit = 4 MNQ all-out +37.5 today's pts, flat 20:40Z, no stop). Opportunity set = in_live_window (02:00-13:30Z, after the 05:00 Paris veto). Leg-window shown secondary.
+Periods: TRAIN NQ 2015-01..2022-12, TEST NQ 2023-01..2025-07-25, FORWARD MNQ 2025-09-14..2026-10-23. Never pooled.
+
+FEATURES (causal: bars closed before the slot; computed by a new script from the same bars and the same detector run; fixed list):
+  G1 since_ext_min  = minutes since the bar that set the leg's running CLOSE extreme.                 Bands 0-15, 15-30, 30-60, 60-120, 120-240, 240+.
+  G2 pullback_atr   = (leg close extreme - entry, in the leg direction) / ATR14 at entry.             Bands <2, 2-4, 4-6, 6-8, 8-11, 11+  (11 = the confirm threshold K).
+  G3 retest_gap_atr = (leg HIGH extreme (long) - highest high of the last 30 min) / ATR14; mirror for shorts: how far the last 30 min failed to get back to the extreme. Bands <0.5, 0.5-2, 2-4, 4+.
+  G4 new_ext_rate   = share of the last 12 closed 5-min blocks whose close made a new leg close extreme (momentum still printing). Bands 0, (0-.25], (.25-.5], >.5.
+PAUSE RULES (the whole search, 6 rules; nothing else is tried; any later rule is a new E-number):
+  Q1 since_ext_min >= 60      Q2 since_ext_min >= 120      Q3 pullback_atr >= 6      Q4 pullback_atr >= 8
+  Q5 since_ext_min >= 60 AND pullback_atr >= 4             Q6 retest_gap_atr >= 2 AND since_ext_min >= 30
+METRICS per rule x period (counts first): share paused; D1/D2/D4 rate paused vs kept; share of D2/D4 caught vs share paused (selectivity = caught/paused); wins paused; static $ forgone vs avoided;
+  day-cluster bootstrap 90% CI (1,000 reps) of [D2 rate kept - D2 rate all].
+CONTROLS (a rule must beat all three on TRAIN to be carried; shown on every period):
+  RANDOM - pause the same share of each day's candidates at random, 1,000 draws; the rule's D2-caught minus paused must exceed the 95th percentile of the BEST-of-6 random analogue (search charged).
+  FLIP   - pause the same share with the LOWEST value of the rule's main feature (freshest leg / smallest pullback).
+  TIME   - pause the same share of each day's candidates by LATEST slot time.
+DESK PATH (Law 0 read, per period, baseline vs each rule): one position at a time; enter at the first live-window candidate when flat (skipping paused ones); exit at the +37.5 hit or the 20:40Z flat;
+  re-entry allowed at the next slot after a hit; no new entry once the day's realised $ >= +$1,000 (v1.02 LOCK). Report trades/day, days traded, days positive %, worst day, 5th-pct day, $/day, daily SD,
+  CV (SD/|mean|), max drawdown, count of days <= -$2,000 and <= -$4,000. This is the detector-only desk (no Claude), an UPPER bound on tails for the filtered robot - stated.
+SENSITIVITY: (a) ENTRY DELAY - live fills land a median 32 s after the decision (32 live presses 10-14..10-23 vs broker fills: slip median +1.1pt worse, mean -0.4, IQR -6.0..+4.4, max 12.75), so every
+  headline is re-run with the entry taken at the close of the bar OPENING at the slot (one minute later). (b) without roll_adj sessions. (c) EDT/EST, long/short.
+VERDICT per rule (ranked shortlist, never a single verdict): PROMISING = beats all three controls on TRAIN; on TEST the D2 CI (kept - all) excludes 0 on the improving side and selectivity > 1; FORWARD sign
+  agrees; desk-path worst day and days-positive do not worsen on any period. PARK = TRAIN-positive, not contradicted, fails a TEST/FORWARD clause or < 30 paused D2 events. REFUTED = TEST or FORWARD
+  measured on the wrong side, or a control beats it. Promotion is a no-press forward shadow first; only the operator changes the desk.
+OUTPUT: reports/recursive_loop/E111_code/, reports/recursive_loop/E111_result.txt. Read-only on the desk.
+AMENDMENTS: appended below, dated, before the affected run.
