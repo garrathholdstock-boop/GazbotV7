@@ -73,3 +73,4 @@ A1 (appended 2026-10-25 ~21:35Z, BEFORE any call with R1 and before any rule-arm
   DISCLOSED SLIP: one exploratory tally (entry number x time) accidentally included Nov 3-6 v102 days; they had zero losers, so nothing about losers came from them; R1 does not use them.
   AUTOMATION: reports/recursive_loop/E112_code/night.py runs the rule arm one unseen week at a time and applies the A0c STOP/CONTINUE rule mechanically; on STOP it halts and waits (a revision
   needs a written, frozen R2). Live-window guard (01:45Z/13:35Z) and the 15-error abort stand.
+  A1 note (22:52Z): the same R1 appears in reports/e112 records as rules_sha 8a2086387562 - replay.py hashes the text after strip() (no trailing newline); the file sha above includes it. Same text.
