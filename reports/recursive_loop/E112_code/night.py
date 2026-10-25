@@ -91,6 +91,13 @@ def main():
     if t0 > now:
         log(f"waiting until {t0:%H:%M}Z"); time.sleep((t0 - now).total_seconds())
     log("start")
+    me = os.getpid()
+    old = subprocess.run(["pgrep", "-f", "E112_code/replay.py"], capture_output=True, text=True).stdout.split()
+    for pid in old:                                      # resumable: an unfinished day is simply re-run
+        if int(pid) != me:
+            subprocess.run(["kill", pid])
+    if old:
+        log(f"stopped {len(old)} earlier replay process(es) so no day runs twice"); time.sleep(20)
     bg = [replay("v102", [d for d in OCT_LEFT if not clean("v102", d)], 1, "oct_rest.log")] if any(not clean("v102", d) for d in OCT_LEFT) else []
     nov_all = [d for w in WEEKS for d in w]
     bg.append(replay("v102", nov_all, 1, "nov_v102.log"))
