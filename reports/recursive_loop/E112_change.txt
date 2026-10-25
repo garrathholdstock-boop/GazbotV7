@@ -53,3 +53,13 @@ out of tokens." Told the operator: the live robot shares this allowance, so exha
   Dec 2025, Sep 2025 (09-15..09-30), Jan 2026 (excl. 01-08, 01-22), Feb 2026 (excl. 02-05, 02-19), Mar 2026 (excl. 03-05, 03-19), Apr 2026 (excl. 04-02, 04-16, 04-30), May 2026 (excl. 05-14, 05-28).
   If R_k is PROMISING on its month it is carried UNCHANGED to the next month (a second, independent confirmation) before any further revision. Every month is reported on its own; the pooled
   out-of-sample view uses only the months on which each rule version was frozen BEFORE it ran. Nothing live changes.
+
+A0c (appended 2026-10-25 ~19:05Z, before any E112 day is scored). Operator: "I don't think we should do full months straight off the bat. Do 1 week at a time. If it's a disaster, no point doing
+a full month. If it shows promise, we do another week." THE TEST UNIT IS ONE WEEK (Mon-Fri sessions), replacing the month in Phase B and A0b. Phase A (Oct 2025, v102) stays a full month (it is the
+tuning base). The v102 arm may run ahead (it does not depend on R); the rule arm runs ONE unseen week at a time, in the A0b month order, week by week (Nov 3-7, 10-14, 17-21, 24-28, Dec 1-5, ...).
+AFTER EACH WEEK (rule arm vs v102 on the same sessions), decided mechanically:
+  STOP R_k (disaster) if: [rule worst day < v102 worst day AND rule entries <= -$1,000 > v102's]  OR  [the rule's declined presses contained more winners than BAD entries that week, counted on the
+    v102 presses the rule arm did not take]. -> write R_(k+1) from ALL sessions seen so far, freeze (sha) in an amendment, test it on the NEXT unseen week.
+  CONTINUE R_k unchanged to the next unseen week otherwise.
+  SHADOW-WORTHY R_k: 4 consecutive unseen weeks with worst day, days positive and CV no worse than v102 AND fewer entries <= -$1,000 in total -> proposed to the operator as a no-press live shadow.
+Each week is reported alone; the running total pools only weeks run after R_k was frozen. Everything else in A0/A0b stands.
