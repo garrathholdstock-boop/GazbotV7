@@ -63,3 +63,13 @@ AFTER EACH WEEK (rule arm vs v102 on the same sessions), decided mechanically:
   CONTINUE R_k unchanged to the next unseen week otherwise.
   SHADOW-WORTHY R_k: 4 consecutive unseen weeks with worst day, days positive and CV no worse than v102 AND fewer entries <= -$1,000 in total -> proposed to the operator as a no-press live shadow.
 Each week is reported alone; the running total pools only weeks run after R_k was frozen. Everything else in A0/A0b stands.
+
+A1 (appended 2026-10-25 ~21:35Z, BEFORE any call with R1 and before any rule-arm week has run). R1 = reports/recursive_loop/E112_R1.txt, sha256 38f114857edf (first 12), FROZEN.
+  Written from the 20 October 2025 sessions completed by then (10-01..10-23, 10-27..10-29); 10-24, 10-30, 10-31 had not finished (token window closing) and are NOT R1 evidence - reported only.
+  Evidence (in-sample, small n): October v102 had 8 losers / 49 entries. Losers' last-30-min push into the entry: median 7.0 ATR vs 5.0 for winners; the only entries whose last 15 min ranged >= 4x the
+  session's median 15-min range were 10-01 07:15 (-$2,867), 10-22 04:10 (-$2,273) and one winner; the only two entries with < 45 min of window left (10-02 13:05, 10-07 12:55) both lost.
+  In-sample arithmetic: the two checks would have removed ~ -$7,200 of losses at the cost of ~1 winner; 10-03 03:50 (-$1,495) fits neither. The in-sample veto check (vetocheck.py) runs
+  concurrently and is INFORMATIONAL ONLY tonight (no revision of R1 from it).
+  DISCLOSED SLIP: one exploratory tally (entry number x time) accidentally included Nov 3-6 v102 days; they had zero losers, so nothing about losers came from them; R1 does not use them.
+  AUTOMATION: reports/recursive_loop/E112_code/night.py runs the rule arm one unseen week at a time and applies the A0c STOP/CONTINUE rule mechanically; on STOP it halts and waits (a revision
+  needs a written, frozen R2). Live-window guard (01:45Z/13:35Z) and the 15-error abort stand.
