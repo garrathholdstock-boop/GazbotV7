@@ -33,3 +33,13 @@ VERDICT (Phase B only; Phase A is in-sample for R): (1) bible.gate(v102R, v102) 
 POISON: a day with > 10% errored calls is unscored and re-run (L7). COST (stated): ~$0.07 list per call, ~2,800 calls per month-arm; Phase A ~2.8k calls, the in-sample check ~60-100, Phase B ~5.6k.
 Read-only on the desk: no switch, request file, rider state, timer or order path is touched; all output under reports/recursive_loop/E112_* and reports/e112/.
 AMENDMENTS: appended below, dated, before the affected run.
+
+A0 (appended 2026-10-25 18:55Z, before Phase A has scored a single day; no E112 result has been read). Operator: "get the prep ready to run these studies all night tonight and you have my license
+to keep improving yourself overnight." OVERNIGHT PROTOCOL, fixed now:
+  1. LIVE DESK FIRST. The replay shares the operator's subscription with the live robot (calls from 02:00Z). No replay day is STARTED after 01:45Z and a running day ABORTS unsaved at 01:58Z;
+     replays resume only after 13:35Z. 15 consecutive errored calls (quota / rate limit) abort the whole run. BUDGET: October + November + December 2025 only (~14k calls), nothing beyond without the operator.
+  2. SEQUENCE: Phase A (Oct, v102) -> tuning -> A1 (R frozen, sha) -> Phase B (Nov, v102 vs v102R) -> verdict.
+  3. "KEEP IMPROVING" IS ALLOWED ONLY FORWARD: if Phase B labels R PROMISING, December 2025 (unseen) is run as its CONFIRMATION, same two arms. If Phase B is NO-BETTER or WORSE, ONE revision R2 may
+     be written from Oct + Nov combined (in-sample, said so), frozen in A2 BEFORE any December call, and December tests v102 vs v102R2. No rule is ever judged on a month it was written from.
+     Whatever December says is the night's answer; no further revision tonight.
+  4. NOTHING LIVE CHANGES. A December pass means "PROMISING -> no-press live shadow", proposed to the operator in the morning, never deployed.
