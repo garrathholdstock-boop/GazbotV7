@@ -56,12 +56,12 @@ def replay(arm_spec, days, workers, logname):
     return subprocess.Popen(cmd, cwd=GB, env=ENV, stdout=open(f"{OUT}/{logname}", "a"), stderr=subprocess.STDOUT)
 
 
-def decide(week):
+def decide(week, lab="v102R1"):
     """A0c: STOP if [rule worst day < v102 worst day AND rule <=-$1k entries > v102's] OR [v102 presses the rule arm did not take
     contained more winners than BAD (<=-$1,000 or MAE>=150pt) entries]. Days skipped as holidays are ignored."""
     b, r = {}, {}
     for d in week:
-        for arm, dst in (("v102", b), ("v102R1", r)):
+        for arm, dst in (("v102", b), (lab, r)):
             x = json.load(open(f"{OUT}/{arm}_{d}.json"))
             if not x.get("skipped"):
                 dst[d] = x
@@ -77,13 +77,16 @@ def decide(week):
     s = {"week": week[0], "days": len(days), "v102_net": sum(b[d]["net_usd"] for d in days), "R1_net": sum(r[d]["net_usd"] for d in days),
          "v102_worst_day": bw, "R1_worst_day": rw, "v102_le1k": b1k, "R1_le1k": r1k, "v102_presses_not_taken": len(declined),
          "of_which_winners": dw, "of_which_bad": dbad, "decision": "STOP" if stop else "CONTINUE"}
-    json.dump(s, open(f"{OUT}/decision_{week[0]}.json", "w"), indent=1)
+    s["rule"] = lab
+    json.dump(s, open(f"{OUT}/decision_{lab}_{week[0]}.json", "w"), indent=1)
     return s
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="22:36", help="UTC HH:MM to begin (token-window reset)")
+    ap.add_argument("--rule", default=f"v102R1={R1}", help="LABEL=PATH of the frozen rule under test")
+    ap.add_argument("--from-week", default="2025-11-03", help="first unseen week (Monday) for this rule")
     a = ap.parse_args()
     h, m = map(int, a.start.split(":"))
     now = dt.datetime.now(UTC)
@@ -102,7 +105,8 @@ def main():
     nov_all = [d for w in WEEKS for d in w]
     bg.append(replay("v102", nov_all, 1, "nov_v102.log"))
     veto_done = False
-    for week in WEEKS:
+    lab, rpath = a.rule.split("=", 1)
+    for week in [w for w in WEEKS if w[0] >= a.from_week]:
         while not all(clean("v102", d) for d in week):          # the comparison days must exist (the v102 arm runs ahead)
             if live_hours():
                 log("live hours - chain pauses; re-launch after 13:35Z"); return
@@ -112,17 +116,17 @@ def main():
                     cwd=GB, env=ENV, stdout=open(f"{OUT}/vetocheck_R1.txt", "w"), stderr=subprocess.STDOUT)
                 veto_done = True
             time.sleep(60)
-        if all(clean("v102R1", d) for d in week):
+        if all(clean(lab, d) for d in week):
             log(f"week {week[0]}: rule arm already done")
         else:
-            log(f"week {week[0]}: running v102R1")
-            p = replay(f"v102R1={R1}", week, 2, "rule_R1.log"); p.wait()
-            if not all(clean("v102R1", d) for d in week):
+            log(f"week {week[0]}: running {lab}")
+            p = replay(f"{lab}={rpath}", week, 2, f"rule_{lab}.log"); p.wait()
+            if not all(clean(lab, d) for d in week):
                 log(f"week {week[0]}: rule arm incomplete (live-hours guard or error abort) - chain exits"); return
-        s = decide(week)
+        s = decide(week, lab)
         log(f"week {week[0]} decision: {json.dumps(s)}")
         if s["decision"] == "STOP":
-            log("STOP - R1 halted per A0c; a revision R2 must be written and frozen before the next unseen week"); return
+            log(f"STOP - {lab} halted per A0c; a revision must be written and frozen before the next unseen week"); return
     log("all November weeks done")
     for p in bg:
         p.wait()

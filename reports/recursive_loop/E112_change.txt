@@ -74,3 +74,11 @@ A1 (appended 2026-10-25 ~21:35Z, BEFORE any call with R1 and before any rule-arm
   AUTOMATION: reports/recursive_loop/E112_code/night.py runs the rule arm one unseen week at a time and applies the A0c STOP/CONTINUE rule mechanically; on STOP it halts and waits (a revision
   needs a written, frozen R2). Live-window guard (01:45Z/13:35Z) and the 15-error abort stand.
   A1 note (22:52Z): the same R1 appears in reports/e112 records as rules_sha 8a2086387562 - replay.py hashes the text after strip() (no trailing newline); the file sha above includes it. Same text.
+
+A2 (appended 2026-10-25 ~23:35Z, BEFORE any call with R2). WEEK 1 (Nov 3-7) DECISION = STOP for R1 (night.py, mechanical): R1 -$436 vs v102 +$4,410; worst day -$1,647 vs +$588; entries <= -$1k 1 vs 0.
+  Diagnosis (from R1's own calls): 163 WAIT calls cited a climax/burst, mostly on ordinary 20-35pt bars, so R1 blocked most breakout entries that win for v102; and R1's losers were JUSTIFIED by the
+  rule's absence ("no climax burst, so I join late") - a stop-rule turned into a green light.
+R2 = reports/recursive_loop/E112_R2.txt, rules_sha (stripped, as replay.py stamps it) 180b9f8d37e3, FROZEN. Narrowed to a measurable burst (>= 4x the typical 15-min range of the prior 3 h, which in October
+  marked 2 big losers and 1 winner), kept the 12:45Z cut, and states it can only stop an entry, never justify one. Written from October 2025 + Nov 3-7 (both arms).
+  TEST WEEK = Nov 10-14 (no rule arm has run on it). DISCLOSED: the v102 results of Nov 10-14 (and Nov 17) were already reported (day totals), but no entry, reason or tape of those days was studied
+  for R2. night.py now takes --rule LABEL=PATH and --from-week; A0c applies unchanged.

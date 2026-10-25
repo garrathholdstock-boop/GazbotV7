@@ -14,6 +14,8 @@ for f in sorted(glob.glob(f"{OUT}/*_20??-??-??.json")):
     if r.get("skipped"):
         rows[(day[:7], arm)].append((day, None, r["skipped"])); continue
     P = r["presses"]
+    if r["calls"] and r["errors"] / len(r["calls"]) > 0.10:
+        rows[(day[:7], arm)].append((day, None, f"POISONED ({r['errors']}/{len(r['calls'])} errored calls) - re-running, not counted")); continue
     rows[(day[:7], arm)].append((day, {
         "n": len(P), "w": sum(p["why"] == "TARGET_37.5" for p in P), "l": sum(p["why"] != "TARGET_37.5" for p in P),
         "net": r["net_usd"], "worst": min((p["pnl_usd"] for p in P), default=0), "mae": max((p["mae_pt"] for p in P), default=0),
