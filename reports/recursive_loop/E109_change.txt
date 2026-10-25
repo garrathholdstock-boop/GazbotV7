@@ -1,0 +1,43 @@
+E109 - THE ROBOT LOSERS, LAST 10 TRADING DAYS: every robot entry that lost or went deeply underwater, one by one.  Declared 2026-10-24 BEFORE any run.
+Operator, 2026-10-24: "You only went off manual entries? There are plenty of robo entries that lost."  Then (scope): ONLY ROBOT entries, the LAST 10 TRADING DAYS
+(through 2026-10-23), explicitly the entries that actually traded live on paper. Amends E107 (reports/recursive_loop/E107_change.txt); E107's grid, features, labels
+and discipline are unchanged. Supersedes my first E109 plan (replay-AM as discovery) - the replay arms are NOT the focus.
+
+WHY E107 MISSED THEM: E107 ranked on L1 (net<0) and picked B-manual as discovery because no robot arm had 30 L1 losers. The robot rides back to +37.5pt with no stop, so many
+of its bad entries were deeply underwater (L2) and still finished green; those never showed up as L1. The operator's "loser" is both.
+
+WINDOW   the 10 most recent weekday SESSION KEYS ending at the as-of session (W43: 2026-10-12 .. 2026-10-23). Rolling on later Saturdays.
+ARMS (separate, NEVER pooled; ledger = IBKR-truth path the study already uses: gate=day_rider, EXCLUDE:/BADFILL: groups removed whole, entries grouped by opened_at)
+  A-live   hybrid v1.02 live presses, sessions from 2026-10-15 (unchanged from E107).
+  A-ext    hybrid v1.02 presses BEFORE 10-15 = the one-off 10-14 afternoon extension (v1.02-EXT). Previously excluded; it DID trade live on paper, so it is now its own arm.
+  A-leg    the leg robot v1.00/1.01 (data/leg_robot.jsonl SIGNAL presses, 10-12 on), attributed to ledger entries by the same [request, request+180s] + side rule.
+  Replay arms (A-replay-AM/PM/POST) and B-manual stay in the file as the SECONDARY check, unchanged, after the robot section.
+LOSER (both reported per arm, with honest n)
+  L1 net < 0 (after fees).   L2 MAE >= 4 x ATR14(1-min) at entry (MAE from the 5s tape, entry to last lot out).   "any" = L1 or L2.  Counts first.
+OUTPUT - a new section 0 placed FIRST:
+  0a  per robot arm, window only: entries, days, wins, L1, L2, L2b, any-loser, net $, L1 $; status DESCRIPTIVE if any-loser < 30 (it will be: a story, not a result).
+  0b  EVERY any-loser listed one by one: session, UTC time, side, qty, net $, MAE pts and MAE/ATR, hold min, minutes to the detector's next opposite turn, and the
+      pre-entry tape: cvd_run, cvd_persist120, cvd60_al, cvd120_al, leg_age_min, leg_ext_pts, prior_wins_leg, leg_banked_usd, rvol30, pos_in_range_al, stall, vwap_dist_al_atr.
+  0c  COMMON FOOTPRINT, descriptive: for a fixed list of single conditions (the middle value of each E107 grid row, fixed now: cvd60_al>=.10, cvd120_al>=.05,
+      cvd_persist120>=.65, cvd_run>=3, prior_wins_leg>=1, prior_wins_leg>=2, leg_age_min>=130, leg_ext_pts>=150, pos_in_range_al>=.85, vwap_dist_al_atr>=2, rvol30>=1.5,
+      stall<=.35, since_turn_min>=120, cvd_div60==1): how many any-losers / L1 losers / winners in the same window fire it (k/n, n = entries with the feature), plus the
+      static net $ of skipping the firing entries and $/day and entries/day given up. No ranking, no PROMISING, no search adjustment - below 30 it cannot be a result.
+      Nothing here is selected on data: the list is declared here.
+  The E107 rule grid still runs on every arm and its table remains in the file; with <30 losers per robot arm every robot row is a PARK / "story, not a result".
+DISCIPLINE unchanged: counts before dollars, no fitting below 30, arms never pooled, features strictly causal, pause rules only, nothing trades or is applied.
+Read-only; writes only reports/hybrid_losers/; touches no switch, request file, broker, timer or hybrid_* module. Timer Sat 06:30Z already exists and runs the same script.
+CAVEATS: skipping is static; the 3 leg-robot entries are 3 entries; A-ext is 6 entries of one afternoon; the robot's own loser definition L2 uses 4xATR14 (~50pt), 1.3x the ladder target.
+
+A1 (appended 2026-10-24, still BEFORE the first E109 run; clarifications only, nothing is selected on data):
+  - ARMS in the file become: A-live, A-ext, A-leg, A-replay-AM, A-replay-PM, A-replay-POST, B-manual (robot arms first). The E107 grid, features and sections 1-10 run on all of them;
+    A-live/replay/B-manual rows are unchanged from E107.
+  - 0c adds ONE extra winners column, "clean winners" = net>0 AND not L2, beside the declared "winners" (net>0): an L2 entry that finished green is both an any-loser and a winner,
+    so the declared columns overlap; the clean column is the unambiguous contrast. Per-arm only (arms are never pooled); $/day and entries/day use the arm's entry days as the denominator.
+  - A-leg has no L2b: its ladder is the leg robot's H (12.5/25/37.5/50pt), so "all four lots hit +37.5" is not its target.
+  - Section 0 also prints, per arm, the plain counts the operator asked about: how many any-losers had CVD one-directional for >=3 consecutive 5-min windows (cvd_run>=3) or
+    >=65% of 24 windows (cvd_persist120>=.65), and how many came after >=1 / >=2 banked wins on the leg (prior_wins_leg). These are rows of 0c, not a new search.
+
+A2 (appended 2026-10-24 after ONE `--dry` print of the first version of section 0 - nothing had been written to reports/hybrid_losers; disclosed here because it is a change made after seeing a table):
+  The printed A-live table showed one entry (2026-10-16 04:00Z, -$4,547 = 64% of the arm's L1 dollars) deciding the sign of every "skip net $". Added ONE robustness column to 0c,
+  "ex-worst $": the skip net recomputed with the arm's single worst entry deleted. Added a caveat that leg age on a Monday session spans the weekend gap (e.g. 3,383 min).
+  Cosmetic: "-0" $/day printed as 0. No condition, threshold, window or arm changed.

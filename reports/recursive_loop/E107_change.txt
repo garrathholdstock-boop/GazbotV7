@@ -1,0 +1,79 @@
+E107 - THE SATURDAY LOSERS STUDY: is there a FOOTPRINT before we buy the ones that hurt?  Declared 2026-10-24 BEFORE any analysis run.
+Operator, 2026-10-23: "We don't have stops so the best way to stop haemorrhaging is to not enter. We are usually buying them before a turn. Often after
+taking a couple or a few wins on a run. ... CVD aggressively in one direction for ages? Something else exhausted? If there's a signal maybe it doesn't mean we
+trade, maybe it means we pause and don't trade, then we wait for the turn."
+Built as scripts/hybrid_loser_study.py (zero tokens, read-only, deterministic, re-runs every Saturday on ALL data to date). Nothing here touches a live file.
+
+QUESTION
+  At the decision time of an entry (strictly causal: closed 1-min bars <= t, ticks < t, book snapshots < t), does anything observable separate the entries that
+  LOSE from the entries that win, such that "if X, make NO entry until the detector confirms the opposite turn / X clears" would have saved more than it cost?
+  A PAUSE rule is the only thing evaluated. No rule here trades, reverses or sizes anything.
+
+ARMS (never pooled with each other; every table is per arm; an arm is a unit of ENTRIES, grouped by entry not by ledger row)
+  A-live        v1.02 hybrid presses, Claude S1b + leg + 05:00 Paris veto + 75x4 ladder, from data/hybrid_robot.jsonl PRESS_* decisions attributed to ledger entries
+                (same attribution as hybrid_nightly: opened_at in [request, request+180s]); P&L = the ledger (real paper fills, incl. the 0.1% fabrication on lots 2-4),
+                gate=day_rider, EXCLUDE:/BADFILL: rows removed. Sessions from 2026-10-15; the 10-14 afternoon extension (v1.02-EXT) is its OWN arm and is not used.
+  A-replay-AM   sim_week_recursive S1b records e81_s1b / e85_s1b / e88_s1b (25 days, 02:00-13:25Z), withleg_veto, scored by the e88 engine F: 4 lots all out at +37.5pt,
+                no stop, flat 20:40Z, IDEAL fills (HALF 0.125pt, $2/pt, $1.50/lot fee), entries only when flat. Re-implemented in the script and cross-checked once against
+                e88.py's own run_day_paths (see the result file). Poisoned days (>10% call errors) are dropped (L7).
+  A-replay-PM   e96_pm_* (20 days, 13:30-19:55Z) scored identically. Its own arm.
+  A-replay-POST e106_post_* sim entries after the lock (3 days) - tiny, descriptive, listed only.
+  B-manual      the operator's own presses: ledger entries, gate=day_rider, entry_source='manual' (2026-09-10 on), minus any group attributed to a robot press
+                (hybrid_robot PRESS_*, leg_robot PRESS_*), minus EXCLUDE:/BADFILL:. Lot size varies (1-4); $ are as booked. NULL entry_source is never inferred
+                (the 88 pre-09-10 rows are not used).
+  Live and replay are separate sub-arms and are NEVER pooled. Replay != forward: ideal fills flatter the sim; Claude is non-deterministic.
+
+LOSER - both definitions are reported, always
+  L1  net < 0 at the end of the entry (all lots out / flat), after fees.
+  L2  "big adverse": MAE >= 4 x ATR14(1-min, the detector's own atr14) at entry  [MAE = worst adverse excursion of the 5s tape from entry to the last lot out].
+      L2b (A arms only): the 4 lots did NOT all hit +37.5 before the end.   (4xATR14 ~ 50pt at the median ATR 12.6: 1.3x the ladder target, stated now.)
+  COUNT ENTRIES AND LOSERS PER ARM FIRST. An arm with < 30 L1 losers is DESCRIPTIVE ONLY: it gets the feature table and the rule table as a story, never a ranking.
+
+FEATURES at decision time t (aligned = multiplied by trade direction d, so + means "with the trade")
+  cvd30/60/120_al   (buy - sell)/(buy+sell+neutral) aggressor volume over the last 30/60/120 min, aligned
+  cvd_persist120    share of the last 24 five-minute buckets whose aligned flow was positive;  cvd_run = longest trailing run of same-sign aligned 5-min buckets
+  cvd_div60         1 if price is at its aligned 60-min high and cumulative aligned CVD is NOT at its 60-min high (price-flow divergence), else 0
+  prior_wins_leg    number of WINNING entries (net>0, fully closed <= t) of this arm, same session day, same direction, entered since the last confirmed turn;
+                    also prior_entries_leg and leg_banked_usd
+  leg_age_min, leg_ext_pts, leg_ext_atr   from the frozen detector's last confirmed pivot (K=11xATR14, sha af0ace53e6dc9faa) to the running extreme of closed 1-min closes.
+                    Reference: median leg 298pt / 266min, 3.1 legs/day (turn_watch).
+  since_turn_min    minutes since the last confirmed turn
+  vwap_dist_al_atr, open_dist_al_atr    distance from session VWAP (tick-weighted 1-min typical price) / session open (first bar >= 22:00Z), in ATR14
+  pos_in_range_al   position in the session range so far (aligned: 1 = at the extreme in the trade's direction);  range_atr
+  rvol30            last-30-min volume / mean of the same 30-min clock window over the prior <=5 sessions (needs >=3)
+  stall             range of the last 20 closed 1-min bars / range of the last 80 (low = contraction);  prog30_al_atr  aligned 30-min progress in ATR
+  atr14, atr_pct    ATR14 and its percentile among the prior 5 sessions' ATR values;  tod_h  hour bucket (descriptive table only, no rule)
+  thin_ratio        top-5-level book size mean over last 5 min / mean over the prior 60 min (the prereg_book_thinning quantity);  imb5_al aligned mean imbalance, last 5 min
+  OUTCOME descriptors (NEVER features): MAE/MFE, minutes from entry to the detector's next opposite confirmed turn, hold minutes.
+  Data coverage is verified at run time and printed: ticks (aggressor) lake from 2026-07-24 else capture.db hot tier; depth lake from 2026-07-16 else depth.db; bars
+  capture.db 5s. A feature that is missing for an entry is MISSING, never imputed; every comparison shows n.
+
+READING ORDER OF THE RESULT FILE: (1) entries and losers per arm (2) loser vs winner per feature with n, day-clustered AUC and CI (3) the pre-declared rule table:
+  COUNTS BEFORE DOLLARS - entries paused, losers avoided (n, $), winners also skipped (n, $), net $, net $/day, P(miss)= winners skipped / all winners (4) the ranked
+  shortlist (5) data gaps and caveats.
+
+PRE-DECLARED PAUSE-RULE GRID (no value outside this grid is ever evaluated; fires when the stated condition holds; direction fixed in advance)
+  cvd60_al >= .10/.20/.30 | cvd120_al >= .05/.10/.20 | cvd30_al >= .15/.30/.45 | cvd_persist120 >= .65/.75/.85 | cvd_div60 == 1
+  prior_wins_leg >= 1/2/3 | leg_ext_pts >= 150/225/300 | leg_age_min >= 130/200/266 | vwap_dist_al_atr >= 2/4/6 | pos_in_range_al >= .85/.92/.97
+  since_turn_min >= 120/180/266 | rvol30 >= 1.5/2/3 | stall <= .25/.35/.50 | atr_pct >= .75/.90 | thin_ratio <= .75/.60 | imb5_al >= .10/.20
+  conjunctions (4): prior_wins_leg>=2 & cvd60_al>=.20 | prior_wins_leg>=2 & leg_ext_pts>=225 | prior_wins_leg>=1 & cvd_persist120>=.75 | leg_age_min>=200 & cvd120_al>=.10
+  Each rule in two forms: ENTRY (skip only the entry where it fires) and LATCH (once it fires, skip every entry in that leg until the detector confirms the opposite turn).
+  Rules x forms = the SEARCH SIZE, printed in the result and charged below.
+  Skipping an entry is evaluated STATICALLY (the entry is deleted; what the book would have done next is not re-simulated) - a stated approximation.
+
+CHARGING THE SEARCH, IN-SAMPLE vs NOT
+  DISCOVERY arm D = A-replay-AM if it has >= 30 L1 losers, else the arm with the most L1 losers among those with >= 30, else NONE.  Everything computed on D is IN-SAMPLE.
+  Search-adjusted p: permute entry P&L across entries WITHIN each day (2,000 draws, fixed seed), recompute the BEST net-$ rule over the WHOLE grid each draw; p = share of
+  draws whose best rule >= the observed best (p for each rule is the share of draws whose best rule >= that rule's own net $).  Every other arm is NOT in-sample: rules are
+  not re-selected on it, only reported.
+LABELS (applied in code, per rule)
+  PROMISING  D net $ > 0 AND >= 10 entries paused on D AND search-adjusted p <= 0.20 AND no OTHER arm with >= 10 paused entries has net $ < 0.
+  REFUTED    (a) D net $ <= 0 with >= 30 paused entries, or (b) >= 2 other arms each with >= 10 paused entries and net $ < 0 (evidence of absence, not absence of evidence).
+  PARK       everything else, including every rule when no arm has >= 30 losers ("not proven" is a PARK, not a null).
+  "A story not a result" is written on any row resting on < 30 paused entries or < 30 losers.
+  A PROMISING rule is a candidate for a NO-PRESS SHADOW (E104-style) first - never a live switch. Nothing here is applied.
+
+CAVEATS stated now: ideal-fill replay vs paper; the replay's Claude book is non-deterministic and the lot sizes of arm B differ; skipping is static; CVD reads INVERTED at
+turns (one-sided in the direction that is ending - which is exactly the hypothesis); day-clustered, since entries within a day are not independent draws; A-live is a few
+weeks of paper and cannot carry a rule; the 10-23 lake partition lags to 21:05Z so those ticks/depth come from the hot tier; the Thursday lock-leak anomaly (E106) does
+not affect entries before the lock. Threshold GRID is fixed here; changing it restarts the count.

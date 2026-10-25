@@ -1,0 +1,79 @@
+E110 - THE LEG-STAGE TAIL STUDY: "does being late in a leg raise the chance of a disaster?" (declared 2026-10-25, BEFORE any run)
+Operator, 2026-10-24/25: "analysing heavily our bad entries every week is really how we build our edge... We don't have stops so our stops are effectively being more
+conservative on our entries. I am happy to trade less if it means limiting $4000 losses... the entries at the top of a run before the mil turns... don't trade within
+5/10/15% of the mil extremes etc. I don't know what the limits should be." This study CONVERTS that into a measured, pre-declared test. It trades nothing and changes nothing.
+
+OBJECTIVE (the thing this must serve): find PAUSE conditions - states of the leg in which the robot should NOT enter - that cut the disaster tail (a -$1k/-$2k/-$4k entry) by
+more than they cost in forgone +$286 wins. The pause is the stop. Currency is TAIL PROBABILITY, not win rate. Payoff: win = +37.5pt x 4 lots ~ +$286 net; one live loss was -$4,547
+(10-16, 04:00Z long, MAE 589pt, held 764 min). Break-even: skipping a class of entries pays if P(disaster) in that class exceeds ~ 286/(286+4547) ~ 6% (stated now; recomputed per
+threshold from the data, not assumed).
+
+WHAT (detector-only, ZERO Claude tokens, read-only): for every confirmed leg of the FROZEN detector (K=11 x ATR14 on 1-min closes, sha af0ace53e6dc9faa, scripts/leg_robot.py
+confirmed_turns -> DF.zigzag; the run asserts the sha), take every 5-min slot (:00,:05,...) inside the leg between 02:00Z and 13:30Z whose time is >= the 05:00 Europe/Paris veto and
+that is AFTER confirmation of the leg. Direction = the leg's. Entry price = close of the last CLOSED 1-min bar (no look-ahead). This is the robot's entry opportunity set WITHOUT
+Claude's filter, so every number is the MARKET's tail (an UPPER bound for the Claude-filtered robot) - stated, not hidden.
+OUTCOME per candidate entry (labels, never features): rides to the 20:40Z flat, NO stop. HIT = high/low reaches entry +-37.5pt before 20:40Z (win, +$286 net for 4 lots at MNQ $2/pt, $6 fee);
+else marked at the last bar before 20:40Z. MAE = worst adverse excursion to the earlier of HIT / 20:40Z (in pts and in ATR14 at entry). FINAL $ = the realised result. Intrabar order inside a
+1-min bar cannot matter for HIT (no stop) and only affects MAE at bar resolution - stated. Tail events: D1 = final <= -$1,000, D2 = <= -$2,000, D4 = <= -$4,000; and M4 = MAE >= 4 x ATR14.
+Overlap: slots within one leg are correlated, so the UNIT OF INFERENCE is the SESSION DAY (day-cluster bootstrap CIs) and the leg; no per-slot t-stats.
+
+FEATURES (causal: only bars closed at the entry time; fixed list, no additions after the first run):
+  F1 leg_ext_atr   = points run from the leg's start pivot to the running extreme, in ATR14.   Bands frozen: <6, 6-9, 9-12, 12-15, 15-20, 20+ (and the empirical percentile of all legs).
+  F2 leg_ext_frac  = leg_ext_pts / the MEDIAN confirmed-leg size over the TRAILING 250 sessions (no look-ahead). Bands: <0.5, 0.5-0.75, 0.75-1.0, 1.0-1.5, 1.5+.
+  F3 off_extreme   = (running extreme - price) / leg_ext_pts, i.e. how far BELOW the high (long) / ABOVE the low (short) the entry is, as a fraction of the leg so far. THE OPERATOR'S 5/10/15%:
+                     bands 0-5%, 5-10%, 10-15%, 15%+ ; "pause if within X% of the extreme" is tested at X = 5, 10, 15.
+  F4 leg_age_min   = minutes since the leg began (bands 0-60, 60-120, 120-240, 240+).
+  F5 pos_in_range  = place in the session's range so far, 0-1 in the trade direction (bands <.5, .5-.85, .85-.95, .95+).
+  F6 climax_vol    = rvol30 (30-min volume / trailing-20-session same-time median) bands <1.2, 1.2-1.5, 1.5-2, 2+.   (NQ volume is the contract's; stated.)
+  F7 stall         = fraction of the last 30 minutes' range that the last 10 minutes covered; bands as quartiles of the TRAIN period.
+  ONE-DIMENSIONAL tables first (each F alone). Then the PRE-DECLARED PAUSE RULES: P1..P3 = "pause if off_extreme < 5/10/15%"; P4 = "pause if leg_ext_frac >= 1.0"; P5 = ">= 1.5"; P6 = "pause if
+  leg_ext_atr >= 15"; P7 = "pause if climax_vol >= 2 AND pos_in_range >= .95"; P8 = "pause if leg_ext_frac >= 1.0 AND off_extreme < 10%". 8 rules x 2 directions-of-reading = the SEARCH SIZE (charged
+  in the permutation below). NO other thresholds are tried. Any rule added later is a new E-number.
+  KNOWN TENSION TO REPORT, NOT HIDE: the desk's leg_watch found older legs have LONGER left to run (Lindy) while turn_watch found tops are likelier late in a leg. Both can hold; the payoff asymmetry
+  (capped +$286 vs uncapped loss) is what a late entry is judged on. Winners also sit at pos>=0.85 (15 of 20 live winners) - so range position alone is expected NOT to separate; it is reported anyway.
+
+SPLIT (frozen now): TRAIN = sessions 2015-01 .. 2022-12 (NQ). TEST = 2023-01 .. 2025-07-25 (NQ). FORWARD = 2025-07-28 .. 2026-10-23 on OUR OWN capture-db MNQ bars (the production tape; the lake's long MNQ
+  history is the WRONG contract and is NOT used). Rules are SELECTED on TRAIN only. A rule is PROMISING only if, on TEST, it (a) is on the same side of break-even on D1 and D2 tail rates, (b) cuts the
+  day-clustered tail count with a CI that excludes 0 net of forgone wins, and (c) the sign agrees on FORWARD. PARK = positive on TRAIN and not contradicted on TEST/FORWARD but fails (b)/(c) or has < 30
+  paused tail events. REFUTED = TEST or FORWARD measured negative, or its control beats it. NEVER pooled across the three periods or across long/short without also showing them separately.
+CONTROL: a size-matched random pause (same fraction of entries paused, same days) x 1,000 permutations; a rule must beat the 95th percentile of the BEST of the 8 random-pause-rule analogues
+  (search charged: the observed best-of-8 vs the null best-of-8).
+COST LINE per rule (always shown with the gain): entries/day paused, forgone wins ($/day), avoided tail ($/day), and the WORST single day with and without the rule. Law 0 reading: days-positive, worst day,
+  spread/mean may not worsen. Counts before dollars. Label n everywhere. No fitting below 30 tail events in a cell.
+
+CHECKS (before the first number is believed): (1) detector sha equals af0ace53e6dc9faa; (2) the leg list on the 26 live+replay sessions reproduces scripts/leg_robot.py's turns exactly; (3) on the live window
+  10-12..10-23 the study's candidate entries include the 10-16 04:00Z long and the tail it reports for it is within the live record (MAE ~589pt); (4) NQ bars: no zero-volume flat bars used (flagged and dropped,
+  counted); (5) a deliberately shuffled-direction control gives ~50% HIT-parity and no feature signal.
+BRIDGE TO THE ROBOT (reported, not decided): re-score the survivors on the Claude-filtered entries - A-replay-AM (94 entries/25 days), A-replay-PM (51/20), A-live (27/7), A-ext, A-leg - as a CONSISTENCY CHECK
+  only (these have < 30 tail events per arm, so a story, not a result). Whether Claude's filter already avoids the detector-only tail is itself reported.
+NOT IN SCOPE: CVD / order-flow (no ticks before 2026-07-24; stays on the E107 tick-lake study), sizing changes, exits, any live switch. NOTHING here changes the desk.
+OUTPUT: reports/recursive_loop/E110_result.txt/.json (ranked shortlist PROMISING/PARK/REFUTED, never a verdict) + a one-page table. If it is promising it feeds the NIGHTLY (a "would-pause" line against frozen rules)
+  and the Saturday pack; shadowing a pause forward (like E104) is the next step, and ONLY the operator promotes it.
+AMENDMENTS: any change after this point is appended below with a date and the reason, before the affected run.
+
+A1 (appended 2026-10-25, BEFORE any E110 code has run on any bar). Operator, 2026-10-25: "run the most robust widest net version of the backtest first to gather the data of the extremes
+and where the trades would be." Folds in the audit of the cloud draft docs/DESIGN_E109_extreme_proximity_veto.md (origin/claude/claude-di7zn0), which is NOT given its own E-number (E109 is taken).
+1. PHASE 0 = THE CENSUS, RUN FIRST, DESCRIPTIVE ONLY. Nothing is selected, ranked or labelled PROMISING in Phase 0. Candidate set WIDENED from the declared 02:00-13:30Z: every 5-min slot (:00,:05..)
+   from session open + 30 min (22:30Z EDT / 23:30Z EST) to 19:40Z, inside a confirmed leg, direction = the leg's, entry = close of the last CLOSED 1-min bar. Every row carries the flags
+   in_live_window (02:00Z <= t < 13:30Z and t >= the 05:00 Europe/Paris veto, the v1.02 set) and in_leg_window (06:00Z <= t < 19:40Z, the retired leg robot's set), so the declared set is a filter of it.
+2. PERIODS: all of them, every row labelled TRAIN / TEST / FORWARD. FORWARD CHANGES: the MNQ backfill_1min (2025-09-14..2026-08-18) + MNQ 5s lake partitions aggregated to 1-min (2026-08-19..2026-10-23).
+   The declared reason for excluding the backfill ("WRONG contract") does not hold for MNQ: on 2026-07-16..08-18 it equals our own 5s capture on all 32,395 shared minutes (median close diff 0,
+   identical volume) and its volume shows no dying-contract tail at the 2025-12 expiry. The wrong-contract defect is the MGC backfill's (22% dying-contract minutes), not MNQ's.
+   CONSEQUENCE, STATED NOW: the census tables show TEST and FORWARD, including the off_extreme bands that P1-P3 are built on. Any rule chosen AFTER the census is a SECOND LOOK on TEST/FORWARD.
+   P1-P8 stay exactly as declared above (declared before any data), but their TEST/FORWARD reads are labelled "seen in the census". The clean test of anything is a forward no-press shadow.
+3. DATA HYGIENE (found by the audit, applied before any number): (a) QUARTERLY ROLLS ARE UNADJUSTED in both NQ and the MNQ backfill (e.g. +1.0..1.4% session-open gaps 2022-09..2025-03; MNQ
+   +272pt 2025-12-14, +465pt 2026-06-18). Rule, fixed now: in each window [third Friday of Mar/Jun/Sep/Dec - 12 days, third Friday + 1 day], the session open (gap > 15 min) with the LARGEST
+   POSITIVE gap is the roll if the gap >= 0.40% of price; all earlier bars are shifted ADDITIVELY by that gap (back-adjusted). Rolls found are listed. Rows in a roll session or the session after
+   are flagged roll_adj and every headline is also shown without them. (b) NQ 2025-06-12..2025-06-20: a mid-session contract splice (06-20 13:42Z, -445pt in 3 min, volume 2014->78) and a 505-min hole
+   (06-13 05:24Z): those sessions are DROPPED and the detector RESTARTS after them. (c) Counts of dropped sessions/bars are printed.
+4. DETECTOR runs on the (back-adjusted) RAW price tape, continuously per segment, exactly DF.zigzag(bars, DF.atr14(bars), K*ATR), K=11; sha asserted. Not scaled (K*ATR is scale-free apart from the
+   0.25 ATR floor, which is what live does). SENSITIVITY: the NQ overnight tape has 74-83% of minutes (live MNQ 5s is ~complete); the detector is re-run on a forward-filled minute grid and turn agreement
+   (pivot within 15 min, same direction) is reported. CHECK (2) of the declaration is also run: on the live/replay sessions, turns from the 5s tape via leg_robot.series_for must equal the census turns.
+5. TODAY'S POINTS: every outcome and point feature is also expressed x k, k = S_ref / S_day (S_day = mean session high-low of the PRIOR 20 sessions from 1-min bars; S_ref = mean S_day over
+   NQ 2025-01-30..2025-07-24, as E52). Targets are applied in today's points (37.5pt today = 37.5/k raw). Raw values are stored too.
+6. OUTCOMES STORED PER ROW (labels, never features): minutes to +12.5/+25/+37.5/+50 (today's pts, trade-through 0.25) before the 20:40Z flat; MAE to the +37.5 hit or flat; MAE and MFE to flat; final pts at
+   the last bar opening before 20:40Z; $ for 4 MNQ lots all-out at +37.5 ($2/pt/lot, 0.25pt adverse entry, $6 fees). HINDSIGHT LEG LABELS: the leg's final extreme (the pivot that ends it),
+   run_left = (final extreme - entry)/(final extreme - leg start) and minutes to that pivot - so "entered in the last X% of the MIL" is measured, not guessed.
+7. ADDED FEATURE: F5b pos_in_range_360 (trailing-360-min range). ADDED CONTROLS (from the cloud draft), run in the rule phase, not Phase 0: FLIP-position (pause the same share FARTHEST from the
+   extreme), TIME-OF-DAY (pause the same share by latest time). ADDED SPLITS everywhere: EDT/EST, long/short, year. ADDED COST COLUMN: winners removed, count and $.
+8. OUTPUT: reports/recursive_loop/E110_code/ (code), data/research/E110_census.parquet (one row per candidate), reports/recursive_loop/E110_census.txt (Phase 0 tables). Read-only on the desk.
