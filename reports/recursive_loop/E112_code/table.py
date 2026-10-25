@@ -8,7 +8,7 @@ import collections
 
 OUT = "/home/alphabot/gazbot7/reports/e112"
 rows = collections.defaultdict(list)
-for f in sorted(glob.glob(f"{OUT}/*_20??-??-??.json")):
+for f in sorted(g for g in glob.glob(f"{OUT}/*_20??-??-??.json") if not os.path.basename(g).startswith("decision")):
     arm, day = os.path.basename(f)[:-5].rsplit("_", 1)
     r = json.load(open(f))
     if r.get("skipped"):
