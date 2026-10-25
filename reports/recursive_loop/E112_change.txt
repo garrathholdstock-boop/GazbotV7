@@ -43,3 +43,13 @@ to keep improving yourself overnight." OVERNIGHT PROTOCOL, fixed now:
      be written from Oct + Nov combined (in-sample, said so), frozen in A2 BEFORE any December call, and December tests v102 vs v102R2. No rule is ever judged on a month it was written from.
      Whatever December says is the night's answer; no further revision tonight.
   4. NOTHING LIVE CHANGES. A December pass means "PROMISING -> no-press live shadow", proposed to the operator in the morning, never deployed.
+
+A0b (appended 2026-10-25 ~18:55Z, still before any E112 day is scored). Operator: "You have my permission to do everything you need to tonight. Don't worry about budget just go crazy until we run
+out of tokens." Told the operator: the live robot shares this allowance, so exhausting it stops live entries until the Wednesday reset; operator's instruction stands.
+  BUDGET LIFTED. A0.1 (no replay calls 01:45Z..13:35Z) is KEPT: it protects the live robot's calls from rate limits, which is a live-desk safety rule, not a budget rule. Workers up to 3 while
+  >= 1.5 GB RAM stays free. The 15-errored-calls abort stays (it is how "until we run out" is detected without burning retries).
+  ROLLING FORWARD-ONLY ITERATION replaces A0.3's single revision: rule version R_k is written from ALL months already replayed, frozen with its sha in an amendment BEFORE any call on the next
+  unseen month, and that month runs v102 (live) and v102R_k paired. Month order (all unseen by any Claude replay; days that an older replay touched are excluded): Nov 2025 (R1, written from Oct),
+  Dec 2025, Sep 2025 (09-15..09-30), Jan 2026 (excl. 01-08, 01-22), Feb 2026 (excl. 02-05, 02-19), Mar 2026 (excl. 03-05, 03-19), Apr 2026 (excl. 04-02, 04-16, 04-30), May 2026 (excl. 05-14, 05-28).
+  If R_k is PROMISING on its month it is carried UNCHANGED to the next month (a second, independent confirmation) before any further revision. Every month is reported on its own; the pooled
+  out-of-sample view uses only the months on which each rule version was frozen BEFORE it ran. Nothing live changes.

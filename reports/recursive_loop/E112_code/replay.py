@@ -50,6 +50,13 @@ class Abort(Exception):
     pass
 
 
+def _avail_mb() -> int:
+    for ln in open("/proc/meminfo"):
+        if ln.startswith("MemAvailable:"):
+            return int(ln.split()[1]) // 1024
+    return 0
+
+
 def _live_window(now=None) -> bool:
     n = now or dt.datetime.now(UTC)
     return (n.hour, n.minute) >= LIVE_START and n.hour * 60 + n.minute < 13 * 60 + 35
@@ -199,7 +206,7 @@ def main() -> int:
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--stop-at", default=os.environ.get("E112_STOP_AT", "01:45"), help="UTC HH:MM after which no new day is started")
     a = ap.parse_args()
-    assert a.workers <= 2, "memory: the box is 7.5GB and the live desk runs on it"
+    assert a.workers <= 3, "memory: the box is 7.5GB and the live desk runs on it"
     assert L.detector_sha() == SHA, "frozen detector changed"
     assert not os.environ.get("ANTHROPIC_MODEL"), "the live service sets no model override; neither does this"
     arms = {}
@@ -221,6 +228,8 @@ def main() -> int:
                 raise Abort("run aborted: " + _abort["why"])
             if (n.hour, n.minute) >= (sh, sm) and n.hour * 60 + n.minute < 13 * 60 + 35:
                 raise Abort(f"not started: past {a.stop_at}Z, inside the live desk's hours")
+            while _avail_mb() < 1500:
+                time.sleep(30)
             return run_day(lab, arms[lab], d)
         futs = {ex.submit(guarded, lab, d): (lab, d) for lab, d in jobs}
         for f in cf.as_completed(futs):
