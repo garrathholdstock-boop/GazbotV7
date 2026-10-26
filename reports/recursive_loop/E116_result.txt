@@ -1,0 +1,44 @@
+E116 - THE BIG-LEG FILTER (spec reports/recursive_loop/E116_change.txt)
+  NQ-a: big legs computed
+  NQ-b: big legs computed
+  MNQ: big legs computed
+
+(2) PER CANDIDATE: with vs against the big leg (10-yr census, live window)
+  K_big=20
+    TRAIN    WITH n 157,984 D2   5.5% D4  2.0% mean $   -18 | AGAINST n  91,136 (37%) D2   6.1% D4  2.0% mean $   -33
+    TEST     WITH n  49,979 D2   5.7% D4  1.6% mean $    -2 | AGAINST n  27,886 (36%) D2   6.7% D4  2.7% mean $   -57
+    FORWARD  WITH n  23,511 D2   6.6% D4  2.1% mean $   -53 | AGAINST n  10,218 (30%) D2   6.1% D4  1.3% mean $   -34
+  K_big=30
+    TRAIN    WITH n 137,553 D2   5.4% D4  2.0% mean $   -16 | AGAINST n 111,567 (45%) D2   6.3% D4  2.1% mean $   -33
+    TEST     WITH n  44,532 D2   5.4% D4  1.3% mean $    12 | AGAINST n  33,333 (43%) D2   6.9% D4  2.8% mean $   -67
+    FORWARD  WITH n  20,845 D2   6.2% D4  2.1% mean $   -32 | AGAINST n  12,884 (38%) D2   6.7% D4  1.4% mean $   -71
+  K_big=45
+    TRAIN    WITH n 127,277 D2   5.9% D4  2.2% mean $   -46 | AGAINST n 121,843 (49%) D2   5.6% D4  1.8% mean $    -1
+    TEST     WITH n  40,863 D2   6.2% D4  2.0% mean $   -37 | AGAINST n  37,002 (48%) D2   5.8% D4  1.9% mean $    -5
+    FORWARD  WITH n  18,866 D2   6.3% D4  2.4% mean $   -50 | AGAINST n  14,863 (44%) D2   6.5% D4  1.2% mean $   -44
+  K_big=60
+    TRAIN    WITH n 123,547 D2   6.1% D4  2.3% mean $   -50 | AGAINST n 125,573 (50%) D2   5.4% D4  1.8% mean $     2
+    TEST     WITH n  40,028 D2   5.9% D4  1.9% mean $   -17 | AGAINST n  37,837 (49%) D2   6.2% D4  2.0% mean $   -26
+    FORWARD  WITH n  18,565 D2   5.9% D4  2.3% mean $   -48 | AGAINST n  15,164 (45%) D2   7.1% D4  1.3% mean $   -46
+
+(3) DESK PATH: pause if AGAINST the big leg, vs a RANDOM pause at the same trade rate
+  K_big=20 TRAIN    base d<=-2k  267 $/d   -11 tr/d 2.74 | RULE d<=-2k  242 e<=-1k  8.1% $/d   -14 days+ 73.6% tr/d 2.65 | RANDOM d<=-2k median 252 (5th 232) -> no
+  K_big=20 TEST     base d<=-2k   88 $/d     7 tr/d 2.74 | RULE d<=-2k   83 e<=-1k  8.3% $/d     5 days+ 74.4% tr/d 2.61 | RANDOM d<=-2k median 87 (5th 79) -> no
+  K_big=20 FORWARD  base d<=-2k   36 $/d   -48 tr/d 2.74 | RULE d<=-2k   41 e<=-1k  8.3% $/d   -59 days+ 73.3% tr/d 2.77 | RANDOM d<=-2k median 38 (5th 33) -> no
+  K_big=30 TRAIN    base d<=-2k  267 $/d   -11 tr/d 2.74 | RULE d<=-2k  249 e<=-1k  8.1% $/d   -11 days+ 73.4% tr/d 2.58 | RANDOM d<=-2k median 246 (5th 228) -> no
+  K_big=30 TEST     base d<=-2k   88 $/d     7 tr/d 2.74 | RULE d<=-2k   80 e<=-1k  8.4% $/d    27 days+ 73.7% tr/d 2.56 | RANDOM d<=-2k median 85 (5th 79) -> no
+  K_big=30 FORWARD  base d<=-2k   36 $/d   -48 tr/d 2.74 | RULE d<=-2k   38 e<=-1k  8.2% $/d    16 days+ 73.6% tr/d 2.82 | RANDOM d<=-2k median 37 (5th 34) -> no
+  K_big=45 TRAIN    base d<=-2k  267 $/d   -11 tr/d 2.74 | RULE d<=-2k  276 e<=-1k  8.9% $/d  -105 days+ 72.3% tr/d 2.52 | RANDOM d<=-2k median 245 (5th 223) -> no
+  K_big=45 TEST     base d<=-2k   88 $/d     7 tr/d 2.74 | RULE d<=-2k   83 e<=-1k  8.4% $/d   -26 days+ 74.2% tr/d 2.50 | RANDOM d<=-2k median 87 (5th 79) -> no
+  K_big=45 FORWARD  base d<=-2k   36 $/d   -48 tr/d 2.74 | RULE d<=-2k   43 e<=-1k  8.3% $/d   -19 days+ 73.6% tr/d 2.73 | RANDOM d<=-2k median 38 (5th 33) -> no
+  K_big=60 TRAIN    base d<=-2k  267 $/d   -11 tr/d 2.74 | RULE d<=-2k  280 e<=-1k  9.0% $/d  -123 days+ 72.2% tr/d 2.50 | RANDOM d<=-2k median 244 (5th 220) -> no
+  K_big=60 TEST     base d<=-2k   88 $/d     7 tr/d 2.74 | RULE d<=-2k   84 e<=-1k  8.7% $/d   -36 days+ 73.7% tr/d 2.46 | RANDOM d<=-2k median 86 (5th 71) -> no
+  K_big=60 FORWARD  base d<=-2k   36 $/d   -48 tr/d 2.74 | RULE d<=-2k   37 e<=-1k  7.6% $/d    26 days+ 75.3% tr/d 2.69 | RANDOM d<=-2k median 39 (5th 34) -> no
+
+(4) CLAUDE'S LIVE-SETUP REPLAY ENTRIES (Oct+Nov 2025) with vs against the big leg (static)
+  K_big=20  WITH n  79 $  -2,225 <=-1k 8 | AGAINST n  21 $  +5,313 <=-1k 0   -> pausing AGAINST changes total by -5,313
+  K_big=30  WITH n  68 $  -2,892 <=-1k 7 | AGAINST n  32 $  +5,980 <=-1k 1   -> pausing AGAINST changes total by -5,980
+  K_big=45  WITH n  66 $  -2,476 <=-1k 6 | AGAINST n  34 $  +5,564 <=-1k 2   -> pausing AGAINST changes total by -5,564
+  K_big=60  WITH n  69 $  -3,403 <=-1k 7 | AGAINST n  31 $  +6,491 <=-1k 1   -> pausing AGAINST changes total by -6,491
+
+CANDIDATES (desk path beats random on all three periods): none

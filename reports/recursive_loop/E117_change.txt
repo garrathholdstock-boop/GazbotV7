@@ -1,0 +1,11 @@
+E117 - THE DYNAMIC TARGET: +37.5 base, lower (to 25-30) when ATR is low.  Declared 2026-10-26 ~08:00Z BEFORE any run.
+Operator, 2026-10-26: "We almost claimed that leg just now as it recovered but it never got to 37 points. I do think we should lower the 37 to maybe 25 or 30 when atr is low like this morning and
+now ... Can we have a dynamic target with 37 the base but it drifts down with low atr?"  (An EXIT-TARGET change, asked for explicitly; no stop is added.)
+RULES TESTED (all four lots out at the target T from the fill; else the 20:40Z flat; no stop):
+  FIXED   T in {20, 25, 30, 37.5}.
+  DYNAMIC T = clamp(c x ATR14_1min_at_entry, 25, 37.5), c in {4, 5, 6, 7, 8}  (today's points).
+  TWO-LEVEL T = 25 if ATR14 < A else 37.5, A in {4, 5, 6, 7} (the census stores hit times at 25 and 37.5 only, so the 10-yr test uses this form).
+DATA: (1) Claude's live-setup replay entries, Oct+Nov 2025 (100; static per entry: exit at T or the 20:40Z flat; no re-entry modelled); (2) the 10-yr desk path (E113 engine, lock +$1,000,
+  re-entry after a hit - earlier exits free the rider), TRAIN/TEST/FORWARD; (3) the live desk's entries since 10-15 where the tape allows (descriptive).
+READ: entries <= -$1k, days <= -$2k, days positive, worst day, $/day, mean win. A rule is a CANDIDATE if on (2) it improves days <= -$2k and days-positive on ALL three periods without
+  lowering $/day by more than 15%, AND (1) does not lose money vs 37.5. Nothing live changes without the operator; a candidate would be v1.04 (target) with its own declaration.
