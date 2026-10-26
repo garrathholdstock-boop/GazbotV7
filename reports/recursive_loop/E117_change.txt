@@ -9,3 +9,7 @@ DATA: (1) Claude's live-setup replay entries, Oct+Nov 2025 (100; static per entr
   re-entry after a hit - earlier exits free the rider), TRAIN/TEST/FORWARD; (3) the live desk's entries since 10-15 where the tape allows (descriptive).
 READ: entries <= -$1k, days <= -$2k, days positive, worst day, $/day, mean win. A rule is a CANDIDATE if on (2) it improves days <= -$2k and days-positive on ALL three periods without
   lowering $/day by more than 15%, AND (1) does not lose money vs 37.5. Nothing live changes without the operator; a candidate would be v1.04 (target) with its own declaration.
+A1 (appended 2026-10-26 ~08:10Z, after the FIXED/DYNAMIC table on Claude's entries was seen, before the rules below run). Operator: "And maybe time in the trade? If we're sitting around and going
+  nowhere and it drifts up to 25pts profit and atr is low then we claim to close the deal and we can then be free to jump on other opportunities."
+  TIME-DECAY rules: T = 37.5 for the first M minutes after the fill, then T = 25 (or 30); M in {30, 60, 90, 120}; variants applied always or only when ATR14 at entry < 6 (or < 7).
+  Same data and READ as above. Seen so far (Claude's 100 entries): FIXED 30 +$9,965 vs 37.5 +$3,088 (entries <= -$1k 5 vs 8, days+ 34 vs 31, worst day -$2,633 vs -$4,511).
