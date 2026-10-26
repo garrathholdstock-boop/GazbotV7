@@ -9,3 +9,24 @@ v1.00  2026-10-10  Paper from 2026-10-11T22:00Z (self-gated to 2026-10-30T21:00Z
        + H ladder 25,50,75,100 x 4 lots = 12.5/25/37.5/50pt (E29). Flat-only, no stop, 20:40Z hard flat by the rider.
        Backtest basis (119 days, optimistic, ~18 variants charged): H+veto $295/d, worst -2,570, 85/119 green.
        Declarations: E15, E22, E28, E29.
+
+v1.01  2026-10-12  BUG FIX only (E34): rider_gate() treated `entered` as HOLDING after the trade had CLOSED, so the robot skipped every
+       confirmed turn after the first completed trade of a session (one trade/session instead of one per turn). HOLDING now =
+       (entered AND NOT closed) OR lots_open != 0. Detector, veto, H ladder, 4 lots UNCHANGED. No re-entry within a leg (deferred
+       by the operator pending a few days of review). v1.00 paper = 10-11T22:00Z to the change (1 trade, 10-12 SELL 03:18Z, ladder
+       complete); v1.01 starts at the change - never pool.
+       Declaration: E34.
+
+v1.02  2026-10-14  HYBRID (scripts/hybrid_robot.py, separate script + switch data/hybrid_robot.env; leg_robot.py stays at 1.01 and OFF).
+       Claude S1b entries (BRIEF_V2, empty rules) kept ONLY WITH the frozen detector's leg direction (K=11, sha af0ace53e6dc9faa) and after the
+       05:00 Europe/Paris veto; flat-only, re-entry allowed (no latch); 4 lots, ALL FOUR out at +37.5pt (75,75,75,75); rider does exits; flat 20:40Z.
+       Replay basis (E85-E88, 25 days, 5s engine): ~$900/day pooled, holdout n=5 ~$1,250/day, 5/5 positive. Ladder + veto selected on the first 20 days.
+       Paper starts with the 2026-10-15 session (self-gated to 2026-10-30T21:00Z). v1.01 paper = to 2026-10-14; never pool.
+       Declaration: E89.
+v1.02-EXT 2026-10-14 afternoon one-off (14:55-19:55Z, unreplayed; own arm, never pooled) — E90_change.txt
+
+v1.03  2026-10-26  MIL CAP (E115): v1.02+LOCK unchanged + at most 2 claims (+37.5 all-out wins) per detector MIL; at 2 the robot presses nothing until the detector confirms
+       the next MIL (entry_action MIL_CAP_2_CLAIMS; ledger unreadable -> MIL_CAP_UNREADABLE, fails closed, pages once). Live from the first tick after ~07:00Z on the 2026-10-26 session
+       (transition day, labelled v1.03 by date). Arm v1.03+LOCK+MILCAP - never pool with v1.02 / v1.02+LOCK / v1.02-EXT. A CONSISTENCY change; it does not address first-entry disasters.
+       Basis: Claude replays Oct+Nov 2025 +$3,088 -> +$4,729 (40 d), live ledger 10-15..10-26 -$1,569 -> +$2,749 (8 d); small n, 2 chosen after seeing the tables.
+       Declaration: E115.

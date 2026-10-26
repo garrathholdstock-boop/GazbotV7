@@ -89,7 +89,7 @@ def mk(tmp, px=flat_px, ledger=(), decisions="all", day_rec="good", switch="on",
     (tmp / "days").mkdir(exist_ok=True)
     if day_rec == "good":
         n = len(slots) - len(left_out)
-        (tmp / "days" / f"{key}.json").write_text(json.dumps({"version": H.VERSION, "day": key, "calls": n, "errors": 0, "poisoned": False,
+        (tmp / "days" / f"{key}.json").write_text(json.dumps({"version": HN.version_of(key), "day": key, "calls": n, "errors": 0, "poisoned": False,
                                                               "brief_sha": BRIEF_SHA, "partial_from": None, "claude_sim_net_usd": 0.0,
                                                               "claude_sim_trades": []}))
     elif isinstance(day_rec, dict):
@@ -445,7 +445,7 @@ def test_the_close_out_record_must_exist_after_the_window(tmp_path):
 
 
 def test_a_poisoned_or_drifted_day_record_is_a_FAULT(tmp_path):
-    base = {"version": H.VERSION, "day": KEY, "calls": len(SLOTS), "errors": 0, "poisoned": True, "brief_sha": BRIEF_SHA}
+    base = {"version": HN.version_of(KEY), "day": KEY, "calls": len(SLOTS), "errors": 0, "poisoned": True, "brief_sha": BRIEF_SHA}
     assert "POISONED_RECORD" in codes(HN.review_day(mk(tmp_path, day_rec=base), KEY, EVE), "FAULT")
     d = tmp_path / "b"
     d.mkdir()
@@ -884,3 +884,10 @@ def test_weekly_pack_ranks_the_discipline_table_best_to_worst_per_arm():
     txt = "\n".join(HN.render_discipline(rows))
     assert txt.index("2026-10-13") < txt.index("2026-10-12")
     assert "-1200" in txt and "SHORT" in txt and "11:00Z" in txt
+
+
+
+def test_versions_and_arms_are_labelled_by_date_never_relabelled_by_a_bump():
+    """v1.03 (E115) must not relabel the v1.02 history; the MIL-cap sessions are their own arm."""
+    assert HN.version_of("2026-10-23") == "1.02" and HN.version_of("2026-10-26") == "1.03"
+    assert HN.arm_of("2026-10-23") == "v1.02+LOCK" and HN.arm_of("2026-10-26") == "v1.03+LOCK+MILCAP"

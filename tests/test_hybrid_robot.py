@@ -82,7 +82,8 @@ def test_every_write_targets_one_of_its_own_paths():
 
 
 def test_frozen_parameters():
-    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.02", "v2", 4, "75,75,75,75")
+    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.03", "v2", 4, "75,75,75,75")
+    assert (H.MIL_CAP, H.MILCAP_FROM, H.PREV_VERSION) == (2, "2026-10-26", "1.02")
     assert H.DETECTOR_SHA == L.DETECTOR_SHA == L.detector_sha()
     assert H.L.VETO_PARIS_HOUR == 5 and H.L.K == 11
     assert H.S.brief_for("v2") is H.S.BRIEF_V2
@@ -676,3 +677,92 @@ def test_a_claim_write_fault_still_texts_and_says_flatten_it_yourself(box, sent,
     monkeypatch.setattr(H, "CLAIM_FILE", str(box.tmp / "nodir" / "claim.txt"))
     recs = _hold_then_exit(box)
     assert recs[-1]["exit_claim"].startswith("CLAIM_FAULT") and "AUTO-FLATTEN FAILED" in sent[0][0]
+
+
+# ── v1.03 MIL CAP: at most 2 claims per MIL, then wait for the next confirmed MIL (operator, 2026-10-26, E115) ─────────
+
+import sqlite3  # noqa: E402
+
+
+def _ledger(path, rows):
+    c = sqlite3.connect(path)
+    c.execute("CREATE TABLE trades (opened_at TEXT, closed_at TEXT, side TEXT, qty REAL, entry_price REAL, pnl_usd REAL, data_quality TEXT, gate TEXT)")
+    for o, side, pnl, q in rows:
+        for _ in range(4):                                   # four lots per entry, as the rider books them
+            c.execute("INSERT INTO trades VALUES (?,?,?,?,?,?,?,?)", (o, o, side, 1, 100.0, pnl / 4, q, "day_rider"))
+    c.commit(); c.close()
+
+
+@pytest.fixture
+def capbox(box, monkeypatch):
+    monkeypatch.setattr(H, "MILCAP_FROM", "2026-10-01")
+    box.db = str(box.tmp / "ledger.db")
+    monkeypatch.setattr(H, "LEDGER", box.db)
+    box.ledger = lambda rows: _ledger(box.db, rows)
+    return box
+
+
+def _iso(h, m=0):
+    return dt.datetime(2026, 10, 13, h, m, 30, tzinfo=UTC).isoformat()
+
+
+def test_mil_pivot_is_causal():
+    turns = [(100, 1.0, 1, 1000, 1.0), (2000, 2.0, -1, 5000, 2.0)]
+    assert H.mil_pivot(turns, 939) is None
+    assert H.mil_pivot(turns, 1060) == (100, 1)
+    assert H.mil_pivot(turns, 5059) == (100, 1) and H.mil_pivot(turns, 5060) == (2000, -1)
+
+
+def test_two_claims_on_this_mil_block_the_press(capbox):
+    capbox.leg_up(); capbox.answer = {"action": "ENTER_LONG"}
+    capbox.ledger([(_iso(5), "LONG", 294.0, None), (_iso(6), "LONG", 270.0, None)])
+    r = capbox.step(at(8))
+    assert r["status"] == "OK" and r["decision"]["entry_action"] == "MIL_CAP_2_CLAIMS", r
+    assert r["decision"]["mil"]["claims"] == 2 and not capbox.paths["BUY_FILE"].exists()
+
+
+def test_one_claim_still_presses(capbox):
+    capbox.leg_up(); capbox.answer = {"action": "ENTER_LONG"}
+    capbox.ledger([(_iso(5), "LONG", 294.0, None)])
+    r = capbox.step(at(8))
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and r["decision"]["mil"]["claims"] == 1
+
+
+def test_losers_flagged_lots_other_side_and_the_previous_mil_are_not_claims(capbox):
+    capbox.leg_up(); capbox.answer = {"action": "ENTER_LONG"}
+    pivot = dt.datetime.fromtimestamp(D0 + 3600, UTC)                       # the leg_up MIL pivots at 01:00Z
+    before = (pivot - dt.timedelta(minutes=20)).isoformat()
+    capbox.ledger([(before, "LONG", 294.0, None), (_iso(5), "LONG", -500.0, None), (_iso(6), "SHORT", 294.0, None),
+                   (_iso(7), "LONG", 294.0, "EXCLUDE:phantom")])
+    r = capbox.step(at(8))
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and r["decision"]["mil"]["claims"] == 0, r
+
+
+def test_the_next_confirmed_mil_resets_the_count(capbox):
+    capbox.ledger([(_iso(5), "SHORT", 294.0, None), (_iso(6), "SHORT", 294.0, None)])
+    capbox.turns = [(D0 + 3600, 99.0, -1, D0 + 4000, 100.0), (D0 + 7 * 3600, 98.0, 1, D0 + 7 * 3600 + 600, 100.0)]
+    capbox.answer = {"action": "ENTER_LONG"}
+    r = capbox.step(at(8))
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and r["decision"]["mil"]["claims"] == 0
+
+
+def test_an_unreadable_ledger_fails_closed_and_pages_once(capbox, monkeypatch):
+    capbox.leg_up(); capbox.answer = {"action": "ENTER_LONG"}
+    monkeypatch.setattr(H, "LEDGER", str(capbox.tmp / "missing" / "nope.db"))
+    r = capbox.step(at(8))
+    assert r["decision"]["entry_action"] == "MIL_CAP_UNREADABLE" and not capbox.paths["BUY_FILE"].exists()
+    capbox.step(at(8, 5))
+    assert sum("MIL cap FAILS CLOSED" in p for p in capbox.pages) == 1
+
+
+def test_sessions_before_milcap_from_are_untouched(box, monkeypatch):
+    monkeypatch.setattr(H, "LEDGER", str(box.tmp / "missing.db"))       # would fail closed if the cap ran
+    box.leg_up(); box.answer = {"action": "ENTER_LONG"}
+    r = box.step(at(8))
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and "mil" not in r["decision"]
+
+
+def test_against_the_leg_never_reads_the_ledger(capbox, monkeypatch):
+    monkeypatch.setattr(H, "mil_claims", lambda *a: (_ for _ in ()).throw(AssertionError("read")))
+    capbox.leg_down(); capbox.answer = {"action": "ENTER_LONG"}
+    assert capbox.step(at(8))["decision"]["entry_action"] == "NOT_WITH_LEG"

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""GAZBOT V8 ROBO v1.02 — THE HYBRID (E89): Claude S1b calls the entries, the frozen detector gives the leg, the rider does the rest.
+"""GAZBOT V8 ROBO v1.03 — THE HYBRID (E89): Claude S1b calls the entries, the frozen detector gives the leg, the rider does the rest.
+v1.03 (2026-10-26, operator, E115): + MIL CAP — at most MIL_CAP (2) claims per MIL; then no new press until the detector confirms the next MIL.
 
 Declared in reports/recursive_loop/E89_change.txt. It deploys E81-E88; it changes none of their rules.
 
@@ -36,7 +37,8 @@ from gazbot7 import fills_pnl as FP  # noqa: E402  the BROKER's executions, the 
 
 UTC = dt.timezone.utc
 ROBOT = "GazBot V8 Robo"
-VERSION = "1.02"
+VERSION = "1.03"
+PREV_VERSION = "1.02"            # sessions before MILCAP_FROM ran v1.02 (+LOCK from LOCK_FROM); the nightly labels them by date, never by this constant
 LINE = "v2"
 QTY = 4
 TARGETS = "75,75,75,75"          # $ per lot at $2/pt = all four lots out at +37.5pt
@@ -50,6 +52,8 @@ RECONCILE_SIM = True             # 2026-10-14: drop Claude's sim position when t
 LOCK_USD = 1000.0                # v1.02+LOCK (operator, 2026-10-14): once the day's P&L (realised + open) has touched this, no NEW entries
 LOCK_FROM = "2026-10-15"         # first session the lock applies to; earlier sessions are v1.02 / v1.02-EXT and never pooled with it
 LEDGER = f"{GB}/data/gazbot7.db"
+MIL_CAP = 2                      # v1.03 (E115, operator 2026-10-26): "We can stop at 2 claims on 1 MIL. But then we wait for next mil to be confirmed."
+MILCAP_FROM = "2026-10-26"       # first session the cap applies to (live from the first tick after deployment, ~07:50Z that day)
 PV = 2.0                         # MNQ $ per point per lot
 PRESS_MAX_AGE_S = 240            # decision -> press; older than this the entry is stale (call latency included)
 FEED_STALE_S = 180
@@ -198,6 +202,48 @@ def det_dir(turns: list, t: int) -> int:
     return cur
 
 
+def mil_pivot(turns: list, t: int) -> tuple | None:
+    """(pivot_ts, direction) of the detector's current MIL: the last confirmed turn knowable at t (cts + 60 <= t); None if none."""
+    cur = None
+    for piv_ts, _piv_px, nd, cts, _cpx in turns:
+        if cts + 60 <= t:
+            cur = (int(piv_ts), int(nd))
+    return cur
+
+
+def mil_claims(key: str, pivot_ts: int, dirn: int) -> int:
+    """Claims already taken on this MIL this session: rider entries in the ledger (gate=day_rider; robot or manual; EXCLUDE/BADFILL
+    lots removed), grouped by opened_at, on the MIL's side, opened at/after its pivot (and inside this session), net P&L > 0.
+    With all four lots out at +37.5 a claim is an entry whose lots closed in profit. Raises if the ledger cannot be read."""
+    lo = max(int(pivot_ts), int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp()) - 2 * 3600)
+    side = "LONG" if dirn > 0 else "SHORT"
+    con = sqlite3.connect(f"file:{LEDGER}?mode=ro", uri=True)
+    try:
+        rows = con.execute("SELECT opened_at, side, pnl_usd, data_quality FROM trades WHERE gate='day_rider' AND opened_at >= ?",
+                           (dt.datetime.fromtimestamp(lo, UTC).isoformat(),)).fetchall()
+    finally:
+        con.close()
+    net: dict = {}
+    for opened, sd, pnl, q in rows:
+        if sd != side or (q or "").startswith(("EXCLUDE", "BADFILL")):
+            continue
+        net[opened] = net.get(opened, 0.0) + float(pnl or 0)
+    return sum(1 for v in net.values() if v > 0)
+
+
+def mil_state(key: str, turns: list, op: int) -> dict | None:
+    """The MIL the decision belongs to and its claims so far; claims None = the ledger could not be read (the cap then FAILS CLOSED)."""
+    p = mil_pivot(turns, op - 60)
+    if p is None:
+        return None
+    out = {"pivot": dt.datetime.fromtimestamp(p[0], UTC).isoformat(), "dir": p[1], "cap": MIL_CAP}
+    try:
+        out["claims"] = mil_claims(key, p[0], p[1])
+    except Exception as e:
+        out["claims"], out["error"] = None, repr(e)[:200]
+    return out
+
+
 def write_press(now: dt.datetime, side: str) -> str:
     line = f"{now.isoformat()}|{side}|{QTY}|{TARGETS}\n"
     with open(BUY_FILE, "w") as f:
@@ -320,14 +366,14 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
     if L.read_switch(LEG_SWITCH, "leg_robot"):
         if not st["alarmed"] and not dry:
             st["alarmed"] = True
-            page("⚠ HYBRID ROBOT v1.02 REFUSED: leg_robot is ON too — two robots on one rider's BUY file. Turn one off.")
+            page(f"⚠ HYBRID ROBOT v{VERSION} REFUSED: leg_robot is ON too — two robots on one rider's BUY file. Turn one off.")
         log({"at": now.isoformat(), "event": "REFUSED_LEG_ROBOT_ON"}) if not dry else None
         return done("LEG_ROBOT_ON_CONFLICT")
     fault = preflight()
     if fault:
         if not st["alarmed"] and not dry:
             st["alarmed"] = True
-            page(f"⚠ HYBRID ROBOT v1.02 CANNOT RUN — {fault}\nsession {key}. Nothing is at risk; no entries will be made.")
+            page(f"⚠ HYBRID ROBOT v{VERSION} CANNOT RUN — {fault}\nsession {key}. Nothing is at risk; no entries will be made.")
         return done("PREFLIGHT_FAILED", fault=fault)
 
     # ── past the window: close the simulated book once and write the day ──────────────────────────
@@ -365,7 +411,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
     if feed_age > FEED_STALE_S:
         st["stale_n"] = st.get("stale_n", 0) + 1
         if st["stale_n"] == ALARM_STREAK and not dry:
-            page(f"⚠ HYBRID ROBOT v1.02: tape is {feed_age}s stale for {ALARM_STREAK} ticks — declining to decide on a dead feed.")
+            page(f"⚠ HYBRID ROBOT v{VERSION}: tape is {feed_age}s stale for {ALARM_STREAK} ticks — declining to decide on a dead feed.")
         return done("FEED_STALE", feed_age_s=feed_age)
     st["stale_n"] = 0
     if key >= LOCK_FROM and lock_enabled():            # v1.02+LOCK: the day has touched +LOCK_USD → no new entries, no Claude call, rest of the session
@@ -378,7 +424,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                     log({"at": now.isoformat(), "event": "LOCK_CHECK_ERROR", "error": repr(e)})
                     if not st.get("lock_err_paged"):
                         st["lock_err_paged"] = True
-                        page(f"⚠ HYBRID ROBOT v1.02+LOCK: cannot read the day's P&L ({e!r}) — the +${LOCK_USD:,.0f} lock is NOT protecting this session.")
+                        page(f"⚠ HYBRID ROBOT v{VERSION}+LOCK: cannot read the day's P&L ({e!r}) — the +${LOCK_USD:,.0f} lock is NOT protecting this session.")
             if eq and eq["touch_ts"] is not None:
                 # ★2026-10-22 second book: the ledger says +$1000, but do the BROKER's executions agree? Phantom booked
                 # profit (the double-booked exit) must not latch a lock. Fails toward latching when fills are unreadable.
@@ -387,7 +433,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                     st["lock_xcheck_n"] = st.get("lock_xcheck_n", 0) + 1
                     if not dry:
                         log({"at": now.isoformat(), "event": "LOCK_WITHHELD_LEDGER_MISMATCH", "n": st["lock_xcheck_n"], **xc})
-                        page(f"⚠ HYBRID ROBOT v1.02+LOCK: the day's ledger shows +${LOCK_USD:,.0f} but the broker's executions show only "
+                        page(f"⚠ HYBRID ROBOT v{VERSION}+LOCK: the day's ledger shows +${LOCK_USD:,.0f} but the broker's executions show only "
                              f"{xc['fills']:+,.0f} (ledger {xc['ledger']:+,.0f}, gap {xc['diff']:+,.0f}). Lock NOT latched - "
                              "phantom booking? Check trades/fills.", critical=st["lock_xcheck_n"] >= 2)
                     eq = None
@@ -400,7 +446,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                               "equity_now": eq["now"], "peak": eq["peak"], "decision_ts": dt.datetime.fromtimestamp(op, UTC).isoformat()}
                 if not dry:
                     log({"at": now.isoformat(), "event": "DAY_LOCK", **st["lock"]})
-                    page(f"🔒 HYBRID ROBOT v1.02+LOCK: the day touched +${LOCK_USD:,.0f} at {st['lock']['touched_at'][11:16]}Z (now {eq['now']:+,.0f}, peak {eq['peak']:+,.0f}). "
+                    page(f"🔒 HYBRID ROBOT v{VERSION}+LOCK: the day touched +${LOCK_USD:,.0f} at {st['lock']['touched_at'][11:16]}Z (now {eq['now']:+,.0f}, peak {eq['peak']:+,.0f}). "
                          "No new entries for the rest of this session. Any open position keeps riding.")
         if st.get("lock"):
             st["last_op"] = op
@@ -455,7 +501,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
             st["streak"] = 0
         if st["streak"] == ALARM_STREAK and not st["alarmed"] and not dry:
             st["alarmed"] = True
-            page(f"⚠ HYBRID ROBOT v1.02 IS FAILING EVERY CALL — {st['streak']} in a row\n{d.get('error')}\n"
+            page(f"⚠ HYBRID ROBOT v{VERSION} IS FAILING EVERY CALL — {st['streak']} in a row\n{d.get('error')}\n"
                  f"session {key}, {st['errors']}/{st['calls']} calls errored. No entries are being made. Nothing is at risk.")
     st["decisions"] += 1
     st["last_op"] = op
@@ -473,7 +519,11 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                      "opened": dt.datetime.fromtimestamp(op, UTC), "reason": (d.get("reason") or "")[:200]}
         side = "BUY" if dirn > 0 else "SELL"
         series = [b for b in L.series_for(L.session_day(now)) if b[0] + 60 <= now_ts - L.SETTLE_S]
-        dd = det_dir(L.confirmed_turns(series), op - 60) if len(series) >= 200 else 0
+        turns = L.confirmed_turns(series) if len(series) >= 200 else []
+        dd = det_dir(turns, op - 60)
+        mil = mil_state(key, turns, op) if key >= MILCAP_FROM and dd == dirn else None
+        if mil:
+            rec["mil"] = mil
         cut = L.veto_cutoff(op)
         rec["candidate"] = side
         rec["detector_dir"] = dd
@@ -482,6 +532,12 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
             rec["entry_action"] = "NOT_WITH_LEG" if dd else "NO_DETECTOR_LEG"
         elif cut is not None and op < cut:
             rec["entry_action"] = "VETOED_BEFORE_05_PARIS"
+        elif mil and (mil["claims"] is None or mil["claims"] >= MIL_CAP):       # v1.03: 2 claims on this MIL -> wait for the next MIL
+            rec["entry_action"] = "MIL_CAP_UNREADABLE" if mil["claims"] is None else f"MIL_CAP_{MIL_CAP}_CLAIMS"
+            if mil["claims"] is None and not dry and not st.get("milcap_err_paged"):
+                st["milcap_err_paged"] = True
+                page(f"⚠ HYBRID ROBOT v{VERSION}: cannot read the ledger to count claims on this MIL ({mil.get('error')}) - the MIL cap FAILS CLOSED: "
+                     "no new entries until it can count again.")
         elif (cnow := (now if dry else clock())).timestamp() - op > PRESS_MAX_AGE_S:
             rec["entry_action"] = "STALE_NOT_ENTERED"
         elif (why := L.rider_gate(cnow)):

@@ -1,0 +1,24 @@
+E115 - GAZBOT V8 ROBO v1.03: THE MIL CAP (2 claims per MIL, then wait for the next confirmed MIL) GOES LIVE ON PAPER.  Declared 2026-10-26 ~07:00Z, deployed the same morning.
+Operator, 2026-10-26: "We can stop at 2 claims on 1 MIL. But then we wait for next mil to be confirmed." ... "Yes make this live. But it still doesn't stop bad trades like the one this
+morning. We are still working on that and that is live." -> v1.03 is a CONSISTENCY change (fewer extra entries on a MIL that has already paid twice), NOT a fix for first/second-entry disasters.
+WHAT CHANGES (scripts/hybrid_robot.py; everything else in v1.02+LOCK unchanged: Claude S1b BRIEF_V2, with-leg filter, 05:00 Paris veto, flat-only, 4 lots all out at +37.5pt, no stop,
+  20:40Z flat, +$1,000 day lock, hybrid_exit_live=off):
+  - MIL = the frozen detector's current leg: the last confirmed turn knowable at decision-60s (mil_pivot; K=11 x ATR14, sha af0ace53e6dc9faa).
+  - CLAIMS on it = rider entries in the ledger (gate=day_rider, robot OR manual, EXCLUDE/BADFILL lots removed), grouped by opened_at, on the MIL's side, opened at/after its pivot (inside the
+    session), net P&L > 0 (all four lots out at +37.5 = one claim) - mil_claims().
+  - If claims >= MIL_CAP (2) the press is skipped: entry_action MIL_CAP_2_CLAIMS. The next confirmed MIL (new pivot) starts again at 0.
+  - The ledger unreadable -> MIL_CAP_UNREADABLE: FAILS CLOSED (no press) and pages once per session.
+  - Applied only after the with-leg filter (a Claude call against the leg never reads the ledger). Sessions >= MILCAP_FROM = 2026-10-26 (live from the first tick after deployment that day;
+    10-26 is a transition day: v1.02+LOCK until ~07:00Z, v1.03 after - labelled v1.03 by date).
+  - VERSION 1.03; hybrid_nightly labels arms BY DATE (version_of/arm_of): < 2026-10-15 v1.02, 10-15..10-25 v1.02+LOCK, 10-14 v1.02-EXT, >= 10-26 v1.03+LOCK+MILCAP. Never pooled.
+EVIDENCE (E113 + the 2026-10-26 checks; all with the caveats below):
+  - Claude replays of the live setup, Oct+Nov 2025 (40 sessions, exact for removed entries): total +$3,088 -> +$4,729; days positive 31 -> 33/40; entries <= -$1k 8 -> 6; entries 100 -> 76.
+  - Live desk ledger 2026-10-15..10-26 (8 sessions, robot + manual rider entries): -$1,569 -> +$2,749; days positive 5 -> 7/8; worst day -$3,272 -> -$1,991.
+  - 10-yr detector-only desk path: days <= -$2k -8% / -2% / -14% (TRAIN/TEST/FORWARD): a modest effect for the detector's own entries.
+  - Adding a time or points condition (only if the leg >= 120/180 min or >= 200pt) changed nothing on Claude's entries (they are almost all in legs older than 2 h).
+CAVEATS: n is small (40 replay days, 8 live days); 2 was chosen over 1 and 3 after seeing those tables; the live ledger mixes the operator's manual entries; removing an entry cannot show what
+  Claude would have done with the freed rider. The forward paper record of v1.03 is the test.
+TESTS: tests/test_hybrid_robot.py +8 (cap blocks at 2, presses at 1, losers/flagged/other-side/previous-MIL are not claims, the next MIL resets, unreadable fails closed and pages once, pre-
+  MILCAP_FROM untouched, against-the-leg never reads the ledger); tests/test_hybrid_nightly.py fixtures stamp the version each session ran + a labelling test. 237 hybrid/leg tests pass.
+NOT CHANGED: the E104 shadows (hybrid_shadow.py) stay v1.02 arms (they do not apply the cap; their would-be entries remain v1.02-filtered - stated, not hidden).
+OPEN (the operator's main ask, still live): what stops the first/second-entry disasters (10-26 05:05Z re-entry, 10-16 -$4,547, Nov 2025 -$4.5k days). E112/E113/E114 continue.

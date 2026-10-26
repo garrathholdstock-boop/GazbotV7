@@ -111,10 +111,18 @@ def d0_of(key: str) -> int:
     return int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp())
 
 
+def version_of(key: str) -> str:
+    """The robot version a session ran: v1.03 (+MIL cap) from MILCAP_FROM, v1.02 before it. Labelled by DATE, so a version bump never relabels history."""
+    return H.VERSION if key >= H.MILCAP_FROM else H.PREV_VERSION
+
+
 def arm_of(key: str) -> str:
+    v = version_of(key)
     if key == H.EXT_KEY:
-        return f"v{H.VERSION}-EXT"
-    return f"v{H.VERSION}+LOCK" if key >= H.LOCK_FROM else f"v{H.VERSION}"
+        return f"v{v}-EXT"
+    if key >= H.MILCAP_FROM:
+        return f"v{v}+LOCK+MILCAP"
+    return f"v{v}+LOCK" if key >= H.LOCK_FROM else f"v{v}"
 
 
 def pctile(xs: list, p: float):
@@ -587,11 +595,11 @@ def health_checks(env: Env, key: str, now: dt.datetime, log: dict, cov: dict, ca
                 add("WARN", "RECORD_CALLS_MISMATCH", f"day record says {dayrec.get('calls')} calls, log has {len(calls)} decisions.")
             if dayrec.get("partial_from"):
                 add("INFO", "PARTIAL_DAY", f"the robot only started deciding at {dayrec['partial_from']} (partial day).")
-            if dayrec.get("version") != H.VERSION:
-                add("WARN", "VERSION_MISMATCH", f"day record version {dayrec.get('version')} != code {H.VERSION}.")
+            if dayrec.get("version") != version_of(key):
+                add("WARN", "VERSION_MISMATCH", f"day record version {dayrec.get('version')} != the version this session should have run ({version_of(key)}).")
     # brief frozen
     cur_sha = S.hashlib.sha256(S.brief_for(H.LINE).encode()).hexdigest()[:16]
-    if dayrec and dayrec.get("brief_sha") and dayrec.get("version") == H.VERSION and dayrec["brief_sha"] != cur_sha:
+    if dayrec and dayrec.get("brief_sha") and dayrec.get("version") == version_of(key) and dayrec["brief_sha"] != cur_sha:
         add("FAULT", "BRIEF_DRIFT", f"the brief changed under v{H.VERSION}: day record {dayrec['brief_sha']} vs source {cur_sha}. A new brief is a NEW ARM and a version bump, never an in-place edit.")
     # press rules
     for c in cands:
