@@ -1,0 +1,18 @@
+E113 - THE CLAIMS PAUSE: pause new entries on a leg by (leg age) x (leg size) x (claims already taken on it), conservative, morning focus.  Declared 2026-10-26 06:35Z BEFORE any run.
+Operator, 2026-10-26: "We just took one of these very trades on the live desk. Bought right on the turn. There absolutely has to be something around time and size of the existing run and if
+we've already claimed on it. Then we pause. ... focus on every combination of time and points and if we've had 1, 2 or 3 claims already. And be conservative. Especially in the morning period.
+If we pause around now 0700-0830 Paris time there's still plenty of time to grab our last couple of trades before lock out."  (Today: 04:25Z long claimed +$270; 05:05Z re-entry after 1 claim
+into a 133-min leg, open.)  No exit, stop or size change: a pause only blocks NEW entries.
+DATA: the E110 census (NQ 2015-2025 + MNQ 2025-09..2026-10, rolls adjusted, frozen detector sha af0ace53e6dc9faa) + E111 features, live window 02:00-13:30Z after the 05:00 Paris veto.
+DESK PATH (as E111): flat-only, enter the first unpaused candidate, all four out at +37.5 (today's pts) or the 20:40Z flat, re-entry after a hit, no new entry once the day touched +$1,000.
+  LEG = the detector leg (direction + start pivot). CLAIMS ON THE LEG = +37.5 hits already taken on THIS leg THIS session. Paris = Europe/Paris clock of the day (07:00-08:30 Paris = 06:00-07:30Z
+  in winter, 05:00-06:30Z in summer).
+THE GRID (all of it is the search; nothing else is tried):  pause a candidate if  claims_on_leg >= C  AND  (leg_age_min >= A  OR  leg_ext_pts >= X)  [AND, in the M-variant, only while 07:00-08:30 Paris]
+  C in {0,1,2,3};  A in {none,60,90,120,180,240,360} min;  X in {none,100,150,200,250,300,400} today's pts  (A=none and X=none together = "pause on claims alone").  Variants: ALL-WINDOW and M (morning).
+SELECTION (TRAIN 2015-2022 only): a cell qualifies if, vs the unpaused desk path, worst day, days positive and CV are no worse AND entries <= -$1,000 fall (bible.gate reported beside it). CONSERVATIVE pick
+  among qualifiers: the cell with the FEWEST days <= -$2,000; ties -> fewest entries <= -$1,000; then highest $/day. Shown: the top 10 qualifiers. TEST (2023-2025-07) and FORWARD (MNQ 2025-09..2026-10)
+  read ONCE for the pick and the runner-up: PROMISING if it holds the qualifying clauses on both. Search size (392 cells x 2) is printed; with that many cells a TRAIN winner is expected by chance,
+  so TEST/FORWARD decide, not TRAIN.
+CLAUDE CHECK (descriptive): the pick applied statically to every entry the LIVE setup made in the Oct-Nov 2025 replays (v102) and to the live desk's own entries since 2026-10-15: which it would have
+  paused, their $ (no re-simulation of Claude's later calls).
+OUTPUT: reports/recursive_loop/E113_code/, reports/recursive_loop/E113_result.txt. Nothing live changes; a PROMISING pick goes to a no-press shadow and the operator.
