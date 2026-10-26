@@ -64,6 +64,14 @@ MODEL_NOTE = "CLI default (measured 2026-10-25: claude-sonnet-5-5), no ANTHROPIC
 
 _cache: dict[str, list] = {}
 
+# E118 (2026-10-26): arms that run the LIVE v1.03 setup (MIL cap 2) with a target policy. Any other label runs as before (v1.02 rules).
+#   target   = the all-out target in points;  decay = (minutes, lower target): the target drops to `lower` once `minutes` have passed since the fill.
+ARM_CFG = {
+    "v103":    {"milcap": 2, "target": 37.5, "decay": None},
+    "v103T30": {"milcap": 2, "target": 30.0, "decay": None},
+    "v103D":   {"milcap": 2, "target": 37.5, "decay": (30, 25.0)},
+}
+
 
 def day_bars(day: str) -> list:
     """1-min (bar_ts, high, low, close) from 22:00Z the evening before to 21:00Z, from the MNQ backfill."""
@@ -79,18 +87,20 @@ def day_bars(day: str) -> list:
 ML.minute_bars = day_bars          # leg_robot.series_for -> the detector reads the same 1-min tape
 
 
-def ride(bars: list, op: int, dirn: int, fill: float, d0: int) -> dict:
-    """the rider after a press at decision time op: all four lots out at +37.5 from the fill, else the 20:40Z flat."""
+def ride(bars: list, op: int, dirn: int, fill: float, d0: int, target: float = TARGET, decay: tuple | None = None) -> dict:
+    """the rider after a press at decision time op: all four lots out at the target from the fill, else the 20:40Z flat.
+    decay=(m, lower): the target becomes `lower` for bars that open >= m minutes after the decision (E118)."""
     flat_t = d0 + FLAT_MIN * 60
     path = [b for b in bars if op <= b[0] < flat_t]
-    tgt = fill + dirn * (TARGET + THRU)
     mae, marks = 0.0, []
     for t, h, l, c in path:
         adv = (fill - l) if dirn > 0 else (h - fill)
         mae = max(mae, adv)
+        T = decay[1] if decay and t >= op + decay[0] * 60 else target
+        tgt = fill + dirn * (T + THRU)
         if (h >= tgt) if dirn > 0 else (l <= tgt):
-            return {"exit_ts": t + 60, "exit_px": fill + dirn * TARGET, "why": "TARGET_37.5", "mae": round(mae, 2),
-                    "pnl": round(LOTS * PV * TARGET - LOTS * FEE, 2), "marks": marks}
+            return {"exit_ts": t + 60, "exit_px": fill + dirn * T, "why": f"TARGET_{T:g}", "mae": round(mae, 2),
+                    "pnl": round(LOTS * PV * T - LOTS * FEE, 2), "marks": marks}
         marks.append((t + 60, round(LOTS * PV * dirn * (c - fill), 2)))
     last = path[-1] if path else (op, fill, fill, fill)
     pts = dirn * (last[3] - fill)
@@ -109,7 +119,8 @@ def run_day(arm: str, rules: str, day: str) -> dict:
     d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
     page_bars, _ = S.load_day(day)
     bars = day_bars(day)
-    rec = {"arm": arm, "day": day, "rules_sha": hashlib.sha256(rules.encode()).hexdigest()[:12], "model": MODEL_NOTE,
+    cfg = ARM_CFG.get(arm)
+    rec = {"arm": arm, "day": day, "rules_sha": hashlib.sha256(rules.encode()).hexdigest()[:12], "model": MODEL_NOTE, "cfg": cfg,
            "brief_sha": hashlib.sha256(S.brief_for("v2").encode()).hexdigest()[:16], "calls": [], "presses": [], "sim_done": []}
     if len(page_bars) < 600:
         rec["skipped"] = f"only {len(page_bars)} page bars (holiday/short session)"
@@ -164,23 +175,30 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             pos = {"dir": dirn, "entry": px + dirn * HALF, "peak": 0.0, "peak_1m": 0.0, "last_ts": op,
                    "opened": dt.datetime.fromtimestamp(op, UTC), "reason": (d.get("reason") or "")[:200]}
             series = [b for b in series_all if b[0] + 60 <= op]
-            dd = H.det_dir(L.confirmed_turns(series), op - 60) if len(series) >= 200 else 0
+            turns = L.confirmed_turns(series) if len(series) >= 200 else []
+            dd = H.det_dir(turns, op - 60)
             cut = L.veto_cutoff(op)
+            mil = H.mil_pivot(turns, op - 60) if cfg and dd == dirn else None
+            claims = sum(1 for q in rec["presses"] if mil and q.get("mil_pivot") == mil[0] and q["side"] == ("BUY" if dirn > 0 else "SELL")
+                         and q["why"].startswith("TARGET") and q["exit_ts"] <= op) if mil else 0
             if dd != dirn:
                 call["entry_action"] = "NOT_WITH_LEG" if dd else "NO_DETECTOR_LEG"
             elif cut is not None and op < cut:
                 call["entry_action"] = "VETOED_BEFORE_05_PARIS"
+            elif cfg and claims >= cfg["milcap"]:                                  # v1.03: 2 claims on this MIL -> wait for the next MIL
+                call["entry_action"] = f"MIL_CAP_{cfg['milcap']}_CLAIMS"
             elif rider is not None:
                 call["entry_action"] = "SKIPPED_HOLDING"
             else:
                 fill = px + dirn * HALF
-                r = ride(bars, op, dirn, fill, d0)
+                r = ride(bars, op, dirn, fill, d0, **({"target": cfg["target"], "decay": cfg["decay"]} if cfg else {}))
                 rider = {"dir": dirn, "fill": fill, "op": op, **r}
                 rec["presses"].append({"decision_ts": call["ts"], "side": "BUY" if dirn > 0 else "SELL", "decision_px": px,
                                        "fill": round(fill, 2), "exit_ts": r["exit_ts"],
                                        "exit_at": dt.datetime.fromtimestamp(r["exit_ts"], UTC).isoformat(),
                                        "exit_px": round(r["exit_px"], 2), "why": r["why"], "mae_pt": r["mae"], "pnl_usd": r["pnl"],
-                                       "held_min": round((r["exit_ts"] - op) / 60, 1), "reason": call["reason"]})
+                                       "held_min": round((r["exit_ts"] - op) / 60, 1), "reason": call["reason"],
+                                       "mil_pivot": mil[0] if mil else None})
                 call["entry_action"] = "PRESS_" + ("BUY" if dirn > 0 else "SELL")
         elif pos is not None and act == "EXIT":
             done.append(S._close(pos, px, op, "CLAUDE_EXIT"))

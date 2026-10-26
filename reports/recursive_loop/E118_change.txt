@@ -1,0 +1,12 @@
+E118 - TARGET TEST ON THE LIVE v1.03 SETUP (Claude replays, unseen weeks): 37.5 vs fixed 30 vs decay (37.5 -> 25 after 30 min).  Declared 2026-10-26 ~08:30Z BEFORE any call.
+Operator, 2026-10-26: "Yes set it up" (after E117: on Claude's own Oct+Nov 2025 entries a fixed +30 target made +$9,965 vs +$3,088 and halved the worst day, but statically - without the
+  extra entries a freed rider allows - while on the 10-yr detector desk the freed rider traded more and disaster days did not fall).
+ARMS (identical except the target; replay engine reports/recursive_loop/E112_code/replay.py, ARM_CFG; Claude prompt = live, CLI default model; with-leg + 05:00 Paris veto + flat-only +
+  +$1,000 lock + v1.03 MIL CAP 2 claims per detector MIL; 4 lots all out at the target, no stop, 20:40Z flat):
+  v103     target 37.5 (= the live robot today)
+  v103T30  target 30
+  v103D    target 37.5, dropping to 25 for bars opening >= 30 min after the decision
+WEEKS, one at a time, all three arms paired on the same sessions: Nov 24-28 2025, then Dec 1-5, 8-12, 15-19, 22-26, Dec 29-Jan 2 (none seen by any Claude replay; holiday sessions with
+  < 600 page bars are skipped). Runs ONLY 13:35Z-20:45Z (E112 A4). After each week the table is written to reports/e112/E118_weeks.txt.
+READ per week and cumulative: $ total, $/day, days positive, worst day, days <= -$2k, entries, entries <= -$1k, wins. A target arm is PROMISING if, over >= 3 weeks, it beats v103 on worst day
+  AND days positive AND total $ (bible.gate), with the run-to-run noise (~$300/week, E112 A3) in mind. A promising arm becomes a v1.04 proposal to the operator; nothing live changes here.
