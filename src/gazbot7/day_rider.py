@@ -518,11 +518,36 @@ def _zero_size_if_flat(out: dict, qty: float | None) -> None:
         out["qty"] = 0.0
 
 
-def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float | None = None) -> None:
+def _real_rows_clause(conn) -> str:
+    """SQL fragment that drops BADFILL/EXCLUDE rows. `data_quality` is added to the live DB by an
+    out-of-band migration, not by SCHEMA, so on a store without it the filter is simply omitted —
+    a missing column must not turn the cap/audit queries into silent fail-opens."""
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(trades)")}
+    except Exception:
+        cols = set()
+    if "data_quality" not in cols:
+        return ""
+    return (" AND COALESCE(data_quality,'') NOT LIKE 'EXCLUDE%'"
+            " AND COALESCE(data_quality,'') NOT LIKE 'BADFILL%'")
+
+
+def booked_exit_qty(conn, entered_at) -> float:
+    """Lots already booked as exited for THIS entry, from the ledger. BADFILL/EXCLUDE rows are not
+    real exits and are not counted. Raises if the ledger cannot answer — callers fail OPEN."""
+    row = conn.execute(
+        "SELECT COALESCE(SUM(qty),0) FROM trades WHERE gate=? AND opened_at=?" + _real_rows_clause(conn),
+        (DAY_RIDER_GATE, str(entered_at))).fetchone()
+    return float(row[0] or 0.0)
+
+
+def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float | None = None,
+               exit_exec_id: str | None = None) -> bool:
     """Write the closed round-trip to the trades table. Never raises: a booking failure must
     not stop a flatten from completing or a session from closing cleanly — the position is
     already out at this point and the row is bookkeeping. It DOES notify on failure, because a
     silently missing row is what created this whole gap."""
+    _whole = qty is None     # captured BEFORE `qty` is rebound below; the zeroing must see the CALLER's value
     try:
         entry = float(out.get("entry") or 0)
         qty = abs(float(qty if qty is not None else (out.get("qty") or 0)))
@@ -537,14 +562,33 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float |
                 notify(f"⚠ DAY RIDER: refused to book {reason} — entry={entry!r} qty={qty!r} "
                        f"direction={d!r} exit_px={exit_px!r}. The trades row is MISSING and P&L "
                        f"plus claim_audit will be short one trade.", critical=True)
-            return
+            return False
         gross = d * (exit_px - entry) * VPP * qty
         fees = FEE_RT * qty
         from . import store as _store
         conn = _store.open_store(DB_PATH)
+        # ★★★2026-10-22 LAST BACKSTOP: NEVER BOOK MORE LOTS OUT THAN WERE EVER IN.
+        # 10-22 03:35 booked 8 lots of exits against a 4-lot entry: the same four rungs twice, the
+        # second set at prices of orders that never filled. Whatever else goes wrong upstream, a
+        # ledger that says 8 out of 4 in is wrong by construction. Fails OPEN if the ledger cannot
+        # answer — a bookkeeping check must never stop a flatten completing.
+        _cap = float(out.get("entry_lots") or 0)
+        if _cap > 0 and out.get("entered_at"):
+            try:
+                _already = booked_exit_qty(conn, out.get("entered_at"))
+            except Exception:
+                _already = 0.0
+            if _already + qty > _cap + 1e-9:
+                conn.close()
+                if notify:
+                    notify(f"🛑 DAY RIDER REFUSED TO BOOK {reason}: the ledger already shows "
+                           f"{_already:g} lot(s) exited for this {_cap:g}-lot entry and this would "
+                           f"make {_already + qty:g}. A double-booked exit — nothing was written. "
+                           f"CHECK `trades` and `fills` against IBKR.", critical=True)
+                return False
         _store.record_trade(
             conn, symbol="MNQ", side="LONG" if d > 0 else "SHORT", qty=qty,
-            entry_price=entry, exit_price=float(exit_px),
+            entry_price=entry, exit_price=float(exit_px), exit_exec_id=exit_exec_id,
             opened_at=out.get("entered_at") or dt.datetime.now(dt.UTC).isoformat(),
             closed_at=dt.datetime.now(dt.UTC).isoformat(),
             pnl_usd=round(gross - fees, 2), fees_usd=round(fees, 2),
@@ -561,13 +605,14 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float |
             # itself, and calling any of those "operator" would be a claim about a decision nobody
             # made — the same error as inferring a NULL entry_source.
             exit_source=((_LAST_CLAIM_SRC or "operator") if reason == "MANUAL_CLAIM" else None),
-            # The exit fill id would make this idempotent; the rider places a plain market
-            # order and does not capture one, so a same-second double-book is possible in
-            # principle. One entry per session and a `closed` latch make it not possible in
-            # practice — but say so rather than imply an idempotency that is not there.
+            # ★2026-10-22 per-lot exits now carry the broker's execId (`exit_exec_id`), and the
+            # unique index on it makes a repeated booking of the SAME execution a no-op. The whole-
+            # position closes (claim-all, hard flat) still pass None; the entry_lots cap above is
+            # what bounds those.
         )
         conn.close()
-        _zero_size_if_flat(out, qty)
+        _zero_size_if_flat(out, None if _whole else qty)
+        return True
     except Exception as e:
         if notify:
             try:
@@ -576,6 +621,7 @@ def book_trade(out: dict, exit_px: float, reason: str, notify=None, qty: float |
                        f"one trade", critical=False)
             except Exception:
                 pass
+        return False
 
 
 def venue_first_ok(net: float | None, what: str, notify=None) -> bool:
@@ -1303,7 +1349,7 @@ async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify
                direction=_d, qty=float(_q),
                entered_at=dt.datetime.now(dt.UTC).isoformat(),
                entry_atr=round(_atr, 2), arm_atr=round(_atr, 2), venue_stop=None,
-               lots_open=_q, targets_done=[], manual=True,
+               lots_open=_q, entry_lots=_q, targets_done=[], manual=True, rung_pending={},
                manual_targets_usd=list(_tgts), manual_targets_pt=_tpts,
                note=(f"MANUAL {_side} {_q} lots @ {_fill} · targets "
                      + "/".join(f"${t:.0f}" for t in _tgts)))
@@ -1314,6 +1360,448 @@ async def do_manual_entry(_buy, *, ib, contract, cfg, now, mod, net, out, notify
                + f"\nNO STOP · hard flat {FLAT_UTC_MIN//60:02d}:{FLAT_UTC_MIN%60:02d}Z",
                critical=True)
     return True
+
+
+FAST_LADDER = True          # ★ set False to restore the one-check-per-tick ladder exactly
+FAST_POLL_S = 1.0
+FAST_END_PAD_S = 1.5        # stop this far into the next minute so the :05 timer start never overlaps
+
+
+def tape_range_since(capture_path: str, symbol: str, since_ms: int) -> tuple[float, float, float] | None:
+    """(low, high, last) of every MNQ print since `since_ms`, or None if there were none.
+
+    Reads `ticks` (indexed on symbol, ts_ms) — the freshest tape there is, a second behind the
+    market, where the 5s bars are 3-8s behind. The LOW/HIGH since the previous poll, not just the
+    last print, so a touch of a rung that reverts inside one poll interval is still seen — which is
+    what a resting limit at the level would have done.
+    """
+    try:
+        with sqlite3.connect(f"file:{capture_path}?mode=ro", uri=True, timeout=3) as c:
+            row = c.execute("select min(price), max(price) from ticks where symbol=? and ts_ms>?",
+                            (symbol, int(since_ms))).fetchone()
+            if not row or row[0] is None:
+                return None
+            last = c.execute("select price from ticks where symbol=? and ts_ms>? "
+                             "order by ts_ms desc limit 1", (symbol, int(since_ms))).fetchone()
+    except Exception:
+        return None
+    return float(row[0]), float(row[1]), float(last[0])
+
+
+# ── ★★★2026-10-22 ROBUST RUNG EXECUTION ─────────────────────────────────────────────────────────
+# THE INCIDENT (SESSIONS / [[project_double_booked_exit_20261022]]): at 03:35Z a connection loss
+# left four rung orders unfilled. The old ladder_fire() (a) booked each rung from await_fill()'s
+# FALLBACK — the market price, for an order that had NOT filled — and (b) only committed the state
+# after the whole loop, behind a synchronous 15 s+15 s Telegram call. systemd killed the oneshot in
+# between; next tick the state still said "4 lots, none done" and sold them again. Four phantom
+# exits booked twice = a false +$1,000 touch = a false lock.
+# Five layers, each sufficient to have prevented it alone:
+#   L1 never book what did not fill      (fire_lot returns FILLED only on a real execution)
+#   L2 write-ahead intent + adoption     (rung_pending, resolved against the broker by orderRef)
+#   L3 book from fills, once, per rung   (exit_exec_id; commit_lot saves state per rung; cap in book_trade)
+#   L4 notifications never block         (AsyncNotifier)
+#   L5 independent checks                (audit_exits_vs_fills; both $1,000 locks cross-check fills)
+async def _rung_sleep(s: float) -> None:
+    await asyncio.sleep(s)
+
+
+RUNG_FILL_WAIT_S = float(os.environ.get("RIDER_RUNG_FILL_WAIT_S", "10.0"))
+RUNG_CANCEL_AFTER_S = float(os.environ.get("RIDER_RUNG_CANCEL_AFTER_S", "45.0"))
+RUNG_PAGE_AFTER_S = 150.0
+RUNG_ABSENT_MIN_AGE_S = 5.0
+_DEAD_STATUSES = ("Cancelled", "ApiCancelled", "Inactive")
+
+
+def _lots_open_of(out: dict) -> int:
+    v = out.get("lots_open")
+    return int(v) if v is not None else int(float(out.get("qty") or 0))
+
+
+def rung_ref(out: dict, tag: str, k: int) -> str:
+    """Deterministic broker-side name for one lot of one entry. The same (entry, rung) always maps
+    to the same orderRef, so after ANY crash the broker can be asked 'did rung k happen?'."""
+    return f"gbr:{out.get('entered_at')}:{tag}{k}"
+
+
+def _split_key(key: str) -> tuple[str, int]:
+    tag = "".join(c for c in key if c.isalpha())
+    return tag, int(key[len(tag):])
+
+
+async def resolve_ref(ib, ref: str, *, expect_qty: float = 1.0, timeout: float = 8.0) -> dict:
+    """What does the BROKER say happened to the order named `ref`?
+
+    state: FILLED (real execution(s)) · WORKING (live order) · ABSENT (read fine, nothing there) ·
+    UNKNOWN (a read failed — NEVER treated as absent, because 'could not look' is not 'not there').
+    ⚠ ORDER MATTERS: open orders are read BEFORE executions. An order that is gone from the open
+    list has already filled, and a fill is visible to the executions read that follows; the reverse
+    order has a window where an order fills between the two reads and is seen by neither.
+    """
+    from ib_async import ExecutionFilter
+    try:
+        open_t = await asyncio.wait_for(ib.reqAllOpenOrdersAsync(), timeout)
+    except Exception:
+        open_t = None
+    try:
+        rows = await asyncio.wait_for(ib.reqExecutionsAsync(ExecutionFilter()), timeout)
+    except Exception:
+        rows = None
+    execs = [r for r in (rows or []) if getattr(r.execution, "orderRef", None) == ref
+             and int(getattr(r.execution, "clientId", -1)) == CLIENT_ID]
+    if execs:
+        qty = sum(float(r.execution.shares) for r in execs)
+        px = sum(float(r.execution.price) * float(r.execution.shares) for r in execs) / qty
+        if qty + 1e-9 >= expect_qty:
+            return {"state": "FILLED", "px": px, "qty": qty,
+                    "exec_id": ",".join(str(r.execution.execId) for r in execs)}
+    working = [t for t in (open_t or []) if getattr(t.order, "orderRef", None) == ref]
+    if working:
+        return {"state": "WORKING", "trade": working[0]}
+    if open_t is None or rows is None:
+        return {"state": "UNKNOWN"}
+    if execs:
+        return {"state": "PARTIAL", "qty": sum(float(r.execution.shares) for r in execs)}
+    return {"state": "ABSENT"}
+
+
+async def fire_lot(ib, contract, out: dict, *, tag: str, k: int, side: str, px: float, what: str,
+                   notify=None, wait_s: float | None = None) -> dict:
+    """Sell/buy ONE lot for rung `k` and return what the BROKER says — never a guess.
+
+    {"state": FILLED, "px", "exec_id"}  a real execution: the caller books it, once.
+    {"state": WORKING}                  still live at the venue: NOT booked, NOT done, will be adopted.
+    {"state": DEAD}                     cancelled/rejected with no fill: nothing happened, may retry.
+    {"state": FILLED_PENDING}           filled but the execution record has not arrived: adopted by
+                                        reconcile_pending() next tick from the broker's own record.
+    {"state": NOCONN | BLOCKED}         no order placed.
+    The intent is written to disk BEFORE the order leaves, so a kill at any await point leaves a
+    record that says exactly which order may exist.
+    """
+    from ib_async import MarketOrder
+    pend = out.setdefault("rung_pending", {})
+    key = f"{tag}{k}"
+    if key in pend:
+        return {"state": "BLOCKED"}
+    if not ib.isConnected():
+        return {"state": "NOCONN"}
+    ref = rung_ref(out, tag, k)
+    pend[key] = {"ref": ref, "t": dt.datetime.now(dt.UTC).isoformat(), "side": side, "order_id": None}
+    save_state(out)                                            # ← write-ahead
+    order = MarketOrder(side, 1)          # an EXIT (TARGET / CLAIM rung), never an entry
+    order.orderRef = ref
+    tr = ib.placeOrder(contract, order)
+    pend[key]["order_id"] = getattr(tr.order, "orderId", None)
+    polls = int((RUNG_FILL_WAIT_S if wait_s is None else wait_s) / 0.5)
+    for _ in range(polls):
+        _s = tr.orderStatus.status
+        if _s == "Filled" or _s in _DEAD_STATUSES or not ib.isConnected():
+            break
+        await _rung_sleep(0.5)
+    status = tr.orderStatus.status
+    if status == "Filled":
+        for _ in range(6):                                     # execDetails can trail the status
+            if tr.fills:
+                break
+            await _rung_sleep(0.5)
+        if tr.fills:
+            shares = sum(float(f.execution.shares) for f in tr.fills)
+            fpx = sum(float(f.execution.price) * float(f.execution.shares) for f in tr.fills) / shares
+            return {"state": "FILLED", "px": fpx, "exec_id": ",".join(str(f.execution.execId) for f in tr.fills)}
+        save_state(out)
+        return {"state": "FILLED_PENDING"}
+    if status in _DEAD_STATUSES and float(getattr(tr.orderStatus, "filled", 0) or 0) == 0:
+        pend.pop(key, None)
+        save_state(out)
+        if notify:
+            notify(f"⚠ DAY RIDER {what}: order ended {status} with NO fill — nothing booked, the "
+                   f"rung stays open and will be re-sent.", critical=False)
+        return {"state": "DEAD", "status": status}
+    save_state(out)
+    if notify:
+        notify(f"⚠ DAY RIDER {what}: order is {status!r} after {RUNG_FILL_WAIT_S:.0f}s — NOT booked. "
+               f"It is tracked by orderRef {ref}; the next tick adopts the fill or cancels it. "
+               f"No second order will be sent for this rung.", critical=True)
+    return {"state": "WORKING", "status": status}
+
+
+def commit_lot(out: dict, *, tag: str, k: int, reason: str, px: float, exec_id: str | None,
+               notify=None) -> tuple[list, int]:
+    """Book ONE confirmed lot exit, mark its rung spent, drop its pending record and PERSIST — all
+    before anything else can happen. Used by both the live fill path and adoption, so the two cannot
+    drift. Returns (done, lots_open)."""
+    book_trade(out, exit_px=px, reason=reason, notify=notify, qty=1, exit_exec_id=exec_id)
+    done = list(out.get("targets_done") or [])
+    if k not in done:
+        done.append(k)
+    lots_open = max(0, _lots_open_of(out) - 1)
+    out["targets_done"] = done
+    out["lots_open"] = lots_open
+    out["qty"] = float(lots_open)
+    out["exit_px_source"] = "fill"
+    (out.get("rung_pending") or {}).pop(f"{tag}{k}", None)
+    if lots_open <= 0:
+        out["closed"] = True
+        out["exit_reason"] = "LADDER_COMPLETE" if tag == "TARGET" else "MANUAL_CLAIM"
+    save_state(out)
+    return done, lots_open
+
+
+async def reconcile_pending(ib, out: dict, *, net: float, notify=None, urgent: bool = False,
+                            now: dt.datetime | None = None) -> bool:
+    """Resolve every rung order we wrote down but never saw the end of. Returns True if `out` changed.
+
+    Run at the top of EVERY tick, before anything sizes an exit. FILLED → adopt (book from the real
+    execution, once). WORKING → wait, then cancel (immediately if `urgent`: a claim or the hard flat
+    is about to size from our book and a live sell would overshoot it) and re-read. ABSENT → clear so
+    the rung may retry — but only if the venue still holds every lot our book says it does, because
+    'nothing found' alongside 'fewer lots at the venue' means we cannot see an execution, not that
+    there was none. UNKNOWN → change nothing; page if it persists.
+    """
+    pend = out.get("rung_pending") or {}
+    if not pend:
+        return False
+    now = now or dt.datetime.now(dt.UTC)
+    lusd = out.get("manual_targets_usd") or TARGET_USD_PER_LOT
+    d = int(out.get("direction") or 0)
+    changed = False
+
+    def _adopt(key, res):
+        tag, k = _split_key(key)
+        usd = lusd[k] if k < len(lusd) else 0.0
+        reason = f"TARGET_{int(usd)}" if tag == "TARGET" else "MANUAL_CLAIM"
+        commit_lot(out, tag=tag, k=k, reason=reason, px=res["px"], exec_id=res["exec_id"], notify=notify)
+        if notify:
+            notify(f"DAY RIDER adopted rung {k+1} ({tag}) from the broker's own record @ {res['px']:.2f} "
+                   f"— booked once, exec {res['exec_id']}", critical=False)
+
+    for key in list(pend):
+        info = pend[key]
+        try:
+            age = (now - dt.datetime.fromisoformat(info["t"])).total_seconds()
+        except Exception:
+            age = 1e9
+        res = await resolve_ref(ib, info["ref"])
+        if res["state"] == "WORKING" and (urgent or age >= RUNG_CANCEL_AFTER_S):
+            try:
+                ib.cancelOrder(res["trade"].order)
+            except Exception:
+                log.warning("reconcile_pending: cancel failed", exc_info=True)
+            await _rung_sleep(2.0)
+            res = await resolve_ref(ib, info["ref"])        # a fill can beat the cancel
+        if res["state"] == "FILLED":
+            _adopt(key, res)
+            changed = True
+        elif res["state"] == "ABSENT" and age >= RUNG_ABSENT_MIN_AGE_S:
+            held = d * net if d else abs(net)
+            if held + 1e-9 < _lots_open_of(out):
+                msg = (f"🛑 DAY RIDER rung {key}: no execution or order found for {info['ref']}, but "
+                       f"the venue holds {held:g} lot(s) against our book's {_lots_open_of(out)}. An "
+                       f"execution we cannot see may have happened — NOT re-sending. CHECK IBKR.")
+                if notify and dedupe_ok(f"rung_absent_mismatch.{key}", msg, cooldown_s=300.0):
+                    notify(msg, critical=True)
+            else:
+                pend.pop(key, None)
+                changed = True
+                if notify:
+                    notify(f"DAY RIDER rung {key}: the broker has no record of {info['ref']} — cleared, "
+                           f"the rung stays open.", critical=False)
+        elif res["state"] in ("UNKNOWN", "PARTIAL") or (res["state"] == "WORKING"):
+            if age >= RUNG_PAGE_AFTER_S and notify:
+                msg = (f"🛑 DAY RIDER rung {key} UNRESOLVED for {int(age)}s ({res['state']}) — order "
+                       f"{info['ref']}. Not re-sending. CHECK IBKR.")
+                if dedupe_ok(f"rung_unresolved.{key}", msg, cooldown_s=300.0):
+                    notify(msg, critical=True)
+    if changed:
+        save_state(out)
+    return changed
+
+
+def audit_exits_vs_fills(out: dict, notify=None, *, db_path: str | None = None,
+                         until: str | None = None) -> str | None:
+    """L5. Independent check: lots booked as exited for the current entry must equal the exit
+    executions the BROKER recorded in `fills`. Two consecutive disagreements page (one is a tick of
+    lag). Returns a short verdict string, or None when it could not judge. `until` bounds the window
+    for replaying a PAST entry; live, the current entry is the latest so it is open-ended."""
+    try:
+        if not out.get("entered_at") or int(out.get("direction") or 0) not in (-1, 1):
+            return None
+        import sqlite3
+        exit_side = "SELL" if int(out["direction"]) > 0 else "BUY"
+        with sqlite3.connect(f"file:{db_path or DB_PATH}?mode=ro", uri=True, timeout=3) as c:
+            booked = float(c.execute(
+                "SELECT COALESCE(SUM(qty),0) FROM trades WHERE gate=? AND opened_at=? "
+                "AND exit_reason<>'CLOSED_ELSEWHERE'" + _real_rows_clause(c),
+                (DAY_RIDER_GATE, str(out["entered_at"]))).fetchone()[0] or 0.0)
+            # every row, flagged ones included: a BADFILL/EXCLUDE flag is a human ruling, and it is used both for PHANTOM rows
+            # (no execution behind them - 10-22) and for REAL trades taken out of the P&L (10-26 accidental manual trade 1387,
+            # which paged UNBOOKED EXITS every 15 min). Either total matching the broker = the entry is reconciled.
+            booked_all = float(c.execute(
+                "SELECT COALESCE(SUM(qty),0) FROM trades WHERE gate=? AND opened_at=? "
+                "AND exit_reason<>'CLOSED_ELSEWHERE'",
+                (DAY_RIDER_GATE, str(out["entered_at"]))).fetchone()[0] or 0.0)
+            filled = float(c.execute(
+                "SELECT COALESCE(SUM(qty),0) FROM fills WHERE order_id LIKE 'rider-%' AND side=? "
+                "AND exec_time>=? AND exec_time<?",
+                (exit_side, str(out["entered_at"]), until or "9999")).fetchone()[0] or 0.0)
+    except Exception:
+        return None
+    if abs(booked - filled) < 1e-9:
+        out["xcheck_miss"] = 0
+        return "ok"
+    if abs(booked_all - filled) < 1e-9:
+        out["xcheck_miss"] = 0
+        return "ok (flagged rows match the broker)"
+    out["xcheck_miss"] = int(out.get("xcheck_miss") or 0) + 1
+    if out["xcheck_miss"] >= 2 and notify:
+        msg = (f"🛑 DAY RIDER LEDGER ≠ BROKER: {booked:g} lot(s) booked as exited for the entry at "
+               f"{out['entered_at']} but IBKR executed {filled:g} {exit_side} lot(s). "
+               f"{'PHANTOM EXITS — P&L and the $1,000 locks may be overstated.' if booked > filled else 'UNBOOKED EXITS.'} "
+               f"CHECK `trades` vs `fills`.")
+        if dedupe_ok("rider_ledger_vs_fills", msg, cooldown_s=900.0):
+            notify(msg, critical=True)
+    return f"MISMATCH booked={booked:g} fills={filled:g}"
+
+
+class AsyncNotifier:
+    """notify() that NEVER blocks its caller (L4). `notify.notify` runs subprocesses with 15 s+15 s
+    timeouts; called inline from the order path that stalled the event loop long enough for systemd
+    to kill the oneshot between an order and its commit. This queues the message to one worker
+    thread (order preserved); drain() gives it a bounded chance to finish before the process exits."""
+
+    def __init__(self, send):
+        import queue
+        import threading
+        self._send = send
+        self._q = queue.Queue()
+        self._t = threading.Thread(target=self._run, daemon=True, name="rider-notify")
+        self._t.start()
+
+    def _run(self):
+        while True:
+            msg, kw = self._q.get()
+            try:
+                self._send(msg, **kw)
+            except Exception:
+                log.warning("notify failed", exc_info=True)
+            finally:
+                self._q.task_done()
+
+    def __call__(self, msg, **kw):
+        self._q.put((msg, kw))
+        return True
+
+    def drain(self, timeout: float = 10.0) -> bool:
+        end = time.time() + timeout
+        while self._q.unfinished_tasks and time.time() < end:
+            time.sleep(0.05)
+        return not self._q.unfinished_tasks
+
+
+async def ladder_fire(ib, contract, out: dict, *, ladder, lusd, done: list, lots_open: int,
+                      ahead: float, d: int, px: float, notify=None) -> tuple[list, int]:
+    """Fire every unspent rung that `ahead` has reached — ONE market lot each. Returns (done, lots_open).
+
+    The single implementation of a rung firing: the 60s tick and the fast watch both call it.
+    ★2026-10-22 A rung is only DONE when the broker confirms a real execution, and is booked and
+    persisted rung-by-rung right here — see fire_lot / commit_lot.
+    """
+    side = "SELL" if d > 0 else "BUY"
+    pend = out.get("rung_pending") or {}
+    for _k, _tpt in enumerate(ladder):
+        if _k in done or lots_open <= 0 or ahead < _tpt:
+            continue
+        if f"TARGET{_k}" in pend or f"CLAIM{_k}" in pend:
+            continue                                   # a live order already exists for this lot
+        _usd = lusd[_k] if _k < len(lusd) else 0.0
+        _res = await fire_lot(ib, contract, out, tag="TARGET", k=_k, side=side, px=px,
+                              what=f"TARGET lot {_k+1}", notify=notify)
+        if _res["state"] == "NOCONN":
+            break
+        if _res["state"] != "FILLED":
+            continue                                   # unresolved is NOT done, NOT booked
+        _xpx = _res["px"]
+        done, lots_open = commit_lot(out, tag="TARGET", k=_k, reason=f"TARGET_{int(_usd)}",
+                                     px=_xpx, exec_id=_res["exec_id"], notify=notify)
+        pend = out.get("rung_pending") or {}
+        if notify:
+            notify(f"DAY RIDER lot {_k+1} banked ${_usd:.0f} @ {_xpx:.2f} "
+                   f"({ahead:+.0f}pt from entry) · {lots_open} lot(s) still open")
+    return done, lots_open
+
+
+async def ladder_commit(ib, cfg, out: dict, *, done: list, lots_open: int, ladder, lusd,
+                        notify=None) -> bool:
+    """Record rungs just fired into `out` and persist. Returns True when the ladder is COMPLETE.
+
+    The sixth close path. No stop is placed while PLACE_VENUE_STOP is False, so the cleanup is a
+    no-op today — but it must be here anyway: a ladder that completed without it would leave a
+    resting 4-lot stop behind a flat book if the stop is ever re-enabled (the 08-06 orphan cascade).
+    Shared by the 60s tick and the fast watch so the size fields can never be committed two ways.
+    """
+    out["targets_done"] = done
+    out["lots_open"] = lots_open
+    out["qty"] = float(lots_open)
+    if lots_open <= 0:
+        out["closed"] = True
+        out["exit_reason"] = "LADDER_COMPLETE"
+        await cancel_own_stops(ib, cfg.symbol, notify)
+        out["note"] = f"all {len(ladder)} lots banked — ${sum(lusd):.0f}"
+        if notify:
+            notify(f"DAY RIDER LADDER COMPLETE — ${sum(lusd):.0f} banked", critical=True)
+    save_state(out)
+    return lots_open <= 0
+
+
+async def fast_ladder_watch(ib, contract, cfg, out: dict, *, d: int, entry: float, notify=None,
+                            clock=time.time, sleep=asyncio.sleep, tape=tape_range_since,
+                            poll_s: float | None = None, end_pad_s: float | None = None) -> float:
+    """Re-check the ladder against the tape every second until the next tick is due.
+
+    Returns the last price seen (0.0 if none) so the caller can refresh `px`. Mutates `out` and
+    persists after every rung. Ends early — WITHOUT acting — on a pending Claim press, on the
+    ladder completing, or when no rung is left, and the caller's normal path then handles it.
+    """
+    poll = FAST_POLL_S if poll_s is None else poll_s
+    pad = FAST_END_PAD_S if end_pad_s is None else end_pad_s
+    t0 = clock()
+    stop_at = (int(t0 // 60) + 1) * 60 + pad
+    ladder = out.get("manual_targets_pt") or TARGET_PT
+    lusd = out.get("manual_targets_usd") or TARGET_USD_PER_LOT
+    # Start 15s BACK so a touch in the gap between the last watch ending (+1.5s) and this tick's
+    # start (:05 + connect) is still seen, but never before the entry itself.
+    since_ms = int(t0 * 1000) - 15_000
+    try:
+        _e = dt.datetime.fromisoformat(str(out.get("entered_at")))
+        since_ms = max(since_ms, int(_e.timestamp() * 1000))
+    except Exception:
+        pass
+    last_px = 0.0
+    while clock() < stop_at:
+        done = list(out.get("targets_done") or [])
+        lots_open = int(out.get("lots_open") or 0)
+        if lots_open <= 0 or all(k in done for k in range(len(ladder))):
+            break
+        # Claim only. A BUY pressed while holding is never read by this path (known-open), so
+        # honouring it here would switch the fast exit off for the whole 5-minute request life.
+        if claim_requested() is not None:
+            break
+        await sleep(poll)
+        rng = tape(cfg.capture_path, cfg.symbol, since_ms)
+        since_ms = int(clock() * 1000) - 2000      # 2s overlap: ticks land in the table ~1s after they print
+        if not rng:
+            continue
+        lo, hi, last_px = rng
+        best = lo if d < 0 else hi                       # the most favourable print since last look
+        ahead = d * (best - entry)
+        if not any(k not in done and ahead >= t for k, t in enumerate(ladder)):
+            continue
+        done, lots_open = await ladder_fire(ib, contract, out, ladder=ladder, lusd=lusd, done=done,
+                                            lots_open=lots_open, ahead=ahead, d=d, px=last_px,
+                                            notify=notify)
+        if await ladder_commit(ib, cfg, out, done=done, lots_open=lots_open, ladder=ladder,
+                               lusd=lusd, notify=notify):
+            break
+    return last_px
 
 
 async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -> dict:
@@ -1386,6 +1874,32 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
         # a position exists that we did not open. It is idempotent (conflicts on IBKR's execId) so a
         # per-minute re-read costs nothing, and fail-quiet so bookkeeping can never block an order.
         await record_own_fills(ib, cfg.symbol)
+
+        # ★★★2026-10-22 RESOLVE EVERY RUNG ORDER WE WROTE DOWN BEFORE ANYTHING SIZES AN EXIT.
+        # A previous tick (or the fast watch) may have died between placing a rung's sell and
+        # committing it. `rung_pending` is the write-ahead record; the broker says what happened.
+        # Urgent (cancel at once rather than wait) when a claim is pressed or the hard flat is
+        # near: both size from our book, and a live sell we do not count would overshoot it.
+        if out.get("entered") and not out.get("closed") and out.get("entry_lots") is None:
+            out["entry_lots"] = len(out.get("targets_done") or []) + _lots_open_of(out)
+        if out.get("rung_pending"):
+            _urgent = claim_requested() is not None or mod >= FLAT_UTC_MIN - 2
+            if await reconcile_pending(ib, out, net=net, notify=notify, urgent=_urgent, now=now):
+                for _f in ("targets_done", "lots_open", "qty", "closed", "exit_reason",
+                           "rung_pending", "exit_px_source"):
+                    if _f in out:
+                        st[_f] = out[_f]
+                net = await _net_position(ib, cfg.symbol)
+                out["venue_net"] = net
+                out["venue_net_ts"] = dt.datetime.now(dt.UTC).isoformat()
+                if out.get("closed"):
+                    await cancel_own_stops(ib, cfg.symbol, notify)      # the position died inside reconcile
+                    if notify and out.get("exit_reason") == "LADDER_COMPLETE":
+                        notify("DAY RIDER LADDER COMPLETE (last rung adopted from the broker's record)",
+                               critical=True)
+        _audit = audit_exits_vs_fills(out, notify)
+        if _audit is not None:
+            out["xcheck"] = _audit
 
         # ── 1. THE HARD FLAT. Runs before anything else — but ONLY on a position WE OPENED. ──
         # ★2026-08-06 INCIDENT — this branch used to flatten the ACCOUNT net without asking whose
@@ -1661,7 +2175,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # direction and qty (see the entry block); trust that, and keep the venue net only as an
             # observation. Falls back to the net sign ONLY if state somehow lacks a direction.
             d = int(st.get("direction") or 0) or (1 if net > 0 else -1)
-            own_qty = float(st.get("qty") or LOTS)
+            own_qty = float(out.get("qty") or LOTS)
             entry = float(st.get("entry", 0.0))
             rr = drift_read(cfg.capture_path, cfg.symbol, now)
             # ★★★2026-09-04 THE MANAGE PATH WAS BLIND OUTSIDE US HOURS, AND IT FAILED SILENTLY.
@@ -1702,44 +2216,48 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # ⚠ out["qty"] is reduced as lots leave. Every later exit path (trail, claim, and the
             #   20:40 hard flat) sizes from it, so a stale 4 here would try to sell lots that are
             #   already gone — on a shared netted account that is the 08-06 cascade.
-            done = list(st.get("targets_done") or [])
-            lots_open = int(st.get("lots_open") or own_qty)
+            done = list(out.get("targets_done") or [])
+            lots_open = _lots_open_of(out) if out.get("lots_open") is not None else int(own_qty)
+            _done_before = list(done)
             ahead = d * (px - entry)
             # ★2026-08-21 a MANUAL entry carries its own cascade; the automatic entry uses the
             # standing ladder. Never mix them — the position was opened against one set of rungs.
             _ladder = st.get("manual_targets_pt") or TARGET_PT
             _lusd = st.get("manual_targets_usd") or TARGET_USD_PER_LOT
-            for _k, _tpt in enumerate(_ladder):
-                if _k in done or lots_open <= 0 or ahead < _tpt:
-                    continue
-                _usd = _lusd[_k] if _k < len(_lusd) else 0.0
-                from ib_async import MarketOrder
-                _tr = ib.placeOrder(contract, MarketOrder("SELL" if d > 0 else "BUY", 1))
-                _xpx = await await_fill(_tr, px, what=f"TARGET lot {_k+1}",
-                                        notify=notify, out=out)
-                book_trade(out, _xpx, f"TARGET_{int(_usd)}", notify, qty=1)
-                done.append(_k)
-                lots_open -= 1
-                if notify:
-                    notify(f"DAY RIDER lot {_k+1} banked ${_usd:.0f} @ {_xpx:.2f} "
-                           f"({ahead:+.0f}pt from entry) · {lots_open} lot(s) still open")
-            if done != list(st.get("targets_done") or []):
-                out["targets_done"] = done
-                out["lots_open"] = lots_open
-                out["qty"] = float(lots_open)
+            done, lots_open = await ladder_fire(ib, contract, out, ladder=_ladder, lusd=_lusd,
+                                                done=done, lots_open=lots_open, ahead=ahead,
+                                                d=d, px=px, notify=notify)
+            if done != _done_before:
                 own_qty = float(lots_open)
-                if lots_open <= 0:
-                    out["closed"] = True
-                    out["exit_reason"] = "LADDER_COMPLETE"
-                    # The sixth close path. No stop is placed while PLACE_VENUE_STOP is False, so
-                    # this is a no-op today — but it must be here anyway: if the stop is ever
-                    # re-enabled, a ladder that completed without cleaning up would leave a resting
-                    # 4-lot stop behind a flat book, which is the 08-06 orphan-stop cascade exactly.
-                    await cancel_own_stops(ib, cfg.symbol, notify)
-                    out["note"] = f"all {len(_ladder)} lots banked — ${sum(_lusd):.0f}"
-                    if notify:
-                        notify(f"DAY RIDER LADDER COMPLETE — ${sum(_lusd):.0f} banked",
-                               critical=True)
+                if await ladder_commit(ib, cfg, out, done=done, lots_open=lots_open,
+                                       ladder=_ladder, lusd=_lusd, notify=notify):
+                    return out
+
+            # ★★★2026-10-14 FAST LADDER WATCH — a rung must not wait for the next 60s tick.
+            # The operator watched all four +37.5pt rungs sit over target for ~58s (tick at :06 saw
+            # +36, the print crossed at :07, the next tick at :05 banked it). The ladder is a
+            # SOFTWARE check, so it was only ever as fast as the timer. This holds the SAME process
+            # and the SAME IB connection open until the next tick is due and re-checks the TAPE
+            # every FAST_POLL_S, firing the same market sells through the same ladder_fire().
+            # ⚠ NO NEW CONNECTIONS (gateway accept-queue wedges are real) and NO new order path.
+            # ⚠ A pending Claim press ends the watch at once and falls through to the code
+            #   below IN THIS TICK, so the 0.02s claim fast path is not made to wait on it.
+            # ⚠ It ends ~1.5s into the next minute so it never overlaps the timer's :05 start
+            #   (systemd would drop an overlapping start, losing a whole tick).
+            if FAST_LADDER and lots_open > 0 and mod < FLAT_UTC_MIN - 1:   # never across the hard-flat boundary
+                _fpx = await fast_ladder_watch(ib, contract, cfg, out, d=d, entry=entry, notify=notify)
+                if _fpx:
+                    px = _fpx
+                    peak = max(peak, px) if d > 0 else min(peak, px)
+                    out["peak"] = peak
+                    out["ahead_pt"] = round(d * (px - entry), 1)
+                if list(out.get("targets_done") or []) != done:
+                    net = await _net_position(ib, cfg.symbol)      # the claim gate below must see the venue AFTER the rungs
+                    out["venue_net"] = net
+                done = list(out.get("targets_done") or [])
+                lots_open = int(out.get("lots_open") or 0)
+                own_qty = float(out.get("qty") or lots_open)
+                if out.get("closed") and out.get("exit_reason") == "LADDER_COMPLETE":
                     save_state(out)
                     return out
 
@@ -1819,6 +2337,16 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
             # exists to answer "what are the operator's hands worth"; this makes
             # the day-rider's claims part of that number from day one.
             _claim = claim_requested()
+            if _claim is not None and out.get("rung_pending"):
+                # Leave the request in place (it lives CLAIM_MAX_AGE_S): the next tick's urgent
+                # reconcile cancels/adopts the working order, and then the claim is honoured.
+                out["note"] = "claim WAITING — a rung order is unresolved at the venue"
+                _m = ("DAY RIDER: claim is waiting on an unresolved rung order "
+                      f"({', '.join(sorted(out['rung_pending']))}); it will run once that clears.")
+                if notify and dedupe_ok("claim_waits_rung", _m, cooldown_s=120.0):
+                    notify(_m, critical=True)
+                save_state(out)
+                return out
             if _claim is not None:
                 clear_claim()
                 # Gated. The operator pressing "claim" is not evidence about what the account holds
@@ -1830,10 +2358,14 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     # ── ONE LOT. Ownership is verified across the WHOLE position (v), then exactly
                     # one lot is sold. Doubles as the kill button for that lot: it fires in profit
                     # or loss, because there is no stop and this is the operator's only manual exit.
-                    from ib_async import MarketOrder
-                    _tr = ib.placeOrder(contract, MarketOrder(v[0], 1))
-                    _xpx = await await_fill(_tr, px, what=f"MANUAL_CLAIM lot {_claim+1}",
-                                            notify=notify, out=out)
+                    _res = await fire_lot(ib, contract, out, tag="CLAIM", k=_claim, side=v[0], px=px,
+                                          what=f"MANUAL_CLAIM lot {_claim+1}", notify=notify)
+                    if _res["state"] != "FILLED":
+                        out["note"] = (f"claim of lot {_claim+1} not confirmed by the broker "
+                                       f"({_res['state']}) — nothing booked")
+                        save_state(out)
+                        return out
+                    _xpx = _res["px"]
                     # ★★★2026-09-03 SIZE FROM THE LIVE TICK STATE, NOT THE TICK-START SNAPSHOT.
                     # `out` starts as dict(st) and the PROFIT LADDER above can bank a lot in THIS
                     # SAME tick — it writes the reduced count to `out` and leaves `st` untouched.
@@ -1846,14 +2378,8 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                     # ⚠ `targets_done` has the SAME bug and it is the worse half: re-reading `st`
                     # DISCARDS the rung the ladder just spent, so that rung can fill a second time.
                     # `own_qty` was already refreshed by the ladder; these two fields were not.
-                    _done = list(out.get("targets_done") or [])
-                    if _claim not in _done:
-                        _done.append(_claim)          # that rung is spent — never fills later
-                    _left = max(0, int(out.get("lots_open") or own_qty) - 1)
-                    book_trade(out, _xpx, "MANUAL_CLAIM", notify, qty=1)
-                    out["targets_done"] = _done
-                    out["lots_open"] = _left
-                    out["qty"] = float(_left)
+                    _done, _left = commit_lot(out, tag="CLAIM", k=_claim, reason="MANUAL_CLAIM",
+                                              px=_xpx, exec_id=_res["exec_id"], notify=notify)
                     out["note"] = (f"lot {_claim+1} claimed by hand at {_xpx:.1f} "
                                    f"({d*(_xpx-entry):+.0f}pt) · {_left} lot(s) open")
                     if notify:
@@ -2043,7 +2569,7 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
                    # ★ FROZEN at entry and never rewritten — entry_atr above is overwritten every
                    #   tick with the live ATR, so the trail needs its own immutable copy.
                    arm_atr=round(_atr, 2), venue_stop=stop_px,
-                   lots_open=_lots, targets_done=[],
+                   lots_open=_lots, entry_lots=_lots, targets_done=[], rung_pending={},
                    note=f"ENTERED {_lots} lots {r.direction} @ {fill}")
         if notify:
             # ⚠ "flat 21:00" was WRONG here for the life of this line: 21:00 IS the CME halt, and
@@ -2164,9 +2690,13 @@ async def step(cfg: RunConfig, *, now: dt.datetime | None = None, notify=None) -
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    from .notify import notify
+    from .notify import notify as _sync_notify
+    notify = AsyncNotifier(_sync_notify)       # ★2026-10-22 L4: a slow Telegram can never stall an order
     cfg = RunConfig()
-    st = asyncio.run(step(cfg, notify=notify))
+    try:
+        st = asyncio.run(step(cfg, notify=notify))
+    finally:
+        notify.drain(10.0)
     print(json.dumps(st, indent=1, sort_keys=True))
     return 0
 
