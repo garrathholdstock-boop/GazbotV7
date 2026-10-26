@@ -28,3 +28,10 @@ SPEED GRID (declared now; thresholds suggested by that in-sample observation, so
   Read on TRAIN, TEST, FORWARD together (all three are second looks for the census; the Claude replays are where the idea came from): days <= -$2k / <= -$4k, entries <= -$1k, $/day,
   days positive % of traded days, trades/day. CONSISTENT = a cell cuts days <= -$2k AND entries <= -$1k on ALL THREE periods with days-positive-% no worse. A consistent cell becomes a Claude
   replay arm (press only if not paused) on the next clean weeks (Nov 24-28, then December), under A0c.
+
+A2 (appended 2026-10-26 ~07:30Z). SPEED GRID RESULT + RANDOM CONTROL: every one of the 20 cells cut days <= -$2k and entries <= -$1k on all three periods, but a RANDOM pause at the SAME trade rate
+  removes most of that too (fewer trades/day -> fewer disaster days). Beyond random: modest and consistent; best cell "leg >= 60 min AND speed < 75 pt/h" = days <= -$2k 122/29/15 vs random median
+  142/40/24 (5th pct 120/29/19) on TRAIN/TEST/FORWARD.
+NEXT (declared now, runs only 13:35Z-20:45Z, A4): Claude replay arm "v102P" = the live setup with a HARD PRESS GATE (Claude decides exactly as live; the press is skipped if the detector leg is
+  >= 60 min old AND its speed so far < 75 today's pts/h, leg/age/speed from the same detector the live robot uses). Test weeks: Nov 24-28 2025 (v102 re-run of the poisoned 11-26..28 first), then
+  Dec 1-5, Dec 8-12, ... under E112 A0c (weekly STOP/CONTINUE, declined presses matched by side within 15 min). Every week is also compared with the RANDOM-pause expectation at the same press rate.
