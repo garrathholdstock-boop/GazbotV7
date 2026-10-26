@@ -11,6 +11,8 @@ UTC = dt.timezone.utc
 def log(m): print(f"[{dt.datetime.now(UTC):%H:%M:%SZ}] {m}", flush=True)
 def window_ok():
     n = dt.datetime.now(UTC); mm = n.hour * 60 + n.minute
+    if os.environ.get("E118_ALLOW_LIVE_HOURS") == "1":
+        return mm < 20 * 60 + 45 and mm >= 2 * 60                # operator: also during live hours (guarded in replay.py), never 20:45Z-02:00Z
     return 13 * 60 + 35 <= mm < 20 * 60 + 45
 def rec(arm, d):
     p = f"{OUT}/{arm}_{d}.json"
@@ -47,7 +49,7 @@ def main():
         if not window_ok(): log("outside 13:35-20:45Z - chain stops; re-launch tomorrow afternoon (resumable)"); break
         if not all(rec(x, d) is not None for x in ARMS for d in w):
             log(f"week {w[0]}: running {ARMS}")
-            subprocess.run([PY, f"{GB}/reports/recursive_loop/E112_code/replay.py"] + sum([["--arm", x] for x in ARMS], []) + ["--days", ",".join(w), "--workers", "3"],
+            subprocess.run([PY, f"{GB}/reports/recursive_loop/E112_code/replay.py"] + sum([["--arm", x] for x in ARMS], []) + ["--days", ",".join(w), "--workers", os.environ.get("E118_WORKERS", "3")],
                            cwd=GB, env={**os.environ, "PYTHONPATH": "src"}, stdout=open(f"{OUT}/e118_replay.log", "a"), stderr=subprocess.STDOUT)
         if not all(rec(x, d) is not None for x in ARMS for d in w):
             log(f"week {w[0]}: incomplete (window guard or error abort) - chain stops"); break

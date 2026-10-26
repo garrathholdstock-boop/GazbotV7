@@ -44,6 +44,7 @@ POISON = 0.10
 STREAK_ABORT = 15
 LIVE_START = (21, 0)    # A4: a running day aborts at 21:00Z so the 5-hour usage window is clear before the live desk's 02:00Z calls
 _abort = {"why": None}
+ALLOW_LIVE = {"on": os.environ.get("E118_ALLOW_LIVE_HOURS") == "1"}   # operator 2026-10-26: run during live hours, guarded by _live_robot_erroring + budget
 
 
 class Abort(Exception):
@@ -55,6 +56,27 @@ def _avail_mb() -> int:
         if ln.startswith("MemAvailable:"):
             return int(ln.split()[1]) // 1024
     return 0
+
+
+LIVE_LOG = f"{GB}/data/hybrid_robot.jsonl"
+_budget = {"max": int(os.environ.get("E112_MAX_CALLS", "0")) or None, "used": 0}
+
+
+def _live_robot_erroring() -> str | None:
+    """E118 A1: replays may run inside live hours only while the LIVE robot's own calls succeed. Returns a reason if its latest
+    decision (within 15 min) errored - the usage window is the live desk's first."""
+    try:
+        with open(LIVE_LOG, "rb") as f:
+            f.seek(0, 2); f.seek(max(0, f.tell() - 20000))
+            tail = f.read().decode(errors="ignore").splitlines()
+        for ln in reversed(tail):
+            if '"event": "DECISION"' in ln:
+                r = json.loads(ln)
+                age = dt.datetime.now(UTC).timestamp() - dt.datetime.fromisoformat(r["at"]).timestamp()
+                return f"live robot's last decision errored ({r.get('error')})" if r.get("error") and age < 900 else None
+    except Exception:
+        return None
+    return None
 
 
 def _live_window(now=None) -> bool:
@@ -159,8 +181,15 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             pos["peak"] = max(pos["peak"], pos["peak_1m"])
         if _abort["why"]:
             raise Abort(_abort["why"])
-        if _live_window():
+        if _live_window() and not ALLOW_LIVE["on"]:
             raise Abort("live window reached - day abandoned unsaved, re-run after 13:35Z")
+        if ALLOW_LIVE["on"] and (why := _live_robot_erroring()):
+            _abort["why"] = why
+            raise Abort(why)
+        if _budget["max"] and _budget["used"] >= _budget["max"]:
+            _abort["why"] = f"call budget {_budget['max']} used"
+            raise Abort(_abort["why"])
+        _budget["used"] += 1
         d = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
                   + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
         act = d.get("action", "WAIT")
@@ -244,7 +273,7 @@ def main() -> int:
             n = dt.datetime.now(UTC)
             if _abort["why"]:
                 raise Abort("run aborted: " + _abort["why"])
-            if (n.hour, n.minute) >= (sh, sm) or n.hour * 60 + n.minute < 13 * 60 + 35:   # A4: only 13:35Z..stop-at
+            if not ALLOW_LIVE["on"] and ((n.hour, n.minute) >= (sh, sm) or n.hour * 60 + n.minute < 13 * 60 + 35):   # A4: only 13:35Z..stop-at
                 raise Abort(f"not started: past {a.stop_at}Z, inside the live desk's hours")
             while _avail_mb() < 1500:
                 time.sleep(30)

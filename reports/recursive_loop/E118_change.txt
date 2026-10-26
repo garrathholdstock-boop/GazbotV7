@@ -10,3 +10,7 @@ WEEKS, one at a time, all three arms paired on the same sessions: Nov 24-28 2025
   < 600 page bars are skipped). Runs ONLY 13:35Z-20:45Z (E112 A4). After each week the table is written to reports/e112/E118_weeks.txt.
 READ per week and cumulative: $ total, $/day, days positive, worst day, days <= -$2k, entries, entries <= -$1k, wins. A target arm is PROMISING if, over >= 3 weeks, it beats v103 on worst day
   AND days positive AND total $ (bible.gate), with the run-to-run noise (~$300/week, E112 A3) in mind. A promising arm becomes a v1.04 proposal to the operator; nothing live changes here.
+A1 (appended 2026-10-26 ~10:50Z, before any E118 call). Operator: "cant we run this while the desk is running? the desk isnt that claude or processor heavy." Told him the constraint is the shared
+  5-hour usage window (E112 A4 incident), not CPU. Runs NOW, inside live hours, under two guards in replay.py: (1) before every replay call, if the LIVE robot's latest decision (< 15 min old)
+  errored, all replays abort at once (the window is the live desk's first); (2) a call budget E112_MAX_CALLS=1500 for this launch, 2 workers. Never 20:45Z-02:00Z (the window must reset before
+  the live desk's 02:00Z start). Everything else in E118 unchanged.
