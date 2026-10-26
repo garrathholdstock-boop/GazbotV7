@@ -97,6 +97,8 @@ ARM_CFG = {
     "v103C":   {"milcap": 2, "target": 37.5, "decay": None, "consensus": 3},       # E119: live prompt; an entry needs 2 of 3 calls to agree
     "g104T3":  {"milcap": 2, "target": 3.0, "decay": None, "brief": "desk"},       # E122: the live v1.04 setup on MGC, target +3 (E121 pick)
     "g104T3nc": {"milcap": None, "target": 3.0, "decay": None, "brief": "desk"},   # E122 A1: same, NO per-MIL cap - runs to the +$1,000 lock (operator)
+    "g104T5nc": {"milcap": None, "target": 5.0, "decay": None, "brief": "desk"},   # E122 A2: g104T3nc at +5 (operator: more cash per win at equal risk)
+    "g104T6nc": {"milcap": None, "target": 6.0, "decay": None, "brief": "desk"},   # E122 A2: g104T3nc at +6
 }
 # E122: the instrument a process replays (set by --inst; one instrument per process). MNQ = everything exactly as before.
 INST = {"MNQ": {"pv": 2.0, "fee": 1.50, "adv": S.HALF_SPREAD_PT, "thru": 0.25, "name": "Micro Nasdaq-100"},

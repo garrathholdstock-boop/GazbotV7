@@ -9,3 +9,7 @@ MNQ is untouched: tests/test_desk_brief.py + parity test pass with the instrumen
 A1 (2026-10-26 ~20:00Z). Operator: "For this backtest don't put the 2 trade cap on it. Let it run hard to the $1000 cap." Capped arm g104T3 STOPPED after 3 of 5 days (10-19 -$2,060,
   10-20 +$112, 10-21 +$224; kept, labelled). New arm g104T3nc = identical but NO per-MIL cap (the brief's mechanics say the cap is released; no claim lines in LIVE STATE); the +$1,000
   day lock stays. All 5 days re-run under g104T3nc (Claude is told something different, so capped days are not reused).
+
+A2 (2026-10-26 ~21:15Z, operator "Yes"): gold target +5 and +6 on the same week (2026-10-19..23), arms g104T5nc / g104T6nc = g104T3nc with only the target changed
+(4 MGC = equal risk to 4 MNQ, no MIL cap, Desk Brief, NO votes - comparable with g104T3nc +$2,016). Win per trade net: +3 $112, +5 $192, +6 $232.
+Read: week $, hits/entries, worst open drawdown, days positive, vs g104T3nc. One week - a direction, not a verdict. Runs 2026-10-27 13:40Z..20:45Z only.
