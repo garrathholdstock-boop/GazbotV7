@@ -4201,3 +4201,18 @@ FINDING (not fixed): the Thu 10-22 lock was NOT sticky - DAY_LOCK 05:25Z, but 06
 - **Run-to-run noise:** the same day replayed twice gave -$2,573 and +$882 (10-01) - multi-arm replay A/Bs need many weeks; stopped on the operator's call.
 - **E119 Desk Brief:** layered, versioned, mechanics generated from code, real desk book in LIVE STATE and on the page; audits D1 (not ready) -> D2 (ready after fixes) -> D3. Governance in docs/CLAUDE.md.
 - **E120 v1.04 live from the 10-27 session**, switch `hybrid_brief=desk`; 201 hybrid/brief tests incl. live/replay parity. v1.03 MIL cap stays; today's cap was released for 10-26 only.
+
+## 2026-10-26 (evening) — BADFILL, market research, gold on the live desk setup, "why did Claude choose that", and v1.05 VOTES
+- **BADFILL:** the operator's accidental manual trade (ledger id 1387) marked `BADFILL:operator_accidental_manual_trade_20261026`; 10-26 clean at +$544.
+- **Market research** (`reports/research/markets/`): MES/M2K/MYM pulled from IBKR (MBT dropped, operator), 6 more months of MGC; exact margins by IBKR what-if (clientId 82, nothing placed):
+  MNQ $4,058, MES $2,172, M2K $783, MYM $1,107, MGC $3,311. At EQUAL RISK (median day range = 4 MNQ ~$3,400) 4 MGC matches MNQ's money with straighter, shallower legs
+  and milder bad days; MES/M2K/MYM no upgrade. All data on B2 with MANIFEST_2026-10-26.
+- **E121** detector-only gold target grid: best +3pt, still negative (-$132/day vs MNQ -$22). **E122** Claude + the live v1.04 setup on gold (`replay.py --inst MGC`),
+  week 10-19..23 at +3: capped run -$1,724 over 3 days (one -$2,060 07:35Z long on 10-19); uncapped (A1) **+$2,016, 5/5 days, no loser** (10-22: 8 shorts, all hit).
+- **Why (reports/e122/WHY_2026-10-19.md):** the two runs agreed on every slot to 07:30Z; at 07:35 the prompts differed only in the cap line. Re-asking the exact prompt
+  (`reports/e122/probe_slot.py`): 07:35 long 0/12 in both wordings (a rare draw, not the brief); the good 09:00Z short 5/6. Claude's default judgment is the one we want.
+- **E123 v1.05 VOTES** live from 10-27 (operator: "Could we even do 5 calls?"): 3 of 5 on any otherwise-pressable entry, all ballots logged. Hardening after the operator's
+  "as long as it's robust": vote deadline fails closed, MemoryMax 1600M, end-to-end dry run with real ballots. **A1:** MIL cap released for 10-27..10-30 so this week tests
+  brief + votes only. Tests: hybrid/nightly/brief suites pass. Commits 0ad0451, 6e69e55, 1238731.
+- **Gold cash note:** 4 MGC is the equal-risk size and uses less margin ($13.2k vs $16.2k) but a +3 win is $112 vs MNQ's $294. **E122 A2** (+5 / +6 targets, same week)
+  queued for 10-27 13:40Z (commit f359441).
