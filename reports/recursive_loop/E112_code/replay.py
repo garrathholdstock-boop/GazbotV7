@@ -42,7 +42,7 @@ POISON = 0.10
 #    ABORTS (unsaved, re-run later) at 01:58Z, so nothing competes with the live robot's 02:00Z..13:30Z calls;
 #  - STREAK_ABORT consecutive errored calls (quota / rate limit) abort the whole run, so a dry allowance is not burned on retries.
 STREAK_ABORT = 15
-LIVE_START = (1, 58)
+LIVE_START = (21, 0)    # A4: a running day aborts at 21:00Z so the 5-hour usage window is clear before the live desk's 02:00Z calls
 _abort = {"why": None}
 
 
@@ -59,7 +59,7 @@ def _avail_mb() -> int:
 
 def _live_window(now=None) -> bool:
     n = now or dt.datetime.now(UTC)
-    return (n.hour, n.minute) >= LIVE_START and n.hour * 60 + n.minute < 13 * 60 + 35
+    return (n.hour, n.minute) >= LIVE_START or n.hour * 60 + n.minute < 13 * 60 + 35
 MODEL_NOTE = "CLI default (measured 2026-10-25: claude-sonnet-5-5), no ANTHROPIC_MODEL override - as the live service"
 
 _cache: dict[str, list] = {}
@@ -204,7 +204,7 @@ def main() -> int:
     ap.add_argument("--arm", action="append", required=True, help="label or label=rules_path (repeat)")
     ap.add_argument("--days", required=True)
     ap.add_argument("--workers", type=int, default=2)
-    ap.add_argument("--stop-at", default=os.environ.get("E112_STOP_AT", "01:45"), help="UTC HH:MM after which no new day is started")
+    ap.add_argument("--stop-at", default=os.environ.get("E112_STOP_AT", "20:45"), help="UTC HH:MM after which no new day is started")
     a = ap.parse_args()
     assert a.workers <= 3, "memory: the box is 7.5GB and the live desk runs on it"
     assert L.detector_sha() == SHA, "frozen detector changed"
@@ -226,7 +226,7 @@ def main() -> int:
             n = dt.datetime.now(UTC)
             if _abort["why"]:
                 raise Abort("run aborted: " + _abort["why"])
-            if (n.hour, n.minute) >= (sh, sm) and n.hour * 60 + n.minute < 13 * 60 + 35:
+            if (n.hour, n.minute) >= (sh, sm) or n.hour * 60 + n.minute < 13 * 60 + 35:   # A4: only 13:35Z..stop-at
                 raise Abort(f"not started: past {a.stop_at}Z, inside the live desk's hours")
             while _avail_mb() < 1500:
                 time.sleep(30)

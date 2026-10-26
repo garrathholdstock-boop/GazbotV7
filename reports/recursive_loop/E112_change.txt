@@ -90,3 +90,8 @@ A3 (appended 2026-10-26 00:20Z, before any call it governs). WEEK 2 (Nov 10-14) 
   tested on week 4 (Nov 24-28) or later.
   NOISE ARM (new, declared now): before any R3, the LIVE setup is run a SECOND time ("v102b", identical prompt/engine/model) on Nov 3-7 and Nov 10-14. |v102 - v102b| per week is the run-to-run noise
   floor of Claude's calls (Oct 30 gave +$588 and -$2,339 on two attempts, one of them poisoned); any rule's weekly difference smaller than that floor is reported as NOISE, not as an effect.
+
+A4 (appended 2026-10-26 03:45Z). LIVE-DESK INCIDENT CAUSED BY THIS STUDY: the overnight replays exhausted the subscription's 5-hour usage window at ~01:20Z; the guards stopped the replays, but the
+  LIVE hybrid robot's calls 02:00Z..03:25Z then errored (18 consecutive, "no parseable action") - no decisions, no entries, nothing at risk; calls recovered at 03:30Z when the window reset.
+  The 01:45Z cut-off was wrong in kind: the limit is a rolling 5-hour window, so heavy replay use within ~5 h of 02:00Z starves the live desk. NEW RULE: replay calls only 13:35Z..20:45Z
+  (no day is started outside it; a running day aborts at 21:00Z). Operator told immediately.
