@@ -92,10 +92,13 @@ ARM_CFG = {
     "v103":    {"milcap": 2, "target": 37.5, "decay": None},
     "v103T30": {"milcap": 2, "target": 30.0, "decay": None},
     "v103D":   {"milcap": 2, "target": 37.5, "decay": (30, 25.0)},
-    "v103B":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "desk"},      # E119: the Desk Brief instead of BRIEF_V2
+    "v103B":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "desk"},      # E119: the full Desk Brief (D2+) instead of BRIEF_V2
+    "v103F":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "facts"},     # E119: BRIEF_V2 strategy + the TRUE mechanics/live state only
+    "v103C":   {"milcap": 2, "target": 37.5, "decay": None, "consensus": 3},       # E119: live prompt; an entry needs 2 of 3 calls to agree
 }
 from gazbot7 import desk_brief as DB  # noqa: E402
-WINDOW_NOTE = ("This window is when you may ENTER. It does NOT close the real position: that closes only at +37.5 points or at 20:40Z.")
+WINDOW_NOTE = ("This window is only when you may ENTER. It does NOT close the real position: that closes only at the target or at 20:40Z.")
+HEADER = "MNQ · {day} {now}Z · entries are traded from {veto} today until 13:30Z (the US cash open) - all times UTC"
 
 
 def day_bars(day: str) -> list:
@@ -110,7 +113,32 @@ def day_bars(day: str) -> list:
 
 
 ML.minute_bars = day_bars          # leg_robot.series_for -> the detector reads the same 1-min tape
-MECH = DB.mechanics_from_robot(H) | {"exit_live": False}     # the replayed desk: Claude's EXIT never closes the rider (as live, hybrid_exit_live=off)
+def mech_for(day: str, cfg: dict) -> dict:
+    """The replayed desk's mechanics for that session: the robot's constants, with this arm's cap and target, EXIT text-only (as live)."""
+    m = DB.mechanics_from_robot(H, day) | {"exit_live": False, "mil_cap": cfg.get("milcap")}
+    return m | {"target_pts": cfg["target"], "win_usd": cfg["target"] * PV * LOTS - LOTS * FEE}
+
+
+def real_book(rec: dict, rider: dict | None, op: int, bars: list, px: float):
+    """(page position, page record, live-state trades) from the REAL replayed desk - so the page and LIVE STATE never disagree (E119 audit #3)."""
+    pos, done, trades = None, [], []
+    for q in rec["presses"]:
+        side = "LONG" if q["side"] == "BUY" else "SHORT"
+        if q["exit_ts"] <= op:
+            pts = (1 if side == "LONG" else -1) * (q["exit_px"] - q["fill"])
+            done.append({"side": side, "opened": q["decision_ts"], "closed": q["exit_at"], "held_min": q["held_min"], "points": round(pts, 2),
+                         "pnl_usd": q["pnl_usd"], "peak_pt": round(pts, 2), "entry": q["fill"], "exit": q["exit_px"]})
+            trades.append({"t": q["decision_ts"][11:16], "side": side, "entry": q["fill"],
+                           "status": f"CLAIMED {q['pnl_usd']:+,.0f} USD" if q["why"].startswith("TARGET") else f"CLOSED {q['pnl_usd']:+,.0f} USD"})
+    if rider is not None:
+        o = int(dt.datetime.fromisoformat(rider["opened_iso"]).timestamp())
+        fav = [rider["dir"] * (b[3] - rider["fill"]) for b in bars if o <= b[0] and b[0] + 60 <= op] or [0.0]
+        pos = {"dir": rider["dir"], "entry": rider["fill"], "peak": max(fav), "peak_1m": max(fav), "last_ts": op,
+               "opened": dt.datetime.fromtimestamp(o, UTC)}
+        mark = rider["dir"] * (px - rider["fill"])
+        trades.append({"t": rider["opened_iso"][11:16], "side": "LONG" if rider["dir"] > 0 else "SHORT", "entry": rider["fill"], "status": "OPEN",
+                       "mark_pts": mark, "to_target_pts": max(0.0, rider["target"] - mark)})
+    return pos, done, trades
 
 
 def ride(bars: list, op: int, dirn: int, fill: float, d0: int, target: float = TARGET, decay: tuple | None = None) -> dict:
@@ -146,6 +174,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
     page_bars, _ = S.load_day(day)
     bars = day_bars(day)
     cfg = ARM_CFG.get(arm)
+    MECH = mech_for(day, cfg) if cfg else None
     rec = {"arm": arm, "day": day, "rules_sha": hashlib.sha256(rules.encode()).hexdigest()[:12], "model": MODEL_NOTE, "cfg": cfg,
            "brief_sha": hashlib.sha256(S.brief_for("v2").encode()).hexdigest()[:16], "calls": [], "presses": [], "sim_done": []}
     if len(page_bars) < 600:
@@ -194,19 +223,37 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             _abort["why"] = f"call budget {_budget['max']} used"
             raise Abort(_abort["why"])
         _budget["used"] += 1
-        if cfg and cfg.get("brief") == "desk":
+        if cfg and cfg.get("brief") in ("desk", "facts"):
             mil_now = H.mil_pivot(L.confirmed_turns([b for b in series_all if b[0] + 60 <= op]), op - 60)
+            ppos, pdone, ptrades = real_book(rec, rider, op, bars, px)
+            open_usd = (LOTS * PV * rider["dir"] * (px - rider["fill"])) if rider else 0.0
             st_ = {"now_utc": dt.datetime.fromtimestamp(op, UTC).strftime("%H:%MZ"), "mins_to_us_open": max(0, (d0 + 13 * 3600 + 1800 - op) // 60),
                    "mil_dir": mil_now[1] if mil_now else None, "mil_cap": cfg["milcap"],
                    "mil_claims": sum(1 for q in rec["presses"] if mil_now and q.get("mil_pivot") == mil_now[0] and q["why"].startswith("TARGET") and q["exit_ts"] <= op),
-                   "day_usd": realised, "lock_usd": LOCK, "holding": rider is not None}
-            brief_txt, stamp = DB.build(MECH, st_)
+                   "trades": ptrades, "day_usd": realised + open_usd, "lock_usd": LOCK}
+            if cfg["brief"] == "desk":
+                head, stamp = DB.build(MECH, st_)
+            else:                                                   # facts only: the OLD strategy text, then the true mechanics and live state
+                static = S.brief_for("v2") + "\n\n" + DB.mechanics(MECH)
+                head = static + "\n\n" + DB.state_block(st_)
+                stamp = {"version": "V2+facts", "static_sha": hashlib.sha256(static.encode()).hexdigest()[:12]}
             rec["brief"] = stamp
-            d = S.ask(brief_txt + "\n\n=== THE TAPE ===\n"
-                      + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False, window_note=WINDOW_NOTE))
+            d = S.ask(head + "\n\n=== THE TAPE ===\n"
+                      + S.context(upto, op, ppos, rules, pdone, True, band=False, leg_list=False, mil=False, card=False,
+                                  window_note=WINDOW_NOTE, header=HEADER.format(day=day, now=dt.datetime.fromtimestamp(op, UTC).strftime("%H:%M"), veto=MECH["veto_utc"])))
         else:
             d = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
                       + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
+            if cfg and cfg.get("consensus") and pos is None and d.get("action") in ("ENTER_LONG", "ENTER_SHORT"):
+                more = [S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
+                              + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
+                        for _ in range(cfg["consensus"] - 1)]
+                _budget["used"] += len(more)
+                agree = 1 + sum(1 for x in more if x.get("action") == d["action"])
+                rec.setdefault("consensus", []).append({"ts": dt.datetime.fromtimestamp(op, UTC).isoformat(), "first": d["action"],
+                                                        "others": [x.get("action") for x in more], "agree": agree})
+                if agree * 2 <= cfg["consensus"]:                 # no majority for this entry -> WAIT
+                    d = {"action": "WAIT", "reason": f"consensus {agree}/{cfg['consensus']}: " + (d.get("reason") or ""), "confidence": d.get("confidence")}
         act = d.get("action", "WAIT")
         streak = streak + 1 if d.get("error") else 0
         if streak >= STREAK_ABORT:
@@ -216,8 +263,9 @@ def run_day(arm: str, rules: str, day: str) -> dict:
                 "reason": (d.get("reason") or "")[:400], "error": d.get("error"), "sim_holding": bool(pos), "rider_holding": bool(rider)}
         if pos is None and act in ("ENTER_LONG", "ENTER_SHORT"):
             dirn = 1 if act == "ENTER_LONG" else -1
-            pos = {"dir": dirn, "entry": px + dirn * HALF, "peak": 0.0, "peak_1m": 0.0, "last_ts": op,
-                   "opened": dt.datetime.fromtimestamp(op, UTC), "reason": (d.get("reason") or "")[:200]}
+            if not (cfg and cfg.get("brief")):                    # brief arms: no simulated book; the real desk is the book
+                pos = {"dir": dirn, "entry": px + dirn * HALF, "peak": 0.0, "peak_1m": 0.0, "last_ts": op,
+                       "opened": dt.datetime.fromtimestamp(op, UTC), "reason": (d.get("reason") or "")[:200]}
             series = [b for b in series_all if b[0] + 60 <= op]
             turns = L.confirmed_turns(series) if len(series) >= 200 else []
             dd = H.det_dir(turns, op - 60)
@@ -236,7 +284,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             else:
                 fill = px + dirn * HALF
                 r = ride(bars, op, dirn, fill, d0, **({"target": cfg["target"], "decay": cfg["decay"]} if cfg else {}))
-                rider = {"dir": dirn, "fill": fill, "op": op, **r}
+                rider = {"dir": dirn, "fill": fill, "op": op, "opened_iso": call["ts"], "target": cfg["target"] if cfg else TARGET, **r}
                 rec["presses"].append({"decision_ts": call["ts"], "side": "BUY" if dirn > 0 else "SELL", "decision_px": px,
                                        "fill": round(fill, 2), "exit_ts": r["exit_ts"],
                                        "exit_at": dt.datetime.fromtimestamp(r["exit_ts"], UTC).isoformat(),
@@ -254,6 +302,8 @@ def run_day(arm: str, rules: str, day: str) -> dict:
     rec["sim_done"] = done
     rec["net_usd"] = round(sum(p["pnl_usd"] for p in rec["presses"]), 2)
     rec["errors"] = sum(1 for c in rec["calls"] if c.get("error"))
+    if rec.get("brief"):
+        rec["brief_sha"] = rec["brief"]["static_sha"]
     os.makedirs(OUT, exist_ok=True)
     tmp = path + ".tmp"
     json.dump(rec, open(tmp, "w"), indent=1, default=str)

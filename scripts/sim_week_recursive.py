@@ -436,7 +436,7 @@ def card_lines(c: dict, holding: bool) -> list:
 
 def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
             done: list | None = None, self_aware: bool = False, band: bool = True,
-            leg_list: bool = True, mil: bool = False, card: bool = False, window_note: str | None = None) -> str:
+            leg_list: bool = True, mil: bool = False, card: bool = False, window_note: str | None = None, header: str | None = None) -> str:
     """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
 
     ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
@@ -479,7 +479,7 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
     except Exception as e:
         shape = f"[shape unavailable: {type(e).__name__}: {e}]"
 
-    L = [f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 04:00 Paris (02:00Z) to the US open", ""]
+    L = [header if header is not None else f"MNQ · {now:%Y-%m-%d %H:%M}Z · the window is 04:00 Paris (02:00Z) to the US open", ""]
     if card:                               # v3 (S4): scorecard FIRST, then the day view, then the close-in view
         shape = shape.replace(" — read this before anything else.", ".")   # the scorecard is read first now
         L += card_lines(day_card(bars_upto, now_epoch, pos, done), holding=bool(pos))
