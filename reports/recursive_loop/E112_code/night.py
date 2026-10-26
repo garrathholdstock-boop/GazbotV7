@@ -37,7 +37,7 @@ def log(m):
 
 def live_hours():
     n = dt.datetime.now(UTC)
-    return (n.hour, n.minute) >= (1, 45) and n.hour * 60 + n.minute < 13 * 60 + 35
+    return (n.hour, n.minute) >= (20, 45) or n.hour * 60 + n.minute < 13 * 60 + 35
 
 
 def clean(arm, day):
