@@ -52,7 +52,7 @@ def mechanics(m: dict) -> str:
         "    swings, not the MIL. The robot trades your ENTER only in the MIL's direction, only if",
         f"    the time is {m['veto_utc']} or later today, and only if the desk is flat. Otherwise your call is logged and nothing is traded.",
         "    The MIL's direction is a FILTER, not a signal: if price is not driving that way on the page, WAIT.",
-        f"  - A traded entry is {m['lots']} MNQ with ONE exit: all {m['lots']} lots close at +{m['target_pts']:g} points from the fill (+${m['win_usd']:,.0f} after fees).",
+        f"  - A traded entry is {m['lots']} {m.get('symbol', 'MNQ')} with ONE exit: all {m['lots']} lots close at +{m['target_pts']:g} points from the fill (+${m['win_usd']:,.0f} after fees).",
         (f"    There is NO stop. If +{m['target_pts']:g} is not reached the position is held until it is flattened at {m['flat_utc']}, through the whole US"
          if not m.get("stop_armed") else f"    A venue stop is armed. If +{m['target_pts']:g} is not reached first, the stop or the {m['flat_utc']} flat closes it, through the US"),
         f"    cash session (opens {m['us_open_utc']}).",
@@ -102,9 +102,20 @@ def state_block(s: dict | None) -> str:
 def build(mech: dict, state: dict | None = None) -> tuple[str, dict]:
     """(brief text, stamp). stamp = {version, static_sha}; static_sha covers strategy + mechanics + experience (not the per-call state)."""
     strategy = _read("strategy.md").replace("{TARGET_PTS}", f"{mech['target_pts']:g}").replace("{WIN_USD}", f"{mech['win_usd']:,.0f}")
+    sym = mech.get("symbol", "MNQ")
+    if sym != "MNQ":                                       # research replays on another instrument (E122): the MNQ-only facts are replaced, never kept
+        name = mech.get("instrument_name", sym)
+        strategy = strategy.replace("an MNQ futures desk", f"an {sym} ({name}) futures desk")
+        a = strategy.index("     On the desk's record"); b = strategy.index("  2. Then money")
+        strategy = (strategy[:a] + f"     The desk has no track record on {sym} yet - this is its first look at it. On MNQ the same setup hit the target on\n"
+                    f"     most entries and lost big on a few; every entry has the same lopsided payoff (+${mech['win_usd']:,.0f} or, rarely, a large loss),\n"
+                    "     so the payoff alone is never a reason to wait.\n" + strategy[b:])
     if re.search(r"\{[A-Z_]+\}", strategy):
         raise ValueError("strategy.md has an unfilled template field")
-    static = "\n\n".join([strategy, mechanics(mech), _read("experience.md")])
+    exp = _read("experience.md")
+    if sym != "MNQ":
+        exp = exp.replace("WHAT THE DESK HAS LEARNED", f"WHAT THE DESK HAS LEARNED ON MNQ (points below are MNQ points; {sym} is new)", 1)
+    static = "\n\n".join([strategy, mechanics(mech), exp])
     text = static + ("\n\n" + state_block(state) if state else "")
     return text, {"version": version(), "static_sha": hashlib.sha256(static.encode()).hexdigest()[:12]}
 

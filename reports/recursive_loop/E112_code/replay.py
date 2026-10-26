@@ -95,10 +95,15 @@ ARM_CFG = {
     "v103B":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "desk"},      # E119: the full Desk Brief (D2+) instead of BRIEF_V2
     "v103F":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "facts"},     # E119: BRIEF_V2 strategy + the TRUE mechanics/live state only
     "v103C":   {"milcap": 2, "target": 37.5, "decay": None, "consensus": 3},       # E119: live prompt; an entry needs 2 of 3 calls to agree
+    "g104T3":  {"milcap": 2, "target": 3.0, "decay": None, "brief": "desk"},       # E122: the live v1.04 setup on MGC, target +3 (E121 pick)
 }
+# E122: the instrument a process replays (set by --inst; one instrument per process). MNQ = everything exactly as before.
+INST = {"MNQ": {"pv": 2.0, "fee": 1.50, "adv": S.HALF_SPREAD_PT, "thru": 0.25, "name": "Micro Nasdaq-100"},
+        "MGC": {"pv": 10.0, "fee": 2.00, "adv": 0.1, "thru": 0.1, "name": "Micro Gold"}}
+CUR = {"sym": "MNQ"}
 from gazbot7 import desk_brief as DB  # noqa: E402
 WINDOW_NOTE = "This window is only when you may ENTER. It does NOT close the real position: that closes only at the target or at {flat}."
-HEADER = "MNQ · {day} {now}Z · entries are traded from {veto} today until {open} (the US cash open) - all times UTC"
+HEADER = "{sym} · {day} {now}Z · entries are traded from {veto} today until {open} (the US cash open) - all times UTC"
 PRECEDENCE = "The DESK MECHANICS below are generated from the robot's code; where anything above disagrees with them, they win."
 
 
@@ -115,7 +120,16 @@ def v2_facts() -> str:
 
 
 def day_bars(day: str) -> list:
-    """1-min (bar_ts, high, low, close) from 22:00Z the evening before to 21:00Z, from the MNQ backfill."""
+    """1-min (bar_ts, high, low, close) from 22:00Z the evening before to 21:00Z, from the MNQ backfill (or, for another instrument, the
+    desk's own 5s capture of it aggregated to 1-min - E122)."""
+    if CUR["sym"] != "MNQ" and day not in _cache:
+        d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
+        fs = [f"{GB}/data/tape/bars/{CUR['sym']}/{(dt.date.fromisoformat(day) + dt.timedelta(days=k)).isoformat()}.parquet" for k in (-1, 0)]
+        fs = [f for f in fs if os.path.exists(f)]
+        rows = duckdb.connect().execute(
+            f"SELECT (bar_ts//60)*60 AS m, max(high), min(low), arg_max(close, bar_ts) FROM read_parquet({fs!r}, union_by_name=true) "
+            "WHERE timeframe='5s' AND bar_ts >= ? AND bar_ts < ? GROUP BY 1 ORDER BY 1", [d0 - 7200, d0 + 21 * 3600]).fetchall() if fs else []
+        _cache[day] = [(int(t), float(h), float(l), float(c)) for t, h, l, c in rows]
     if day not in _cache:
         d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
         rows = duckdb.connect().execute(
@@ -129,7 +143,9 @@ ML.minute_bars = day_bars          # leg_robot.series_for -> the detector reads 
 def mech_for(day: str, cfg: dict) -> dict:
     """The replayed desk's mechanics for that session: the robot's constants, with this arm's cap and target, EXIT text-only (as live)."""
     m = DB.mechanics_from_robot(H, day) | {"exit_live": False, "mil_cap": cfg.get("milcap")}
-    return m | {"target_pts": cfg["target"], "win_usd": cfg["target"] * PV * LOTS - LOTS * FEE}
+    ii = INST[CUR["sym"]]
+    m = m | {"target_pts": cfg["target"], "win_usd": cfg["target"] * ii["pv"] * LOTS - LOTS * ii["fee"]}
+    return m if CUR["sym"] == "MNQ" else m | {"symbol": CUR["sym"], "instrument_name": ii["name"]}
 
 
 def real_book(rec: dict, rider: dict | None, op: int, bars: list, px: float):
@@ -164,15 +180,15 @@ def ride(bars: list, op: int, dirn: int, fill: float, d0: int, target: float = T
         adv = (fill - l) if dirn > 0 else (h - fill)
         mae = max(mae, adv)
         T = decay[1] if decay and t >= op + decay[0] * 60 else target
-        tgt = fill + dirn * (T + THRU)
+        tgt = fill + dirn * (T + INST[CUR["sym"]]["thru"])
         if (h >= tgt) if dirn > 0 else (l <= tgt):
             return {"exit_ts": t + 60, "exit_px": fill + dirn * T, "why": f"TARGET_{T:g}", "mae": round(mae, 2),
-                    "pnl": round(LOTS * PV * T - LOTS * FEE, 2), "marks": marks}
-        marks.append((t + 60, round(LOTS * PV * dirn * (c - fill), 2)))
+                    "pnl": round(LOTS * INST[CUR["sym"]]["pv"] * T - LOTS * INST[CUR["sym"]]["fee"], 2), "marks": marks}
+        marks.append((t + 60, round(LOTS * INST[CUR["sym"]]["pv"] * dirn * (c - fill), 2)))
     last = path[-1] if path else (op, fill, fill, fill)
     pts = dirn * (last[3] - fill)
     return {"exit_ts": last[0] + 60, "exit_px": last[3], "why": "FLAT_2040Z", "mae": round(mae, 2),
-            "pnl": round(LOTS * PV * pts - LOTS * FEE, 2), "marks": marks}
+            "pnl": round(LOTS * INST[CUR["sym"]]["pv"] * pts - LOTS * INST[CUR["sym"]]["fee"], 2), "marks": marks}
 
 
 def run_day(arm: str, rules: str, day: str) -> dict:
@@ -184,7 +200,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             return prev
         print(f"  {arm} {day}: re-running ({sum(1 for x in c if x.get('error'))}/{len(c)} errored)", flush=True)
     d0 = int(dt.datetime.fromisoformat(day + "T00:00:00+00:00").timestamp())
-    page_bars, _ = S.load_day(day)
+    page_bars, _ = S.load_day(day) if CUR["sym"] == "MNQ" else ([b for b in day_bars(day) if b[0] < int(dt.datetime.fromisoformat(day + "T13:30:00+00:00").timestamp())], None)
     bars = day_bars(day)
     cfg = ARM_CFG.get(arm)
     MECH = mech_for(day, cfg) if cfg else None
@@ -239,7 +255,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
         if cfg and cfg.get("brief") in ("desk", "facts"):
             mil_now = H.mil_pivot(L.confirmed_turns([b for b in series_all if b[0] + 60 <= op]), op - 60)
             ppos, pdone, ptrades = real_book(rec, rider, op, bars, px)
-            open_usd = (LOTS * PV * rider["dir"] * (px - rider["fill"])) if rider else 0.0
+            open_usd = (LOTS * INST[CUR["sym"]]["pv"] * rider["dir"] * (px - rider["fill"])) if rider else 0.0
             cut_ = L.veto_cutoff(op)
             st_ = {"now_utc": dt.datetime.fromtimestamp(op, UTC).strftime("%H:%MZ"), "mins_to_us_open": max(0, (d0 + 13 * 3600 + 1800 - op) // 60),
                    "before_veto": MECH["veto_utc"] if cut_ is not None and op < cut_ else None,
@@ -257,7 +273,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             d = S.ask(head + "\n\n=== THE TAPE ===\n"
                       + S.context(upto, op, ppos, rules, pdone, True, band=False, leg_list=False, mil=False, card=False,
                                   window_note=WINDOW_NOTE.format(flat=MECH["flat_utc"]),
-                                  header=HEADER.format(day=day, now=dt.datetime.fromtimestamp(op, UTC).strftime("%H:%M"), veto=MECH["veto_utc"], open=MECH["us_open_utc"]),
+                                  header=HEADER.format(sym=CUR["sym"], day=day, now=dt.datetime.fromtimestamp(op, UTC).strftime("%H:%M"), veto=MECH["veto_utc"], open=MECH["us_open_utc"]),
                                   open_note=(f"OPEN: {'LONG' if rider['dir'] > 0 else 'SHORT'} from {rider['opened_iso'][11:16]}Z - see YOUR POSITION" if rider else "")))
         else:
             d = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
@@ -316,7 +332,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             elif rider is not None:
                 call["entry_action"] = "SKIPPED_HOLDING"
             else:
-                fill = px + dirn * HALF
+                fill = px + dirn * INST[CUR["sym"]]["adv"]
                 r = ride(bars, op, dirn, fill, d0, **({"target": cfg["target"], "decay": cfg["decay"]} if cfg else {}))
                 rider = {"dir": dirn, "fill": fill, "op": op, "opened_iso": call["ts"], "target": cfg["target"] if cfg else TARGET, **r}
                 rec["presses"].append({"decision_ts": call["ts"], "side": "BUY" if dirn > 0 else "SELL", "decision_px": px,
@@ -350,9 +366,15 @@ def main() -> int:
     ap.add_argument("--arm", action="append", required=True, help="label or label=rules_path (repeat)")
     ap.add_argument("--days", required=True)
     ap.add_argument("--workers", type=int, default=2)
+    ap.add_argument("--inst", default="MNQ", choices=sorted(INST), help="E122: the instrument this process replays")
     ap.add_argument("--stop-at", default=os.environ.get("E112_STOP_AT", "20:45"), help="UTC HH:MM after which no new day is started")
     a = ap.parse_args()
     assert a.workers <= 3, "memory: the box is 7.5GB and the live desk runs on it"
+    CUR["sym"] = a.inst
+    S.VPP = INST[a.inst]["pv"]          # the page's "$ for your position" line (this process replays one instrument only)
+    if a.inst != "MNQ":
+        global OUT
+        OUT = f"{GB}/reports/e122"
     assert L.detector_sha() == SHA, "frozen detector changed"
     assert not os.environ.get("ANTHROPIC_MODEL"), "the live service sets no model override; neither does this"
     arms = {}

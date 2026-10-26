@@ -1,0 +1,8 @@
+E122 - THE LIVE v1.04 SETUP ON GOLD: one week of MGC at +3 points (E121's pick), Claude in the loop.  Declared 2026-10-26 ~19:45Z before any E122 call.
+Operator, 2026-10-26: "Run the 1 week at 3 points on gold and see what Claude does."
+ARM g104T3 (reports/recursive_loop/E112_code/replay.py --inst MGC): the live v1.04 mechanics and prompt, instrument-aware - Desk Brief D3 with MGC facts (no MGC track record claimed;
+  experience labelled as learned on MNQ), the page in UTC with the real desk book; frozen detector K=11 on MGC 1-min (the desk's own 5s capture aggregated); 05:00 Paris veto; flat-only;
+  4 MGC, ALL out at +3 points (+$112 net) else the 20:40Z flat; no stop; +$1,000 lock; MIL cap 2. Fill = decision close + 0.1 adverse, trade-through 0.1, $2/lot fees. CLI default model.
+WEEK: 2026-10-19..10-23 (MGC never shown to Claude; the same week as live MNQ v1.02+LOCK on the desk). ~700 calls, 3 workers, inside 13:35-20:45Z (continues next afternoon if cut).
+READ: per day entries, wins, losers, worst entry, $, worst day; beside the detector-only E121 path on the same days at +3, and the live MNQ desk's same days. One week = a story, not proof.
+MNQ is untouched: tests/test_desk_brief.py + parity test pass with the instrument-aware code (MNQ rendering byte-identical).
