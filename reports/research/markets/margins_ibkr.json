@@ -1,0 +1,61 @@
+{
+ "asof": "2026-10-26T18:56:53.505095+00:00",
+ "account": "",
+ "method": "whatIfOrder BUY 1, MarketOrder, whatIf=True",
+ "rows": [
+  {
+   "symbol": "MNQ",
+   "contract": "MNQZ6",
+   "expiry": "20261218",
+   "multiplier": "2",
+   "init_margin": "4057.77",
+   "maint_margin": "3000.99",
+   "commission": 0.61
+  },
+  {
+   "symbol": "MES",
+   "contract": "MESZ6",
+   "expiry": "20261218",
+   "multiplier": "5",
+   "init_margin": "2172.29",
+   "maint_margin": "1639.9",
+   "commission": 0.61
+  },
+  {
+   "symbol": "M2K",
+   "contract": "M2KZ6",
+   "expiry": "20261218",
+   "multiplier": "5",
+   "init_margin": "783.3699999999999",
+   "maint_margin": "681.1999999999998",
+   "commission": 0.61
+  },
+  {
+   "symbol": "MYM",
+   "contract": "MYMZ6",
+   "expiry": "20261218",
+   "multiplier": "0.5",
+   "init_margin": "1107.12",
+   "maint_margin": "962.6300000000001",
+   "commission": 0.61
+  },
+  {
+   "symbol": "MGC",
+   "contract": "MGCZ6",
+   "expiry": "20261229",
+   "multiplier": "10",
+   "init_margin": "3310.98",
+   "maint_margin": "2879.12",
+   "commission": 0.96
+  },
+  {
+   "symbol": "MBT",
+   "contract": "MBTX6",
+   "expiry": "20261127",
+   "multiplier": "0.1",
+   "init_margin": "2539.95",
+   "maint_margin": "2177.72",
+   "commission": 2.01
+  }
+ ]
+}
