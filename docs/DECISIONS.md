@@ -4,7 +4,7 @@
 it ships; once committed, we do not relitigate without a new dated
 entry.
 
-**Last updated:** 2026-09-04 (Fri) — **§365** ★★★ THE STALE-BOOK FAMILY: one false cross-desk kill, traced to a guard that re-sampled the VENUE twice while the stale side was the CLAIM, cost four hours of a dead BUY button; underneath it a same-tick ladder/claim race that deducted one lot for two, a paper fill engine fabricating an exactly-0.1% adverse price on every lot after the first ($2,916.50 — more than the desk's entire booked loss), and a manage path pricing the open position off ITS OWN ENTRY outside US hours, which switched the trail and the ladder off in silence while every instrument read healthy.
+**Last updated:** 2026-10-26 (Mon) — **§368** v1.03 MIL CAP live (E115). **Before that:** 2026-09-04 (Fri) — **§365** ★★★ THE STALE-BOOK FAMILY: one false cross-desk kill, traced to a guard that re-sampled the VENUE twice while the stale side was the CLAIM, cost four hours of a dead BUY button; underneath it a same-tick ladder/claim race that deducted one lot for two, a paper fill engine fabricating an exactly-0.1% adverse price on every lot after the first ($2,916.50 — more than the desk's entire booked loss), and a manage path pricing the open position off ITS OWN ENTRY outside US hours, which switched the trail and the ladder off in silence while every instrument read healthy.
 
 **Previously:** 2026-09-03 (Thu) — **§364** ★★★ THE TUNNEL ARC: a 2-state HMM says MNQ and MGC spend ~2/3 of their minutes inside volatility compressions and are the SAME instrument in dollars ($10 quiet minute, $30 active, persistence agreeing to 0.001) — but leaving one predicts NOTHING on either contract (60-min excursion 1.0x a matched-hour control, direction 0.44-0.53 vs 0.50), so no MGC alert was armed, and the live MNQ watcher's founding "~1.75x excursion" claim was **WITHDRAWN** after nine hours in production because it did not replicate (1.02x). Gold needed its own fit twice over: 2.5% of its minutes have a true range of exactly zero (a spike that eats a whole state and yields a dead-tape detector), and its absolute range drifts with its vol regime (so the live-worthy feature is range against a CAUSAL trailing median, not a fixed threshold).
 
@@ -18823,6 +18823,13 @@ fails if an order-placing call appears in that branch, and that failure is a REG
 to the ownership question, not a refactor.
 
 ---
+
+## §368 — 2026-10-26 (Mon) — ★★★ v1.03 MIL CAP: the extra entry on a MIL that has already paid twice is not taken. (gazbot7 `96cd53d`, E115.)
+- **Decision (operator):** "We can stop at 2 claims on 1 MIL. But then we wait for next mil to be confirmed." Live on paper from the 2026-10-26 session; arm `v1.03+LOCK+MILCAP`, never pooled.
+- **Why:** after ~24 hours of tests (E109-E114: 741k detector candidates, Oct/Nov 2025 Claude replays, news/context, a Claude reviewer, 66 days of order flow) NOTHING visible at entry separates the
+  disaster entries from the winners. What does work is not taking extra entries once a MIL/day has paid: Claude replays +$3,088 -> +$4,729 (40 d), live -$1,569 -> +$2,749 (8 d).
+- **Not decided:** what stops the first/second-entry disasters. Still the open problem, still worked on (E112 v102P, R3, order flow forward).
+- **Rule kept:** research replays share the subscription with the live robot -> only 13:35-20:45Z (an overnight run starved the live robot 02:00-03:25Z on 10-26).
 
 ## §361 — 2026-08-16 (Sun) — ★★ The project files were stranded in the retired repo for 17 days
 
