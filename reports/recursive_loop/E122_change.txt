@@ -6,3 +6,6 @@ ARM g104T3 (reports/recursive_loop/E112_code/replay.py --inst MGC): the live v1.
 WEEK: 2026-10-19..10-23 (MGC never shown to Claude; the same week as live MNQ v1.02+LOCK on the desk). ~700 calls, 3 workers, inside 13:35-20:45Z (continues next afternoon if cut).
 READ: per day entries, wins, losers, worst entry, $, worst day; beside the detector-only E121 path on the same days at +3, and the live MNQ desk's same days. One week = a story, not proof.
 MNQ is untouched: tests/test_desk_brief.py + parity test pass with the instrument-aware code (MNQ rendering byte-identical).
+A1 (2026-10-26 ~20:00Z). Operator: "For this backtest don't put the 2 trade cap on it. Let it run hard to the $1000 cap." Capped arm g104T3 STOPPED after 3 of 5 days (10-19 -$2,060,
+  10-20 +$112, 10-21 +$224; kept, labelled). New arm g104T3nc = identical but NO per-MIL cap (the brief's mechanics say the cap is released; no claim lines in LIVE STATE); the +$1,000
+  day lock stays. All 5 days re-run under g104T3nc (Claude is told something different, so capped days are not reused).

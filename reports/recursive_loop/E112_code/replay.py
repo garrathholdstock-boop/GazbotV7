@@ -96,6 +96,7 @@ ARM_CFG = {
     "v103F":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "facts"},     # E119: BRIEF_V2 strategy + the TRUE mechanics/live state only
     "v103C":   {"milcap": 2, "target": 37.5, "decay": None, "consensus": 3},       # E119: live prompt; an entry needs 2 of 3 calls to agree
     "g104T3":  {"milcap": 2, "target": 3.0, "decay": None, "brief": "desk"},       # E122: the live v1.04 setup on MGC, target +3 (E121 pick)
+    "g104T3nc": {"milcap": None, "target": 3.0, "decay": None, "brief": "desk"},   # E122 A1: same, NO per-MIL cap - runs to the +$1,000 lock (operator)
 }
 # E122: the instrument a process replays (set by --inst; one instrument per process). MNQ = everything exactly as before.
 INST = {"MNQ": {"pv": 2.0, "fee": 1.50, "adv": S.HALF_SPREAD_PT, "thru": 0.25, "name": "Micro Nasdaq-100"},
@@ -288,7 +289,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
                 cut_ = L.veto_cutoff(op)
                 cl_ = sum(1 for q in rec["presses"] if mp_ and q.get("mil_pivot") == mp_[0] and q["side"] == ("BUY" if dn > 0 else "SELL")
                           and q["why"].startswith("TARGET") and q["exit_ts"] <= op)
-                if H.det_dir(tr_, op - 60) == dn and not (cut_ is not None and op < cut_) and cl_ < cfg["milcap"] and rider is None:
+                if H.det_dir(tr_, op - 60) == dn and not (cut_ is not None and op < cut_) and (not cfg.get("milcap") or cl_ < cfg["milcap"]) and rider is None:
                     more, errs = [], 0
                     for _ in range(cfg["consensus"] - 1):
                         x = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
@@ -327,7 +328,7 @@ def run_day(arm: str, rules: str, day: str) -> dict:
                 call["entry_action"] = "NOT_WITH_LEG" if dd else "NO_DETECTOR_LEG"
             elif cut is not None and op < cut:
                 call["entry_action"] = "VETOED_BEFORE_05_PARIS"
-            elif cfg and claims >= cfg["milcap"]:                                  # v1.03: 2 claims on this MIL -> wait for the next MIL
+            elif cfg and cfg.get("milcap") and claims >= cfg["milcap"]:                                  # v1.03: 2 claims on this MIL -> wait for the next MIL
                 call["entry_action"] = f"MIL_CAP_{cfg['milcap']}_CLAIMS"
             elif rider is not None:
                 call["entry_action"] = "SKIPPED_HOLDING"
