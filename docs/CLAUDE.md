@@ -64,6 +64,17 @@ managed.**
 
 ---
 
+
+## ★★★ THE DESK BRIEF IS GOSPEL (E119, operator 2026-10-26: "there is absolutely no point him not getting the latest context from us")
+Claude decides every live entry from the **Desk Brief** (`src/gazbot7/desk_brief.py` + `config/desk_brief/`). It must always tell him the truth about the desk and the latest we know.
+1. **Mechanics are generated, never typed.** Target, lots, lock, MIL cap, exit behaviour, window, flat time come from `scripts/hybrid_robot.py` via `mechanics_from_robot()`.
+   Change the robot → the brief changes with it. `tests/test_desk_brief.py` fails if they disagree.
+2. **Any change to the robot's mechanics, and any finding worth telling Claude, updates the Desk Brief in the SAME change**: strategy (`strategy.md`, the operator's current
+   instruction) or experience (`experience.md`, one dated line citing its E-study). Bump `VERSION:` in `config/desk_brief/CHANGELOG.md` with what changed and why.
+3. **Instruction changes are replay-tested before going live** (unseen days, against the live setup); pure factual corrections may go live with the operator's go.
+4. Every decision is stamped with the brief version + static sha; results are read per brief version, never pooled across versions.
+5. Nothing in the hand-written layers may contradict the generated mechanics or the page. Reasons to WAIT must never be phrased as a checklist that, once ticked, justifies an entry (E112 R1).
+
 ## THE STANDING TIMERS AND WATCHERS — ALL DURABLE. Re-arm NOTHING as a session cron.
 
 Units in `ops/systemd/`, prompts in `ops/job_prompts/*.md`. Times UTC unless stated.
