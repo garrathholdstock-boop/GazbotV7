@@ -1,0 +1,43 @@
+E113 - THE CLAIMS PAUSE GRID (spec reports/recursive_loop/E113_change.txt). Detector-only desk path, live window, zero Claude tokens.
+sessions TRAIN 2057, TEST 644, FORWARD 278; cells 390 + baseline (the search size)
+
+[TRAIN] qualifiers (worst day, days+, CV no worse AND fewer entries <= -$1k): 290 of 390
+   cell                                                   $/day days+    worst      CV <=-1kd<=-2kd<=-4k tr/day
+   BASELINE (no pause)                                    -11.3  1507   -13830     inf   462   267    93   2.74   gate:fail
+   claims>=0 & age>=180m or ext>=250pt                     17.2  1510   -12066    84.3   343   207    64   2.00   gate:PASS
+   claims>=0 & age>=180m                                   19.7  1518   -12066    75.0   350   210    68   2.05   gate:PASS
+   claims>=0 & age>=180m or ext>=300pt                     11.1  1511   -12066   133.4   348   211    68   2.02   gate:PASS
+   claims>=0 & age>=180m or ext>=400pt                     12.0  1513   -12066   123.9   350   211    70   2.04   gate:PASS
+   claims>=0 & age>=240m or ext>=200pt                     -5.6  1511   -12066     inf   380   227    70   2.15   gate:fail
+   claims>=1 & age>=360m or ext>=100pt                     11.5  1602   -13830   139.0   381   227    75   2.27   gate:PASS
+   claims>=1 & age>=60m                                   -10.7  1613   -13830     inf   374   230    76   2.17   gate:fail
+   claims>=1 & age>=60m or ext>=250pt                     -11.0  1613   -13830     inf   374   230    76   2.17   gate:fail
+   claims>=1 & age>=60m or ext>=300pt                     -11.0  1613   -13830     inf   374   230    76   2.17   gate:fail
+   claims>=1 & age>=60m or ext>=400pt                     -11.0  1613   -13830     inf   374   230    76   2.17   gate:fail
+
+[TRAIN] best cell per claims level, by days <= -$2k (whether or not it qualifies) - the operator's 1/2/3-claim question:
+   cell                                                   $/day days+    worst      CV <=-1kd<=-2kd<=-4k tr/day
+   claims>=0 & age>=60m or ext>=100pt                     -14.1   565    -9171     inf    73    46    14   0.37   gate:fail
+   claims>=0 & age>=90m or ext>=200pt [07:00-08:30 Paris]    -2.1  1515   -13800     inf   454   260    93   2.73   gate:fail
+   claims>=1 & age>=360m or ext>=100pt                     11.5  1602   -13830   139.0   381   227    75   2.27   gate:PASS
+   claims>=1 & age>=240m or ext>=100pt [07:00-08:30 Paris]     4.6  1522   -13830   381.0   452   260    94   2.74   gate:PASS
+   claims>=2 & age>=180m or ext>=250pt                     27.1  1549   -13830    62.7   426   243    83   2.61   gate:PASS
+   claims>=2 & always [07:00-08:30 Paris]                  -1.4  1514   -13830     inf   457   263    93   2.74   gate:fail
+   claims>=3 & age>=360m or ext>=300pt                      4.6  1519   -13830   375.0   451   257    89   2.70   gate:PASS
+   claims>=3 & ext>=150pt [07:00-08:30 Paris]             -12.4  1509   -13830     inf   461   268    94   2.74   gate:fail
+
+[TEST] read once - the pick and the runner-up vs baseline
+   cell                                                   $/day days+    worst      CV <=-1kd<=-2kd<=-4k tr/day
+   BASELINE (no pause)                                      6.6   474    -8879   261.5   142    88    26   2.74   gate:fail
+   claims>=0 & age>=180m or ext>=250pt                     32.2   472    -8905    43.1    90    60    20   1.84   gate:fail   qualifies: no
+   claims>=0 & age>=180m                                   13.7   471    -8905   104.5    94    63    23   1.87   gate:fail   qualifies: no
+
+[FORWARD] read once - the pick and the runner-up vs baseline
+   cell                                                   $/day days+    worst      CV <=-1kd<=-2kd<=-4k tr/day
+   BASELINE (no pause)                                    -48.1   203   -11724     inf    64    36    13   2.74   gate:fail
+   claims>=0 & age>=180m or ext>=250pt                    -29.3   180   -11724     inf    48    24     7   1.76   gate:fail   qualifies: no
+   claims>=0 & age>=180m                                   24.2   183   -11724    58.8    45    23     6   1.84   gate:fail   qualifies: no
+
+VERDICT claims>=0 & age>=180m or ext>=250pt: NOT CONFIRMED
+
+VERDICT claims>=0 & age>=180m: NOT CONFIRMED

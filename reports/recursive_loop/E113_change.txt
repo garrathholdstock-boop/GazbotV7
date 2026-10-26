@@ -16,3 +16,15 @@ SELECTION (TRAIN 2015-2022 only): a cell qualifies if, vs the unpaused desk path
 CLAUDE CHECK (descriptive): the pick applied statically to every entry the LIVE setup made in the Oct-Nov 2025 replays (v102) and to the live desk's own entries since 2026-10-15: which it would have
   paused, their $ (no re-simulation of Claude's later calls).
 OUTPUT: reports/recursive_loop/E113_code/, reports/recursive_loop/E113_result.txt. Nothing live changes; a PROMISING pick goes to a no-press shadow and the operator.
+
+A1 (appended 2026-10-26 ~07:10Z, BEFORE the speed grid runs). RESULT OF THE DECLARED GRID: no cell qualified on both TEST and FORWARD (label NOT CONFIRMED); the strongest family was LEG AGE
+  alone (claims >= 0): pause if leg >= 120 min halves days <= -$2k on TRAIN/TEST/FORWARD (267->160, 88->48, 36->18) and lifts days-positive-of-traded-days ~73% -> ~82%; claims >= 1/2/3 and the
+  07:00-08:30 Paris variants add little. Days-positive as declared (absolute count) penalises pausing because fewer days trade; the share of traded days is reported beside it from now on.
+  BUT on Claude's own entries (Oct-Nov 2025 replays) an age pause blocks ~88% of entries incl. most winners: Claude's style ("join a proven leg late") is old legs by design.
+  IN-SAMPLE OBSERVATION on Claude's 141 replay entries (all arms, overlapping days): disasters concentrate in OLD BUT SLOW legs (9 of 11 entries <= -$1k had leg >= 90 min AND speed < 50 pt/h
+  so far; that group -$5,701 on 87 entries vs +$10,955 on the other 54).
+SPEED GRID (declared now; thresholds suggested by that in-sample observation, so the 10-year detector desk path is the INDEPENDENT check - different entries, different years):
+  pause a candidate if  leg_age_min >= A  AND  speed = leg_ext_pts / leg_age_min * 60 < V  (today's pts per hour);  A in {60, 90, 120, 180},  V in {30, 40, 50, 60, 75}.  20 cells.
+  Read on TRAIN, TEST, FORWARD together (all three are second looks for the census; the Claude replays are where the idea came from): days <= -$2k / <= -$4k, entries <= -$1k, $/day,
+  days positive % of traded days, trades/day. CONSISTENT = a cell cuts days <= -$2k AND entries <= -$1k on ALL THREE periods with days-positive-% no worse. A consistent cell becomes a Claude
+  replay arm (press only if not paused) on the next clean weeks (Nov 24-28, then December), under A0c.
