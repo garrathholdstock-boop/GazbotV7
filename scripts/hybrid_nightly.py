@@ -716,7 +716,7 @@ def review_day(env: Env, key: str, now: dt.datetime) -> dict:
               "filled_entries": sum(1 for p in presses if p["filled"])}
     nets = [p["ledger_net_usd"] for p in presses if p["ledger_net_usd"] is not None]
     lots_all = [x for p in presses for x in p["lots"]]
-    rep = {"schema": SCHEMA, "generated_at": now.isoformat(), "key": key, "arm": arm_of(key), "version": H.VERSION,
+    rep = {"schema": SCHEMA, "generated_at": now.isoformat(), "key": key, "arm": arm_of(key), "version": version_of(key), "robot_code_version": H.VERSION,
            "verdict": verdict_of(health), "health": health,
            "coverage": cov,
            "calls": {"n": len(dec), "errors": sum(1 for r in dec if r.get("error")), "actions": acts,
