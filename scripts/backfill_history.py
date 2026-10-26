@@ -43,7 +43,8 @@ OUT = f"{GB}/data/backfill"
 CLIENT_ID = 81
 PACE_S = 10.5                       # 60 historical requests / 10 min is the hard limit
 
-SYMBOLS = {"MNQ": "CME", "MGC": "COMEX"}
+SYMBOLS = {"MNQ": "CME", "MGC": "COMEX", "MES": "CME", "M2K": "CME", "MYM": "CBOT", "MBT": "CME"}   # 2026-10-26: market research (MES/M2K/MYM/MBT)
+SINCE = None                        # --since: skip contracts that expired before this date (a bounded "last N months" pull)
 # (barSize, durationStr, one-request-per-day?) — coarse first, so a truncated run still leaves the
 # long series on disk. Minute bars are pulled a day at a time; they cannot be trusted in bulk.
 LADDER = [("1 day", "15 Y", False), ("1 hour", "1 Y", False),
@@ -233,6 +234,8 @@ async def pull_contracts(ib, sym, exch, deadline):
     front = future[0] if future else None
     for ex in expiries:
         exp = dt.date(int(ex[:4]), int(ex[4:6]), int(ex[6:8]) if len(ex) >= 8 else 15)
+        if SINCE and exp < SINCE:
+            continue                            # --since: outside the requested window
         # ★★★2026-08-18 THE ACTIVE CONTRACT IS PULLED TOO, ending NOW. A first cut skipped every
         # unexpired contract on the reasoning that "the live feed already captures it" — but the
         # live feed only started 2026-07-15, while the current front month has traded since ~March.
@@ -320,7 +323,10 @@ def main():
     ap.add_argument("--symbols", default="MNQ,MGC")
     ap.add_argument("--minutes", type=int, default=360)
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--since", default=None, help="YYYY-MM-DD: only contracts expiring on/after this date")
     a = ap.parse_args()
+    global SINCE
+    SINCE = dt.date.fromisoformat(a.since) if a.since else None
     os.makedirs(OUT, exist_ok=True)
     ok, kind = preflight(a.force)
     if not ok:
