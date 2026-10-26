@@ -14,3 +14,6 @@ A1 (appended 2026-10-26 ~10:50Z, before any E118 call). Operator: "cant we run t
   5-hour usage window (E112 A4 incident), not CPU. Runs NOW, inside live hours, under two guards in replay.py: (1) before every replay call, if the LIVE robot's latest decision (< 15 min old)
   errored, all replays abort at once (the window is the live desk's first); (2) a call budget E112_MAX_CALLS=1500 for this launch, 2 workers. Never 20:45Z-02:00Z (the window must reset before
   the live desk's 02:00Z start). Everything else in E118 unchanged.
+A2 (appended 2026-10-26 ~12:05Z). Operator asked to see the targets on stalled entries. QUEUED after the Nov 24-28 week: the same three arms (v103 / v103T30 / v103D) on the 7 KNOWN DISASTER
+  sessions 2025-10-01, 10-03, 10-22, 10-31, 11-12, 11-13, 11-17 (chosen BECAUSE they went badly: IN-SAMPLE, a mechanism check incl. what Claude does with a freed rider, never pooled with the
+  unseen weeks and not evidence for v1.04 on its own). Same guards (live-health abort, call budget 2,500, 2 workers, never 20:45Z-02:00Z). Then the unseen-week chain resumes.
