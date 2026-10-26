@@ -1,0 +1,11 @@
+E121 - MGC TARGET GRID on the detector-only live-desk path (step 1 of the gold scope).  Declared 2026-10-26 ~19:15Z before any run. Zero Claude tokens.
+Operator, 2026-10-26: "run our current live desk backtest on a week of mgc? We will need to first run a grid of what the best target profit is." -> "Go with step 1".
+DATA: MGC front month per session (most 1-min volume) from the raw IBKR per-contract files, the desk's own 5s capture wherever it exists (from 2026-08-05); 2025-09-24..2026-10-23
+  (gap 2026-01-09..01-21). Same build as reports/research/markets/phase4_year.py.
+DESK (as live v1.03/v1.04 mechanics, detector-only - no Claude): frozen detector K=11 x ATR14 on MGC 1-min closes; candidates every 5 min 02:00-13:25Z at/after 05:00 Paris, side = the
+  detector's current leg; entry = close of the last closed bar + 0.1 adverse; flat-only; all 4 lots out at +T points from the fill (trade-through 0.1) else marked at the last bar before
+  20:40Z; NO stop; re-entry after a hit; +$1,000 day lock (realised); MIL cap 2 claims per detector leg. 4 MGC ($10/pt/lot), fees $2/lot round turn.
+GRID: T in {3, 4, 5, 6, 7, 8, 10, 12} gold points. MNQ reference: the same engine on MNQ at its live +37.5 over the same sessions.
+READ per T, full year AND per quarter: sessions, entries/day, hit rate, entries <= -$1k, days <= -$2k, worst day, days positive % (of traded days), $/day, CV.
+PICK (Law 0): the T with the best worst day / days<=-$2k / days-positive that is ALSO no worse than its neighbours in >= 3 of 5 quarters (stability), ties -> higher $/day; plus a runner-up.
+  The pick feeds step 2/3 (a Claude replay week) only with the operator's go. Nothing live changes.
