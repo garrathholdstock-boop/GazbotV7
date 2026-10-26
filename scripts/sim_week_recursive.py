@@ -436,7 +436,7 @@ def card_lines(c: dict, holding: bool) -> list:
 
 def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
             done: list | None = None, self_aware: bool = False, band: bool = True,
-            leg_list: bool = True, mil: bool = False, card: bool = False) -> str:
+            leg_list: bool = True, mil: bool = False, card: bool = False, window_note: str | None = None) -> str:
     """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
 
     ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
@@ -582,7 +582,7 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
 
     mins_left = WIN_END_MIN - (now.hour * 60 + now.minute)
     L += ["", f"⏱ {mins_left} minutes left in the window. At 13:30Z you are flattened "
-              f"automatically, whatever you say."]
+              f"automatically, whatever you say."] if window_note is None else ["", f"⏱ {mins_left} minutes left in the window. {window_note}"]
     if lessons:
         L += ["", "WHAT YOU LEARNED ON THE PREVIOUS DAYS OF THIS WEEK", lessons]
     return "\n".join(L)

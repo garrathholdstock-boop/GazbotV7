@@ -92,7 +92,10 @@ ARM_CFG = {
     "v103":    {"milcap": 2, "target": 37.5, "decay": None},
     "v103T30": {"milcap": 2, "target": 30.0, "decay": None},
     "v103D":   {"milcap": 2, "target": 37.5, "decay": (30, 25.0)},
+    "v103B":   {"milcap": 2, "target": 37.5, "decay": None, "brief": "desk"},      # E119: the Desk Brief instead of BRIEF_V2
 }
+from gazbot7 import desk_brief as DB  # noqa: E402
+WINDOW_NOTE = ("This window is when you may ENTER. It does NOT close the real position: that closes only at +37.5 points or at 20:40Z.")
 
 
 def day_bars(day: str) -> list:
@@ -107,6 +110,7 @@ def day_bars(day: str) -> list:
 
 
 ML.minute_bars = day_bars          # leg_robot.series_for -> the detector reads the same 1-min tape
+MECH = DB.mechanics_from_robot(H) | {"exit_live": False}     # the replayed desk: Claude's EXIT never closes the rider (as live, hybrid_exit_live=off)
 
 
 def ride(bars: list, op: int, dirn: int, fill: float, d0: int, target: float = TARGET, decay: tuple | None = None) -> dict:
@@ -190,8 +194,19 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             _abort["why"] = f"call budget {_budget['max']} used"
             raise Abort(_abort["why"])
         _budget["used"] += 1
-        d = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
-                  + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
+        if cfg and cfg.get("brief") == "desk":
+            mil_now = H.mil_pivot(L.confirmed_turns([b for b in series_all if b[0] + 60 <= op]), op - 60)
+            st_ = {"now_utc": dt.datetime.fromtimestamp(op, UTC).strftime("%H:%MZ"), "mins_to_us_open": max(0, (d0 + 13 * 3600 + 1800 - op) // 60),
+                   "mil_dir": mil_now[1] if mil_now else None, "mil_cap": cfg["milcap"],
+                   "mil_claims": sum(1 for q in rec["presses"] if mil_now and q.get("mil_pivot") == mil_now[0] and q["why"].startswith("TARGET") and q["exit_ts"] <= op),
+                   "day_usd": realised, "lock_usd": LOCK, "holding": rider is not None}
+            brief_txt, stamp = DB.build(MECH, st_)
+            rec["brief"] = stamp
+            d = S.ask(brief_txt + "\n\n=== THE TAPE ===\n"
+                      + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False, window_note=WINDOW_NOTE))
+        else:
+            d = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
+                      + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
         act = d.get("action", "WAIT")
         streak = streak + 1 if d.get("error") else 0
         if streak >= STREAK_ABORT:
