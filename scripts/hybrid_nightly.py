@@ -123,8 +123,8 @@ def arm_of(key: str) -> str:
     v = version_of(key)
     if key == H.EXT_KEY:
         return f"v{v}-EXT"
-    if key >= H.VOTE_FROM:
-        return f"v{v}+LOCK+MILCAP+BRIEF+VOTES"
+    if key >= H.VOTE_FROM:                      # E123 A1: the cap is released per session by switch line (10-27..10-30), so the label reads it
+        return f"v{v}+LOCK+{'MILCAP+' if H.milcap_enabled(key) else ''}BRIEF+VOTES"
     if key >= H.BRIEF_FROM:
         return f"v{v}+LOCK+MILCAP+BRIEF"
     if key >= H.MILCAP_FROM:

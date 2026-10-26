@@ -17,3 +17,7 @@ CONFOUND: v1.04 (Desk Brief) and v1.05 start on the same session; the 10-27.. se
 READ AT THE END OF THE WEEK: per voted entry, agree count and outcome; what 3 votes would have done (= ballots 1-3 of the 5, same records); entries blocked and what they would have made.
 Cost: +4 calls per voted entry only.
 ROBUSTNESS (added 2026-10-26 ~20:55Z): ballots must return by decision+200s (press stale at +240s, systemd kill ~+260s); <45s left -> no vote, NOT entered (VOTE_NO_TIME_NOT_ENTERED). Unit MemoryMax 900M -> 1600M (4 parallel ballots measured 633-643MB peak in the unit's cgroup). End-to-end dry run on the real 10-26 04:25Z slot: 4 real ballots in 18s, PRESS_BUY reached, no file written.
+
+A1 (2026-10-26 ~21:05Z, operator): "Can we leave legs uncapped and just try 5 calls first? Then if we need 2 cap we implement later. The new brief is also designed to tighten up
+taking less bad trades also. So let's try those 2 at once only." -> MIL cap RELEASED for sessions 2026-10-27..2026-10-30 via hybrid_milcap_off_for=<key> lines (existing, tested
+mechanism; the brief says the cap is released). Back on automatically from 2026-11-02. This week = BRIEF + VOTES only. Arm label v1.05+LOCK+BRIEF+VOTES.

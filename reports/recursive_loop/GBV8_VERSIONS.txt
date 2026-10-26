@@ -39,3 +39,4 @@ v1.04  2026-10-27  THE DESK BRIEF (E120): v1.03 unchanged + Claude reads the Des
 v1.05  2026-10-27  VOTES (E123): v1.04 unchanged + an otherwise-pressable ENTER is asked 4 more times (same prompt, parallel); pressed only if >=3 of 5 say the same entry.
        Errored ballot = NO. Every ballot logged (rec["votes"]). Switch `hybrid_votes=5` (rollback = remove). Starts the SAME session as v1.04, so the brief and the votes are
        tested together. Arm v1.05+LOCK+MILCAP+BRIEF+VOTES - never pool. Operator: 5 for this week, maybe 3 next week (3 is read from ballots 1-3). Declaration: E123.
+       2026-10-26 21:05Z (E123 A1, operator): MIL cap RELEASED for 10-27..10-30 (switch lines) - this week tests BRIEF + VOTES only; arm v1.05+LOCK+BRIEF+VOTES.

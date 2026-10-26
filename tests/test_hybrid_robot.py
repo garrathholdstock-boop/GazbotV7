@@ -818,8 +818,11 @@ def test_an_exit_while_the_desk_really_holds_texts_the_operator_and_books_nothin
     assert "OPEN, now" in deskbox.prompts[0] and H.load_state("2026-10-13")["done"] == []
 
 
-def test_the_live_desk_brief_is_byte_identical_to_the_audited_replay_arm():
-    """parity: for a v1.04 session the live robot builds the same static brief (strategy + mechanics + experience) as replay arm v103B."""
+def test_the_live_desk_brief_is_byte_identical_to_the_audited_replay_arm(tmp_path, monkeypatch):
+    """parity: for a v1.04 session the live robot builds the same static brief (strategy + mechanics + experience) as replay arm v103B.
+    The live switch file is NOT read (it may release the cap for a session - E123 A1); the capped build is the one compared."""
+    (tmp_path / "env").write_text("hybrid_robot=on\nhybrid_brief=desk\n")
+    monkeypatch.setattr(H, "SWITCH", str(tmp_path / "env"))
     from gazbot7 import desk_brief as DB
     sys.path.insert(0, str(GB / "reports/recursive_loop/E112_code"))
     import mil_labels as ML
