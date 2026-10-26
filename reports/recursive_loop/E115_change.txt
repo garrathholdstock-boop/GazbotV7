@@ -22,3 +22,7 @@ TESTS: tests/test_hybrid_robot.py +8 (cap blocks at 2, presses at 1, losers/flag
   MILCAP_FROM untouched, against-the-leg never reads the ledger); tests/test_hybrid_nightly.py fixtures stamp the version each session ran + a labelling test. 237 hybrid/leg tests pass.
 NOT CHANGED: the E104 shadows (hybrid_shadow.py) stay v1.02 arms (they do not apply the cap; their would-be entries remain v1.02-filtered - stated, not hidden).
 OPEN (the operator's main ask, still live): what stops the first/second-entry disasters (10-26 05:05Z re-entry, 10-16 -$4,547, Nov 2025 -$4.5k days). E112/E113/E114 continue.
+
+A1 (2026-10-26 12:31Z). Operator: "Release the 2 cap per mil just for today." Added milcap_enabled(): `hybrid_milcap_off_for=<session key>` in data/hybrid_robot.env switches the cap off for
+  THAT session only and expires by itself. Line added: hybrid_milcap_off_for=2026-10-26. The cap had engaged on today's up-MIL (pivot 01:17Z) after the 04:25Z and 05:05Z claims. Today's arm
+  label stays v1.03+LOCK+MILCAP (with this release noted); +1 test (69 robot tests pass).

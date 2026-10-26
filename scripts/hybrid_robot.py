@@ -202,6 +202,15 @@ def det_dir(turns: list, t: int) -> int:
     return cur
 
 
+def milcap_enabled(key: str) -> bool:
+    """On unless data/hybrid_robot.env carries `hybrid_milcap_off_for=<session key>` for THIS session - a one-day release that expires by itself
+    (operator 2026-10-26: "Release the 2 cap per mil just for today")."""
+    try:
+        return not any(ln.strip() == f"hybrid_milcap_off_for={key}" for ln in open(SWITCH))
+    except Exception:
+        return True
+
+
 def mil_pivot(turns: list, t: int) -> tuple | None:
     """(pivot_ts, direction) of the detector's current MIL: the last confirmed turn knowable at t (cts + 60 <= t); None if none."""
     cur = None
@@ -521,7 +530,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
         series = [b for b in L.series_for(L.session_day(now)) if b[0] + 60 <= now_ts - L.SETTLE_S]
         turns = L.confirmed_turns(series) if len(series) >= 200 else []
         dd = det_dir(turns, op - 60)
-        mil = mil_state(key, turns, op) if key >= MILCAP_FROM and dd == dirn else None
+        mil = mil_state(key, turns, op) if key >= MILCAP_FROM and dd == dirn and milcap_enabled(key) else None
         if mil:
             rec["mil"] = mil
         cut = L.veto_cutoff(op)

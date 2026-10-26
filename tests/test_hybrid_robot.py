@@ -766,3 +766,12 @@ def test_against_the_leg_never_reads_the_ledger(capbox, monkeypatch):
     monkeypatch.setattr(H, "mil_claims", lambda *a: (_ for _ in ()).throw(AssertionError("read")))
     capbox.leg_down(); capbox.answer = {"action": "ENTER_LONG"}
     assert capbox.step(at(8))["decision"]["entry_action"] == "NOT_WITH_LEG"
+
+
+def test_a_one_day_release_switches_the_cap_off_for_that_session_only(capbox):
+    capbox.leg_up(); capbox.answer = {"action": "ENTER_LONG"}
+    capbox.ledger([(_iso(5), "LONG", 294.0, None), (_iso(6), "LONG", 270.0, None)])
+    capbox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_milcap_off_for=2026-10-13\n")
+    r = capbox.step(at(8))
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and "mil" not in r["decision"]
+    assert H.milcap_enabled("2026-10-14")                     # the next session is capped again without anyone touching the switch

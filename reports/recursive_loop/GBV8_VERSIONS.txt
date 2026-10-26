@@ -30,3 +30,4 @@ v1.03  2026-10-26  MIL CAP (E115): v1.02+LOCK unchanged + at most 2 claims (+37.
        (transition day, labelled v1.03 by date). Arm v1.03+LOCK+MILCAP - never pool with v1.02 / v1.02+LOCK / v1.02-EXT. A CONSISTENCY change; it does not address first-entry disasters.
        Basis: Claude replays Oct+Nov 2025 +$3,088 -> +$4,729 (40 d), live ledger 10-15..10-26 -$1,569 -> +$2,749 (8 d); small n, 2 chosen after seeing the tables.
        Declaration: E115.
+       2026-10-26 12:31Z: MIL cap RELEASED for the 2026-10-26 session only (operator), via `hybrid_milcap_off_for=2026-10-26`; back on from the 10-27 session automatically. E115 A1.
