@@ -107,3 +107,5 @@ NEXT, IN ORDER:
     then the gate becomes arm v102G (entry pressed only if Claude enters AND the reviewer says TAKE), tested on the next clean week (Nov 24-28) under A0c. Runs inside the 13:35Z-20:45Z window.
   A5.2 LEARNING BY EXAMPLE (R3, only if A5.1 fails): Claude is shown condensed pages of its own October+November losers beside matched winners and told to avoid entries that look like the losers;
     frozen in an amendment before its test week (Nov 24-28 or later).
+  A5 note (2026-10-26 ~06:20Z): operator ordered the A5.1 gate check (~100 calls) to run NOW, inside the live window, after the usage window reset ("Run it now the session just reset").
+  Exception to A4 for this one small check only; replay days still run only 13:35Z-20:45Z.
