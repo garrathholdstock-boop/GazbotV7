@@ -50,6 +50,8 @@ BRIEF_FROM = "2026-10-27"        # v1.04: first session that may use the Desk Br
 VOTE_FROM = "2026-10-27"         # v1.05: first session that may vote on an entry (still gated by the hybrid_votes=<N> switch line)
 VOTE_MAX = 5
 VOTE_TIMEOUT_S = 150             # the ballots run in parallel; a slow one is a 'no' and PRESS_MAX_AGE_S still bounds the whole decision
+VOTE_DEADLINE_S = 200            # ballots must be back by decision + 200s: the press goes stale at +240s and systemd kills the run at start+240s (~decision+260s)
+VOTE_MIN_S = 45                  # less time than this left for the ballots -> no vote, NOT entered (VOTE_NO_TIME); median call 10s, p95 23s, max 42s (10-26)
 LINE = "v2"
 QTY = 4
 TARGETS = "75,75,75,75"          # $ per lot at $2/pt = all four lots out at +37.5pt
@@ -246,23 +248,29 @@ def votes_n(key: str) -> int:
     return 1
 
 
-def ask_ballots(prompt: str, k: int) -> list:
-    """k more answers to the SAME prompt, in parallel. Each is S.ask's dict plus its latency."""
+def ask_ballots(prompt: str, k: int, timeout: int = VOTE_TIMEOUT_S) -> list:
+    """k more answers to the SAME prompt, in parallel. Each is S.ask's dict plus its latency. 4 in parallel under the unit's cgroup: 633MB peak
+    with the robot's imports (2026-10-26 test, MemoryMax then 900M -> raised to 1600M)."""
     import concurrent.futures as cf
 
     def one(_):
-        t = time.time(); d = S.ask(prompt, timeout=VOTE_TIMEOUT_S)
+        t = time.time(); d = S.ask(prompt, timeout=timeout)
         return {**d, "latency_s": round(time.time() - t, 1)}
     with cf.ThreadPoolExecutor(max_workers=k) as ex:
         return list(ex.map(one, range(k)))
 
 
-def vote(key: str, prompt: str | None, act: str, first: dict, fake, st: dict, rec: dict, dry: bool) -> dict | None:
-    """v1.05: ballot 1 is the answer already in hand; ask N-1 more. agree = ballots that say the same ENTER; an errored ballot is a 'no'."""
+def vote(key: str, prompt: str | None, act: str, first: dict, fake, st: dict, rec: dict, dry: bool, op: int, clock_ts: float) -> dict | None:
+    """v1.05: ballot 1 is the answer already in hand; ask N-1 more. agree = ballots that say the same ENTER; an errored ballot is a 'no'.
+    Fails CLOSED: not enough time left before the deadline -> no ballots, agree counts only ballot 1, the entry is not made."""
     n = votes_n(key)
     if n <= 1 or fake is not None or prompt is None:
         return None
-    more = ask_ballots(prompt, n - 1)
+    left = int(op + VOTE_DEADLINE_S - clock_ts)
+    if left < VOTE_MIN_S:
+        rec["votes"] = {"n": n, "need": n // 2 + 1, "agree": 1, "errors": 0, "no_time": left, "ballots": []}
+        return rec["votes"]
+    more = ask_ballots(prompt, n - 1, timeout=min(VOTE_TIMEOUT_S, left))
     ballots = [{"action": first.get("action"), "conf": first.get("confidence"), "reason": (first.get("reason") or "")[:200], "error": first.get("error")}]
     ballots += [{"action": b.get("action"), "conf": b.get("confidence"), "reason": (b.get("reason") or "")[:200], "error": b.get("error"),
                  "latency_s": b.get("latency_s")} for b in more]
@@ -696,8 +704,8 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                 st["milcap_err_paged"] = True
                 page(f"⚠ HYBRID ROBOT v{VERSION}: cannot read the ledger to count claims on this MIL ({mil.get('error')}) - the MIL cap FAILS CLOSED: "
                      "no new entries until it can count again.")
-        elif (vt := vote(key, prompt, act, d, fake, st, rec, dry)) and vt["agree"] < vt["need"]:   # v1.05: a majority must say the same entry
-            rec["entry_action"] = f"VOTE_{vt['agree']}_OF_{vt['n']}_NOT_ENTERED"
+        elif (vt := vote(key, prompt, act, d, fake, st, rec, dry, op, (now if dry else clock()).timestamp())) and vt["agree"] < vt["need"]:
+            rec["entry_action"] = "VOTE_NO_TIME_NOT_ENTERED" if "no_time" in vt else f"VOTE_{vt['agree']}_OF_{vt['n']}_NOT_ENTERED"   # v1.05: a majority must agree
         elif (cnow := (now if dry else clock())).timestamp() - op > PRESS_MAX_AGE_S:
             rec["entry_action"] = "STALE_NOT_ENTERED"
         elif (why := L.rider_gate(cnow)):

@@ -855,7 +855,8 @@ def votebox(deskbox, monkeypatch):
     deskbox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_votes=5\n")
     deskbox.more = []
     deskbox.asked = []
-    monkeypatch.setattr(H, "ask_ballots", lambda prompt, k: (deskbox.asked.append((prompt, k)), [dict(a) for a in deskbox.more[:k]])[1])
+    deskbox.timeouts = []
+    monkeypatch.setattr(H, "ask_ballots", lambda prompt, k, timeout=150: (deskbox.asked.append((prompt, k)), deskbox.timeouts.append(timeout), [dict(a) for a in deskbox.more[:k]])[2])
     return deskbox
 
 
@@ -900,3 +901,19 @@ def test_votes_are_off_without_the_switch_line_or_before_vote_from(votebox, monk
     assert H.votes_n("2026-10-13") == 3
     monkeypatch.setattr(H, "VOTE_FROM", "2026-10-27")
     assert H.votes_n("2026-10-13") == 1
+
+
+def test_the_ballots_get_only_the_time_left_before_the_deadline(votebox):
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    votebox.more = [{"action": "ENTER_LONG"}] * 4
+    votebox.clock = at(8, 1, 40)                                            # 100s after the decision -> 100s left of the 200s deadline
+    r = votebox.step(at(8))
+    assert votebox.timeouts == [100] and r["decision"]["entry_action"] == "PRESS_BUY"
+
+
+def test_too_little_time_left_fails_closed_without_asking(votebox):
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    votebox.more = [{"action": "ENTER_LONG"}] * 4
+    votebox.clock = at(8, 2, 40)                                            # 160s after -> 40s left < 45s
+    r = votebox.step(at(8))
+    assert votebox.asked == [] and r["decision"]["entry_action"] == "VOTE_NO_TIME_NOT_ENTERED" and "request" not in r["decision"]

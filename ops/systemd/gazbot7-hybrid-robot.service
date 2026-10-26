@@ -18,7 +18,7 @@ Environment=PYTHONPATH=src
 # ⚠ systemd's PATH does not include /root/.local/bin — a bare "claude" cost a whole day on 2026-10-05.
 Environment=CLAUDE_BIN=/root/.local/bin/claude
 WorkingDirectory=/home/alphabot/gazbot7
-MemoryMax=900M
+MemoryMax=1600M
 # A headless decision is 10-60s; four minutes is a hung call, not a slow one.
 TimeoutStartSec=240
 ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_robot.py --once
