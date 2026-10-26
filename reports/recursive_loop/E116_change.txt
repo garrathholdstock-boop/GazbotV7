@@ -1,0 +1,11 @@
+E116 - THE BIG-LEG FILTER: don't buy a bump inside a big down-leg (or sell a dip inside a big up-leg).  Declared 2026-10-26 ~07:40Z BEFORE any run.
+Operator, 2026-10-26: "The way we can look at today's one is that it was still one massive down leg. And we bought on a bump. Can you build this in? I know it's not always the case."
+DEFINITION: BIG LEG = the SAME frozen zigzag (DF.zigzag / DF.atr14, code sha unchanged) run with a larger threshold K_big x ATR14 on the same 1-min closes, K_big in {20, 30, 45, 60}
+  (the live detector is K=11). Direction = the last confirmed big turn knowable at decision-60s. AGAINST = the entry's side is opposite the big leg.
+TESTS (zero Claude tokens):
+  (1) 2026-10-26 04:25Z / 05:05Z live longs: big-leg direction for each K_big (the motivating case - not evidence).
+  (2) 10-yr census (E110, live window): D2 / D4 rate and mean $ for candidates WITH vs AGAINST the big leg, per K_big, TRAIN / TEST / FORWARD.
+  (3) Desk path (E113 engine, +$1,000 lock): "pause if against the big leg" per K_big vs a RANDOM pause at the same trade rate (20 draws): days <= -$2k, entry <= -$1k rate, $/day, days+ %.
+  (4) Claude's live-setup replay entries (Oct+Nov 2025, 100) and the live desk since 10-15: outcomes with vs against the big leg (static).
+A K_big is CANDIDATE if (3) beats the random 5th percentile on days <= -$2k on ALL three periods AND (4) does not lose money overall. A candidate is proposed to the operator as a press filter
+  (v1.04) or a no-press shadow; nothing live changes without his go.
