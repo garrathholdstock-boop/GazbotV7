@@ -95,3 +95,15 @@ A4 (appended 2026-10-26 03:45Z). LIVE-DESK INCIDENT CAUSED BY THIS STUDY: the ov
   LIVE hybrid robot's calls 02:00Z..03:25Z then errored (18 consecutive, "no parseable action") - no decisions, no entries, nothing at risk; calls recovered at 03:30Z when the window reset.
   The 01:45Z cut-off was wrong in kind: the limit is a rolling 5-hour window, so heavy replay use within ~5 h of 02:00Z starves the live desk. NEW RULE: replay calls only 13:35Z..20:45Z
   (no day is started outside it; a running day aborts at 21:00Z). Operator told immediately.
+
+A5 (appended 2026-10-26 ~04:30Z, before any call it governs). FINDINGS SINCE A4 (all zero-token, from existing records): (a) every v102/rule-arm entry <= -$1,000 (10) never ran more than
+  36pt in favour and did its damage in the US session (worst point 15:51Z-20:03Z; before 13:30Z only 11-284pt offside); (b) a multi-day-selloff flag fired on 3/8 bad days vs 19/32 good days and scheduled
+  US events sat on good and bad days alike -> the context-page R3 is NOT run (it would mostly block winners); (c) a confirmation scale-in (k lots, add the rest at +X) does not cut the tail
+  (worst entry ~ -$4,500 in every variant: the disasters ran +27..36pt first). Operator: "We don't do that [give up]!"
+NEXT, IN ORDER:
+  A5.1 SECOND-OPINION GATE, zero-shot check (reports/recursive_loop/E112_code/gate.py): a separate Claude call (risk reviewer, CLI default model = the live model) sees the identical page and the
+    proposed trade and answers TAKE/SKIP, on EVERY press v102 made in Oct+Nov 2025 (~100). The reviewer prompt was written from the desk's fixed payoff only, before reading any individual entry with it.
+    Read: SKIP rate on entries <= -$1,000 vs on the rest, and the static $ of skipping. PASS-to-test if the SKIP rate on the bad entries is at least double the rest AND the static $ is positive;
+    then the gate becomes arm v102G (entry pressed only if Claude enters AND the reviewer says TAKE), tested on the next clean week (Nov 24-28) under A0c. Runs inside the 13:35Z-20:45Z window.
+  A5.2 LEARNING BY EXAMPLE (R3, only if A5.1 fails): Claude is shown condensed pages of its own October+November losers beside matched winners and told to avoid entries that look like the losers;
+    frozen in an amendment before its test week (Nov 24-28 or later).
