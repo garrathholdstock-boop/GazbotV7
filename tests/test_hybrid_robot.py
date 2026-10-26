@@ -832,3 +832,16 @@ def test_the_live_desk_brief_is_byte_identical_to_the_audited_replay_arm():
         assert live == rep_, (live, rep_)
     finally:
         ML.minute_bars = keep
+
+
+def test_repeated_exits_on_the_same_real_position_text_the_operator_once(deskbox, monkeypatch):
+    deskbox.leg_up(); deskbox.answer = {"action": "EXIT", "reason": "reversed"}
+    deskbox.rider(entered=True, closed=False, lots_open=4, direction=1, entry=99.0, entered_at=at(7).isoformat(), session="2026-10-13")
+    sent = []
+    monkeypatch.setattr(H, "exit_alert", lambda pos, px, why, clock: (sent.append(1), ("SENT", "NO"))[1])
+    r1 = deskbox.step(at(8)); r2 = deskbox.step(at(8, 5)); r3 = deskbox.step(at(8, 10))
+    assert len(sent) == 1 and r1["decision"]["exit_alert"] == "SENT"
+    assert r2["decision"]["exit_alert"] == r3["decision"]["exit_alert"] == "ALREADY_SENT_FOR_THIS_POSITION"
+    deskbox.rider(entered=True, closed=False, lots_open=4, direction=1, entry=101.0, entered_at=at(8, 12).isoformat(), session="2026-10-13")
+    deskbox.step(at(8, 15))
+    assert len(sent) == 2                                                   # a NEW position may be alerted again

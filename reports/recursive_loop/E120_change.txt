@@ -11,3 +11,6 @@ AUDITS: two independent audits (D1 not ready -> D2 -> D3), all mandatory fixes a
 READ: daily via the nightly review per arm; compare v1.04 with v1.03/v1.02+LOCK on days positive, worst day, entries <= -$1k, presses/day (a collapse in presses = the freeze risk the audits
   flagged: if presses/day fall > 40% for a week with no fall in bad entries, the operator is told and the switch line is the rollback).
 DYNAMIC: mechanics + LIVE STATE regenerate every call; strategy/experience are versioned files updated under docs/CLAUDE.md "THE DESK BRIEF IS GOSPEL".
+A1 (2026-10-26 ~19:55Z, before the first v1.04 session). EXIT ALERT DE-DUPLICATED: in v1.04 the page shows the REAL position, which stays open after an EXIT (EXIT only texts), so Claude
+  repeats EXIT every 5 min (E122 gold replay: 23 EXITs on one held position). Now one exit alert per real position (keyed by its entry time); later EXITs on it are logged as
+  ALREADY_SENT_FOR_THIS_POSITION. A new position can alert again. +1 test.

@@ -653,8 +653,15 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                 rec["request"] = write_press(cnow, side)
             pressed = (side, rec)
     elif desk and pos and act == "EXIT":                    # v1.04: EXIT is the text to the operator (or the claim if hybrid_exit_live=on); no sim book
-        if not dry:
+        # ONE alert per real position: the page keeps showing the position after an EXIT (it is real), so Claude repeats EXIT every 5 min;
+        # the first one texts the operator, the rest are logged only (E122 replay: 23 EXITs on one held position).
+        pid = pos["opened"].isoformat()
+        if st.get("exit_alerted_for") == pid:
+            rec["exit_alert"] = "ALREADY_SENT_FOR_THIS_POSITION"
+        elif not dry:
             rec["exit_alert"], rec["exit_claim"] = exit_alert(pos, px, rec.get("reason"), clock)
+            if rec["exit_alert"] in ("SENT", "NOT_SENT") or rec.get("exit_claim") in ("WRITTEN", "ALREADY_PENDING"):
+                st["exit_alerted_for"] = pid
     elif st["pos"] and act == "EXIT":
         if not dry:
             rec["exit_alert"], rec["exit_claim"] = exit_alert(st["pos"], px, rec.get("reason"), clock)
