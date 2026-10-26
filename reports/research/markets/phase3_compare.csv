@@ -1,0 +1,7 @@
+market,sessions,med range $/micro,med range %,trend days,chop days,legs/sess,med leg $/micro,med leg ATR,med leg min,efficiency,pullback % of leg,left after confirm,$ left/leg/micro,$ left/sess/micro,note
+MNQ,65.0,852.0,1.38,32%,25%,4.6,410.0,16.1,244.0,0.162,30%,41%,158.0,733.0,
+MGC,65.0,855.0,1.95,34%,20%,7.5,283.0,15.4,139.0,0.219,27%,38%,94.0,704.0,
+MES,65.0,344.0,0.92,42%,25%,4.8,134.0,16.1,245.0,0.157,32%,39%,52.0,254.0,
+M2K,,,,,,,,,,,,,,,no data pulled
+MYM,,,,,,,,,,,,,,,no data pulled
+MBT,,,,,,,,,,,,,,,no data pulled

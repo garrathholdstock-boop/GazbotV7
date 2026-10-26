@@ -34,7 +34,9 @@ PAT = re.compile(r"^(?P<sym>[A-Z0-9]+)_(?P<con>[A-Z0-9]+)_(?P<tf>1day|1hour|5min
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--symbols", default="", help="comma list: publish ONLY these symbols (others' lake files untouched)")
     a = ap.parse_args()
+    only = {x.strip() for x in a.symbols.split(",") if x.strip()}
     import duckdb
     files = sorted(glob.glob(f"{SRC}/*.parquet"))
     if not files:
@@ -45,6 +47,8 @@ def main() -> int:
         m = PAT.match(os.path.basename(f))
         if not m:
             print(f"  skip (unparsed name): {os.path.basename(f)}")
+            continue
+        if only and m["sym"] not in only:
             continue
         groups.setdefault((m["sym"], m["tf"]), []).append(f)
 
