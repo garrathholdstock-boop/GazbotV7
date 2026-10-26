@@ -25,7 +25,7 @@ So a trade that does not reach +37.5 soon can sit hundreds of points offside thr
 $1,500-$4,500, a win is +$294. Your only job: decide whether THIS entry, at THIS moment, is likely to reach +37.5 cleanly, or is the kind
 of entry that stalls and is then reversed. You see exactly what the trader saw (the page below). Judge it independently; do not defer to
 the trader's reasoning. Answer with ONE JSON object and nothing else:
-{"verdict": "TAKE" or "SKIP", "p_reach": <0..1 your probability it reaches +37.5 before 13:30Z>, "reason": "<one sentence>"}"""
+{"action": "TAKE" or "SKIP", "p_reach": <0..1 your probability it reaches +37.5 before 13:30Z>, "reason": "<one sentence>"}"""
 
 
 def review(day: str, p: dict) -> dict:
@@ -37,7 +37,7 @@ def review(day: str, p: dict) -> dict:
              f"decided {p['decision_ts'][11:16]}Z. The trader's reason: {p['reason']}")
     d = S.ask(GATE + "\n\n=== THE PAGE THE TRADER SAW ===\n" + page + trade)
     return {"day": day, "ts": p["decision_ts"][11:16], "side": p["side"], "pnl": p["pnl_usd"], "mae": p["mae_pt"],
-            "verdict": d.get("verdict"), "p_reach": d.get("p_reach"), "reason": (d.get("reason") or "")[:300], "error": d.get("error")}
+            "verdict": d.get("action") if d.get("action") in ("TAKE", "SKIP") else None, "p_reach": d.get("p_reach"), "reason": (d.get("reason") or "")[:300], "error": d.get("error")}
 
 
 def main():
