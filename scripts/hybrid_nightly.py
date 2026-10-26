@@ -113,13 +113,15 @@ def d0_of(key: str) -> int:
 
 def version_of(key: str) -> str:
     """The robot version a session ran: v1.03 (+MIL cap) from MILCAP_FROM, v1.02 before it. Labelled by DATE, so a version bump never relabels history."""
-    return H.VERSION if key >= H.MILCAP_FROM else H.PREV_VERSION
+    return H.VERSION if key >= H.BRIEF_FROM else (H.V103 if key >= H.MILCAP_FROM else H.PREV_VERSION)
 
 
 def arm_of(key: str) -> str:
     v = version_of(key)
     if key == H.EXT_KEY:
         return f"v{v}-EXT"
+    if key >= H.BRIEF_FROM:
+        return f"v{v}+LOCK+MILCAP+BRIEF"
     if key >= H.MILCAP_FROM:
         return f"v{v}+LOCK+MILCAP"
     return f"v{v}+LOCK" if key >= H.LOCK_FROM else f"v{v}"
@@ -599,6 +601,9 @@ def health_checks(env: Env, key: str, now: dt.datetime, log: dict, cov: dict, ca
                 add("WARN", "VERSION_MISMATCH", f"day record version {dayrec.get('version')} != the version this session should have run ({version_of(key)}).")
     # brief frozen
     cur_sha = S.hashlib.sha256(S.brief_for(H.LINE).encode()).hexdigest()[:16]
+    if dayrec and str(dayrec.get("brief_version", "V2")).startswith("D"):     # v1.04 Desk Brief: compare with today's build, same brief version only
+        from gazbot7 import desk_brief as DB
+        cur_sha = DB.build(DB.mechanics_from_robot(H, key))[1]["static_sha"] if dayrec["brief_version"] == DB.version() else dayrec.get("brief_sha")
     if dayrec and dayrec.get("brief_sha") and dayrec.get("version") == version_of(key) and dayrec["brief_sha"] != cur_sha:
         add("FAULT", "BRIEF_DRIFT", f"the brief changed under v{H.VERSION}: day record {dayrec['brief_sha']} vs source {cur_sha}. A new brief is a NEW ARM and a version bump, never an in-place edit.")
     # press rules

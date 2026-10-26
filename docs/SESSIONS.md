@@ -4194,3 +4194,10 @@ FINDING (not fixed): the Thu 10-22 lock was NOT sticky - DAY_LOCK 05:25Z, but 06
 - **E113** claims x leg age x leg points grid (390 cells, 10-yr desk path): leg age alone strongest for the detector desk; vs a random pause at the same trade rate the edge is modest (best: leg >= 60 min & < 75 pt/h). **E114** order flow (66 days of ticks): nothing separates the disasters.
 - **What works = not taking the extra entries:** per DAY (stop after 1-2 claims) and per MIL. The operator chose **2 claims per MIL, then wait for the next confirmed MIL** -> **v1.03 live (E115)**: Claude replays +$3,088 -> +$4,729, live 10-15..10-26 -$1,569 -> +$2,749. Tests: 237 pass. Shadows (E104) stay v1.02 arms.
 - **Still open, live:** what stops the first/second-entry disasters. Afternoon queue: the old-and-slow press-gate Claude arm (v102P) on Nov 24-28, learning-by-example (R3), the E112 noise arm.
+
+## 2026-10-26 (afternoon) — target tests stopped, the Desk Brief built, audited twice and put live (v1.04 from 10-27)
+- **E117/E118 targets:** a lower/decaying target saves drifting trades statically, but the freed rider takes more entries with the same tail (10-yr desk: disaster days flat); Claude replays of
+  known disaster days reproduced the stalls at every target (10-03: -1,523 / -1,509 / -1,477; the decay arm's freed rider re-entered into a new stall). Stopped.
+- **Run-to-run noise:** the same day replayed twice gave -$2,573 and +$882 (10-01) - multi-arm replay A/Bs need many weeks; stopped on the operator's call.
+- **E119 Desk Brief:** layered, versioned, mechanics generated from code, real desk book in LIVE STATE and on the page; audits D1 (not ready) -> D2 (ready after fixes) -> D3. Governance in docs/CLAUDE.md.
+- **E120 v1.04 live from the 10-27 session**, switch `hybrid_brief=desk`; 201 hybrid/brief tests incl. live/replay parity. v1.03 MIL cap stays; today's cap was released for 10-26 only.

@@ -1,0 +1,13 @@
+E120 - GAZBOT V8 ROBO v1.04: THE DESK BRIEF (D3) GOES LIVE ON PAPER.  Declared 2026-10-26 ~16:00Z, effective from the 2026-10-27 session (22:00Z tonight; first decision 02:00Z).
+Operator, 2026-10-26: "stop it all and keep 1.03 and the new brief." -> all E118/E119 replays stopped (the target arms and disaster days were not adding information; Claude's run-to-run
+  noise makes multi-arm replays expensive and weak). The Desk Brief goes live without the planned replay A/B, on the operator's decision; its forward paper record IS the test.
+WHAT CHANGES (scripts/hybrid_robot.py; v1.03 mechanics unchanged: with-leg, 05:00 Paris veto, flat-only, 4 lots all out at +37.5, no stop, 20:40Z flat, +$1,000 lock, MIL cap 2):
+  - Prompt = Desk Brief D3 (src/gazbot7/desk_brief.py, config/desk_brief/: strategy + generated mechanics + experience + per-call LIVE STATE) + the page with the REAL desk book
+    (live_book: ledger trades today + the rider's open position) - no simulated Claude book, no RECONCILE_SIM. EXIT = exit_alert (operator text; hybrid_exit_live=off).
+  - Gated: sessions >= BRIEF_FROM (2026-10-27) AND the switch line `hybrid_brief=desk` in data/hybrid_robot.env (added 2026-10-26 ~16:00Z). Remove the line = back to the v1.03 prompt.
+  - Every decision stamped rec["brief"] = {version, static_sha}; day record brief_sha/brief_version; hybrid_nightly labels by date: >= 2026-10-27 "v1.04+LOCK+MILCAP+BRIEF", never pooled.
+AUDITS: two independent audits (D1 not ready -> D2 -> D3), all mandatory fixes applied. PARITY: tests/test_hybrid_robot.py asserts the live static brief == the audited replay arm v103B's.
+  A full live prompt rendered from today's real ledger/rider/tape: reports/e119/live_v104_prompt_2026-10-26_1200Z.txt.
+READ: daily via the nightly review per arm; compare v1.04 with v1.03/v1.02+LOCK on days positive, worst day, entries <= -$1k, presses/day (a collapse in presses = the freeze risk the audits
+  flagged: if presses/day fall > 40% for a week with no fall in bad entries, the operator is told and the switch line is the rollback).
+DYNAMIC: mechanics + LIVE STATE regenerate every call; strategy/experience are versioned files updated under docs/CLAUDE.md "THE DESK BRIEF IS GOSPEL".

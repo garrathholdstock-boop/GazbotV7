@@ -4,7 +4,7 @@
 it ships; once committed, we do not relitigate without a new dated
 entry.
 
-**Last updated:** 2026-10-26 (Mon) — **§368** v1.03 MIL CAP live (E115). **Before that:** 2026-09-04 (Fri) — **§365** ★★★ THE STALE-BOOK FAMILY: one false cross-desk kill, traced to a guard that re-sampled the VENUE twice while the stale side was the CLAIM, cost four hours of a dead BUY button; underneath it a same-tick ladder/claim race that deducted one lot for two, a paper fill engine fabricating an exactly-0.1% adverse price on every lot after the first ($2,916.50 — more than the desk's entire booked loss), and a manage path pricing the open position off ITS OWN ENTRY outside US hours, which switched the trail and the ladder off in silence while every instrument read healthy.
+**Last updated:** 2026-10-26 (Mon) — **§369** v1.04 Desk Brief live from 10-27 (E120); §368 v1.03 MIL CAP (E115). **Before that:** 2026-09-04 (Fri) — **§365** ★★★ THE STALE-BOOK FAMILY: one false cross-desk kill, traced to a guard that re-sampled the VENUE twice while the stale side was the CLAIM, cost four hours of a dead BUY button; underneath it a same-tick ladder/claim race that deducted one lot for two, a paper fill engine fabricating an exactly-0.1% adverse price on every lot after the first ($2,916.50 — more than the desk's entire booked loss), and a manage path pricing the open position off ITS OWN ENTRY outside US hours, which switched the trail and the ladder off in silence while every instrument read healthy.
 
 **Previously:** 2026-09-03 (Thu) — **§364** ★★★ THE TUNNEL ARC: a 2-state HMM says MNQ and MGC spend ~2/3 of their minutes inside volatility compressions and are the SAME instrument in dollars ($10 quiet minute, $30 active, persistence agreeing to 0.001) — but leaving one predicts NOTHING on either contract (60-min excursion 1.0x a matched-hour control, direction 0.44-0.53 vs 0.50), so no MGC alert was armed, and the live MNQ watcher's founding "~1.75x excursion" claim was **WITHDRAWN** after nine hours in production because it did not replicate (1.02x). Gold needed its own fit twice over: 2.5% of its minutes have a true range of exactly zero (a spike that eats a whole state and yields a dead-tape detector), and its absolute range drifts with its vol regime (so the live-worthy feature is range against a CAUSAL trailing median, not a fixed threshold).
 
@@ -18823,6 +18823,12 @@ fails if an order-placing call appears in that branch, and that failure is a REG
 to the ownership question, not a refactor.
 
 ---
+
+## §369 — 2026-10-26 (Mon) — ★★★ v1.04: CLAUDE IS TOLD THE TRUTH ABOUT THE DESK — THE DESK BRIEF GOES LIVE. (E119/E120.)
+- **Decision (operator):** "keep 1.03 and the new brief"; replays stopped ("i just dont want to churn through heaps of tokens for nothing").
+- **Why:** the live prompt (BRIEF_V2, 2026-10-07) told Claude he was the exit and was flattened at 13:30Z — both false (EXIT only texts; positions ride to 20:40Z with no stop), told him to
+  "get in late" and "keep jumping in", and carried none of the desk's experience. The Desk Brief generates the mechanics from code, adds the live state and the experience, and is versioned.
+- **Not decided:** whether it improves results — the forward paper record decides; rollback is one switch line.
 
 ## §368 — 2026-10-26 (Mon) — ★★★ v1.03 MIL CAP: the extra entry on a MIL that has already paid twice is not taken. (gazbot7 `96cd53d`, E115.)
 - **Decision (operator):** "We can stop at 2 claims on 1 MIL. But then we wait for next mil to be confirmed." Live on paper from the 2026-10-26 session; arm `v1.03+LOCK+MILCAP`, never pooled.

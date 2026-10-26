@@ -82,8 +82,8 @@ def test_every_write_targets_one_of_its_own_paths():
 
 
 def test_frozen_parameters():
-    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.03", "v2", 4, "75,75,75,75")
-    assert (H.MIL_CAP, H.MILCAP_FROM, H.PREV_VERSION) == (2, "2026-10-26", "1.02")
+    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.04", "v2", 4, "75,75,75,75")
+    assert (H.MIL_CAP, H.MILCAP_FROM, H.PREV_VERSION, H.V103, H.BRIEF_FROM) == (2, "2026-10-26", "1.02", "1.03", "2026-10-27")
     assert H.DETECTOR_SHA == L.DETECTOR_SHA == L.detector_sha()
     assert H.L.VETO_PARIS_HOUR == 5 and H.L.K == 11
     assert H.S.brief_for("v2") is H.S.BRIEF_V2
@@ -775,3 +775,60 @@ def test_a_one_day_release_switches_the_cap_off_for_that_session_only(capbox):
     r = capbox.step(at(8))
     assert r["decision"]["entry_action"] == "PRESS_BUY" and "mil" not in r["decision"]
     assert H.milcap_enabled("2026-10-14")                     # the next session is capped again without anyone touching the switch
+
+
+# ── v1.04 THE DESK BRIEF on the live robot (E120): switch-gated, real book, LIVE STATE, parity with the audited replay arm ─────
+
+@pytest.fixture
+def deskbox(capbox, monkeypatch):
+    monkeypatch.setattr(H, "BRIEF_FROM", "2026-10-01")
+    capbox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\n")
+    monkeypatch.setattr(H, "day_equity", lambda key, now_ts: {"now": 123.0, "peak": 123.0, "peak_ts": None, "touch_ts": None, "bars": 1})
+    capbox.prompts = []
+    monkeypatch.setattr(H.S, "ask", lambda prompt, timeout=180: (capbox.prompts.append(prompt), dict(capbox.answer))[1])
+    capbox.ledger([])
+    return capbox
+
+
+def test_without_the_switch_line_the_v103_prompt_is_used(capbox, monkeypatch):
+    monkeypatch.setattr(H, "BRIEF_FROM", "2026-10-01")
+    seen = []
+    monkeypatch.setattr(H.S, "ask", lambda prompt, timeout=180: (seen.append(prompt), {"action": "WAIT"})[1])
+    capbox.leg_up(); capbox.step(at(8))
+    assert "THE STRATEGY" in seen[0] and "LIVE STATE" not in seen[0]
+
+
+def test_the_desk_brief_prompt_has_mechanics_live_state_and_the_real_book(deskbox):
+    deskbox.leg_up(); deskbox.answer = {"action": "ENTER_LONG"}
+    r = deskbox.step(at(8))
+    p = deskbox.prompts[0]
+    assert "DESK MECHANICS" in p and "LIVE STATE (this decision" in p and "MIL: UP since 01:00Z" in p and "=== THE TAPE ===" in p
+    assert "(realised + open): +123 USD" in p and "THE STRATEGY" not in p
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and r["decision"]["brief"]["version"].startswith("D")
+    assert H.load_state("2026-10-13")["pos"] is None                       # no simulated book in v1.04
+
+
+def test_an_exit_while_the_desk_really_holds_texts_the_operator_and_books_nothing(deskbox, monkeypatch):
+    deskbox.leg_up(); deskbox.answer = {"action": "EXIT", "reason": "the leg reversed"}
+    deskbox.rider(entered=True, closed=False, lots_open=4, direction=1, entry=99.0, entered_at=at(7).isoformat(), session="2026-10-13")
+    calls = []
+    monkeypatch.setattr(H, "exit_alert", lambda pos, px, why, clock: (calls.append((pos["dir"], pos["entry"])), ("SENT", "NO"))[1])
+    r = deskbox.step(at(8))
+    assert calls == [(1, 99.0)] and r["decision"]["exit_alert"] == "SENT"
+    assert "OPEN, now" in deskbox.prompts[0] and H.load_state("2026-10-13")["done"] == []
+
+
+def test_the_live_desk_brief_is_byte_identical_to_the_audited_replay_arm():
+    """parity: for a v1.04 session the live robot builds the same static brief (strategy + mechanics + experience) as replay arm v103B."""
+    from gazbot7 import desk_brief as DB
+    sys.path.insert(0, str(GB / "reports/recursive_loop/E112_code"))
+    import mil_labels as ML
+    keep = ML.minute_bars
+    try:
+        import replay as RP
+        key = "2026-10-28"
+        live = DB.build(DB.mechanics_from_robot(H, key))[1]
+        rep_ = DB.build(RP.mech_for(key, RP.ARM_CFG["v103B"]))[1]
+        assert live == rep_, (live, rep_)
+    finally:
+        ML.minute_bars = keep

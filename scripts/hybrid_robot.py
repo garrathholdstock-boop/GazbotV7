@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """GAZBOT V8 ROBO v1.03 — THE HYBRID (E89): Claude S1b calls the entries, the frozen detector gives the leg, the rider does the rest.
 v1.03 (2026-10-26, operator, E115): + MIL CAP — at most MIL_CAP (2) claims per MIL; then no new press until the detector confirms the next MIL.
+v1.04 (2026-10-26, operator, E120): + THE DESK BRIEF (src/gazbot7/desk_brief.py, config/desk_brief/) instead of BRIEF_V2, with the REAL desk book on the
+      page and a per-call LIVE STATE; switch line `hybrid_brief=desk` in data/hybrid_robot.env (absent -> the v1.03 prompt).
 
 Declared in reports/recursive_loop/E89_change.txt. It deploys E81-E88; it changes none of their rules.
 
@@ -37,8 +39,10 @@ from gazbot7 import fills_pnl as FP  # noqa: E402  the BROKER's executions, the 
 
 UTC = dt.timezone.utc
 ROBOT = "GazBot V8 Robo"
-VERSION = "1.03"
+VERSION = "1.04"
+V103 = "1.03"                    # sessions MILCAP_FROM..BRIEF_FROM-1 ran v1.03
 PREV_VERSION = "1.02"            # sessions before MILCAP_FROM ran v1.02 (+LOCK from LOCK_FROM); the nightly labels them by date, never by this constant
+BRIEF_FROM = "2026-10-27"        # v1.04: first session that may use the Desk Brief (still gated by the hybrid_brief=desk switch line)
 LINE = "v2"
 QTY = 4
 TARGETS = "75,75,75,75"          # $ per lot at $2/pt = all four lots out at +37.5pt
@@ -211,6 +215,84 @@ def milcap_enabled(key: str) -> bool:
         return True
 
 
+def brief_desk(key: str) -> bool:
+    """v1.04: the Desk Brief is used only from BRIEF_FROM and only while data/hybrid_robot.env carries `hybrid_brief=desk` (the off-switch)."""
+    if key < BRIEF_FROM:
+        return False
+    try:
+        return any(ln.strip() == "hybrid_brief=desk" for ln in open(SWITCH))
+    except Exception:
+        return False
+
+
+def live_book(key: str, px: float, now_ts: int) -> tuple:
+    """The REAL desk for the page and LIVE STATE: (position for the page | None, closed trades for the page, LIVE STATE trades).
+    Closed trades = this session's day_rider ledger entries (EXCLUDE/BADFILL removed) grouped by opened_at; the open one = the rider."""
+    lo = int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp()) - 2 * 3600
+    con = sqlite3.connect(f"file:{LEDGER}?mode=ro", uri=True)
+    try:
+        rows = con.execute("SELECT opened_at, closed_at, side, qty, entry_price, pnl_usd, data_quality FROM trades WHERE gate='day_rider' AND opened_at >= ? "
+                           "ORDER BY opened_at", (dt.datetime.fromtimestamp(lo, UTC).isoformat(),)).fetchall()
+    finally:
+        con.close()
+    ents: dict = {}
+    for o, c, sd, q, e, pnl, dq in rows:
+        if (dq or "").startswith(("EXCLUDE", "BADFILL")):
+            continue
+        x = ents.setdefault(o, {"side": sd, "qty": 0.0, "cost": 0.0, "pnl": 0.0, "closed": c})
+        x["qty"] += float(q); x["cost"] += float(q) * float(e); x["pnl"] += float(pnl or 0); x["closed"] = max(x["closed"], c)
+    done, trades = [], []
+    for o, x in ents.items():
+        entry = x["cost"] / x["qty"] if x["qty"] else 0.0
+        pts = x["pnl"] / (x["qty"] * PV) if x["qty"] else 0.0
+        done.append({"side": x["side"], "opened": o, "closed": x["closed"], "held_min": round((_epoch(x["closed"]) - _epoch(o)) / 60, 1),
+                     "points": round(pts, 2), "pnl_usd": round(x["pnl"], 2), "peak_pt": round(pts, 2), "entry": round(entry, 2), "exit": round(entry + (1 if x["side"] == "LONG" else -1) * pts, 2)})
+        trades.append({"t": str(o)[11:16], "side": x["side"], "entry": entry, "status": ("CLAIMED" if x["pnl"] > 0 else "CLOSED") + f" {x['pnl']:+,.0f} USD"})
+    pos = None
+    rs = L.load_json(L.RIDER_STATE)
+    if rs.get("entered") and not rs.get("closed") and rs.get("entry") is not None and rs.get("entered_at"):
+        d = 1 if float(rs.get("direction") or 0) > 0 else -1
+        e = float(rs["entry"]); o = dt.datetime.fromtimestamp(_epoch(rs["entered_at"]), UTC)
+        pos = {"dir": d, "entry": e, "peak": 0.0, "peak_1m": 0.0, "last_ts": now_ts, "opened": o}
+        tgt = float(TARGETS.split(",")[0]) / PV
+        trades.append({"t": o.strftime("%H:%M"), "side": "LONG" if d > 0 else "SHORT", "entry": e, "status": "OPEN",
+                       "mark_pts": d * (px - e), "to_target_pts": max(0.0, tgt - d * (px - e))})
+    return pos, done, trades
+
+
+def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: list) -> tuple:
+    """(prompt, stamp, page position) for v1.04: Desk Brief + LIVE STATE + the page with the REAL book - the prompt E119 audited and replayed (arm v103B)."""
+    from gazbot7 import desk_brief as DB
+    me = sys.modules[__name__]
+    mech = DB.mechanics_from_robot(me, key)
+    ppos, pdone, ptrades = live_book(key, px, now_ts)
+    mp = mil_pivot(turns, op - 60)
+    cut = L.veto_cutoff(op)
+    try:
+        day_usd = day_equity(key, now_ts)["now"]
+    except Exception:
+        day_usd = None
+    claims = 0
+    if mp and mech["mil_cap"]:
+        try:
+            claims = mil_claims(key, mp[0], mp[1])
+        except Exception:
+            claims = 0
+    d0 = int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp())
+    st_ = {"now_utc": dt.datetime.fromtimestamp(op, UTC).strftime("%H:%MZ"), "mins_to_us_open": max(0, (d0 + S.WIN_END_MIN * 60 - op) // 60),
+           "before_veto": mech["veto_utc"] if cut is not None and op < cut else None,
+           "mil_dir": mp[1] if mp else None, "mil_since": dt.datetime.fromtimestamp(mp[0], UTC).strftime("%H:%MZ") if mp else None,
+           "mil_cap": mech["mil_cap"], "mil_claims": claims, "trades": ptrades, "day_usd": day_usd, "lock_usd": LOCK_USD}
+    head, stamp = DB.build(mech, st_)
+    header = (f"MNQ · {key} {dt.datetime.fromtimestamp(op, UTC):%H:%M}Z · entries are traded from {mech['veto_utc']} today until "
+              f"{mech['us_open_utc']} (the US cash open) - all times UTC")
+    note = (f"This window is only when you may ENTER. It does NOT close the real position: that closes only at the target or at {mech['flat_utc']}.")
+    open_note = (f"OPEN: {'LONG' if ppos['dir'] > 0 else 'SHORT'} from {ppos['opened']:%H:%M}Z - see YOUR POSITION" if ppos else "")
+    page_ = S.context(upto, op, ppos, "", pdone, True, band=False, leg_list=False, mil=False, card=False,
+                      window_note=note, header=header, open_note=open_note)
+    return head + "\n\n=== THE TAPE ===\n" + page_, stamp, ppos
+
+
 def mil_pivot(turns: list, t: int) -> tuple | None:
     """(pivot_ts, direction) of the detector's current MIL: the last confirmed turn knowable at t (cts + 60 <= t); None if none."""
     cur = None
@@ -267,7 +349,9 @@ def write_day(st: dict) -> dict:
     rec = {"robot": ROBOT, "version": VERSION, "day": st["key"], "partial_from": st.get("partial_from"),
            "claude_sim_trades": st["done"], "claude_sim_net_usd": round(sum(t["pnl_usd"] for t in st["done"]), 2),
            "presses": st["presses"], "sim_reconciled": st.get("reconciled", []), "calls": calls, "errors": errs, "error_rate": round(rate, 4),
-           "poisoned": rate > POISON_RATE, "brief_sha": S.hashlib.sha256(S.brief_for(LINE).encode()).hexdigest()[:16]}
+           "poisoned": rate > POISON_RATE,
+           "brief_sha": st["brief"]["static_sha"] if st.get("brief") else S.hashlib.sha256(S.brief_for(LINE).encode()).hexdigest()[:16],
+           "brief_version": st["brief"]["version"] if st.get("brief") else "V2"}
     json.dump(rec, open(f"{DAYLOG}/{st['key']}.json", "w"), indent=1, default=str)
     return rec
 
@@ -494,9 +578,18 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
         pos["last_ts"] = op
         pos["peak"] = max(pos["peak"], pos["peak_1m"])
 
+    desk = brief_desk(key)
+    if desk:                                               # v1.04: the real desk is the book - no simulated position at all
+        st["pos"] = None
+        dseries = [b for b in L.series_for(L.session_day(now)) if b[0] + 60 <= now_ts - L.SETTLE_S]
+        dturns = L.confirmed_turns(dseries) if len(dseries) >= 200 else []
+        prompt, stamp, pos = desk_prompt(key, op, upto, px, now_ts, dturns)
+        st["brief"] = stamp
     t_call = time.time()
     if fake is not None:
         d = {"action": fake, "reason": "FAKE (dry run)", "confidence": None}
+    elif desk:
+        d = S.ask(prompt)
     else:
         d = S.ask(ext_text(key, op, S.brief_for(LINE) + "\n\n=== THE TAPE ===\n"
                   + S.context(upto, op, pos, "", st["done"], True, band=False, leg_list=False, mil=False, card=False)))
@@ -519,13 +612,16 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
            "error": d.get("error"), "sim_holding": bool(pos), "latency_s": latency, "dry": dry}
     if reconciled:
         rec["sim_reconciled"] = True
+    if desk:
+        rec["brief"] = st["brief"]
     out["decision"] = rec
 
     pressed = None
     if pos is None and act in ("ENTER_LONG", "ENTER_SHORT"):
         dirn = 1 if act == "ENTER_LONG" else -1
-        st["pos"] = {"dir": dirn, "entry": px + dirn * S.HALF_SPREAD_PT, "peak": 0.0, "peak_1m": 0.0, "last_ts": op,
-                     "opened": dt.datetime.fromtimestamp(op, UTC), "reason": (d.get("reason") or "")[:200]}
+        if not desk:
+            st["pos"] = {"dir": dirn, "entry": px + dirn * S.HALF_SPREAD_PT, "peak": 0.0, "peak_1m": 0.0, "last_ts": op,
+                         "opened": dt.datetime.fromtimestamp(op, UTC), "reason": (d.get("reason") or "")[:200]}
         side = "BUY" if dirn > 0 else "SELL"
         series = [b for b in L.series_for(L.session_day(now)) if b[0] + 60 <= now_ts - L.SETTLE_S]
         turns = L.confirmed_turns(series) if len(series) >= 200 else []
@@ -556,6 +652,9 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
             if not dry:
                 rec["request"] = write_press(cnow, side)
             pressed = (side, rec)
+    elif desk and pos and act == "EXIT":                    # v1.04: EXIT is the text to the operator (or the claim if hybrid_exit_live=on); no sim book
+        if not dry:
+            rec["exit_alert"], rec["exit_claim"] = exit_alert(pos, px, rec.get("reason"), clock)
     elif st["pos"] and act == "EXIT":
         if not dry:
             rec["exit_alert"], rec["exit_claim"] = exit_alert(st["pos"], px, rec.get("reason"), clock)
