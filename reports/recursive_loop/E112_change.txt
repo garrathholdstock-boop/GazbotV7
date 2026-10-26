@@ -82,3 +82,11 @@ R2 = reports/recursive_loop/E112_R2.txt, rules_sha (stripped, as replay.py stamp
   marked 2 big losers and 1 winner), kept the 12:45Z cut, and states it can only stop an entry, never justify one. Written from October 2025 + Nov 3-7 (both arms).
   TEST WEEK = Nov 10-14 (no rule arm has run on it). DISCLOSED: the v102 results of Nov 10-14 (and Nov 17) were already reported (day totals), but no entry, reason or tape of those days was studied
   for R2. night.py now takes --rule LABEL=PATH and --from-week; A0c applies unchanged.
+
+A3 (appended 2026-10-26 00:20Z, before any call it governs). WEEK 2 (Nov 10-14) DECISION = STOP for R2: R2 -$2,984 vs v102 -$2,974; worst day -$4,521 vs -$4,511 (both took the 11-13 long);
+  entries <= -$1k 2 vs 2. R2 ~ no effect. METHOD DEFECT FOUND: A0c's second STOP clause matches "declined" presses by exact decision timestamp, so the same trade taken one slot later counts as
+  declined; that clause alone produced this STOP. From the next decision on it matches by side within +/-15 min (a v102 press is "declined" only if the rule arm has no same-side press within 15 min).
+  DISCLOSED SLIP: a listing of every <= -$1k entry seen so far also printed the v102 loser of 2025-11-17, a week-3 day. Week 3 (Nov 17-21) is therefore NOT clean for the next rule; R3 (if any) is
+  tested on week 4 (Nov 24-28) or later.
+  NOISE ARM (new, declared now): before any R3, the LIVE setup is run a SECOND time ("v102b", identical prompt/engine/model) on Nov 3-7 and Nov 10-14. |v102 - v102b| per week is the run-to-run noise
+  floor of Claude's calls (Oct 30 gave +$588 and -$2,339 on two attempts, one of them poisoned); any rule's weekly difference smaller than that floor is reported as NOISE, not as an effect.

@@ -69,8 +69,9 @@ def decide(week, lab="v102R1"):
     bw = min(b[d]["net_usd"] for d in days); rw = min(r[d]["net_usd"] for d in days)
     b1k = sum(p["pnl_usd"] <= -1000 for d in days for p in b[d]["presses"])
     r1k = sum(p["pnl_usd"] <= -1000 for d in days for p in r[d]["presses"])
-    taken = {(d, p["decision_ts"]) for d in days for p in r[d]["presses"]}
-    declined = [p for d in days for p in b[d]["presses"] if (d, p["decision_ts"]) not in taken]
+    ep = lambda x: dt.datetime.fromisoformat(x).timestamp()
+    declined = [p for d in days for p in b[d]["presses"]           # A3: no same-side rule-arm press within 15 min
+                if not any(q["side"] == p["side"] and abs(ep(q["decision_ts"]) - ep(p["decision_ts"])) <= 900 for q in r[d]["presses"])]
     dw = sum(p["why"] == "TARGET_37.5" for p in declined)
     dbad = sum(p["pnl_usd"] <= -1000 or p["mae_pt"] >= 150 for p in declined)
     stop = (rw < bw and r1k > b1k) or dw > dbad
