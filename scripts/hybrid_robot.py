@@ -3,6 +3,9 @@
 v1.03 (2026-10-26, operator, E115): + MIL CAP — at most MIL_CAP (2) claims per MIL; then no new press until the detector confirms the next MIL.
 v1.04 (2026-10-26, operator, E120): + THE DESK BRIEF (src/gazbot7/desk_brief.py, config/desk_brief/) instead of BRIEF_V2, with the REAL desk book on the
       page and a per-call LIVE STATE; switch line `hybrid_brief=desk` in data/hybrid_robot.env (absent -> the v1.03 prompt).
+v1.05 (2026-10-26, operator, E123): + VOTES — an ENTER that passes every other gate is asked again (same prompt, in parallel) until N answers are
+      in; it is pressed only if a majority (N//2+1) say the SAME entry. Switch line `hybrid_votes=<N>` (absent -> 1 answer, no vote). Every
+      ballot is logged. E122: the losing 07:35Z gold long was a <=1-in-13 draw of that prompt; the good 09:00Z short was 5 in 6.
 
 Declared in reports/recursive_loop/E89_change.txt. It deploys E81-E88; it changes none of their rules.
 
@@ -39,10 +42,14 @@ from gazbot7 import fills_pnl as FP  # noqa: E402  the BROKER's executions, the 
 
 UTC = dt.timezone.utc
 ROBOT = "GazBot V8 Robo"
-VERSION = "1.04"
+VERSION = "1.05"
+V104 = "1.04"                    # no session ran v1.04 alone: VOTE_FROM == BRIEF_FROM
 V103 = "1.03"                    # sessions MILCAP_FROM..BRIEF_FROM-1 ran v1.03
 PREV_VERSION = "1.02"            # sessions before MILCAP_FROM ran v1.02 (+LOCK from LOCK_FROM); the nightly labels them by date, never by this constant
 BRIEF_FROM = "2026-10-27"        # v1.04: first session that may use the Desk Brief (still gated by the hybrid_brief=desk switch line)
+VOTE_FROM = "2026-10-27"         # v1.05: first session that may vote on an entry (still gated by the hybrid_votes=<N> switch line)
+VOTE_MAX = 5
+VOTE_TIMEOUT_S = 150             # the ballots run in parallel; a slow one is a 'no' and PRESS_MAX_AGE_S still bounds the whole decision
 LINE = "v2"
 QTY = 4
 TARGETS = "75,75,75,75"          # $ per lot at $2/pt = all four lots out at +37.5pt
@@ -223,6 +230,50 @@ def brief_desk(key: str) -> bool:
         return any(ln.strip() == "hybrid_brief=desk" for ln in open(SWITCH))
     except Exception:
         return False
+
+
+def votes_n(key: str) -> int:
+    """v1.05: how many answers an entry needs to be asked for (1 = no vote). From VOTE_FROM, `hybrid_votes=<N>` in data/hybrid_robot.env, N in 3..VOTE_MAX odd."""
+    if key < VOTE_FROM:
+        return 1
+    try:
+        for ln in open(SWITCH):
+            m = re.fullmatch(r"hybrid_votes=(\d+)", ln.strip())
+            if m and int(m.group(1)) in range(3, VOTE_MAX + 1, 2):
+                return int(m.group(1))
+    except Exception:
+        pass
+    return 1
+
+
+def ask_ballots(prompt: str, k: int) -> list:
+    """k more answers to the SAME prompt, in parallel. Each is S.ask's dict plus its latency."""
+    import concurrent.futures as cf
+
+    def one(_):
+        t = time.time(); d = S.ask(prompt, timeout=VOTE_TIMEOUT_S)
+        return {**d, "latency_s": round(time.time() - t, 1)}
+    with cf.ThreadPoolExecutor(max_workers=k) as ex:
+        return list(ex.map(one, range(k)))
+
+
+def vote(key: str, prompt: str | None, act: str, first: dict, fake, st: dict, rec: dict, dry: bool) -> dict | None:
+    """v1.05: ballot 1 is the answer already in hand; ask N-1 more. agree = ballots that say the same ENTER; an errored ballot is a 'no'."""
+    n = votes_n(key)
+    if n <= 1 or fake is not None or prompt is None:
+        return None
+    more = ask_ballots(prompt, n - 1)
+    ballots = [{"action": first.get("action"), "conf": first.get("confidence"), "reason": (first.get("reason") or "")[:200], "error": first.get("error")}]
+    ballots += [{"action": b.get("action"), "conf": b.get("confidence"), "reason": (b.get("reason") or "")[:200], "error": b.get("error"),
+                 "latency_s": b.get("latency_s")} for b in more]
+    v = {"n": n, "need": n // 2 + 1, "agree": sum(1 for b in ballots if b["action"] == act and not b["error"]),
+         "errors": sum(1 for b in ballots if b["error"]), "ballots": ballots}
+    rec["votes"] = v
+    if v["errors"] and not dry and not st.get("vote_err_paged"):
+        st["vote_err_paged"] = True
+        page(f"⚠ HYBRID ROBOT v{VERSION}: {v['errors']} of {n} vote calls errored on a {act} ({more[-1].get('error') if more else ''}) - "
+             "an errored vote counts as NO, so entries may be blocked while this lasts.")
+    return v
 
 
 def live_book(key: str, px: float, now_ts: int) -> tuple:
@@ -579,6 +630,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
         pos["peak"] = max(pos["peak"], pos["peak_1m"])
 
     desk = brief_desk(key)
+    prompt = None
     if desk:                                               # v1.04: the real desk is the book - no simulated position at all
         st["pos"] = None
         dseries = [b for b in L.series_for(L.session_day(now)) if b[0] + 60 <= now_ts - L.SETTLE_S]
@@ -591,8 +643,9 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
     elif desk:
         d = S.ask(prompt)
     else:
-        d = S.ask(ext_text(key, op, S.brief_for(LINE) + "\n\n=== THE TAPE ===\n"
-                  + S.context(upto, op, pos, "", st["done"], True, band=False, leg_list=False, mil=False, card=False)))
+        prompt = ext_text(key, op, S.brief_for(LINE) + "\n\n=== THE TAPE ===\n"
+                          + S.context(upto, op, pos, "", st["done"], True, band=False, leg_list=False, mil=False, card=False))
+        d = S.ask(prompt)
     latency = round(time.time() - t_call, 1)
     act = d.get("action", "WAIT")
     if fake is None:
@@ -643,6 +696,8 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                 st["milcap_err_paged"] = True
                 page(f"⚠ HYBRID ROBOT v{VERSION}: cannot read the ledger to count claims on this MIL ({mil.get('error')}) - the MIL cap FAILS CLOSED: "
                      "no new entries until it can count again.")
+        elif (vt := vote(key, prompt, act, d, fake, st, rec, dry)) and vt["agree"] < vt["need"]:   # v1.05: a majority must say the same entry
+            rec["entry_action"] = f"VOTE_{vt['agree']}_OF_{vt['n']}_NOT_ENTERED"
         elif (cnow := (now if dry else clock())).timestamp() - op > PRESS_MAX_AGE_S:
             rec["entry_action"] = "STALE_NOT_ENTERED"
         elif (why := L.rider_gate(cnow)):

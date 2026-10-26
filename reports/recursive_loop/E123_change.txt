@@ -1,0 +1,18 @@
+E123 — VOTES ON AN ENTRY (GazBot V8 Robo v1.05). Declared 2026-10-26 ~20:45Z, live from the 2026-10-27 session, to the robot's own STOP_AFTER (2026-10-30T21:00Z).
+
+Operator 2026-10-26: "Could we even do 5 calls? Just as a test for the rest of this week. Do 5 per call and keep records of all. Maybe then next week we can reduce to 3."
+
+Basis (E122, reports/e122/WHY_2026-10-19.md): the gold 10-19 07:35Z long (-$2,060) re-asked on the identical prompt = 0/12 ENTER; the good 09:00Z short = 5/6.
+The bad entry was a rare draw, not the brief. A majority vote filters rare draws and keeps convictions.
+
+RULE (scripts/hybrid_robot.py vote()):
+  - Only an ENTER that has passed every other gate (with the leg, after the veto, under the MIL cap) is voted on. WAIT/HOLD/EXIT and blocked entries are never re-asked.
+  - Ballot 1 = the answer already given; N-1 more asks of the SAME prompt, in parallel (150s timeout each).
+  - Press only if >= N//2+1 ballots say the SAME entry (5 -> 3). An errored ballot is a NO (pages once per session). Then the usual stale/rider gates.
+  - Not entered -> entry_action VOTE_<agree>_OF_<N>_NOT_ENTERED. Every ballot (action, confidence, reason, error, latency) is in data/hybrid_robot.jsonl rec["votes"].
+  - Switch: `hybrid_votes=5` in data/hybrid_robot.env (odd 3..5; absent -> no vote = v1.04 behaviour). Rollback = remove the line.
+
+CONFOUND: v1.04 (Desk Brief) and v1.05 start on the same session; the 10-27.. sessions test both together. Arm v1.05+LOCK+MILCAP+BRIEF+VOTES - never pool.
+
+READ AT THE END OF THE WEEK: per voted entry, agree count and outcome; what 3 votes would have done (= ballots 1-3 of the 5, same records); entries blocked and what they would have made.
+Cost: +4 calls per voted entry only.

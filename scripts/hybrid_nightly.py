@@ -112,14 +112,19 @@ def d0_of(key: str) -> int:
 
 
 def version_of(key: str) -> str:
-    """The robot version a session ran: v1.03 (+MIL cap) from MILCAP_FROM, v1.02 before it. Labelled by DATE, so a version bump never relabels history."""
-    return H.VERSION if key >= H.BRIEF_FROM else (H.V103 if key >= H.MILCAP_FROM else H.PREV_VERSION)
+    """The robot version a session ran: v1.05 (+votes) from VOTE_FROM, v1.04 (+brief) from BRIEF_FROM, v1.03 (+MIL cap) from MILCAP_FROM,
+    v1.02 before it. Labelled by DATE, so a version bump never relabels history."""
+    if key >= H.VOTE_FROM:
+        return H.VERSION
+    return H.V104 if key >= H.BRIEF_FROM else (H.V103 if key >= H.MILCAP_FROM else H.PREV_VERSION)
 
 
 def arm_of(key: str) -> str:
     v = version_of(key)
     if key == H.EXT_KEY:
         return f"v{v}-EXT"
+    if key >= H.VOTE_FROM:
+        return f"v{v}+LOCK+MILCAP+BRIEF+VOTES"
     if key >= H.BRIEF_FROM:
         return f"v{v}+LOCK+MILCAP+BRIEF"
     if key >= H.MILCAP_FROM:

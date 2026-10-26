@@ -35,3 +35,7 @@ v1.03  2026-10-26  MIL CAP (E115): v1.02+LOCK unchanged + at most 2 claims (+37.
 v1.04  2026-10-27  THE DESK BRIEF (E120): v1.03 unchanged + Claude reads the Desk Brief D3 (strategy, generated mechanics, experience, per-call LIVE STATE) and a page showing the REAL
        desk book instead of BRIEF_V2 + a simulated book. Gated by `hybrid_brief=desk` in data/hybrid_robot.env (rollback = remove the line). Arm v1.04+LOCK+MILCAP+BRIEF - never pool.
        Two independent audits; live/replay parity test. No replay A/B (operator's call 2026-10-26): the forward paper record is the test. Declaration: E120.
+
+v1.05  2026-10-27  VOTES (E123): v1.04 unchanged + an otherwise-pressable ENTER is asked 4 more times (same prompt, parallel); pressed only if >=3 of 5 say the same entry.
+       Errored ballot = NO. Every ballot logged (rec["votes"]). Switch `hybrid_votes=5` (rollback = remove). Starts the SAME session as v1.04, so the brief and the votes are
+       tested together. Arm v1.05+LOCK+MILCAP+BRIEF+VOTES - never pool. Operator: 5 for this week, maybe 3 next week (3 is read from ballots 1-3). Declaration: E123.

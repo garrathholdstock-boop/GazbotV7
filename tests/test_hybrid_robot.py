@@ -82,7 +82,7 @@ def test_every_write_targets_one_of_its_own_paths():
 
 
 def test_frozen_parameters():
-    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.04", "v2", 4, "75,75,75,75")
+    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.05", "v2", 4, "75,75,75,75")
     assert (H.MIL_CAP, H.MILCAP_FROM, H.PREV_VERSION, H.V103, H.BRIEF_FROM) == (2, "2026-10-26", "1.02", "1.03", "2026-10-27")
     assert H.DETECTOR_SHA == L.DETECTOR_SHA == L.detector_sha()
     assert H.L.VETO_PARIS_HOUR == 5 and H.L.K == 11
@@ -845,3 +845,58 @@ def test_repeated_exits_on_the_same_real_position_text_the_operator_once(deskbox
     deskbox.rider(entered=True, closed=False, lots_open=4, direction=1, entry=101.0, entered_at=at(8, 12).isoformat(), session="2026-10-13")
     deskbox.step(at(8, 15))
     assert len(sent) == 2                                                   # a NEW position may be alerted again
+
+
+# ── v1.05 VOTES (E123): an otherwise-pressable ENTER is asked N-1 more times; a majority must say the same entry; every ballot is logged ──
+
+@pytest.fixture
+def votebox(deskbox, monkeypatch):
+    monkeypatch.setattr(H, "VOTE_FROM", "2026-10-01")
+    deskbox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_votes=5\n")
+    deskbox.more = []
+    deskbox.asked = []
+    monkeypatch.setattr(H, "ask_ballots", lambda prompt, k: (deskbox.asked.append((prompt, k)), [dict(a) for a in deskbox.more[:k]])[1])
+    return deskbox
+
+
+def test_three_of_five_agreeing_presses_and_logs_every_ballot(votebox):
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG", "reason": "first"}
+    votebox.more = [{"action": "ENTER_LONG"}, {"action": "WAIT"}, {"action": "ENTER_LONG"}, {"action": "WAIT"}]
+    r = votebox.step(at(8))
+    v = r["decision"]["votes"]
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and (v["n"], v["need"], v["agree"]) == (5, 3, 3)
+    assert len(v["ballots"]) == 5 and v["ballots"][0]["reason"] == "first"
+    assert votebox.asked == [(votebox.prompts[0], 4)]                       # the SAME prompt, 4 more times
+
+
+def test_two_of_five_does_not_press(votebox):
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    votebox.more = [{"action": "WAIT"}, {"action": "ENTER_SHORT"}, {"action": "ENTER_LONG"}, {"action": "WAIT"}]
+    r = votebox.step(at(8))
+    assert r["decision"]["entry_action"] == "VOTE_2_OF_5_NOT_ENTERED" and "request" not in r["decision"]
+
+
+def test_an_errored_ballot_is_a_no_and_pages_once(votebox):
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    votebox.more = [{"action": "WAIT", "error": "quota"}] * 2 + [{"action": "ENTER_LONG"}] * 2
+    r = votebox.step(at(8))
+    assert r["decision"]["votes"]["agree"] == 3 and r["decision"]["votes"]["errors"] == 2 and r["decision"]["entry_action"] == "PRESS_BUY"
+    assert sum("vote calls errored" in m for m in votebox.pages) == 1
+
+
+def test_no_vote_is_asked_unless_the_entry_would_otherwise_press(votebox):
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_SHORT"}               # against the leg
+    r = votebox.step(at(8))
+    assert r["decision"]["entry_action"] == "NOT_WITH_LEG" and votebox.asked == [] and "votes" not in r["decision"]
+    votebox.answer = {"action": "WAIT"}
+    votebox.step(at(8, 5))
+    assert votebox.asked == []
+
+
+def test_votes_are_off_without_the_switch_line_or_before_vote_from(votebox, monkeypatch):
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_votes=4\n")      # even counts are refused
+    assert H.votes_n("2026-10-13") == 1
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_votes=3\n")
+    assert H.votes_n("2026-10-13") == 3
+    monkeypatch.setattr(H, "VOTE_FROM", "2026-10-27")
+    assert H.votes_n("2026-10-13") == 1

@@ -19033,3 +19033,9 @@ that was not there, 09-06 could not confirm one that was. **09-03 got tests; its
 and that gap is the whole reason this shipped.** Both directions are now covered by tests that drive
 the real `main()`, and every fix in this entry was re-run against a reverted copy to prove the tests
 fail without it.
+
+
+## §370 — 2026-10-26 (Mon) — GazBot V8 Robo v1.05: A MAJORITY OF FIVE ON EVERY ENTRY (E123).
+A replay "lesson" turned out to be one draw: the gold 10-19 07:35Z long that lost $2,060 was asked again 12 times on the identical prompt and was never repeated, while the
+good 09:00Z short came back 5 times in 6. The fix for a rare lapse is not a brief rewrite but a vote: from the 10-27 session an otherwise-pressable ENTER is asked 4 more times
+and needs 3 of 5. All ballots are logged so next week's 3-vote setting can be read from the same records (ballots 1-3). Switch `hybrid_votes=5`. Declaration E123.
