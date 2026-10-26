@@ -1,0 +1,17 @@
+E114 - ORDER FLOW BEFORE THE ENTRY: does the tick tape see the disasters the 1-minute chart cannot?  Declared 2026-10-26 ~07:40Z BEFORE any feature is computed.
+WHY: E110-E113 + E112's gates: on the 1-min page nothing separates entries that later reverse 300-700pt from winners (location, leg age/size/speed beyond trading-less, context, events, a Claude
+  reviewer). The operator agreed (2026-10-26) to test order flow, which the page does not show.
+DATA: MNQ trade ticks with aggressor (data/tape/ticks/MNQ, 2026-07-24..2026-10-23, 66 days, 81.2M prints). Candidates: (A) the E110 census MNQ rows in the live window on those days
+  (detector-only, every 5-min slot in a confirmed leg; outcome = all-out +37.5 / 20:40Z flat, D1/D2/D4 as E110); (B) Claude entries on those days: live presses (hybrid_robot.jsonl, outcome from the
+  census row at the same slot, as the live fill was ~0 slip) and replay S1b presses (reports/sim_week_recursive e81_s1b/e85_s1b, same scoring). (B) is descriptive (small n).
+FEATURES (causal: prints with ts < slot; fixed list, nothing added after the first run):
+  OF1 cvd30 = (aggressive buy - sell volume) / total volume, last 30 min, signed to the trade direction.   Bands: < -0.10, -0.10..0, 0..0.10, >= 0.10.
+  OF2 cvd5  = the same over the last 5 min.                                                               Same bands.
+  OF3 div30 = 1 if price moved WITH the trade over the last 30 min (>= 1 ATR14) while cvd30 < 0 (price up on net selling for a long).
+  OF4 absorb15 = volume per point of net price progress in the trade direction over the last 15 min, / that day's median of the same quantity at all slots (high = effort without result).
+              Bands: < 0.5, 0.5..1, 1..2, 2..4, >= 4 (and "no progress" as its own band).
+  OF5 rvol15 = last-15-min volume / the median 15-min volume at the same time of day over the prior 10 sessions.  Bands < 0.8, 0.8..1.25, 1.25..2, >= 2.
+READ: per feature x band on (A): rows, days, D2 rate, lift vs all, day-cluster bootstrap 90% CI; then the 3 pre-declared pause rules  P1 div30 = 1;  P2 absorb15 >= 2 AND cvd5 < 0;  P3 cvd30 < -0.10
+  in the desk path (E113 path, flat-only, +$1,000 lock) vs the RANDOM pause at the same trade rate (40 draws). Only 66 days: a rule is a CANDIDATE if it beats the random 5th percentile on days <=
+  -$2,000 AND on the entry <= -$1k rate; candidates go to a forward no-press shadow (the tick tape only exists going forward), never straight to the desk. (B): each Claude entry listed with OF1-OF5.
+OUTPUT: reports/recursive_loop/E114_code/, reports/recursive_loop/E114_result.txt. Read-only.
