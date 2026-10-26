@@ -8,7 +8,14 @@ Every change to strategy.md or experience.md: bump the version line below, say w
 instruction (anything that could change WHAT Claude does) is replay-tested on unseen days before it goes live; a factual correction
 (something that was simply untrue) may go live directly with the operator's go.
 
-VERSION: D2
+VERSION: D3
+
+## D3 - 2026-10-26 - fixes from the second independent audit (E119)
+One meaning of MIL everywhere (the detector's leg; the page's legs are "swings"), MIL start time in LIVE STATE; no quota framing of claims
+(nothing shown at 0, "1 claim taken ... stops after 2", explicit "cap reached: no entry can be traded"; "before 04:00Z: no entry can be
+traded now"); the base rate stated literally at its measured +37.5 target with the net (+$3,100 over 100), as the previous setup's record;
+experience counts reconciled (8 of 100; 11 across all test arms); "old" dropped from the progress reason; the stop line follows the
+venue-stop switch; the page's own record acknowledges the open trade (brief arms only).
 
 ## D2 - 2026-10-26 - fixes from the independent audit of D1 (E119)
 Mandatory audit fixes: removed the freeze-inducing payoff wording ("erases five to fifteen", "waiting is never wrong", "room to +37.5") and

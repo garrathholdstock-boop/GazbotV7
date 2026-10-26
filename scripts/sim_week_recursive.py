@@ -436,7 +436,7 @@ def card_lines(c: dict, holding: bool) -> list:
 
 def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
             done: list | None = None, self_aware: bool = False, band: bool = True,
-            leg_list: bool = True, mil: bool = False, card: bool = False, window_note: str | None = None, header: str | None = None) -> str:
+            leg_list: bool = True, mil: bool = False, card: bool = False, window_note: str | None = None, header: str | None = None, open_note: str | None = None) -> str:
     """`done` = today's closed trades so far. `self_aware` puts them IN THE CONTEXT.
 
     ★★★2026-10-03 WHY THIS FLAG EXISTS. Operator: "why isnt claude changing behaviour each day as
@@ -557,9 +557,12 @@ def context(bars_upto, now_epoch: int, pos: dict | None, lessons: str,
     if self_aware:
         done = done or []
         net = sum(t["pnl_usd"] for t in done)
-        L += ["", "WHAT YOU HAVE ALREADY DONE TODAY — this is your own record, read it before acting"]
+        L += ["", "WHAT YOU HAVE ALREADY DONE TODAY — this is your own record, read it before acting"
+              if open_note is None else "THE DESK'S CLOSED TRADES TODAY (the open one is under YOUR POSITION and in LIVE STATE)"]
+        if open_note:
+            L.append(f"  {open_note}")
         if not done:
-            L.append("  no trades yet today.")
+            L.append("  no trades yet today." if open_note is None else "  no closed trades yet today.")
         else:
             for i, t in enumerate(done, 1):
                 L.append(f"  {i}. {t['side']:5} {t['opened'][11:16]}->{t['closed'][11:16]}Z "

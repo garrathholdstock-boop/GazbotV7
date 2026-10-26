@@ -40,23 +40,25 @@ def _hm(minutes: int) -> str:
 def mechanics(m: dict) -> str:
     """DESK MECHANICS. Keys: target_pts, lots, win_usd, flat_utc, us_open_utc, window_start_utc, window_end_utc, veto_utc, exit_live,
     lock_usd, mil_cap (None = released for this session)."""
-    cap = (f"  - At most {m['mil_cap']} claims (+{m['target_pts']:g} wins) per detector leg: after {m['mil_cap']} claims on a leg the robot trades no "
-           "new entry until the detector confirms the next leg." if m["mil_cap"] else
+    cap = (f"  - At most {m['mil_cap']} claims (+{m['target_pts']:g} wins) per MIL: after {m['mil_cap']} claims on a MIL the robot trades no "
+           "new entry until the detector confirms the next MIL." if m["mil_cap"] else
            "  - Today the operator has released the per-leg claim cap: entries are not limited by claims on a leg.")
     exit_line = ("  - Your EXIT closes the real position." if m["exit_live"] else
                  "  - Your EXIT does NOT close the real position. While the desk really holds that side it sends the operator an urgent text with your\n"
                  "    reason, and he decides. Call EXIT only when the leg you joined has clearly reversed - never because the trade is red. Otherwise HOLD.")
     return "\n".join([
         "DESK MECHANICS (generated from the robot's code and today's switches - this is exactly how the desk works today)",
-        "  - MIL / leg = the trend detector's current leg. The robot trades your ENTER only in the detector's direction (shown in LIVE STATE), only if",
+        "  - MIL = the trend detector's current major intraday leg (its direction and start are in LIVE STATE). The page's 'legs' are finer chart",
+        "    swings, not the MIL. The robot trades your ENTER only in the MIL's direction, only if",
         f"    the time is {m['veto_utc']} or later today, and only if the desk is flat. Otherwise your call is logged and nothing is traded.",
-        "    The detector's direction is a FILTER, not a signal: if the leg on the page is not driving that way, WAIT.",
+        "    The MIL's direction is a FILTER, not a signal: if price is not driving that way on the page, WAIT.",
         f"  - A traded entry is {m['lots']} MNQ with ONE exit: all {m['lots']} lots close at +{m['target_pts']:g} points from the fill (+${m['win_usd']:,.0f} after fees).",
-        f"    There is NO stop. If +{m['target_pts']:g} is not reached the position is held until it is flattened at {m['flat_utc']}, through the whole US",
+        (f"    There is NO stop. If +{m['target_pts']:g} is not reached the position is held until it is flattened at {m['flat_utc']}, through the whole US"
+         if not m.get("stop_armed") else f"    A venue stop is armed. If +{m['target_pts']:g} is not reached first, the stop or the {m['flat_utc']} flat closes it, through the US"),
         f"    cash session (opens {m['us_open_utc']}).",
         exit_line,
         f"  - You are asked {m['window_start_utc']}-{m['window_end_utc']}. That window is only when you may ENTER; it does not close the real position.",
-        f"  - After the desk's day (realised + open) has touched +${m['lock_usd']:,.0f}, no new entries are traded that day.",
+        f"  - Day lock: once the desk's day (realised + open) has touched +${m['lock_usd']:,.0f}, no new entries are traded that day.",
         cap,
     ])
 
@@ -69,12 +71,19 @@ def state_block(s: dict | None) -> str:
     L = ["LIVE STATE (this decision - the REAL desk, not a simulation)"]
     if s.get("now_utc"):
         L.append(f"  - Time {s['now_utc']}. US cash open in {s['mins_to_us_open']} min: an entry made now that has not paid by then rides the US session.")
+    if s.get("before_veto"):
+        L.append(f"  - Before {s['before_veto']}: no entry can be traded now.")
     if s.get("mil_dir"):
         side = "UP" if s["mil_dir"] > 0 else "DOWN"
-        tail = f" Claims already taken on this leg today: {s.get('mil_claims', 0)} of {s['mil_cap']}." if s.get("mil_cap") else ""
-        L.append(f"  - The robot will only trade an ENTER in the detector's direction: {side}.{tail}")
+        since = f" since {s['mil_since']}" if s.get("mil_since") else ""
+        L.append(f"  - MIL: {side}{since}. The robot will only trade an ENTER in that direction.")
+        n, cap = s.get("mil_claims", 0), s.get("mil_cap")
+        if cap and n >= cap:
+            L.append(f"  - Cap reached on this MIL ({n} claims): no entry can be traded until the detector confirms the next MIL.")
+        elif cap and n:
+            L.append(f"  - {n} claim already taken on this MIL; the robot stops trading it after {cap}.")
     else:
-        L.append("  - The detector has no confirmed leg: no entry can be traded now.")
+        L.append("  - The detector has no confirmed MIL: no entry can be traded now.")
     tr = s.get("trades") or []
     if tr:
         L.append("  - The desk's real trades today:")
@@ -86,7 +95,7 @@ def state_block(s: dict | None) -> str:
     else:
         L.append("  - The desk has taken no trade today.")
     if s.get("day_usd") is not None:
-        L.append(f"  - Desk day so far (realised + open): {s['day_usd']:+,.0f} USD; no new entries once it touches +{s.get('lock_usd', 0):,.0f}.")
+        L.append(f"  - Desk day so far (realised + open): {s['day_usd']:+,.0f} USD.")
     return "\n".join(L)
 
 
@@ -111,5 +120,5 @@ def mechanics_from_robot(H, key: str) -> dict:
             "flat_utc": _hm(R.FLAT_UTC_MIN), "us_open_utc": _hm(H.S.WIN_END_MIN),
             "window_start_utc": _hm(H.S.WIN_START_MIN), "window_end_utc": _hm(H.S.WIN_END_MIN),
             "veto_utc": dt.datetime.fromtimestamp(cut, UTC).strftime("%H:%MZ") if cut else _hm(H.S.WIN_START_MIN),
-            "exit_live": H.L.read_switch(H.SWITCH, "hybrid_exit_live"), "lock_usd": H.LOCK_USD,
+            "exit_live": H.L.read_switch(H.SWITCH, "hybrid_exit_live"), "lock_usd": H.LOCK_USD, "stop_armed": R._venue_stop_armed(),
             "mil_cap": H.MIL_CAP if (key >= H.MILCAP_FROM and H.milcap_enabled(key)) else None}

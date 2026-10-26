@@ -97,8 +97,21 @@ ARM_CFG = {
     "v103C":   {"milcap": 2, "target": 37.5, "decay": None, "consensus": 3},       # E119: live prompt; an entry needs 2 of 3 calls to agree
 }
 from gazbot7 import desk_brief as DB  # noqa: E402
-WINDOW_NOTE = ("This window is only when you may ENTER. It does NOT close the real position: that closes only at the target or at 20:40Z.")
-HEADER = "MNQ · {day} {now}Z · entries are traded from {veto} today until 13:30Z (the US cash open) - all times UTC"
+WINDOW_NOTE = "This window is only when you may ENTER. It does NOT close the real position: that closes only at the target or at {flat}."
+HEADER = "MNQ · {day} {now}Z · entries are traded from {veto} today until {open} (the US cash open) - all times UTC"
+PRECEDENCE = "The DESK MECHANICS below are generated from the robot's code; where anything above disagrees with them, they win."
+
+
+def v2_facts() -> str:
+    """E119 A1 (audit 2, c1): BRIEF_V2 with only its three statements that are FALSE for the live desk corrected; everything else verbatim."""
+    b = S.brief_for("v2")
+    for old, new in (("THERE ARE NO STOPS. YOU ARE THE EXIT.", "THERE ARE NO STOPS."),
+                     ("CONSTRAINTS THE SIMULATOR ENFORCES", "CONSTRAINTS THE ROBOT ENFORCES"),
+                     ("  - the window is 02:00Z-13:30Z; you are flattened at 13:30Z whatever you say",
+                      "  - you may enter 02:00Z-13:30Z; the real position closes only as DESK MECHANICS says")):
+        assert b.count(old) == 1, old
+        b = b.replace(old, new)
+    return b
 
 
 def day_bars(day: str) -> list:
@@ -227,33 +240,54 @@ def run_day(arm: str, rules: str, day: str) -> dict:
             mil_now = H.mil_pivot(L.confirmed_turns([b for b in series_all if b[0] + 60 <= op]), op - 60)
             ppos, pdone, ptrades = real_book(rec, rider, op, bars, px)
             open_usd = (LOTS * PV * rider["dir"] * (px - rider["fill"])) if rider else 0.0
+            cut_ = L.veto_cutoff(op)
             st_ = {"now_utc": dt.datetime.fromtimestamp(op, UTC).strftime("%H:%MZ"), "mins_to_us_open": max(0, (d0 + 13 * 3600 + 1800 - op) // 60),
+                   "before_veto": MECH["veto_utc"] if cut_ is not None and op < cut_ else None,
                    "mil_dir": mil_now[1] if mil_now else None, "mil_cap": cfg["milcap"],
+                   "mil_since": dt.datetime.fromtimestamp(mil_now[0], UTC).strftime("%H:%MZ") if mil_now else None,
                    "mil_claims": sum(1 for q in rec["presses"] if mil_now and q.get("mil_pivot") == mil_now[0] and q["why"].startswith("TARGET") and q["exit_ts"] <= op),
                    "trades": ptrades, "day_usd": realised + open_usd, "lock_usd": LOCK}
             if cfg["brief"] == "desk":
                 head, stamp = DB.build(MECH, st_)
             else:                                                   # facts only: the OLD strategy text, then the true mechanics and live state
-                static = S.brief_for("v2") + "\n\n" + DB.mechanics(MECH)
+                static = v2_facts() + "\n\n" + PRECEDENCE + "\n" + DB.mechanics(MECH)
                 head = static + "\n\n" + DB.state_block(st_)
                 stamp = {"version": "V2+facts", "static_sha": hashlib.sha256(static.encode()).hexdigest()[:12]}
             rec["brief"] = stamp
             d = S.ask(head + "\n\n=== THE TAPE ===\n"
                       + S.context(upto, op, ppos, rules, pdone, True, band=False, leg_list=False, mil=False, card=False,
-                                  window_note=WINDOW_NOTE, header=HEADER.format(day=day, now=dt.datetime.fromtimestamp(op, UTC).strftime("%H:%M"), veto=MECH["veto_utc"])))
+                                  window_note=WINDOW_NOTE.format(flat=MECH["flat_utc"]),
+                                  header=HEADER.format(day=day, now=dt.datetime.fromtimestamp(op, UTC).strftime("%H:%M"), veto=MECH["veto_utc"], open=MECH["us_open_utc"]),
+                                  open_note=(f"OPEN: {'LONG' if rider['dir'] > 0 else 'SHORT'} from {rider['opened_iso'][11:16]}Z - see YOUR POSITION" if rider else "")))
         else:
             d = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
                       + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
             if cfg and cfg.get("consensus") and pos is None and d.get("action") in ("ENTER_LONG", "ENTER_SHORT"):
-                more = [S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
-                              + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
-                        for _ in range(cfg["consensus"] - 1)]
-                _budget["used"] += len(more)
-                agree = 1 + sum(1 for x in more if x.get("action") == d["action"])
-                rec.setdefault("consensus", []).append({"ts": dt.datetime.fromtimestamp(op, UTC).isoformat(), "first": d["action"],
-                                                        "others": [x.get("action") for x in more], "agree": agree})
-                if agree * 2 <= cfg["consensus"]:                 # no majority for this entry -> WAIT
-                    d = {"action": "WAIT", "reason": f"consensus {agree}/{cfg['consensus']}: " + (d.get("reason") or ""), "confidence": d.get("confidence")}
+                # E119 A1: re-ask ONLY when this entry would actually be pressed (with the MIL, after the veto, cap not reached, desk flat);
+                # otherwise behave exactly like v103. Rule (labelled honestly): the first ENTER needs >= 1 of 2 re-asks to agree.
+                dn = 1 if d["action"] == "ENTER_LONG" else -1
+                ser_ = [b for b in series_all if b[0] + 60 <= op]
+                tr_ = L.confirmed_turns(ser_) if len(ser_) >= 200 else []
+                mp_ = H.mil_pivot(tr_, op - 60)
+                cut_ = L.veto_cutoff(op)
+                cl_ = sum(1 for q in rec["presses"] if mp_ and q.get("mil_pivot") == mp_[0] and q["side"] == ("BUY" if dn > 0 else "SELL")
+                          and q["why"].startswith("TARGET") and q["exit_ts"] <= op)
+                if H.det_dir(tr_, op - 60) == dn and not (cut_ is not None and op < cut_) and cl_ < cfg["milcap"] and rider is None:
+                    more, errs = [], 0
+                    for _ in range(cfg["consensus"] - 1):
+                        x = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
+                                  + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
+                        if x.get("error"):                         # an errored re-ask is retried once, never counted as a "no"
+                            errs += 1
+                            x = S.ask(S.brief_for("v2") + "\n\n=== THE TAPE ===\n"
+                                      + S.context(upto, op, pos, rules, done, True, band=False, leg_list=False, mil=False, card=False))
+                        more.append(x)
+                    _budget["used"] += len(more) + errs
+                    agree = 1 + sum(1 for x in more if x.get("action") == d["action"])
+                    rec.setdefault("consensus", []).append({"ts": dt.datetime.fromtimestamp(op, UTC).isoformat(), "first": d["action"],
+                                                            "others": [x.get("action") for x in more], "agree": agree, "reask_errors": errs})
+                    if agree < 2:
+                        d = {"action": "WAIT", "reason": f"consensus {agree}/{cfg['consensus']}: " + (d.get("reason") or ""), "confidence": d.get("confidence")}
         act = d.get("action", "WAIT")
         streak = streak + 1 if d.get("error") else 0
         if streak >= STREAK_ABORT:

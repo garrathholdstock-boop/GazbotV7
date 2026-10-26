@@ -3,7 +3,7 @@
 """
 import argparse, datetime as dt, json, os, subprocess, time, collections
 GB = "/home/alphabot/gazbot7"; OUT = f"{GB}/reports/e112"; PY = f"{GB}/.venv/bin/python"
-ARMS = ("v103", "v103T30", "v103D")
+ARMS = tuple(os.environ.get("E118_ARMS", "v103,v103T30,v103D,v103F,v103B,v103C").split(","))   # E119 arms ride the same weeks
 WEEKS = [["2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27", "2025-11-28"], ["2025-12-01", "2025-12-02", "2025-12-03", "2025-12-04", "2025-12-05"],
          ["2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11", "2025-12-12"], ["2025-12-15", "2025-12-16", "2025-12-17", "2025-12-18", "2025-12-19"],
          ["2025-12-22", "2025-12-23", "2025-12-24", "2025-12-25", "2025-12-26"], ["2025-12-29", "2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02"]]
@@ -49,8 +49,9 @@ def main():
         if not window_ok(): log("outside 13:35-20:45Z - chain stops; re-launch tomorrow afternoon (resumable)"); break
         if not all(rec(x, d) is not None for x in ARMS for d in w):
             log(f"week {w[0]}: running {ARMS}")
-            subprocess.run([PY, f"{GB}/reports/recursive_loop/E112_code/replay.py"] + sum([["--arm", x] for x in ARMS], []) + ["--days", ",".join(w), "--workers", os.environ.get("E118_WORKERS", "3")],
-                           cwd=GB, env={**os.environ, "PYTHONPATH": "src"}, stdout=open(f"{OUT}/e118_replay.log", "a"), stderr=subprocess.STDOUT)
+            subprocess.run([PY, f"{GB}/reports/recursive_loop/E112_code/replay.py"] + sum([["--arm", x] for x in ARMS], []) + ["--days", ",".join(w), "--workers", "3"],
+                           cwd=GB, env={**os.environ, "PYTHONPATH": "src", **({"E112_MAX_CALLS": str(800 * len(ARMS))} if os.environ.get("E112_MAX_CALLS") else {})},
+                           stdout=open(f"{OUT}/e118_replay.log", "a"), stderr=subprocess.STDOUT)
         if not all(rec(x, d) is not None for x in ARMS for d in w):
             log(f"week {w[0]}: incomplete (window guard or error abort) - chain stops"); break
         done.append(w); log("\n" + table(done))

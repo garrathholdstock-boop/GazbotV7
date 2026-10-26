@@ -1,0 +1,18 @@
+E119 - THE DESK BRIEF (D3) vs THE LIVE PROMPT, plus FACTS-ONLY and CONSENSUS arms, on the live v1.03 setup.  Declared 2026-10-26 ~15:00Z BEFORE any E119 call.
+Operator, 2026-10-26: "this brief is very old ... i want his brief to be dynamic ... design a new brief that can be updated regularly. then we need to have it independently audited".
+  Also: consensus "yes thats not a bad idea". Built: src/gazbot7/desk_brief.py + config/desk_brief/ (strategy, generated mechanics, experience, live state), governance in docs/CLAUDE.md
+  "THE DESK BRIEF IS GOSPEL", tests/test_desk_brief.py. Two independent audits (D1: not ready, 8 mandatory fixes -> D2; D2: ready after 7 fixes -> D3). All mandatory fixes applied.
+ARMS (replay engine reports/recursive_loop/E112_code/replay.py ARM_CFG; all: live v1.03 mechanics - with-leg, veto, flat-only, +$1,000 lock, MIL cap 2, 4 lots all out at +37.5, no stop,
+  20:40Z flat; CLI default model as live). Each pair differs in a DECLARED bundle:
+  v103   live prompt (BRIEF_V2 + the live page incl. its simulated own book)                        [baseline; records shared with E118 on the same sessions]
+  v103F  BRIEF_V2 with only its 3 false lines corrected + precedence line + generated mechanics + LIVE STATE (real desk book) + the page showing the REAL position/record, UTC header
+         -> v103 vs v103F = "tell him the truth about the desk" (facts + real book + page), strategy text unchanged
+  v103B  Desk Brief D3 (strategy + mechanics + experience + LIVE STATE) + the same real-book page as v103F  -> v103F vs v103B = the new strategy/experience text only
+  v103C  live prompt; an ENTER that would really be pressed needs >= 1 of 2 re-asks to agree (errored re-asks retried once)  -> consensus only
+SESSIONS: the E118 unseen weeks, one at a time, all arms paired on the same sessions: Nov 24-28 2025, Dec 1-5, 8-12, 15-19, 22-26, Dec 29-Jan 2. (Nov 24-28: v103's day totals were already
+  reported before D3 was frozen; no entry or reason from those days was used to write D1-D3. Labelled.) Runs only 02:00-20:45Z under the live-health guard and a per-week call budget.
+READ (per week and cumulative, vs v103 on the same sessions): presses/day and zero-press days, entries by hour, wins, entries <= -$1k, worst day, days positive, days <= -$2k, total $.
+  NOISE: two identical v103 runs differed by ~$300/week (E112 A3). FREEZE CHECK: if an arm's presses/day are > 40% below v103's it must ALSO beat a RANDOM THINNING of v103 at the same press rate
+  (1,000 draws, static: drop v103 presses at random) on entries <= -$1k and worst day, else it is labelled "trades less, nothing more".
+  PROMISING (v1.04 candidate, operator decides) after >= 3 weeks: worst day AND days positive no worse than v103, fewer entries <= -$1k, total $ not below v103 by more than the noise, and the
+  freeze check passed. Going live additionally needs the LIVE build of the same prompt (hybrid_robot: real-book page + LIVE STATE from the ledger) with a parity test - not built yet.
