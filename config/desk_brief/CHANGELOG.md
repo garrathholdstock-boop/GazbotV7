@@ -8,7 +8,14 @@ Every change to strategy.md or experience.md: bump the version line below, say w
 instruction (anything that could change WHAT Claude does) is replay-tested on unseen days before it goes live; a factual correction
 (something that was simply untrue) may go live directly with the operator's go.
 
-VERSION: D4
+VERSION: D5
+
+## D5 - 2026-10-27 06:3xZ - "marginal" no longer covers a clean first join (operator, live session 10-27)
+First D4 call (06:20Z) said ENTER_SHORT into the resumed down MIL (the operator would have pressed at 06:15); the vote blocked it 2/5. The three
+WAIT ballots called it "a marginal join" / "only 19 minutes old" / "choppy", the word coming from two experience lines ("taking fewer marginal
+entries", "a single extra marginal entry ..."). Those studies (E112, E115) measured EXTRA entries - repeats on a leg/day that had already paid -
+so the lines now say that, and that a young leg or choppy bar inside a driving MIL is not marginal. Live on the operator's order WITHOUT a replay
+test; E124 replay A/B to follow.
 
 ## D4 - 2026-10-27 - time left and the missing stop stop being reasons to wait (operator, live session 10-27)
 First live morning on D3: 49/49 WAIT 02:00-06:00Z through a ~130pt down MIL. Reasons quoted "445 minutes before the US open a marginal
