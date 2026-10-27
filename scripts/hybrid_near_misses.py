@@ -94,7 +94,7 @@ def outcome(bars: list, op: int, dirn: int, d0: int) -> dict | None:
 
 
 def every_chance(key: str, bars: list, series: list, d0: int) -> dict:
-    """The desk if Claude had said ENTER at every tradable call: one position at a time, re-enter when flat, +$1,000 lock (realised).
+    """DETECTOR-ONLY baseline - NO Claude judgment at all: the desk if every tradable call had been an ENTER: one position at a time, re-enter when flat, +$1,000 lock (realised).
     Misses and dodges cannot be summed - taking one changes which others were possible; this path can."""
     busy, tot, path = 0, 0.0, []
     for r in decisions(key):
@@ -193,9 +193,10 @@ def text(rep: dict) -> str:
             res = f"hit only after {o['mins']}m" if o["hit"] else f"never hit, ${o['pnl']:+,} at 20:40Z"
             L_.append(f"• {e['start']}-{e['end']} {side(e['mil'])} @{f['px']:.0f} ({e['n']} calls): {res}, worst {o['mae']:.0f}pt — [{', '.join(f['tags'])}]")
     ec = rep["every_chance"]
-    L_.append(f"Desk P&L ${rep['actual_pnl']:+,} vs ENTER-AT-EVERY-CHANCE ${ec['pnl']:+,} ({len(ec['trades'])} trades"
+    L_.append(f"Desk P&L ${rep['actual_pnl']:+,} vs DETECTOR-ONLY (no Claude: every flat tradable call entered) ${ec['pnl']:+,} ({len(ec['trades'])} trades"
               f"{', locked' if ec['locked'] else ''}: " + ", ".join(f"{t['t']} {t['side'][0]} {t['pnl']:+}" for t in ec["trades"][:6]) + ")"
-              f" -> caution {'saved' if rep['actual_pnl'] >= ec['pnl'] else 'cost'} ${abs(rep['actual_pnl'] - ec['pnl']):,}")
+              f" -> Claude {'beat' if rep['actual_pnl'] >= ec['pnl'] else 'trailed'} it by ${abs(rep['actual_pnl'] - ec['pnl']):,}"
+              " [baseline only: detector-only averages about -$22/day over a year, E121]")
     tg = sorted(rep["by_tag"].items(), key=lambda kv: -sum(kv[1].values()))
     L_.append("Wait reasons (missed-fast / dodged): " + " · ".join(f"{t} {v['QUICK']}/{v['LATE'] + v['LOSS']}" for t, v in tg))
     return "\n".join(L_)
