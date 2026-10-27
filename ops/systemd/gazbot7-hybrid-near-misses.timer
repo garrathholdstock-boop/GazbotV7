@@ -1,0 +1,9 @@
+[Unit]
+Description=GAZBOT V8 ROBO — nightly NEAR MISSES, Mon-Fri 20:55Z (after the 20:40Z flat, before Paris quiet hours at 21:00Z)
+
+[Timer]
+OnCalendar=Mon..Fri 20:55:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

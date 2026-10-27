@@ -1,0 +1,13 @@
+[Unit]
+Description=GAZBOT V8 ROBO — nightly NEAR MISSES (flat & tradable WAITs priced on the tape: missed fast wins vs dodged losers; read-only, zero Claude tokens)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=600M
+TimeoutStartSec=300
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_near_misses.py
