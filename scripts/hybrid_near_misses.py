@@ -35,6 +35,9 @@ UTC = dt.timezone.utc
 OUT = f"{GB}/reports/hybrid_near_misses"
 TARGET, THRU, ADV = 37.5, 0.25, H.S.HALF_SPREAD_PT
 QUICK_MIN = 60
+BUCKETS = f"{OUT}/buckets.json"   # per session, per wait-reason bucket: stretches missed (fast winners) vs dodged (losers / rode the US)
+ROLL = 5                          # sessions in the rolling read
+LOOSEN_DAYS, LOOSEN_NET, LOOSEN_RATIO = 3, 500, 2.0   # a bucket is a LOOSEN CANDIDATE when all three hold over the rolling sessions
 FLAT = (20, 40)
 WIN_USD = H.QTY * H.PV * TARGET - H.QTY * 1.5
 TAGS = [("time-left", r"minutes? (remain|left|to the US|before the US)|US open|US session|rides? the US"),
@@ -150,9 +153,10 @@ def run(key: str) -> dict:
             continue
         e = eps[-1] if eps else None
         if e and e["cls"] == x["out"]["cls"] and e["mil"] == x["mil"] and e["last_i"] == rows.index(x) - 1:
-            e["n"] += 1; e["last_i"] = rows.index(x); e["end"] = x["t"]
+            e["n"] += 1; e["last_i"] = rows.index(x); e["end"] = x["t"]; e["tags"] = sorted(set(e["tags"]) | set(x["tags"]))
         else:
-            eps.append({"cls": x["out"]["cls"], "mil": x["mil"], "start": x["t"], "end": x["t"], "n": 1, "last_i": rows.index(x), "first": x})
+            eps.append({"cls": x["out"]["cls"], "mil": x["mil"], "start": x["t"], "end": x["t"], "n": 1, "last_i": rows.index(x), "first": x,
+                        "tags": list(x["tags"])})
     by_tag = {}
     for x in tr:
         if x["kind"] == "TAKEN":
@@ -168,6 +172,47 @@ def run(key: str) -> dict:
            "episodes": [{k: v for k, v in e.items() if k != "last_i"} for e in eps], "rows": rows,
            "every_chance": every_chance(key, bars, series, d0), "actual_pnl": round(actual_pnl(key))}
     return rep
+
+
+def bucket_day(rep: dict) -> dict:
+    """one session's buckets: a stretch counts once in every bucket its calls gave as a reason"""
+    out = {}
+    for e in rep["episodes"]:
+        o = e["first"]["out"]
+        for t in e["tags"]:
+            b = out.setdefault(t, {"miss": 0, "miss_usd": 0, "dodge": 0, "dodge_usd": 0, "slow": 0})
+            if e["cls"] == "QUICK":
+                b["miss"] += 1; b["miss_usd"] += o["pnl"]
+            elif e["cls"] in ("LATE", "LOSS"):
+                b["dodge"] += 1; b["dodge_usd"] += o["pnl"] if e["cls"] == "LOSS" else 0
+            else:
+                b["slow"] += 1
+    return out
+
+
+def update_buckets(rep: dict) -> dict:
+    """store this session (complete days only) and return the rolling read over the last ROLL sessions"""
+    try:
+        allb = json.load(open(BUCKETS))
+    except Exception:
+        allb = {}
+    desk_brief = any(str(x.get("brief") or "").startswith("D") for x in rep["rows"])    # only Desk Brief sessions tune the Desk Brief
+    if rep["complete"] and desk_brief:
+        allb[rep["day"]] = {"brief": sorted({x["brief"] for x in rep["rows"] if x.get("brief")}), "buckets": bucket_day(rep)}
+        json.dump(allb, open(BUCKETS, "w"), indent=1, sort_keys=True)
+    days = sorted(allb)[-ROLL:]
+    roll = {}
+    for d in days:
+        for t, b in allb[d]["buckets"].items():
+            R = roll.setdefault(t, {"miss": 0, "miss_usd": 0, "dodge": 0, "dodge_usd": 0, "slow": 0, "days": 0})
+            for k in ("miss", "miss_usd", "dodge", "dodge_usd", "slow"):
+                R[k] += b[k]
+            R["days"] += 1 if b["miss"] else 0
+    for t, R in roll.items():
+        R["net"] = R["miss_usd"] + R["dodge_usd"]
+        R["status"] = ("LOOSEN CANDIDATE" if R["days"] >= LOOSEN_DAYS and R["net"] >= LOOSEN_NET and R["miss"] >= LOOSEN_RATIO * max(R["dodge"], 1)
+                       else "KEEP (caution pays)" if R["net"] < 0 else "WATCH")
+    return {"sessions": days, "buckets": roll}
 
 
 def text(rep: dict) -> str:
@@ -197,8 +242,11 @@ def text(rep: dict) -> str:
               f"{', locked' if ec['locked'] else ''}: " + ", ".join(f"{t['t']} {t['side'][0]} {t['pnl']:+}" for t in ec["trades"][:6]) + ")"
               f" -> Claude {'beat' if rep['actual_pnl'] >= ec['pnl'] else 'trailed'} it by ${abs(rep['actual_pnl'] - ec['pnl']):,}"
               " [baseline only: detector-only averages about -$22/day over a year, E121]")
-    tg = sorted(rep["by_tag"].items(), key=lambda kv: -sum(kv[1].values()))
-    L_.append("Wait reasons (missed-fast / dodged): " + " · ".join(f"{t} {v['QUICK']}/{v['LATE'] + v['LOSS']}" for t, v in tg))
+    rb = rep.get("rolling")
+    if rb and rb["buckets"]:
+        L_.append(f"BUCKETS, last {len(rb['sessions'])} session(s) ({rb['sessions'][0]}..{rb['sessions'][-1]}) - stretches: missed fast / dodged, net $ if this caution were loosened (rode-the-US counted $0):")
+        for t, R in sorted(rb["buckets"].items(), key=lambda kv: -kv[1]["net"]):
+            L_.append(f"• {t}: {R['miss']} missed (+${R['miss_usd']:,}) / {R['dodge']} dodged (${R['dodge_usd']:,}) -> net ${R['net']:+,}, missed on {R['days']} day(s) - {R['status']}")
     return "\n".join(L_)
 
 
@@ -214,6 +262,7 @@ def main() -> int:
     rep = run(key)
     os.makedirs(OUT, exist_ok=True)
     json.dump(rep, open(f"{OUT}/{key}.json", "w"), indent=1, default=str)
+    rep["rolling"] = update_buckets(rep)
     msg = text(rep)
     open(f"{OUT}/{key}.txt", "w").write(msg + "\n")
     print(msg)

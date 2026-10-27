@@ -132,7 +132,8 @@ def box(tmp_path, monkeypatch):
     b = Box()
     b.tmp = tmp_path
     paths = {"SWITCH": tmp_path / "hybrid.env", "STATE_FILE": tmp_path / "state.json", "LOG_FILE": tmp_path / "log.jsonl",
-             "DAYLOG": tmp_path / "days", "BUY_FILE": tmp_path / "buy.txt", "CLAIM_FILE": tmp_path / "claim.txt", "LEG_SWITCH": tmp_path / "leg.env"}
+             "DAYLOG": tmp_path / "days", "BUY_FILE": tmp_path / "buy.txt", "CLAIM_FILE": tmp_path / "claim.txt", "LEG_SWITCH": tmp_path / "leg.env",
+             "PROMPT_DIR": tmp_path / "prompts"}
     for k, v in paths.items():
         monkeypatch.setattr(H, k, str(v))
     for k, v in {"BUY_FILE": paths["BUY_FILE"], "SWITCH": paths["LEG_SWITCH"], "RIDER_SWITCH": tmp_path / "rider.env",
@@ -168,7 +169,7 @@ def box(tmp_path, monkeypatch):
 
 
 def test_fixture_redirects_every_write_path(box):
-    for name in ("SWITCH", "STATE_FILE", "LOG_FILE", "DAYLOG", "BUY_FILE", "CLAIM_FILE"):
+    for name in ("SWITCH", "STATE_FILE", "LOG_FILE", "DAYLOG", "BUY_FILE", "CLAIM_FILE", "PROMPT_DIR"):
         assert str(box.tmp) in getattr(H, name), name
     assert str(box.tmp) in L.BUY_FILE and str(box.tmp) in L.RIDER_STATE and str(box.tmp) in L.RIDER_SWITCH
 
@@ -920,3 +921,19 @@ def test_too_little_time_left_fails_closed_without_asking(votebox):
     votebox.clock = at(8, 2, 40)                                            # 160s after -> 40s left < 45s
     r = votebox.step(at(8))
     assert votebox.asked == [] and r["decision"]["entry_action"] == "VOTE_NO_TIME_NOT_ENTERED" and "request" not in r["decision"]
+
+
+def test_every_live_prompt_is_saved_for_the_near_miss_probes(deskbox, monkeypatch, tmp_path):
+    monkeypatch.setattr(H, "PROMPT_DIR", str(tmp_path / "prompts"))
+    deskbox.leg_up(); deskbox.answer = {"action": "WAIT"}
+    deskbox.step(at(8))
+    rows = [json.loads(l) for l in open(tmp_path / "prompts" / "2026-10-13.jsonl")]
+    assert len(rows) == 1 and rows[0]["prompt"] == deskbox.prompts[0] and rows[0]["decision_ts"].startswith("2026-10-13T08:00")
+    deskbox.step(at(8, 5), dry=True, fake="WAIT")                              # dry/fake calls are not live calls
+    assert len([l for l in open(tmp_path / "prompts" / "2026-10-13.jsonl")]) == 1
+
+
+def test_a_prompt_logging_fault_never_costs_the_decision(deskbox, monkeypatch):
+    monkeypatch.setattr(H, "PROMPT_DIR", "/proc/forbidden/x")
+    deskbox.leg_up(); deskbox.answer = {"action": "ENTER_LONG"}
+    assert deskbox.step(at(8))["decision"]["entry_action"] == "PRESS_BUY"

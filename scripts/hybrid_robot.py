@@ -80,6 +80,7 @@ CLAIM_FILE = f"{GB}/data/day_rider_claim.txt"
 BUY_FILE = L.BUY_FILE
 STATE_FILE = f"{GB}/data/hybrid_robot_state.json"
 LOG_FILE = f"{GB}/data/hybrid_robot.jsonl"
+PROMPT_DIR = f"{GB}/data/hybrid_prompts"       # the exact prompt of every live call, one file per session (near-miss probes re-ask these)
 DAYLOG = f"{GB}/reports/hybrid_robot"
 CAPTURE = f"{GB}/data/capture.db"
 
@@ -232,6 +233,21 @@ def brief_desk(key: str) -> bool:
         return any(ln.strip() == "hybrid_brief=desk" for ln in open(SWITCH))
     except Exception:
         return False
+
+
+def save_prompt(key: str, op: int, prompt: str | None) -> None:
+    """Record the exact prompt Claude saw (2026-10-27, operator: tune the brief nightly from near misses). Never raises: a logging fault
+    must not cost a decision."""
+    if prompt is None:
+        return
+    try:
+        import hashlib
+        os.makedirs(PROMPT_DIR, exist_ok=True)
+        with open(f"{PROMPT_DIR}/{key}.jsonl", "a") as f:
+            f.write(json.dumps({"decision_ts": dt.datetime.fromtimestamp(op, UTC).isoformat(),
+                                "sha": hashlib.sha256(prompt.encode()).hexdigest()[:16], "prompt": prompt}) + "\n")
+    except Exception:
+        pass
 
 
 def votes_n(key: str) -> int:
@@ -655,6 +671,8 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
                           + S.context(upto, op, pos, "", st["done"], True, band=False, leg_list=False, mil=False, card=False))
         d = S.ask(prompt)
     latency = round(time.time() - t_call, 1)
+    if fake is None and not dry:
+        save_prompt(key, op, prompt)
     act = d.get("action", "WAIT")
     if fake is None:
         st["calls"] += 1
