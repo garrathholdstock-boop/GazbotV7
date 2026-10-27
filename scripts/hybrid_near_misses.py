@@ -93,6 +93,33 @@ def outcome(bars: list, op: int, dirn: int, d0: int) -> dict | None:
     return {"fill": round(fill, 2), "hit": False, "mins": None, "mae": round(mae, 1), "pnl": round(pnl), "cls": "LOSS"}
 
 
+def every_chance(key: str, bars: list, series: list, d0: int) -> dict:
+    """The desk if Claude had said ENTER at every tradable call: one position at a time, re-enter when flat, +$1,000 lock (realised).
+    Misses and dodges cannot be summed - taking one changes which others were possible; this path can."""
+    busy, tot, path = 0, 0.0, []
+    for r in decisions(key):
+        op = int(dt.datetime.fromisoformat(r["decision_ts"]).timestamp())
+        cut = L.veto_cutoff(op)
+        if op < busy or (cut is not None and op < cut) or r.get("error") or tot >= H.LOCK_USD:
+            continue
+        dirn = H.det_dir(L.confirmed_turns([b for b in series if b[0] + 60 <= op - L.SETTLE_S]), op - 60)
+        o = outcome(bars, op, dirn, d0) if dirn else None
+        if not o:
+            continue
+        tot += o["pnl"]
+        path.append({"t": r["decision_ts"][11:16], "side": "LONG" if dirn > 0 else "SHORT", "cls": o["cls"], "mins": o["mins"], "pnl": o["pnl"]})
+        busy = op + o["mins"] * 60 if o["hit"] else 10 ** 12
+    return {"pnl": round(tot), "trades": path, "locked": tot >= H.LOCK_USD}
+
+
+def actual_pnl(key: str) -> float:
+    d0 = dt.datetime.fromisoformat(key + "T00:00:00+00:00")
+    with sqlite3.connect(f"file:{H.LEDGER}?mode=ro", uri=True, timeout=5) as c:
+        return float(c.execute("SELECT COALESCE(SUM(pnl_usd),0) FROM trades WHERE gate='day_rider' AND opened_at>=? AND opened_at<? "
+                               "AND COALESCE(data_quality,'') NOT LIKE 'BADFILL%' AND COALESCE(data_quality,'') NOT LIKE 'EXCLUDE%'",
+                               ((d0 - dt.timedelta(hours=2)).isoformat(), (d0 + dt.timedelta(hours=22)).isoformat())).fetchone()[0])
+
+
 def run(key: str) -> dict:
     d0 = int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp())
     bars = ML.minute_bars(key)
@@ -138,7 +165,8 @@ def run(key: str) -> dict:
     rep = {"day": key, "generated_at": dt.datetime.now(UTC).isoformat(), "decisions": len(rows), "tradable": len(tr), "complete": complete,
            "taken": [{"t": x["t"], "side": "LONG" if x["mil"] > 0 else "SHORT", "votes": x["votes"], **x["out"]} for x in tr if x["kind"] == "TAKEN"],
            "counts": {c: cnt(c) for c in ("QUICK", "SLOW", "LATE", "LOSS")}, "by_tag": by_tag,
-           "episodes": [{k: v for k, v in e.items() if k != "last_i"} for e in eps], "rows": rows}
+           "episodes": [{k: v for k, v in e.items() if k != "last_i"} for e in eps], "rows": rows,
+           "every_chance": every_chance(key, bars, series, d0), "actual_pnl": round(actual_pnl(key))}
     return rep
 
 
@@ -164,6 +192,10 @@ def text(rep: dict) -> str:
             f = e["first"]; o = f["out"]
             res = f"hit only after {o['mins']}m" if o["hit"] else f"never hit, ${o['pnl']:+,} at 20:40Z"
             L_.append(f"• {e['start']}-{e['end']} {side(e['mil'])} @{f['px']:.0f} ({e['n']} calls): {res}, worst {o['mae']:.0f}pt — [{', '.join(f['tags'])}]")
+    ec = rep["every_chance"]
+    L_.append(f"Desk P&L ${rep['actual_pnl']:+,} vs ENTER-AT-EVERY-CHANCE ${ec['pnl']:+,} ({len(ec['trades'])} trades"
+              f"{', locked' if ec['locked'] else ''}: " + ", ".join(f"{t['t']} {t['side'][0]} {t['pnl']:+}" for t in ec["trades"][:6]) + ")"
+              f" -> caution {'saved' if rep['actual_pnl'] >= ec['pnl'] else 'cost'} ${abs(rep['actual_pnl'] - ec['pnl']):,}")
     tg = sorted(rep["by_tag"].items(), key=lambda kv: -sum(kv[1].values()))
     L_.append("Wait reasons (missed-fast / dodged): " + " · ".join(f"{t} {v['QUICK']}/{v['LATE'] + v['LOSS']}" for t, v in tg))
     return "\n".join(L_)
