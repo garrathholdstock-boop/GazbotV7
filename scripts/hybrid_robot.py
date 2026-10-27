@@ -250,6 +250,40 @@ def save_prompt(key: str, op: int, prompt: str | None) -> None:
         pass
 
 
+def preveto_shadow_on() -> bool:
+    """E125 (operator 2026-10-27): before the 05:00 Paris veto, ALSO ask Claude the no-veto prompt and log what it would do (with votes).
+    LOG ONLY - nothing is ever pressed from it. Switch line `hybrid_preveto_shadow=on`."""
+    return L.read_switch(SWITCH, "hybrid_preveto_shadow")
+
+
+def preveto_shadow(key: str, op: int, upto: list, px: float, now_ts: int, turns: list, clock_ts: float) -> dict:
+    """the shadow call + (if it says ENTER with the MIL) its votes. Returns the record; never raises; presses NOTHING."""
+    try:
+        sp, _, spos = desk_prompt(key, op, upto, px, now_ts, turns, no_veto=True)
+        if spos:                                           # the desk really holds: no entry question to shadow
+            return {"skipped": "desk holds a position"}
+        t = time.time(); d = S.ask(sp)
+        sh = {"action": d.get("action", "WAIT"), "conf": d.get("confidence"), "reason": (d.get("reason") or "")[:300], "error": d.get("error"),
+              "latency_s": round(time.time() - t, 1), "detector_dir": det_dir(turns, op - 60)}
+        act = sh["action"]
+        if act in ("ENTER_LONG", "ENTER_SHORT") and (1 if act == "ENTER_LONG" else -1) == sh["detector_dir"]:
+            n = max(votes_n(key), 5)
+            left = int(op + VOTE_DEADLINE_S - clock_ts - (time.time() - t))
+            if left >= VOTE_MIN_S:
+                more = ask_ballots(sp, n - 1, timeout=min(VOTE_TIMEOUT_S, left))
+                acts = [act] + [b.get("action") for b in more]
+                sh["votes"] = {"n": n, "need": n // 2 + 1, "agree": sum(1 for b in [d] + more if b.get("action") == act and not b.get("error")),
+                               "ballots": acts, "errors": sum(1 for b in more if b.get("error"))}
+                sh["would_press"] = sh["votes"]["agree"] >= sh["votes"]["need"]
+            else:
+                sh["votes"] = {"no_time": left}; sh["would_press"] = False
+        else:
+            sh["would_press"] = False
+        return sh
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
 def votes_n(key: str) -> int:
     """v1.05: how many answers an entry needs to be asked for (1 = no vote). From VOTE_FROM, `hybrid_votes=<N>` in data/hybrid_robot.env, N in 3..VOTE_MAX odd."""
     if key < VOTE_FROM:
@@ -335,11 +369,14 @@ def live_book(key: str, px: float, now_ts: int) -> tuple:
     return pos, done, trades
 
 
-def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: list) -> tuple:
-    """(prompt, stamp, page position) for v1.04: Desk Brief + LIVE STATE + the page with the REAL book - the prompt E119 audited and replayed (arm v103B)."""
+def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: list, no_veto: bool = False) -> tuple:
+    """(prompt, stamp, page position) for v1.04: Desk Brief + LIVE STATE + the page with the REAL book - the prompt E119 audited and replayed (arm v103B).
+    no_veto=True: the PRE-VETO SHADOW's prompt (E125) - the same prompt as if entries were tradable from the window start. Never pressed."""
     from gazbot7 import desk_brief as DB
     me = sys.modules[__name__]
     mech = DB.mechanics_from_robot(me, key)
+    if no_veto:
+        mech = {**mech, "veto_utc": f"{S.WIN_START_MIN // 60:02d}:{S.WIN_START_MIN % 60:02d}Z"}
     ppos, pdone, ptrades = live_book(key, px, now_ts)
     mp = mil_pivot(turns, op - 60)
     cut = L.veto_cutoff(op)
@@ -355,7 +392,7 @@ def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: li
             claims = 0
     d0 = int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp())
     st_ = {"now_utc": dt.datetime.fromtimestamp(op, UTC).strftime("%H:%MZ"), "mins_to_us_open": max(0, (d0 + S.WIN_END_MIN * 60 - op) // 60),
-           "before_veto": mech["veto_utc"] if cut is not None and op < cut else None,
+           "before_veto": mech["veto_utc"] if cut is not None and op < cut and not no_veto else None,
            "mil_dir": mp[1] if mp else None, "mil_since": dt.datetime.fromtimestamp(mp[0], UTC).strftime("%H:%MZ") if mp else None,
            "mil_cap": mech["mil_cap"], "mil_claims": claims, "trades": ptrades, "day_usd": day_usd, "lock_usd": LOCK_USD}
     head, stamp = DB.build(mech, st_)
@@ -693,6 +730,9 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
         rec["sim_reconciled"] = True
     if desk:
         rec["brief"] = st["brief"]
+        cut_ = L.veto_cutoff(op)
+        if fake is None and not dry and cut_ is not None and op < cut_ and preveto_shadow_on():
+            rec["preveto_shadow"] = preveto_shadow(key, op, upto, px, now_ts, dturns, clock().timestamp())   # E125: LOG ONLY
     out["decision"] = rec
 
     pressed = None

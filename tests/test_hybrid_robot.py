@@ -937,3 +937,40 @@ def test_a_prompt_logging_fault_never_costs_the_decision(deskbox, monkeypatch):
     monkeypatch.setattr(H, "PROMPT_DIR", "/proc/forbidden/x")
     deskbox.leg_up(); deskbox.answer = {"action": "ENTER_LONG"}
     assert deskbox.step(at(8))["decision"]["entry_action"] == "PRESS_BUY"
+
+
+# ── E125 PRE-VETO SHADOW: before the veto, the no-veto prompt is ALSO asked and logged (with votes) - and NOTHING is ever pressed ──
+
+def test_the_preveto_shadow_logs_a_would_be_entry_and_presses_nothing(votebox, monkeypatch):
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_votes=5\nhybrid_preveto_shadow=on\n")
+    votebox.leg_up()
+    answers = iter([{"action": "WAIT", "reason": "cannot trade yet"}, {"action": "ENTER_LONG", "reason": "shadow says go"}])
+    seen = []
+    monkeypatch.setattr(H.S, "ask", lambda prompt, timeout=180: (seen.append(prompt), next(answers))[1])
+    votebox.more = [{"action": "ENTER_LONG"}] * 3 + [{"action": "WAIT"}]
+    monkeypatch.setattr(H.L, "veto_cutoff", lambda op: op + 3600)              # every decision is before the veto
+    r = votebox.step(at(8))
+    sh = r["decision"]["preveto_shadow"]
+    assert r["decision"]["action"] == "WAIT" and "request" not in r["decision"] and not votebox.paths["BUY_FILE"].exists()
+    assert sh["action"] == "ENTER_LONG" and sh["votes"]["agree"] == 4 and sh["would_press"] is True
+    assert "no entry can be traded now" in seen[0] and "no entry can be traded now" not in seen[1]
+    assert "the time is 02:00Z or later today" in seen[1]
+
+
+def test_the_preveto_shadow_is_off_without_its_switch_and_after_the_veto(votebox, monkeypatch):
+    votebox.leg_up(); votebox.answer = {"action": "WAIT"}
+    monkeypatch.setattr(H.L, "veto_cutoff", lambda op: op + 3600)
+    assert "preveto_shadow" not in votebox.step(at(8))["decision"]                # no switch line
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_preveto_shadow=on\n")
+    monkeypatch.setattr(H.L, "veto_cutoff", lambda op: op - 60)                    # after the veto
+    assert "preveto_shadow" not in votebox.step(at(8, 5))["decision"]
+
+
+def test_a_failing_shadow_never_costs_the_real_decision(votebox, monkeypatch):
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_preveto_shadow=on\n")
+    votebox.leg_up(); votebox.answer = {"action": "WAIT"}
+    monkeypatch.setattr(H.L, "veto_cutoff", lambda op: op + 3600)
+    real = H.desk_prompt
+    monkeypatch.setattr(H, "desk_prompt", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")) if k.get("no_veto") else real(*a, **k))
+    r = votebox.step(at(8))
+    assert r["status"] == "OK" and r["decision"]["preveto_shadow"]["error"].startswith("RuntimeError")

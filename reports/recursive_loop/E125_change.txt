@@ -1,0 +1,12 @@
+E125 - PRE-VETO SHADOW (log only). Declared 2026-10-27 ~15:10Z, from the 2026-10-28 session. Operator: "Yes setup the pre veto shadow".
+
+Question: should the 05:00 Paris veto be lifted now that the desk runs the Desk Brief + 5 votes?
+10-27 evidence: 02:00-02:50Z (detector MIL UP, price falling) every long would have gone 160-227pt against - Claude refused them by itself;
+02:55-03:15Z (MIL DOWN) shorts won in 12-31 min - blocked only by the veto. Claude's pre-veto answers are masked by the veto line itself.
+
+Mechanism (scripts/hybrid_robot.py preveto_shadow): for every live decision BEFORE the veto (desk mode, flat), ALSO ask Claude the same
+prompt with the veto removed (mechanics "from 02:00Z", no "Before 04:00Z" line, header "from 02:00Z"). If it says ENTER with the detector's
+MIL: 4 more ballots (5 votes, need 3). Logged as rec["preveto_shadow"] with would_press. NOTHING is ever pressed from it (tested).
+Switch `hybrid_preveto_shadow=on` (remove = off). Cost ~24 calls/night + ballots on shadow ENTERs.
+Smoke test: 10-27 03:00Z real data -> ENTER_SHORT 4/5 would_press (that short won in 27 min).
+Read: nightly near-miss report "PRE-VETO SHADOW" line; by Friday: would-be trades passing the vote, wins/losses, vs the 02:00-type losers.

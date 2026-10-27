@@ -138,6 +138,10 @@ def run(key: str) -> dict:
                "reason": r.get("reason", ""), "brief": (r.get("brief") or {}).get("version"), "mil": dirn,
                "votes": f"{r['votes']['agree']}/{r['votes']['n']}" if r.get("votes") else None}
         pressed = str(r.get("entry_action") or "").startswith("PRESS_")
+        sh = r.get("preveto_shadow")
+        if sh and not held and dirn and str(sh.get("action", "")).startswith("ENTER"):     # E125: what the no-veto prompt would have entered
+            row["shadow"] = {"action": sh["action"], "votes": (sh.get("votes") or {}).get("agree"), "would_press": sh.get("would_press"),
+                             "reason": sh.get("reason", ""), "out": outcome(bars, op, dirn, d0) if sh.get("would_press") else None}
         if held or (cut is not None and op < cut) or not dirn or r.get("error"):
             row["tradable"] = False
         else:
@@ -242,6 +246,17 @@ def text(rep: dict) -> str:
               f"{', locked' if ec['locked'] else ''}: " + ", ".join(f"{t['t']} {t['side'][0]} {t['pnl']:+}" for t in ec["trades"][:6]) + ")"
               f" -> Claude {'beat' if rep['actual_pnl'] >= ec['pnl'] else 'trailed'} it by ${abs(rep['actual_pnl'] - ec['pnl']):,}"
               " [baseline only: detector-only averages about -$22/day over a year, E121]")
+    shd = [x for x in rep["rows"] if x.get("shadow")]
+    if shd:
+        passed = [x for x in shd if x["shadow"]["would_press"] and x["shadow"]["out"]]
+        first = passed[0] if passed else None
+        L_.append(f"PRE-VETO SHADOW (no-veto prompt, log only): {len(shd)} ENTER(s), {len(passed)} passed the vote"
+                  + (f"; first would-be trade {first['t']} {first['shadow']['action'][6:]} @{first['px']:.0f} ({first['shadow']['votes']}/5): "
+                     + (f"+37.5 in {first['shadow']['out']['mins']}m, worst {first['shadow']['out']['mae']:.0f}pt" if first["shadow"]["out"]["hit"]
+                        else f"never hit, ${first['shadow']['out']['pnl']:+,}") if first else ""))
+        for x in passed[1:4]:
+            o = x["shadow"]["out"]
+            L_.append(f"  · {x['t']} {x['shadow']['action'][6:]} ({x['shadow']['votes']}/5): " + (f"+37.5 in {o['mins']}m" if o["hit"] else f"never hit, ${o['pnl']:+,}"))
     rb = rep.get("rolling")
     if rb and rb["buckets"]:
         L_.append(f"BUCKETS, last {len(rb['sessions'])} session(s) ({rb['sessions'][0]}..{rb['sessions'][-1]}) - stretches: missed fast / dodged, net $ if this caution were loosened (rode-the-US counted $0):")
