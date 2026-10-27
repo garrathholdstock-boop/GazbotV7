@@ -8,7 +8,16 @@ Every change to strategy.md or experience.md: bump the version line below, say w
 instruction (anything that could change WHAT Claude does) is replay-tested on unseen days before it goes live; a factual correction
 (something that was simply untrue) may go live directly with the operator's go.
 
-VERSION: D3
+VERSION: D4
+
+## D4 - 2026-10-27 - time left and the missing stop stop being reasons to wait (operator, live session 10-27)
+First live morning on D3: 49/49 WAIT 02:00-06:00Z through a ~130pt down MIL. Reasons quoted "445 minutes before the US open a marginal
+entry is not worth taking", "495 minutes of US-session exposure with no stop". D3's "little time before the US open" WAIT reason and the
+LIVE STATE line ("US cash open in N min: an entry ... rides the US session") were read backwards: a LARGE N was treated as risk.
+Operator: "We need to change something ... Way too cautious." Changes: LIVE STATE says PLENTY of time (>= 120 min, typical winner ~2h,
+E112) or LITTLE time left; strategy states hours left are the best time to enter and that the missing stop / later US session are never by
+themselves reasons to wait; experience line clarified (SHORT time left matters). An instruction change put live on the operator's order
+WITHOUT the replay test the rule above asks for; replay A/B to follow (E124).
 
 ## D3 - 2026-10-26 - fixes from the second independent audit (E119)
 One meaning of MIL everywhere (the detector's leg; the page's legs are "swings"), MIL start time in LIVE STATE; no quota framing of claims

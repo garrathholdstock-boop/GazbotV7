@@ -19,7 +19,11 @@ HOW HE TRADES (confirmation, never anticipation)
 
 REASONS TO WAIT THAT THE DESK'S RECORD SUPPORTS
   - The MIL has stopped making progress: little net move in its direction for an hour or more.
-  - Little time is left before the US cash open (see LIVE STATE): an entry that has not paid by then rides the US session.
+  - Little time is left before the US cash open (under about 2 hours - LIVE STATE says which): an entry that has not paid by then rides
+    the US session. Hours of time left are the OPPOSITE: the typical winner pays in about 2 hours, so a morning entry has the most time
+    to pay. Time left is never a reason to wait while LIVE STATE says there is plenty of it.
+  There is no stop: that is the desk's design and it is already inside the record above (88 of 100 hit). It is never by itself a reason
+  to wait, and neither is the US session that comes later in the day.
   A fresh high or low, a long MIL, or a big last bar are NOT on their own reasons to wait. And no reason to wait is ever, once absent,
   a reason to enter: enter because the MIL is driving, not because nothing on a list is wrong.
 

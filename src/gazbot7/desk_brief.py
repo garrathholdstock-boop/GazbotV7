@@ -70,7 +70,12 @@ def state_block(s: dict | None) -> str:
         return ""
     L = ["LIVE STATE (this decision - the REAL desk, not a simulation)"]
     if s.get("now_utc"):
-        L.append(f"  - Time {s['now_utc']}. US cash open in {s['mins_to_us_open']} min: an entry made now that has not paid by then rides the US session.")
+        if s["mins_to_us_open"] >= 120:             # D4: a big number read as "long exposure" made Claude wait all morning (10-27)
+            L.append(f"  - Time {s['now_utc']}. US cash open in {s['mins_to_us_open']} min: PLENTY of time - the typical winner pays in about 2 hours,"
+                     " so time left is not a reason to wait now.")
+        else:
+            L.append(f"  - Time {s['now_utc']}. US cash open in {s['mins_to_us_open']} min: LITTLE time left - an entry made now that has not paid"
+                     " by then rides the US session.")
     if s.get("before_veto"):
         L.append(f"  - Before {s['before_veto']}: no entry can be traded now.")
     if s.get("mil_dir"):

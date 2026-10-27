@@ -1,6 +1,6 @@
 WHAT THE DESK HAS LEARNED (each line dated, with the study behind it; newest first)
 - 2026-10-26 (E112 A5): The replayed entries that lost more than $1,000 (the 8 of 100 above; 11 counting every test arm) never reached the target. At 13:30Z they were 6-267 points
-  offside; for all but one, most of the final loss came later, in the US session (worst points 15:51Z-20:03Z). The time left before 13:30Z matters.
+  offside; for all but one, most of the final loss came later, in the US session (worst points 15:51Z-20:03Z). SHORT time left before 13:30Z matters; hours left is when entries have the most time to pay.
 - 2026-10-26 (E110, E113, E114, E116): No chart, context or order-flow pattern reliably marked the losers at entry - not distance from the extreme,
   leg age or size, a big push, the bigger trend, news days or buying/selling pressure. What did cut bad days was simply taking fewer marginal
   entries. Be genuinely selective; do not hunt for one pattern.
