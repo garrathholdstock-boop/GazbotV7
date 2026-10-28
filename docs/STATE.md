@@ -1,5 +1,7 @@
 # GAZBOT V7 — STATE
 
+> **★★★ 2026-10-28 11:40Z — v1.06 FROM THE 10-29 SESSION (E126): NO 05:00 PARIS VETO.** Entries from 02:00Z (03:00 Paris). Switch `hybrid_veto=off` (remove = veto back). Brief D6 (10-28: "a paid day is not a reason to wait"; D4 10-27 time-left, D5 10-27 "marginal"). 5 votes, cap off to 10-30, pre-veto shadow (E125) self-retires. Near-miss + bucket report nightly 20:55Z (`scripts/hybrid_near_misses.py`); every live prompt saved in `data/hybrid_prompts/`.
+
 > **★★★ 2026-10-26 21:20Z — WHAT RUNS FROM THE 10-27 SESSION (02:00Z) TO THE ROBOT'S STOP (10-30 21:00Z): GAZBOT V8 ROBO v1.05 = DESK BRIEF + 5 VOTES, MIL CAP RELEASED.**
 > - **Desk Brief D3** (E120, `hybrid_brief=desk`): first live session. **Votes** (E123, `hybrid_votes=5`): an ENTER that passes every other gate is asked 4 more times (same prompt, parallel); pressed only if >=3 of 5 say the same entry; every ballot in `data/hybrid_robot.jsonl` (`votes`). Errored/timed-out ballot = NO; ballots must be back by decision+200s, <45s left -> `VOTE_NO_TIME_NOT_ENTERED`. Robot unit MemoryMax 900M -> 1600M (4 parallel ballots measured 643MB peak; end-to-end dry run on the real 10-26 04:25Z slot passed).
 > - **MIL cap RELEASED 10-27..10-30** (E123 A1, operator: "leave legs uncapped and just try 5 calls first") via `hybrid_milcap_off_for=<key>` lines; the brief says so; back on from 11-02 unless re-decided. Arm label `v1.05+LOCK+BRIEF+VOTES` - never pool.

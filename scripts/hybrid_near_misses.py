@@ -102,7 +102,7 @@ def every_chance(key: str, bars: list, series: list, d0: int) -> dict:
     busy, tot, path = 0, 0.0, []
     for r in decisions(key):
         op = int(dt.datetime.fromisoformat(r["decision_ts"]).timestamp())
-        cut = L.veto_cutoff(op)
+        cut = H.veto_cutoff(op)
         if op < busy or (cut is not None and op < cut) or r.get("error") or tot >= H.LOCK_USD:
             continue
         dirn = H.det_dir(L.confirmed_turns([b for b in series if b[0] + 60 <= op - L.SETTLE_S]), op - 60)
@@ -131,7 +131,7 @@ def run(key: str) -> dict:
     rows = []
     for r in decisions(key):
         op = int(dt.datetime.fromisoformat(r["decision_ts"]).timestamp())
-        cut = L.veto_cutoff(op)
+        cut = H.veto_cutoff(op)
         held = any(a <= op < b for a, b, _ in pos)
         dirn = H.det_dir(L.confirmed_turns([b for b in series if b[0] + 60 <= op - L.SETTLE_S]), op - 60)
         row = {"t": r["decision_ts"][11:16], "px": r["px"], "action": r["action"], "entry_action": r.get("entry_action"),

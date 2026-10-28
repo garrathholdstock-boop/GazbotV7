@@ -114,8 +114,10 @@ def d0_of(key: str) -> int:
 def version_of(key: str) -> str:
     """The robot version a session ran: v1.05 (+votes) from VOTE_FROM, v1.04 (+brief) from BRIEF_FROM, v1.03 (+MIL cap) from MILCAP_FROM,
     v1.02 before it. Labelled by DATE, so a version bump never relabels history."""
-    if key >= H.VOTE_FROM:
+    if key >= H.VETOOFF_FROM:
         return H.VERSION
+    if key >= H.VOTE_FROM:
+        return H.V105
     return H.V104 if key >= H.BRIEF_FROM else (H.V103 if key >= H.MILCAP_FROM else H.PREV_VERSION)
 
 
@@ -123,6 +125,8 @@ def arm_of(key: str) -> str:
     v = version_of(key)
     if key == H.EXT_KEY:
         return f"v{v}-EXT"
+    if key >= H.VETOOFF_FROM:
+        return f"v{v}+LOCK+{'MILCAP+' if H.milcap_enabled(key) else ''}BRIEF+VOTES{'+NOVETO' if H.veto_off(key) else ''}"
     if key >= H.VOTE_FROM:                      # E123 A1: the cap is released per session by switch line (10-27..10-30), so the label reads it
         return f"v{v}+LOCK+{'MILCAP+' if H.milcap_enabled(key) else ''}BRIEF+VOTES"
     if key >= H.BRIEF_FROM:
@@ -618,7 +622,7 @@ def health_checks(env: Env, key: str, now: dt.datetime, log: dict, cov: dict, ca
         why = []
         if c["detector_dir"] != c["dir"]:
             why.append("not with the detector's leg")
-        cut = L.veto_cutoff(int(parse_ts(c["decision_ts"]).timestamp()))
+        cut = H.veto_cutoff(int(parse_ts(c["decision_ts"]).timestamp()))
         if cut and int(parse_ts(c["decision_ts"]).timestamp()) < cut:
             why.append("before the 05:00 Paris veto")
         rts = parse_request(c.get("request") or "")[0]

@@ -3,6 +3,8 @@
 v1.03 (2026-10-26, operator, E115): + MIL CAP — at most MIL_CAP (2) claims per MIL; then no new press until the detector confirms the next MIL.
 v1.04 (2026-10-26, operator, E120): + THE DESK BRIEF (src/gazbot7/desk_brief.py, config/desk_brief/) instead of BRIEF_V2, with the REAL desk book on the
       page and a per-call LIVE STATE; switch line `hybrid_brief=desk` in data/hybrid_robot.env (absent -> the v1.03 prompt).
+v1.06 (2026-10-28, operator, E126): - THE 05:00 PARIS VETO, from the 10-29 session, while `hybrid_veto=off` is in data/hybrid_robot.env.
+      Basis: the pre-veto shadow (E125) 10-28: 13 shadow ENTERs 02:00-03:55Z, all 5/5, the no-veto path 3 trades +$882 vs the real +$302.
 v1.05 (2026-10-26, operator, E123): + VOTES — an ENTER that passes every other gate is asked again (same prompt, in parallel) until N answers are
       in; it is pressed only if a majority (N//2+1) say the SAME entry. Switch line `hybrid_votes=<N>` (absent -> 1 answer, no vote). Every
       ballot is logged. E122: the losing 07:35Z gold long was a <=1-in-13 draw of that prompt; the good 09:00Z short was 5 in 6.
@@ -42,13 +44,15 @@ from gazbot7 import fills_pnl as FP  # noqa: E402  the BROKER's executions, the 
 
 UTC = dt.timezone.utc
 ROBOT = "GazBot V8 Robo"
-VERSION = "1.05"
+VERSION = "1.06"
+V105 = "1.05"                    # sessions VOTE_FROM..VETOOFF_FROM-1 ran v1.05
 V104 = "1.04"                    # no session ran v1.04 alone: VOTE_FROM == BRIEF_FROM
 V103 = "1.03"                    # sessions MILCAP_FROM..BRIEF_FROM-1 ran v1.03
 PREV_VERSION = "1.02"            # sessions before MILCAP_FROM ran v1.02 (+LOCK from LOCK_FROM); the nightly labels them by date, never by this constant
 BRIEF_FROM = "2026-10-27"        # v1.04: first session that may use the Desk Brief (still gated by the hybrid_brief=desk switch line)
 VOTE_FROM = "2026-10-27"         # v1.05: first session that may vote on an entry (still gated by the hybrid_votes=<N> switch line)
 VOTE_MAX = 5
+VETOOFF_FROM = "2026-10-29"      # v1.06 (operator 2026-10-28, E126): first session that may run WITHOUT the 05:00 Paris veto (gated by `hybrid_veto=off`)
 VOTE_TIMEOUT_S = 150             # the ballots run in parallel; a slow one is a 'no' and PRESS_MAX_AGE_S still bounds the whole decision
 VOTE_DEADLINE_S = 200            # ballots must be back by decision + 200s: the press goes stale at +240s and systemd kills the run at start+240s (~decision+260s)
 VOTE_MIN_S = 45                  # less time than this left for the ballots -> no vote, NOT entered (VOTE_NO_TIME); median call 10s, p95 23s, max 42s (10-26)
@@ -250,6 +254,21 @@ def save_prompt(key: str, op: int, prompt: str | None) -> None:
         pass
 
 
+def veto_off(key: str) -> bool:
+    """v1.06: the 05:00 Paris veto is lifted from VETOOFF_FROM while data/hybrid_robot.env carries `hybrid_veto=off` (remove the line = veto back)."""
+    if key < VETOOFF_FROM:
+        return False
+    try:
+        return any(ln.strip() == "hybrid_veto=off" for ln in open(SWITCH))
+    except Exception:
+        return False
+
+
+def veto_cutoff(op: int) -> int | None:
+    """the veto the HYBRID applies: leg_robot's 05:00 Paris cutoff, or None when v1.06 has lifted it for this session"""
+    return None if veto_off(L.session_day(dt.datetime.fromtimestamp(op, UTC)).isoformat()) else L.veto_cutoff(op)
+
+
 def preveto_shadow_on() -> bool:
     """E125 (operator 2026-10-27): before the 05:00 Paris veto, ALSO ask Claude the no-veto prompt and log what it would do (with votes).
     LOG ONLY - nothing is ever pressed from it. Switch line `hybrid_preveto_shadow=on`."""
@@ -379,7 +398,7 @@ def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: li
         mech = {**mech, "veto_utc": f"{S.WIN_START_MIN // 60:02d}:{S.WIN_START_MIN % 60:02d}Z"}
     ppos, pdone, ptrades = live_book(key, px, now_ts)
     mp = mil_pivot(turns, op - 60)
-    cut = L.veto_cutoff(op)
+    cut = veto_cutoff(op)
     try:
         day_usd = day_equity(key, now_ts)["now"]
     except Exception:
@@ -730,7 +749,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
         rec["sim_reconciled"] = True
     if desk:
         rec["brief"] = st["brief"]
-        cut_ = L.veto_cutoff(op)
+        cut_ = veto_cutoff(op)
         if fake is None and not dry and cut_ is not None and op < cut_ and preveto_shadow_on():
             rec["preveto_shadow"] = preveto_shadow(key, op, upto, px, now_ts, dturns, clock().timestamp())   # E125: LOG ONLY
     out["decision"] = rec
@@ -748,7 +767,7 @@ def step(now: dt.datetime, dry: bool = False, fake: str | None = None, sleep=tim
         mil = mil_state(key, turns, op) if key >= MILCAP_FROM and dd == dirn and milcap_enabled(key) else None
         if mil:
             rec["mil"] = mil
-        cut = L.veto_cutoff(op)
+        cut = veto_cutoff(op)
         rec["candidate"] = side
         rec["detector_dir"] = dd
         rec["veto_cutoff"] = dt.datetime.fromtimestamp(cut, UTC).isoformat() if cut else None

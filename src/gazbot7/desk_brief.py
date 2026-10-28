@@ -131,7 +131,7 @@ def mechanics_from_robot(H, key: str) -> dict:
     from gazbot7 import day_rider as R
     tgt = float(H.TARGETS.split(",")[0]) / H.PV
     d0 = int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp())
-    cut = H.L.veto_cutoff(d0 + 12 * 3600)
+    cut = (H.veto_cutoff if hasattr(H, "veto_cutoff") else H.L.veto_cutoff)(d0 + 12 * 3600)   # v1.06: None when the hybrid has lifted the veto
     return {"target_pts": tgt, "lots": H.QTY, "win_usd": tgt * H.PV * H.QTY - 1.5 * H.QTY,
             "flat_utc": _hm(R.FLAT_UTC_MIN), "us_open_utc": _hm(H.S.WIN_END_MIN),
             "window_start_utc": _hm(H.S.WIN_START_MIN), "window_end_utc": _hm(H.S.WIN_END_MIN),

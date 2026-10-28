@@ -1,0 +1,9 @@
+E126 - v1.06: THE 05:00 PARIS VETO LIFTED (operator 2026-10-28: "I want to try with no 5am veto from tomorrow"). Declared 2026-10-28 ~11:40Z.
+From the 2026-10-29 session, while `hybrid_veto=off` is in data/hybrid_robot.env (remove the line = veto back, no code change).
+Entries may be pressed from the window start 02:00Z (03:00 Paris). Everything else = v1.05 + D6 brief: 5 votes (3 needed), MIL cap off this week,
+4 MNQ all out +37.5, no stop, +$1,000 lock, flat 20:40Z. The brief's generated mechanics say "02:00Z or later"; no "Before 04:00Z" line.
+The pre-veto shadow (E125) stops by itself (there is no veto to shadow). Arm v1.06+LOCK+BRIEF+VOTES+NOVETO - never pool.
+Basis (small): E125 shadow 10-28 02:00-03:55Z 13 ENTERs all 5/5; no-veto path 3 trades +$882 vs real +$302. 10-27: Claude refused the 02:00-02:50
+longs against the falling price by itself; the 02:55-03:15 shorts won fast. The veto's original basis (E85-E88 replays, pre-Desk-Brief, no votes)
+found the bad entries clustered before 05:00 Paris - the risk being re-tested now.
+Read nightly: near-miss report + every entry before 04:00Z separately (count, hits, worst drawdown).

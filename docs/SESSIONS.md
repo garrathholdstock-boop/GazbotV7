@@ -4216,3 +4216,16 @@ FINDING (not fixed): the Thu 10-22 lock was NOT sticky - DAY_LOCK 05:25Z, but 06
   brief + votes only. Tests: hybrid/nightly/brief suites pass. Commits 0ad0451, 6e69e55, 1238731.
 - **Gold cash note:** 4 MGC is the equal-risk size and uses less margin ($13.2k vs $16.2k) but a +3 win is $112 vs MNQ's $294. **E122 A2** (+5 / +6 targets, same week)
   queued for 10-27 13:40Z (commit f359441).
+
+## 2026-10-27/28 — first live days on the Desk Brief + votes; D4-D6 brief fixes; near-miss buckets; pre-veto shadow; v1.06 no veto from 10-29
+- **10-27:** D3 waited 49/49 calls through a down MIL ("445 minutes before the US open a marginal entry is not worth taking") -> **D4** (time left = plenty
+  >=120 min; no stop / US session never by themselves reasons) -> first D4 ENTER blocked 2/5 by votes ("marginal join") -> **D5** ("marginal" = extra
+  repeat entries) -> 06:25Z short 5/5 +$289, 09:00Z long 5/5 +$276. Day +$565.
+- **Near-miss report** (`scripts/hybrid_near_misses.py`, timer 20:55Z Mon-Fri): flat & tradable WAITs priced on the tape, misses vs dodges, reason BUCKETS
+  rolling 5 Desk-Brief sessions (LOOSEN CANDIDATE: >=3 days, misses >=2x dodges, net >= +$500), detector-only baseline line. Robot saves every prompt.
+- **Gold E122 A2** (+5/+6, D5 brief, no votes): +3 (D3) +$2,016 18/18; +5 -$1,736; +6 -$3,300 - both D5 runs took the same 10-22 06:25Z long (-78pt).
+  Stay off gold; check whether votes would block that moment.
+- **E125 pre-veto shadow** (log only): 10-28 13/13 shadow ENTERs 5/5 from 02:00Z; no-veto path +$882 vs real +$302 (04:00Z long 5/5, +$302).
+- **10-28 D6:** after the paid long every call said "repeat entry on a day that already paid" - D5's "leg or day" acted as a 1-trade/day cap; now repeat =
+  same stalled leg only. **v1.06 (E126): no veto from 10-29** (`hybrid_veto=off`). Fixed on the way: day_rider L5 audit false UNBOOKED EXITS page after a
+  real trade was flagged BADFILL; nightly header shows the session's own version; stale tracker version test. Summary for external review: docs/GBV8_SUMMARY_2026-10-27.md.

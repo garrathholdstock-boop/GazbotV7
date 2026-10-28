@@ -82,7 +82,7 @@ def test_every_write_targets_one_of_its_own_paths():
 
 
 def test_frozen_parameters():
-    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.05", "v2", 4, "75,75,75,75")
+    assert (H.ROBOT, H.VERSION, H.LINE, H.QTY, H.TARGETS) == ("GazBot V8 Robo", "1.06", "v2", 4, "75,75,75,75")
     assert (H.MIL_CAP, H.MILCAP_FROM, H.PREV_VERSION, H.V103, H.BRIEF_FROM) == (2, "2026-10-26", "1.02", "1.03", "2026-10-27")
     assert H.DETECTOR_SHA == L.DETECTOR_SHA == L.detector_sha()
     assert H.L.VETO_PARIS_HOUR == 5 and H.L.K == 11
@@ -974,3 +974,25 @@ def test_a_failing_shadow_never_costs_the_real_decision(votebox, monkeypatch):
     monkeypatch.setattr(H, "desk_prompt", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")) if k.get("no_veto") else real(*a, **k))
     r = votebox.step(at(8))
     assert r["status"] == "OK" and r["decision"]["preveto_shadow"]["error"].startswith("RuntimeError")
+
+
+# ── v1.06 (E126): the 05:00 Paris veto lifted by switch from VETOOFF_FROM ─────────────────────────────────────────────────────
+
+def test_with_the_veto_lifted_an_early_entry_presses_and_the_brief_says_so(votebox, monkeypatch):
+    monkeypatch.setattr(H, "VETOOFF_FROM", "2026-10-01")
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_veto=off\nhybrid_preveto_shadow=on\n")
+    monkeypatch.setattr(H.L, "veto_cutoff", lambda op: op + 3600)              # leg_robot would still veto this decision
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    r = votebox.step(at(8))
+    assert r["decision"]["entry_action"] == "PRESS_BUY" and r["decision"]["veto_cutoff"] is None
+    assert "no entry can be traded now" not in votebox.prompts[0] and "preveto_shadow" not in r["decision"]
+
+
+def test_without_the_switch_or_before_vetooff_from_the_veto_holds(votebox, monkeypatch):
+    monkeypatch.setattr(H.L, "veto_cutoff", lambda op: op + 3600)
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_veto=off\n")
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    assert votebox.step(at(8))["decision"]["entry_action"] == "VETOED_BEFORE_05_PARIS"      # 2026-10-13 < VETOOFF_FROM
+    monkeypatch.setattr(H, "VETOOFF_FROM", "2026-10-01")
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\n")
+    assert votebox.step(at(8, 5))["decision"]["entry_action"] == "VETOED_BEFORE_05_PARIS"   # no switch line
