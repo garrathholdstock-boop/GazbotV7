@@ -8,7 +8,14 @@ Every change to strategy.md or experience.md: bump the version line below, say w
 instruction (anything that could change WHAT Claude does) is replay-tested on unseen days before it goes live; a factual correction
 (something that was simply untrue) may go live directly with the operator's go.
 
-VERSION: D5
+VERSION: D6
+
+## D6 - 2026-10-28 ~10:50Z - "repeat" means the same stalled leg, never "the day already paid" (operator, live session 10-28)
+After the 04:00Z long paid (+$302 at 07:05Z), every call from 10:20Z waited partly because "this would be a repeat entry on a day that has
+already paid +$302" - D5's wording "repeat entries on a leg OR DAY that had already paid" acted as a 1-trade-a-day cap, stricter than the
+per-leg cap the operator switched off for this week. The studies (E112, E115) measured extra entries on a leg that had paid. Now: repeat =
+piling back into the same leg while it is no longer driving; a paid day is explicitly not a reason to wait; a fresh drive later in the day is
+a new entry. Live on the operator's order WITHOUT a replay test (E124 to follow).
 
 ## D5 - 2026-10-27 06:3xZ - "marginal" no longer covers a clean first join (operator, live session 10-27)
 First D4 call (06:20Z) said ENTER_SHORT into the resumed down MIL (the operator would have pressed at 06:15); the vote blocked it 2/5. The three
