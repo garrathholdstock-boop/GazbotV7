@@ -203,18 +203,21 @@ def run(key: str) -> dict:
 
 
 def bucket_day(rep: dict) -> dict:
-    """one session's buckets: a stretch counts once in every bucket its calls gave as a reason"""
+    """one session's buckets: a stretch counts once in every bucket its calls gave as a reason. Scored as the DESK would have made it:
+    held to the target or the 20:40Z flat (operator 2026-10-28: "we let them run through to 2040") - a slow win is a win; its risk is the
+    worst drawdown, kept separately (max_dd_pts)."""
     out = {}
     for e in rep["episodes"]:
         o = e["first"]["out"]
         for t in e["tags"]:
-            b = out.setdefault(t, {"miss": 0, "miss_usd": 0, "dodge": 0, "dodge_usd": 0, "slow": 0})
+            b = out.setdefault(t, {"miss": 0, "miss_usd": 0, "slow_win": 0, "slow_usd": 0, "loss": 0, "loss_usd": 0, "max_dd_pts": 0.0})
             if e["cls"] == "QUICK":
                 b["miss"] += 1; b["miss_usd"] += o["pnl"]
-            elif e["cls"] in ("LATE", "LOSS"):
-                b["dodge"] += 1; b["dodge_usd"] += o["pnl"] if e["cls"] == "LOSS" else 0
+            elif o["hit"]:
+                b["slow_win"] += 1; b["slow_usd"] += o["pnl"]
             else:
-                b["slow"] += 1
+                b["loss"] += 1; b["loss_usd"] += o["pnl"]
+            b["max_dd_pts"] = max(b["max_dd_pts"], o["mae"])
     return out
 
 
@@ -232,13 +235,14 @@ def update_buckets(rep: dict) -> dict:
     roll = {}
     for d in days:
         for t, b in allb[d]["buckets"].items():
-            R = roll.setdefault(t, {"miss": 0, "miss_usd": 0, "dodge": 0, "dodge_usd": 0, "slow": 0, "days": 0})
-            for k in ("miss", "miss_usd", "dodge", "dodge_usd", "slow"):
-                R[k] += b[k]
-            R["days"] += 1 if b["miss"] else 0
+            R = roll.setdefault(t, {"miss": 0, "miss_usd": 0, "slow_win": 0, "slow_usd": 0, "loss": 0, "loss_usd": 0, "max_dd_pts": 0.0, "days": 0})
+            for k in ("miss", "miss_usd", "slow_win", "slow_usd", "loss", "loss_usd"):
+                R[k] += b.get(k, 0)
+            R["max_dd_pts"] = max(R["max_dd_pts"], b.get("max_dd_pts", 0))
+            R["days"] += 1 if b.get("miss") else 0
     for t, R in roll.items():
-        R["net"] = R["miss_usd"] + R["dodge_usd"]
-        R["status"] = ("LOOSEN CANDIDATE" if R["days"] >= LOOSEN_DAYS and R["net"] >= LOOSEN_NET and R["miss"] >= LOOSEN_RATIO * max(R["dodge"], 1)
+        R["net"] = R["miss_usd"] + R["slow_usd"] + R["loss_usd"]          # what the desk would really have made, held to target / 20:40Z
+        R["status"] = ("LOOSEN CANDIDATE" if R["days"] >= LOOSEN_DAYS and R["net"] >= LOOSEN_NET and R["miss"] >= LOOSEN_RATIO * max(R["loss"], 1)
                        else "KEEP (caution pays)" if R["net"] < 0 else "WATCH")
     return {"sessions": days, "buckets": roll}
 
@@ -290,9 +294,10 @@ def text(rep: dict) -> str:
                       + (" ⚠ still open at 02:00Z - would have blocked the live desk" if t["open_at_0200"] else ""))
     rb = rep.get("rolling")
     if rb and rb["buckets"]:
-        L_.append(f"BUCKETS, last {len(rb['sessions'])} session(s) ({rb['sessions'][0]}..{rb['sessions'][-1]}) - stretches: missed fast / dodged, net $ if this caution were loosened (rode-the-US counted $0):")
+        L_.append(f"BUCKETS, last {len(rb['sessions'])} session(s) ({rb['sessions'][0]}..{rb['sessions'][-1]}) - stretches scored as the desk would have made them (to target or 20:40Z):")
         for t, R in sorted(rb["buckets"].items(), key=lambda kv: -kv[1]["net"]):
-            L_.append(f"• {t}: {R['miss']} missed (+${R['miss_usd']:,}) / {R['dodge']} dodged (${R['dodge_usd']:,}) -> net ${R['net']:+,}, missed on {R['days']} day(s) - {R['status']}")
+            L_.append(f"• {t}: {R['miss']} fast wins (+${R['miss_usd']:,}) · {R['slow_win']} slow wins (+${R['slow_usd']:,}) · {R['loss']} losers (${R['loss_usd']:,})"
+                      f" -> net ${R['net']:+,}, worst drawdown {R['max_dd_pts']:.0f}pt, fast wins on {R['days']} day(s) - {R['status']}")
     return "\n".join(L_)
 
 
