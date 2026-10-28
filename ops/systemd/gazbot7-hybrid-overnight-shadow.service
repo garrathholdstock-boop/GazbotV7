@@ -1,0 +1,15 @@
+[Unit]
+Description=GAZBOT V8 ROBO — OVERNIGHT SHADOW 22:00-02:00Z (E127: Claude + votes on the live prompt as if the window opened at the session open; LOG ONLY, presses NOTHING)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=HOME=/root
+Environment=PYTHONPATH=src
+Environment=CLAUDE_BIN=/root/.local/bin/claude
+WorkingDirectory=/home/alphabot/gazbot7
+MemoryMax=1600M
+TimeoutStartSec=240
+ExecStart=/home/alphabot/gazbot7/.venv/bin/python scripts/hybrid_overnight_shadow.py
+SuccessExitStatus=0 1

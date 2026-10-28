@@ -1,0 +1,11 @@
+[Unit]
+Description=GAZBOT V8 ROBO — OVERNIGHT SHADOW every 5 min 22:00-01:55Z for the Mon-Fri sessions (E127)
+
+[Timer]
+OnCalendar=Sun,Mon..Thu *-*-* 22..23:00/5:20
+OnCalendar=Mon..Fri *-*-* 00..01:00/5:20
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

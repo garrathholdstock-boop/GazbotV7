@@ -388,7 +388,7 @@ def live_book(key: str, px: float, now_ts: int) -> tuple:
     return pos, done, trades
 
 
-def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: list, no_veto: bool = False) -> tuple:
+def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: list, no_veto: bool = False, entry_from: str | None = None) -> tuple:
     """(prompt, stamp, page position) for v1.04: Desk Brief + LIVE STATE + the page with the REAL book - the prompt E119 audited and replayed (arm v103B).
     no_veto=True: the PRE-VETO SHADOW's prompt (E125) - the same prompt as if entries were tradable from the window start. Never pressed."""
     from gazbot7 import desk_brief as DB
@@ -396,6 +396,9 @@ def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: li
     mech = DB.mechanics_from_robot(me, key)
     if no_veto:
         mech = {**mech, "veto_utc": f"{S.WIN_START_MIN // 60:02d}:{S.WIN_START_MIN % 60:02d}Z"}
+    if entry_from:                                         # E127 overnight shadow: the window as if it opened at the session open
+        mech = {**mech, "veto_utc": entry_from, "window_start_utc": entry_from}
+        no_veto = True
     ppos, pdone, ptrades = live_book(key, px, now_ts)
     mp = mil_pivot(turns, op - 60)
     cut = veto_cutoff(op)
@@ -415,7 +418,7 @@ def desk_prompt(key: str, op: int, upto: list, px: float, now_ts: int, turns: li
            "mil_dir": mp[1] if mp else None, "mil_since": dt.datetime.fromtimestamp(mp[0], UTC).strftime("%H:%MZ") if mp else None,
            "mil_cap": mech["mil_cap"], "mil_claims": claims, "trades": ptrades, "day_usd": day_usd, "lock_usd": LOCK_USD}
     head, stamp = DB.build(mech, st_)
-    header = (f"MNQ · {key} {dt.datetime.fromtimestamp(op, UTC):%H:%M}Z · entries are traded from {mech['veto_utc']} today until "
+    header = (f"MNQ · {dt.datetime.fromtimestamp(op, UTC):%Y-%m-%d %H:%M}Z · entries are traded from {mech['veto_utc']} today until "
               f"{mech['us_open_utc']} (the US cash open) - all times UTC")
     note = (f"This window is only when you may ENTER. It does NOT close the real position: that closes only at the target or at {mech['flat_utc']}.")
     open_note = (f"OPEN: {'LONG' if ppos['dir'] > 0 else 'SHORT'} from {ppos['opened']:%H:%M}Z - see YOUR POSITION" if ppos else "")

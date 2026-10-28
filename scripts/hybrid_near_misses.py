@@ -115,6 +115,30 @@ def every_chance(key: str, bars: list, series: list, d0: int) -> dict:
     return {"pnl": round(tot), "trades": path, "locked": tot >= H.LOCK_USD}
 
 
+def overnight(key: str, bars: list, d0: int) -> dict | None:
+    """E127: the overnight shadow's would-be entries (22:00-02:00Z) as ONE desk - one position at a time - and whether one is still open at 02:00Z"""
+    path = f"{GB}/data/hybrid_overnight_shadow.jsonl"
+    if not os.path.exists(path):
+        return None
+    recs = [json.loads(l) for l in open(path) if f'"session": "{key}"' in l]
+    if not recs:
+        return None
+    busy, tot, trades = 0, 0.0, []
+    for r in sorted(recs, key=lambda x: x["decision_ts"]):
+        op = int(dt.datetime.fromisoformat(r["decision_ts"]).timestamp())
+        if not r.get("would_press") or op < busy:
+            continue
+        o = outcome(bars, op, 1 if r["action"] == "ENTER_LONG" else -1, d0)
+        if not o:
+            continue
+        exit_ts = op + o["mins"] * 60 if o["hit"] else d0 + FLAT[0] * 3600 + FLAT[1] * 60
+        tot += o["pnl"]; busy = exit_ts
+        trades.append({"t": r["decision_ts"][11:16], "side": r["action"][6:], "votes": (r.get("votes") or {}).get("agree"), **o,
+                       "open_at_0200": exit_ts > d0 + 2 * 3600})
+    return {"calls": len(recs), "errors": sum(1 for r in recs if r.get("error")), "enters": sum(1 for r in recs if str(r.get("action", "")).startswith("ENTER")),
+            "passed": sum(1 for r in recs if r.get("would_press")), "pnl": round(tot), "trades": trades}
+
+
 def actual_pnl(key: str) -> float:
     d0 = dt.datetime.fromisoformat(key + "T00:00:00+00:00")
     with sqlite3.connect(f"file:{H.LEDGER}?mode=ro", uri=True, timeout=5) as c:
@@ -174,7 +198,7 @@ def run(key: str) -> dict:
            "taken": [{"t": x["t"], "side": "LONG" if x["mil"] > 0 else "SHORT", "votes": x["votes"], **x["out"]} for x in tr if x["kind"] == "TAKEN"],
            "counts": {c: cnt(c) for c in ("QUICK", "SLOW", "LATE", "LOSS")}, "by_tag": by_tag,
            "episodes": [{k: v for k, v in e.items() if k != "last_i"} for e in eps], "rows": rows,
-           "every_chance": every_chance(key, bars, series, d0), "actual_pnl": round(actual_pnl(key))}
+           "every_chance": every_chance(key, bars, series, d0), "actual_pnl": round(actual_pnl(key)), "overnight": overnight(key, bars, d0)}
     return rep
 
 
@@ -257,6 +281,13 @@ def text(rep: dict) -> str:
         for x in passed[1:4]:
             o = x["shadow"]["out"]
             L_.append(f"  · {x['t']} {x['shadow']['action'][6:]} ({x['shadow']['votes']}/5): " + (f"+37.5 in {o['mins']}m" if o["hit"] else f"never hit, ${o['pnl']:+,}"))
+    ov = rep.get("overnight")
+    if ov:
+        L_.append(f"OVERNIGHT SHADOW 22:00-02:00Z (log only): {ov['calls']} calls, {ov['enters']} ENTER, {ov['passed']} passed the vote"
+                  f"{', ' + str(ov['errors']) + ' errored' if ov['errors'] else ''} -> as one desk ${ov['pnl']:+,}")
+        for t in ov["trades"][:5]:
+            L_.append(f"  · {t['t']} {t['side']} ({t['votes']}/5): " + (f"+37.5 in {t['mins']}m, worst {t['mae']:.0f}pt" if t["hit"] else f"never hit, ${t['pnl']:+,}")
+                      + (" ⚠ still open at 02:00Z - would have blocked the live desk" if t["open_at_0200"] else ""))
     rb = rep.get("rolling")
     if rb and rb["buckets"]:
         L_.append(f"BUCKETS, last {len(rb['sessions'])} session(s) ({rb['sessions'][0]}..{rb['sessions'][-1]}) - stretches: missed fast / dodged, net $ if this caution were loosened (rode-the-US counted $0):")

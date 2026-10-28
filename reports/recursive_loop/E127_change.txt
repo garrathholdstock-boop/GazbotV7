@@ -1,0 +1,8 @@
+E127 - OVERNIGHT SHADOW 22:00-02:00Z (23:00-03:00 Paris this week). LOG ONLY. Declared 2026-10-28 ~14:20Z, from the session that opens tonight (10-29).
+Operator: "so from tonight we can trade from 0300. and we will shadow from 2300 to 0300 to see what we miss?"
+Question: the live window starts at 02:00Z only because the original replay engine said "02:00Z = 04:00 Paris - the Asia grind" (summer time);
+the reopen hours were never measured. scripts/hybrid_overnight_shadow.py (timer gazbot7-hybrid-overnight-shadow, every 5 min Sun-Thu 22-23h, Mon-Fri 00-01h)
+asks Claude the LIVE prompt (Desk Brief D6, real book, LIVE STATE) with the window stated as opening at 22:00Z; ENTER with the MIL -> 5 votes.
+data/hybrid_overnight_shadow.jsonl + prompts. Never presses (AST test). Switch hybrid_overnight_shadow=on. Cost ~48 calls/night + ballots.
+Read: nightly near-miss report "OVERNIGHT SHADOW" line: would-be trades as one desk, and whether one would still be open at 02:00Z (blocking the live desk).
+Smoke test: 10-27 22:30Z real data -> WAIT ("MIL DOWN but price chopping 29783-29833 for hours").

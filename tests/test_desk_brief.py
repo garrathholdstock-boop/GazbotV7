@@ -38,7 +38,9 @@ def test_the_cap_line_follows_the_release_switch(tmp_path, monkeypatch):
     assert m["mil_cap"] is None and "released the per-leg claim cap" in DB.mechanics(m)
 
 
-def test_the_veto_is_stated_in_utc_for_that_date():
+def test_the_veto_is_stated_in_utc_for_that_date(tmp_path, monkeypatch):
+    (tmp_path / "env").write_text("hybrid_robot=on\n")                 # the live switch file may lift the veto (v1.06) - not read here
+    monkeypatch.setattr(H, "SWITCH", str(tmp_path / "env"))
     for key in ("2026-07-15", "2026-11-12"):                   # summer (CEST) and winter (CET)
         d0 = int(dt.datetime.fromisoformat(key + "T00:00:00+00:00").timestamp())
         want = dt.datetime.fromtimestamp(H.L.veto_cutoff(d0 + 12 * 3600), dt.timezone.utc).strftime("%H:%MZ")
