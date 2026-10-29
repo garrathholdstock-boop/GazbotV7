@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  GAZBOT V7 — MNQ DESK (2026-07-13)
+  GAZBOT V8 ROBO — MNQ DESK (V7 shell, 2026-07-13; renamed 2026-10-14)
   Single-instrument (MNQ) view of the futures desk. Read-only presentation layer.
   Data: /api/futures/mnq (MNQ-scoped header/gates/trades) + /api/futures/us-terminal
   (holdings/DTT/regime/margin, filtered to MNQ) + /api/futures/bars/<MNQ|MGC> (hero price).
@@ -11,14 +11,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>GAZBOT V7 · MNQ DESK</title>
-<link rel="stylesheet" href="static/app.css?v=1012d">
+<title>Gazbot V8 ROBO · MNQ Desk</title>
+<link rel="stylesheet" href="static/app.css?v=1023a">
 </head>
 <body>
 
 <div class="topstick">
 <header>
-  <div class="brand">GAZBOT <span class="v">V7</span></div>
+  <div class="brand">GAZBOT <span class="v">V8</span> <span class="robo" data-t="ROBO">ROBO</span></div>
   <div class="tag">MNQ DESK · MICRO NASDAQ 100 · <span id="expiry">—</span></div>
   <div class="conn" id="conn"><span class="dot"></span><span id="conn-label">CONNECTING…</span></div>
   <span class="chip" id="mkt-chip">—</span>
@@ -53,8 +53,8 @@
       <span class="l">TODAY</span><span class="v" id="k-today">—</span></div>
     <div class="kpi"><span class="l">YEST</span><span class="v" id="k-yest">—</span></div>
     <div class="kpi"><span class="l">2D</span><span class="v" id="k-d2">—</span></div>
-    <div class="kpi"><span class="l">7D</span><span class="v" id="k-d7">—</span></div>
-    <div class="kpi"><span class="l">30D</span><span class="v" id="k-d30">—</span></div>
+    <div class="kpi"><span class="l" id="l-d7" title="Rolling last 5 trading days (1 week): a full Mon-Fri on Friday night, reaches into last week mid-week">7D</span><span class="v" id="k-d7">—</span></div>
+    <div class="kpi"><span class="l" id="l-d30" title="Rolling last 20 trading days (4 weeks)">30D</span><span class="v" id="k-d30">—</span></div>
     <div class="kpi"><span class="l">WIN%</span><span class="v" id="k-win">—</span></div>
     <div class="kpi"><span class="l">PARIS</span><span class="v" id="clock">--:--:--</span></div>
   </div>
@@ -73,6 +73,12 @@
     <span class="leg-title" id="leg-title">—</span>
     <span class="leg-sum" id="leg-sum"></span>
     <span class="leg-state"><span class="lg" id="leg-state">—</span><span class="sm" id="leg-state-s">—</span></span>
+  </div>
+  <div class="cl-row" id="cl-row" aria-label="Claude next look and last entry call">
+    <span class="cl-sym" title="Claude">&#10059;</span>
+    <span class="cl-next" id="cl-next">--:--</span>
+    <span class="cl-dir" id="cl-dir"><span class="lg" id="cl-dir-l"></span><span class="sm" id="cl-dir-s"></span></span>
+    <span class="cl-last" id="cl-last"><span class="lg" id="cl-last-l"></span><span class="sm" id="cl-last-s"></span></span>
   </div>
   <div class="leg-bar" id="leg-bar"><i id="leg-fill"></i><b id="leg-mark"></b></div>
   <div class="leg-scale"><span id="leg-lo">—</span><span id="leg-mid">—</span><span id="leg-hi">—</span></div>
@@ -257,6 +263,6 @@
   </div>
 </div>
 
-<script src="static/app.js?v=1012d"></script>
+<script src="static/app.js?v=1029a"></script>
 </body>
 </html>

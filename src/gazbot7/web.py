@@ -377,6 +377,7 @@ def days_json(store_path, n=14):
             "win_rate": round(len(wins) / len(clean), 3) if clean else None,
             # ⚠ PF is UNDEFINED with no losing trade — report null, never a fake infinity.
             "pf": (round(gross_w / gross_l, 2) if gross_l > 0 else None),
+            "gross_w": round(gross_w, 2), "gross_l": round(gross_l, 2),   # the summary line's period PF (2026-10-29)
             "flagged": len(rs) - len(clean),
             "trades": [{
                 "id": x["id"], "side": x["side"], "qty": x["qty"],
@@ -1164,13 +1165,17 @@ def mnq_json(store_path):
         today_total = round(today + today_rider, 2)
         d7, _, _ = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=7)).isoformat())
         d30, _, _ = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=30)).isoformat())
+        # ★2026-10-23 (operator) the strip reads 1 WEEK / 4 WEEKS as ROLLING trading-day windows:
+        # 5 and 20 sessions, so Friday night is exactly Mon-Fri and mid-week reaches into last week.
+        d5, _, _ = pnl.realized(c, "MNQ", since_iso=pnl.trading_days_start_utc(now, 5))
+        d20, _, _ = pnl.realized(c, "MNQ", since_iso=pnl.trading_days_start_utc(now, 20))
         y0 = pnl.paris_day_start_utc(now - timedelta(days=1))
         t0 = pnl.paris_day_start_utc(now)
         yest = round(sum(r["pnl_usd"] for r in c.execute(
             "SELECT pnl_usd FROM trades WHERE symbol='MNQ' AND closed_at>=? AND closed_at<? "
             "AND exit_reason NOT IN (" + ",".join("?" * len(_CLEANUP)) + ")" + _dq(c),
             (y0, t0, *_CLEANUP)).fetchall()), 2)
-        out["header"] = {"today": today, "yest": yest, "d2": None, "d7": d7, "d30": d30,
+        out["header"] = {"today": today, "yest": yest, "d2": None, "d7": d7, "d30": d30, "d5": d5, "d20": d20,
                          "win_today": (round(100 * wins / n_today) if n_today else None),
                          "trades_today": n_today,
                          # The explicit three-way split. `today_tournament` is the same number as
@@ -1184,9 +1189,13 @@ def mnq_json(store_path):
         def _roll(days):
             p, n, w = pnl.realized(c, "MNQ", since_iso=(now - timedelta(days=days)).isoformat())
             return {"pnl": p, "trades": n, "win": (round(100 * w / n) if n else None), "pf": None, "maxdd": None}
+        def _roll_td(n):
+            p, k, w = pnl.realized(c, "MNQ", since_iso=pnl.trading_days_start_utc(now, n))
+            return {"pnl": p, "trades": k, "win": (round(100 * w / k) if k else None), "pf": None, "maxdd": None}
         out["rolling"] = {"1D": {"pnl": today, "trades": n_today,
                                  "win": (round(100 * wins / n_today) if n_today else None), "pf": None, "maxdd": None},
-                          "7D": _roll(7), "30D": _roll(30)}
+                          "7D": _roll(7), "30D": _roll(30),
+                          "5D": _roll_td(5), "20D": _roll_td(20)}
         # today's strategy trades → blotter (newest first) + curve + gate perf
         today_rows = _strategy_trades(c, since_iso=t0)
         cum = 0.0
@@ -2160,6 +2169,10 @@ def dayrider_buy_post(body, data_dir):
     side = str(req.get("side", "BUY")).upper()
     if side not in ("BUY", "SELL"):
         return {"ok": False, "error": "side must be BUY or SELL"}
+    from . import manual_lock
+    _locked = manual_lock.refusal(data_dir)
+    if _locked:
+        return {"ok": False, "error": _locked}
     # ★2026-08-21 CASCADING per-lot targets: the operator sets a $ figure for each lot
     # ($100/$200/$400/$600 by default). A single `target_usd` is still accepted and applied to
     # every lot, so an older client cannot break.

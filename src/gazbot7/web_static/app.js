@@ -1,4 +1,4 @@
-/* GAZBOT V7 — MNQ DESK (read-only presentation)
+/* GAZBOT V8 ROBO — MNQ DESK (read-only presentation)
  * Reuses: /api/futures/mnq (MNQ-scoped header/rolling/gates/blotter/curve),
  *         /api/futures/us-terminal (holdings/activity-DTT/regime/margin — filter to MNQ),
  *         /api/futures/bars/<MNQ|MGC> (hero price — MGC is watch-only, no overlays).
@@ -223,12 +223,14 @@
       setTxt("leg-lo", ""); setTxt("leg-mid", ""); setTxt("leg-hi", ""); setTxt("leg-hist", "");
       return;
     }
+    _legShown = L;
     const up = L.dir === 1, name = up ? "UP" : "DOWN";
     const pct = Math.max(0, Math.min(100, L.retrace_pct || 0));
     setTxt("leg-title", name + " leg · " + legDur(L.leg_age_min) + " · " + Math.round(L.leg_size_pts) + "pt");
     const g = (LEG_GATE[L.gate] || [String(L.gate || "?"), "block", String(L.gate || "?")]).slice();
     const side = up ? "SELL" : "BUY";
-    if (L.gate === "ARMED_WAITING") { g[0] = "ARMED: " + side + "S WHEN LEG TURNS"; g[2] = side + " ARMED"; }
+    const hyb = L.mode === "hybrid", ok = L.allowed_side || (up ? "SELL" : "BUY");
+    if (L.gate === "ARMED_WAITING") { g[0] = hyb ? "HYBRID LIVE: " + ok + "S ONLY (WITH THE " + name + " LEG)" : "ARMED: " + side + "S WHEN LEG TURNS"; g[2] = hyb ? ok + " ONLY" : side + " ARMED"; }
     setTxt("leg-state", g[0]); setTxt("leg-state-s", g[2] || g[0]);
     el.classList.add(g[1] === "ready" && pct >= 60 ? "leg-warm" : "leg-" + g[1]);
     $("leg-fill").style.width = pct + "%";
@@ -236,8 +238,13 @@
     setTxt("leg-lo", "extreme " + L.extreme_px.toFixed(2) + " (" + legDur(L.extreme_age_min) + " ago)");
     setTxt("leg-mid", pct.toFixed(0) + "% · " + L.retrace_pts.toFixed(0) + " of " + L.trigger_pts.toFixed(0) + "pt");
     setTxt("leg-hi", "confirms at " + L.trigger_px.toFixed(2));
-    setTxt("leg-sum", pct.toFixed(0) + "% to turn · " + side + " @ " + L.trigger_px.toFixed(2));
-    setTxt("leg-line", "Price " + L.price.toFixed(2) + " · robot will " + side + " 4 lots on a "
+    setTxt("leg-sum", pct.toFixed(0) + "% to turn · " + (hyb ? "allowed " + ok + " · flips" : side) + " @ " + L.trigger_px.toFixed(2));
+    const lc = L.last_call;
+    setTxt("leg-line", hyb
+      ? "Price " + L.price.toFixed(2) + " · Claude calls entries, the detector leg must agree: only " + ok + " 4 lots (+37.5pt each) · leg flips and the allowed side with it at "
+        + L.trigger_px.toFixed(2) + " (" + L.trigger_pts.toFixed(0) + "pt 11×ATR " + L.atr14.toFixed(1) + ") · decisions to " + (L.window_end_hhmm_utc || "13:30") + "Z · "
+        + (lc ? "last call " + lc.action + (lc.entry_action ? " → " + lc.entry_action : "") + ": " + (lc.reason || "") : "no call yet")
+      : "Price " + L.price.toFixed(2) + " · robot will " + side + " 4 lots on a "
       + L.trigger_pts.toFixed(0) + "pt " + (up ? "drop" : "bounce") + " (11×ATR " + L.atr14.toFixed(1) + ") · "
       + (L.gate === "VETO_ACTIVE" ? "veto lifts 05:00 Paris" : "veto not in force"));
     const h = $("leg-hist");
@@ -253,7 +260,40 @@
       h.appendChild(t);
     }
   }
-  let _legRaw = null;
+  /* Claude's clock: orange sparkle + mm:ss to the hybrid's next look, then the last ENTER call stamped
+     green (pressed) or red (ignored). Counts down in the browser off the absolute epoch the tracker exports. */
+  const CL_WHY = [[/NOT_WITH_LEG|NO_DETECTOR_LEG/, "against the leg", "LEG"], [/VETOED/, "5am veto", "VETO"], [/STALE/, "stale", "STALE"],
+    [/HOLDING/, "already in a trade", "HELD"], [/VENUE_NOT_FLAT|NOT_OK|BLIND|PENDING/, "desk not flat", "FLAT?"]];
+  function clWhy(ea) {
+    for (const w of CL_WHY) if (w[0].test(ea || "")) return w;
+    return [null, "gate said no", "GATE"];
+  }
+  function renderClaude(L) {
+    const nx = $("cl-next"), la = $("cl-last");
+    if (!nx || !la) return;
+    let txt = "--:--", cls = "";
+    if (L && L.next_look_ts) {
+      const rem = Math.round(L.next_look_ts - Date.now() / 1000);
+      if (rem > 1800) { const h = Math.floor(rem / 3600), m = Math.floor(rem % 3600 / 60), sc = rem % 60; txt = "SHUT " + h + ":" + String(m).padStart(2, "0") + ":" + String(sc).padStart(2, "0"); }   // window closed: hours-minutes-seconds to the next look
+      else if (rem > 0) { const m = Math.floor(rem / 60), s = rem % 60; txt = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0"); }
+      else if (rem > -90) { txt = "now"; cls = "cl-now"; }
+    } else if (L && L.look_state) txt = L.look_state === "OFF" ? "OFF" : "SHUT";
+    nx.textContent = txt; nx.className = "cl-next " + cls;
+    const S = _legShown && _legShown.status === "OK" ? _legShown : (L && L.status === "OK" ? L : null);
+    if (S) {
+      const up = S.dir === 1, p = Math.max(0, Math.round(S.retrace_pct || 0));
+      setTxt("cl-dir-l", (up ? "▲ UP · BUY only" : "▼ DOWN · SELL only") + " · " + p + "% to flip");
+      setTxt("cl-dir-s", (up ? "▲B " : "▼S ") + p + "%");
+      $("cl-dir").className = "cl-dir" + (p >= 60 ? " cl-flip" : "");
+    } else { setTxt("cl-dir-l", ""); setTxt("cl-dir-s", ""); $("cl-dir").className = "cl-dir"; }
+    const c = L && L.last_entry_call;
+    la.className = "cl-last " + (c ? (c.taken ? "cl-buy" : "cl-skip") : "");
+    if (!c) { setTxt("cl-last-l", "no entry call yet"); setTxt("cl-last-s", "no call"); return; }
+    const hhmm = legHHMM(Date.parse(c.decision_ts) / 1000), w = clWhy(c.entry_action);
+    setTxt("cl-last-l", "last entry call " + c.side + " " + hhmm + " Paris · " + (c.taken ? "TAKEN" : "IGNORED (" + w[1] + ")"));
+    setTxt("cl-last-s", (c.side === "BUY" ? "B " : "S ") + hhmm + (c.taken ? " ✓" : " ✗ " + w[2]));
+  }
+  let _legRaw = null, _legShown = null;
   /* the tracker file is written every ~10s from SETTLED 1-min bars; the chart ticks every 1s. Overlay
      the chart's latest price so the strip moves with the tape: a new extreme resets the retrace, else
      the retrace is price vs extreme. The robot itself still acts only on the detector's closed bars. */
@@ -275,6 +315,7 @@
   async function pollLeg() {
     try { _legRaw = await getJSON("static/leg_tracker_web.json"); renderLegLive(); }
     catch (e) { try { _legRaw = null; renderLeg(null); } catch (e2) { } }
+    try { renderClaude(_legRaw); } catch (e) { }
   }
 
   /* ---------- fetch ---------- */
@@ -372,7 +413,12 @@
     // −$438 while the rider made +$1,183.50. Falls back to h.today (tournament-only) so an older
     // API build still renders rather than showing "—".
     const total = deskToday(h);
-    set("k-today", total); set("k-yest", h.yest); set("k-d2", h.d2); set("k-d7", h.d7); set("k-d30", h.d30);
+    set("k-today", total); set("k-yest", h.yest); set("k-d2", h.d2); 
+    // ★2026-10-23 5D/20D = 1 week / 4 weeks, ROLLING trading days. Falls back to 7D/30D (labelled so)
+    // against an API build that predates d5/d20, so the label can never claim a window it isn't.
+    const wk = h.d5 != null;
+    setTxt("l-d7", wk ? "5D" : "7D"); setTxt("l-d30", wk ? "20D" : "30D");
+    set("k-d7", wk ? h.d5 : h.d7); set("k-d30", wk ? h.d20 : h.d30);
     const sub = (id, label, v) => {
       const el = $(id); if (!el) return;
       el.textContent = v == null ? label + " —" : label + " " + money(v, 0);
@@ -436,15 +482,19 @@
     setSymNote(want, served, got);
     const W = Math.max(320, Math.round(host.clientWidth));
     const H = Math.max(160, Math.round(host.clientHeight));
+    // ★2026-10-14 FLUID: the chart paints in true pixels, so its margins, fonts and markers do NOT follow
+    // the CSS rem scale on their own. K = the page's zoom (root font / 16), floored at 1 so the axis text
+    // never drops below the size it was designed at on a small laptop.
+    const K = Math.max(1, (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16);
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2).toFixed(0)}" y="${(H / 2).toFixed(0)}" fill="#5c6b78" font-size="15" text-anchor="middle">no bars yet</text>`; return; }
+    if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2).toFixed(0)}" y="${(H / 2).toFixed(0)}" fill="#5c6b78" font-size="${(15 * K).toFixed(1)}" text-anchor="middle">no bars yet</text>`; return; }
     /* ★2026-09-24 THE PRICE AXIS RAN OFF THE LEFT EDGE ON THE PHONE. An MNQ price at one decimal
        ("30377.0") is 7 monospace characters; at 12px that is ~50px, anchored END at plotL-6 = 50,
        so it began at x ≈ -0.4 — half a character outside the SVG. Whole points (5 chars) at 9.5px
        is ~29px, which sits comfortably inside a 40px margin AND hands 16px back to the chart.
        ⚠ Losing the decimal costs nothing: these are GRIDLINE labels, not quotes — the live price
        is on the holding card above, to the tick. */
-    const ML = 40, MT = 10, MB = 18;              // margins: left = price axis, bottom = time axis
+    const ML = Math.round(40 * K), MT = Math.round(10 * K), MB = Math.round(18 * K);              // margins: left = price axis, bottom = time axis
     // bar.ts is an ISO string ("2026-07-13T16:40:00+00:00") — parse to epoch SECONDS so the time axis
     // is numeric AND aligns with the fills (which use Date.parse(...)/1000). Without this every X was NaN.
     const T = (b) => Date.parse(b.ts) / 1000;
@@ -462,7 +512,7 @@
     // scale reads as volatility context, not just raw price.
     const refP = (a && a.last) || bars[bars.length - 1].close;
     const atrPts = (a && typeof a.atr_pct === "number" && a.atr_pct > 0) ? (a.atr_pct / 100) * refP : null;
-    const MR = atrPts ? 34 : 10;                  // widen the right margin to hold the ATR-distance axis
+    const MR = Math.round((atrPts ? 34 : 10) * K);                  // widen the right margin to hold the ATR-distance axis
     const plotL = ML, plotR = W - MR, plotT = MT, plotB = H - MB;
     // y-scale to the PRICE BARS with padding so the line is CENTRED vertically — never crushed by a
     // far-away stop or an out-of-window fill (a 0.5% stop would squash the real action into a sliver).
@@ -482,21 +532,21 @@
     for (let i = 0; i <= 4; i++) {
       const p = lo + rng * i / 4, y = Y(p);
       g += `<line x1="${plotL}" y1="${y.toFixed(1)}" x2="${plotR}" y2="${y.toFixed(1)}" stroke="#212b35" stroke-width="1" opacity="0.7"/>`;
-      g += `<text x="${plotL - 5}" y="${(y + 3.5).toFixed(1)}" fill="#8a99a6" font-size="9.5" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="end">${nf(p, 0)}</text>`;
+      g += `<text x="${plotL - 5 * K}" y="${(y + 3.5 * K).toFixed(1)}" fill="#8a99a6" font-size="${(9.5 * K).toFixed(1)}" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="end">${nf(p, 0)}</text>`;
       if (atrPts) {
         const dd = (p - refP) / atrPts;
         const lbl = (dd >= 0 ? "+" : "−") + nf(Math.abs(dd), 1);
-        g += `<text x="${(plotR + 4).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" fill="#6b8f8f" font-size="9" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">${lbl}</text>`;
+        g += `<text x="${(plotR + 4 * K).toFixed(1)}" y="${(y + 3.5 * K).toFixed(1)}" fill="#6b8f8f" font-size="${(9 * K).toFixed(1)}" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">${lbl}</text>`;
       }
     }
     // label the right axis so the +/- numbers read as ATRs (bottom-right, on the time-axis line)
-    if (atrPts) g += `<text x="${(plotR + 4).toFixed(1)}" y="${(H - 5).toFixed(1)}" fill="#6b8f8f" font-size="8" letter-spacing="0.4" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">ATR</text>`;
+    if (atrPts) g += `<text x="${(plotR + 4 * K).toFixed(1)}" y="${(H - 5 * K).toFixed(1)}" fill="#6b8f8f" font-size="${(8 * K).toFixed(1)}" letter-spacing="0.4" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">ATR</text>`;
     // X axis — 4 time ticks across the window (first left-anchored, last right-anchored so neither clips)
     for (let i = 0; i <= 3; i++) {
       const t = t0 + tspan * i / 3, x = X(t);
       const anc = i === 0 ? "start" : (i === 3 ? "end" : "middle");
       g += `<line x1="${x.toFixed(1)}" y1="${plotT}" x2="${x.toFixed(1)}" y2="${plotB}" stroke="#212b35" stroke-width="1" opacity="0.3"/>`;
-      g += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="#8a99a6" font-size="9.5" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="${anc}">${hm(t)}</text>`;
+      g += `<text x="${x.toFixed(1)}" y="${(H - 6 * K).toFixed(1)}" fill="#8a99a6" font-size="${(9.5 * K).toFixed(1)}" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="${anc}">${hm(t)}</text>`;
     }
     // vwap reference (a real price level) — only if it falls in the price range
     if (a && inRange(a.vwap)) g += `<line x1="${plotL}" y1="${Y(a.vwap).toFixed(1)}" x2="${plotR}" y2="${Y(a.vwap).toFixed(1)}" stroke="#37c9c9" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>`;
@@ -513,22 +563,42 @@
       const col = f.side === "SHORT" ? "#ff5a5f" : "#37d07a";
       const te = f.opened_at ? Date.parse(f.opened_at) / 1000 : null;
       const tx = f.time ? Date.parse(f.time) / 1000 : null;
-      if (te && te >= t0 && te <= t1 && inRange(f.entry)) g += tri(X(te), Y(f.entry), col, true);
-      if (tx && tx >= t0 && tx <= t1 && inRange(f.exit_price)) g += tri(X(tx), Y(f.exit_price), col, false);
+      if (te && te >= t0 && te <= t1 && inRange(f.entry)) g += tri(X(te), Y(f.entry), col, true, K);
+      if (tx && tx >= t0 && tx <= t1 && inRange(f.exit_price)) g += tri(X(tx), Y(f.exit_price), col, false, K);
+    });
+    /* ★2026-10-15 GREEN DOT AT THE MOMENT OF THE BUY (operator: "helpful especially for longer holds").
+       Entry time: the holding's own opened_at, else the rider's entered_at carried in
+       leg_tracker_web.json (the holdings payload has no entry time for rider positions and a web
+       restart would drop his tab). A hold older than the chart window pins the dot to the left edge
+       with a "since HH:MM" label rather than vanishing. */
+    holds.forEach((h) => {
+      if (!inRange(h.avg)) return;
+      let iso = h.opened_at;
+      const rp = _legRaw && _legRaw.rider_pos;
+      if (!iso && rp && Math.abs(Number(rp.entry) - h.avg) < 0.5) iso = rp.entered_at;
+      const te = iso ? Date.parse(iso) / 1000 : NaN;
+      if (!isFinite(te) || te > t1) return;
+      const y = Y(h.avg).toFixed(1), r = (4.5 * K).toFixed(1);
+      if (te >= t0) {
+        g += `<circle cx="${X(te).toFixed(1)}" cy="${y}" r="${r}" fill="#37d07a" stroke="#04110f" stroke-width="1"/>`;
+      } else {
+        g += `<circle cx="${plotL}" cy="${y}" r="${r}" fill="#37d07a" stroke="#04110f" stroke-width="1"/>`;
+        g += `<text x="${(plotL + 8 * K).toFixed(1)}" y="${(Y(h.avg) - 6 * K).toFixed(1)}" fill="#37d07a" font-size="${(9 * K).toFixed(1)}" font-family="ui-monospace,SFMono-Regular,monospace">in since ${hm(te)}</text>`;
+      }
     });
     // live last-price tag — pinned to the very TOP-RIGHT corner, in the padded empty band above the
     // centred line so it never sits on top of the price point. Drawn last = on top.
     const lastP = (a && a.last) || bars[bars.length - 1].close;
     if (lastP != null) {
-      const txt = nf(lastP, 2), tw = txt.length * 8 + 10, by = 1;
-      g += `<rect x="${(plotR - tw).toFixed(1)}" y="${by}" width="${tw}" height="17" rx="3" fill="#37c9c9"/>`;
-      g += `<text x="${(plotR - tw / 2).toFixed(1)}" y="${by + 12.5}" fill="#04110f" font-size="12" font-weight="700" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="middle">${txt}</text>`;
+      const txt = nf(lastP, 2), tw = Math.round((txt.length * 8 + 10) * K), by = 1;
+      g += `<rect x="${(plotR - tw).toFixed(1)}" y="${by}" width="${tw}" height="${(17 * K).toFixed(1)}" rx="${(3 * K).toFixed(1)}" fill="#37c9c9"/>`;
+      g += `<text x="${(plotR - tw / 2).toFixed(1)}" y="${(by + 12.5 * K).toFixed(1)}" fill="#04110f" font-size="${(12 * K).toFixed(1)}" font-weight="700" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="middle">${txt}</text>`;
     }
     svg.innerHTML = g;
   }
   const line = (x1, y1, x2, y2, c, dash) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="1" stroke-dasharray="${dash}" opacity="0.7"/>`;
-  function tri(x, y, col, up) {
-    const s = 5;
+  function tri(x, y, col, up, k) {
+    const s = 5 * (k || 1);
     return up
       ? `<polygon points="${x},${y - s} ${x - s},${y + s} ${x + s},${y + s}" fill="${col}"/>`
       : `<polygon points="${x},${y + s} ${x - s},${y - s} ${x + s},${y - s}" fill="${col}"/>`;
@@ -595,7 +665,12 @@
         fl.onclick = () => {
           const h2 = mnqHoldings();
           if (!h2.length) { window.alert("Nothing to flatten — you are flat."); return; }
-          if (!window.confirm("FLATTEN " + Math.abs(h2[0].qty) + " lot(s) at market?")) return;
+          /* TRIPLE CONFIRM, by his instruction 2026-10-15. Any "Cancel" aborts; nothing is sent
+             until the third OK. */
+          const nLots = Math.abs(h2[0].qty);
+          if (!window.confirm("FLATTEN " + nLots + " lot(s) at market?\n\n(confirmation 1 of 3)")) return;
+          if (!window.confirm("This closes the WHOLE position right now, green or red, at market.\n\n(confirmation 2 of 3)")) return;
+          if (!window.confirm("ARE YOU ABSOLUTELY SURE????\n\nFlatten " + nLots + " lot(s) NOW?\n\n(confirmation 3 of 3)")) return;
           fl.disabled = true;
           fetch("api/control/dayrider-claim", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -744,8 +819,8 @@
       f.classList.remove("show"); void f.offsetWidth; f.classList.add("show");
       setTimeout(function () { f.classList.remove("show"); }, 6000);
     }
-    document.title = text + " · GAZBOT V7";
-    setTimeout(function () { document.title = "GAZBOT V7 · MNQ DESK"; }, 20000);
+    document.title = text + " · GAZBOT V8 ROBO";
+    setTimeout(function () { document.title = "Gazbot V8 ROBO · MNQ Desk"; }, 20000);
     // Android/desktop only — iOS Safari has no Vibration API at all, so this is a bonus, never the
     // mechanism. Guarded because calling an absent function would kill the rest of the render pass.
     try { if (navigator.vibrate) navigator.vibrate(kind === "giveback" ? [90, 60, 90] : 140); } catch (e) { }
@@ -949,9 +1024,10 @@
     const bars = (STATE.bars && STATE.bars.bars || []).filter((b) => typeof b.close === "number" && b.ts);
     const W = Math.max(240, Math.round(host.clientWidth));
     const H = Math.max(110, Math.round(host.clientHeight));
+    const K = Math.max(1, (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16);   // fluid zoom, see renderHero
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2) | 0}" y="${(H / 2) | 0}" fill="#5c6b78" font-size="13" text-anchor="middle">no bars yet</text>`; return; }
-    const ML = 8, MR = 66, MT = 8, MB = 8;  // right margin holds the IN/STOP/LOCK price labels
+    if (bars.length < 2) { svg.innerHTML = `<text x="${(W / 2) | 0}" y="${(H / 2) | 0}" fill="#5c6b78" font-size="${(13 * K).toFixed(1)}" text-anchor="middle">no bars yet</text>`; return; }
+    const ML = Math.round(8 * K), MR = Math.round(66 * K), MT = Math.round(8 * K), MB = Math.round(8 * K);  // right margin holds the IN/STOP/LOCK price labels
     const plotL = ML, plotR = W - MR, plotT = MT, plotB = H - MB;
     const T = (b) => Date.parse(b.ts) / 1000;
     const t0 = T(bars[0]), t1 = T(bars[bars.length - 1]), tspan = Math.max(1, t1 - t0);
@@ -973,7 +1049,7 @@
     refs.forEach((r) => {
       const y = Y(r.v);
       g += `<line x1="${plotL}" y1="${y.toFixed(1)}" x2="${plotR}" y2="${y.toFixed(1)}" stroke="${r.c}" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/>`;
-      g += `<text x="${(plotR + 4).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" fill="${r.c}" font-size="10.5" font-weight="600" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">${r.label}</text>`;
+      g += `<text x="${(plotR + 4 * K).toFixed(1)}" y="${(y + 3.5 * K).toFixed(1)}" fill="${r.c}" font-size="${(10.5 * K).toFixed(1)}" font-weight="600" font-family="ui-monospace,SFMono-Regular,monospace" text-anchor="start">${r.label}</text>`;
     });
     const pts = bars.map((b) => X(T(b)).toFixed(1) + "," + Y(b.close).toFixed(1)).join(" ");
     g += `<polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"/>`;
@@ -1436,14 +1512,18 @@
     const sum = $("days-sum");
     /* ★ SAY WHICH QUESTION THIS ANSWERS. The header and this table once disagreed by $330 on a
        carry-in trade and nothing on the page said which to believe. */
+    /* 2026-10-29: the period PF and $/day. PF = gross wins / gross losses; with no losing trade it is ∞, never blank. */
+    const gw = rows.reduce((a, r) => a + (r.gross_w || 0), 0), gl = rows.reduce((a, r) => a + (r.gross_l || 0), 0);
+    const ppf = gl > 0 ? (gw / gl).toFixed(2) : (gw > 0 ? "∞" : "—");
     if (sum) sum.textContent = rows.length
-      ? `· ${rows.length} sessions · ${money(tot, 0)} · realised` : "";
+      ? `· ${rows.length} sessions · ${money(tot, 0)} · ${money(tot / rows.length, 0)}/day · PF ${ppf} · realised` : "";
     guard("days.bars", () => renderDayBars(rows));
     body.innerHTML = "";
     rows.forEach((r) => {
       const tr = document.createElement("tr");
       tr.className = "dayrow" + (DAYS_OPEN.has(r.day) ? " open" : "");
-      const pf = r.pf == null ? "—" : r.pf.toFixed(2);
+      /* PF is undefined with no losing trade: a winning day with no losers shows ∞ (not a blank "—") */
+      const pf = r.pf != null ? r.pf.toFixed(2) : (r.losses === 0 && r.wins > 0 ? "∞" : "—");
       /* ⚠ "entries" are DECISIONS. The rows in `trades` are scale-out EXITS of one entry, so a
          per-row count overstates his activity ~2.5x — the drill below shows the exits. */
       tr.innerHTML =
@@ -1617,6 +1697,7 @@
   // file refreshes every 10 min, and a failed usage read must never abort the header's P&L render.
   pollCredits(); setInterval(pollCredits, 60000);
   pollLeg(); setInterval(pollLeg, 5000);
+  setInterval(() => { try { renderClaude(_legRaw); } catch (e) { } }, 1000);
   // the chart draws in pixel space → re-fit it to the new box on resize (debounced), not just next tick
   let _rz; window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(() => { try { renderHero(); } catch (e) { } }, 120); });
 })();
