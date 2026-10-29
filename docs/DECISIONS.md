@@ -19039,3 +19039,12 @@ fail without it.
 A replay "lesson" turned out to be one draw: the gold 10-19 07:35Z long that lost $2,060 was asked again 12 times on the identical prompt and was never repeated, while the
 good 09:00Z short came back 5 times in 6. The fix for a rare lapse is not a brief rewrite but a vote: from the 10-27 session an otherwise-pressable ENTER is asked 4 more times
 and needs 3 of 5. All ballots are logged so next week's 3-vote setting can be read from the same records (ballots 1-3). Switch `hybrid_votes=5`. Declaration E123.
+
+
+## §371 — 2026-10-28/29 — v1.06: THE VETO GOES, AND A VOTE NEEDS FOUR OF FIVE (E126, E128).
+The 05:00 Paris veto came from replays run before the Desk Brief and the votes existed. A log-only shadow (E125) asked the no-veto question every 5 min
+before the veto: 13 of 13 early ENTERs were 5/5 and the no-veto path made +$882 against +$302 - so the veto was lifted by switch from 10-29 (`hybrid_veto=off`),
+the hours before 02:00Z left in a second log-only shadow (E127). On the first no-veto day the week's only 3/5 entry sat 263pt underwater for 11 hours;
+one replay of the day under 4/5 doubled it. From 10-30 an entry needs 4 of 5 (`hybrid_votes_need=4`). An early-exit study (E129) closed the other road:
+a trade that starts red is usually a winner that comes back, so "sell if it goes straight against us" loses in every variant; the levers that work are at
+the entry (votes, brief), not mid-trade.

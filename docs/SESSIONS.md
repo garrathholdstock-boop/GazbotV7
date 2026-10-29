@@ -4229,3 +4229,16 @@ FINDING (not fixed): the Thu 10-22 lock was NOT sticky - DAY_LOCK 05:25Z, but 06
 - **10-28 D6:** after the paid long every call said "repeat entry on a day that already paid" - D5's "leg or day" acted as a 1-trade/day cap; now repeat =
   same stalled leg only. **v1.06 (E126): no veto from 10-29** (`hybrid_veto=off`). Fixed on the way: day_rider L5 audit false UNBOOKED EXITS page after a
   real trade was flagged BADFILL; nightly header shows the session's own version; stale tracker version test. Summary for external review: docs/GBV8_SUMMARY_2026-10-27.md.
+
+## 2026-10-29 — first no-veto day; 4/5 votes; early-exit study; dashboard risk metrics
+- **v1.06 live (no veto):** 02:00Z short 5/5 (03:00 Paris, the first pre-veto entry) +$256 in 30 min; 02:40Z short passed **3/5** (WAIT ballots: "stalled",
+  "re-entry"), sat ~263pt (~-$2,100) against for 11h, paid 13:33Z +$272. Day +$527; **8 green days in a row, +$5,786, +$723/day**, all automatic.
+- **Overnight shadow (E127)** first night: 48/48 clean, 8 ENTER, 5 passed the vote, as one desk +$882; the 01:50Z one would still have been open at 02:00Z.
+- **Vote table (26 voted entries, live + shadows, 3 days):** 5/5 18 (13 fast, 5 slow, 0 losers); 4/5 3 (all won); the only 3/5 = the 02:40 short.
+  **E128 exploratory replay** of 10-29 under 4/5 (`reports/e128/`, ONE run): Claude waited out the bounce, longs 04:00 (4/5) / 04:45 / 05:05 (5/5) all
+  hit in <=25 min, lock 05:10Z, **+$1,138 vs +$527**. -> **E128 live from 10-30: entries need 4 of 5** (`hybrid_votes_need=4`; never below a majority).
+- **E129 early-exit grid** (`reports/e129/`, 207 entries): "exit if X pts against within T min" loses in every cell; winners that start red come back,
+  disasters turn bad slowly. Only a ~60pt all-day stop matched holding (+$315, worst trade -$488 vs -$6,581) and its 40/80 neighbours lose - not robust.
+- **Dashboard Days page:** PF ∞ on loser-free days (it was a blank dash: PF undefined with no losers); summary adds $/day, period PF (3.34), Sharpe
+  (28.3 - flatters a no-stop desk), worst intraday drawdown per day (open position counted, 5s bars) and return/risk (3.1x). Web service restarted.
+- Saturday 06:40Z W44 review now opens with the vote threshold; Robot STOP_AFTER 10-30 and the 11-01 US clock change must be handled before Monday.
