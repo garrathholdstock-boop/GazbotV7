@@ -1515,8 +1515,16 @@
     /* 2026-10-29: the period PF and $/day. PF = gross wins / gross losses; with no losing trade it is ∞, never blank. */
     const gw = rows.reduce((a, r) => a + (r.gross_w || 0), 0), gl = rows.reduce((a, r) => a + (r.gross_l || 0), 0);
     const ppf = gl > 0 ? (gw / gl).toFixed(2) : (gw > 0 ? "∞" : "—");
+    /* Sharpe on DAILY realised P&L, annualised (x sqrt 252) - it flatters a no-stop desk, so the worst intraday drawdown sits next to it,
+       and return-on-risk = period P&L / |worst intraday|. */
+    const pnls = rows.map((r) => r.pnl || 0), mean = tot / (rows.length || 1);
+    const sd = pnls.length > 1 ? Math.sqrt(pnls.reduce((a, x) => a + (x - mean) ** 2, 0) / (pnls.length - 1)) : 0;
+    const sharpe = sd > 0 ? (mean / sd * Math.sqrt(252)).toFixed(1) : "—";
+    const dds = rows.map((r) => r.worst_intraday).filter((x) => x != null);
+    const wdd = dds.length ? Math.min(...dds) : null;
+    const ror = wdd != null && wdd < 0 ? (tot / -wdd).toFixed(1) + "x" : "—";
     if (sum) sum.textContent = rows.length
-      ? `· ${rows.length} sessions · ${money(tot, 0)} · ${money(tot / rows.length, 0)}/day · PF ${ppf} · realised` : "";
+      ? `· ${rows.length} sessions · ${money(tot, 0)} · ${money(tot / rows.length, 0)}/day · PF ${ppf} · Sharpe ${sharpe} · worst intraday ${wdd == null ? "—" : money(wdd, 0)} · return/risk ${ror} · realised` : "";
     guard("days.bars", () => renderDayBars(rows));
     body.innerHTML = "";
     rows.forEach((r) => {
@@ -1531,6 +1539,7 @@
         `<td class="s">${r.entries}t</td>` +
         `<td class="s">${r.wins}/${r.losses}</td>` +
         `<td class="s">PF ${pf}</td>` +
+        `<td class="s" title="lowest P&L of the day counting the open position (no stop)">dd ${r.worst_intraday == null ? "—" : money(r.worst_intraday, 0)}</td>` +
         `<td class="p ${(r.pnl || 0) >= 0 ? "pos" : "neg"}">${money(r.pnl, 0)}</td>`;
       tr.onclick = () => {
         if (DAYS_OPEN.has(r.day)) DAYS_OPEN.delete(r.day); else DAYS_OPEN.add(r.day);

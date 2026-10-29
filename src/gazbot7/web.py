@@ -359,6 +359,36 @@ def days_json(store_path, n=14):
         d = r["closed_at"][:10]
         by_day.setdefault(d, []).append(r)
     out = []
+    import os as _os
+    _cap = _os.path.join(_os.path.dirname(store_path), "capture.db")
+    _pv = {"MNQ": 2.0, "MGC": 10.0}
+
+    def _worst_intraday(clean):
+        """2026-10-29 (operator: "Is there a better measurement?"): the day's lowest P&L counting the OPEN position - realised before each
+        entry + that entry's worst mark (5s bars, entry to close). A no-stop desk's risk is here, not in its few realised losers. None if unreadable."""
+        try:
+            ents = {}
+            for x in clean:
+                e = ents.setdefault(x["opened_at"], {"side": x["side"], "entry": x["entry_price"], "qty": 0.0, "closed": x["closed_at"], "sym": x.get("symbol") or "MNQ"})
+                e["qty"] += float(x["qty"] or 0); e["closed"] = max(e["closed"], x["closed_at"])
+            cc = _sq.connect(f"file:{_cap}?mode=ro", uri=True, timeout=3)
+            worst = 0.0
+            for o, e in sorted(ents.items()):
+                pv = _pv.get(e["sym"])
+                if pv is None or e["entry"] is None:
+                    continue
+                t0 = int(datetime.fromisoformat(o).timestamp()); t1 = int(datetime.fromisoformat(e["closed"]).timestamp())
+                lo, hi = cc.execute("SELECT min(low), max(high) FROM bars WHERE symbol=? AND timeframe='5s' AND bar_ts BETWEEN ? AND ?",
+                                    (e["sym"], t0, t1)).fetchone()
+                if lo is None:
+                    continue
+                adverse = (e["entry"] - lo) if e["side"] == "LONG" else (hi - e["entry"])
+                before = sum(float(x["pnl_usd"] or 0) for x in clean if x["closed_at"] <= o)
+                worst = min(worst, before - max(0.0, adverse) * e["qty"] * pv)
+            cc.close()
+            return round(worst)
+        except Exception:
+            return None
     # ⚠ SLICE TO n SESSIONS HERE, after grouping — the SQL cannot know how many calendar days hold
     # n trading days, and guessing there is what produced the 11-for-14.
     for d in sorted(by_day, reverse=True)[:n]:
@@ -378,6 +408,7 @@ def days_json(store_path, n=14):
             # ⚠ PF is UNDEFINED with no losing trade — report null, never a fake infinity.
             "pf": (round(gross_w / gross_l, 2) if gross_l > 0 else None),
             "gross_w": round(gross_w, 2), "gross_l": round(gross_l, 2),   # the summary line's period PF (2026-10-29)
+            "worst_intraday": _worst_intraday(clean),
             "flagged": len(rs) - len(clean),
             "trades": [{
                 "id": x["id"], "side": x["side"], "qty": x["qty"],
