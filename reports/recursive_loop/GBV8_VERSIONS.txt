@@ -43,3 +43,5 @@ v1.05  2026-10-27  VOTES (E123): v1.04 unchanged + an otherwise-pressable ENTER 
 
 v1.06  2026-10-29  NO VETO (E126): v1.05 + D6 brief unchanged, minus the 05:00 Paris veto - entries from 02:00Z. Switch `hybrid_veto=off` (rollback = remove).
        Basis: E125 pre-veto shadow (10-28: 13/13 shadow ENTERs 5/5, no-veto path +$882 vs +$302). Arm v1.06+LOCK+BRIEF+VOTES+NOVETO - never pool.
+       2026-10-29 ~14:40Z (E128, operator): VOTE THRESHOLD 4 of 5 from the 10-30 session (`hybrid_votes_need=4`; remove = 3/5). Basis: the week's only 3/5 entry
+       sat 263pt against for 11h; one exploratory replay of 10-29 under 4/5 = +$1,138 vs +$528.

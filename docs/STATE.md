@@ -1,5 +1,7 @@
 # GAZBOT V7 — STATE
 
+> **★★★ 2026-10-29 14:40Z — FROM THE 10-30 SESSION: ENTRIES NEED 4 OF 5 VOTES (E128, `hybrid_votes_need=4`).** Today (10-29, first no-veto day): 02:00Z short 5/5 +$256 (03:00 Paris, first pre-veto entry ever), 02:40Z short 3/5 sat ~263pt against for 11h, paid 13:33Z +$272 -> day +$528, 8th green day. Overnight shadow (E127) ran 48/48 clean. Saturday 06:40Z full W44 review (trig_015U1EjV4yZuYTmQ1h4jfHnA). Robot STOP_AFTER 10-30 21:00Z; US clocks change 11-01 (cash open 14:30Z) - both before Monday.
+
 > **★★★ 2026-10-28 11:40Z — v1.06 FROM THE 10-29 SESSION (E126): NO 05:00 PARIS VETO.** Entries from 02:00Z (03:00 Paris). Switch `hybrid_veto=off` (remove = veto back). Brief D6 (10-28: "a paid day is not a reason to wait"; D4 10-27 time-left, D5 10-27 "marginal"). 5 votes, cap off to 10-30, pre-veto shadow (E125) self-retires. Near-miss + bucket report nightly 20:55Z (`scripts/hybrid_near_misses.py`); every live prompt saved in `data/hybrid_prompts/`.
 
 > **★★★ 2026-10-26 21:20Z — WHAT RUNS FROM THE 10-27 SESSION (02:00Z) TO THE ROBOT'S STOP (10-30 21:00Z): GAZBOT V8 ROBO v1.05 = DESK BRIEF + 5 VOTES, MIL CAP RELEASED.**

@@ -996,3 +996,24 @@ def test_without_the_switch_or_before_vetooff_from_the_veto_holds(votebox, monke
     monkeypatch.setattr(H, "VETOOFF_FROM", "2026-10-01")
     votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\n")
     assert votebox.step(at(8, 5))["decision"]["entry_action"] == "VETOED_BEFORE_05_PARIS"   # no switch line
+
+
+# ── E128: the vote threshold raised by switch (4 of 5) ──────────────────────────────────────────────────────────────────────
+
+def test_with_votes_need_4_a_3_of_5_entry_is_not_pressed(votebox):
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_brief=desk\nhybrid_votes=5\nhybrid_votes_need=4\n")
+    votebox.leg_up(); votebox.answer = {"action": "ENTER_LONG"}
+    votebox.more = [{"action": "ENTER_LONG"}, {"action": "WAIT"}, {"action": "ENTER_LONG"}, {"action": "WAIT"}]
+    r = votebox.step(at(8))
+    assert r["decision"]["votes"]["need"] == 4 and r["decision"]["entry_action"] == "VOTE_3_OF_5_NOT_ENTERED"
+    votebox.more = [{"action": "ENTER_LONG"}] * 3 + [{"action": "WAIT"}]
+    assert votebox.step(at(8, 5))["decision"]["entry_action"] == "PRESS_BUY"
+
+
+def test_votes_need_can_never_drop_below_a_majority(votebox):
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_votes_need=2\n")
+    assert H.votes_need(5) == 3
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_votes_need=9\n")
+    assert H.votes_need(5) == 3
+    votebox.paths["SWITCH"].write_text("hybrid_robot=on\nhybrid_votes_need=5\n")
+    assert H.votes_need(5) == 5

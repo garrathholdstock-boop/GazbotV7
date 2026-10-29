@@ -74,9 +74,10 @@ def tick(now: dt.datetime, ask=None, ballots=None) -> dict | None:
             if left >= H.VOTE_MIN_S:
                 more = ballots(prompt, 4, timeout=min(H.VOTE_TIMEOUT_S, left))
                 agree = sum(1 for b in [d] + more if b.get("action") == act and not b.get("error"))
-                rec["votes"] = {"n": 5, "need": 3, "agree": agree, "ballots": [act] + [b.get("action") for b in more],
+                need = H.votes_need(5)
+                rec["votes"] = {"n": 5, "need": need, "agree": agree, "ballots": [act] + [b.get("action") for b in more],
                                 "errors": sum(1 for b in more if b.get("error"))}
-                rec["would_press"] = agree >= 3
+                rec["would_press"] = agree >= need
             else:
                 rec["votes"] = {"no_time": left}; rec["would_press"] = False
         else:

@@ -291,7 +291,7 @@ def preveto_shadow(key: str, op: int, upto: list, px: float, now_ts: int, turns:
             if left >= VOTE_MIN_S:
                 more = ask_ballots(sp, n - 1, timeout=min(VOTE_TIMEOUT_S, left))
                 acts = [act] + [b.get("action") for b in more]
-                sh["votes"] = {"n": n, "need": n // 2 + 1, "agree": sum(1 for b in [d] + more if b.get("action") == act and not b.get("error")),
+                sh["votes"] = {"n": n, "need": votes_need(n), "agree": sum(1 for b in [d] + more if b.get("action") == act and not b.get("error")),
                                "ballots": acts, "errors": sum(1 for b in more if b.get("error"))}
                 sh["would_press"] = sh["votes"]["agree"] >= sh["votes"]["need"]
             else:
@@ -317,6 +317,19 @@ def votes_n(key: str) -> int:
     return 1
 
 
+def votes_need(n: int) -> int:
+    """agreeing ballots an entry needs out of n. Default a simple majority (n//2+1); `hybrid_votes_need=<k>` raises it
+    (E128, operator 2026-10-29: "Change to 4/5 for tonight" - the week's only 3/5 entry sat 263pt against for 11h). Never below a majority."""
+    try:
+        for ln in open(SWITCH):
+            m = re.fullmatch(r"hybrid_votes_need=(\d+)", ln.strip())
+            if m and n // 2 + 1 <= int(m.group(1)) <= n:
+                return int(m.group(1))
+    except Exception:
+        pass
+    return n // 2 + 1
+
+
 def ask_ballots(prompt: str, k: int, timeout: int = VOTE_TIMEOUT_S) -> list:
     """k more answers to the SAME prompt, in parallel. Each is S.ask's dict plus its latency. 4 in parallel under the unit's cgroup: 633MB peak
     with the robot's imports (2026-10-26 test, MemoryMax then 900M -> raised to 1600M)."""
@@ -337,13 +350,13 @@ def vote(key: str, prompt: str | None, act: str, first: dict, fake, st: dict, re
         return None
     left = int(op + VOTE_DEADLINE_S - clock_ts)
     if left < VOTE_MIN_S:
-        rec["votes"] = {"n": n, "need": n // 2 + 1, "agree": 1, "errors": 0, "no_time": left, "ballots": []}
+        rec["votes"] = {"n": n, "need": votes_need(n), "agree": 1, "errors": 0, "no_time": left, "ballots": []}
         return rec["votes"]
     more = ask_ballots(prompt, n - 1, timeout=min(VOTE_TIMEOUT_S, left))
     ballots = [{"action": first.get("action"), "conf": first.get("confidence"), "reason": (first.get("reason") or "")[:200], "error": first.get("error")}]
     ballots += [{"action": b.get("action"), "conf": b.get("confidence"), "reason": (b.get("reason") or "")[:200], "error": b.get("error"),
                  "latency_s": b.get("latency_s")} for b in more]
-    v = {"n": n, "need": n // 2 + 1, "agree": sum(1 for b in ballots if b["action"] == act and not b["error"]),
+    v = {"n": n, "need": votes_need(n), "agree": sum(1 for b in ballots if b["action"] == act and not b["error"]),
          "errors": sum(1 for b in ballots if b["error"]), "ballots": ballots}
     rec["votes"] = v
     if v["errors"] and not dry and not st.get("vote_err_paged"):

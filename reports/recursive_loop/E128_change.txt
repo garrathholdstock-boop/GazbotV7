@@ -1,0 +1,8 @@
+E128 - VOTE THRESHOLD 4 OF 5 (operator 2026-10-29: "Change to 4/5 for tonight"). Live from the 2026-10-30 session (opens 22:00Z 10-29), switch line
+`hybrid_votes_need=4` in data/hybrid_robot.env (remove = simple majority 3/5 again; values below a majority are refused).
+Applies to the live entry votes and the overnight shadow's would_press.
+Evidence (small, 3 days): 26 voted entries (live + both shadows) - 5/5: 18 (13 fast, 5 slow, 0 losers); 4/5: 3 (2 fast, 1 slow); the only 3/5
+(10-29 02:40Z short) went 263pt against and paid only at 13:33Z after 11h; the two WAIT ballots said "stalled / re-entry".
+Exploratory replay (reports/e128/cf_4of5.py, ONE run): 10-29 under 4/5 -> the 02:40 short refused, Claude waited out the bounce, then longs
+04:00 (4/5) / 04:45 (5/5) / 05:05 (5/5) all hit within 25 min -> +$1,000 lock at 05:10Z, day +$1,138 vs actual +$528.
+Read Saturday (W44 review): every vote with its agree count and outcome; entries 4/5 refused that would have paid fast.
